@@ -1,17 +1,24 @@
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
+from app.schemas.binder import (
+    BinderListResponse,
+    BinderReceiveRequest,
+    BinderResponse,
+    BinderReturnRequest,
+)
+from app.schemas.binder_extended import (
+    BinderDetailResponse,
+    BinderHistoryEntry,
+    BinderHistoryResponse,
+    BinderListResponseExtended,
+)
 from app.schemas.client import (
     ClientCreateRequest,
-    ClientUpdateRequest,
-    ClientResponse,
     ClientListResponse,
-)
-from app.schemas.binder import (
-    BinderReceiveRequest,
-    BinderReturnRequest,
-    BinderResponse,
-    BinderListResponse,
+    ClientResponse,
+    ClientUpdateRequest,
 )
 from app.schemas.dashboard import DashboardSummaryResponse
+from app.schemas.dashboard_extended import DashboardOverviewResponse
 
 __all__ = [
     "LoginRequest",
@@ -26,4 +33,9 @@ __all__ = [
     "BinderResponse",
     "BinderListResponse",
     "DashboardSummaryResponse",
+    "DashboardOverviewResponse",
+    "BinderDetailResponse",
+    "BinderListResponseExtended",
+    "BinderHistoryEntry",
+    "BinderHistoryResponse",
 ]
