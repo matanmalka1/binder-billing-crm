@@ -24,20 +24,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def get_test_db():
-    """Test database session factory."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    
-    test_engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(bind=test_engine)
-    
-    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-    db = TestSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-        Base.metadata.drop_all(bind=test_engine)

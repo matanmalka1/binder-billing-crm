@@ -1,8 +1,9 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import CurrentUser, DBSession, require_role
+from app.models import UserRole
 from app.schemas import (
     ClientCreateRequest,
     ClientUpdateRequest,
@@ -11,7 +12,11 @@ from app.schemas import (
 )
 from app.services import ClientService
 
-router = APIRouter(prefix="/clients", tags=["clients"])
+router = APIRouter(
+    prefix="/clients",
+    tags=["clients"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
@@ -66,11 +71,25 @@ def get_client(client_id: int, db: DBSession, user: CurrentUser):
 
 
 @router.patch("/{client_id}", response_model=ClientResponse)
-def update_client(client_id: int, request: ClientUpdateRequest, db: DBSession, user: CurrentUser):
-    """Update client."""
+def update_client(
+    client_id: int,
+    request: ClientUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Update client. Status changes (freeze/close) require advisor role."""
     service = ClientService(db)
-
+    
     update_data = request.model_dump(exclude_unset=True)
+    
+    # Freeze/close operations restricted to advisor only
+    if "status" in update_data and update_data["status"] in ["frozen", "closed"]:
+        if user.role != UserRole.ADVISOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only advisors can freeze or close clients"
+            )
+    
     client = service.update_client(client_id, **update_data)
 
     if not client:

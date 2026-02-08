@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -9,12 +9,11 @@ from app.repositories import (
     BinderStatusLogRepository,
     ClientRepository,
 )
+from app.services.binder_helpers import BinderHelpers
 
 
 class BinderService:
     """Binder lifecycle management business logic."""
-
-    BINDER_MAX_DAYS = 90
 
     def __init__(self, db: Session):
         self.db = db
@@ -30,28 +29,17 @@ class BinderService:
         received_by: int,
         notes: Optional[str] = None,
     ) -> Binder:
-        """
-        Receive new binder (intake flow).
-        
-        Business rules:
-        - Calculate expected_return_at = received_at + 90 days
-        - Intake is never blocked by warnings
-        - Create binder and initial status log in transaction
-        """
-        # Verify client exists
+        """Receive new binder (intake flow)."""
         client = self.client_repo.get_by_id(client_id)
         if not client:
             raise ValueError(f"Client {client_id} not found")
 
-        # Check for duplicate active binder number
         existing = self.binder_repo.get_active_by_number(binder_number)
         if existing:
             raise ValueError(f"Active binder {binder_number} already exists")
 
-        # Calculate 90-day threshold
-        expected_return_at = received_at + timedelta(days=self.BINDER_MAX_DAYS)
+        expected_return_at = BinderHelpers.calculate_expected_return(received_at)
 
-        # Create binder
         binder = self.binder_repo.create(
             client_id=client_id,
             binder_number=binder_number,
@@ -61,7 +49,6 @@ class BinderService:
             notes=notes,
         )
 
-        # Log initial status
         self.status_log_repo.append(
             binder_id=binder.id,
             old_status="null",
@@ -78,13 +65,10 @@ class BinderService:
         if not binder:
             raise ValueError(f"Binder {binder_id} not found")
 
-        if binder.status not in [BinderStatus.IN_OFFICE, BinderStatus.OVERDUE]:
-            raise ValueError(f"Cannot mark binder as ready from status {binder.status}")
+        BinderHelpers.validate_ready_transition(binder)
 
         old_status = binder.status.value
-        updated = self.binder_repo.update_status(
-            binder_id, BinderStatus.READY_FOR_PICKUP
-        )
+        updated = self.binder_repo.update_status(binder_id, BinderStatus.READY_FOR_PICKUP)
 
         self.status_log_repo.append(
             binder_id=binder_id,
@@ -98,22 +82,12 @@ class BinderService:
     def return_binder(
         self, binder_id: int, pickup_person_name: str, returned_by: int
     ) -> Binder:
-        """
-        Return binder to client.
-        
-        Business rules:
-        - pickup_person_name is mandatory
-        - Can only return from ready_for_pickup or overdue status
-        """
-        if not pickup_person_name or not pickup_person_name.strip():
-            raise ValueError("pickup_person_name is required")
-
+        """Return binder to client."""
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             raise ValueError(f"Binder {binder_id} not found")
 
-        if binder.status not in [BinderStatus.READY_FOR_PICKUP, BinderStatus.OVERDUE]:
-            raise ValueError(f"Cannot return binder from status {binder.status}")
+        BinderHelpers.validate_return_transition(binder, pickup_person_name)
 
         old_status = binder.status.value
         returned_at = date.today()
@@ -137,11 +111,7 @@ class BinderService:
         return updated
 
     def mark_overdue_binders(self, reference_date: Optional[date] = None) -> int:
-        """
-        Mark binders as overdue based on 90-day rule.
-        
-        Intended for scheduled job execution.
-        """
+        """Mark binders as overdue based on 90-day rule."""
         if reference_date is None:
             reference_date = date.today()
 

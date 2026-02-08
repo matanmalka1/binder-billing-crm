@@ -1,13 +1,18 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import CurrentUser, DBSession
+from app.api.deps import CurrentUser, DBSession, require_role
+from app.models import UserRole
 from app.schemas import BinderReceiveRequest, BinderReturnRequest, BinderResponse, BinderListResponse
 from app.services import BinderService
 
-router = APIRouter(prefix="/binders", tags=["binders"])
+router = APIRouter(
+    prefix="/binders",
+    tags=["binders"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 
 
 @router.post("/receive", response_model=BinderResponse, status_code=status.HTTP_201_CREATED)
