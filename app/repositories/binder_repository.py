@@ -1,0 +1,106 @@
+from datetime import date
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from app.models import Binder, BinderStatus
+
+
+class BinderRepository:
+    """Data access layer for Binder entities."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(
+        self,
+        client_id: int,
+        binder_number: str,
+        received_at: date,
+        expected_return_at: date,
+        received_by: int,
+        notes: Optional[str] = None,
+    ) -> Binder:
+        """Create new binder (intake flow)."""
+        binder = Binder(
+            client_id=client_id,
+            binder_number=binder_number,
+            received_at=received_at,
+            expected_return_at=expected_return_at,
+            received_by=received_by,
+            status=BinderStatus.IN_OFFICE,
+            notes=notes,
+        )
+        self.db.add(binder)
+        self.db.commit()
+        self.db.refresh(binder)
+        return binder
+
+    def get_by_id(self, binder_id: int) -> Optional[Binder]:
+        """Retrieve binder by ID."""
+        return self.db.query(Binder).filter(Binder.id == binder_id).first()
+
+    def get_active_by_number(self, binder_number: str) -> Optional[Binder]:
+        """Get active (non-returned) binder by number."""
+        return (
+            self.db.query(Binder)
+            .filter(
+                Binder.binder_number == binder_number,
+                Binder.status != BinderStatus.RETURNED,
+            )
+            .first()
+        )
+
+    def list_active(
+        self,
+        client_id: Optional[int] = None,
+        status: Optional[str] = None,
+    ) -> list[Binder]:
+        """List active binders with optional filters."""
+        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED)
+
+        if client_id:
+            query = query.filter(Binder.client_id == client_id)
+
+        if status:
+            query = query.filter(Binder.status == status)
+
+        return query.all()
+
+    def update_status(
+        self,
+        binder_id: int,
+        new_status: BinderStatus,
+        **additional_fields,
+    ) -> Optional[Binder]:
+        """Update binder status and optional fields."""
+        binder = self.get_by_id(binder_id)
+        if not binder:
+            return None
+
+        binder.status = new_status
+
+        for key, value in additional_fields.items():
+            if hasattr(binder, key):
+                setattr(binder, key, value)
+
+        self.db.commit()
+        self.db.refresh(binder)
+        return binder
+
+    def mark_overdue_by_date(self, reference_date: date) -> int:
+        """Mark binders as overdue based on expected_return_at."""
+        count = (
+            self.db.query(Binder)
+            .filter(
+                Binder.expected_return_at < reference_date,
+                Binder.status.in_([BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP]),
+            )
+            .update({"status": BinderStatus.OVERDUE}, synchronize_session=False)
+        )
+        self.db.commit()
+        return count
+
+    def count_by_status(self, status: BinderStatus) -> int:
+        """Count binders by status."""
+        return self.db.query(Binder).filter(Binder.status == status).count()
