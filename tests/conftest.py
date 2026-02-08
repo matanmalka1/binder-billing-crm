@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
@@ -11,8 +12,14 @@ from app.services import AuthService
 
 @pytest.fixture(scope="function")
 def test_db():
-    """Create test database."""
-    engine = create_engine("sqlite:///:memory:", echo=False)
+    """Create test database with proper SQLite threading config."""
+    # Use StaticPool and check_same_thread=False for SQLite in tests
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+        echo=False
+    )
     Base.metadata.create_all(bind=engine)
     
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

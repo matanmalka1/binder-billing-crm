@@ -69,11 +69,10 @@ def test_binder_return_creates_log(client, auth_token, test_db, test_user):
     )
     binder_id = receive_response.json()["id"]
     
-    # Mark ready for pickup
-    client.post(
-        f"/api/v1/binders/{binder_id}/mark-ready",
-        headers={"Authorization": f"Bearer {auth_token}"}
-    )
+    # Mark binder as ready (via service since endpoint not exposed)
+    from app.services import BinderService
+    binder_service = BinderService(test_db)
+    binder_service.mark_ready_for_pickup(binder_id, test_user.id)
     
     # Return binder
     return_response = client.post(
@@ -92,6 +91,6 @@ def test_binder_return_creates_log(client, auth_token, test_db, test_user):
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
     
-    # Should have: intake, mark ready (if implemented), return
-    assert len(logs) >= 2
+    # Should have: intake, mark ready, return
+    assert len(logs) >= 3
     assert logs[-1].new_status == "returned"

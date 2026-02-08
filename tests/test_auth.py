@@ -17,7 +17,8 @@ def test_login_returns_valid_jwt(client, test_user):
     
     assert "token" in data
     assert "user" in data
-    assert data["user"]["email"] == "test@example.com"
+    assert data["user"]["id"] == test_user.id
+    assert data["user"]["full_name"] == "Test User"
     assert data["user"]["role"] == "advisor"
     
     # Validate JWT structure
