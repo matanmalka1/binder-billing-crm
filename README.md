@@ -2,18 +2,18 @@
 
 Backend implementation for Binder & Billing CRM system.
 
-## Sprint 1 Scope
+## Sprint 1 Complete
 
 **Implemented:**
-- User authentication (JWT)
-- Client management (CRUD)
-- Binder intake/return lifecycle
-- 90-day overdue calculation
-- Dashboard summary counters
-- ORM-based database schema creation
+- ✅ Alembic database migrations
+- ✅ User authentication with bcrypt and JWT
+- ✅ Client management (CRUD)
+- ✅ Binder intake/return lifecycle
+- ✅ 90-day overdue calculation
+- ✅ Dashboard summary counters
+- ✅ Minimal test suite (auth, clients, binders)
 
 **NOT Implemented (Future Sprints):**
-- Database migrations (Alembic/Flyway)
 - Billing execution (charges, invoices)
 - Notification sending (WhatsApp/SMS/Email)
 - Background jobs (overdue marking)
@@ -37,24 +37,19 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-### 3. Initialize Database
-
-The database schema is created automatically from ORM models on first run.
+### 3. Run Database Migrations
 
 ```bash
-python -m app.main
+alembic upgrade head
 ```
 
-### 4. Create Seed Users (Optional)
-
-Use Python REPL to create initial users:
+### 4. Create Seed Users
 
 ```python
-from app.database import SessionLocal, init_db
+from app.database import SessionLocal
 from app.repositories import UserRepository
 from app.services import AuthService
 
-init_db()
 db = SessionLocal()
 user_repo = UserRepository(db)
 
@@ -85,13 +80,39 @@ db.close()
 python -m app.main
 ```
 
-API will be available at: `http://localhost:8000`
-
-API documentation: `http://localhost:8000/docs`
+API: `http://localhost:8000`  
+Docs: `http://localhost:8000/docs`
 
 ---
 
-## API Endpoints (Sprint 1)
+## Run Tests
+
+```bash
+pytest
+```
+
+---
+
+## Database Migrations
+
+### Create New Migration
+```bash
+alembic revision --autogenerate -m "description"
+```
+
+### Apply Migrations
+```bash
+alembic upgrade head
+```
+
+### Rollback
+```bash
+alembic downgrade -1
+```
+
+---
+
+## API Endpoints
 
 ### Authentication
 - `POST /api/v1/auth/login` - Login and get JWT token
@@ -103,7 +124,7 @@ API documentation: `http://localhost:8000/docs`
 - `PATCH /api/v1/clients/{id}` - Update client
 
 ### Binders
-- `POST /api/v1/binders/receive` - Receive binder (intake)
+- `POST /api/v1/binders/receive` - Receive binder
 - `POST /api/v1/binders/{id}/return` - Return binder
 - `GET /api/v1/binders` - List active binders
 - `GET /api/v1/binders/{id}` - Get binder
@@ -117,13 +138,23 @@ API documentation: `http://localhost:8000/docs`
 
 ```
 app/
-├── models/          # ORM models (SQLAlchemy)
+├── models/          # SQLAlchemy ORM models
 ├── repositories/    # Data access layer
 ├── services/        # Business logic
-├── api/             # HTTP endpoints (FastAPI)
-├── schemas/         # Request/Response models (Pydantic)
+├── api/             # FastAPI routes
+├── schemas/         # Pydantic request/response models
+├── middleware/      # HTTP middleware
 ├── config.py        # Configuration
 └── database.py      # DB session management
+
+alembic/
+└── versions/        # Database migrations
+
+tests/
+├── conftest.py      # Test fixtures
+├── test_auth.py
+├── test_clients.py
+└── test_binders.py
 ```
 
 ---
@@ -131,64 +162,28 @@ app/
 ## Key Business Rules
 
 1. **90-Day Rule**: `expected_return_at = received_at + 90 days`
-2. **No Hard Deletes**: Records are soft-deleted via status changes
-3. **Return Validation**: `pickup_person_name` is mandatory
-4. **Audit Trail**: Every binder status change is logged
-5. **Intake Never Blocked**: Warnings don't prevent binder intake
+2. **No Hard Deletes**: Records soft-deleted via status
+3. **Return Validation**: `pickup_person_name` mandatory
+4. **Audit Trail**: Every status change logged
+5. **Warnings Don't Block**: Intake never blocked
 
 ---
 
-## Database Schema
+## Security
 
-Schema is created directly from ORM models. No migration files exist.
-
-Tables (Sprint 1):
-- `users`
-- `clients`
-- `binders`
-- `binder_status_logs`
-
-All IDs are integer auto-increment (1, 2, 3, ...).
+- Passwords hashed with bcrypt
+- JWT tokens with proper claims (sub, iat, exp, role)
+- Role-based access control
+- Active user validation
+- Secure session management
 
 ---
 
-## Testing
+## Sprint 2 Planning
 
-Tests are planned but not implemented in Sprint 1.
-
-Future test structure:
-```
-tests/
-├── test_repositories/
-├── test_services/
-└── test_api/
-```
-
----
-
-## Phase 2 Features (Out of Scope)
-
-- Charges and invoices
-- External invoice provider integration
-- Notification engine (WhatsApp/SMS/Email)
-- Background jobs
-- Permanent documents management
-- Advanced reporting and analytics
-
----
-
-## Development Notes
-
-- **Python 3.11 - 3.14** (3.14 requires SQLAlchemy 2.0.36+)
-- FastAPI 0.115+
-- Pydantic 2.10+
-- SQLAlchemy 2.0.36+
-- SQLite (local), PostgreSQL (production recommended)
-- JWT authentication
-- No frontend included
-
-### Python 3.14 Users
-If using Python 3.14, ensure SQLAlchemy is 2.0.36 or later:
-```bash
-pip install 'sqlalchemy>=2.0.36'
-```# binder-billing-crm
+Next sprint priorities:
+- Billing module (charges, invoices)
+- Background jobs for overdue marking
+- Notification engine foundation
+- Enhanced test coverage
+- Performance monitoring

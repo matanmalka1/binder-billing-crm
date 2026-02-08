@@ -20,14 +20,22 @@ def get_current_user(
     token = credentials.credentials
     payload = AuthService.decode_token(token)
 
-    if not payload:
+    if not payload or "sub" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
 
+    try:
+        user_id = int(payload["sub"])
+    except (ValueError, KeyError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token format",
+        )
+
     user_repo = UserRepository(db)
-    user = user_repo.get_by_id(payload["user_id"])
+    user = user_repo.get_by_id(user_id)
 
     if not user or not user.is_active:
         raise HTTPException(

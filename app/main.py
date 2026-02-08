@@ -5,13 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import auth, clients, binders, dashboard
 from app.config import config
-from app.database import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: initialize database on startup."""
-    init_db()
+    """Application lifespan: no DB auto-creation."""
     yield
 
 
@@ -39,7 +37,7 @@ def health_check():
 def info():
     return {
         "app": "Binder Billing CRM",
-        "env": "local",
+        "env": config.APP_ENV,
     }
 
 # API routes

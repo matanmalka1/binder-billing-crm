@@ -1,7 +1,7 @@
-import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt
 import jwt
 from sqlalchemy.orm import Session
 
@@ -19,13 +19,14 @@ class AuthService:
 
     @staticmethod
     def hash_password(password: str) -> str:
-        """Hash password using SHA-256 (production should use bcrypt)."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        """Hash password using bcrypt."""
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode(), salt).decode()
 
     @staticmethod
     def verify_password(password: str, password_hash: str) -> bool:
-        """Verify password against hash."""
-        return AuthService.hash_password(password) == password_hash
+        """Verify password against bcrypt hash."""
+        return bcrypt.checkpw(password.encode(), password_hash.encode())
 
     def authenticate(self, email: str, password: str) -> Optional[User]:
         """Authenticate user by email and password."""
@@ -43,11 +44,13 @@ class AuthService:
     @staticmethod
     def generate_token(user: User) -> str:
         """Generate JWT token for authenticated user."""
+        now = datetime.utcnow()
         payload = {
-            "user_id": user.id,
+            "sub": str(user.id),
             "email": user.email,
             "role": user.role.value,
-            "exp": datetime.utcnow() + timedelta(hours=config.JWT_TTL_HOURS),
+            "iat": now,
+            "exp": now + timedelta(hours=config.JWT_TTL_HOURS),
         }
         return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
@@ -55,7 +58,10 @@ class AuthService:
     def decode_token(token: str) -> Optional[dict]:
         """Decode and validate JWT token."""
         try:
-            return jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+            payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+            if "sub" not in payload or "role" not in payload:
+                return None
+            return payload
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:
