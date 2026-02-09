@@ -8,6 +8,7 @@ from app.api import (
     binders,
     binders_history,
     binders_operations,
+    charge,
     clients,
     clients_binders,
     dashboard,
@@ -57,6 +58,7 @@ app.include_router(binders_operations.router, prefix="/api/v1")
 app.include_router(clients_binders.router, prefix="/api/v1")
 app.include_router(dashboard_overview.router, prefix="/api/v1")
 app.include_router(binders_history.router, prefix="/api/v1")
+app.include_router(charge.router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn

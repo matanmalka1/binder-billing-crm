@@ -19,6 +19,8 @@ from app.schemas.client import (
 )
 from app.schemas.dashboard import DashboardSummaryResponse
 from app.schemas.dashboard_extended import DashboardOverviewResponse
+from app.schemas.charge import ChargeCreateRequest, ChargeListResponse, ChargeResponse
+from app.schemas.invoice import InvoiceAttachRequest, InvoiceResponse
 
 __all__ = [
     "LoginRequest",
@@ -38,4 +40,9 @@ __all__ = [
     "BinderListResponseExtended",
     "BinderHistoryEntry",
     "BinderHistoryResponse",
+    "ChargeCreateRequest",
+    "ChargeResponse",
+    "ChargeListResponse",
+    "InvoiceAttachRequest",
+    "InvoiceResponse",
 ]

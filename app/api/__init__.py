@@ -1,5 +1,5 @@
 from app.api import auth, binders, binders_history, binders_operations, clients
-from app.api import clients_binders, dashboard, dashboard_overview
+from app.api import charge, clients_binders, dashboard, dashboard_overview
 
 __all__ = [
     "auth",
@@ -10,4 +10,5 @@ __all__ = [
     "clients_binders",
     "dashboard_overview",
     "binders_history",
+    "charge",
 ]

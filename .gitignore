@@ -48,8 +48,6 @@ htmlcov/
 # Database
 *.db
 *.db-journal
-alembic/
-alembic.ini
 
 # macOS
 .DS_Store
