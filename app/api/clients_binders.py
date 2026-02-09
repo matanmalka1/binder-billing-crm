@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DBSession, require_role
 from app.models import UserRole
-from app.repositories import ClientRepository
 from app.schemas.binder_extended import (
     BinderDetailResponse,
     BinderListResponseExtended,
@@ -25,17 +24,14 @@ def list_client_binders(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List all binders for a specific client."""
-    # Verify client exists
-    client_repo = ClientRepository(db)
-    client = client_repo.get_by_id(client_id)
-    
-    if not client:
+    service = BinderOperationsService(db)
+
+    if not service.client_exists(client_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Client not found",
         )
-    
-    service = BinderOperationsService(db)
+
     items, total = service.get_client_binders(
         client_id=client_id,
         page=page,

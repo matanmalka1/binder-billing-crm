@@ -1,10 +1,9 @@
 from datetime import date
-from typing import Optional
 
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.models import Binder, BinderStatus
+from app.services.sla_service import SLAService
 
 
 class BinderRepositoryExtensions:
@@ -49,12 +48,7 @@ class BinderRepositoryExtensions:
         """
         query = (
             self.db.query(Binder)
-            .filter(
-                and_(
-                    Binder.expected_return_at < reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.overdue_filter(reference_date))
             .order_by(Binder.expected_return_at.asc(), Binder.id.desc())
         )
         
@@ -65,12 +59,7 @@ class BinderRepositoryExtensions:
         """Count overdue candidate binders."""
         return (
             self.db.query(Binder)
-            .filter(
-                and_(
-                    Binder.expected_return_at < reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.overdue_filter(reference_date))
             .count()
         )
 
@@ -83,12 +72,7 @@ class BinderRepositoryExtensions:
         """List binders due on reference_date."""
         query = (
             self.db.query(Binder)
-            .filter(
-                and_(
-                    Binder.expected_return_at == reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.due_today_filter(reference_date))
             .order_by(Binder.id.desc())
         )
         
@@ -99,12 +83,7 @@ class BinderRepositoryExtensions:
         """Count binders due today."""
         return (
             self.db.query(Binder)
-            .filter(
-                and_(
-                    Binder.expected_return_at == reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.due_today_filter(reference_date))
             .count()
         )
 

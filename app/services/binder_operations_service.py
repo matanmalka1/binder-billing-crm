@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Binder
 from app.repositories.binder_repository_extensions import BinderRepositoryExtensions
+from app.repositories.client_repository import ClientRepository
 from app.services.sla_service import SLAService
 
 
@@ -14,6 +15,7 @@ class BinderOperationsService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = BinderRepositoryExtensions(db)
+        self.client_repo = ClientRepository(db)
 
     def get_open_binders(
         self,
@@ -75,6 +77,10 @@ class BinderOperationsService:
         )
         total = self.repo.count_by_client(client_id)
         return items, total
+
+    def client_exists(self, client_id: int) -> bool:
+        """Check client existence for client-binders route."""
+        return self.client_repo.get_by_id(client_id) is not None
 
     @staticmethod
     def enrich_binder_with_sla(binder: Binder) -> dict:

@@ -3,7 +3,8 @@ from datetime import date, timedelta
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatus, Client, ClientStatus
+from app.models import Binder, BinderStatus, Client
+from app.services.sla_service import SLAService
 
 
 class DashboardOverviewService:
@@ -43,24 +44,14 @@ class DashboardOverviewService:
         # Overdue binders (expected_return_at < today AND status != RETURNED)
         overdue_binders = (
             self.db.query(func.count(Binder.id))
-            .filter(
-                and_(
-                    Binder.expected_return_at < reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.overdue_filter(reference_date))
             .scalar()
         )
         
         # Binders due today
         binders_due_today = (
             self.db.query(func.count(Binder.id))
-            .filter(
-                and_(
-                    Binder.expected_return_at == reference_date,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
+            .filter(SLAService.due_today_filter(reference_date))
             .scalar()
         )
         

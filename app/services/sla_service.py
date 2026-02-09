@@ -1,6 +1,8 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import and_
+
 from app.models import Binder, BinderStatus
 
 
@@ -49,4 +51,20 @@ class SLAService:
         return (
             binder.expected_return_at == reference_date
             and binder.status != BinderStatus.RETURNED
+        )
+
+    @staticmethod
+    def overdue_filter(reference_date: date):
+        """Shared ORM filter for overdue binders."""
+        return and_(
+            Binder.expected_return_at < reference_date,
+            Binder.status != BinderStatus.RETURNED,
+        )
+
+    @staticmethod
+    def due_today_filter(reference_date: date):
+        """Shared ORM filter for binders due today."""
+        return and_(
+            Binder.expected_return_at == reference_date,
+            Binder.status != BinderStatus.RETURNED,
         )
