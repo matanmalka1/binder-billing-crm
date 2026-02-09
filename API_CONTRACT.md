@@ -10,7 +10,7 @@ Sprint 4 behavior is governed only by the Sprint 4 documents and is not describe
 - Auth: Bearer JWT (except `POST /auth/login`)
 
 ## Roles
-- `ADVISOR`: admin-level access
+- `ADVISOR`: admin-level access (super-role; may perform all `SECRETARY` actions)
 - `SECRETARY`: operational-level access
 
 ## Authentication

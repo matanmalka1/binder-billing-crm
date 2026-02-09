@@ -6,7 +6,7 @@ FROZEN
 ---
 
 ## Scope Lock
-Only the features explicitly listed in **SPRINT_4_FORMAL_SPECIFICATION.md** are allowed for Sprint 4 implementation.
+Only the features explicitly listed in **sprint_4_formal_specification.md** are allowed for Sprint 4 implementation.
 
 No additional functionality, integrations, or behavior changes are permitted.
 

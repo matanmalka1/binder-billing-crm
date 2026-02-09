@@ -28,8 +28,8 @@ For a new local SQLite database, initialize tables from ORM metadata:
 python -c "from app.database import Base, engine; import app.models; Base.metadata.create_all(bind=engine)"
 ```
 
-Sprint 3 introduced Alembic for the billing tables only (per the frozen policy in `SPRINT_3_FORMAL_SPECIFICATION.md`).
-If you have an existing database with the core tables already present, you can apply the Sprint 3 billing migration:
+Sprints 3–4 introduced Alembic migrations for new tables only (per the frozen sprint specifications).
+If you have an existing database with the core tables already present, you can apply migrations up to the current head:
 ```bash
 alembic upgrade head
 ```
