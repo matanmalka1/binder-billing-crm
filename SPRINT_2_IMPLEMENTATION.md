@@ -1,5 +1,7 @@
 # Sprint 2 Implementation (Frozen)
 
+> Scope note: This document is the frozen summary for **Sprint 2 only**. Later sprints (3–5) added additional modules (e.g., billing, migrations, notifications/documents, hardening). For current developer onboarding, start with `README.md` and `DEV_SETUP.md`, and treat the sprint specifications as authoritative.
+
 ## Included
 - `GET /api/v1/binders/open`
 - `GET /api/v1/binders/overdue`

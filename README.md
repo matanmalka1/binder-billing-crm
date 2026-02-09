@@ -1,47 +1,45 @@
 # Binder Billing CRM
 
-FastAPI + SQLAlchemy backend for client records and physical binder lifecycle.
+Production-ready FastAPI + SQLAlchemy backend for client records, physical binder lifecycle, and internal billing.
 
-## Documentation
-- API surface (implemented through Sprint 3): `API_CONTRACT.md`
-- Sprint 2 freeze summary (historical, authoritative for Sprint 2): `SPRINT_2_IMPLEMENTATION.md`
-- Sprint 3 billing spec (authoritative, frozen): `SPRINT_3_FORMAL_SPECIFICATION.md`
-- Sprint 4 spec and freeze rules (authoritative for Sprint 4):
-  - `sprint_4_formal_specification.md`
-  - `sprint_4_freeze_rules.md`
-- Sprint 5 spec (authoritative, frozen): `SPRINT_5_FORMAL_SPECIFICATION.md`
+Sprint 5 is frozen (see `SPRINT_5_FREEZE_DECLARATION.md`). The system state is considered stable and non-contradictory with the frozen sprint documents.
 
-## Sprint 2 Scope
-- Operational binder query APIs: open, overdue, due-today, by-client
-- Binder history read API
-- Dashboard overview API
-- Role-based guards: `ADVISOR` (admin-level), `SECRETARY` (operational-level)
-- SLA derivation at read time (`is_overdue`, `days_overdue`)
+## Roles & Permissions (High Level)
+- `SECRETARY`: operational workflows (client/binder reads, operational binder lists, dashboard summary, permanent document upload & signals).
+- `ADVISOR`: super-role (may perform all `SECRETARY` actions) + privileged actions (e.g., client status transitions and charge lifecycle operations).
 
-## Sprint 2 Exclusions
-- No UI/frontend work
-- No new roles or auth redesign
-- No background jobs
-- No raw SQL
+## Implemented Modules by Sprint
+- Sprint 1: core entities & binders (clients, binders, auth basics).
+- Sprint 2: operational views & SLA (open/overdue/due-today lists, binder history, dashboard overview/summary; SLA derived at read time).
+- Sprint 3: billing (charges & invoices; controlled charge lifecycle; external invoice references).
+- Sprint 4: notifications, documents, background job (notification persistence & background processing; permanent document presence tracking & operational signals).
+- Sprint 5: production hardening & cleanup (env validation, JWT expiration enforcement, structured logging + request IDs, centralized error handling, health endpoint, job resilience).
 
 ## Technical Constraints
 - ORM-first architecture (SQLAlchemy ORM queries only)
 - Layering: API -> Service -> Repository
 - No raw SQL
-- Sprints 3–4 introduced Alembic migrations for new tables only (see the sprint specs for the frozen policy).
+- Sprints 3–4 introduced Alembic migrations for new tables only (see the sprint specs for the frozen policy and constraints).
 
-## Run
-```bash
-cp .env.example .env
-pip install -r requirements.txt
-python -c "from app.database import Base, engine; import app.models; Base.metadata.create_all(bind=engine)"
-python -m app.main
-```
+## Documentation (Reading Order)
+Read in this order:
+1. `README.md` (this file)
+2. `DEV_SETUP.md` (how to run locally + tests)
+3. `API_CONTRACT.md` (route index + role-level access)
+4. Sprint authoritative docs (frozen):
+   - `SPRINT_3_FORMAL_SPECIFICATION.md`
+   - `sprint_4_formal_specification.md` (see also `sprint_4_freeze_rules.md`)
+   - `SPRINT_5_FORMAL_SPECIFICATION.md` (freeze declared in `SPRINT_5_FREEZE_DECLARATION.md`)
+   - `SPRINT_2_IMPLEMENTATION.md` (historical Sprint 2 freeze summary)
 
-- API base URL: `http://localhost:8000`
-- OpenAPI docs: `http://localhost:8000/docs`
+## Quickstart
+Follow `DEV_SETUP.md` for the full local setup. Common entrypoints:
+- API: `python -m app.main`
+- OpenAPI: `http://localhost:8000/docs`
+- Health: `GET http://localhost:8000/health`
+- Info: `GET http://localhost:8000/info`
 
 ## Tests
 ```bash
-JWT_SECRET=test-secret .venv/bin/pytest -q
+JWT_SECRET=test-secret pytest -q
 ```

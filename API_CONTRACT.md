@@ -1,17 +1,31 @@
-# API Contract (Implemented Through Sprint 3)
+# API Contract (Implemented Through Sprint 5)
 
-This document describes the API surface implemented through Sprint 3.
-
-Sprint 4 behavior is governed only by the Sprint 4 documents and is not described here.
+This document is a **route index + high-level contract** for the API surface implemented through Sprint 5.
+Behavioral rules (constraints, transitions, and invariants) remain **authoritatively defined** by the frozen sprint specifications:
+- `SPRINT_3_FORMAL_SPECIFICATION.md` (billing)
+- `sprint_4_formal_specification.md` + `sprint_4_freeze_rules.md` (notifications/documents/job)
+- `SPRINT_5_FORMAL_SPECIFICATION.md` + `SPRINT_5_FREEZE_DECLARATION.md` (hardening)
 
 ## Conventions
-- Base path: `/api/v1`
+- Base path (business API): `/api/v1`
 - Content type: `application/json`
 - Auth: Bearer JWT (except `POST /auth/login`)
+- Operational endpoints (no `/api/v1` prefix):
+  - `GET /health`
+  - `GET /info`
 
 ## Roles
 - `ADVISOR`: admin-level access (super-role; may perform all `SECRETARY` actions)
 - `SECRETARY`: operational-level access
+
+## System / Ops
+### `GET /health`
+- Auth: none
+- Purpose: readiness/health check (includes DB connectivity verification)
+
+### `GET /info`
+- Auth: none
+- Response: `{ "app": "...", "env": "local|test|staging|production" }`
 
 ## Authentication
 ### `POST /api/v1/auth/login`
@@ -30,7 +44,7 @@ Sprint 4 behavior is governed only by the Sprint 4 documents and is not describe
 ### `GET /api/v1/clients/{client_id}`
 
 ### `PATCH /api/v1/clients/{client_id}`
-- Additional rule: status change to `frozen` or `closed` is `ADVISOR`-only.
+- Authorization note: some status transitions are `ADVISOR`-only (see sprint specifications for the frozen rules).
 
 ## Binders (ADVISOR + SECRETARY)
 ### `POST /api/v1/binders/receive`
@@ -74,13 +88,13 @@ Response shape:
 ```
 
 ### `GET /api/v1/binders/open`
-- Open binder definition: `status != RETURNED`
+- Open binder definition: `status != returned`
 
 ### `GET /api/v1/binders/overdue`
-- Overdue binder definition: `expected_return_at < today` AND `status != RETURNED`
+- Overdue binder definition: `expected_return_at < today` AND `status != returned`
 
 ### `GET /api/v1/binders/due-today`
-- Due today definition: `expected_return_at == today` AND `status != RETURNED`
+- Due today definition: `expected_return_at == today` AND `status != returned`
 
 ### `GET /api/v1/clients/{client_id}/binders`
 - Lists binders for a specific client (same response + pagination as above)
@@ -144,22 +158,22 @@ Sprint 3 introduces internal billing via Charges. Behavioral rules and constrain
 }
 ```
 
-### `GET /api/v1/charges/{id}` (ADVISOR + SECRETARY)
+### `GET /api/v1/charges/{charge_id}` (ADVISOR + SECRETARY)
 - Response `200`: `ChargeResponse`
 - Errors:
   - `404` not found
 
-### `POST /api/v1/charges/{id}/issue` (ADVISOR only)
+### `POST /api/v1/charges/{charge_id}/issue` (ADVISOR only)
 - Response `200`: `ChargeResponse`
 - Errors:
   - `400` not found or invalid transition (only `draft` may be issued)
 
-### `POST /api/v1/charges/{id}/mark-paid` (ADVISOR only)
+### `POST /api/v1/charges/{charge_id}/mark-paid` (ADVISOR only)
 - Response `200`: `ChargeResponse`
 - Errors:
   - `400` not found or invalid transition (only `issued` may be marked paid)
 
-### `POST /api/v1/charges/{id}/cancel` (ADVISOR only)
+### `POST /api/v1/charges/{charge_id}/cancel` (ADVISOR only)
 - Response `200`: `ChargeResponse`
 - Errors:
   - `400` not found or invalid transition (cannot cancel `paid`; cannot re-cancel)
@@ -179,6 +193,23 @@ Sprint 3 introduces internal billing via Charges. Behavioral rules and constrain
   "paid_at": null
 }
 ```
+
+## Permanent Documents (Sprint 4, ADVISOR + SECRETARY)
+
+Sprint 4 introduces **permanent document presence tracking** (not full document management). See `sprint_4_formal_specification.md` for frozen behavior.
+
+### `POST /api/v1/documents/upload`
+- Content type: `multipart/form-data`
+- Form fields:
+  - `client_id` (int)
+  - `document_type` (string; one of: `id_copy` | `power_of_attorney` | `engagement_agreement`)
+  - `file` (upload)
+
+### `GET /api/v1/documents/client/{client_id}`
+- Lists permanent documents for a client.
+
+### `GET /api/v1/documents/client/{client_id}/signals`
+- Returns operational indicators for a client (advisory; non-blocking).
 
 ## Status Codes
 - `200` success
