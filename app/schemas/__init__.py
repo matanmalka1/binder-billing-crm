@@ -21,6 +21,11 @@ from app.schemas.dashboard import DashboardSummaryResponse
 from app.schemas.dashboard_extended import DashboardOverviewResponse
 from app.schemas.charge import ChargeCreateRequest, ChargeListResponse, ChargeResponse
 from app.schemas.invoice import InvoiceAttachRequest, InvoiceResponse
+from app.schemas.permanent_document import (
+    PermanentDocumentResponse,
+    PermanentDocumentListResponse,
+    OperationalSignalsResponse,
+)
 
 __all__ = [
     "LoginRequest",
@@ -45,4 +50,7 @@ __all__ = [
     "ChargeListResponse",
     "InvoiceAttachRequest",
     "InvoiceResponse",
+    "PermanentDocumentResponse",
+    "PermanentDocumentListResponse",
+    "OperationalSignalsResponse",
 ]

@@ -10,6 +10,7 @@ from app.repositories import (
     ClientRepository,
 )
 from app.services.binder_helpers import BinderHelpers
+from app.services.notification_service import NotificationService
 
 
 class BinderService:
@@ -20,6 +21,7 @@ class BinderService:
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
         self.client_repo = ClientRepository(db)
+        self.notification_service = NotificationService(db)
 
     def receive_binder(
         self,
@@ -56,6 +58,9 @@ class BinderService:
             changed_by=received_by,
             notes="Binder received",
         )
+
+        # Sprint 4: Send binder received notification
+        self.notification_service.notify_binder_received(binder, client)
 
         return binder
 

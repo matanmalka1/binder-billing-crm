@@ -1,10 +1,7 @@
-from datetime import date, timedelta
-
-from sqlalchemy import and_, func
+from datetime import date
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatus, Client
-from app.services.sla_service import SLAService
+from app.repositories.dashboard_overview_repository import DashboardOverviewRepository
 
 
 class DashboardOverviewService:
@@ -12,6 +9,7 @@ class DashboardOverviewService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.repo = DashboardOverviewRepository(db)
 
     def get_overview(self, reference_date: date = None) -> dict:
         """
@@ -28,50 +26,4 @@ class DashboardOverviewService:
         """
         if reference_date is None:
             reference_date = date.today()
-        
-        week_end = reference_date + timedelta(days=7)
-        
-        # Total clients (all statuses)
-        total_clients = self.db.query(func.count(Client.id)).scalar()
-        
-        # Active binders (status != RETURNED)
-        active_binders = (
-            self.db.query(func.count(Binder.id))
-            .filter(Binder.status != BinderStatus.RETURNED)
-            .scalar()
-        )
-        
-        # Overdue binders (expected_return_at < today AND status != RETURNED)
-        overdue_binders = (
-            self.db.query(func.count(Binder.id))
-            .filter(SLAService.overdue_filter(reference_date))
-            .scalar()
-        )
-        
-        # Binders due today
-        binders_due_today = (
-            self.db.query(func.count(Binder.id))
-            .filter(SLAService.due_today_filter(reference_date))
-            .scalar()
-        )
-        
-        # Binders due this week (today + 7 days)
-        binders_due_this_week = (
-            self.db.query(func.count(Binder.id))
-            .filter(
-                and_(
-                    Binder.expected_return_at >= reference_date,
-                    Binder.expected_return_at <= week_end,
-                    Binder.status != BinderStatus.RETURNED,
-                )
-            )
-            .scalar()
-        )
-        
-        return {
-            "total_clients": total_clients or 0,
-            "active_binders": active_binders or 0,
-            "overdue_binders": overdue_binders or 0,
-            "binders_due_today": binders_due_today or 0,
-            "binders_due_this_week": binders_due_this_week or 0,
-        }
+        return self.repo.get_overview_metrics(reference_date)

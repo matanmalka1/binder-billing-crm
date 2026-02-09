@@ -10,7 +10,7 @@ from app.config import config as app_config
 from app.database import Base
 from app.models import (
     User, Client, Binder, BinderStatusLog,
-    Charge, Invoice
+    Charge, Invoice, Notification, PermanentDocument
 )
 
 # this is the Alembic Config object, which provides

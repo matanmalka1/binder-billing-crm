@@ -92,6 +92,7 @@ Indicators are advisory only and do not block operations.
 - View operational indicators
 
 ### Advisor
+- Advisor is a super-role and may perform all Secretary actions
 - View full notification history
 - Trigger manual payment reminders
 - View document presence status
@@ -159,4 +160,3 @@ Upon approval, this specification shall be marked:
 ---
 
 *End of Sprint 4 Formal Specification*
-

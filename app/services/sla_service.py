@@ -9,6 +9,10 @@ from app.models import Binder, BinderStatus
 class SLAService:
     """Centralized SLA and overdue logic (derived, not persisted)."""
 
+    SLA_TOTAL_DAYS = 90
+    APPROACHING_THRESHOLD_DAY = 75
+    APPROACHING_DAYS_REMAINING_MAX = SLA_TOTAL_DAYS - APPROACHING_THRESHOLD_DAY
+
     @staticmethod
     def is_overdue(binder: Binder, reference_date: Optional[date] = None) -> bool:
         """
@@ -25,6 +29,34 @@ class SLAService:
             binder.expected_return_at < reference_date
             and binder.status != BinderStatus.RETURNED
         )
+
+    @staticmethod
+    def days_remaining(binder: Binder, reference_date: Optional[date] = None) -> int:
+        """Calculate days remaining until expected return (>= 0)."""
+        if reference_date is None:
+            reference_date = date.today()
+
+        delta = binder.expected_return_at - reference_date
+        return max(0, delta.days)
+
+    @staticmethod
+    def is_approaching_sla(binder: Binder, reference_date: Optional[date] = None) -> bool:
+        """
+        Check if binder is approaching SLA threshold.
+        
+        Approaching window (Sprint 4): within the last 15 days before expected_return_at.
+        """
+        if reference_date is None:
+            reference_date = date.today()
+
+        if binder.status == BinderStatus.RETURNED:
+            return False
+
+        if SLAService.is_overdue(binder, reference_date):
+            return False
+
+        days_remaining = SLAService.days_remaining(binder, reference_date)
+        return 0 < days_remaining <= SLAService.APPROACHING_DAYS_REMAINING_MAX
 
     @staticmethod
     def days_overdue(binder: Binder, reference_date: Optional[date] = None) -> int:

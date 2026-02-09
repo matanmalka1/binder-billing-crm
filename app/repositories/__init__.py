@@ -4,6 +4,9 @@ from app.repositories.binder_repository import BinderRepository
 from app.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.repositories.charge_repository import ChargeRepository
 from app.repositories.invoice_repository import InvoiceRepository
+from app.repositories.notification_repository import NotificationRepository
+from app.repositories.permanent_document_repository import PermanentDocumentRepository
+from app.repositories.dashboard_overview_repository import DashboardOverviewRepository
 
 __all__ = [
     "UserRepository",
@@ -12,4 +15,7 @@ __all__ = [
     "BinderStatusLogRepository",
     "ChargeRepository",
     "InvoiceRepository",
+    "NotificationRepository",
+    "PermanentDocumentRepository",
+    "DashboardOverviewRepository",
 ]
