@@ -16,8 +16,9 @@ pip install -r requirements.txt
 ```
 3. Create env file:
 ```bash
-cp .env.example .env
+cp .env.development.example .env
 ```
+For production deployments, use `.env.production.example` as a reference (do not commit real secrets).
 4. Ensure required variables exist (the app fails fast if missing):
    - `JWT_SECRET` (required; must be non-empty)
    - `DATABASE_URL` (optional; defaults are in `app/config.py`)
