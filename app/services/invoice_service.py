@@ -57,11 +57,3 @@ class InvoiceService:
             issued_at=issued_at,
             document_url=document_url,
         )
-
-    def get_invoice_by_charge(self, charge_id: int) -> Optional[Invoice]:
-        """Get invoice for a charge (if exists)."""
-        return self.invoice_repo.get_by_charge_id(charge_id)
-
-    def get_invoice(self, invoice_id: int) -> Optional[Invoice]:
-        """Get invoice by ID."""
-        return self.invoice_repo.get_by_id(invoice_id)

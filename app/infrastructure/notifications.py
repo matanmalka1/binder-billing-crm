@@ -1,26 +1,7 @@
-from abc import ABC, abstractmethod
 from typing import Optional
 
 
-class NotificationChannel(ABC):
-    """Abstract notification channel."""
-
-    @abstractmethod
-    def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:
-        """
-        Send notification.
-        
-        Args:
-            recipient: Phone number or email
-            content: Message content
-            
-        Returns:
-            (success, error_message)
-        """
-        pass
-
-
-class WhatsAppChannel(NotificationChannel):
+class WhatsAppChannel:
     """WhatsApp notification channel (stub for Sprint 4)."""
 
     def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:
@@ -34,7 +15,7 @@ class WhatsAppChannel(NotificationChannel):
         return (True, None)
 
 
-class EmailChannel(NotificationChannel):
+class EmailChannel:
     """Email notification channel (stub for Sprint 4)."""
 
     def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:

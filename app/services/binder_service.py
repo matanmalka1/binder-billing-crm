@@ -115,14 +115,6 @@ class BinderService:
 
         return updated
 
-    def mark_overdue_binders(self, reference_date: Optional[date] = None) -> int:
-        """Mark binders as overdue based on 90-day rule."""
-        if reference_date is None:
-            reference_date = date.today()
-
-        count = self.binder_repo.mark_overdue_by_date(reference_date)
-        return count
-
     def get_binder(self, binder_id: int) -> Optional[Binder]:
         """Get binder by ID."""
         return self.binder_repo.get_by_id(binder_id)

@@ -66,11 +66,3 @@ class ClientService:
                 fields["closed_at"] = date.today()
 
         return self.client_repo.update(client_id, **fields)
-
-    def freeze_client(self, client_id: int) -> Optional[Client]:
-        """Freeze client."""
-        return self.client_repo.set_status(client_id, ClientStatus.FROZEN)
-
-    def close_client(self, client_id: int) -> Optional[Client]:
-        """Close client permanently."""
-        return self.update_client(client_id, status=ClientStatus.CLOSED, closed_at=date.today())

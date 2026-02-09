@@ -44,19 +44,6 @@ class PermanentDocumentRepository:
             .all()
         )
 
-    def get_by_client_and_type(
-        self, client_id: int, document_type: DocumentType
-    ) -> Optional[PermanentDocument]:
-        """Get document by client and type."""
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
-                PermanentDocument.client_id == client_id,
-                PermanentDocument.document_type == document_type,
-            )
-            .first()
-        )
-
     def count_by_client(self, client_id: int) -> int:
         """Count permanent documents for a client."""
         return self.db.query(PermanentDocument).filter(PermanentDocument.client_id == client_id).count()

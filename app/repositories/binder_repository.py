@@ -88,19 +88,6 @@ class BinderRepository:
         self.db.refresh(binder)
         return binder
 
-    def mark_overdue_by_date(self, reference_date: date) -> int:
-        """Mark binders as overdue based on expected_return_at."""
-        count = (
-            self.db.query(Binder)
-            .filter(
-                Binder.expected_return_at < reference_date,
-                Binder.status.in_([BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP]),
-            )
-            .update({"status": BinderStatus.OVERDUE}, synchronize_session=False)
-        )
-        self.db.commit()
-        return count
-
     def count_by_status(self, status: BinderStatus) -> int:
         """Count binders by status."""
         return self.db.query(Binder).filter(Binder.status == status).count()

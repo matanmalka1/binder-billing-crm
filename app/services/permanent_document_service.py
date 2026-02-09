@@ -56,10 +56,6 @@ class PermanentDocumentService:
 
         return document
 
-    def get_document(self, document_id: int) -> Optional[PermanentDocument]:
-        """Get document by ID."""
-        return self.document_repo.get_by_id(document_id)
-
     def list_client_documents(self, client_id: int) -> list[PermanentDocument]:
         """List all permanent documents for a client."""
         return self.document_repo.list_by_client(client_id)

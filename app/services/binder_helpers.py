@@ -28,11 +28,3 @@ class BinderHelpers:
         
         if binder.status not in [BinderStatus.READY_FOR_PICKUP, BinderStatus.OVERDUE]:
             raise ValueError(f"Cannot return binder from status {binder.status}")
-
-    @staticmethod
-    def is_overdue_eligible(binder: Binder, reference_date: date) -> bool:
-        """Check if binder is eligible to be marked overdue."""
-        return (
-            binder.expected_return_at < reference_date
-            and binder.status in [BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP]
-        )

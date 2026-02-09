@@ -93,17 +93,3 @@ class ChargeRepository:
         self.db.commit()
         self.db.refresh(charge)
         return charge
-
-    def update_fields(self, charge_id: int, **fields) -> Optional[Charge]:
-        """Update charge fields (for draft charges only)."""
-        charge = self.get_by_id(charge_id)
-        if not charge:
-            return None
-
-        for key, value in fields.items():
-            if hasattr(charge, key):
-                setattr(charge, key, value)
-
-        self.db.commit()
-        self.db.refresh(charge)
-        return charge
