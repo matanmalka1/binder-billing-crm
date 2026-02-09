@@ -35,7 +35,7 @@ This repo uses SQLAlchemy ORM models as the source of truth for the core schema.
 
 For a new local SQLite database, initialize the core tables from ORM metadata:
 ```bash
-python -c "from app.database import Base, engine; import app.models; Base.metadata.create_all(bind=engine)"
+python -m app.scripts.init_core_db
 ```
 
 Sprints 3–4 introduced Alembic migrations for additional tables (per the frozen sprint specifications).
@@ -43,6 +43,13 @@ Apply migrations up to the current head to create the billing + notifications/do
 ```bash
 alembic upgrade head
 ```
+
+If you previously ran `Base.metadata.create_all(...)` after importing `app.models` (all models),
+you likely created the Sprint 3–4 tables without Alembic defaults and will see:
+`sqlite3.OperationalError: table charges already exists`.
+In that case, either:
+- delete your local DB file (default: `binder_crm.db`) and re-run the two commands above, or
+- point `DATABASE_URL` at a fresh SQLite file and re-run the two commands above.
 
 ## Run API
 ```bash
