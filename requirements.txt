@@ -37,3 +37,4 @@ uvloop==0.22.1
 watchfiles==1.1.1
 websockets==16.0
 gunicorn
+psycopg2-binary
