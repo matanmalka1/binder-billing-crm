@@ -4,7 +4,7 @@
 **Project:** Binder & Billing CRM  
 **Document Type:** Functional & Technical Specification  
 **Sprint:** 3  
-**Status:** Pending Freeze Approval  
+**Status:** FROZEN  
 **Audience:** Product Owner, Backend Engineering, Technical Audit  
 
 ---
@@ -250,16 +250,25 @@ requires a new sprint and a new specification document.
 
 ---
 
-## 11. Approval Checkpoint
-
-To finalize and freeze this specification, confirm the following:
+## 11. Charge Creation Policy (Final)
 
 **Charge Creation Policy for Sprint 3:**
 
-- [ ] Manual creation only  
+- [x] Manual creation only  
 - [ ] Manual now, automated in future sprint  
 - [ ] One-time charges only in this sprint  
 
-Once confirmed, this document status will be updated to:
+**Decision:**  
+Charges in Sprint 3 are created **manually only** by an **ADVISOR**.
 
-**Status: FROZEN**
+This decision is **final and frozen**. Any automation or alternative creation mechanism requires a new sprint.
+
+---
+
+## 12. Freeze Confirmation
+
+This specification is hereby declared **FROZEN**.
+
+All scope, rules, constraints, and policies defined in this document are authoritative for Sprint 3 implementation.
+
+Any deviation requires formal approval and a new sprint specification.
