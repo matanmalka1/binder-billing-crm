@@ -1,33 +1,37 @@
 # Binder Billing CRM
 
-FastAPI + SQLAlchemy backend for managing client records and physical binder lifecycle in a tax office workflow.
+FastAPI + SQLAlchemy backend for client records and physical binder lifecycle.
 
-## Overview
-- Authentication with JWT bearer tokens
-- Client management endpoints
-- Binder intake/return lifecycle with status logs
-- Dashboard summary counters
-- Alembic-managed schema migrations
+## Sprint 2 Scope
+- Operational binder query APIs: open, overdue, due-today, by-client
+- Binder history read API
+- Dashboard overview API
+- Role-based guards: `ADVISOR` (admin-level), `SECRETARY` (operational-level)
+- SLA derivation at read time (`is_overdue`, `days_overdue`)
 
-## Tech Stack
-- Python
-- FastAPI
-- SQLAlchemy
-- Alembic
-- Pydantic
-- Pytest
+## Sprint 2 Exclusions
+- No UI/frontend work
+- No new roles or auth redesign
+- No background jobs
+- No migration tooling in repository
+- No raw SQL
 
-## Local Run (Quick Start)
+## Technical Constraints
+- ORM-first architecture (SQLAlchemy ORM queries only)
+- Layering: API -> Service -> Repository
+- No database migrations policy
+
+## Run
 ```bash
 cp .env.example .env
 pip install -r requirements.txt
-alembic upgrade head
 python -m app.main
 ```
 
 - API base URL: `http://localhost:8000`
 - OpenAPI docs: `http://localhost:8000/docs`
 
-## Documentation
-- `DEV_SETUP.md` for environment setup, migrations, and test commands
-- `API_CONTRACT.md` for current API behavior and endpoint contracts
+## Tests
+```bash
+JWT_SECRET=test-secret .venv/bin/pytest -q
+```

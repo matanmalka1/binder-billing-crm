@@ -21,18 +21,7 @@ cp .env.example .env
 4. Set `JWT_SECRET` in `.env` (required in all environments).
 
 ## Database
-- Apply migrations:
-```bash
-alembic upgrade head
-```
-- Create a new migration:
-```bash
-alembic revision --autogenerate -m "your_message"
-```
-- Roll back one migration:
-```bash
-alembic downgrade -1
-```
+- No migrations are used in this repository (ORM-first, no-migration policy).
 
 ## Run API
 ```bash
