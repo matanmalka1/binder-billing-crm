@@ -1,3 +1,5 @@
+import signal
+import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,14 +15,27 @@ from app.api import (
     clients_binders,
     dashboard,
     dashboard_overview,
+    health,
     permanent_documents,
 )
 from app.config import config
+from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
+from app.middleware.request_id import RequestIDMiddleware
+
+# Validate environment before starting
+EnvValidator.validate()
+
+# Setup structured logging
+setup_logging(level=config.LOG_LEVEL)
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan: no DB auto-creation."""
+    """Application lifespan with graceful startup and shutdown."""
+    logger.info("Application starting")
     yield
+    logger.info("Application shutting down")
 
 
 app = FastAPI(
@@ -28,6 +43,12 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Setup exception handlers
+setup_exception_handlers(app)
+
+# Request ID middleware (before CORS)
+app.add_middleware(RequestIDMiddleware)
 
 # CORS middleware
 app.add_middleware(
@@ -38,10 +59,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Health check
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
 
 @app.get("/info")
 def info():
@@ -50,7 +67,9 @@ def info():
         "env": config.APP_ENV,
     }
 
+
 # API routes
+app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 # NOTE: include operational binder routes before `/binders/{binder_id}` to avoid path conflicts.
@@ -62,6 +81,17 @@ app.include_router(dashboard_overview.router, prefix="/api/v1")
 app.include_router(binders_history.router, prefix="/api/v1")
 app.include_router(charge.router, prefix="/api/v1")
 app.include_router(permanent_documents.router, prefix="/api/v1")
+
+
+def handle_shutdown(signum, frame):
+    """Handle shutdown signals gracefully."""
+    logger.info(f"Received signal {signum}, initiating graceful shutdown")
+    sys.exit(0)
+
+
+# Register shutdown handlers
+signal.signal(signal.SIGTERM, handle_shutdown)
+signal.signal(signal.SIGINT, handle_shutdown)
 
 if __name__ == "__main__":
     import uvicorn
