@@ -69,3 +69,35 @@ def test_user(test_db):
 def auth_token(test_user):
     """Generate auth token for test user."""
     return AuthService.generate_token(test_user)
+
+
+@pytest.fixture(scope="function")
+def secretary_user(test_db):
+    """Create secretary user."""
+    user = User(
+        full_name="Test Secretary",
+        email="secretary@example.com",
+        password_hash=AuthService.hash_password("password123"),
+        role=UserRole.SECRETARY,
+        is_active=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user
+
+
+@pytest.fixture(scope="function")
+def secretary_token(secretary_user):
+    """Generate auth token for secretary user."""
+    return AuthService.generate_token(secretary_user)
+
+
+@pytest.fixture(scope="function")
+def advisor_headers(auth_token):
+    return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest.fixture(scope="function")
+def secretary_headers(secretary_token):
+    return {"Authorization": f"Bearer {secretary_token}"}
