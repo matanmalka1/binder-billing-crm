@@ -44,6 +44,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Root endpoint (simple service presence check)
+@app.get("/")
+def root():
+    return {
+        "service": "binder-billing-crm",
+        "status": "running",
+    }
+
 # Setup exception handlers
 setup_exception_handlers(app)
 
