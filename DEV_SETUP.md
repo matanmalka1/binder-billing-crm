@@ -21,7 +21,18 @@ cp .env.example .env
 4. Set `JWT_SECRET` in `.env` (required in all environments).
 
 ## Database
-- No migrations are used in this repository (ORM-first, no-migration policy). If Sprint 3 changes this policy, it must be specified in `SPRINT_3_FORMAL_SPECIFICATION.md`.
+This repo uses SQLAlchemy ORM models as the source of truth for the core schema.
+
+For a new local SQLite database, initialize tables from ORM metadata:
+```bash
+python -c "from app.database import Base, engine; import app.models; Base.metadata.create_all(bind=engine)"
+```
+
+Sprint 3 introduced Alembic for the billing tables only (per the frozen policy in `SPRINT_3_FORMAL_SPECIFICATION.md`).
+If you have an existing database with the core tables already present, you can apply the Sprint 3 billing migration:
+```bash
+alembic upgrade head
+```
 
 ## Run API
 ```bash

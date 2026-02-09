@@ -1,7 +1,8 @@
-# API Contract (Frozen Through Sprint 2)
+# API Contract (Implemented Through Sprint 3)
 
-This document describes the API surface implemented through Sprint 2.
-Sprint 3 scope (if any) is defined only in `SPRINT_3_FORMAL_SPECIFICATION.md`.
+This document describes the API surface implemented through Sprint 3.
+
+Sprint 4 behavior is governed only by the Sprint 4 documents and is not described here.
 
 ## Conventions
 - Base path: `/api/v1`
@@ -109,6 +110,75 @@ Response shape:
 ### `GET /api/v1/dashboard/overview`
 - Authorization: `ADVISOR` only
 - Response: `total_clients`, `active_binders`, `overdue_binders`, `binders_due_today`, `binders_due_this_week`
+
+## Charges (Sprint 3 Billing, ADVISOR + SECRETARY read)
+
+Sprint 3 introduces internal billing via Charges. Behavioral rules and constraints are defined in `SPRINT_3_FORMAL_SPECIFICATION.md` (frozen).
+
+### `POST /api/v1/charges` (ADVISOR only)
+- Request:
+  - `client_id` (int)
+  - `amount` (number, must be > 0)
+  - `charge_type` (string: `retainer` | `one_time`)
+  - `period` (optional string: `YYYY-MM`)
+  - `currency` (string, default `ILS`)
+- Response `201`: `ChargeResponse`
+- Errors:
+  - `400` invalid input (e.g. amount <= 0) or `client_id` not found
+  - `401` unauthenticated/invalid token
+  - `403` forbidden (non-advisor)
+
+### `GET /api/v1/charges` (ADVISOR + SECRETARY)
+- Query params:
+  - `client_id` (optional)
+  - `status` (optional: `draft` | `issued` | `paid` | `canceled`)
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 20, min: 1, max: 100)
+- Response `200`:
+```json
+{
+  "items": [ { "id": 1 } ],
+  "page": 1,
+  "page_size": 20,
+  "total": 1
+}
+```
+
+### `GET /api/v1/charges/{id}` (ADVISOR + SECRETARY)
+- Response `200`: `ChargeResponse`
+- Errors:
+  - `404` not found
+
+### `POST /api/v1/charges/{id}/issue` (ADVISOR only)
+- Response `200`: `ChargeResponse`
+- Errors:
+  - `400` not found or invalid transition (only `draft` may be issued)
+
+### `POST /api/v1/charges/{id}/mark-paid` (ADVISOR only)
+- Response `200`: `ChargeResponse`
+- Errors:
+  - `400` not found or invalid transition (only `issued` may be marked paid)
+
+### `POST /api/v1/charges/{id}/cancel` (ADVISOR only)
+- Response `200`: `ChargeResponse`
+- Errors:
+  - `400` not found or invalid transition (cannot cancel `paid`; cannot re-cancel)
+
+#### `ChargeResponse` shape
+```json
+{
+  "id": 1,
+  "client_id": 123,
+  "amount": 1500.0,
+  "currency": "ILS",
+  "charge_type": "retainer",
+  "period": "2026-02",
+  "status": "draft",
+  "created_at": "2026-02-09T12:00:00",
+  "issued_at": null,
+  "paid_at": null
+}
+```
 
 ## Status Codes
 - `200` success
