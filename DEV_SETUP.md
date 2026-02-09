@@ -21,7 +21,7 @@ cp .env.example .env
 4. Set `JWT_SECRET` in `.env` (required in all environments).
 
 ## Database
-- No migrations are used in this repository (ORM-first, no-migration policy).
+- No migrations are used in this repository (ORM-first, no-migration policy). If Sprint 3 changes this policy, it must be specified in `SPRINT_3_FORMAL_SPECIFICATION.md`.
 
 ## Run API
 ```bash

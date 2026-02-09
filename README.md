@@ -2,6 +2,11 @@
 
 FastAPI + SQLAlchemy backend for client records and physical binder lifecycle.
 
+## Documentation
+- API surface (frozen through Sprint 2): `API_CONTRACT.md`
+- Sprint 2 freeze summary (authoritative for Sprint 2): `SPRINT_2_IMPLEMENTATION.md`
+- Sprint 3 (authoritative if populated): `SPRINT_3_FORMAL_SPECIFICATION.md` (frozen)
+
 ## Sprint 2 Scope
 - Operational binder query APIs: open, overdue, due-today, by-client
 - Binder history read API
@@ -19,7 +24,7 @@ FastAPI + SQLAlchemy backend for client records and physical binder lifecycle.
 ## Technical Constraints
 - ORM-first architecture (SQLAlchemy ORM queries only)
 - Layering: API -> Service -> Repository
-- No database migrations policy
+- No database migrations in this repository (any Sprint 3 policy changes must be defined in `SPRINT_3_FORMAL_SPECIFICATION.md`)
 
 ## Run
 ```bash
