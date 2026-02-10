@@ -21,6 +21,11 @@ __all__ = [
     "PermanentDocumentService",
     "DailySLAJobService",
     "OperationalSignalsService",
+    "WorkStateService",
+    "SignalsService",
+    "DashboardExtendedService",
+    "TimelineService",
+    "SearchService",
 ]
 
 
@@ -81,6 +86,25 @@ def __getattr__(name: str) -> Any:
         from app.services.operational_signals_service import OperationalSignalsService
 
         return OperationalSignalsService
+    if name == "WorkStateService":
+        from app.services.work_state_service import WorkStateService
+
+        return WorkStateService
+    if name == "SignalsService":
+        from app.services.signals_service import SignalsService
+
+        return SignalsService
+    if name == "DashboardExtendedService":
+        from app.services.dashboard_extended_service import DashboardExtendedService
+
+        return DashboardExtendedService
+    if name == "TimelineService":
+        from app.services.timeline_service import TimelineService
+
+        return TimelineService
+    if name == "SearchService":
+        from app.services.search_service import SearchService
+
+        return SearchService
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-

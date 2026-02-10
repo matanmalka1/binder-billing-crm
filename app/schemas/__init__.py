@@ -18,7 +18,15 @@ from app.schemas.client import (
     ClientUpdateRequest,
 )
 from app.schemas.dashboard import DashboardSummaryResponse
-from app.schemas.dashboard_extended import DashboardOverviewResponse
+from app.schemas.dashboard_extended import (
+    AlertItem,
+    AlertsResponse,
+    AttentionItem,
+    AttentionResponse,
+    DashboardOverviewResponse,
+    WorkQueueItem,
+    WorkQueueResponse,
+)
 from app.schemas.charge import ChargeCreateRequest, ChargeListResponse, ChargeResponse
 from app.schemas.invoice import InvoiceAttachRequest, InvoiceResponse
 from app.schemas.permanent_document import (
@@ -26,6 +34,9 @@ from app.schemas.permanent_document import (
     PermanentDocumentListResponse,
     OperationalSignalsResponse,
 )
+
+from app.schemas.search import SearchResponse, SearchResult
+from app.schemas.timeline import ClientTimelineResponse, TimelineEvent
 
 __all__ = [
     "LoginRequest",
@@ -41,6 +52,12 @@ __all__ = [
     "BinderListResponse",
     "DashboardSummaryResponse",
     "DashboardOverviewResponse",
+    "WorkQueueItem",
+    "WorkQueueResponse",
+    "AlertItem",
+    "AlertsResponse",
+    "AttentionItem",
+    "AttentionResponse",
     "BinderDetailResponse",
     "BinderListResponseExtended",
     "BinderHistoryEntry",
@@ -53,4 +70,8 @@ __all__ = [
     "PermanentDocumentResponse",
     "PermanentDocumentListResponse",
     "OperationalSignalsResponse",
+    "SearchResponse",
+    "SearchResult",
+    "ClientTimelineResponse",
+    "TimelineEvent",
 ]
