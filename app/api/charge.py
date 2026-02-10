@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import CurrentUser, DBSession, require_role
 from app.models import UserRole
 from app.schemas import ChargeCreateRequest, ChargeListResponse, ChargeResponse
+from app.schemas.charge import ChargeResponseSecretary
 from app.services import BillingService
 
 router = APIRouter(
@@ -97,7 +98,7 @@ def list_charges(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List charges with optional filters (authenticated users)."""
+    """List charges with role-based data filtering."""
     service = BillingService(db)
     items, total = service.list_charges(
         client_id=client_id,
@@ -106,6 +107,16 @@ def list_charges(
         page_size=page_size,
     )
 
+    # Secretary sees limited view
+    if user.role == UserRole.SECRETARY:
+        return ChargeListResponse(
+            items=[ChargeResponseSecretary.model_validate(c) for c in items],
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+
+    # Advisor sees full view
     return ChargeListResponse(
         items=[ChargeResponse.model_validate(c) for c in items],
         page=page,
@@ -113,10 +124,9 @@ def list_charges(
         total=total,
     )
 
-
 @router.get(
     "/{charge_id}",
-    response_model=ChargeResponse,
+    response_model=ChargeResponse | ChargeResponseSecretary,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
@@ -128,5 +138,8 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Charge not found"
         )
+
+    if user.role == UserRole.SECRETARY:
+        return ChargeResponseSecretary.model_validate(charge)
 
     return ChargeResponse.model_validate(charge)

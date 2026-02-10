@@ -27,8 +27,23 @@ class ChargeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ChargeResponseSecretary(BaseModel):
+    """Charge response for secretary (no financial data)."""
+
+    id: int
+    client_id: int
+    charge_type: str
+    period: Optional[str] = None
+    status: str
+    created_at: datetime
+    issued_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
 class ChargeListResponse(BaseModel):
-    items: list[ChargeResponse]
+    items: list[ChargeResponse | ChargeResponseSecretary]
     page: int
     page_size: int
     total: int
