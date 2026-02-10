@@ -11,7 +11,7 @@ except Exception:
 
 def _load_env_files() -> None:
     """
-    Load dotenv files for local/dev/test convenience.
+    Load dotenv from env-specific file before Config is initialized.
 
     Existing environment variables always win (override=False).
     """

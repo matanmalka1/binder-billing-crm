@@ -22,6 +22,7 @@ __all__ = [
     "DailySLAJobService",
     "WorkStateService",
     "SignalsService",
+    "OperationalSignalsService",
     "DashboardExtendedService",
     "TimelineService",
     "SearchService",
@@ -89,6 +90,10 @@ def __getattr__(name: str) -> Any:
         from app.services.signals_service import SignalsService
 
         return SignalsService
+    if name == "OperationalSignalsService":
+        from app.services.operational_signals_service import OperationalSignalsService
+
+        return OperationalSignalsService
     if name == "DashboardExtendedService":
         from app.services.dashboard_extended_service import DashboardExtendedService
 

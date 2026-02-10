@@ -13,7 +13,7 @@ from app.services.work_state_service import WorkStateService
 
 class SignalType(str, PyEnum):
     """Operational signal types (internal, non-blocking)."""
-    
+
     MISSING_DOCUMENTS = "missing_permanent_documents"
     NEAR_SLA = "near_sla"
     OVERDUE = "overdue"
@@ -25,7 +25,7 @@ class SignalType(str, PyEnum):
 class SignalsService:
     """
     Compute operational signals for UX.
-    
+
     Signals are:
     - Derived dynamically (NOT persisted)
     - Advisory only (non-blocking)
@@ -46,7 +46,7 @@ class SignalsService:
     ) -> list[str]:
         """
         Compute signals for a single binder.
-        
+
         Returns list of signal type values.
         """
         if reference_date is None:
@@ -80,7 +80,7 @@ class SignalsService:
     ) -> dict:
         """
         Compute all signals for a client.
-        
+
         Returns:
             {
                 "missing_documents": [...],
@@ -120,47 +120,9 @@ class SignalsService:
         client_id: int,
         reference_date: Optional[date] = None,
     ) -> dict:
-        """
-        Compute legacy "operational signals" response for documents API.
+        from app.services.operational_signals_service import OperationalSignalsService
 
-        This preserves the `/documents/client/{client_id}/signals` payload shape:
-            {
-                "client_id": int,
-                "missing_documents": [str],
-                "binders_nearing_sla": [{"binder_id", "binder_number", "days_remaining"}],
-                "binders_overdue": [{"binder_id", "binder_number", "days_overdue"}],
-            }
-        """
-        if reference_date is None:
-            reference_date = date.today()
-
-        missing_docs = self.document_service.get_missing_document_types(client_id)
-        binders = self.binder_repo.list_active(client_id=client_id)
-
-        nearing_sla: list[dict] = []
-        overdue: list[dict] = []
-
-        for binder in binders:
-            if SLAService.is_overdue(binder, reference_date):
-                overdue.append(
-                    {
-                        "binder_id": binder.id,
-                        "binder_number": binder.binder_number,
-                        "days_overdue": SLAService.days_overdue(binder, reference_date),
-                    }
-                )
-            elif SLAService.is_approaching_sla(binder, reference_date):
-                nearing_sla.append(
-                    {
-                        "binder_id": binder.id,
-                        "binder_number": binder.binder_number,
-                        "days_remaining": SLAService.days_remaining(binder, reference_date),
-                    }
-                )
-
-        return {
-            "client_id": client_id,
-            "missing_documents": [dt.value for dt in missing_docs],
-            "binders_nearing_sla": nearing_sla,
-            "binders_overdue": overdue,
-        }
+        return OperationalSignalsService(self.db).get_client_signals(
+            client_id=client_id,
+            reference_date=reference_date,
+        )
