@@ -55,9 +55,14 @@ def get_attention_items(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Get items requiring attention."""
+    """
+    Get items requiring attention.
+    
+    Sprint 6: Unpaid charges visible only to ADVISOR.
+    """
     service = DashboardExtendedService(db)
-    items = service.get_attention_items()
+    # Pass user role to service for role-based filtering
+    items = service.get_attention_items(user_role=user.role)
 
     return AttentionResponse(
         items=items,

@@ -77,20 +77,23 @@ def update_client(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Update client. Status changes (freeze/close) require advisor role."""
+    """
+    Update client.
+    
+    Sprint 6 cleanup: Authorization moved to service layer.
+    """
     service = ClientService(db)
     
     update_data = request.model_dump(exclude_unset=True)
     
-    # Freeze/close operations restricted to advisor only
-    if "status" in update_data and update_data["status"] in ["frozen", "closed"]:
-        if user.role != UserRole.ADVISOR:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only advisors can freeze or close clients"
-            )
-    
-    client = service.update_client(client_id, **update_data)
+    try:
+        # Sprint 6: Pass user role to service for authorization
+        client = service.update_client(client_id, user.role, **update_data)
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
 
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")

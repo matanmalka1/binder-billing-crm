@@ -84,8 +84,12 @@ class BinderOperationsService:
         return self.client_repo.get_by_id(client_id) is not None
 
 
-    @staticmethod
-    def enrich_binder_with_sla(binder: Binder, db: Session) -> dict:
+    def enrich_binder_with_sla(self, binder: Binder, db: Session) -> dict:
+        """
+        Enrich binder with SLA and operational state.
+        
+        Sprint 6: Pass db session to WorkStateService for notification history.
+        """
         signals_service = SignalsService(db)
         return {
             "id": binder.id,
@@ -98,6 +102,6 @@ class BinderOperationsService:
             "pickup_person_name": binder.pickup_person_name,
             "is_overdue": SLAService.is_overdue(binder),
             "days_overdue": SLAService.days_overdue(binder),
-            "work_state": WorkStateService.derive_work_state(binder).value,
+            "work_state": WorkStateService.derive_work_state(binder, db=db).value,
             "signals": signals_service.compute_binder_signals(binder),
         }

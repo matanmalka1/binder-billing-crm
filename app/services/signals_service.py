@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Binder
 from app.repositories import BinderRepository, ChargeRepository, ClientRepository
+from app.services.operational_signals_builder import build_client_operational_signals
 from app.services.permanent_document_service import PermanentDocumentService
 from app.services.sla_service import SLAService
 from app.services.work_state_service import WorkStateService
@@ -120,9 +121,11 @@ class SignalsService:
         client_id: int,
         reference_date: Optional[date] = None,
     ) -> dict:
-        from app.services.operational_signals_service import OperationalSignalsService
-
-        return OperationalSignalsService(self.db).get_client_signals(
+        if reference_date is None:
+            reference_date = date.today()
+        return build_client_operational_signals(
+            self.document_service,
+            self.binder_repo,
             client_id=client_id,
             reference_date=reference_date,
         )

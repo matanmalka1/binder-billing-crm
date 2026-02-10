@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Client, ClientStatus
+from app.models import Client, ClientStatus, UserRole
 from app.repositories import ClientRepository
 
 
@@ -54,11 +54,21 @@ class ClientService:
         total = self.client_repo.count(status=status)
         return items, total
 
-    def update_client(self, client_id: int, **fields) -> Optional[Client]:
-        """Update client fields."""
+    def update_client(
+        self,
+        client_id: int,
+        user_role: UserRole,
+        **fields,
+    ) -> Optional[Client]:
+       
         client = self.client_repo.get_by_id(client_id)
         if not client:
             return None
+
+        # Sprint 6: Authorization logic in service, not router
+        if "status" in fields and fields["status"] in ["frozen", "closed"]:
+            if user_role != UserRole.ADVISOR:
+                raise PermissionError("Only advisors can freeze or close clients")
 
         # Prevent updating status to closed without closed_at
         if "status" in fields and fields["status"] == ClientStatus.CLOSED:

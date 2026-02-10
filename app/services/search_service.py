@@ -4,8 +4,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.repositories import BinderRepository, ClientRepository
+from app.services.search_filters import matches_signal_type, matches_sla_state
 from app.services.signals_service import SignalsService
-from app.services.sla_service import SLAService
 from app.services.work_state_service import WorkStateService
 
 
@@ -25,41 +25,32 @@ class SearchService:
         id_number: Optional[str] = None,
         binder_number: Optional[str] = None,
         work_state: Optional[str] = None,
+        sla_state: Optional[str] = None,
+        signal_type: Optional[list[str]] = None,
         has_signals: Optional[bool] = None,
         page: int = 1,
         page_size: int = 20,
         reference_date: Optional[date] = None,
     ) -> tuple[list[dict], int]:
-        """
-        Search clients and binders with filters.
-        
-        Returns (results, total).
-        """
         if reference_date is None:
             reference_date = date.today()
 
         results = []
 
-        # Client search
         if query or client_name or id_number:
             clients = self.client_repo.list(page=1, page_size=1000)
-            
             for client in clients:
                 match = True
-                
                 if query:
                     query_lower = query.lower()
                     match = (
                         query_lower in client.full_name.lower()
                         or query_lower in client.id_number
                     )
-                
                 if client_name and match:
                     match = client_name.lower() in client.full_name.lower()
-                
                 if id_number and match:
                     match = id_number in client.id_number
-                
                 if match:
                     results.append({
                         "result_type": "client",
@@ -71,33 +62,28 @@ class SearchService:
                         "signals": [],
                     })
 
-        # Binder search
-        if query or binder_number or work_state or has_signals:
+        if query or binder_number or work_state or sla_state or signal_type or has_signals:
             binders = self.binder_repo.list_active()
-            
             for binder in binders:
                 match = True
-                
                 if query:
                     match = query.lower() in binder.binder_number.lower()
-                
                 if binder_number and match:
                     match = binder_number.lower() in binder.binder_number.lower()
-                
-                # Compute derived state
                 current_work_state = WorkStateService.derive_work_state(
-                    binder, reference_date
+                    binder, reference_date, self.db
                 )
                 current_signals = self.signals_service.compute_binder_signals(
                     binder, reference_date
                 )
-                
+                if sla_state and match:
+                    match = matches_sla_state(binder, sla_state, reference_date)
+                if signal_type and match:
+                    match = matches_signal_type(current_signals, signal_type)
                 if work_state and match:
                     match = current_work_state.value == work_state
-                
                 if has_signals and match:
                     match = len(current_signals) > 0
-                
                 if match:
                     client = self.client_repo.get_by_id(binder.client_id)
                     results.append({

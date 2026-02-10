@@ -1,10 +1,11 @@
-# API Contract (Implemented Through Sprint 5)
+# API Contract (Implemented Through Sprint 6)
 
-This document is a **route index + high-level contract** for the API surface implemented through Sprint 5.
+This document is a **route index + high-level contract** for the API surface implemented through Sprint 6.
 Behavioral rules (constraints, transitions, and invariants) remain **authoritatively defined** by the frozen sprint specifications:
 - `SPRINT_3_FORMAL_SPECIFICATION.md` (billing)
 - `sprint_4_formal_specification.md` + `sprint_4_freeze_rules.md` (notifications/documents/job)
 - `SPRINT_5_FORMAL_SPECIFICATION.md` + `SPRINT_5_FREEZE_DECLARATION.md` (hardening)
+- `SPRINT_6_FORMAL_SPECIFICATION.md` (operational readiness & UX enablement)
 
 ## Conventions
 - Base path (business API): `/api/v1`
@@ -78,7 +79,9 @@ Response shape:
       "returned_at": null,
       "pickup_person_name": null,
       "is_overdue": true,
-      "days_overdue": 38
+      "days_overdue": 38,
+      "work_state": "waiting_for_work",
+      "signals": ["overdue", "idle_binder"]
     }
   ],
   "page": 1,
@@ -116,7 +119,7 @@ Response shape:
 }
 ```
 
-## Dashboard
+## Dashboard (Sprint 1-2 Summary Endpoints)
 ### `GET /api/v1/dashboard/summary`
 - Authorization: any authenticated user
 - Response: `binders_in_office`, `binders_ready_for_pickup`, `binders_overdue`
@@ -124,6 +127,150 @@ Response shape:
 ### `GET /api/v1/dashboard/overview`
 - Authorization: `ADVISOR` only
 - Response: `total_clients`, `active_binders`, `overdue_binders`, `binders_due_today`, `binders_due_this_week`
+
+## Dashboard Extended (Sprint 6, ADVISOR + SECRETARY)
+
+### `GET /api/v1/dashboard/work-queue`
+- Authorization: `ADVISOR` + `SECRETARY`
+- Query params:
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 20, min: 1, max: 100)
+- Response:
+```json
+{
+  "items": [
+    {
+      "binder_id": 1,
+      "client_id": 123,
+      "client_name": "Example Corp",
+      "binder_number": "BND-001",
+      "work_state": "in_progress",
+      "signals": ["near_sla"],
+      "days_since_received": 15,
+      "expected_return_at": "2026-03-01"
+    }
+  ],
+  "page": 1,
+  "page_size": 20,
+  "total": 45
+}
+```
+
+### `GET /api/v1/dashboard/alerts`
+- Authorization: `ADVISOR` + `SECRETARY`
+- Response:
+```json
+{
+  "items": [
+    {
+      "binder_id": 1,
+      "client_id": 123,
+      "client_name": "Example Corp",
+      "binder_number": "BND-001",
+      "alert_type": "overdue",
+      "days_overdue": 5,
+      "days_remaining": null
+    }
+  ],
+  "total": 10
+}
+```
+
+### `GET /api/v1/dashboard/attention`
+- Authorization: `ADVISOR` + `SECRETARY`
+- Note: Unpaid charges visible only to `ADVISOR`
+- Response:
+```json
+{
+  "items": [
+    {
+      "item_type": "idle_binder",
+      "binder_id": 1,
+      "client_id": 123,
+      "client_name": "Example Corp",
+      "description": "Binder BND-001 idle for 30 days"
+    },
+    {
+      "item_type": "unpaid_charge",
+      "binder_id": null,
+      "client_id": 124,
+      "client_name": "Another Corp",
+      "description": "Unpaid charge: 1500 ILS"
+    }
+  ],
+  "total": 15
+}
+```
+
+## Timeline (Sprint 6, ADVISOR + SECRETARY)
+
+### `GET /api/v1/clients/{client_id}/timeline`
+- Authorization: `ADVISOR` + `SECRETARY`
+- Query params:
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 50, min: 1, max: 200)
+- Response:
+```json
+{
+  "client_id": 123,
+  "events": [
+    {
+      "event_type": "binder_received",
+      "timestamp": "2026-01-15T10:00:00",
+      "binder_id": 1,
+      "charge_id": null,
+      "description": "Binder BND-001 received",
+      "metadata": {"binder_number": "BND-001"}
+    },
+    {
+      "event_type": "charge_created",
+      "timestamp": "2026-01-20T14:00:00",
+      "binder_id": null,
+      "charge_id": 5,
+      "description": "Charge created: retainer",
+      "metadata": {"amount": 1500.0, "status": "issued"}
+    }
+  ],
+  "page": 1,
+  "page_size": 50,
+  "total": 125
+}
+```
+
+## Search (Sprint 6, ADVISOR + SECRETARY)
+
+### `GET /api/v1/search`
+- Authorization: `ADVISOR` + `SECRETARY`
+- Query params:
+  - `query` (optional, general text search)
+  - `client_name` (optional)
+  - `id_number` (optional)
+  - `binder_number` (optional)
+  - `work_state` (optional: `waiting_for_work` | `in_progress` | `completed`)
+  - `sla_state` (optional: `on_track` | `approaching` | `overdue`)
+  - `signal_type` (optional, array: `missing_permanent_documents` | `near_sla` | `overdue` | `ready_for_pickup` | `unpaid_charges` | `idle_binder`)
+  - `has_signals` (optional, boolean)
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 20, min: 1, max: 100)
+- Response:
+```json
+{
+  "results": [
+    {
+      "result_type": "binder",
+      "client_id": 123,
+      "client_name": "Example Corp",
+      "binder_id": 1,
+      "binder_number": "BND-001",
+      "work_state": "in_progress",
+      "signals": ["near_sla"]
+    }
+  ],
+  "page": 1,
+  "page_size": 20,
+  "total": 35
+}
+```
 
 ## Charges (Sprint 3 Billing, ADVISOR + SECRETARY read)
 
