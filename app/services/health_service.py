@@ -10,7 +10,10 @@ class HealthService:
         self.health_repo = HealthRepository(db)
 
     def check(self) -> dict[str, str]:
-        db_ok = self.health_repo.can_connect()
+        try:
+            db_ok = self.health_repo.can_connect()
+        except Exception:
+            db_ok = False
         return {
             "status": "healthy" if db_ok else "unhealthy",
             "database": "connected" if db_ok else "disconnected",

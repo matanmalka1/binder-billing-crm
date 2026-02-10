@@ -20,11 +20,6 @@ class StorageProvider(ABC):
         """
         pass
 
-    @abstractmethod
-    def exists(self, key: str) -> bool:
-        """Check if file exists in storage."""
-        pass
-
 
 class LocalStorageProvider(StorageProvider):
     """Local filesystem storage provider for development/testing."""
@@ -45,9 +40,3 @@ class LocalStorageProvider(StorageProvider):
             f.write(file_data.read())
         
         return key
-
-    def exists(self, key: str) -> bool:
-        """Check if file exists in local storage."""
-        import os
-        file_path = os.path.join(self.base_path, key)
-        return os.path.exists(file_path)

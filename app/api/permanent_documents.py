@@ -10,7 +10,7 @@ from app.schemas import (
     PermanentDocumentListResponse,
     PermanentDocumentResponse,
 )
-from app.services import OperationalSignalsService, PermanentDocumentService
+from app.services import PermanentDocumentService, SignalsService
 
 router = APIRouter(
     prefix="/documents",
@@ -86,7 +86,7 @@ def get_operational_signals(
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    service = OperationalSignalsService(db)
-    signals = service.get_client_signals(client_id)
+    service = SignalsService(db)
+    signals = service.compute_client_operational_signals(client_id)
 
     return OperationalSignalsResponse(**signals)
