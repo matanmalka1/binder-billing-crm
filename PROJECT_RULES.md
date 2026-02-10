@@ -125,12 +125,7 @@ All such states are **computed dynamically**.
 
 ## 8. Database & Migrations
 
-- Alembic is used only when explicitly allowed by sprint spec
-- Migration files must be:
-  - Tracked in git
-  - Minimal
-  - One-purpose
-- No retroactive schema changes without formal approval
+- Early development: no migrations. Schema is created from ORM models in `APP_ENV=development`.
 
 ---
 

@@ -210,7 +210,7 @@ The system does not generate, calculate, or validate invoice contents.
 
 Sprint 3 introduces database migrations under the following rules:
 
-- Alembic is the sole migration tool
+- No migrations during early development
 - Exactly one migration is permitted
 - Migration scope is limited to:
   - Creation of `charges` table

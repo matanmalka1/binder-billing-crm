@@ -37,6 +37,12 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan with graceful startup and shutdown."""
     logger.info("Application starting")
+    if config.APP_ENV == "development":
+        from app.database import Base, engine
+        import app.models  # noqa: F401
+
+        Base.metadata.create_all(bind=engine)
+        logger.info("Development schema ensured (ORM create_all)")
     yield
     logger.info("Application shutting down")
 

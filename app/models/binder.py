@@ -36,6 +36,7 @@ class Binder(Base):
             "binder_number",
             unique=True,
             postgresql_where=(status != BinderStatus.RETURNED),
+            sqlite_where=(status != BinderStatus.RETURNED),
         ),
     )
 

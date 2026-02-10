@@ -18,6 +18,8 @@ from app.services import AuthService
 @pytest.fixture(scope="function")
 def test_db():
     """Create test database with proper SQLite threading config."""
+    import app.models  # noqa: F401
+
     # Use StaticPool and check_same_thread=False for SQLite in tests
     engine = create_engine(
         "sqlite:///:memory:",

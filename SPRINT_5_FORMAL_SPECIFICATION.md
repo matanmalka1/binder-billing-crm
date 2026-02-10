@@ -107,7 +107,7 @@ Sprint 5 MUST NOT include:
 - Reporting or analytics
 - Client portal
 - Database schema changes
-- New Alembic migrations
+- New migrations
 - New background jobs
 - New notification types
 
@@ -134,7 +134,7 @@ API → Service → Repository → ORM
 - Sprint 5 introduces **NO schema changes**
 - No new migrations
 - No modification of existing tables
-- Alembic configuration must remain untouched
+- Migration tooling is temporarily disabled during early development
 
 ---
 

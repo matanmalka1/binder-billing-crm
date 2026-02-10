@@ -23,8 +23,8 @@ For production deployments (Render), configure environment variables in the Rend
    - `JWT_SECRET` (required; must be non-empty)
    - `DATABASE_URL` (optional; defaults are in `app/config.py`)
    - `JWT_TTL_HOURS` (optional; defaults to `8`)
-   - `LOG_LEVEL` (optional; defaults to `INFO`)
-5. Load `.env` into your shell (so `python`, `alembic`, and `uvicorn` can read it):
+   - `LOG_LEVEL` (optional; defaults to `WARNING`)
+5. Load `.env` into your shell (so `python` and `uvicorn` can read it):
 ```bash
 set -a
 source .env
@@ -32,25 +32,10 @@ set +a
 ```
 
 ## Database
-This repo uses SQLAlchemy ORM models as the source of truth for the core schema.
+In early development, schema creation is done automatically from ORM models in development mode.
 
-For a new local SQLite database, initialize the core tables from ORM metadata:
-```bash
-python -m app.scripts.init_core_db
-```
-
-Sprints 3–4 introduced Alembic migrations for additional tables (per the frozen sprint specifications).
-Apply migrations up to the current head to create the billing + notifications/documents tables:
-```bash
-alembic upgrade head
-```
-
-If you previously ran `Base.metadata.create_all(...)` after importing `app.models` (all models),
-you likely created the Sprint 3–4 tables without Alembic defaults and will see:
-`sqlite3.OperationalError: table charges already exists`.
-In that case, either:
-- delete your local DB file (default: `binder_crm.db`) and re-run the two commands above, or
-- point `DATABASE_URL` at a fresh SQLite file and re-run the two commands above.
+When `APP_ENV=development`, the API boot process runs `Base.metadata.create_all(bind=engine)` once at startup.
+This is skipped in all other environments.
 
 ## Run API
 ```bash
