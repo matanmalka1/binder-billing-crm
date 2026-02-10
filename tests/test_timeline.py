@@ -1,0 +1,42 @@
+from datetime import date
+
+from app.models import Client, ClientType
+
+
+def test_client_timeline_endpoint(client, advisor_headers, test_db):
+    """Test client timeline endpoint."""
+    test_client = Client(
+        full_name="Timeline Test",
+        id_number="TL001",
+        client_type=ClientType.COMPANY,
+        opened_at=date.today(),
+    )
+    test_db.add(test_client)
+    test_db.commit()
+    test_db.refresh(test_client)
+    
+    response = client.get(
+        f"/api/v1/clients/{test_client.id}/timeline",
+        headers=advisor_headers,
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["client_id"] == test_client.id
+    assert "events" in data
+    assert "total" in data
+
+
+def test_timeline_requires_auth(client, test_db):
+    """Test timeline requires authentication."""
+    test_client = Client(
+        full_name="Timeline Test",
+        id_number="TL002",
+        client_type=ClientType.COMPANY,
+        opened_at=date.today(),
+    )
+    test_db.add(test_client)
+    test_db.commit()
+    
+    response = client.get(f"/api/v1/clients/{test_client.id}/timeline")
+    assert response.status_code == 401

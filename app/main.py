@@ -17,6 +17,9 @@ from app.api import (
     dashboard_overview,
     health,
     permanent_documents,
+    dashboard_extended,
+    timeline,
+    search,
 )
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -89,6 +92,10 @@ app.include_router(dashboard_overview.router, prefix="/api/v1")
 app.include_router(binders_history.router, prefix="/api/v1")
 app.include_router(charge.router, prefix="/api/v1")
 app.include_router(permanent_documents.router, prefix="/api/v1")
+app.include_router(dashboard_extended.router, prefix="/api/v1")
+app.include_router(timeline.router, prefix="/api/v1")
+app.include_router(search.router, prefix="/api/v1")
+
 
 
 def handle_shutdown(signum, frame):
