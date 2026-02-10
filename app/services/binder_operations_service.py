@@ -7,7 +7,8 @@ from app.models import Binder
 from app.repositories.binder_repository_extensions import BinderRepositoryExtensions
 from app.repositories.client_repository import ClientRepository
 from app.services.sla_service import SLAService
-
+from app.services.work_state_service import WorkStateService
+from app.services.signals_service import SignalsService
 
 class BinderOperationsService:
     """Sprint 2 operational binder queries with SLA enrichment."""
@@ -82,9 +83,10 @@ class BinderOperationsService:
         """Check client existence for client-binders route."""
         return self.client_repo.get_by_id(client_id) is not None
 
+
     @staticmethod
-    def enrich_binder_with_sla(binder: Binder) -> dict:
-        """Enrich binder with derived SLA fields."""
+    def enrich_binder_with_sla(binder: Binder, db: Session) -> dict:
+        signals_service = SignalsService(db)
         return {
             "id": binder.id,
             "client_id": binder.client_id,
@@ -96,4 +98,6 @@ class BinderOperationsService:
             "pickup_person_name": binder.pickup_person_name,
             "is_overdue": SLAService.is_overdue(binder),
             "days_overdue": SLAService.days_overdue(binder),
+            "work_state": WorkStateService.derive_work_state(binder).value,
+            "signals": signals_service.compute_binder_signals(binder),
         }

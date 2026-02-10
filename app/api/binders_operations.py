@@ -27,7 +27,7 @@ def list_open_binders(
     items, total = service.get_open_binders(page=page, page_size=page_size)
     
     enriched = [
-        BinderDetailResponse(**service.enrich_binder_with_sla(b))
+        BinderDetailResponse(**service.enrich_binder_with_sla(b, db))
         for b in items
     ]
     
@@ -51,7 +51,7 @@ def list_overdue_binders(
     items, total = service.get_overdue_binders(page=page, page_size=page_size)
     
     enriched = [
-        BinderDetailResponse(**service.enrich_binder_with_sla(b))
+        BinderDetailResponse(**service.enrich_binder_with_sla(b, db))
         for b in items
     ]
     
@@ -75,7 +75,7 @@ def list_due_today_binders(
     items, total = service.get_due_today_binders(page=page, page_size=page_size)
     
     enriched = [
-        BinderDetailResponse(**service.enrich_binder_with_sla(b))
+        BinderDetailResponse(**service.enrich_binder_with_sla(b, db))
         for b in items
     ]
     

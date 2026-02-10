@@ -17,6 +17,8 @@ class BinderDetailResponse(BaseModel):
     pickup_person_name: Optional[str] = None
     is_overdue: bool
     days_overdue: int
+    work_state: Optional[str] = None
+    signals: list[str] = []
 
     model_config = {"from_attributes": True}
 
