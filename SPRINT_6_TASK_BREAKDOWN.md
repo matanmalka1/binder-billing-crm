@@ -1,7 +1,7 @@
 # SPRINT 6 – TASK BREAKDOWN
 ## Backend Operational Readiness & UX Enablement
 
-Status: DRAFT (Pending Freeze Approval)  
+Status: FROZEN  
 Linked Spec: SPRINT_6_FORMAL_SPECIFICATION.md  
 Depends On: Sprint 1–5 (Frozen)
 

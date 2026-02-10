@@ -1,7 +1,7 @@
 # SPRINT 6 – FORMAL SPECIFICATION
 ## Operational Readiness & UX Enablement (Backend)
 
-Status: DRAFT (Pending Freeze Approval)  
+Status: FROZEN  
 Applies To: Binder & Billing CRM  
 Depends On: Sprint 1–5 (Frozen)
 

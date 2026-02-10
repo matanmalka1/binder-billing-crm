@@ -1,7 +1,7 @@
 # SPRINT 5 – FORMAL SPECIFICATION
 ## Production Hardening & Operational Readiness
 
-Status: DRAFT (Pending Freeze)
+Status: FROZEN
 Authoritative Document
 
 ---
@@ -190,9 +190,9 @@ Sprint 5 is complete when:
 
 ## 10. Sprint 5 Status
 
-Current status: **DRAFT**
+Current status: **FROZEN**
 
-This document becomes **FROZEN** once implementation and verification are complete.
+This document is frozen and enforced alongside `SPRINT_5_FREEZE_DECLARATION.md`.
 
 ---
 

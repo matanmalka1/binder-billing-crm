@@ -1,7 +1,7 @@
 # Sprint 4 – Formal Specification
 
 ## Status
-**DRAFT – Pending Freeze Approval**
+**FROZEN**
 
 ---
 
