@@ -1,6 +1,6 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+
+from app.utils.time import utcnow
 
 from app.database import Base
 
@@ -20,7 +20,7 @@ class Invoice(Base):
     external_invoice_id = Column(String, nullable=False)
     document_url = Column(String, nullable=True)
     issued_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     def __repr__(self):
         return (

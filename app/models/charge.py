@@ -1,9 +1,9 @@
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class ChargeType(str, PyEnum):
@@ -28,7 +28,7 @@ class Charge(Base):
     charge_type = Column(Enum(ChargeType), nullable=False)
     period = Column(String(7), nullable=True)  # YYYY-MM format
     status = Column(Enum(ChargeStatus), default=ChargeStatus.DRAFT, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     issued_at = Column(DateTime, nullable=True)
     paid_at = Column(DateTime, nullable=True)
 

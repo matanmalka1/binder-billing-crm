@@ -1,6 +1,6 @@
 """Tests for JWT expiration enforcement."""
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import jwt
@@ -26,7 +26,7 @@ def test_jwt_has_expiration(test_user):
 def test_jwt_expiration_is_enforced():
     """Test that expired tokens are rejected."""
     # Create a token that's already expired
-    past_time = datetime.utcnow() - timedelta(hours=10)
+    past_time = datetime.now(UTC) - timedelta(hours=10)
     
     payload = {
         "sub": "123",
@@ -58,8 +58,8 @@ def test_valid_token_is_accepted(test_user):
 def test_token_without_required_fields_rejected():
     """Test that tokens without required fields are rejected."""
     payload = {
-        "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + timedelta(hours=1),
+        "iat": datetime.now(UTC),
+        "exp": datetime.now(UTC) + timedelta(hours=1),
         # Missing "sub" and "role"
     }
     
@@ -72,7 +72,7 @@ def test_token_without_required_fields_rejected():
 def test_expired_token_rejected_in_api(client, test_user):
     """Test that expired token is rejected by API."""
     # Create expired token
-    past_time = datetime.utcnow() - timedelta(hours=10)
+    past_time = datetime.now(UTC) - timedelta(hours=10)
     
     payload = {
         "sub": str(test_user.id),

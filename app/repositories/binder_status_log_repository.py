@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import BinderStatusLog
+from app.utils.time import utcnow
 
 
 class BinderStatusLogRepository:
@@ -26,7 +26,7 @@ class BinderStatusLogRepository:
             old_status=old_status,
             new_status=new_status,
             changed_by=changed_by,
-            changed_at=datetime.utcnow(),
+            changed_at=utcnow(),
             notes=notes,
         )
         self.db.add(log)

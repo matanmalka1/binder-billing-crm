@@ -1,10 +1,10 @@
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import Charge, ChargeStatus
 from app.repositories import ChargeRepository, ClientRepository
+from app.utils.time import utcnow
 
 
 class BillingService:
@@ -68,7 +68,7 @@ class BillingService:
         return self.charge_repo.update_status(
             charge_id,
             ChargeStatus.ISSUED,
-            issued_at=datetime.utcnow(),
+            issued_at=utcnow(),
         )
 
     def mark_charge_paid(self, charge_id: int) -> Charge:
@@ -94,7 +94,7 @@ class BillingService:
         return self.charge_repo.update_status(
             charge_id,
             ChargeStatus.PAID,
-            paid_at=datetime.utcnow(),
+            paid_at=utcnow(),
         )
 
     def cancel_charge(self, charge_id: int) -> Charge:

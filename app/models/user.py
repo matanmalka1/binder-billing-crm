@@ -1,9 +1,9 @@
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Enum
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class UserRole(str, PyEnum):
@@ -21,7 +21,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)
 
     def __repr__(self):

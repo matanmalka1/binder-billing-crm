@@ -1,9 +1,9 @@
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class NotificationChannel(str, PyEnum):
@@ -39,7 +39,7 @@ class Notification(Base):
     sent_at = Column(DateTime, nullable=True)
     failed_at = Column(DateTime, nullable=True)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     def __repr__(self):
         return f"<Notification(id={self.id}, trigger='{self.trigger}', channel='{self.channel}', status='{self.status}')>"

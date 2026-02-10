@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import User
+from app.utils.time import utcnow
 
 
 class UserRepository:
@@ -44,6 +44,6 @@ class UserRepository:
     def update_last_login(self, user_id: int) -> None:
         """Update last login timestamp."""
         self.db.query(User).filter(User.id == user_id).update(
-            {"last_login_at": datetime.utcnow()}
+            {"last_login_at": utcnow()}
         )
         self.db.commit()

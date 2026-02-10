@@ -1,9 +1,9 @@
-from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Boolean
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class DocumentType(str, PyEnum):
@@ -21,7 +21,7 @@ class PermanentDocument(Base):
     storage_key = Column(String, nullable=False)
     is_present = Column(Boolean, default=True, nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    uploaded_at = Column(DateTime, default=utcnow, nullable=False)
 
     def __repr__(self):
         return f"<PermanentDocument(id={self.id}, client_id={self.client_id}, type='{self.document_type}', is_present={self.is_present})>"

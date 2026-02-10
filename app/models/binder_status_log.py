@@ -1,8 +1,7 @@
-from datetime import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class BinderStatusLog(Base):
@@ -13,7 +12,7 @@ class BinderStatusLog(Base):
     old_status = Column(String, nullable=False)
     new_status = Column(String, nullable=False)
     changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    changed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    changed_at = Column(DateTime, default=utcnow, nullable=False)
     notes = Column(Text, nullable=True)
 
     def __repr__(self):

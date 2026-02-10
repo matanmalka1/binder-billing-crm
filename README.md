@@ -26,10 +26,12 @@ No backend behavior, schema, or contract changes are allowed without a new sprin
 
 ## Quickstart
 Follow `DEV_SETUP.md` for full setup. Common entrypoints:
-- API: `python -m app.main`
+- API (local dev): `APP_ENV=development ENV_FILE=.env.development python -m app.main`
 - OpenAPI: `http://localhost:8000/docs`
 - Health: `GET http://localhost:8000/health`
 - Info: `GET http://localhost:8000/info`
+
+Note: an exported `DATABASE_URL` in your shell overrides values from `.env.*` (dotenv loads with `override=False`). If you expect SQLite locally but see Postgres being used, run `unset DATABASE_URL` (or override it inline for the command).
 
 ## Tests
 ```bash

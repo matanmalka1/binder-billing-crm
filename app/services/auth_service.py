@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Optional
 
 import bcrypt
@@ -54,7 +54,7 @@ class AuthService:
         
         Token includes explicit expiration (iat + exp).
         """
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         expiration = now + timedelta(hours=config.JWT_TTL_HOURS)
         
         payload = {

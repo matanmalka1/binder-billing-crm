@@ -1,9 +1,9 @@
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models import Notification, NotificationChannel, NotificationStatus, NotificationTrigger
+from app.utils.time import utcnow
 
 
 class NotificationRepository:
@@ -43,7 +43,7 @@ class NotificationRepository:
             return None
 
         notification.status = NotificationStatus.SENT
-        notification.sent_at = datetime.utcnow()
+        notification.sent_at = utcnow()
         self.db.commit()
         self.db.refresh(notification)
         return notification
@@ -55,7 +55,7 @@ class NotificationRepository:
             return None
 
         notification.status = NotificationStatus.FAILED
-        notification.failed_at = datetime.utcnow()
+        notification.failed_at = utcnow()
         notification.error_message = error_message
         self.db.commit()
         self.db.refresh(notification)
