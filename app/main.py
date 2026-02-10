@@ -75,7 +75,7 @@ app.add_middleware(
 def info():
     return {
         "app": "Binder Billing CRM",
-        "env": config.APP_ENV,
+        "env": config.ENV,
     }
 
 
