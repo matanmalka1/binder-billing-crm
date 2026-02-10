@@ -41,11 +41,11 @@ htmlcov/
 *.swp
 *.swo
 
-# Environment
+# Environment (real secrets)
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+!.env.example
+!.env.*.example
 
 # Database
 *.db
