@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BinderReceiveRequest(BaseModel):
@@ -13,8 +13,8 @@ class BinderReceiveRequest(BaseModel):
 
 
 class BinderReturnRequest(BaseModel):
-    pickup_person_name: str
-    returned_by: int
+    pickup_person_name: Optional[str] = None
+    returned_by: Optional[int] = None
 
 
 class BinderResponse(BaseModel):
@@ -27,6 +27,10 @@ class BinderResponse(BaseModel):
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
     days_in_office: Optional[int] = None
+    work_state: Optional[str] = None
+    sla_state: Optional[str] = None
+    signals: Optional[list[str]] = None
+    available_actions: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

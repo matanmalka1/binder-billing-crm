@@ -17,14 +17,14 @@ class SLAService:
     def is_overdue(binder: Binder, reference_date: Optional[date] = None) -> bool:
         """
         Check if binder is overdue.
-        
+
         A binder is OVERDUE if:
         - today > expected_return_at
         - status != RETURNED
         """
         if reference_date is None:
             reference_date = date.today()
-        
+
         return (
             binder.expected_return_at < reference_date
             and binder.status != BinderStatus.RETURNED
@@ -43,7 +43,7 @@ class SLAService:
     def is_approaching_sla(binder: Binder, reference_date: Optional[date] = None) -> bool:
         """
         Check if binder is approaching SLA threshold.
-        
+
         Approaching window (Sprint 4): within the last 15 days before expected_return_at.
         """
         if reference_date is None:
@@ -59,18 +59,32 @@ class SLAService:
         return 0 < days_remaining <= SLAService.APPROACHING_DAYS_REMAINING_MAX
 
     @staticmethod
+    def derive_sla_state(binder: Binder, reference_date: Optional[date] = None) -> str:
+        """Derive UI-friendly SLA state label: on_track | approaching | overdue."""
+        if reference_date is None:
+            reference_date = date.today()
+
+        if SLAService.is_overdue(binder, reference_date):
+            return "overdue"
+
+        if SLAService.is_approaching_sla(binder, reference_date):
+            return "approaching"
+
+        return "on_track"
+
+    @staticmethod
     def days_overdue(binder: Binder, reference_date: Optional[date] = None) -> int:
         """
         Calculate days overdue (>= 0).
-        
+
         Returns 0 if not overdue.
         """
         if reference_date is None:
             reference_date = date.today()
-        
+
         if not SLAService.is_overdue(binder, reference_date):
             return 0
-        
+
         delta = reference_date - binder.expected_return_at
         return max(0, delta.days)
 
@@ -79,7 +93,7 @@ class SLAService:
         """Check if binder is due today."""
         if reference_date is None:
             reference_date = date.today()
-        
+
         return (
             binder.expected_return_at == reference_date
             and binder.status != BinderStatus.RETURNED

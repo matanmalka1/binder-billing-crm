@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ClientCreateRequest(BaseModel):
@@ -31,6 +31,7 @@ class ClientResponse(BaseModel):
     email: Optional[str] = None
     opened_at: date
     closed_at: Optional[date] = None
+    available_actions: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

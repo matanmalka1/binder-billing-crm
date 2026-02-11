@@ -16,7 +16,7 @@ router = APIRouter(
 def get_dashboard_overview(db: DBSession, user: CurrentUser):
     """
     Get dashboard overview (ADMIN only).
-    
+
     Returns management-level metrics:
     - Total clients
     - Active binders
@@ -25,5 +25,5 @@ def get_dashboard_overview(db: DBSession, user: CurrentUser):
     - Binders due this week
     """
     service = DashboardOverviewService(db)
-    overview = service.get_overview()
+    overview = service.get_overview(user_role=user.role)
     return DashboardOverviewResponse(**overview)

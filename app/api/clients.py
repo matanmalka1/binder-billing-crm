@@ -6,17 +6,24 @@ from app.api.deps import CurrentUser, DBSession, require_role
 from app.models import UserRole
 from app.schemas import (
     ClientCreateRequest,
-    ClientUpdateRequest,
-    ClientResponse,
     ClientListResponse,
+    ClientResponse,
+    ClientUpdateRequest,
 )
 from app.services import ClientService
+from app.services.action_contracts import get_client_actions
 
 router = APIRouter(
     prefix="/clients",
     tags=["clients"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
+
+
+def _to_client_response(client, user_role: UserRole) -> ClientResponse:
+    response = ClientResponse.model_validate(client)
+    response.available_actions = get_client_actions(client, user_role=user_role)
+    return response
 
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
@@ -33,7 +40,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             phone=request.phone,
             email=request.email,
         )
-        return ClientResponse.model_validate(client)
+        return _to_client_response(client, user.role)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
@@ -43,15 +50,21 @@ def list_clients(
     db: DBSession,
     user: CurrentUser,
     status_filter: Optional[str] = Query(None, alias="status"),
+    has_signals: Optional[bool] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List clients with pagination."""
     service = ClientService(db)
-    items, total = service.list_clients(status=status_filter, page=page, page_size=page_size)
+    items, total = service.list_clients(
+        status=status_filter,
+        has_signals=has_signals,
+        page=page,
+        page_size=page_size,
+    )
 
     return ClientListResponse(
-        items=[ClientResponse.model_validate(c) for c in items],
+        items=[_to_client_response(c, user.role) for c in items],
         page=page,
         page_size=page_size,
         total=total,
@@ -67,7 +80,7 @@ def get_client(client_id: int, db: DBSession, user: CurrentUser):
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
 
-    return ClientResponse.model_validate(client)
+    return _to_client_response(client, user.role)
 
 
 @router.patch("/{client_id}", response_model=ClientResponse)
@@ -79,23 +92,23 @@ def update_client(
 ):
     """
     Update client.
-    
+
     Sprint 6 cleanup: Authorization moved to service layer.
     """
     service = ClientService(db)
-    
+
     update_data = request.model_dump(exclude_unset=True)
-    
+
     try:
         # Sprint 6: Pass user role to service for authorization
         client = service.update_client(client_id, user.role, **update_data)
     except PermissionError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e)
+            detail=str(e),
         )
 
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
 
-    return ClientResponse.model_validate(client)
+    return _to_client_response(client, user.role)

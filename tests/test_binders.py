@@ -1,20 +1,25 @@
 from datetime import date
+
 from app.models import Client, ClientType
 
 
-def test_binder_status_change_creates_log(client, auth_token, test_db, test_user):
-    """Test that binder status changes create audit logs."""
-    # Create client
+def _seed_client(test_db, id_number: str) -> Client:
     test_client = Client(
         full_name="Test Client",
-        id_number="111222333",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date.today()
+        id_number=id_number,
+        client_type=ClientType.COMPANY,
+        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
-    
+    return test_client
+
+
+def test_binder_status_change_creates_log(client, auth_token, test_db, test_user):
+    """Test that binder status changes create audit logs."""
+    test_client = _seed_client(test_db, "111222333")
+
     # Receive binder
     response = client.post(
         "/api/v1/binders/receive",
@@ -24,39 +29,36 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
             "binder_number": "BND-2026-001",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
-            "notes": "Test binder"
-        }
+            "notes": "Test binder",
+        },
     )
-    
+
     assert response.status_code == 201
     binder_data = response.json()
     binder_id = binder_data["id"]
-    
+    assert "ready" in binder_data.get("available_actions", [])
+
     # Verify status log was created
     from app.repositories import BinderStatusLogRepository
+
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
-    
+
     assert len(logs) == 1
     assert logs[0].old_status == "null"
     assert logs[0].new_status == "in_office"
     assert logs[0].changed_by == test_user.id
 
 
-def test_binder_return_creates_log(client, auth_token, test_db, test_user):
-    """Test that returning binder creates status log."""
-    # Create client
-    test_client = Client(
-        full_name="Test Client",
-        id_number="444555666",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today()
-    )
-    test_db.add(test_client)
-    test_db.commit()
-    test_db.refresh(test_client)
-    
-    # Receive binder
+def test_binder_ready_endpoint_and_return_accepts_empty_body(
+    client,
+    auth_token,
+    test_db,
+    test_user,
+):
+    """Test /ready route and optional body support on /return."""
+    test_client = _seed_client(test_db, "444555666")
+
     receive_response = client.post(
         "/api/v1/binders/receive",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -64,33 +66,62 @@ def test_binder_return_creates_log(client, auth_token, test_db, test_user):
             "client_id": test_client.id,
             "binder_number": "BND-2026-002",
             "received_at": "2026-02-08",
-            "received_by": test_user.id
-        }
+            "received_by": test_user.id,
+        },
     )
+    assert receive_response.status_code == 201
     binder_id = receive_response.json()["id"]
-    
-    # Mark binder as ready (via service since endpoint not exposed)
-    from app.services import BinderService
-    binder_service = BinderService(test_db)
-    binder_service.mark_ready_for_pickup(binder_id, test_user.id)
-    
-    # Return binder
+
+    ready_response = client.post(
+        f"/api/v1/binders/{binder_id}/ready",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+    assert ready_response.status_code == 200
+    ready_data = ready_response.json()
+    assert ready_data["status"] == "ready_for_pickup"
+    assert "return" in ready_data.get("available_actions", [])
+
     return_response = client.post(
         f"/api/v1/binders/{binder_id}/return",
         headers={"Authorization": f"Bearer {auth_token}"},
-        json={
-            "pickup_person_name": "Avi Cohen",
-            "returned_by": test_user.id
-        }
+        json={},
     )
-    
+
     assert return_response.status_code == 200
-    
-    # Verify logs
+    returned_data = return_response.json()
+    assert returned_data["status"] == "returned"
+
     from app.repositories import BinderStatusLogRepository
+
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
-    
+
     # Should have: intake, mark ready, return
     assert len(logs) >= 3
     assert logs[-1].new_status == "returned"
+
+
+def test_binder_list_includes_available_actions(client, auth_token, test_db, test_user):
+    """List endpoint includes action tokens per binder."""
+    test_client = _seed_client(test_db, "777888999")
+
+    client.post(
+        "/api/v1/binders/receive",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json={
+            "client_id": test_client.id,
+            "binder_number": "BND-2026-003",
+            "received_at": "2026-02-08",
+            "received_by": test_user.id,
+        },
+    )
+
+    list_response = client.get(
+        "/api/v1/binders",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+    assert list_response.status_code == 200
+    data = list_response.json()
+    assert "items" in data
+    assert len(data["items"]) >= 1
+    assert "available_actions" in data["items"][0]

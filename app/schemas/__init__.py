@@ -24,6 +24,7 @@ from app.schemas.dashboard_extended import (
     AttentionItem,
     AttentionResponse,
     DashboardOverviewResponse,
+    DashboardQuickAction,
     WorkQueueItem,
     WorkQueueResponse,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "BinderListResponse",
     "DashboardSummaryResponse",
     "DashboardOverviewResponse",
+    "DashboardQuickAction",
     "WorkQueueItem",
     "WorkQueueResponse",
     "AlertItem",

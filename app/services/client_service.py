@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Client, ClientStatus, UserRole
 from app.repositories import ClientRepository
+from app.services.signals_service import SignalsService
 
 
 class ClientService:
@@ -13,6 +14,7 @@ class ClientService:
     def __init__(self, db: Session):
         self.db = db
         self.client_repo = ClientRepository(db)
+        self.signals_service = SignalsService(db)
 
     def create_client(
         self,
@@ -43,16 +45,47 @@ class ClientService:
         """Get client by ID."""
         return self.client_repo.get_by_id(client_id)
 
+    def _client_has_operational_signals(
+        self,
+        client_id: int,
+        reference_date: Optional[date] = None,
+    ) -> bool:
+        signals = self.signals_service.compute_client_signals(
+            client_id=client_id,
+            reference_date=reference_date,
+        )
+
+        return bool(
+            signals.get("missing_documents")
+            or signals.get("unpaid_charges")
+            or signals.get("binder_signals")
+        )
+
     def list_clients(
         self,
         status: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
+        has_signals: Optional[bool] = None,
+        reference_date: Optional[date] = None,
     ) -> tuple[list[Client], int]:
         """List clients with pagination. Returns (items, total)."""
-        items = self.client_repo.list(status=status, page=page, page_size=page_size)
-        total = self.client_repo.count(status=status)
-        return items, total
+        if has_signals is None:
+            items = self.client_repo.list(status=status, page=page, page_size=page_size)
+            total = self.client_repo.count(status=status)
+            return items, total
+
+        base_clients = self.client_repo.list(status=status, page=1, page_size=1000)
+        filtered = [
+            client
+            for client in base_clients
+            if self._client_has_operational_signals(client.id, reference_date)
+            == has_signals
+        ]
+
+        total = len(filtered)
+        offset = (page - 1) * page_size
+        return filtered[offset : offset + page_size], total
 
     def update_client(
         self,
@@ -60,7 +93,7 @@ class ClientService:
         user_role: UserRole,
         **fields,
     ) -> Optional[Client]:
-       
+
         client = self.client_repo.get_by_id(client_id)
         if not client:
             return None
