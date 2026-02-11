@@ -62,9 +62,17 @@ class Config:
     
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
 
-    CORS_ALLOWED_ORIGINS: list[str] = os.getenv(
-        "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
-    ).split(",")
+    CORS_ALLOWED_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ALLOWED_ORIGINS",
+            "http://localhost:3000,"
+            "http://localhost:5173,"
+            "http://127.0.0.1:3000,"
+            "http://127.0.0.1:5173",
+        ).split(",")
+        if origin.strip()
+    ]
 
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 

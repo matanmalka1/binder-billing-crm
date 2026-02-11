@@ -31,6 +31,8 @@ EnvValidator.validate()
 # Setup structured logging
 setup_logging(level=config.LOG_LEVEL)
 logger = get_logger(__name__)
+if config.APP_ENV == "development":
+    logger.info("CORS allowed origins: %s", config.CORS_ALLOWED_ORIGINS)
 
 
 @asynccontextmanager
