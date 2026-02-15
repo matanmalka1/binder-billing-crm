@@ -3,17 +3,21 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
+class ConfirmDetails(BaseModel):
+    title: str
+    message: str
+    confirm_label: str
+    cancel_label: str
+
+
 class DashboardQuickAction(BaseModel):
+    id: str
     key: str
     label: str
     method: str
     endpoint: str
     payload: Optional[dict[str, Any]] = None
-    confirm_required: bool = False
-    confirm_title: Optional[str] = None
-    confirm_message: Optional[str] = None
-    confirm_label: Optional[str] = None
-    cancel_label: Optional[str] = None
+    confirm: Optional[ConfirmDetails] = None
 
 
 class DashboardOverviewResponse(BaseModel):

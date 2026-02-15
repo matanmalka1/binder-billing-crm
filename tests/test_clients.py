@@ -20,8 +20,13 @@ def test_authenticated_client_creation(client, auth_token):
     assert data["id_number"] == "123456789"
     assert data["status"] == "active"
     assert "available_actions" in data
-    assert "freeze" in data["available_actions"]
     assert "id" in data
+    actions = data["available_actions"]
+    assert any(action["key"] == "freeze" for action in actions)
+    freeze_action = next(action for action in actions if action["key"] == "freeze")
+    assert freeze_action["id"] == f"client-{data['id']}-freeze"
+    assert freeze_action["confirm"] is not None
+    assert freeze_action["confirm"]["title"] == "אישור הקפאת לקוח"
 
 
 def test_client_creation_duplicate_id_number(client, auth_token):

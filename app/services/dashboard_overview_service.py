@@ -28,10 +28,17 @@ class DashboardOverviewService:
 
         binders = self.binder_repo.list_active()
 
-        ready_candidate = next(
-            (binder for binder in binders if "ready" in get_binder_actions(binder)),
-            None,
-        )
+        ready_candidate = None
+        return_candidate = None
+        for binder in binders:
+            binder_actions = get_binder_actions(binder)
+            if ready_candidate is None and any(action["key"] == "ready" for action in binder_actions):
+                ready_candidate = binder
+            if return_candidate is None and any(action["key"] == "return" for action in binder_actions):
+                return_candidate = binder
+            if ready_candidate and return_candidate:
+                break
+
         if ready_candidate is not None:
             actions.append(
                 build_action(
@@ -39,13 +46,10 @@ class DashboardOverviewService:
                     label="מוכן לאיסוף",
                     method="post",
                     endpoint=f"/binders/{ready_candidate.id}/ready",
+                    action_id=f"binder-{ready_candidate.id}-ready",
                 )
             )
 
-        return_candidate = next(
-            (binder for binder in binders if "return" in get_binder_actions(binder)),
-            None,
-        )
         if return_candidate is not None:
             actions.append(
                 build_action(
@@ -53,11 +57,13 @@ class DashboardOverviewService:
                     label="החזרת תיק",
                     method="post",
                     endpoint=f"/binders/{return_candidate.id}/return",
-                    confirm_required=True,
-                    confirm_title="אישור החזרת תיק",
-                    confirm_message="האם לאשר החזרת תיק ללקוח?",
-                    confirm_label="אישור",
-                    cancel_label="ביטול",
+                    action_id=f"binder-{return_candidate.id}-return",
+                    confirm={
+                        "title": "אישור החזרת תיק",
+                        "message": "האם לאשר החזרת תיק ללקוח?",
+                        "confirm_label": "אישור",
+                        "cancel_label": "ביטול",
+                    },
                 )
             )
 
@@ -75,6 +81,7 @@ class DashboardOverviewService:
                         label="סימון חיוב כשולם",
                         method="post",
                         endpoint=f"/charges/{charge.id}/mark-paid",
+                        action_id=f"charge-{charge.id}-mark_paid",
                     )
                 )
 
@@ -92,11 +99,13 @@ class DashboardOverviewService:
                         method="patch",
                         endpoint=f"/clients/{client.id}",
                         payload={"status": "frozen"},
-                        confirm_required=True,
-                        confirm_title="אישור הקפאת לקוח",
-                        confirm_message="האם להקפיא את הלקוח?",
-                        confirm_label="הקפאה",
-                        cancel_label="ביטול",
+                        action_id=f"client-{client.id}-freeze",
+                        confirm={
+                            "title": "אישור הקפאת לקוח",
+                            "message": "האם להקפיא את הלקוח?",
+                            "confirm_label": "הקפאה",
+                            "cancel_label": "ביטול",
+                        },
                     )
                 )
 
@@ -114,6 +123,7 @@ class DashboardOverviewService:
                     method="patch",
                     endpoint=f"/clients/{client.id}",
                     payload={"status": "active"},
+                    action_id=f"client-{client.id}-activate",
                 )
             )
 

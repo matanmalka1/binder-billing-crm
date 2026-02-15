@@ -17,6 +17,10 @@ def _value(raw: Any) -> str:
     return raw.value if hasattr(raw, "value") else str(raw)
 
 
+def _generate_action_id(resource: str, resource_id: int, key: str) -> str:
+    return f"{resource}-{resource_id}-{key}"
+
+
 def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
     """Return executable actions for a binder (with endpoints & metadata)."""
 
@@ -30,6 +34,7 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 label="מוכן לאיסוף",
                 method="post",
                 endpoint=f"/binders/{binder.id}/ready",
+                action_id=_generate_action_id("binder", binder.id, "ready"),
             )
         )
 
@@ -40,11 +45,13 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 label="החזרת תיק",
                 method="post",
                 endpoint=f"/binders/{binder.id}/return",
-                confirm_required=True,
-                confirm_title="אישור החזרת תיק",
-                confirm_message="האם לאשר החזרת תיק ללקוח?",
-                confirm_label="אישור",
-                cancel_label="ביטול",
+                action_id=_generate_action_id("binder", binder.id, "return"),
+                confirm={
+                    "title": "אישור החזרת תיק",
+                    "message": "האם לאשר החזרת תיק ללקוח?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
             )
         )
 
@@ -65,11 +72,13 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
                 method="patch",
                 endpoint=f"/clients/{client.id}",
                 payload={"status": "frozen"},
-                confirm_required=True,
-                confirm_title="אישור הקפאת לקוח",
-                confirm_message="האם להקפיא את הלקוח?",
-                confirm_label="הקפאה",
-                cancel_label="ביטול",
+                action_id=_generate_action_id("client", client.id, "freeze"),
+                confirm={
+                    "title": "אישור הקפאת לקוח",
+                    "message": "האם להקפיא את הלקוח?",
+                    "confirm_label": "הקפאה",
+                    "cancel_label": "ביטול",
+                },
             )
         )
 
@@ -81,6 +90,7 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
                 method="patch",
                 endpoint=f"/clients/{client.id}",
                 payload={"status": "active"},
+                action_id=_generate_action_id("client", client.id, "activate"),
             )
         )
 
@@ -100,6 +110,7 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 label="הוצאת חיוב",
                 method="post",
                 endpoint=f"/charges/{charge.id}/issue",
+                action_id=_generate_action_id("charge", charge.id, "issue_charge"),
             )
         )
         actions.append(
@@ -108,11 +119,13 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 label="ביטול חיוב",
                 method="post",
                 endpoint=f"/charges/{charge.id}/cancel",
-                confirm_required=True,
-                confirm_title="אישור ביטול חיוב",
-                confirm_message="האם לבטל את החיוב?",
-                confirm_label="ביטול",
-                cancel_label="חזרה",
+                action_id=_generate_action_id("charge", charge.id, "cancel_charge"),
+                confirm={
+                    "title": "אישור ביטול חיוב",
+                    "message": "האם לבטל את החיוב?",
+                    "confirm_label": "ביטול",
+                    "cancel_label": "חזרה",
+                },
             )
         )
 
@@ -123,6 +136,7 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 label="סימון חיוב כשולם",
                 method="post",
                 endpoint=f"/charges/{charge.id}/mark-paid",
+                action_id=_generate_action_id("charge", charge.id, "mark_paid"),
             )
         )
         actions.append(
@@ -131,11 +145,13 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 label="ביטול חיוב",
                 method="post",
                 endpoint=f"/charges/{charge.id}/cancel",
-                confirm_required=True,
-                confirm_title="אישור ביטול חיוב",
-                confirm_message="האם לבטל את החיוב?",
-                confirm_label="ביטול",
-                cancel_label="חזרה",
+                action_id=_generate_action_id("charge", charge.id, "cancel_charge"),
+                confirm={
+                    "title": "אישור ביטול חיוב",
+                    "message": "האם לבטל את החיוב?",
+                    "confirm_label": "ביטול",
+                    "cancel_label": "חזרה",
+                },
             )
         )
 
@@ -147,30 +163,20 @@ def build_action(
     label: str,
     method: str,
     endpoint: str,
+    action_id: str,
     payload: Optional[dict[str, Any]] = None,
-    confirm_required: bool = False,
-    confirm_title: Optional[str] = None,
-    confirm_message: Optional[str] = None,
-    confirm_label: Optional[str] = None,
-    cancel_label: Optional[str] = None,
+    confirm: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     action: dict[str, Any] = {
+        "id": action_id,
         "key": key,
         "label": label,
         "method": method,
         "endpoint": endpoint,
-        "confirm_required": confirm_required,
+        "confirm": confirm,
     }
 
     if payload is not None:
         action["payload"] = payload
-    if confirm_title:
-        action["confirm_title"] = confirm_title
-    if confirm_message:
-        action["confirm_message"] = confirm_message
-    if confirm_label:
-        action["confirm_label"] = confirm_label
-    if cancel_label:
-        action["cancel_label"] = cancel_label
 
     return action

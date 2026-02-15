@@ -36,7 +36,10 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert response.status_code == 201
     binder_data = response.json()
     binder_id = binder_data["id"]
-    assert "ready" in binder_data.get("available_actions", [])
+    actions = binder_data.get("available_actions", [])
+    assert any(action["key"] == "ready" for action in actions)
+    ready_action = next(action for action in actions if action["key"] == "ready")
+    assert ready_action["id"] == f"binder-{binder_id}-ready"
 
     # Verify status log was created
     from app.repositories import BinderStatusLogRepository
@@ -79,7 +82,12 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     assert ready_response.status_code == 200
     ready_data = ready_response.json()
     assert ready_data["status"] == "ready_for_pickup"
-    assert "return" in ready_data.get("available_actions", [])
+    ready_actions = ready_data.get("available_actions", [])
+    assert any(action["key"] == "return" for action in ready_actions)
+    return_action = next(action for action in ready_actions if action["key"] == "return")
+    assert return_action["id"] == f"binder-{binder_id}-return"
+    assert return_action["confirm"] is not None
+    assert return_action["confirm"]["title"] == "אישור החזרת תיק"
 
     return_response = client.post(
         f"/api/v1/binders/{binder_id}/return",
