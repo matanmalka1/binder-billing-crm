@@ -25,6 +25,8 @@ from app.database import Base, SessionLocal, engine
 from app.models import (
     AuditAction,
     AuditStatus,
+    AnnualReport,
+    AuthorityContact,
     Binder,
     BinderStatus,
     BinderStatusLog,
@@ -41,10 +43,14 @@ from app.models import (
     NotificationStatus,
     NotificationTrigger,
     PermanentDocument,
+    TaxDeadline,
     User,
     UserAuditLog,
     UserRole,
 )
+from app.models.annual_report import ReportStage
+from app.models.authority_contact import ContactType
+from app.models.tax_deadline import DeadlineType
 
 
 FIRST_NAMES = [
@@ -102,6 +108,11 @@ class SeedConfig:
     max_binders_per_client: int
     min_charges_per_client: int
     max_charges_per_client: int
+    annual_reports_per_client: int
+    min_tax_deadlines_per_client: int
+    max_tax_deadlines_per_client: int
+    min_authority_contacts_per_client: int
+    max_authority_contacts_per_client: int
     seed: int
     reset: bool
 
@@ -123,6 +134,9 @@ class Seeder:
             binders = self._create_binders(db, clients, users)
             charges = self._create_charges(db, clients)
             self._create_invoices(db, charges)
+            self._create_tax_deadlines(db, clients)
+            self._create_annual_reports(db, clients)
+            self._create_authority_contacts(db, clients)
             self._create_notifications(db, clients, binders)
             self._create_documents(db, clients, users)
             self._create_binder_logs(db, binders, users)
@@ -143,6 +157,9 @@ class Seeder:
             Notification,
             PermanentDocument,
             Invoice,
+            TaxDeadline,
+            AuthorityContact,
+            AnnualReport,
             Charge,
             Binder,
             Client,
@@ -366,6 +383,99 @@ class Seeder:
             db.add(notification)
         db.flush()
 
+    def _create_tax_deadlines(self, db, clients):
+        deadlines = []
+        today = date.today()
+        for client in clients:
+            num = self.rng.randint(
+                self.cfg.min_tax_deadlines_per_client,
+                self.cfg.max_tax_deadlines_per_client,
+            )
+            for _ in range(num):
+                due_offset = self.rng.randint(-30, 60)
+                due_date = today + timedelta(days=due_offset)
+                status = "completed" if due_date < today and self.rng.random() < 0.5 else "pending"
+                completed_at = (
+                    datetime.now(UTC) - timedelta(days=self.rng.randint(1, 30))
+                    if status == "completed"
+                    else None
+                )
+                payment_amount = Decimal(str(round(self.rng.uniform(500, 15000), 2)))
+                deadline_type = self.rng.choice(list(DeadlineType))
+                description = f"{deadline_type.value.replace('_', ' ').title()} reminder"
+                deadline = TaxDeadline(
+                    client_id=client.id,
+                    deadline_type=deadline_type,
+                    due_date=due_date,
+                    status=status,
+                    payment_amount=payment_amount,
+                    currency="ILS",
+                    description=description,
+                    created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 120)),
+                    completed_at=completed_at,
+                )
+                db.add(deadline)
+                deadlines.append(deadline)
+        db.flush()
+        return deadlines
+
+    def _create_annual_reports(self, db, clients):
+        reports = []
+        current_year = date.today().year
+        available_years = list(range(current_year - 3, current_year + 1))
+        for client in clients:
+            years = self.rng.sample(
+                available_years,
+                k=min(self.cfg.annual_reports_per_client, len(available_years)),
+            )
+            for year in years:
+                stage = self.rng.choice(list(ReportStage))
+                status = self.rng.choice(["not_started", "in_progress", "completed"])
+                submitted_at = (
+                    datetime.now(UTC) - timedelta(days=self.rng.randint(1, 90))
+                    if status == "completed"
+                    else None
+                )
+                report = AnnualReport(
+                    client_id=client.id,
+                    tax_year=year,
+                    stage=stage,
+                    status=status,
+                    due_date=date(year, self.rng.randint(1, 12), self.rng.randint(1, 28)),
+                    submitted_at=submitted_at,
+                    form_type=self.rng.choice(["SA-1", "SA-2", "SA-3"]),
+                    notes=self.rng.choice(["", "Needs review", "Client signature pending"]),
+                    created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 400)),
+                )
+                db.add(report)
+                reports.append(report)
+        db.flush()
+        return reports
+
+    def _create_authority_contacts(self, db, clients):
+        contacts = []
+        for client in clients:
+            num = self.rng.randint(
+                self.cfg.min_authority_contacts_per_client,
+                self.cfg.max_authority_contacts_per_client,
+            )
+            for idx in range(num):
+                contact = AuthorityContact(
+                    client_id=client.id,
+                    contact_type=self.rng.choice(list(ContactType)),
+                    name=self._full_name(),
+                    office=self.rng.choice(["Tel Aviv", "Jerusalem", "Haifa", "Beer Sheva"]),
+                    phone=f"07{self.rng.randint(10000000, 99999999)}",
+                    email=f"contact{client.id}-{idx}@authority.example",
+                    notes=self.rng.choice(["", "Preferred via WhatsApp", "Banking contact"]),
+                    created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 300)),
+                    updated_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 90)),
+                )
+                db.add(contact)
+                contacts.append(contact)
+        db.flush()
+        return contacts
+
     def _create_documents(self, db, clients, users):
         for client in clients:
             docs = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]
@@ -445,6 +555,9 @@ class Seeder:
             "binders": db.query(Binder).count(),
             "charges": db.query(Charge).count(),
             "invoices": db.query(Invoice).count(),
+            "tax_deadlines": db.query(TaxDeadline).count(),
+            "annual_reports": db.query(AnnualReport).count(),
+            "authority_contacts": db.query(AuthorityContact).count(),
             "notifications": db.query(Notification).count(),
             "permanent_documents": db.query(PermanentDocument).count(),
             "binder_status_logs": db.query(BinderStatusLog).count(),
@@ -463,6 +576,36 @@ def parse_args() -> SeedConfig:
     parser.add_argument("--max-binders-per-client", type=int, default=3)
     parser.add_argument("--min-charges-per-client", type=int, default=1)
     parser.add_argument("--max-charges-per-client", type=int, default=4)
+    parser.add_argument(
+        "--annual-reports-per-client",
+        type=int,
+        default=2,
+        help="How many annual reports to seed per client",
+    )
+    parser.add_argument(
+        "--min-tax-deadlines-per-client",
+        type=int,
+        default=2,
+        help="Minimum tax deadlines seeded per client",
+    )
+    parser.add_argument(
+        "--max-tax-deadlines-per-client",
+        type=int,
+        default=5,
+        help="Maximum tax deadlines seeded per client",
+    )
+    parser.add_argument(
+        "--min-authority-contacts-per-client",
+        type=int,
+        default=1,
+        help="Minimum authority contacts per client",
+    )
+    parser.add_argument(
+        "--max-authority-contacts-per-client",
+        type=int,
+        default=3,
+        help="Maximum authority contacts per client",
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--reset", action="store_true", help="Delete existing rows before seeding")
 
@@ -471,6 +614,14 @@ def parse_args() -> SeedConfig:
         raise ValueError("min-binders-per-client cannot be greater than max-binders-per-client")
     if args.min_charges_per_client > args.max_charges_per_client:
         raise ValueError("min-charges-per-client cannot be greater than max-charges-per-client")
+    if args.min_tax_deadlines_per_client > args.max_tax_deadlines_per_client:
+        raise ValueError(
+            "min-tax-deadlines-per-client cannot be greater than max-tax-deadlines-per-client"
+        )
+    if args.min_authority_contacts_per_client > args.max_authority_contacts_per_client:
+        raise ValueError(
+            "min-authority-contacts-per-client cannot be greater than max-authority-contacts-per-client"
+        )
 
     return SeedConfig(
         users=args.users,
@@ -479,6 +630,11 @@ def parse_args() -> SeedConfig:
         max_binders_per_client=args.max_binders_per_client,
         min_charges_per_client=args.min_charges_per_client,
         max_charges_per_client=args.max_charges_per_client,
+        annual_reports_per_client=args.annual_reports_per_client,
+        min_tax_deadlines_per_client=args.min_tax_deadlines_per_client,
+        max_tax_deadlines_per_client=args.max_tax_deadlines_per_client,
+        min_authority_contacts_per_client=args.min_authority_contacts_per_client,
+        max_authority_contacts_per_client=args.max_authority_contacts_per_client,
         seed=args.seed,
         reset=args.reset,
     )

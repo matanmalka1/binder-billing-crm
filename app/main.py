@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
+    annual_report,
+    authority_contact,
     auth,
     binders,
     binders_history,
@@ -14,12 +16,14 @@ from app.api import (
     clients,
     clients_binders,
     dashboard,
+    dashboard_extended,
     dashboard_overview,
+    dashboard_tax,
     health,
     permanent_documents,
-    dashboard_extended,
-    timeline,
     search,
+    tax_deadline,
+    timeline,
     users,
     users_audit,
 )
@@ -92,6 +96,10 @@ def info():
 # API routes
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(annual_report.router, prefix="/api/v1")
+app.include_router(tax_deadline.router, prefix="/api/v1")
+app.include_router(authority_contact.router, prefix="/api/v1")
+app.include_router(dashboard_tax.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 # NOTE: include operational binder routes before `/binders/{binder_id}` to avoid path conflicts.
 app.include_router(binders_operations.router, prefix="/api/v1")
