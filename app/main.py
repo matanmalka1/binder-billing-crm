@@ -20,6 +20,8 @@ from app.api import (
     dashboard_extended,
     timeline,
     search,
+    users,
+    users_audit,
 )
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -103,6 +105,8 @@ app.include_router(permanent_documents.router, prefix="/api/v1")
 app.include_router(dashboard_extended.router, prefix="/api/v1")
 app.include_router(timeline.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
+app.include_router(users_audit.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 
 
 

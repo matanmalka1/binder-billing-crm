@@ -1,4 +1,5 @@
 from app.repositories.user_repository import UserRepository
+from app.repositories.user_audit_log_repository import UserAuditLogRepository
 from app.repositories.client_repository import ClientRepository
 from app.repositories.binder_repository import BinderRepository
 from app.repositories.binder_status_log_repository import BinderStatusLogRepository
@@ -11,6 +12,7 @@ from app.repositories.timeline_repository import TimelineRepository
 
 __all__ = [
     "UserRepository",
+    "UserAuditLogRepository",
     "ClientRepository",
     "BinderRepository",
     "BinderStatusLogRepository",

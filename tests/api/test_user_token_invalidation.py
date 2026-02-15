@@ -1,0 +1,67 @@
+from app.models import User, UserRole
+from app.services import AuthService
+
+
+def _create_managed_user(test_db) -> User:
+    user = User(
+        full_name="Managed User",
+        email="managed.user@example.com",
+        password_hash=AuthService.hash_password("password123"),
+        role=UserRole.SECRETARY,
+        is_active=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user
+
+
+def _login(client, email: str, password: str) -> str:
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": password},
+    )
+    assert response.status_code == 200
+    return response.json()["token"]
+
+
+def test_password_reset_invalidates_old_token(client, advisor_headers, test_db):
+    user = _create_managed_user(test_db)
+    old_token = _login(client, user.email, "password123")
+
+    reset_response = client.post(
+        f"/api/v1/users/{user.id}/reset-password",
+        headers=advisor_headers,
+        json={"new_password": "newpassword123"},
+    )
+    assert reset_response.status_code == 200
+
+    protected_response = client.get(
+        "/api/v1/clients",
+        headers={"Authorization": f"Bearer {old_token}"},
+    )
+    assert protected_response.status_code == 401
+
+
+def test_deactivate_then_activate_does_not_restore_old_token(client, advisor_headers, test_db):
+    user = _create_managed_user(test_db)
+    old_token = _login(client, user.email, "password123")
+
+    deactivate_response = client.post(
+        f"/api/v1/users/{user.id}/deactivate",
+        headers=advisor_headers,
+    )
+    assert deactivate_response.status_code == 200
+
+    activate_response = client.post(
+        f"/api/v1/users/{user.id}/activate",
+        headers=advisor_headers,
+    )
+    assert activate_response.status_code == 200
+
+    protected_response = client.get(
+        "/api/v1/clients",
+        headers={"Authorization": f"Bearer {old_token}"},
+    )
+    assert protected_response.status_code == 401
+

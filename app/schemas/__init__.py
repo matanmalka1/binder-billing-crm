@@ -38,6 +38,15 @@ from app.schemas.permanent_document import (
 
 from app.schemas.search import SearchResponse, SearchResult
 from app.schemas.timeline import ClientTimelineResponse, TimelineEvent
+from app.schemas.user_management import (
+    PasswordResetRequest,
+    UserAuditLogListResponse,
+    UserAuditLogResponse,
+    UserCreateRequest,
+    UserManagementListResponse,
+    UserManagementResponse,
+    UserUpdateRequest,
+)
 
 __all__ = [
     "LoginRequest",
@@ -76,4 +85,11 @@ __all__ = [
     "SearchResult",
     "ClientTimelineResponse",
     "TimelineEvent",
+    "UserCreateRequest",
+    "UserUpdateRequest",
+    "PasswordResetRequest",
+    "UserManagementResponse",
+    "UserManagementListResponse",
+    "UserAuditLogResponse",
+    "UserAuditLogListResponse",
 ]

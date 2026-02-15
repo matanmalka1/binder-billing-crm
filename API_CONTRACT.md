@@ -32,6 +32,43 @@ Behavioral rules (constraints, transitions, and invariants) remain **authoritati
 ### `POST /api/v1/auth/login`
 - Request: `email`, `password`
 - Response `200`: `token`, `user { id, full_name, role }`
+- JWT internal claims include `sub`, `email`, `role`, `tv`, `iat`, `exp`
+
+## Users (Deferred Capabilities Step 1, ADVISOR only)
+### `POST /api/v1/users`
+- Request: `full_name`, `email`, `phone?`, `role`, `password`
+- Response `201`: created user details (no password fields)
+
+### `GET /api/v1/users`
+- Query params:
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 20, min: 1, max: 100)
+
+### `GET /api/v1/users/{user_id}`
+
+### `PATCH /api/v1/users/{user_id}`
+- Mutable fields only: `full_name`, `phone`, `role`
+- Immutable fields (such as `email`, `id`, `token_version`, timestamps, `is_active`) are rejected
+
+### `POST /api/v1/users/{user_id}/activate`
+
+### `POST /api/v1/users/{user_id}/deactivate`
+- Deactivates the account and invalidates existing tokens by bumping token version
+
+### `POST /api/v1/users/{user_id}/reset-password`
+- Admin-initiated password reset
+- Invalidates existing tokens by bumping token version
+
+### `GET /api/v1/users/audit-logs`
+- Query params:
+  - `page` (default: 1, min: 1)
+  - `page_size` (default: 20, min: 1, max: 100)
+  - `action` (optional)
+  - `target_user_id` (optional)
+  - `actor_user_id` (optional)
+  - `email` (optional)
+  - `from` (optional, datetime)
+  - `to` (optional, datetime)
 
 ## Clients (ADVISOR + SECRETARY)
 ### `POST /api/v1/clients`

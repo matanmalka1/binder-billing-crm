@@ -1,0 +1,134 @@
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.api.deps import CurrentUser, DBSession, require_role
+from app.models import UserRole
+from app.schemas import (
+    PasswordResetRequest,
+    UserCreateRequest,
+    UserManagementListResponse,
+    UserManagementResponse,
+    UserUpdateRequest,
+)
+from app.services import UserManagementService
+
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+
+
+@router.post("", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED)
+def create_user(request: UserCreateRequest, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    try:
+        return service.create_user(
+            actor_user_id=user.id,
+            actor_role=user.role,
+            full_name=request.full_name,
+            email=request.email,
+            role=request.role,
+            password=request.password,
+            phone=request.phone,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+
+@router.get("", response_model=UserManagementListResponse)
+def list_users(
+    db: DBSession,
+    user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    service = UserManagementService(db)
+    items, total = service.list_users(actor_role=user.role, page=page, page_size=page_size)
+    return UserManagementListResponse(items=items, page=page, page_size=page_size, total=total)
+
+
+@router.get("/{user_id}", response_model=UserManagementResponse)
+def get_user(user_id: int, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    found = service.get_user(actor_role=user.role, user_id=user_id)
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return found
+
+
+@router.patch("/{user_id}", response_model=UserManagementResponse)
+def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    update_data = request.model_dump(exclude_unset=True, exclude_none=True)
+    try:
+        updated = service.update_user(
+            actor_user_id=user.id,
+            actor_role=user.role,
+            user_id=user_id,
+            **update_data,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return updated
+
+
+@router.post("/{user_id}/activate", response_model=UserManagementResponse)
+def activate_user(user_id: int, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    try:
+        updated = service.activate_user(
+            actor_user_id=user.id,
+            actor_role=user.role,
+            user_id=user_id,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return updated
+
+
+@router.post("/{user_id}/deactivate", response_model=UserManagementResponse)
+def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    try:
+        updated = service.deactivate_user(
+            actor_user_id=user.id,
+            actor_role=user.role,
+            target_user_id=user_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return updated
+
+
+@router.post("/{user_id}/reset-password", response_model=UserManagementResponse)
+def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser):
+    service = UserManagementService(db)
+    try:
+        updated = service.reset_password(
+            actor_user_id=user.id,
+            actor_role=user.role,
+            target_user_id=user_id,
+            new_password=request.new_password,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+    if not updated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return updated

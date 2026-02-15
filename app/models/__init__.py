@@ -11,6 +11,7 @@ from app.models.notification import (
 )
 from app.models.permanent_document import DocumentType, PermanentDocument
 from app.models.user import User, UserRole
+from app.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 __all__ = [
     "Binder",
@@ -31,4 +32,7 @@ __all__ = [
     "PermanentDocument",
     "User",
     "UserRole",
+    "AuditAction",
+    "AuditStatus",
+    "UserAuditLog",
 ]

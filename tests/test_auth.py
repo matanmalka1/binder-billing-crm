@@ -28,10 +28,12 @@ def test_login_returns_valid_jwt(client, test_user):
     assert "sub" in payload
     assert "email" in payload
     assert "role" in payload
+    assert "tv" in payload
     assert "iat" in payload
     assert "exp" in payload
     assert payload["email"] == "test@example.com"
     assert payload["role"] == "advisor"
+    assert payload["tv"] == 0
 
 
 def test_login_invalid_credentials(client, test_user):

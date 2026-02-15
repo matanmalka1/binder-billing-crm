@@ -34,8 +34,30 @@ For all authenticated endpoints, send:
 JWT behavior:
 
 - Tokens are signed with `HS256`.
-- Tokens include `iat` and `exp` claims and expire.
+- Tokens include `iat`, `exp`, and internal token-version claim `tv`.
+- If backend user token-version changes (deactivation/password reset), older tokens are rejected.
 - Token TTL is controlled by the `JWT_TTL_HOURS` environment variable.
+
+## User Management API (Advisor-only)
+
+### Endpoints
+
+- `POST /api/v1/users`
+  - Create a user: `full_name`, `email`, `phone?`, `role`, `password`
+- `GET /api/v1/users`
+  - Paginated users list: `page`, `page_size`
+- `GET /api/v1/users/{user_id}`
+  - Get one user
+- `PATCH /api/v1/users/{user_id}`
+  - Mutable fields only: `full_name`, `phone`, `role`
+  - Immutable fields (e.g. `email`, `id`, `token_version`, timestamps, `is_active`) are rejected
+- `POST /api/v1/users/{user_id}/activate`
+- `POST /api/v1/users/{user_id}/deactivate`
+  - Deactivation invalidates existing tokens for that user
+- `POST /api/v1/users/{user_id}/reset-password`
+  - Advisor-initiated reset; invalidates existing tokens
+- `GET /api/v1/users/audit-logs`
+  - Paginated audit logs with filters: `action`, `target_user_id`, `actor_user_id`, `email`, `from`, `to`
 
 ## Required and Supported Headers
 
@@ -187,4 +209,3 @@ Frontend does not compute or infer:
 - `signals` (returned by operational binder endpoints, dashboard work queue, and search)
 - “unpaid charges attention” (returned only via `/dashboard/attention` and only for `advisor`)
 - Timeline ordering (timeline is returned already sorted by backend)
-

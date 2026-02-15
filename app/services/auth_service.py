@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.config import config
 from app.core.logging import get_logger
-from app.models import User
+from app.models import AuditAction, AuditStatus, User
 from app.repositories import UserRepository
+from app.services.audit_log_service import AuditLogService
 
 logger = get_logger(__name__)
 
@@ -19,6 +20,7 @@ class AuthService:
     def __init__(self, db: Session):
         self.db = db
         self.user_repo = UserRepository(db)
+        self.audit_log_service = AuditLogService(db)
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -35,15 +37,46 @@ class AuthService:
         """Authenticate user by email and password."""
         user = self.user_repo.get_by_email(email)
 
-        if not user or not user.is_active:
+        if not user:
             logger.warning(f"Failed login attempt for email: {email}")
+            self.audit_log_service.log(
+                action=AuditAction.LOGIN_FAILURE,
+                status=AuditStatus.FAILURE,
+                email=email,
+                reason="user_not_found",
+            )
+            return None
+
+        if not user.is_active:
+            logger.warning(f"Inactive user login attempt for email: {email}")
+            self.audit_log_service.log(
+                action=AuditAction.LOGIN_FAILURE,
+                status=AuditStatus.FAILURE,
+                target_user_id=user.id,
+                email=email,
+                reason="inactive_user",
+            )
             return None
 
         if not self.verify_password(password, user.password_hash):
             logger.warning(f"Invalid password for email: {email}")
+            self.audit_log_service.log(
+                action=AuditAction.LOGIN_FAILURE,
+                status=AuditStatus.FAILURE,
+                target_user_id=user.id,
+                email=email,
+                reason="invalid_password",
+            )
             return None
 
         self.user_repo.update_last_login(user.id)
+        self.audit_log_service.log(
+            action=AuditAction.LOGIN_SUCCESS,
+            status=AuditStatus.SUCCESS,
+            actor_user_id=user.id,
+            target_user_id=user.id,
+            email=user.email,
+        )
         logger.info(f"Successful login for user: {email}")
         return user
 
@@ -61,6 +94,7 @@ class AuthService:
             "sub": str(user.id),
             "email": user.email,
             "role": user.role.value,
+            "tv": user.token_version,
             "iat": now,
             "exp": expiration,
         }
@@ -86,7 +120,7 @@ class AuthService:
             )
             
             # Validate required fields
-            if "sub" not in payload or "role" not in payload:
+            if "sub" not in payload or "role" not in payload or "tv" not in payload:
                 logger.warning("Token missing required fields")
                 return None
             

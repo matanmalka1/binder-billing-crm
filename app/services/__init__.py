@@ -26,6 +26,8 @@ __all__ = [
     "DashboardExtendedService",
     "TimelineService",
     "SearchService",
+    "AuditLogService",
+    "UserManagementService",
 ]
 
 
@@ -106,5 +108,13 @@ def __getattr__(name: str) -> Any:
         from app.services.search_service import SearchService
 
         return SearchService
+    if name == "AuditLogService":
+        from app.services.audit_log_service import AuditLogService
+
+        return AuditLogService
+    if name == "UserManagementService":
+        from app.services.user_management_service import UserManagementService
+
+        return UserManagementService
 
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
