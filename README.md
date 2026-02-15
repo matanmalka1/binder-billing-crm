@@ -37,3 +37,11 @@ Note: an exported `DATABASE_URL` in your shell overrides values from `.env.*` (d
 ```bash
 JWT_SECRET=test-secret pytest -q
 ```
+
+## Filter Options
+All filter dropdown options in the frontend are defined in `src/constants/filterOptions.constants.ts`.
+
+When adding or removing filter values:
+1. Update the label mapper in `src/utils/enums.ts`.
+2. Update the matching constant in `src/constants/filterOptions.constants.ts`.
+3. Components will automatically consume the new values via the shared constants; avoid hardcoding options inside components.
