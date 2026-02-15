@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,7 @@ class BinderResponse(BaseModel):
     work_state: Optional[str] = None
     sla_state: Optional[str] = None
     signals: Optional[list[str]] = None
-    available_actions: list[str] = Field(default_factory=list)
+    available_actions: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

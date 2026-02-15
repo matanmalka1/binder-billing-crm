@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from app.models.user import UserRole
 
@@ -6,6 +6,9 @@ from app.models.user import UserRole
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    remember_me: bool = Field(False, alias="rememberMe")
+
+    model_config = {"populate_by_name": True}
 
 
 class LoginResponse(BaseModel):

@@ -81,14 +81,15 @@ class AuthService:
         return user
 
     @staticmethod
-    def generate_token(user: User) -> str:
+    def generate_token(user: User, ttl_hours: int | None = None) -> str:
         """
         Generate JWT token for authenticated user.
         
         Token includes explicit expiration (iat + exp).
         """
         now = datetime.now(UTC)
-        expiration = now + timedelta(hours=config.JWT_TTL_HOURS)
+        effective_ttl = ttl_hours or config.JWT_TTL_HOURS
+        expiration = now + timedelta(hours=effective_ttl)
         
         payload = {
             "sub": str(user.id),
@@ -100,7 +101,9 @@ class AuthService:
         }
         
         token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
-        logger.info(f"Generated token for user {user.id}, expires at {expiration}")
+        logger.info(
+            f"Generated token for user {user.id}, expires at {expiration}"
+        )
         return token
 
     @staticmethod

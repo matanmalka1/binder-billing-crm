@@ -17,42 +17,129 @@ def _value(raw: Any) -> str:
     return raw.value if hasattr(raw, "value") else str(raw)
 
 
-def get_binder_actions(binder: Binder) -> list[str]:
+def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
+    """Return executable actions for a binder (with endpoints & metadata)."""
+
     status = _value(binder.status)
+    actions: list[dict[str, Any]] = []
 
-    if status == BinderStatus.IN_OFFICE.value:
-        return ["ready"]
-    if status == BinderStatus.READY_FOR_PICKUP.value:
-        return ["return"]
-    if status == BinderStatus.OVERDUE.value:
-        return ["ready", "return"]
+    if status in (BinderStatus.IN_OFFICE.value, BinderStatus.OVERDUE.value):
+        actions.append(
+            build_action(
+                key="ready",
+                label="מוכן לאיסוף",
+                method="post",
+                endpoint=f"/binders/{binder.id}/ready",
+            )
+        )
 
-    return []
+    if status in (BinderStatus.READY_FOR_PICKUP.value, BinderStatus.OVERDUE.value):
+        actions.append(
+            build_action(
+                key="return",
+                label="החזרת תיק",
+                method="post",
+                endpoint=f"/binders/{binder.id}/return",
+                confirm_required=True,
+                confirm_title="אישור החזרת תיק",
+                confirm_message="האם לאשר החזרת תיק ללקוח?",
+                confirm_label="אישור",
+                cancel_label="ביטול",
+            )
+        )
+
+    return actions
 
 
-def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> list[str]:
+def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> list[dict[str, Any]]:
+    """Return executable actions for a client (role-aware)."""
+
     status = _value(client.status)
+    actions: list[dict[str, Any]] = []
 
-    if status == ClientStatus.ACTIVE.value:
-        if user_role == UserRole.ADVISOR or user_role is None:
-            return ["freeze"]
-        return []
+    if status == ClientStatus.ACTIVE.value and (user_role == UserRole.ADVISOR or user_role is None):
+        actions.append(
+            build_action(
+                key="freeze",
+                label="הקפאת לקוח",
+                method="patch",
+                endpoint=f"/clients/{client.id}",
+                payload={"status": "frozen"},
+                confirm_required=True,
+                confirm_title="אישור הקפאת לקוח",
+                confirm_message="האם להקפיא את הלקוח?",
+                confirm_label="הקפאה",
+                cancel_label="ביטול",
+            )
+        )
 
     if status == ClientStatus.FROZEN.value:
-        return ["activate"]
+        actions.append(
+            build_action(
+                key="activate",
+                label="הפעלת לקוח",
+                method="patch",
+                endpoint=f"/clients/{client.id}",
+                payload={"status": "active"},
+            )
+        )
 
-    return []
+    return actions
 
 
-def get_charge_actions(charge: Charge) -> list[str]:
+def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
+    """Return executable actions for a charge."""
+
     status = _value(charge.status)
+    actions: list[dict[str, Any]] = []
 
     if status == ChargeStatus.DRAFT.value:
-        return ["issue_charge", "cancel_charge"]
-    if status == ChargeStatus.ISSUED.value:
-        return ["mark_paid", "cancel_charge"]
+        actions.append(
+            build_action(
+                key="issue_charge",
+                label="הוצאת חיוב",
+                method="post",
+                endpoint=f"/charges/{charge.id}/issue",
+            )
+        )
+        actions.append(
+            build_action(
+                key="cancel_charge",
+                label="ביטול חיוב",
+                method="post",
+                endpoint=f"/charges/{charge.id}/cancel",
+                confirm_required=True,
+                confirm_title="אישור ביטול חיוב",
+                confirm_message="האם לבטל את החיוב?",
+                confirm_label="ביטול",
+                cancel_label="חזרה",
+            )
+        )
 
-    return []
+    if status == ChargeStatus.ISSUED.value:
+        actions.append(
+            build_action(
+                key="mark_paid",
+                label="סימון חיוב כשולם",
+                method="post",
+                endpoint=f"/charges/{charge.id}/mark-paid",
+            )
+        )
+        actions.append(
+            build_action(
+                key="cancel_charge",
+                label="ביטול חיוב",
+                method="post",
+                endpoint=f"/charges/{charge.id}/cancel",
+                confirm_required=True,
+                confirm_title="אישור ביטול חיוב",
+                confirm_message="האם לבטל את החיוב?",
+                confirm_label="ביטול",
+                cancel_label="חזרה",
+            )
+        )
+
+    return actions
 
 
 def build_action(

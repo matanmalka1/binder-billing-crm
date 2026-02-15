@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -13,8 +13,8 @@ class TimelineEvent(BaseModel):
     charge_id: Optional[int] = None
     description: str
     metadata: dict = Field(default_factory=dict)
-    actions: Optional[list[str]] = None
-    available_actions: Optional[list[str]] = None
+    actions: Optional[list[dict[str, Any]]] = None
+    available_actions: Optional[list[dict[str, Any]]] = None
 
 
 class ClientTimelineResponse(BaseModel):

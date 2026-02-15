@@ -3,7 +3,6 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-
 class DashboardQuickAction(BaseModel):
     key: str
     label: str
