@@ -20,6 +20,19 @@ class DashboardQuickAction(BaseModel):
     confirm: Optional[ConfirmDetails] = None
 
 
+class AttentionItem(BaseModel):
+    item_type: str
+    binder_id: Optional[int] = None
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    description: str
+
+
+class AttentionResponse(BaseModel):
+    items: list[AttentionItem] = Field(default_factory=list)
+    total: int = 0
+
+
 class DashboardOverviewResponse(BaseModel):
     """Sprint 2 dashboard overview for management."""
 
@@ -32,6 +45,7 @@ class DashboardOverviewResponse(BaseModel):
     sla_state: Optional[str] = None
     signals: Optional[list[str]] = None
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
+    attention: AttentionResponse = Field(default_factory=AttentionResponse)
 
 
 class WorkQueueItem(BaseModel):
@@ -64,17 +78,4 @@ class AlertItem(BaseModel):
 
 class AlertsResponse(BaseModel):
     items: list[AlertItem]
-    total: int
-
-
-class AttentionItem(BaseModel):
-    item_type: str
-    binder_id: Optional[int] = None
-    client_id: Optional[int] = None
-    client_name: Optional[str] = None
-    description: str
-
-
-class AttentionResponse(BaseModel):
-    items: list[AttentionItem]
     total: int

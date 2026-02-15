@@ -11,6 +11,7 @@ from app.repositories import (
     DashboardOverviewRepository,
 )
 from app.services.action_contracts import build_action, get_binder_actions
+from app.services.dashboard_extended_service import DashboardExtendedService
 
 
 class DashboardOverviewService:
@@ -22,6 +23,7 @@ class DashboardOverviewService:
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.client_repo = ClientRepository(db)
+        self.extended_service = DashboardExtendedService(db)
 
     def _build_quick_actions(self, user_role: Optional[UserRole]) -> list[dict]:
         actions: list[dict] = []
@@ -154,4 +156,6 @@ class DashboardOverviewService:
         overview["sla_state"] = None
         overview["signals"] = []
         overview["quick_actions"] = self._build_quick_actions(user_role)
+        attention_items = self.extended_service.get_attention_items(user_role=user_role)
+        overview["attention"] = {"items": attention_items, "total": len(attention_items)}
         return overview

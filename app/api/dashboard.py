@@ -11,5 +11,5 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 def get_dashboard_summary(db: DBSession, user: CurrentUser):
     """Get dashboard summary counters."""
     service = DashboardService(db)
-    summary = service.get_summary()
+    summary = service.get_summary(user_role=user.role)
     return DashboardSummaryResponse(**summary)
