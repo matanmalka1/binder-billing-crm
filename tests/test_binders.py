@@ -87,7 +87,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     return_action = next(action for action in ready_actions if action["key"] == "return")
     assert return_action["id"] == f"binder-{binder_id}-return"
     assert return_action["confirm"] is not None
-    assert return_action["confirm"]["title"] == "אישור החזרת תיק"
+    assert return_action["confirm"]["title"] == "אישור החזרת קלסר"
 
     return_response = client.post(
         f"/api/v1/binders/{binder_id}/return",

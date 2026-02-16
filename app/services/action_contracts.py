@@ -42,13 +42,13 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
         actions.append(
             build_action(
                 key="return",
-                label="החזרת תיק",
+                label="החזרת קלסר",
                 method="post",
                 endpoint=f"/binders/{binder.id}/return",
                 action_id=_generate_action_id("binder", binder.id, "return"),
                 confirm={
-                    "title": "אישור החזרת תיק",
-                    "message": "האם לאשר החזרת תיק ללקוח?",
+                    "title": "אישור החזרת קלסר",
+                    "message": "האם לאשר החזרת קלסר ללקוח?",
                     "confirm_label": "אישור",
                     "cancel_label": "ביטול",
                 },

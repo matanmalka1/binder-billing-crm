@@ -56,13 +56,13 @@ class DashboardOverviewService:
             actions.append(
                 build_action(
                     key="return",
-                    label="החזרת תיק",
+                    label="החזרת קלסר",
                     method="post",
                     endpoint=f"/binders/{return_candidate.id}/return",
                     action_id=f"binder-{return_candidate.id}-return",
                     confirm={
-                        "title": "אישור החזרת תיק",
-                        "message": "האם לאשר החזרת תיק ללקוח?",
+                        "title": "אישור החזרת קלסר",
+                        "message": "האם לאשר החזרת קלסר ללקוח?",
                         "confirm_label": "אישור",
                         "cancel_label": "ביטול",
                     },
