@@ -9,6 +9,7 @@ from app.repositories.notification_repository import NotificationRepository
 from app.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.repositories.dashboard_overview_repository import DashboardOverviewRepository
 from app.repositories.timeline_repository import TimelineRepository
+from app.repositories.reminder_repository import ReminderRepository
 
 __all__ = [
     "UserRepository",
@@ -22,4 +23,5 @@ __all__ = [
     "PermanentDocumentRepository",
     "DashboardOverviewRepository",
     "TimelineRepository",
+    "ReminderRepository",
 ]

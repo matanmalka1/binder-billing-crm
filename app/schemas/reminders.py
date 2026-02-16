@@ -11,11 +11,11 @@ class ReminderCreateRequest(BaseModel):
     reminder_type: str = Field(
         ...,
         description="Type of reminder",
-        pattern="^(TAX_DEADLINE_APPROACHING|BINDER_IDLE|UNPAID_CHARGE|CUSTOM)$",
+        pattern="^(tax_deadline_approaching|binder_idle|unpaid_charge|custom)$",
     )
     target_date: date = Field(..., description="Target date for the event")
     days_before: int = Field(..., ge=0, description="Days before target to send reminder")
-    message: str = Field(..., min_length=1, description="Reminder message")
+    message: Optional[str] = Field(None, min_length=1, description="Reminder message")
     
     # Optional foreign keys
     binder_id: Optional[int] = Field(None, gt=0, description="Related binder ID")

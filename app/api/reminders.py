@@ -1,10 +1,14 @@
-from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import CurrentUser, DBSession, require_role
-from app.models import UserRole, ReminderStatus
+from app.models import UserRole
+from app.schemas.reminders import (
+    ReminderCreateRequest,
+    ReminderListResponse,
+    ReminderResponse,
+)
 from app.services.reminder_service import ReminderService
 
 router = APIRouter(
@@ -14,7 +18,7 @@ router = APIRouter(
 )
 
 
-@router.get("")
+@router.get("", response_model=ReminderListResponse)
 def list_reminders(
     db: DBSession,
     user: CurrentUser,
@@ -29,26 +33,33 @@ def list_reminders(
     """
     service = ReminderService(db)
     
-    # Get all reminders for now (can add pagination later)
-    reminders = service.get_pending_reminders()
+    # Delegate to service - no business logic here
+    items, total = service.get_pending_reminders(page=page, page_size=page_size)
     
-    # Filter by status if provided
+    # TODO: Filter by status if provided (requires service method)
     if status:
-        reminders = [r for r in reminders if r.status.value == status]
+        items = [r for r in items if r.status.value == status]
+        total = len(items)
     
-    return {"items": reminders, "page": page, "page_size": page_size, "total": len(reminders)}
+    return ReminderListResponse(
+        items=[ReminderResponse.model_validate(r) for r in items],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
 
 
-@router.get("/{reminder_id}")
+@router.get("/{reminder_id}", response_model=ReminderResponse)
 def get_reminder(
     reminder_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Get single reminder by ID."""
-    from app.models import Reminder
+    service = ReminderService(db)
     
-    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+    # Delegate to service
+    reminder = service.get_reminder(reminder_id)
     
     if not reminder:
         raise HTTPException(
@@ -56,12 +67,12 @@ def get_reminder(
             detail="Reminder not found",
         )
     
-    return reminder
+    return ReminderResponse.model_validate(reminder)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 def create_reminder(
-    request: dict,  # TODO: Use proper Pydantic schema
+    request: ReminderCreateRequest,
     db: DBSession,
     user: CurrentUser,
 ):
@@ -72,43 +83,67 @@ def create_reminder(
     """
     service = ReminderService(db)
     
-    # Determine which type of reminder to create based on reminder_type
-    reminder_type = request.get("reminder_type")
-    
-    if reminder_type == "TAX_DEADLINE_APPROACHING":
-        reminder = service.create_tax_deadline_reminder(
-            client_id=request["client_id"],
-            tax_deadline_id=request.get("tax_deadline_id"),
-            target_date=date.fromisoformat(request["target_date"]),
-            days_before=request["days_before"],
-            message=request.get("message"),
-        )
-    elif reminder_type == "BINDER_IDLE":
-        reminder = service.create_idle_binder_reminder(
-            client_id=request["client_id"],
-            binder_id=request.get("binder_id"),
-            days_idle=request["days_before"],  # Reuse days_before field
-            message=request.get("message"),
-        )
-    elif reminder_type == "UNPAID_CHARGE":
-        reminder = service.create_unpaid_charge_reminder(
-            client_id=request["client_id"],
-            charge_id=request.get("charge_id"),
-            days_unpaid=request["days_before"],  # Reuse days_before field
-            message=request.get("message"),
-        )
-    else:
-        # Custom reminder
-        # TODO: Add custom reminder support to service
+    try:
+        # Delegate based on reminder type - service handles all business logic
+        if request.reminder_type == "tax_deadline_approaching":
+            if not request.tax_deadline_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="tax_deadline_id required for tax deadline reminders",
+                )
+            
+            reminder = service.create_tax_deadline_reminder(
+                client_id=request.client_id,
+                tax_deadline_id=request.tax_deadline_id,
+                target_date=request.target_date,
+                days_before=request.days_before,
+                message=request.message,
+            )
+            
+        elif request.reminder_type == "binder_idle":
+            if not request.binder_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="binder_id required for binder idle reminders",
+                )
+            
+            reminder = service.create_idle_binder_reminder(
+                client_id=request.client_id,
+                binder_id=request.binder_id,
+                days_idle=request.days_before,
+                message=request.message,
+            )
+            
+        elif request.reminder_type == "unpaid_charge":
+            if not request.charge_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="charge_id required for unpaid charge reminders",
+                )
+            
+            reminder = service.create_unpaid_charge_reminder(
+                client_id=request.client_id,
+                charge_id=request.charge_id,
+                days_unpaid=request.days_before,
+                message=request.message,
+            )
+            
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported reminder type: {request.reminder_type}",
+            )
+        
+        return ReminderResponse.model_validate(reminder)
+        
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Custom reminders not yet supported",
+            detail=str(e),
         )
-    
-    return reminder
 
 
-@router.post("/{reminder_id}/cancel")
+@router.post("/{reminder_id}/cancel", response_model=ReminderResponse)
 def cancel_reminder(
     reminder_id: int,
     db: DBSession,
@@ -122,13 +157,10 @@ def cancel_reminder(
     service = ReminderService(db)
     
     try:
+        # Delegate to service
         reminder = service.cancel_reminder(reminder_id)
-        if not reminder:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Reminder not found",
-            )
-        return reminder
+        return ReminderResponse.model_validate(reminder)
+        
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,7 +168,7 @@ def cancel_reminder(
         )
 
 
-@router.post("/{reminder_id}/mark-sent")
+@router.post("/{reminder_id}/mark-sent", response_model=ReminderResponse)
 def mark_reminder_sent(
     reminder_id: int,
     db: DBSession,
@@ -150,11 +182,13 @@ def mark_reminder_sent(
     """
     service = ReminderService(db)
     
-    reminder = service.mark_sent(reminder_id)
-    if not reminder:
+    try:
+        # Delegate to service
+        reminder = service.mark_sent(reminder_id)
+        return ReminderResponse.model_validate(reminder)
+        
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Reminder not found",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
-    
-    return reminder
