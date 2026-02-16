@@ -104,7 +104,7 @@ class ExportService:
         wb.save(filepath)
 
         return {
-            "download_url": f"/exports/{filename}",
+            "filepath": filepath,  # ✅ NEW
             "filename": filename,
             "format": "excel",
             "generated_at": datetime.now(),
@@ -188,7 +188,7 @@ class ExportService:
         doc.build(elements)
 
         return {
-            "download_url": f"/exports/{filename}",
+            "filepath": filepath,  # ✅ NEW
             "filename": filename,
             "format": "pdf",
             "generated_at": datetime.now(),

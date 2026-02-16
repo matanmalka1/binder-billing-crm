@@ -2,6 +2,7 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import FileResponse
 
 from app.api.deps import CurrentUser, DBSession, require_role
 from app.models import UserRole
@@ -49,28 +50,38 @@ def export_aging_report(
     Export aging report to Excel or PDF.
     
     ADVISOR only.
+    Returns file directly for download.
     """
-
     
-    # Generate report data
+ # Generate report data
     report_service = AgingReportService(db)
     report = report_service.generate_aging_report(as_of_date=as_of_date)
-    
+
     # Export to requested format
     export_service = ExportService(db)
     
     try:
         if format == "excel":
             result = export_service.export_aging_report_to_excel(report)
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         elif format == "pdf":
             result = export_service.export_aging_report_to_pdf(report)
+            media_type = "application/pdf"
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid format. Use 'excel' or 'pdf'",
             )
         
-        return result
+        # Return file directly as download
+        return FileResponse(
+            path=result["filepath"],
+            media_type=media_type,
+            filename=result["filename"],
+            headers={
+                "Content-Disposition": f'attachment; filename="{result["filename"]}"'
+            }
+        )
         
     except ImportError as e:
         raise HTTPException(
