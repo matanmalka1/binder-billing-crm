@@ -19,6 +19,7 @@ from app.api import (
     dashboard_extended,
     dashboard_overview,
     dashboard_tax,
+    reports,
     health,
     permanent_documents,
     search,
@@ -111,6 +112,7 @@ app.include_router(binders_history.router, prefix="/api/v1")
 app.include_router(charge.router, prefix="/api/v1")
 app.include_router(permanent_documents.router, prefix="/api/v1")
 app.include_router(dashboard_extended.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 app.include_router(timeline.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(users_audit.router, prefix="/api/v1")

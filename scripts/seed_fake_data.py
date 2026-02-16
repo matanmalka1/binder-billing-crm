@@ -43,6 +43,9 @@ from app.models import (
     NotificationStatus,
     NotificationTrigger,
     PermanentDocument,
+    Reminder,
+    ReminderStatus,
+    ReminderType,
     TaxDeadline,
     User,
     UserAuditLog,
@@ -134,10 +137,11 @@ class Seeder:
             binders = self._create_binders(db, clients, users)
             charges = self._create_charges(db, clients)
             self._create_invoices(db, charges)
-            self._create_tax_deadlines(db, clients)
+            deadlines = self._create_tax_deadlines(db, clients)
             self._create_annual_reports(db, clients)
             self._create_authority_contacts(db, clients)
             self._create_notifications(db, clients, binders)
+            self._create_reminders(db, clients, binders, charges, deadlines)
             self._create_documents(db, clients, users)
             self._create_binder_logs(db, binders, users)
             self._create_user_audit_logs(db, users)
@@ -476,6 +480,92 @@ class Seeder:
         db.flush()
         return contacts
 
+    def _create_reminders(self, db, clients, binders, charges, deadlines):
+        """Seed proactive reminders based on existing entities."""
+        reminders = []
+        today = date.today()
+        binders_by_client = {}
+        for binder in binders:
+            binders_by_client.setdefault(binder.client_id, []).append(binder)
+        charges_by_client = {}
+        for charge in charges:
+            charges_by_client.setdefault(charge.client_id, []).append(charge)
+        deadlines_by_client = {}
+        for deadline in deadlines:
+            deadlines_by_client.setdefault(deadline.client_id, []).append(deadline)
+
+        for client in clients:
+            client_binders = binders_by_client.get(client.id, [])
+            client_charges = charges_by_client.get(client.id, [])
+            client_deadlines = deadlines_by_client.get(client.id, [])
+
+            # Tax deadline reminder for upcoming pending deadline
+            pending_deadlines = [
+                dl for dl in client_deadlines if dl.status == "pending"
+            ]
+            if pending_deadlines:
+                deadline = self.rng.choice(pending_deadlines)
+                days_before = 7
+                send_on = max(today, deadline.due_date - timedelta(days=days_before))
+                reminder = Reminder(
+                    client_id=client.id,
+                    reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
+                    status=ReminderStatus.PENDING,
+                    target_date=deadline.due_date,
+                    days_before=days_before,
+                    send_on=send_on,
+                    tax_deadline_id=deadline.id,
+                    message=f"תזכורת: מועדי מס מתקרבים ({deadline.deadline_type.name})",
+                )
+                db.add(reminder)
+                reminders.append(reminder)
+
+            # Idle binder reminder for binders not returned
+            idle_binders = [
+                b for b in client_binders if b.status != BinderStatus.RETURNED
+            ]
+            if idle_binders:
+                binder = self.rng.choice(idle_binders)
+                days_idle = max(14, (today - binder.received_at).days)
+                reminder = Reminder(
+                    client_id=client.id,
+                    reminder_type=ReminderType.BINDER_IDLE,
+                    status=ReminderStatus.PENDING,
+                    target_date=today,
+                    days_before=0,
+                    send_on=today,
+                    binder_id=binder.id,
+                    message=f"תזכורת: תיק {binder.binder_number} לא טופל {days_idle} ימים",
+                )
+                db.add(reminder)
+                reminders.append(reminder)
+
+            # Unpaid charge reminders for issued, unpaid charges older than 30 days
+            unpaid_charges = [
+                c for c in client_charges
+                if c.status == ChargeStatus.ISSUED
+                and c.issued_at
+                and (today - c.issued_at.date()).days >= 30
+            ]
+            if unpaid_charges:
+                charge = self.rng.choice(unpaid_charges)
+                days_unpaid = (today - charge.issued_at.date()).days
+                reminder = Reminder(
+                    client_id=client.id,
+                    reminder_type=ReminderType.UNPAID_CHARGE,
+                    status=ReminderStatus.PENDING,
+                    target_date=today,
+                    days_before=0,
+                    send_on=today,
+                    charge_id=charge.id,
+                    message=f"תזכורת: חשבונית #{charge.id} לא שולמה {days_unpaid} ימים",
+                )
+                db.add(reminder)
+                reminders.append(reminder)
+
+        db.flush()
+        return reminders
+
     def _create_documents(self, db, clients, users):
         for client in clients:
             docs = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]
@@ -562,6 +652,7 @@ class Seeder:
             "permanent_documents": db.query(PermanentDocument).count(),
             "binder_status_logs": db.query(BinderStatusLog).count(),
             "user_audit_logs": db.query(UserAuditLog).count(),
+            "reminders": db.query(Reminder).count(),
         }
         print("Seeding completed. Current row counts:")
         for key, value in counts.items():

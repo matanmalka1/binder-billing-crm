@@ -14,6 +14,7 @@ from app.models.user import User, UserRole
 from app.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 from app.models.annual_report import AnnualReport, ReportStage
 from app.models.authority_contact import AuthorityContact, ContactType
+from app.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.models.tax_deadline import DeadlineType, TaxDeadline, UrgencyLevel
 
 __all__ = [
@@ -45,4 +46,7 @@ __all__ = [
     "UrgencyLevel",
     "AuthorityContact",
     "ContactType",
+    "Reminder",
+    "ReminderStatus",
+    "ReminderType",
 ]

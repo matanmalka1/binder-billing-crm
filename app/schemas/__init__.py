@@ -35,7 +35,12 @@ from app.schemas.permanent_document import (
     PermanentDocumentListResponse,
     OperationalSignalsResponse,
 )
-
+from app.schemas.reports import (
+    AgingReportItem,
+    AgingReportResponse,
+    ExportFormat,
+    ReportExportResponse,
+)
 from app.schemas.search import SearchResponse, SearchResult
 from app.schemas.timeline import ClientTimelineResponse, TimelineEvent
 from app.schemas.user_management import (
@@ -85,6 +90,10 @@ __all__ = [
     "SearchResult",
     "ClientTimelineResponse",
     "TimelineEvent",
+    "AgingReportResponse",
+    "AgingReportItem",
+    "ExportFormat",
+    "ReportExportResponse",
     "UserCreateRequest",
     "UserUpdateRequest",
     "PasswordResetRequest",
