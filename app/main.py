@@ -27,6 +27,7 @@ from app.api import (
     timeline,
     users,
     users_audit,
+    reminders
 )
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -117,7 +118,7 @@ app.include_router(timeline.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(users_audit.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
-
+app.include_router(reminders.router, prefix="/api/v1")
 
 
 def handle_shutdown(signum, frame):

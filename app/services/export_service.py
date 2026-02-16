@@ -1,6 +1,8 @@
 import io
 import os
+import tempfile
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -15,8 +17,9 @@ class ExportService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.export_dir = "/tmp/exports"
-        os.makedirs(self.export_dir, exist_ok=True)
+        export_base = Path(tempfile.gettempdir()) / "exports"
+        export_base.mkdir(parents=True, exist_ok=True)
+        self.export_dir = str(export_base)
 
     def export_aging_report_to_excel(self, report_data: dict) -> dict:
         """

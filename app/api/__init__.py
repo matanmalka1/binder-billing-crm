@@ -20,6 +20,7 @@ from app.api import (
     timeline,
     users,
     users_audit,
+    reminders,
 )
 
 __all__ = [
@@ -44,4 +45,5 @@ __all__ = [
     "timeline",
     "users",
     "users_audit",
+    "reminders",
 ]

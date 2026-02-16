@@ -53,6 +53,12 @@ from app.schemas.user_management import (
     UserUpdateRequest,
 )
 
+from app.schemas.reminders import (
+    ReminderCreateRequest,
+    ReminderResponse,
+    ReminderListResponse,
+)
+
 __all__ = [
     "LoginRequest",
     "LoginResponse",
@@ -101,4 +107,7 @@ __all__ = [
     "UserManagementListResponse",
     "UserAuditLogResponse",
     "UserAuditLogListResponse",
+    "ReminderCreateRequest",
+    "ReminderResponse",
+    "ReminderListResponse",
 ]
