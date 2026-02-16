@@ -60,6 +60,13 @@ class ClientRepository:
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
+    def list_all(self, status: Optional[str] = None) -> list[Client]:
+        """List all clients (optionally filtered by status)."""
+        query = self.db.query(Client)
+        if status:
+            query = query.filter(Client.status == status)
+        return query.order_by(Client.full_name).all()
+
     def count(self, status: Optional[str] = None) -> int:
         """Count clients with optional filters."""
         query = self.db.query(Client)

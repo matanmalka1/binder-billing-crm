@@ -87,6 +87,10 @@ class ClientService:
         offset = (page - 1) * page_size
         return filtered[offset : offset + page_size], total
 
+    def list_all_clients(self, status: Optional[str] = None) -> list[Client]:
+        """Return every client matching the optional status filter."""
+        return self.client_repo.list_all(status=status)
+
     def update_client(
         self,
         client_id: int,

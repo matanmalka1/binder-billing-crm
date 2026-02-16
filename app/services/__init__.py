@@ -9,6 +9,7 @@ from typing import Any
 __all__ = [
     "AuthService",
     "ClientService",
+    "ClientExcelService",
     "BinderService",
     "DashboardService",
     "SLAService",
@@ -43,6 +44,10 @@ def __getattr__(name: str) -> Any:
         from app.services.client_service import ClientService
 
         return ClientService
+    if name == "ClientExcelService":
+        from app.services.client_excel_service import ClientExcelService
+
+        return ClientExcelService
     if name == "BinderService":
         from app.services.binder_service import BinderService
 

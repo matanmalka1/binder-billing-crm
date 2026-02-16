@@ -127,6 +127,8 @@ GET /api/v1/reports/aging/export?format=pdf
 |--------|----------|-------|--------|
 | GET | `/api/v1/reports/aging` | דוח חובות | ADVISOR |
 | GET | `/api/v1/reports/aging/export` | ייצוא דוח (excel/pdf) | ADVISOR |
+| GET | `/api/v1/clients/export` | ייצוא לקוחות ל-Excel | ADVISOR + SECRETARY |
+| GET | `/api/v1/clients/template` | הורדת תבנית ייבוא | ADVISOR + SECRETARY |
 | GET | `/api/v1/documents/{id}/view` | תצוגת PDF | ADVISOR + SECRETARY |
 | POST | `/api/v1/clients/import` | ייבוא לקוחות | ADVISOR |
 
