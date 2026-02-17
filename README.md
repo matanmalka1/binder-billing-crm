@@ -1,9 +1,9 @@
-# Binder Billing CRM
+# Binder Billing & Tax CRM
 
-Production-ready FastAPI + SQLAlchemy backend for client records, binder lifecycle management, billing, notifications, and operational workflows.
+Production-ready FastAPI + SQLAlchemy backend for client records, binder lifecycle management, billing, notifications, tax workflows, and operational dashboards.
 
-Backend status: **frozen through Sprint 6**.  
-No backend behavior, schema, or contract changes are allowed without a new sprint (**Sprint 7+**).
+Backend scope: **implemented through Sprint 9** (Sprint 8 Tax CRM features + Sprint 9 reminder/architecture fixes).  
+Any backend behavior or schema change now requires a new Sprint 10+ specification.
 
 ## Roles & Permissions (High Level)
 - `SECRETARY`: operational workflows and read-oriented operational views.
@@ -14,10 +14,10 @@ No backend behavior, schema, or contract changes are allowed without a new sprin
 2. `DEV_SETUP.md` (local setup and test execution)
 3. `PROJECT_RULES.md` (highest-level engineering and architecture rules)
 4. `API_CONTRACT.md` (authoritative API surface and route-level contract)
-5. `SPRINT_6_FORMAL_SPECIFICATION.md` (Sprint 6 scope and constraints)
-6. `SPRINT_6_TASK_BREAKDOWN.md` (Sprint 6 execution contract)
-7. `SPRINT_6_FREEZE_DECLARATION.md` (formal Sprint 6 freeze state)
-8. Prior frozen sprint authorities:
+5. `SPRINT_8_README.md` (Tax CRM features summary)
+6. `SPRINT_9_ARCHITECTURE.md` + `SPRINT_9_MIGRATION.md` + `SPRINT_9_SUMMARY.md` (reminder architecture fixes and migration guidance)
+7. `SPRINT_6_FORMAL_SPECIFICATION.md` + `SPRINT_6_FREEZE_DECLARATION.md` (previous freeze baseline)
+8. Earlier frozen authorities:
    - `SPRINT_3_FORMAL_SPECIFICATION.md`
    - `sprint_4_formal_specification.md`
    - `sprint_4_freeze_rules.md`

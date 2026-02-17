@@ -1,11 +1,13 @@
-# API Contract (Implemented Through Sprint 6)
+# API Contract (Implemented Through Sprint 9)
 
-This document is a **route index + high-level contract** for the API surface implemented through Sprint 6.
-Behavioral rules (constraints, transitions, and invariants) remain **authoritatively defined** by the frozen sprint specifications:
+This document is a **route index + high-level contract** for the API surface implemented through Sprint 9.
+Behavioral rules remain defined by frozen sprint specifications:
 - `SPRINT_3_FORMAL_SPECIFICATION.md` (billing)
 - `sprint_4_formal_specification.md` + `sprint_4_freeze_rules.md` (notifications/documents/job)
 - `SPRINT_5_FORMAL_SPECIFICATION.md` + `SPRINT_5_FREEZE_DECLARATION.md` (hardening)
 - `SPRINT_6_FORMAL_SPECIFICATION.md` (operational readiness & UX enablement)
+- `SPRINT_8_FORMAL_SPECIFICATION.md` + `SPRINT_8_README.md` (Tax CRM features)
+- `SPRINT_9_ARCHITECTURE.md` + `SPRINT_9_MIGRATION.md` + `SPRINT_9_SUMMARY.md` (reminder architecture fixes)
 
 ## Conventions
 - Base path (business API): `/api/v1`
@@ -239,6 +241,12 @@ Response shape:
 }
 ```
 
+## Dashboard Tax Widgets (Sprint 8, ADVISOR + SECRETARY)
+
+### `GET /api/v1/dashboard/tax-submissions`
+- Query params: `tax_year` (optional, int ≥ 1900)
+- Response: submission progress widget for tax filings.
+
 ## Timeline (Sprint 6, ADVISOR + SECRETARY)
 
 ### `GET /api/v1/clients/{client_id}/timeline`
@@ -273,6 +281,73 @@ Response shape:
   "total": 125
 }
 ```
+
+## Tax Deadlines (Sprint 8, ADVISOR + SECRETARY)
+### `POST /api/v1/tax-deadlines`
+- Create a tax deadline; body: `client_id`, `deadline_type`, `due_date`, `payment_amount?`, `description?`.
+
+### `GET /api/v1/tax-deadlines`
+- Filters: `client_id?`, `deadline_type?`, `status?`, `page`, `page_size`.
+
+### `GET /api/v1/tax-deadlines/{deadline_id}`
+
+### `POST /api/v1/tax-deadlines/{deadline_id}/complete`
+- Marks deadline as completed.
+
+### `GET /api/v1/tax-deadlines/dashboard/urgent`
+- Returns urgent and upcoming deadlines for dashboard display.
+
+## Annual Reports (Sprint 8, ADVISOR + SECRETARY; submit = ADVISOR)
+### `POST /api/v1/annual-reports`
+- Body: `client_id`, `tax_year`, `form_type`, `due_date?`, `notes?`.
+
+### `GET /api/v1/annual-reports`
+- Filters: `client_id?`, `tax_year?`, `stage?`, `page`, `page_size`.
+
+### `GET /api/v1/annual-reports/{report_id}`
+
+### `POST /api/v1/annual-reports/{report_id}/transition`
+- Body: `to_stage`; enforces sequential stage transitions.
+
+### `POST /api/v1/annual-reports/{report_id}/submit` (ADVISOR)
+- Body: `submitted_at`.
+
+### `GET /api/v1/annual-reports/kanban/view`
+- Returns reports grouped by stage with client names and days-until-due.
+
+## Authority Contacts (Sprint 8, ADVISOR + SECRETARY; delete = ADVISOR)
+### `POST /api/v1/clients/{client_id}/authority-contacts`
+- Body: `contact_type`, `name`, `office?`, `phone?`, `email?`, `notes?`.
+
+### `GET /api/v1/clients/{client_id}/authority-contacts`
+- Filter: `contact_type?`.
+
+### `PATCH /api/v1/authority-contacts/{contact_id}`
+- Partial update; `contact_type` validated against enum.
+
+### `DELETE /api/v1/authority-contacts/{contact_id}` (ADVISOR)
+
+## Reminders (Sprint 9, ADVISOR + SECRETARY)
+### `GET /api/v1/reminders`
+- Pagination: `page`, `page_size`; optional `status` filter (pending/ sent/ canceled).
+
+### `GET /api/v1/reminders/{reminder_id}`
+
+### `POST /api/v1/reminders`
+- Body includes `reminder_type` (`tax_deadline_approaching` | `binder_idle` | `unpaid_charge`) plus required foreign keys and message; service validates combinations.
+
+### `POST /api/v1/reminders/{reminder_id}/cancel`
+- Cancels a pending reminder.
+
+### `POST /api/v1/reminders/{reminder_id}/mark-sent`
+- Marks reminder as sent (used by jobs).
+
+## Reports: Aging (Sprint 8, ADVISOR)
+### `GET /api/v1/reports/aging`
+- Returns aging buckets for outstanding charges; optional `as_of_date`.
+
+### `GET /api/v1/reports/aging/export`
+- Query: `format=excel|pdf`, `as_of_date?`; returns file download.
 
 ## Search (Sprint 6, ADVISOR + SECRETARY)
 
