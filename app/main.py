@@ -14,6 +14,7 @@ from app.api import (
     binders_operations,
     charge,
     clients,
+    clients_excel,
     clients_binders,
     dashboard,
     dashboard_extended,
@@ -27,7 +28,7 @@ from app.api import (
     timeline,
     users,
     users_audit,
-    reminders
+    reminders,
 )
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -103,6 +104,7 @@ app.include_router(tax_deadline.router, prefix="/api/v1")
 app.include_router(authority_contact.router, prefix="/api/v1")
 app.include_router(dashboard_tax.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
+app.include_router(clients_excel.router, prefix="/api/v1")
 # NOTE: include operational binder routes before `/binders/{binder_id}` to avoid path conflicts.
 app.include_router(binders_operations.router, prefix="/api/v1")
 app.include_router(binders.router, prefix="/api/v1")
