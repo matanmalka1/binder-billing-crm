@@ -16,6 +16,10 @@ from app.models.annual_report import AnnualReport, ReportStage
 from app.models.authority_contact import AuthorityContact, ContactType
 from app.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.models.tax_deadline import DeadlineType, TaxDeadline, UrgencyLevel
+from app.models.client_tax_profile import ClientTaxProfile, VatType
+from app.models.correspondence import Correspondence, CorrespondenceType
+from app.models.annual_report_detail import AnnualReportDetail
+from app.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
 __all__ = [
     "Binder",
@@ -49,4 +53,11 @@ __all__ = [
     "Reminder",
     "ReminderStatus",
     "ReminderType",
+    "ClientTaxProfile",
+    "VatType",
+    "Correspondence",
+    "CorrespondenceType",
+    "AnnualReportDetail",
+    "AdvancePayment",
+    "AdvancePaymentStatus",
 ]

@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
-Test script to verify the aging report export endpoint
+Manual export endpoint check.
+
+Note: This script is interactive (prompts for access_token) and is intended
+to be run manually, not under pytest. We mark the pytest test as skipped to
+avoid blocking CI with stdin prompts.
 """
 import requests
 import sys
+import pytest
 
 # Configuration
 BASE_URL = "http://localhost:8000"
 API_PREFIX = "/api/v1"
 
+@pytest.mark.skip(reason="manual integration check that prompts for token; skip in CI")
 def test_export_endpoint():
     """Test the export endpoint directly"""
     

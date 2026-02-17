@@ -10,6 +10,10 @@ from app.repositories.permanent_document_repository import PermanentDocumentRepo
 from app.repositories.dashboard_overview_repository import DashboardOverviewRepository
 from app.repositories.timeline_repository import TimelineRepository
 from app.repositories.reminder_repository import ReminderRepository
+from app.repositories.client_tax_profile_repository import ClientTaxProfileRepository
+from app.repositories.correspondence_repository import CorrespondenceRepository
+from app.repositories.annual_report_detail_repository import AnnualReportDetailRepository
+from app.repositories.advance_payment_repository import AdvancePaymentRepository
 
 __all__ = [
     "UserRepository",
@@ -24,4 +28,8 @@ __all__ = [
     "DashboardOverviewRepository",
     "TimelineRepository",
     "ReminderRepository",
+    "ClientTaxProfileRepository",
+    "CorrespondenceRepository",
+    "AnnualReportDetailRepository",
+    "AdvancePaymentRepository",
 ]

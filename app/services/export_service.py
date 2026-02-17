@@ -85,17 +85,18 @@ class ExportService:
         ws.cell(row=row, column=6, value=report_data["summary"]["total_90_plus"])
 
         # Auto-adjust column widths
-        for column in ws.columns:
+        from openpyxl.utils import get_column_letter
+
+        for idx, column in enumerate(ws.iter_cols(), start=1):
             max_length = 0
-            column_letter = column[0].column_letter
+            column_letter = get_column_letter(idx)
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            ws.column_dimensions[column_letter].width = adjusted_width
+                    if cell.value is not None:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    continue
+            ws.column_dimensions[column_letter].width = min(max_length + 2, 50)
 
         # Save to file
         filename = f"aging_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"

@@ -111,13 +111,15 @@ class AnnualReportService:
         new_stage: ReportStage,
     ) -> None:
         """Validate stage transition is allowed."""
+        # Lock transmitted reports (aligns with "submitted reports cannot be edited")
+        if current_stage == ReportStage.TRANSMITTED and new_stage != current_stage:
+            raise ValueError("Cannot change stage after transmission")
+
         current_idx = self.STAGE_ORDER.index(current_stage)
         new_idx = self.STAGE_ORDER.index(new_stage)
 
-        if new_idx < current_idx:
-            raise ValueError(f"Cannot move backwards from {current_stage} to {new_stage}")
-
-        if new_idx - current_idx > 1:
+        # Allow moving one step forward or backward; disallow skips
+        if abs(new_idx - current_idx) > 1:
             raise ValueError(f"Cannot skip stages from {current_stage} to {new_stage}")
 
     def _derive_status(self, stage: ReportStage) -> str:

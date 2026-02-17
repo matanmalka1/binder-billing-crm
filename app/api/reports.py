@@ -43,7 +43,7 @@ def get_aging_report(
 def export_aging_report(
     db: DBSession,
     user: CurrentUser,
-    format: str = Query(..., regex="^(excel|pdf)$"),
+    format: str = Query(..., pattern="^(excel|pdf)$"),
     as_of_date: Optional[date] = Query(None),
 ):
     """

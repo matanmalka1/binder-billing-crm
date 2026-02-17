@@ -1,4 +1,5 @@
 from datetime import date
+import itertools
 
 import pytest
 
@@ -6,10 +7,15 @@ from app.models import Client, ClientType, ReportStage
 from app.services.annual_report_service import AnnualReportService
 
 
+_client_counter = itertools.count(1)
+
+
 def _create_client(test_db) -> Client:
+    # Ensure unique id_number to satisfy UNIQUE constraint in tests
+    suffix = next(_client_counter)
     client = Client(
         full_name="Test Tax Client",
-        id_number="123456789",
+        id_number=f"1234567{suffix:02d}",
         client_type=ClientType.COMPANY,
         opened_at=date.today(),
     )
@@ -60,12 +66,19 @@ def test_stage_transition_sequential(test_db):
     assert updated.stage == ReportStage.IN_PROGRESS
     assert updated.status == "in_progress"
 
+    # Valid: one step back
+    updated = service.transition_stage(report.id, ReportStage.MATERIAL_COLLECTION)
+    assert updated.stage == ReportStage.MATERIAL_COLLECTION
+    assert updated.status == "not_started"
+
     # Invalid: skip stage
     with pytest.raises(ValueError, match="Cannot skip stages"):
         service.transition_stage(report.id, ReportStage.TRANSMITTED)
 
-    # Invalid: move backwards
-    with pytest.raises(ValueError, match="Cannot move backwards"):
+    # Invalid: skip backwards more than one step
+    service.transition_stage(report.id, ReportStage.IN_PROGRESS)
+    service.transition_stage(report.id, ReportStage.FINAL_REVIEW)
+    with pytest.raises(ValueError, match="Cannot skip stages"):
         service.transition_stage(report.id, ReportStage.MATERIAL_COLLECTION)
 
 

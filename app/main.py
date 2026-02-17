@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
     annual_report,
+    annual_report_detail,
     authority_contact,
     auth,
     binders,
@@ -29,6 +30,9 @@ from app.api import (
     users,
     users_audit,
     reminders,
+    client_tax_profile,
+    correspondence,
+    advance_payments,
 )
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -99,13 +103,16 @@ def info():
 # API routes
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
+# NOTE: annual_report_detail before annual_report (ordering hygiene — avoids path conflicts)
+app.include_router(annual_report_detail.router, prefix="/api/v1")
 app.include_router(annual_report.router, prefix="/api/v1")
 app.include_router(tax_deadline.router, prefix="/api/v1")
 app.include_router(authority_contact.router, prefix="/api/v1")
 app.include_router(dashboard_tax.router, prefix="/api/v1")
-app.include_router(clients.router, prefix="/api/v1")
+# Place Excel routes before parameterized /clients/{id} to avoid path conflicts
 app.include_router(clients_excel.router, prefix="/api/v1")
-# NOTE: include operational binder routes before `/binders/{binder_id}` to avoid path conflicts.
+app.include_router(clients.router, prefix="/api/v1")
+# NOTE: operational binder routes before `/binders/{binder_id}` to avoid path conflicts
 app.include_router(binders_operations.router, prefix="/api/v1")
 app.include_router(binders.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
@@ -121,6 +128,9 @@ app.include_router(search.router, prefix="/api/v1")
 app.include_router(users_audit.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(reminders.router, prefix="/api/v1")
+app.include_router(client_tax_profile.router, prefix="/api/v1")
+app.include_router(correspondence.router, prefix="/api/v1")
+app.include_router(advance_payments.router, prefix="/api/v1")
 
 
 def handle_shutdown(signum, frame):

@@ -1,5 +1,6 @@
 from app.api import (
     annual_report,
+    annual_report_detail,
     authority_contact,
     auth,
     binders,
@@ -22,10 +23,14 @@ from app.api import (
     users,
     users_audit,
     reminders,
+    client_tax_profile,
+    correspondence,
+    advance_payments,
 )
 
 __all__ = [
     "annual_report",
+    "annual_report_detail",
     "authority_contact",
     "auth",
     "binders",
@@ -48,4 +53,7 @@ __all__ = [
     "users",
     "users_audit",
     "reminders",
+    "client_tax_profile",
+    "correspondence",
+    "advance_payments",
 ]
