@@ -24,23 +24,26 @@ def list_reminders(
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None),
+    status_filter: Optional[str] = Query(None, alias="status"),
 ):
     """
-    List reminders with optional filters.
-    
+    List reminders with optional status filter.
+
+    When no status is provided, returns pending reminders whose send_on <= today
+    (the operational work queue).
+
+    When status is provided, returns all reminders of that status across all dates
+    (history / audit view). Valid values: pending, sent, canceled.
+
     Available to ADVISOR and SECRETARY.
     """
     service = ReminderService(db)
-    
-    # Delegate to service - no business logic here
-    items, total = service.get_pending_reminders(page=page, page_size=page_size)
-    
-    # TODO: Filter by status if provided (requires service method)
-    if status:
-        items = [r for r in items if r.status.value == status]
-        total = len(items)
-    
+
+    try:
+        items, total = service.get_reminders(status=status_filter, page=page, page_size=page_size)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
     return ReminderListResponse(
         items=[ReminderResponse.model_validate(r) for r in items],
         page=page,
@@ -57,16 +60,15 @@ def get_reminder(
 ):
     """Get single reminder by ID."""
     service = ReminderService(db)
-    
-    # Delegate to service
+
     reminder = service.get_reminder(reminder_id)
-    
+
     if not reminder:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reminder not found",
         )
-    
+
     return ReminderResponse.model_validate(reminder)
 
 
@@ -78,20 +80,23 @@ def create_reminder(
 ):
     """
     Create a new reminder.
-    
+
     Available to ADVISOR and SECRETARY.
+    Each reminder_type requires the matching foreign key:
+      tax_deadline_approaching → tax_deadline_id
+      binder_idle              → binder_id
+      unpaid_charge            → charge_id
+      custom                   → message required, no foreign key needed
     """
     service = ReminderService(db)
-    
+
     try:
-        # Delegate based on reminder type - service handles all business logic
         if request.reminder_type == "tax_deadline_approaching":
             if not request.tax_deadline_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="tax_deadline_id required for tax deadline reminders",
+                    detail="tax_deadline_id required for tax_deadline_approaching reminders",
                 )
-            
             reminder = service.create_tax_deadline_reminder(
                 client_id=request.client_id,
                 tax_deadline_id=request.tax_deadline_id,
@@ -99,43 +104,54 @@ def create_reminder(
                 days_before=request.days_before,
                 message=request.message,
             )
-            
+
         elif request.reminder_type == "binder_idle":
             if not request.binder_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="binder_id required for binder idle reminders",
+                    detail="binder_id required for binder_idle reminders",
                 )
-            
             reminder = service.create_idle_binder_reminder(
                 client_id=request.client_id,
                 binder_id=request.binder_id,
                 days_idle=request.days_before,
                 message=request.message,
             )
-            
+
         elif request.reminder_type == "unpaid_charge":
             if not request.charge_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="charge_id required for unpaid charge reminders",
+                    detail="charge_id required for unpaid_charge reminders",
                 )
-            
             reminder = service.create_unpaid_charge_reminder(
                 client_id=request.client_id,
                 charge_id=request.charge_id,
                 days_unpaid=request.days_before,
                 message=request.message,
             )
-            
+
+        elif request.reminder_type == "custom":
+            if not request.message:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="message is required for custom reminders",
+                )
+            reminder = service.create_custom_reminder(
+                client_id=request.client_id,
+                target_date=request.target_date,
+                days_before=request.days_before,
+                message=request.message,
+            )
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unsupported reminder type: {request.reminder_type}",
             )
-        
+
         return ReminderResponse.model_validate(reminder)
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -151,16 +167,15 @@ def cancel_reminder(
 ):
     """
     Cancel a pending reminder.
-    
+
     Available to ADVISOR and SECRETARY.
     """
     service = ReminderService(db)
-    
+
     try:
-        # Delegate to service
         reminder = service.cancel_reminder(reminder_id)
         return ReminderResponse.model_validate(reminder)
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -176,17 +191,16 @@ def mark_reminder_sent(
 ):
     """
     Mark a reminder as sent.
-    
+
     Typically used by background jobs.
     Available to ADVISOR and SECRETARY.
     """
     service = ReminderService(db)
-    
+
     try:
-        # Delegate to service
         reminder = service.mark_sent(reminder_id)
         return ReminderResponse.model_validate(reminder)
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
