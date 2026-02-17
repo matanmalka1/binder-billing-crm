@@ -23,9 +23,12 @@ if str(ROOT_DIR) not in sys.path:
 
 from app.database import Base, SessionLocal, engine
 from app.models import (
+    AdvancePayment,
+    AdvancePaymentStatus,
     AuditAction,
     AuditStatus,
     AnnualReport,
+    AnnualReportDetail,
     AuthorityContact,
     Binder,
     BinderStatus,
@@ -35,7 +38,10 @@ from app.models import (
     ChargeType,
     Client,
     ClientStatus,
+    ClientTaxProfile,
     ClientType,
+    Correspondence,
+    CorrespondenceType,
     DocumentType,
     Invoice,
     Notification,
@@ -50,6 +56,7 @@ from app.models import (
     User,
     UserAuditLog,
     UserRole,
+    VatType,
 )
 from app.models.annual_report import ReportStage
 from app.models.authority_contact import ContactType
@@ -138,8 +145,12 @@ class Seeder:
             charges = self._create_charges(db, clients)
             self._create_invoices(db, charges)
             deadlines = self._create_tax_deadlines(db, clients)
-            self._create_annual_reports(db, clients)
+            reports = self._create_annual_reports(db, clients)
             self._create_authority_contacts(db, clients)
+            self._create_client_tax_profiles(db, clients)
+            self._create_correspondence(db, clients, users)
+            self._create_annual_report_details(db, reports)
+            advance_payments = self._create_advance_payments(db, clients, deadlines)
             self._create_notifications(db, clients, binders)
             self._create_reminders(db, clients, binders, charges, deadlines)
             self._create_documents(db, clients, users)
@@ -423,6 +434,42 @@ class Seeder:
         db.flush()
         return deadlines
 
+    def _create_advance_payments(self, db, clients, deadlines):
+        payments = []
+        deadlines_by_client_month = {}
+        for dl in deadlines:
+            key = (dl.client_id, dl.due_date.year, dl.due_date.month)
+            deadlines_by_client_month[key] = dl
+
+        for client in clients:
+            year = date.today().year
+            months = self.rng.sample(range(1, 13), k=self.rng.randint(3, 7))
+            for month in months:
+                due_date = date(year, month, self.rng.randint(10, 28))
+                deadline = deadlines_by_client_month.get((client.id, year, month))
+                status = self.rng.choice(list(AdvancePaymentStatus))
+                expected_amount = Decimal(str(round(self.rng.uniform(500, 6000), 2)))
+                paid_amount = None
+                if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
+                    paid_amount = Decimal(str(round(self.rng.uniform(200, float(expected_amount)), 2)))
+
+                payment = AdvancePayment(
+                    client_id=client.id,
+                    tax_deadline_id=deadline.id if deadline else None,
+                    month=month,
+                    year=year,
+                    expected_amount=expected_amount,
+                    paid_amount=paid_amount,
+                    status=status,
+                    due_date=due_date,
+                    created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 200)),
+                    updated_at=None,
+                )
+                db.add(payment)
+                payments.append(payment)
+        db.flush()
+        return payments
+
     def _create_annual_reports(self, db, clients):
         reports = []
         current_year = date.today().year
@@ -456,6 +503,39 @@ class Seeder:
         db.flush()
         return reports
 
+    def _create_annual_report_details(self, db, reports):
+        for report in reports:
+            # 60% of reports get an attached detail row
+            if self.rng.random() > 0.6:
+                continue
+
+            tax_refund_amount = None
+            tax_due_amount = None
+            # 50/50 chance of refund vs due when present
+            if self.rng.random() < 0.5:
+                tax_refund_amount = Decimal(str(round(self.rng.uniform(500, 5000), 2)))
+            else:
+                tax_due_amount = Decimal(str(round(self.rng.uniform(500, 7500), 2)))
+
+            detail = AnnualReportDetail(
+                report_id=report.id,
+                tax_refund_amount=tax_refund_amount,
+                tax_due_amount=tax_due_amount,
+                client_approved_at=(
+                    datetime.now(UTC) - timedelta(days=self.rng.randint(1, 120))
+                    if self.rng.random() < 0.5
+                    else None
+                ),
+                internal_notes=self.rng.choice([
+                    None,
+                    "Pending client confirmation",
+                    "Include revised payroll figures",
+                    "Double-check VAT inputs",
+                ]),
+            )
+            db.add(detail)
+        db.flush()
+
     def _create_authority_contacts(self, db, clients):
         contacts = []
         for client in clients:
@@ -479,6 +559,65 @@ class Seeder:
                 contacts.append(contact)
         db.flush()
         return contacts
+
+    def _create_client_tax_profiles(self, db, clients):
+        for client in clients:
+            # 70% of clients get a tax profile
+            if self.rng.random() > 0.7:
+                continue
+
+            profile = ClientTaxProfile(
+                client_id=client.id,
+                vat_type=self.rng.choice(list(VatType)),
+                business_type=self.rng.choice([
+                    None,
+                    "self_employed",
+                    "company",
+                    "non_profit",
+                ]),
+                tax_year_start=self.rng.choice([1, 4, 7, 10, None]),
+                accountant_name=self.rng.choice([
+                    None,
+                    "Green & Co.",
+                    "TaxWise",
+                    "Levi Accounting",
+                ]),
+                created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 200)),
+            )
+            db.add(profile)
+        db.flush()
+
+    def _create_correspondence(self, db, clients, users):
+        for client in clients:
+            # 50% of clients get between 1-5 correspondence entries
+            if self.rng.random() > 0.5:
+                continue
+
+            num_entries = self.rng.randint(1, 5)
+            for _ in range(num_entries):
+                occurred_at = datetime.now(UTC) - timedelta(days=self.rng.randint(0, 120))
+                entry = Correspondence(
+                    client_id=client.id,
+                    contact_id=None,
+                    correspondence_type=self.rng.choice(list(CorrespondenceType)),
+                    subject=self.rng.choice([
+                        "Discussed tax payment plan",
+                        "Submitted missing documents",
+                        "Scheduled meeting with authority",
+                        "Client requested clarification",
+                    ]),
+                    notes=self.rng.choice([
+                        None,
+                        "Follow up next week",
+                        "Email summary sent",
+                        "Awaiting response",
+                    ]),
+                    occurred_at=occurred_at,
+                    created_by=self.rng.choice(users).id,
+                    created_at=occurred_at,
+                )
+                db.add(entry)
+        db.flush()
 
     def _create_reminders(self, db, clients, binders, charges, deadlines):
         """Seed proactive reminders based on existing entities."""
@@ -647,10 +786,14 @@ class Seeder:
             "invoices": db.query(Invoice).count(),
             "tax_deadlines": db.query(TaxDeadline).count(),
             "annual_reports": db.query(AnnualReport).count(),
+            "annual_report_details": db.query(AnnualReportDetail).count(),
             "authority_contacts": db.query(AuthorityContact).count(),
+            "client_tax_profiles": db.query(ClientTaxProfile).count(),
+            "correspondence_entries": db.query(Correspondence).count(),
             "notifications": db.query(Notification).count(),
             "permanent_documents": db.query(PermanentDocument).count(),
             "binder_status_logs": db.query(BinderStatusLog).count(),
+            "advance_payments": db.query(AdvancePayment).count(),
             "user_audit_logs": db.query(UserAuditLog).count(),
             "reminders": db.query(Reminder).count(),
         }
