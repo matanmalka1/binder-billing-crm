@@ -74,11 +74,10 @@ class ExportService:
 
         # Summary row
         row += 1
-        ws.merge_cells(f"A{row}:B{row}")
         summary_cell = ws.cell(row=row, column=1)
         summary_cell.value = "סיכום"
         summary_cell.font = Font(bold=True)
-        
+
         ws.cell(row=row, column=2, value=report_data["total_outstanding"])
         ws.cell(row=row, column=3, value=report_data["summary"]["total_current"])
         ws.cell(row=row, column=4, value=report_data["summary"]["total_30_days"])
