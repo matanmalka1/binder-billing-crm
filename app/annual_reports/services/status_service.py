@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 
 from app.annual_reports.models import AnnualReport, AnnualReportStatus, DeadlineType
 from app.utils.time import utcnow
@@ -19,6 +20,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         assessment_amount: Optional[float] = None,
         refund_due: Optional[float] = None,
         tax_due: Optional[float] = None,
+        submitted_at: Optional[datetime] = None,
     ) -> AnnualReport:
         report = self._get_or_raise(report_id)
         try:
@@ -37,7 +39,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         update_fields: dict = {"status": ns}
 
         if ns == AnnualReportStatus.SUBMITTED:
-            update_fields["submitted_at"] = utcnow()
+            update_fields["submitted_at"] = submitted_at or utcnow()
             if ita_reference:
                 update_fields["ita_reference"] = ita_reference
 

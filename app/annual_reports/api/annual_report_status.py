@@ -8,6 +8,7 @@ from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
     StatusTransitionRequest,
     DeadlineUpdateRequest,
     StageTransitionRequest,
+    SubmitRequest,
 )
 from app.annual_reports.services import AnnualReportService
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
@@ -45,6 +46,35 @@ def transition_status(
             assessment_amount=float(body.assessment_amount) if body.assessment_amount else None,
             refund_due=float(body.refund_due) if body.refund_due else None,
             tax_due=float(body.tax_due) if body.tax_due else None,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return AnnualReportResponse.model_validate(report)
+
+
+@router.post("/{report_id}/submit", response_model=AnnualReportResponse)
+def submit_report(
+    report_id: int,
+    body: SubmitRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """
+    Mark a report as submitted.
+
+    Sets status to SUBMITTED, stamps submitted_at (or uses provided timestamp),
+    and records status history.
+    """
+    service = AnnualReportService(db)
+    try:
+        report = service.transition_status(
+            report_id=report_id,
+            new_status=AnnualReportStatus.SUBMITTED.value,
+            changed_by=user.id,
+            changed_by_name=user.full_name,
+            note=body.note,
+            ita_reference=body.ita_reference,
+            submitted_at=body.submitted_at,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

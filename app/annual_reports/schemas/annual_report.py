@@ -114,6 +114,12 @@ class DeadlineUpdateRequest(BaseModel):
     custom_deadline_note: Optional[str] = None
 
 
+class SubmitRequest(BaseModel):
+    submitted_at: Optional[datetime] = None
+    ita_reference: Optional[str] = None
+    note: Optional[str] = None
+
+
 # ── Kanban stage transition (UI helper) ─────────────────────────────────────
 
 class StageTransitionRequest(BaseModel):
