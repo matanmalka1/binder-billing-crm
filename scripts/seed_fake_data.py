@@ -52,15 +52,15 @@ from app.models import (
     Reminder,
     ReminderStatus,
     ReminderType,
+    ReportStage,
     TaxDeadline,
     User,
     UserAuditLog,
     UserRole,
     VatType,
 )
-from app.models.annual_report import ReportStage
-from app.models.authority_contact import ContactType
-from app.models.tax_deadline import DeadlineType
+from app.authority_contact.models.authority_contact import ContactType
+from app.tax_deadline.models.tax_deadline import DeadlineType
 
 
 FIRST_NAMES = [

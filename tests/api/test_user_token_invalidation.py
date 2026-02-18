@@ -1,5 +1,5 @@
 from app.models import User, UserRole
-from app.services import AuthService
+from app.users.services.auth_service import AuthService
 
 
 def _create_managed_user(test_db) -> User:
@@ -64,4 +64,3 @@ def test_deactivate_then_activate_does_not_restore_old_token(client, advisor_hea
         headers={"Authorization": f"Bearer {old_token}"},
     )
     assert protected_response.status_code == 401
-

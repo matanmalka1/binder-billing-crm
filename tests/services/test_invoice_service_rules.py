@@ -3,7 +3,8 @@ from datetime import UTC, date, datetime
 import pytest
 
 from app.models import Client, ClientType
-from app.services import BillingService, InvoiceService
+from app.charge.services.billing_service import BillingService
+from app.invoice.services.invoice_service import InvoiceService
 
 
 def _create_client(test_db) -> Client:

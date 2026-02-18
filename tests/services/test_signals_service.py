@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app.models import Binder, BinderStatus, Client, ClientType
-from app.services.signals_service import SignalsService, SignalType
+from app.binders.services.signals_service import SignalsService, SignalType
 
 
 def test_overdue_signal(test_db):

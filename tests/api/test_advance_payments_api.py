@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.models import Client, ClientType
-from app.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 
 
 def _create_client(test_db) -> Client:

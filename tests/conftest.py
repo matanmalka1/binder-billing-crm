@@ -12,7 +12,7 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 from app.database import Base, get_db
 from app.main import app
 from app.models import User, UserRole
-from app.services import AuthService
+from app.users.services.auth_service import AuthService
 
 
 @pytest.fixture(scope="function")

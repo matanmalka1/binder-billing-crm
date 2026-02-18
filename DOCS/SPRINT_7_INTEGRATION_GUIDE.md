@@ -71,19 +71,19 @@ def __getattr__(name: str) -> Any:
     # ... existing imports ...
     
     if name == "AnnualReportService":
-        from app.services.annual_report_service import AnnualReportService
+        from app.annual_reports.services.annual_report_service import AnnualReportService
         return AnnualReportService
     
     if name == "TaxDeadlineService":
-        from app.services.tax_deadline_service import TaxDeadlineService
+        from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
         return TaxDeadlineService
     
     if name == "AuthorityContactService":
-        from app.services.authority_contact_service import AuthorityContactService
+        from app.authority_contact.services.authority_contact_service import AuthorityContactService
         return AuthorityContactService
     
     if name == "DashboardTaxService":
-        from app.services.dashboard_tax_service import DashboardTaxService
+        from app.dashboard.services.dashboard_tax_service import DashboardTaxService
         return DashboardTaxService
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

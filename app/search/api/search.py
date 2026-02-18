@@ -1,0 +1,52 @@
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
+
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
+from app.search.schemas.search import SearchResponse, SearchResult
+from app.search.services.search_service import SearchService
+
+router = APIRouter(
+    prefix="/search",
+    tags=["search"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
+
+
+@router.get("", response_model=SearchResponse)
+def search(
+    db: DBSession,
+    user: CurrentUser,
+    query: Optional[str] = None,
+    client_name: Optional[str] = None,
+    id_number: Optional[str] = None,
+    binder_number: Optional[str] = None,
+    work_state: Optional[str] = None,
+    sla_state: Optional[str] = None,
+    signal_type: Optional[list[str]] = Query(None),
+    has_signals: Optional[bool] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """Unified search for clients and binders."""
+    service = SearchService(db)
+    results, total = service.search(
+        query=query,
+        client_name=client_name,
+        id_number=id_number,
+        binder_number=binder_number,
+        work_state=work_state,
+        sla_state=sla_state,
+        signal_type=signal_type,
+        has_signals=has_signals,
+        page=page,
+        page_size=page_size,
+    )
+
+    return SearchResponse(
+        results=[SearchResult(**r) for r in results],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )

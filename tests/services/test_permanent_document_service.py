@@ -2,7 +2,9 @@ from datetime import date
 from io import BytesIO
 
 from app.models import Client, ClientType, DocumentType
-from app.services import PermanentDocumentService
+from app.permanent_documents.services.permanent_document_service import (
+    PermanentDocumentService,
+)
 
 
 def test_upload_permanent_document(test_db, test_user):

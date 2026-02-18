@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app.models import Client, ClientType, DeadlineType, UrgencyLevel
-from app.services.tax_deadline_service import TaxDeadlineService
+from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 
 
 def _create_client(test_db) -> Client:

@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from unittest.mock import Mock, patch
 
 from app.models import Binder, BinderStatus, Client, ClientType
-from app.services import DailySLAJobService
+from app.binders.services.daily_sla_job_service import DailySLAJobService
 
 
 def test_job_completes_despite_individual_errors(test_db, test_user):

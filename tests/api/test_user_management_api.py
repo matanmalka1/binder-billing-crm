@@ -1,5 +1,5 @@
 from app.models import User, UserRole
-from app.services import AuthService
+from app.users.services.auth_service import AuthService
 
 
 def _make_user(test_db, email: str, role: UserRole = UserRole.SECRETARY) -> User:
@@ -86,4 +86,3 @@ def test_cannot_update_immutable_fields(client, advisor_headers, test_db):
 def test_cannot_deactivate_self(client, advisor_headers, test_user):
     response = client.post(f"/api/v1/users/{test_user.id}/deactivate", headers=advisor_headers)
     assert response.status_code == 400
-

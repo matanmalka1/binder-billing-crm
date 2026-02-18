@@ -5,38 +5,34 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import (
-    annual_report,
+from app.advance_payments.api import advance_payments
+from app.annual_reports.api import (
+    annual_report_client,
+    annual_report_create_read,
     annual_report_detail,
-    authority_contact,
-    auth,
-    binders,
-    binders_history,
-    binders_operations,
-    charge,
-    clients,
-    clients_excel,
-    clients_binders,
-    dashboard,
-    dashboard_extended,
-    dashboard_overview,
-    dashboard_tax,
-    reports,
-    health,
-    permanent_documents,
-    search,
-    tax_deadline,
-    timeline,
-    users,
-    users_audit,
-    reminders,
-    client_tax_profile,
-    correspondence,
-    advance_payments,
+    annual_report_schedule,
+    annual_report_season,
+    annual_report_status,
 )
+from app.binders.api import binders, binders_history, binders_operations
+from app.clients.api import client_tax_profile, clients, clients_binders, clients_excel
+from app.dashboard.api import dashboard, dashboard_extended, dashboard_overview, dashboard_tax
+from app.users.api import users, users_audit
+from app.signature_requests.api import routers as signature_requests_routers
+from app.authority_contact.api import authority_contact
+from app.charge.api import charge
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
+from app.correspondence.api import correspondence
+from app.health.api import health
 from app.middleware.request_id import RequestIDMiddleware
+from app.permanent_documents.api import permanent_documents
+from app.reminders.api import routers as reminders
+from app.reports.api import reports
+from app.search.api import search
+from app.tax_deadline.api import tax_deadline
+from app.timeline.api import timeline
+from app.users.api import auth
 
 # Validate environment before starting
 EnvValidator.validate()
@@ -103,9 +99,13 @@ def info():
 # API routes
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
-# NOTE: annual_report_detail before annual_report (ordering hygiene — avoids path conflicts)
+# NOTE: annual_report_detail before the other annual_report routers (ordering hygiene — avoids path conflicts)
 app.include_router(annual_report_detail.router, prefix="/api/v1")
-app.include_router(annual_report.router, prefix="/api/v1")
+app.include_router(annual_report_create_read.router, prefix="/api/v1")
+app.include_router(annual_report_schedule.router, prefix="/api/v1")
+app.include_router(annual_report_status.router, prefix="/api/v1")
+app.include_router(annual_report_client.clients_router, prefix="/api/v1")
+app.include_router(annual_report_season.season_router, prefix="/api/v1")
 app.include_router(tax_deadline.router, prefix="/api/v1")
 app.include_router(authority_contact.router, prefix="/api/v1")
 app.include_router(dashboard_tax.router, prefix="/api/v1")
@@ -131,7 +131,9 @@ app.include_router(reminders.router, prefix="/api/v1")
 app.include_router(client_tax_profile.router, prefix="/api/v1")
 app.include_router(correspondence.router, prefix="/api/v1")
 app.include_router(advance_payments.router, prefix="/api/v1")
-
+app.include_router(signature_requests_routers.router, prefix="/api/v1")
+# Public signer routes (no /api/v1 prefix)
+app.include_router(signature_requests_routers.signer_router)
 
 def handle_shutdown(signum, frame):
     """Handle shutdown signals gracefully."""

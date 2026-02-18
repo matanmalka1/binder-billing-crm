@@ -7,7 +7,7 @@ import jwt
 
 from app.config import config
 from app.models import User, UserRole
-from app.services import AuthService
+from app.users.services.auth_service import AuthService
 
 
 def test_jwt_has_expiration(test_user):

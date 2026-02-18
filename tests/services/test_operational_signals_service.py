@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app.models import Binder, BinderStatus, Client, ClientType
-from app.services import OperationalSignalsService
+from app.binders.services.operational_signals_service import OperationalSignalsService
 
 
 def test_operational_signals_missing_documents(test_db):

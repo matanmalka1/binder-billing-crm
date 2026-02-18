@@ -1,8 +1,8 @@
 from datetime import date
 
 from app.models import Binder, BinderStatus
-from app.services.binder_helpers import BinderHelpers
-from app.services.sla_service import SLAService
+from app.binders.services.binder_helpers import BinderHelpers
+from app.binders.services.sla_service import SLAService
 
 
 def test_binder_expected_return_is_90_days():
@@ -32,4 +32,3 @@ def test_sla_overdue_and_due_today_calculations():
     binder.status = BinderStatus.RETURNED
     assert SLAService.is_overdue(binder, reference_date=reference) is False
     assert SLAService.days_overdue(binder, reference_date=reference) == 0
-

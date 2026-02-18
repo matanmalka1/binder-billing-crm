@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.models import Binder, BinderStatus, Client, ClientType, NotificationStatus, NotificationTrigger
-from app.services import NotificationService
+from app.notification.services.notification_service import NotificationService
 
 
 def test_notification_persisted_on_binder_received(test_db):

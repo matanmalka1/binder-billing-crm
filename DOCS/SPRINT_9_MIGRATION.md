@@ -75,7 +75,7 @@ git diff app/api/reminders.py
 ### Step 2: Update Imports
 ```python
 # Update any code importing ReminderService
-from app.services.reminder_service import ReminderService
+from app.reminders.services import ReminderService
 
 # No changes needed - service interface unchanged
 ```

@@ -1,0 +1,139 @@
+"""Repository operations for the AnnualReport entity."""
+
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from app.annual_reports.models import AnnualReport, AnnualReportStatus
+from app.utils.time import utcnow
+
+
+class AnnualReportReportRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    # ── AnnualReport CRUD / queries ─────────────────────────────────────────
+
+    def create(self, **kwargs) -> AnnualReport:
+        report = AnnualReport(**kwargs)
+        self.db.add(report)
+        self.db.commit()
+        self.db.refresh(report)
+        return report
+
+    def get_by_id(self, report_id: int) -> Optional[AnnualReport]:
+        return self.db.query(AnnualReport).filter(AnnualReport.id == report_id).first()
+
+    def get_by_client_year(self, client_id: int, tax_year: int) -> Optional[AnnualReport]:
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.client_id == client_id, AnnualReport.tax_year == tax_year)
+            .first()
+        )
+
+    def list_by_client(self, client_id: int) -> list[AnnualReport]:
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.client_id == client_id)
+            .order_by(AnnualReport.tax_year.desc())
+            .all()
+        )
+
+    def list_by_status(
+        self,
+        status: AnnualReportStatus,
+        tax_year: Optional[int] = None,
+        assigned_to: Optional[int] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[AnnualReport]:
+        q = self.db.query(AnnualReport).filter(AnnualReport.status == status)
+        if tax_year:
+            q = q.filter(AnnualReport.tax_year == tax_year)
+        if assigned_to:
+            q = q.filter(AnnualReport.assigned_to == assigned_to)
+        return (
+            q.order_by(AnnualReport.filing_deadline.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_by_status(
+        self,
+        status: AnnualReportStatus,
+        tax_year: Optional[int] = None,
+    ) -> int:
+        q = self.db.query(AnnualReport).filter(AnnualReport.status == status)
+        if tax_year:
+            q = q.filter(AnnualReport.tax_year == tax_year)
+        return q.count()
+
+    def list_by_tax_year(
+        self,
+        tax_year: int,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[AnnualReport]:
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.tax_year == tax_year)
+            .order_by(AnnualReport.status.asc(), AnnualReport.filing_deadline.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_by_tax_year(self, tax_year: int) -> int:
+        return self.db.query(AnnualReport).filter(AnnualReport.tax_year == tax_year).count()
+
+    def list_overdue(self, tax_year: Optional[int] = None) -> list[AnnualReport]:
+        """Reports past their filing deadline and not yet submitted."""
+        now = utcnow()
+        open_statuses = [
+            AnnualReportStatus.NOT_STARTED,
+            AnnualReportStatus.COLLECTING_DOCS,
+            AnnualReportStatus.DOCS_COMPLETE,
+            AnnualReportStatus.IN_PREPARATION,
+            AnnualReportStatus.PENDING_CLIENT,
+        ]
+        q = (
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.status.in_(open_statuses),
+                AnnualReport.filing_deadline < now,
+                AnnualReport.filing_deadline.isnot(None),
+            )
+        )
+        if tax_year:
+            q = q.filter(AnnualReport.tax_year == tax_year)
+        return q.order_by(AnnualReport.filing_deadline.asc()).all()
+
+    def update(self, report_id: int, **fields) -> Optional[AnnualReport]:
+        report = self.get_by_id(report_id)
+        if not report:
+            return None
+        for k, v in fields.items():
+            if hasattr(report, k):
+                setattr(report, k, v)
+        report.updated_at = utcnow()
+        self.db.commit()
+        self.db.refresh(report)
+        return report
+
+    # ── Season dashboard ───────────────────────────────────────────────────
+
+    def get_season_summary(self, tax_year: int) -> dict:
+        """
+        Counts of each status for a given tax year (for dashboards).
+        """
+        all_reports = (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.tax_year == tax_year)
+            .all()
+        )
+        summary = {s.value: 0 for s in AnnualReportStatus}
+        for r in all_reports:
+            summary[r.status.value] += 1
+        summary["total"] = len(all_reports)
+        return summary

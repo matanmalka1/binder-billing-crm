@@ -104,15 +104,15 @@ def __getattr__(name: str) -> Any:
     # ... existing imports ...
     
     if name == "AgingReportService":
-        from app.services.reports_service import AgingReportService
+        from app.reports.services.reports_service import AgingReportService
         return AgingReportService
     
     if name == "ExportService":
-        from app.services.export_service import ExportService
+        from app.reports.services.export_service import ExportService
         return ExportService
     
     if name == "ReminderService":
-        from app.services.reminder_service import ReminderService
+        from app.reminders.services import ReminderService
         return ReminderService
 ```
 
@@ -225,7 +225,7 @@ http://localhost:8000/docs
 ### יצירת תזכורת למועד מס
 
 ```python
-from app.services.reminder_service import ReminderService
+from app.reminders.services import ReminderService
 
 reminder_service = ReminderService(db)
 
@@ -244,9 +244,9 @@ print(f"תשלח בתאריך: {reminder.send_on}")
 ### הרצת Job יומי לתזכורות
 
 ```python
-# הוסף ל-app/services/daily_sla_job_service.py או צור job חדש
+# הוסף ל-app/binders/services/daily_sla_job_service.py או צור job חדש
 
-from app.services.reminder_service import ReminderService
+from app.reminders.services import ReminderService
 
 def send_pending_reminders(db: Session):
     """שלח את כל התזכורות שמועד השליחה שלהן הגיע."""

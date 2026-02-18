@@ -1,9 +1,9 @@
 from datetime import date, datetime
 
 from app.models import Client, ClientType
-from app.models.authority_contact import AuthorityContact, ContactType
-from app.models.correspondence import CorrespondenceType
-from app.services.correspondence_service import CorrespondenceService
+from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.correspondence.models.correspondence import CorrespondenceType
+from app.correspondence.services.correspondence_service import CorrespondenceService
 
 
 def _create_client(test_db, id_number: str = "777777777") -> Client:

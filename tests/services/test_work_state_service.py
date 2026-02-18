@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app.models import Binder, BinderStatus
-from app.services.work_state_service import WorkState, WorkStateService
+from app.binders.services.work_state_service import WorkState, WorkStateService
 
 
 def test_work_state_returned_is_completed():

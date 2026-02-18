@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from app.models import Binder, BinderStatus, Client, ClientType
-from app.services import DailySLAJobService
+from app.binders.services.daily_sla_job_service import DailySLAJobService
 from app.repositories import NotificationRepository
 from app.models import NotificationTrigger
 

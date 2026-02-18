@@ -141,7 +141,7 @@ class ReminderStatus:
 ### שירות התזכורות
 
 ```python
-from app.services_reminder import ReminderService
+from app.reminders.services import ReminderService
 
 # יצירת תזכורת למועד מס (X ימים לפני)
 reminder = reminder_service.create_tax_deadline_reminder(
@@ -183,8 +183,8 @@ def daily_reminder_job(db: Session):
     2. בודק תיקים שלא טופלו (14+ ימים)
     3. בודק חשבוניות לא משולמות (30+ ימים)
     """
-    from app.services_reminder import ReminderService
-    from app.services.tax_deadline_service import TaxDeadlineService
+    from app.reminders.services import ReminderService
+    from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
     from app.repositories.binder_repository import BinderRepository
     from app.repositories.charge_repository import ChargeRepository
     
@@ -263,7 +263,7 @@ def view_pdf_document(
     """
     הצגת PDF בתוך הדפדפן.
     """
-    from app.services.permanent_document_service import PermanentDocumentService
+    from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
     
     service = PermanentDocumentService(db)
     document = service.get_document_by_id(document_id)
