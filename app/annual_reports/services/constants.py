@@ -40,8 +40,16 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
     AnnualReportStatus.ASSESSMENT_ISSUED: {
         AnnualReportStatus.OBJECTION_FILED,
         AnnualReportStatus.CLOSED,
+        # Allow operational rollback when issues found post-assessment
+        AnnualReportStatus.PENDING_CLIENT,
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.DOCS_COMPLETE,
     },
-    AnnualReportStatus.OBJECTION_FILED: {AnnualReportStatus.CLOSED},
+    AnnualReportStatus.OBJECTION_FILED: {
+        AnnualReportStatus.CLOSED,
+        # Permit rollback to rework documents if objection rejected/updated
+        AnnualReportStatus.DOCS_COMPLETE,
+    },
     AnnualReportStatus.CLOSED: set(),
 }
 

@@ -74,6 +74,14 @@ def list_annual_reports(
     )
 
 
+@router.get("/kanban/view", response_model=dict)
+def get_kanban_view(db: DBSession, user: CurrentUser):
+    """Kanban board view grouped by stage."""
+    service = AnnualReportService(db)
+    stages = service.kanban_view()
+    return {"stages": stages}
+
+
 @router.get("/overdue", response_model=list[AnnualReportResponse])
 def list_overdue(db: DBSession, user: CurrentUser, tax_year: int | None = Query(None)):
     """Reports past their filing deadline that have not been submitted."""

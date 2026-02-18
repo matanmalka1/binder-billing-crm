@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models import AnnualReport, AnnualReportStatus
+from app.clients.models.client import Client
 from app.utils.time import utcnow
 
 
@@ -97,6 +98,15 @@ class AnnualReportReportRepository:
             .order_by(AnnualReport.tax_year.desc(), AnnualReport.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
+            .all()
+        )
+
+    def list_all_with_clients(self) -> list[tuple[AnnualReport, str]]:
+        """Return all reports with client names (for Kanban view)."""
+        return (
+            self.db.query(AnnualReport, Client.full_name.label("client_name"))
+            .join(Client, Client.id == AnnualReport.client_id)
+            .order_by(AnnualReport.filing_deadline.asc().nulls_last(), AnnualReport.id.asc())
             .all()
         )
 

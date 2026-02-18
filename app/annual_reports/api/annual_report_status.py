@@ -7,8 +7,10 @@ from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
     StatusHistoryResponse,
     StatusTransitionRequest,
     DeadlineUpdateRequest,
+    StageTransitionRequest,
 )
 from app.annual_reports.services import AnnualReportService
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 
 
 router = APIRouter(
@@ -73,6 +75,48 @@ def update_deadline(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return AnnualReportResponse.model_validate(report)
+
+
+@router.post("/{report_id}/transition", response_model=AnnualReportResponse)
+def transition_stage(
+    report_id: int,
+    body: StageTransitionRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """
+    Kanban helper endpoint used by the frontend.
+
+    Maps UI stage keys to concrete status transitions while honoring the valid
+    status graph. Unknown stages return 400.
+    """
+    stage_map = {
+        "material_collection": AnnualReportStatus.COLLECTING_DOCS,
+        "in_progress": AnnualReportStatus.DOCS_COMPLETE,
+        "final_review": AnnualReportStatus.IN_PREPARATION,
+        "client_signature": AnnualReportStatus.PENDING_CLIENT,
+        "transmitted": AnnualReportStatus.SUBMITTED,
+    }
+
+    target_status = stage_map.get(body.to_stage)
+    if not target_status:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid stage '{body.to_stage}'",
+        )
+
+    service = AnnualReportService(db)
+    try:
+        report = service.transition_status(
+            report_id=report_id,
+            new_status=target_status.value,
+            changed_by=user.id,
+            changed_by_name=user.full_name,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
     return AnnualReportResponse.model_validate(report)
 
 

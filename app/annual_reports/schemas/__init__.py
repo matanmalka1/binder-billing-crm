@@ -10,6 +10,7 @@ from app.annual_reports.schemas.annual_report import (  # noqa: F401
     SeasonSummaryResponse,
     StatusHistoryResponse,
     StatusTransitionRequest,
+    StageTransitionRequest,
 )
 
 from app.annual_reports.schemas.annual_report_detail import (
@@ -29,4 +30,5 @@ __all__ = [
     "SeasonSummaryResponse",
     "StatusHistoryResponse",
     "StatusTransitionRequest",
+    "StageTransitionRequest",
 ]
