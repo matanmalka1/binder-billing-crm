@@ -1,4 +1,4 @@
-**Status:** ACTIVE  
+**Status:** ACTIVE
 **Applies To:** Entire Codebase
 
 ### 1. Purpose
@@ -18,9 +18,9 @@ If a conflict arises between this document and other documentation, **this docum
 
 The following rules must not be violated without explicit approval:
 
-- Maximum 150 lines per Python file
+- **Maximum 150 lines per Python file** — files that grow beyond this must be split; existing overages are tracked debt
 - No raw SQL (ORM-only access)
-- Strict layering within each Domain:  
+- Strict layering within each Domain:
   **API → Service → Repository → ORM**
 - No cross-domain imports at the Repository or Model level
 - No business logic in API routers
@@ -32,11 +32,13 @@ The following rules must not be violated without explicit approval:
 
 #### 3.1 Domain-Based Structure
 
-The application is organized into independent Domains (e.g. `advance_payments`, `binders`). Each domain must strictly implement the following sub-structure:
+The application is organized into 25 independent business domains (e.g. `advance_payments`, `binders`, `annual_reports`) plus 5 infrastructure modules (`core`, `utils`, `infrastructure`, `middleware`, `actions`).
+
+Each business domain must strictly implement the following sub-structure:
 
 - **API Layer** (`/api`)
   - Request/response handling only (FastAPI routers)
-  - Authorization guards
+  - Authorization guards via `require_role()` dependency
   - No business decisions
 
 - **Service Layer** (`/services`)
@@ -49,12 +51,31 @@ The application is organized into independent Domains (e.g. `advance_payments`, 
   - No business rules or cross-domain data fetching
 
 - **Schemas Layer** (`/schemas`)
-  - Pydantic models for validation and serialization
+  - Pydantic v2 models for validation and serialization
   - Strict separation from ORM models
+  - Request models: `*CreateRequest` / `*Request`
+  - Response models: `*Response`, `*ListResponse`
 
 - **ORM Models** (`/models`)
   - Data structure / SQLAlchemy declarations only
   - No behavior or logic
+  - Enums defined alongside their models
+
+#### 3.2 Infrastructure Modules
+
+These modules are not business domains and do not follow the full layer structure:
+
+- **`core/`** — Centralized exception handlers, logging, env validation
+- **`utils/`** — Shared utilities (time helpers, etc.)
+- **`infrastructure/`** — External service stubs (WhatsApp, Email, S3)
+- **`middleware/`** — FastAPI middleware (e.g. RequestIDMiddleware)
+- **`actions/`** — UI action metadata and contracts
+
+#### 3.3 API Routes
+
+- All business routes: `/api/v1/*`
+- Public routes: `GET /`, `GET /health/*`, `GET /info`, `GET /sign/{signing_token}`
+- Auth routes: `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`
 
 ### 4. Data & State Rules
 
@@ -67,12 +88,12 @@ The following must **never** be persisted:
 - WorkState
 - Operational signals
 
-All such states are computed dynamically.
+All such states are computed dynamically in the Service layer.
 
 #### 4.2 SLA Rules
 
 - SLA logic lives in `SLAService`
-- SLA is derived from timestamps only
+- SLA is derived from timestamps only (`received_at` → `expected_return_at`, 90-day window)
 - No SLA status columns are allowed
 - No background job may persist SLA state
 
@@ -83,6 +104,7 @@ All such states are computed dynamically.
 - WorkState is derived, not stored
 - Exists solely to support operational UX
 - Must be deterministic from system state
+- Values: `WAITING_FOR_WORK` | `IN_PROGRESS` | `COMPLETED`
 
 #### 5.2 Signals
 
@@ -90,14 +112,16 @@ All such states are computed dynamically.
 - Signals do not block actions
 - Signals are not notifications
 - Signals are computed, not stored
+- Known signals: `MISSING_DOCS`, `NEAR_SLA`, `OVERDUE`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`
 
 ### 6. Authorization Philosophy
 
-- **Advisor** is a super-role
+- **Advisor** is a super-role with full access
 - **Secretary** is operational-only
 - Authorization is enforced at:
-  - Endpoint level
-  - Service/action level
+  - Endpoint level via `require_role()` dependency factory
+  - Service/action level for fine-grained decisions
+- Token invalidation via `token_version` field on the User record
 - UI must **never** implement business authorization logic
 
 ### 7. Notifications & Jobs
@@ -111,8 +135,9 @@ All such states are computed dynamically.
 
 ### 8. Database & Migrations
 
-- Early development: **no migrations**.  
-  Schema is created from ORM models in `APP_ENV=development`.
+- Development (`APP_ENV=development`): schema auto-created from ORM models via `Base.metadata.create_all()`. No migration tooling.
+- Production: PostgreSQL. Migrations must be managed explicitly before any schema change is deployed.
+- ORM is the single source of truth for schema; no schema changes outside of model files.
 
 ### 9. Sprint Discipline
 
@@ -121,7 +146,7 @@ All such states are computed dynamically.
   - Explicit freeze
 - Out-of-scope features are forbidden
 - Deviations require explicit approval
-- Completed sprints are immutable
+- Completed sprints are immutable (Sprints 1–9 are frozen)
 
 ### 10. What This Project Is NOT
 
@@ -141,4 +166,4 @@ This document may only be amended by:
 - Documented change
 - Versioned update
 
-**End of Rules**'
+**End of Rules**
