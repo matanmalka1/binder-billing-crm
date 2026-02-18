@@ -46,16 +46,14 @@ class AnnualReportQueryService(AnnualReportBaseService):
             status_value = report.status.value if hasattr(report.status, "value") else report.status
             if status_value in ("not_started", "collecting_docs"):
                 stage_key = ReportStage.MATERIAL_COLLECTION
-            elif status_value in ("docs_complete", "in_preparation"):
+            elif status_value == "docs_complete":
                 stage_key = ReportStage.IN_PROGRESS
+            elif status_value == "in_preparation":
+                stage_key = ReportStage.FINAL_REVIEW
             elif status_value == "pending_client":
                 stage_key = ReportStage.CLIENT_SIGNATURE
-            elif status_value == "submitted":
+            else:  # submitted, accepted, assessment_issued, objection_filed, closed
                 stage_key = ReportStage.TRANSMITTED
-            elif status_value in ("accepted", "assessment_issued", "closed"):
-                stage_key = ReportStage.FINAL_REVIEW
-            else:
-                stage_key = ReportStage.MATERIAL_COLLECTION
 
             stages[stage_key.value].append(
                 {

@@ -27,7 +27,7 @@ def list_season_reports(
 ):
     """All reports for a given tax year — the advisor's season dashboard."""
     service = AnnualReportService(db)
-    items, total = service.get_season_reports(tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
     return AnnualReportListResponse(
         items=[AnnualReportResponse.model_validate(r) for r in items],
         page=page,

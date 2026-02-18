@@ -138,6 +138,20 @@ def transition_stage(
 
     service = AnnualReportService(db)
     try:
+        # NOT_STARTED cannot jump directly to DOCS_COMPLETE — step through COLLECTING_DOCS first.
+        current = service.get_report(report_id)
+        if (
+            current
+            and current.status == AnnualReportStatus.NOT_STARTED
+            and target_status == AnnualReportStatus.DOCS_COMPLETE
+        ):
+            service.transition_status(
+                report_id=report_id,
+                new_status=AnnualReportStatus.COLLECTING_DOCS.value,
+                changed_by=user.id,
+                changed_by_name=user.full_name,
+                note="Kanban intermediate step",
+            )
         report = service.transition_status(
             report_id=report_id,
             new_status=target_status.value,
