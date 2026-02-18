@@ -12,10 +12,7 @@ class LoginRequest(BaseModel):
 
 
 class LoginResponse(BaseModel):
-    token: str
-    user: dict
-
-    model_config = {"from_attributes": True}
+    user: "UserResponse"
 
 
 class UserResponse(BaseModel):
@@ -24,3 +21,6 @@ class UserResponse(BaseModel):
     role: UserRole
 
     model_config = {"from_attributes": True}
+
+
+LoginResponse.model_rebuild()

@@ -16,7 +16,7 @@ COOKIE_SAMESITE = "lax"
 
 @router.post("/login", response_model=LoginResponse)
 def login(request: LoginRequest, db: DBSession, response: Response):
-    """Authenticate user and return JWT token."""
+    """Authenticate user and return user info (JWT is set as HttpOnly cookie)."""
     auth_service = AuthService(db)
 
     user = auth_service.authenticate(request.email, request.password)
@@ -46,10 +46,26 @@ def login(request: LoginRequest, db: DBSession, response: Response):
     )
 
     return LoginResponse(
-        token=token,
         user=UserResponse(
             id=user.id,
             full_name=user.full_name,
             role=user.role.value,
-        ).model_dump(),
+        ),
     )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response):
+    """
+    Clear the auth cookie to end the session on the client.
+    Token remains valid server-side until expiration, but the browser
+    will no longer send it after the cookie is deleted.
+    """
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        httponly=True,
+        secure=config.APP_ENV == "production",
+        samesite=COOKIE_SAMESITE,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
