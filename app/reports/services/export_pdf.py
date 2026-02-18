@@ -26,38 +26,38 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     elements = []
     styles = getSampleStyleSheet()
 
-    title = Paragraph(f\"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>\", styles[\"Title\"])
+    title = Paragraph(f"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>", styles["Title"])
     elements.append(title)
     elements.append(Spacer(1, 0.5 * cm))
 
     table_data = [
-        [\"שם לקוח\", \"סה\\\"כ חוב\", \"שוטף (0-30)\", \"30-60 ימים\", \"60-90 ימים\", \"90+ ימים\", \"תאריך עתיק\", \"ימים\"]
+        ["שם לקוח", "סה\"כ חוב", "שוטף (0-30)", "30-60 ימים", "60-90 ימים", "90+ ימים", "תאריך עתיק", "ימים"]
     ]
 
-    for item in report_data[\"items\"]:
+    for item in report_data["items"]:
         table_data.append(
             [
-                item[\"client_name\"],
-                f\"{item['total_outstanding']:.2f}\",
-                f\"{item['current']:.2f}\",
-                f\"{item['days_30']:.2f}\",
-                f\"{item['days_60']:.2f}\",
-                f\"{item['days_90_plus']:.2f}\",
-                str(item[\"oldest_invoice_date\"]) if item[\"oldest_invoice_date\"] else \"\",
-                str(item[\"oldest_invoice_days\"]) if item[\"oldest_invoice_days\"] else \"\",
+                item["client_name"],
+                f"{item['total_outstanding']:.2f}",
+                f"{item['current']:.2f}",
+                f"{item['days_30']:.2f}",
+                f"{item['days_60']:.2f}",
+                f"{item['days_90_plus']:.2f}",
+                str(item["oldest_invoice_date"]) if item["oldest_invoice_date"] else "",
+                str(item["oldest_invoice_days"]) if item["oldest_invoice_days"] else "",
             ]
         )
 
     table_data.append(
         [
-            \"סיכום\",
-            f\"{report_data['total_outstanding']:.2f}\",
-            f\"{report_data['summary']['total_current']:.2f}\",
-            f\"{report_data['summary']['total_30_days']:.2f}\",
-            f\"{report_data['summary']['total_60_days']:.2f}\",
-            f\"{report_data['summary']['total_90_plus']:.2f}\",
-            \"\",
-            \"\",
+            "סיכום",
+            f"{report_data['total_outstanding']:.2f}",
+            f"{report_data['summary']['total_current']:.2f}",
+            f"{report_data['summary']['total_30_days']:.2f}",
+            f"{report_data['summary']['total_60_days']:.2f}",
+            f"{report_data['summary']['total_90_plus']:.2f}",
+            "",
+            "",
         ]
     )
 
@@ -65,14 +65,14 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     table.setStyle(
         TableStyle(
             [
-                (\"BACKGROUND\", (0, 0), (-1, 0), colors.HexColor(\"#366092\")),
-                (\"TEXTCOLOR\", (0, 0), (-1, 0), colors.whitesmoke),
-                (\"ALIGN\", (0, 0), (-1, -1), \"CENTER\"),
-                (\"FONTNAME\", (0, 0), (-1, 0), \"Helvetica-Bold\"),
-                (\"FONTSIZE\", (0, 0), (-1, 0), 12),
-                (\"BOTTOMPADDING\", (0, 0), (-1, 0), 12),
-                (\"BACKGROUND\", (0, -1), (-1, -1), colors.lightgrey),
-                (\"GRID\", (0, 0), (-1, -1), 1, colors.black),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#366092")),
+                ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, 0), 12),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                ("BACKGROUND", (0, -1), (-1, -1), colors.lightgrey),
+                ("GRID", (0, 0), (-1, -1), 1, colors.black),
             ]
         )
     )

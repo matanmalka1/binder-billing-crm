@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas.dashboard_tax import TaxSubmissionWidgetResponse
+from app.dashboard.schemas.dashboard_tax import TaxSubmissionWidgetResponse
 from app.dashboard.services.dashboard_tax_service import DashboardTaxService
 
 router = APIRouter(

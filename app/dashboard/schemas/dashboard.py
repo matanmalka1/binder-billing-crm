@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.dashboard_extended import AttentionResponse
+from app.dashboard.schemas.dashboard_extended import AttentionResponse
 
 
 class DashboardSummaryResponse(BaseModel):

@@ -2,15 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from app.models import (
-    Binder,
-    BinderStatus,
-    Charge,
-    ChargeStatus,
-    Client,
-    ClientStatus,
-    UserRole,
-)
+from app.binders.models.binder import Binder, BinderStatus
+from app.charge.models.charge import Charge, ChargeStatus
+from app.clients.models.client import Client, ClientStatus
+from app.users.models.user import UserRole
 
 
 def _value(raw: Any) -> str:

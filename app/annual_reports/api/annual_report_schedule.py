@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas.annual_report import (
+from app.annual_reports.schemas import (  
     ScheduleAddRequest,
     ScheduleCompleteRequest,
     ScheduleEntryResponse,

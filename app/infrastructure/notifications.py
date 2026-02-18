@@ -7,7 +7,7 @@ class WhatsAppChannel:
     def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:
         """
         Send WhatsApp message.
-        
+
         Note: This is a stub implementation.
         Production would integrate with WhatsApp Business API.
         """
@@ -21,7 +21,7 @@ class EmailChannel:
     def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:
         """
         Send email message.
-        
+
         Note: This is a stub implementation.
         Production would integrate with email service.
         """

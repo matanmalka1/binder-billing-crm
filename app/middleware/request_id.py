@@ -20,17 +20,17 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         """Generate request ID and propagate through context."""
         # Generate or extract request ID
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-        
+
         # Set in logging context
         set_request_id(request_id)
-        
+
         try:
             # Process request
             response = await call_next(request)
-            
+
             # Add request ID to response headers
             response.headers["X-Request-ID"] = request_id
-            
+
             return response
         finally:
             # Clean up context

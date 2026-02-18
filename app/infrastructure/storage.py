@@ -9,12 +9,12 @@ class StorageProvider(ABC):
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
         """
         Upload file to storage.
-        
+
         Args:
             key: Storage key/path
             file_data: File binary data
             content_type: MIME type
-            
+
         Returns:
             Storage key for retrieval
         """
@@ -32,11 +32,11 @@ class LocalStorageProvider(StorageProvider):
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
         """Upload file to local storage."""
         import os
-        
+
         file_path = os.path.join(self.base_path, key)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        
-        with open(file_path, 'wb') as f:
+
+        with open(file_path, "wb") as f:
             f.write(file_data.read())
-        
+
         return key

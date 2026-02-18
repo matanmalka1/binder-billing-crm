@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 class ErrorResponse:
-    """Standard error response format (compatible with Sprint 1–4)."""
+    """Standard error response format."""
 
     @staticmethod
     def build(
@@ -35,7 +35,7 @@ class ErrorResponse:
                 "type": error_type,
                 "detail": detail if isinstance(detail, str) else "Invalid request data",
                 "status_code": status_code,
-            }
+            },
         }
 
 

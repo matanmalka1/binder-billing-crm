@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.models.client_tax_profile import VatType
-from app.schemas.client_tax_profile import TaxProfileResponse, TaxProfileUpdateRequest
+from app.clients.models.client_tax_profile import VatType
+from app.clients.schemas.client_tax_profile import TaxProfileResponse, TaxProfileUpdateRequest
 from app.clients.services.client_tax_profile_service import ClientTaxProfileService
 
 router = APIRouter(

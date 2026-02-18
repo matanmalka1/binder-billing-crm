@@ -3,7 +3,7 @@
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, Text
 
 from app.database import Base
-from app.models.annual_reports.annual_report_enums import AnnualReportSchedule
+from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.utils.time import utcnow
 
 

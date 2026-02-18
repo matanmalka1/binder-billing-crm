@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas import (
-    AnnualReportDetailResponse,
+from app.annual_reports.schemas.annual_report_detail import (
     AnnualReportDetailUpdateRequest,
+    ReportDetailResponse,
 )
 from app.annual_reports.services import AnnualReportDetailService
 
@@ -24,17 +24,17 @@ def _verify_report_exists(report_id: int, db) -> None:
         )
 
 
-@router.get("/{report_id}/details", response_model=AnnualReportDetailResponse)
+@router.get("/{report_id}/details", response_model=ReportDetailResponse)
 def get_annual_report_detail(report_id: int, db: DBSession, user: CurrentUser):
     _verify_report_exists(report_id, db)
     service = AnnualReportDetailService(db)
     detail = service.get_detail(report_id)
     if detail is None:
-        return AnnualReportDetailResponse(report_id=report_id)
-    return AnnualReportDetailResponse.model_validate(detail)
+        return ReportDetailResponse(report_id=report_id)
+    return ReportDetailResponse.model_validate(detail)
 
 
-@router.patch("/{report_id}/details", response_model=AnnualReportDetailResponse)
+@router.patch("/{report_id}/details", response_model=ReportDetailResponse)
 def update_annual_report_detail(
     report_id: int,
     request: AnnualReportDetailUpdateRequest,
@@ -46,6 +46,6 @@ def update_annual_report_detail(
     try:
         update_data = request.model_dump(exclude_unset=True)
         detail = service.update_detail(report_id, **update_data)
-        return AnnualReportDetailResponse.model_validate(detail)
+        return ReportDetailResponse.model_validate(detail)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

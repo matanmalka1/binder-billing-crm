@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas.binder_extended import BinderHistoryEntry, BinderHistoryResponse
+from app.binders.schemas.binder_extended import BinderHistoryEntry, BinderHistoryResponse
 from app.binders.services.binder_history_service import BinderHistoryService
 
 router = APIRouter(

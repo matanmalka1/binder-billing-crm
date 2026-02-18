@@ -23,47 +23,47 @@ class StructuredFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record with structured fields."""
         request_id = request_id_ctx.get()
-        
+
         # Base fields
         parts = [
             f"timestamp={self.formatTime(record)}",
             f"level={record.levelname}",
         ]
-        
+
         # Add request ID if available
         if request_id:
             parts.append(f"request_id={request_id}")
-        
+
         # Add message
-        parts.append(f"message=\"{record.getMessage()}\"")
-        
+        parts.append(f'message="{record.getMessage()}"')
+
         # Add exception info if present
         if record.exc_info:
             exc_text = self.formatException(record.exc_info)
-            parts.append(f"exception=\"{exc_text}\"")
-        
+            parts.append(f'exception="{exc_text}"')
+
         return " ".join(parts)
 
 
 def setup_logging(level: str = "INFO") -> None:
     """
     Setup structured logging.
-    
+
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     """
     # Configure root logger
     logger = logging.getLogger()
     logger.setLevel(level)
-    
+
     # Remove existing handlers
     logger.handlers.clear()
-    
+
     # Create console handler with structured format
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(StructuredFormatter())
     logger.addHandler(handler)
-    
+
     # Silence noisy libraries
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 

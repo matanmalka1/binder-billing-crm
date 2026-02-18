@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 
 from app.database import Base
-from app.models.annual_reports.annual_report_enums import (
+from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
     ClientTypeForReport,

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas.dashboard_extended import (
+from app.dashboard.schemas.dashboard_extended import (
     AlertsResponse,
     AttentionResponse,
     WorkQueueResponse,

@@ -19,7 +19,7 @@ class EnvValidator:
     def validate(cls) -> None:
         """
         Validate environment configuration.
-        
+
         Exits process if validation fails.
         """
         missing = []

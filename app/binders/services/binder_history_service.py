@@ -2,8 +2,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatusLog
-from app.repositories import BinderRepository, BinderStatusLogRepository
+from app.binders.models.binder import Binder
+from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 
 
 class BinderHistoryService:

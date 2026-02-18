@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas.annual_report import AnnualReportResponse
-from app.schemas.annual_report import StatusHistoryResponse, StatusTransitionRequest
-from app.schemas.annual_report import DeadlineUpdateRequest
+from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
+    AnnualReportResponse,
+    StatusHistoryResponse,
+    StatusTransitionRequest,
+    DeadlineUpdateRequest,
+)
 from app.annual_reports.services import AnnualReportService
 
 

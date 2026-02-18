@@ -4,7 +4,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class AnnualReportDetailResponse(BaseModel):
+class ReportDetailResponse(BaseModel):
+    """Response for the AnnualReportDetail sub-entity (tax amounts, internal notes)."""
     report_id: int
     tax_refund_amount: Optional[float] = None
     tax_due_amount: Optional[float] = None

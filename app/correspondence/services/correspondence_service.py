@@ -4,9 +4,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
+from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.repositories.correspondence_repository import CorrespondenceRepository
 
 
 class CorrespondenceService:

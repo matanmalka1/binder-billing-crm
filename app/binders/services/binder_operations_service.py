@@ -4,11 +4,12 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models import Binder
-from app.repositories.binder_repository_extensions import BinderRepositoryExtensions
+from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions  # FIXED: was app.repositories.binder_repository_extensions
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.sla_service import SLAService
 from app.binders.services.work_state_service import WorkStateService
 from app.binders.services.signals_service import SignalsService
+
 
 class BinderOperationsService:
     """Sprint 2 operational binder queries with SLA enrichment."""
@@ -37,7 +38,7 @@ class BinderOperationsService:
         """Get overdue binders with pagination."""
         if reference_date is None:
             reference_date = date.today()
-        
+
         items = self.repo.list_overdue_candidates(
             reference_date=reference_date,
             page=page,
@@ -55,7 +56,7 @@ class BinderOperationsService:
         """Get binders due today with pagination."""
         if reference_date is None:
             reference_date = date.today()
-        
+
         items = self.repo.list_due_today(
             reference_date=reference_date,
             page=page,
@@ -83,11 +84,10 @@ class BinderOperationsService:
         """Check client existence for client-binders route."""
         return self.client_repo.get_by_id(client_id) is not None
 
-
     def enrich_binder_with_sla(self, binder: Binder, db: Session) -> dict:
         """
         Enrich binder with SLA and operational state.
-        
+
         Sprint 6: Pass db session to WorkStateService for notification history.
         """
         signals_service = SignalsService(db)
