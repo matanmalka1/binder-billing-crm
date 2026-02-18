@@ -19,7 +19,11 @@ def _create_report(test_db):
     report = service.create_report(
         client_id=client.id,
         tax_year=2025,
-        due_date=date(2026, 4, 30),
+        client_type="corporation",
+        created_by=1,
+        created_by_name="Test User",
+        deadline_type="custom",
+        notes=None,
     )
     return report
 
