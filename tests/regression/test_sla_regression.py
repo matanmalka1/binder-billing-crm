@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_helpers import BinderHelpers
 from app.binders.services.sla_service import SLAService
 

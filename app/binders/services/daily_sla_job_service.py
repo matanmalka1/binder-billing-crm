@@ -4,8 +4,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.logging import get_logger
-from app.models import BinderStatus, NotificationTrigger
-from app.repositories import BinderRepository, ClientRepository, NotificationRepository
+from app.binders.models.binder import BinderStatus
+from app.notification.models.notification import NotificationTrigger
+from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.repositories.client_repository import ClientRepository
+from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_service import NotificationService
 from app.binders.services.sla_service import SLAService
 

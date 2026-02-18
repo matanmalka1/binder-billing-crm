@@ -1,12 +1,10 @@
 """Tests for JWT expiration enforcement."""
-import time
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
 
 import jwt
 
 from app.config import config
-from app.models import User, UserRole
+from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
 

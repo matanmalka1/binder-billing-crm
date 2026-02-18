@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 
 

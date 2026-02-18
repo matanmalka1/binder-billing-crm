@@ -11,7 +11,7 @@ from app.reminders.services import ReminderService
 list_router = APIRouter()
 
 
-@list_router.get("", response_model=ReminderListResponse)
+@list_router.get("/", response_model=ReminderListResponse)
 def list_reminders(
     deps = Depends(advisor_or_secretary),
     page: int = Query(1, ge=1),

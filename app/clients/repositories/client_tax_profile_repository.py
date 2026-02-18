@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.client_tax_profile import ClientTaxProfile
+from app.clients.models.client_tax_profile import ClientTaxProfile
 from app.utils.time import utcnow
 
 

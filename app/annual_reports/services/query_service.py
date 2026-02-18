@@ -1,6 +1,6 @@
 from typing import Optional
 
-from app.annual_reports .models import AnnualReport
+from app.annual_reports.models import AnnualReport
 from .base import AnnualReportBaseService
 
 
@@ -11,14 +11,18 @@ class AnnualReportQueryService(AnnualReportBaseService):
     def get_client_reports(self, client_id: int) -> list[AnnualReport]:
         return self.repo.list_by_client(client_id)
 
-    def get_season_reports(
+    def list_reports(
         self,
-        tax_year: int,
+        tax_year: int | None = None,
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AnnualReport], int]:
-        items = self.repo.list_by_tax_year(tax_year, page=page, page_size=page_size)
-        total = self.repo.count_by_tax_year(tax_year)
+        if tax_year is not None:
+            items = self.repo.list_by_tax_year(tax_year, page=page, page_size=page_size)
+            total = self.repo.count_by_tax_year(tax_year)
+        else:
+            items = self.repo.list_all(page=page, page_size=page_size)
+            total = self.repo.count_all()
         return items, total
 
     def get_season_summary(self, tax_year: int) -> dict:

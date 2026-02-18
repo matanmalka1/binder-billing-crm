@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 
 
 def _create_client(test_db) -> Client:
@@ -82,4 +82,3 @@ def test_charge_not_found_responses(client, advisor_headers, test_db):
     issue_missing = client.post("/api/v1/charges/9999/issue", headers=advisor_headers)
     assert issue_missing.status_code == 400
     assert "not found" in issue_missing.json()["detail"].lower()
-

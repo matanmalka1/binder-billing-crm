@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Binder
+from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions  # FIXED: was app.repositories.binder_repository_extensions
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.sla_service import SLAService

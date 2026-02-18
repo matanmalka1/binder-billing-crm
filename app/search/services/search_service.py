@@ -3,7 +3,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.repositories import BinderRepository, ClientRepository
+from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.search.services.search_filters import matches_signal_type, matches_sla_state
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.sla_service import SLAService

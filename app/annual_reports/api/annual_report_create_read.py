@@ -5,6 +5,7 @@ from app.users.models.user import UserRole
 from app.annual_reports.schemas import (
     AnnualReportCreateRequest,
     AnnualReportDetailResponse,
+    AnnualReportListResponse,
     AnnualReportResponse,
     ScheduleEntryResponse,
     StatusHistoryResponse,
@@ -52,6 +53,25 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return _build_detail(report, service)
+
+
+@router.get("", response_model=AnnualReportListResponse)
+def list_annual_reports(
+    db: DBSession,
+    user: CurrentUser,
+    tax_year: int | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=200),
+):
+    """List annual reports (optionally filter by tax_year)."""
+    service = AnnualReportService(db)
+    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    return AnnualReportListResponse(
+        items=[AnnualReportResponse.model_validate(r) for r in items],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
 
 
 @router.get("/overdue", response_model=list[AnnualReportResponse])

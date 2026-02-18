@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import DeadlineType, TaxDeadline
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 
 
 class TaxDeadlineRepository:

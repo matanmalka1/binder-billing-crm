@@ -5,7 +5,7 @@ from typing import Iterable
 
 from sqlalchemy.orm import Session
 
-from app.models import Client
+from app.clients.models.client import Client
 
 
 class ClientExcelService:

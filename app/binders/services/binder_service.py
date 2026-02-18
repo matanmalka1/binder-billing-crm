@@ -3,12 +3,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatus
-from app.repositories import (
-    BinderRepository,
-    BinderStatusLogRepository,
-    ClientRepository,
-)
+from app.binders.models.binder import Binder, BinderStatus
+from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.binder_helpers import BinderHelpers
 from app.notification.services.notification_service import NotificationService
 

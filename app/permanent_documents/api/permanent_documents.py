@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from io import BytesIO
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.models import DocumentType, UserRole
-from app.schemas import (
+from app.permanent_documents.models.permanent_document import DocumentType
+from app.users.models.user import UserRole
+from app.permanent_documents.schemas.permanent_document import (
     OperationalSignalsResponse,
     PermanentDocumentListResponse,
     PermanentDocumentResponse,

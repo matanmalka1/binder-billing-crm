@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from app.models import Client, ClientType, DeadlineType, UrgencyLevel
+from app.clients.models.client import Client, ClientType
+from app.tax_deadline.models.tax_deadline import DeadlineType, UrgencyLevel
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 
 

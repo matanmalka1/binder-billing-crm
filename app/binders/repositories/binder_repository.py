@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus
 
 
 class BinderRepository:

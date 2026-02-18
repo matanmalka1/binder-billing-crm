@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models import Binder
+from app.binders.models.binder import Binder
 
 
 class TimelineRepository:

@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import PermanentDocument, DocumentType
+from app.permanent_documents.models.permanent_document import PermanentDocument, DocumentType
 
 
 class PermanentDocumentRepository:

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.users.api.deps import CurrentUser, DBSession
-from app.schemas import DashboardSummaryResponse
+from app.dashboard.schemas.dashboard import DashboardSummaryResponse
 from app.dashboard.services.dashboard_service import DashboardService
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])

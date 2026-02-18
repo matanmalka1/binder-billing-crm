@@ -11,15 +11,13 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import User, UserRole
+from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
 
 @pytest.fixture(scope="function")
 def test_db():
     """Create test database with proper SQLite threading config."""
-    import app.models  # noqa: F401
-
     # Use StaticPool and check_same_thread=False for SQLite in tests
     engine = create_engine(
         "sqlite:///:memory:",

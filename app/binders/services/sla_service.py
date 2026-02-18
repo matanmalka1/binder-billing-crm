@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy import and_
 
-from app.models import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus
 
 
 class SLAService:

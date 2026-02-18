@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import User, UserRole
+from app.users.models.user import User, UserRole
 from app.utils.time import utcnow
 
 

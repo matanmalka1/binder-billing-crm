@@ -9,7 +9,7 @@ from app.reminders.services import ReminderService
 create_router = APIRouter()
 
 
-@create_router.post("", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
+@create_router.post("/", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
 def create_reminder(request: ReminderCreateRequest, deps = Depends(advisor_or_secretary)):
     db, _user = deps
     service = ReminderService(db)

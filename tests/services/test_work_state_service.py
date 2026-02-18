@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.models import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.work_state_service import WorkState, WorkStateService
 
 

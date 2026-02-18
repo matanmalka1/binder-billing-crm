@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 
 
 def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_headers, test_db):

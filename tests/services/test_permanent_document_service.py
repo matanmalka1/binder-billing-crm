@@ -1,7 +1,8 @@
 from datetime import date
 from io import BytesIO
 
-from app.models import Client, ClientType, DocumentType
+from app.clients.models.client import Client, ClientType
+from app.permanent_documents.models.permanent_document import DocumentType
 from app.permanent_documents.services.permanent_document_service import (
     PermanentDocumentService,
 )

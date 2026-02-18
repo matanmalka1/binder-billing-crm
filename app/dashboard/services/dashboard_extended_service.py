@@ -3,8 +3,12 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import BinderStatus, ChargeStatus, UserRole
-from app.repositories import BinderRepository, ChargeRepository, ClientRepository
+from app.binders.models.binder import BinderStatus
+from app.charge.models.charge import ChargeStatus
+from app.users.models.user import UserRole
+from app.binders.repositories.binder_repository import BinderRepository
+from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.dashboard.services.dashboard_extended_builders import (
     idle_attention_item,
     near_sla_alert_item,

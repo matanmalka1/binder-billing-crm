@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
-from app.models import Binder, BinderStatus, Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client, ClientType
 
 
 def test_client_timeline_endpoint(client, advisor_headers, test_db, test_user):

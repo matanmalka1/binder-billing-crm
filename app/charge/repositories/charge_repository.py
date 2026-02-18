@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Charge, ChargeStatus
+from app.charge.models.charge import Charge, ChargeStatus
 
 
 class ChargeRepository:

@@ -2,8 +2,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import AuditAction, AuditStatus, User, UserRole
-from app.repositories import UserRepository
+from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.models.user import User, UserRole
+from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 from app.users.services.auth_service import AuthService
 from app.users.services.user_management_policies import (

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas import BinderListResponse, BinderReceiveRequest, BinderResponse, BinderReturnRequest
+from app.binders.schemas.binder import BinderListResponse, BinderReceiveRequest, BinderResponse, BinderReturnRequest
 from app.binders.services.binder_service import BinderService
 from app.binders.services.sla_service import SLAService
 from app.binders.services.signals_service import SignalsService

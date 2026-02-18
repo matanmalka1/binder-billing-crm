@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 
 
 def _create_client(test_db) -> Client:

@@ -1,7 +1,8 @@
 """Regression tests for Sprint 5 hardening."""
 from datetime import date, timedelta
 
-from app.models import Binder, BinderStatus, Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client, ClientType
 
 
 def test_sprint1_unchanged(client, advisor_headers, test_db):

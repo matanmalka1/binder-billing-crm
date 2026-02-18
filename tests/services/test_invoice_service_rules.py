@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from app.models import Client, ClientType
+from app.clients.models.client import Client, ClientType
 from app.charge.services.billing_service import BillingService
 from app.invoice.services.invoice_service import InvoiceService
 

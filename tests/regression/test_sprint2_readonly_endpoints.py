@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 
-from app.models import Binder, BinderStatus, BinderStatusLog, Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder_status_log import BinderStatusLog
+from app.clients.models.client import Client, ClientType
 
 
 def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test_db, test_user):

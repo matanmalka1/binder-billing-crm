@@ -22,45 +22,35 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from app.database import Base, SessionLocal, engine
-from app.models import (
-    AdvancePayment,
-    AdvancePaymentStatus,
-    AuditAction,
-    AuditStatus,
-    AnnualReport,
-    AnnualReportDetail,
-    AuthorityContact,
-    Binder,
-    BinderStatus,
-    BinderStatusLog,
-    Charge,
-    ChargeStatus,
-    ChargeType,
-    Client,
-    ClientStatus,
-    ClientTaxProfile,
-    ClientType,
-    Correspondence,
-    CorrespondenceType,
-    DocumentType,
-    Invoice,
+from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
+from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.annual_reports.models.annual_report_enums import (
+    AnnualReportForm,
+    AnnualReportStatus,
+    ClientTypeForReport,
+    DeadlineType,
+    ReportStage,
+)
+from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder_status_log import BinderStatusLog
+from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.clients.models.client import Client, ClientStatus, ClientType
+from app.clients.models.client_tax_profile import ClientTaxProfile, VatType
+from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
+from app.permanent_documents.models.permanent_document import PermanentDocument, DocumentType
+from app.invoice.models.invoice import Invoice
+from app.notification.models.notification import (
     Notification,
     NotificationChannel,
     NotificationStatus,
     NotificationTrigger,
-    PermanentDocument,
-    Reminder,
-    ReminderStatus,
-    ReminderType,
-    ReportStage,
-    TaxDeadline,
-    User,
-    UserAuditLog,
-    UserRole,
-    VatType,
 )
-from app.authority_contact.models.authority_contact import ContactType
-from app.tax_deadline.models.tax_deadline import DeadlineType
+from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType as TaxDeadlineType
+from app.users.models.user import User, UserRole
 
 
 FIRST_NAMES = [
@@ -145,7 +135,7 @@ class Seeder:
             charges = self._create_charges(db, clients)
             self._create_invoices(db, charges)
             deadlines = self._create_tax_deadlines(db, clients)
-            reports = self._create_annual_reports(db, clients)
+            reports = self._create_annual_reports(db, clients, users)
             self._create_authority_contacts(db, clients)
             self._create_client_tax_profiles(db, clients)
             self._create_correspondence(db, clients, users)
@@ -170,11 +160,16 @@ class Seeder:
             UserAuditLog,
             BinderStatusLog,
             Notification,
+            Reminder,
+            AdvancePayment,
             PermanentDocument,
             Invoice,
             TaxDeadline,
+            AnnualReportDetail,
             AuthorityContact,
+            Correspondence,
             AnnualReport,
+            ClientTaxProfile,
             Charge,
             Binder,
             Client,
@@ -416,7 +411,7 @@ class Seeder:
                     else None
                 )
                 payment_amount = Decimal(str(round(self.rng.uniform(500, 15000), 2)))
-                deadline_type = self.rng.choice(list(DeadlineType))
+                deadline_type = self.rng.choice(list(TaxDeadlineType))
                 description = f"{deadline_type.value.replace('_', ' ').title()} reminder"
                 deadline = TaxDeadline(
                     client_id=client.id,
@@ -470,7 +465,7 @@ class Seeder:
         db.flush()
         return payments
 
-    def _create_annual_reports(self, db, clients):
+    def _create_annual_reports(self, db, clients, users):
         reports = []
         current_year = date.today().year
         available_years = list(range(current_year - 3, current_year + 1))
@@ -480,23 +475,54 @@ class Seeder:
                 k=min(self.cfg.annual_reports_per_client, len(available_years)),
             )
             for year in years:
-                stage = self.rng.choice(list(ReportStage))
-                status = self.rng.choice(["not_started", "in_progress", "completed"])
+                # Map client type to report type/form
+                if client.client_type == ClientType.COMPANY:
+                    client_type_for_report = ClientTypeForReport.CORPORATION
+                    form_type = AnnualReportForm.FORM_6111
+                elif client.client_type in (ClientType.OSEK_PATUR, ClientType.OSEK_MURSHE):
+                    client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
+                    form_type = AnnualReportForm.FORM_1215
+                else:
+                    client_type_for_report = ClientTypeForReport.INDIVIDUAL
+                    form_type = AnnualReportForm.FORM_1301
+
+                status = self.rng.choice(list(AnnualReportStatus))
+                filing_deadline = datetime(
+                    year,
+                    self.rng.randint(5, 12),
+                    self.rng.randint(1, 28),
+                    tzinfo=UTC,
+                )
                 submitted_at = (
-                    datetime.now(UTC) - timedelta(days=self.rng.randint(1, 90))
-                    if status == "completed"
+                    datetime.now(UTC) - timedelta(days=self.rng.randint(1, 120))
+                    if status in (AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED, AnnualReportStatus.ASSESSMENT_ISSUED, AnnualReportStatus.CLOSED)
                     else None
                 )
+
                 report = AnnualReport(
                     client_id=client.id,
                     tax_year=year,
-                    stage=stage,
+                    client_type=client_type_for_report,
+                    form_type=form_type,
                     status=status,
-                    due_date=date(year, self.rng.randint(1, 12), self.rng.randint(1, 28)),
+                    deadline_type=self.rng.choice(list(DeadlineType)),
+                    filing_deadline=filing_deadline,
+                    custom_deadline_note=None,
                     submitted_at=submitted_at,
-                    form_type=self.rng.choice(["SA-1", "SA-2", "SA-3"]),
+                    ita_reference=None,
+                    assessment_amount=None,
+                    refund_due=None,
+                    tax_due=None,
+                    has_rental_income=self.rng.random() < 0.3,
+                    has_capital_gains=self.rng.random() < 0.25,
+                    has_foreign_income=self.rng.random() < 0.2,
+                    has_depreciation=self.rng.random() < 0.2,
+                    has_exempt_rental=self.rng.random() < 0.15,
                     notes=self.rng.choice(["", "Needs review", "Client signature pending"]),
                     created_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 400)),
+                    updated_at=datetime.now(UTC) - timedelta(days=self.rng.randint(0, 60)),
+                    created_by=self.rng.choice([u.id for u in users if u.role == UserRole.ADVISOR]),
+                    assigned_to=self.rng.choice([u.id for u in users if u.role == UserRole.ADVISOR]),
                 )
                 db.add(report)
                 reports.append(report)

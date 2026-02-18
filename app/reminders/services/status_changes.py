@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.models import Reminder, ReminderStatus
+from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time import utcnow
 

@@ -4,7 +4,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.models import DeadlineType, UserRole
+from app.tax_deadline.models.tax_deadline import DeadlineType
+from app.users.models.user import UserRole
 from app.tax_deadline.schemas.tax_deadline import (
     DashboardDeadlinesResponse,
     DeadlineUrgentItem,

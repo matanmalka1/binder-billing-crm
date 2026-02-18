@@ -3,8 +3,9 @@ from typing import BinaryIO, Optional
 from sqlalchemy.orm import Session
 
 from app.infrastructure.storage import LocalStorageProvider, StorageProvider
-from app.models import DocumentType, PermanentDocument
-from app.repositories import ClientRepository, PermanentDocumentRepository
+from app.permanent_documents.models.permanent_document import DocumentType, PermanentDocument
+from app.clients.repositories.client_repository import ClientRepository
+from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
 class PermanentDocumentService:

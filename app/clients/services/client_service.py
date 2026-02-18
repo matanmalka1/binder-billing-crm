@@ -3,8 +3,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Client, ClientStatus, UserRole
-from app.repositories import ClientRepository
+from app.clients.models.client import Client, ClientStatus
+from app.users.models.user import UserRole
+from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.signals_service import SignalsService
 
 

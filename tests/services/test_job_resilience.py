@@ -1,8 +1,9 @@
 """Tests for background job resilience (Sprint 5)."""
 from datetime import date, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from app.models import Binder, BinderStatus, Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client, ClientType
 from app.binders.services.daily_sla_job_service import DailySLAJobService
 
 

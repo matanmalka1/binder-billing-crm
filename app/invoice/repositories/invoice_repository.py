@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Invoice
+from app.invoice.models.invoice import Invoice
 
 
 class InvoiceRepository:

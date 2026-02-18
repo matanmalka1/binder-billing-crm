@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import AuthorityContact, ContactType
+from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 
 
 class AuthorityContactRepository:

@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 from app.annual_reports.services import AnnualReportService
 
 

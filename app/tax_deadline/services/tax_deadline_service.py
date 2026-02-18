@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import DeadlineType, TaxDeadline, UrgencyLevel
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, UrgencyLevel
 from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time import utcnow

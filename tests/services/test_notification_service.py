@@ -1,6 +1,8 @@
 from datetime import date
 
-from app.models import Binder, BinderStatus, Client, ClientType, NotificationStatus, NotificationTrigger
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client, ClientType
+from app.notification.models.notification import NotificationStatus, NotificationTrigger
 from app.notification.services.notification_service import NotificationService
 
 
@@ -34,7 +36,7 @@ def test_notification_persisted_on_binder_received(test_db):
 
     assert result is True
 
-    from app.repositories import NotificationRepository
+    from app.notification.repositories.notification_repository import NotificationRepository
     repo = NotificationRepository(test_db)
     notifications = repo.list_by_client(client.id)
 
@@ -89,7 +91,7 @@ def test_notification_fallback_to_email(test_db):
         content="Payment reminder",
     )
 
-    from app.repositories import NotificationRepository
+    from app.notification.repositories.notification_repository import NotificationRepository
     repo = NotificationRepository(test_db)
     notifications = repo.list_by_client(client.id)
 

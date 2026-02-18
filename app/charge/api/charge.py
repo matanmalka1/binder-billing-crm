@@ -4,8 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas import ChargeCreateRequest, ChargeListResponse, ChargeResponse
-from app.charge.schemas.charge import ChargeResponseSecretary
+from app.charge.schemas.charge import ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.charge.services.billing_service import BillingService
 
 router = APIRouter(

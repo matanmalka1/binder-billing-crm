@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Notification, NotificationChannel, NotificationStatus, NotificationTrigger
+from app.notification.models.notification import Notification, NotificationChannel, NotificationStatus, NotificationTrigger
 from app.utils.time import utcnow
 
 

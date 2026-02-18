@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models.client_tax_profile import ClientTaxProfile
+from app.clients.models.client_tax_profile import ClientTaxProfile
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
 

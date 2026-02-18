@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import AuditAction, AuditStatus, UserAuditLog
+from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 
 class UserAuditLogRepository:

@@ -1,14 +1,6 @@
-#!/usr/bin/env python3
-"""
-Manual export endpoint check.
-
-Note: This script is interactive (prompts for access_token) and is intended
-to be run manually, not under pytest. We mark the pytest test as skipped to
-avoid blocking CI with stdin prompts.
-"""
 import requests
-import sys
 import pytest
+import sys
 
 # Configuration
 BASE_URL = "http://localhost:8000"

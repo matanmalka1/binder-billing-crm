@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.config import config
 from app.core.logging import get_logger
-from app.models import AuditAction, AuditStatus, User
-from app.repositories import UserRepository
+from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.models.user import User
+from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 
 logger = get_logger(__name__)

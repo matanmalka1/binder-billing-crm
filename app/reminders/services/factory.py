@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from typing import Optional
 
 from app.clients.repositories.client_repository import ClientRepository
-from app.models import Reminder, ReminderType
+from app.reminders.models.reminder import Reminder, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 
 

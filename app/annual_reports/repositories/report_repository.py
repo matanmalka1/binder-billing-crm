@@ -87,6 +87,22 @@ class AnnualReportReportRepository:
     def count_by_tax_year(self, tax_year: int) -> int:
         return self.db.query(AnnualReport).filter(AnnualReport.tax_year == tax_year).count()
 
+    def list_all(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[AnnualReport]:
+        return (
+            self.db.query(AnnualReport)
+            .order_by(AnnualReport.tax_year.desc(), AnnualReport.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_all(self) -> int:
+        return self.db.query(AnnualReport).count()
+
     def list_overdue(self, tax_year: Optional[int] = None) -> list[AnnualReport]:
         """Reports past their filing deadline and not yet submitted."""
         now = utcnow()

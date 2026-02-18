@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Client, ClientStatus
+from app.clients.models.client import Client, ClientStatus
 
 
 class ClientRepository:

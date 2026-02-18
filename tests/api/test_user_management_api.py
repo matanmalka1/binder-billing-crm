@@ -1,4 +1,4 @@
-from app.models import User, UserRole
+from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
 

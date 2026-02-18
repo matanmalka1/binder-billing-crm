@@ -3,7 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.models import AuditAction, AuditStatus, UserRole
+from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.models.user import UserRole
 
 
 class UserCreateRequest(BaseModel):

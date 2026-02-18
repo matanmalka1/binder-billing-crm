@@ -3,7 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, HTTPException, Response, status
 
 from app.users.api.deps import DBSession
-from app.schemas import LoginRequest, LoginResponse, UserResponse
+from app.users.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.users.services.auth_service import AuthService
 from app.config import config
 

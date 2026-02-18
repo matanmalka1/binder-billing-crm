@@ -3,8 +3,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import ChargeStatus, Invoice
-from app.repositories import ChargeRepository, InvoiceRepository
+from app.charge.models.charge import ChargeStatus
+from app.invoice.models.invoice import Invoice
+from app.charge.repositories.charge_repository import ChargeRepository
+from app.invoice.repositories.invoice_repository import InvoiceRepository
 
 
 class InvoiceService:

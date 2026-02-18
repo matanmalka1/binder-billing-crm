@@ -3,8 +3,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
-from app.models import Binder, Client, NotificationChannel, NotificationTrigger
-from app.repositories import ClientRepository, NotificationRepository
+from app.binders.models.binder import Binder
+from app.clients.models.client import Client
+from app.notification.models.notification import NotificationChannel, NotificationTrigger
+from app.clients.repositories.client_repository import ClientRepository
+from app.notification.repositories.notification_repository import NotificationRepository
 
 
 class NotificationService:

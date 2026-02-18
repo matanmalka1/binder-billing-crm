@@ -3,7 +3,8 @@ from datetime import date, timedelta
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
-from app.models import Binder, BinderStatus, Client
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client
 from app.binders.services.sla_service import SLAService
 
 

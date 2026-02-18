@@ -3,8 +3,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import AuditAction, AuditStatus
-from app.repositories import UserAuditLogRepository
+from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.repositories.user_audit_log_repository import UserAuditLogRepository
 
 
 class AuditLogService:
@@ -63,4 +63,3 @@ class AuditLogService:
             to_ts=to_ts,
         )
         return items, total
-

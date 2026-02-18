@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.schemas import (
+from app.users.models.user_management import (
     PasswordResetRequest,
     UserCreateRequest,
     UserManagementListResponse,

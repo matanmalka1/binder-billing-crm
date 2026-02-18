@@ -1,12 +1,10 @@
 from sqlalchemy.orm import Session
 
-from app.repositories import (
-    BinderStatusLogRepository,
-    ChargeRepository,
-    InvoiceRepository,
-    NotificationRepository,
-    TimelineRepository,
-)
+from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.charge.repositories.charge_repository import ChargeRepository
+from app.invoice.repositories.invoice_repository import InvoiceRepository
+from app.notification.repositories.notification_repository import NotificationRepository
+from app.timeline.repositories.timeline_repository import TimelineRepository
 from app.timeline.services.timeline_event_builders import (
     binder_received_event,
     binder_returned_event,

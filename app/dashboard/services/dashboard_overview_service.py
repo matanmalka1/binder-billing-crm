@@ -3,13 +3,13 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import ChargeStatus, ClientStatus, UserRole
-from app.repositories import (
-    BinderRepository,
-    ChargeRepository,
-    ClientRepository,
-    DashboardOverviewRepository,
-)
+from app.charge.models.charge import ChargeStatus
+from app.clients.models.client import ClientStatus
+from app.users.models.user import UserRole
+from app.binders.repositories.binder_repository import BinderRepository
+from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.repositories.client_repository import ClientRepository
+from app.dashboard.repositories.dashboard_overview_repository import DashboardOverviewRepository
 from app.actions.action_contracts import build_action, get_binder_actions
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 

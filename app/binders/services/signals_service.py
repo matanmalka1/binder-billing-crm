@@ -4,12 +4,16 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Binder
-from app.repositories import BinderRepository, ChargeRepository, ClientRepository
+from app.binders.models.binder import Binder
+from app.binders.repositories.binder_repository import BinderRepository
+from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 from app.binders.services.sla_service import SLAService
 from app.binders.services.work_state_service import WorkStateService
+from app.charge.models.charge import ChargeStatus
+from app.binders.models.binder import BinderStatus
 
 
 class SignalType(str, PyEnum):
@@ -64,7 +68,6 @@ class SignalsService:
             signals.append(SignalType.NEAR_SLA.value)
 
         # Ready for pickup signal
-        from app.models import BinderStatus
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             signals.append(SignalType.READY_FOR_PICKUP.value)
 
@@ -96,7 +99,6 @@ class SignalsService:
         missing_docs = self.document_service.get_missing_document_types(client_id)
 
         # Unpaid charges signal
-        from app.models import ChargeStatus
         unpaid = self.charge_repo.count_charges(
             client_id=client_id,
             status=ChargeStatus.ISSUED.value,

@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 
 
 def _seed_client(test_db, id_number: str) -> Client:
@@ -42,7 +42,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert ready_action["id"] == f"binder-{binder_id}-ready"
 
     # Verify status log was created
-    from app.repositories import BinderStatusLogRepository
+    from app.binders.repositories import BinderStatusLogRepository
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
@@ -99,7 +99,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     returned_data = return_response.json()
     assert returned_data["status"] == "returned"
 
-    from app.repositories import BinderStatusLogRepository
+    from app.binders.repositories import BinderStatusLogRepository
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)

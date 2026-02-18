@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional, Tuple, List
 
-from app.models import Reminder, ReminderStatus
+from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 
 

@@ -1,6 +1,5 @@
 """Tests for centralized error handling."""
 import pytest
-from fastapi import HTTPException
 
 
 def test_http_error_has_consistent_envelope(client):

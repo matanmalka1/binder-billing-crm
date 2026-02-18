@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import BinderStatusLog
+from app.binders.models.binder_status_log import BinderStatusLog
 from app.utils.time import utcnow
 
 

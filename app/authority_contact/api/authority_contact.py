@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.models import ContactType, UserRole
+from app.authority_contact.models.authority_contact import ContactType
+from app.users.models.user import UserRole
 from app.authority_contact.schemas.authority_contact import (
     AuthorityContactCreateRequest,
     AuthorityContactListResponse,

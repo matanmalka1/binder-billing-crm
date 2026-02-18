@@ -1,4 +1,5 @@
-from app.models import AuditAction, User, UserRole
+from app.users.models.user_audit_log import AuditAction
+from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
 

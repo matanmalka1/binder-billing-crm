@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.models import Client, ClientType
+from app.clients.models import Client, ClientType
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService

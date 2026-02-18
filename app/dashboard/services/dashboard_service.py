@@ -2,8 +2,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import BinderStatus, UserRole
-from app.repositories import BinderRepository
+from app.binders.models.binder import BinderStatus
+from app.users.models.user import UserRole
+from app.binders.repositories.binder_repository import BinderRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 
 
