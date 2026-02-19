@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.reminders.api.deps import advisor_or_secretary
+from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderCreateRequest, ReminderResponse
 from app.reminders.services import ReminderService
 
@@ -10,8 +10,11 @@ create_router = APIRouter()
 
 
 @create_router.post("/", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
-def create_reminder(request: ReminderCreateRequest, deps = Depends(advisor_or_secretary)):
-    db, _user = deps
+def create_reminder(
+    request: ReminderCreateRequest,
+    db: DBSession,
+    _user: CurrentUser,
+):
     service = ReminderService(db)
 
     try:

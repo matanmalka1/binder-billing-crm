@@ -3,14 +3,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus, BinderType
 
 
-class BinderRepository:
+class BinderRepository(BaseRepository):
     """Data access layer for Binder entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -77,18 +78,7 @@ class BinderRepository:
     ) -> Optional[Binder]:
         """Update binder status and optional fields."""
         binder = self.get_by_id(binder_id)
-        if not binder:
-            return None
-
-        binder.status = new_status
-
-        for key, value in additional_fields.items():
-            if hasattr(binder, key):
-                setattr(binder, key, value)
-
-        self.db.commit()
-        self.db.refresh(binder)
-        return binder
+        return self._update_status(binder, new_status, **additional_fields)
 
     def count_by_status(self, status: BinderStatus) -> int:
         """Count binders by status."""

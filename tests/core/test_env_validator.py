@@ -16,33 +16,18 @@ def test_validation_passes_with_required_vars():
         EnvValidator.validate()
 
 
-def test_validation_fails_on_missing_required_var():
-    """Test that validation fails when required var is missing."""
+def test_validation_noops_when_no_extra_vars_defined():
+    """Validator should not exit when REQUIRED_VARS is empty."""
     with patch.dict(os.environ, {}, clear=True):
+        # Should not raise or exit even if JWT_SECRET missing
+        EnvValidator.validate()
+
+
+def test_validation_still_handles_future_required_vars():
+    """If REQUIRED_VARS is populated, missing values should trigger exit."""
+    with patch.object(EnvValidator, "REQUIRED_VARS", ["SOME_REQUIRED"]), patch.dict(
+        os.environ, {}, clear=True
+    ):
         with pytest.raises(SystemExit) as exc_info:
             EnvValidator.validate()
-        
         assert exc_info.value.code == 1
-
-
-def test_validation_fails_on_empty_required_var():
-    """Test that validation fails when required var is empty."""
-    with patch.dict(os.environ, {"JWT_SECRET": "  "}, clear=True):
-        with pytest.raises(SystemExit) as exc_info:
-            EnvValidator.validate()
-        
-        assert exc_info.value.code == 1
-
-
-def test_validation_prints_error_message():
-    """Test that validation prints helpful error message."""
-    with patch.dict(os.environ, {}, clear=True):
-        stderr_capture = StringIO()
-        
-        with patch("sys.stderr", stderr_capture):
-            with pytest.raises(SystemExit):
-                EnvValidator.validate()
-        
-        error_output = stderr_capture.getvalue()
-        assert "ENVIRONMENT VALIDATION FAILED" in error_output
-        assert "JWT_SECRET" in error_output

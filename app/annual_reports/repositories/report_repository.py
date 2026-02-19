@@ -4,14 +4,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.annual_reports.models import AnnualReport, AnnualReportStatus
 from app.clients.models.client import Client
 from app.utils.time import utcnow
 
 
-class AnnualReportReportRepository:
+class AnnualReportReportRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     # ── AnnualReport CRUD / queries ─────────────────────────────────────────
 
@@ -53,12 +54,8 @@ class AnnualReportReportRepository:
             q = q.filter(AnnualReport.tax_year == tax_year)
         if assigned_to:
             q = q.filter(AnnualReport.assigned_to == assigned_to)
-        return (
-            q.order_by(AnnualReport.filing_deadline.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-            .all()
-        )
+        q = q.order_by(AnnualReport.filing_deadline.asc())
+        return self._paginate(q, page, page_size)
 
     def count_by_status(
         self,
@@ -76,14 +73,12 @@ class AnnualReportReportRepository:
         page: int = 1,
         page_size: int = 50,
     ) -> list[AnnualReport]:
-        return (
+        q = (
             self.db.query(AnnualReport)
             .filter(AnnualReport.tax_year == tax_year)
             .order_by(AnnualReport.status.asc(), AnnualReport.filing_deadline.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-            .all()
         )
+        return self._paginate(q, page, page_size)
 
     def count_by_tax_year(self, tax_year: int) -> int:
         return self.db.query(AnnualReport).filter(AnnualReport.tax_year == tax_year).count()
@@ -93,13 +88,11 @@ class AnnualReportReportRepository:
         page: int = 1,
         page_size: int = 50,
     ) -> list[AnnualReport]:
-        return (
+        q = (
             self.db.query(AnnualReport)
             .order_by(AnnualReport.tax_year.desc(), AnnualReport.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-            .all()
         )
+        return self._paginate(q, page, page_size)
 
     def list_all_with_clients(self) -> list[tuple[AnnualReport, str]]:
         """Return all reports with client names (for Kanban view)."""
@@ -137,15 +130,7 @@ class AnnualReportReportRepository:
 
     def update(self, report_id: int, **fields) -> Optional[AnnualReport]:
         report = self.get_by_id(report_id)
-        if not report:
-            return None
-        for k, v in fields.items():
-            if hasattr(report, k):
-                setattr(report, k, v)
-        report.updated_at = utcnow()
-        self.db.commit()
-        self.db.refresh(report)
-        return report
+        return self._update_entity(report, touch_updated_at=True, **fields)
 
     # ── Season dashboard ───────────────────────────────────────────────────
 

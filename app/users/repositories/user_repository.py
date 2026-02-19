@@ -2,15 +2,16 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.users.models.user import User, UserRole
 from app.utils.time import utcnow
 
 
-class UserRepository:
+class UserRepository(BaseRepository):
     """Data access layer for User entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def get_by_id(self, user_id: int) -> Optional[User]:
         """Retrieve user by ID."""
@@ -66,15 +67,7 @@ class UserRepository:
     def update(self, user_id: int, **fields) -> Optional[User]:
         """Update user fields."""
         user = self.get_by_id(user_id)
-        if not user:
-            return None
-
-        for key, value in fields.items():
-            setattr(user, key, value)
-
-        self.db.commit()
-        self.db.refresh(user)
-        return user
+        return self._update_entity(user, **fields)
 
     def activate(self, user_id: int) -> Optional[User]:
         """Activate user."""

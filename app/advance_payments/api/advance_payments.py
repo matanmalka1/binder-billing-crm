@@ -9,6 +9,7 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentUpdateRequest,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.utils.time import utcnow
 
 router = APIRouter(
     prefix="/advance-payments",
@@ -26,7 +27,6 @@ def list_advance_payments(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    from datetime import datetime
     from app.clients.repositories.client_repository import ClientRepository
 
     client = ClientRepository(db).get_by_id(client_id)
@@ -34,7 +34,7 @@ def list_advance_payments(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
 
     if year is None:
-        year = datetime.utcnow().year
+        year = utcnow().year
 
     service = AdvancePaymentService(db)
     items = service.list_payments(client_id, year)

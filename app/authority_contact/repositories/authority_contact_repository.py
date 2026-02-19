@@ -2,14 +2,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 
 
-class AuthorityContactRepository:
+class AuthorityContactRepository(BaseRepository):
     """Data access layer for AuthorityContact entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -60,16 +61,7 @@ class AuthorityContactRepository:
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""
         contact = self.get_by_id(contact_id)
-        if not contact:
-            return None
-
-        for key, value in fields.items():
-            if hasattr(contact, key):
-                setattr(contact, key, value)
-
-        self.db.commit()
-        self.db.refresh(contact)
-        return contact
+        return self._update_entity(contact, **fields)
 
     def delete(self, contact_id: int) -> bool:
         """Delete contact."""

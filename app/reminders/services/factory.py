@@ -4,13 +4,9 @@ from datetime import date, timedelta
 from typing import Optional
 
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 from app.reminders.models.reminder import Reminder, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
-
-
-def _ensure_client_exists(client_repo: ClientRepository, client_id: int) -> None:
-    if not client_repo.get_by_id(client_id):
-        raise ValueError(f"Client {client_id} not found")
 
 
 def create_tax_deadline_reminder(
@@ -23,7 +19,7 @@ def create_tax_deadline_reminder(
     days_before: int,
     message: Optional[str] = None,
 ) -> Reminder:
-    _ensure_client_exists(client_repo, client_id)
+    get_client_or_raise(client_repo, client_id)
     if days_before < 0:
         raise ValueError("days_before must be non-negative")
 
@@ -51,7 +47,7 @@ def create_idle_binder_reminder(
     days_idle: int,
     message: Optional[str] = None,
 ) -> Reminder:
-    _ensure_client_exists(client_repo, client_id)
+    get_client_or_raise(client_repo, client_id)
     if days_idle < 0:
         raise ValueError("days_idle must be non-negative")
 
@@ -80,7 +76,7 @@ def create_unpaid_charge_reminder(
     days_unpaid: int,
     message: Optional[str] = None,
 ) -> Reminder:
-    _ensure_client_exists(client_repo, client_id)
+    get_client_or_raise(client_repo, client_id)
     if days_unpaid < 0:
         raise ValueError("days_unpaid must be non-negative")
 
@@ -109,7 +105,7 @@ def create_custom_reminder(
     days_before: int,
     message: str,
 ) -> Reminder:
-    _ensure_client_exists(client_repo, client_id)
+    get_client_or_raise(client_repo, client_id)
     if days_before < 0:
         raise ValueError("days_before must be non-negative")
     if not message or not message.strip():

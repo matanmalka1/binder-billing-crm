@@ -3,14 +3,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 
 
-class ReminderRepository:
+class ReminderRepository(BaseRepository):
     """Data access layer for Reminder entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -61,9 +62,8 @@ class ReminderRepository:
             )
             .order_by(Reminder.send_on.asc())
         )
-        
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
+
+        return self._paginate(query, page, page_size)
 
     def count_pending_by_date(self, reference_date: date) -> int:
         """Count pending reminders."""
@@ -88,9 +88,8 @@ class ReminderRepository:
             .filter(Reminder.status == status)
             .order_by(Reminder.created_at.desc())
         )
-        
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
+
+        return self._paginate(query, page, page_size)
 
     def count_by_status(self, status: ReminderStatus) -> int:
         """Count reminders by status."""
@@ -104,15 +103,4 @@ class ReminderRepository:
     ) -> Optional[Reminder]:
         """Update reminder status and additional fields."""
         reminder = self.get_by_id(reminder_id)
-        if not reminder:
-            return None
-
-        reminder.status = new_status
-
-        for key, value in additional_fields.items():
-            if hasattr(reminder, key):
-                setattr(reminder, key, value)
-
-        self.db.commit()
-        self.db.refresh(reminder)
-        return reminder
+        return self._update_status(reminder, new_status, **additional_fields)

@@ -1,13 +1,13 @@
 from datetime import date
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.binders.services.binder_helpers import BinderHelpers
+from app.binders.services import binder_helpers
 from app.binders.services.sla_service import SLAService
 
 
 def test_binder_expected_return_is_90_days():
     received_at = date(2026, 1, 1)
-    assert BinderHelpers.calculate_expected_return(received_at) == date(2026, 4, 1)
+    assert binder_helpers.calculate_expected_return(received_at) == date(2026, 4, 1)
 
 
 def test_sla_overdue_and_due_today_calculations():

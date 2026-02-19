@@ -25,6 +25,15 @@ def _assert_editable(item) -> None:
         raise ValueError("Cannot modify a filed VAT work item")
 
 
+def _assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
+    """Validate status transition against the central transition table."""
+    allowed = VALID_TRANSITIONS.get(item.status, set())
+    if target_status not in allowed:
+        raise ValueError(
+            f"Cannot transition from {item.status.value} to {target_status.value}"
+        )
+
+
 def _recalculate_totals(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
@@ -200,10 +209,7 @@ def mark_ready_for_review(
     if not item:
         raise ValueError(f"VAT work item {item_id} not found")
 
-    if item.status != VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS:
-        raise ValueError(
-            f"Cannot mark ready for review from status {item.status.value}"
-        )
+    _assert_transition_allowed(item, VatWorkItemStatus.READY_FOR_REVIEW)
 
     updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW)
 
@@ -238,10 +244,7 @@ def send_back_for_correction(
     if not item:
         raise ValueError(f"VAT work item {item_id} not found")
 
-    if item.status != VatWorkItemStatus.READY_FOR_REVIEW:
-        raise ValueError(
-            f"Can only send back from READY_FOR_REVIEW, current status: {item.status.value}"
-        )
+    _assert_transition_allowed(item, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 
     updated = work_item_repo.update_status(
         item_id, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.infrastructure.storage import LocalStorageProvider, StorageProvider
 from app.permanent_documents.models.permanent_document import DocumentType, PermanentDocument
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
@@ -37,9 +38,7 @@ class PermanentDocumentService:
         Raises:
             ValueError: If client not found or document type invalid
         """
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         # Generate storage key
         storage_key = f"clients/{client_id}/{document_type.value}/{filename}"

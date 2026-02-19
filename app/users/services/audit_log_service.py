@@ -23,6 +23,11 @@ class AuditLogService:
         reason: Optional[str] = None,
         metadata: Optional[dict] = None,
     ) -> None:
+        """Intentional pass-through to keep an anti-corruption boundary.
+
+        All audit writes funnel through this method so future validation,
+        normalization, or enrichment can be added without touching callers.
+        """
         self.repo.create(
             action=action,
             status=status,

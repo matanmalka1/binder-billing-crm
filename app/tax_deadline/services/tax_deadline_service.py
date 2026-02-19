@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, UrgencyLevel
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time import utcnow
 
@@ -26,9 +27,7 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         return self.deadline_repo.create(
             client_id=client_id,

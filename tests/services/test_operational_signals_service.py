@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.clients.models.client import Client, ClientType
-from app.binders.services.operational_signals_service import OperationalSignalsService
+from app.binders.services.signals_service import SignalsService
 
 
 def test_operational_signals_missing_documents(test_db):
@@ -17,8 +17,8 @@ def test_operational_signals_missing_documents(test_db):
     test_db.commit()
     test_db.refresh(client)
 
-    service = OperationalSignalsService(test_db)
-    signals = service.get_client_signals(client.id)
+    service = SignalsService(test_db)
+    signals = service.compute_client_operational_signals(client.id)
 
     assert signals["client_id"] == client.id
     assert len(signals["missing_documents"]) == 3
@@ -48,8 +48,10 @@ def test_operational_signals_binders_nearing_sla(test_db, test_user):
     test_db.add(binder)
     test_db.commit()
 
-    service = OperationalSignalsService(test_db)
-    signals = service.get_client_signals(client.id, reference_date=date.today())
+    service = SignalsService(test_db)
+    signals = service.compute_client_operational_signals(
+        client.id, reference_date=date.today()
+    )
 
     assert len(signals["binders_nearing_sla"]) == 1
     assert signals["binders_nearing_sla"][0]["binder_id"] == binder.id
@@ -79,8 +81,10 @@ def test_operational_signals_overdue_binders(test_db, test_user):
     test_db.add(binder)
     test_db.commit()
 
-    service = OperationalSignalsService(test_db)
-    signals = service.get_client_signals(client.id, reference_date=date.today())
+    service = SignalsService(test_db)
+    signals = service.compute_client_operational_signals(
+        client.id, reference_date=date.today()
+    )
 
     assert len(signals["binders_overdue"]) == 1
     assert signals["binders_overdue"][0]["binder_id"] == binder.id

@@ -9,11 +9,13 @@ import sys
 
 
 class EnvValidator:
-    """Environment variable validator."""
+    """Environment variable validator.
 
-    REQUIRED_VARS = [
-        "JWT_SECRET",
-    ]
+    JWT_SECRET presence is already enforced by Pydantic in app/config.py.
+    Add vars here only when they cannot be validated by settings parsing.
+    """
+
+    REQUIRED_VARS: list[str] = []
 
     @classmethod
     def validate(cls) -> None:

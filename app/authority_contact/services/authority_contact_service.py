@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 
 
 class AuthorityContactService:
@@ -26,9 +27,7 @@ class AuthorityContactService:
         notes: Optional[str] = None,
     ) -> AuthorityContact:
         """Add new authority contact for client."""
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         return self.contact_repo.create(
             client_id=client_id,

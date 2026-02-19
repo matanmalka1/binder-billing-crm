@@ -3,14 +3,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.clients.models.client import Client, ClientStatus
 
 
-class ClientRepository:
+class ClientRepository(BaseRepository):
     """Data access layer for Client entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -57,8 +58,7 @@ class ClientRepository:
         if status:
             query = query.filter(Client.status == status)
 
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
+        return self._paginate(query, page, page_size)
 
     def list_all(self, status: Optional[str] = None) -> list[Client]:
         """List all clients (optionally filtered by status)."""
@@ -77,16 +77,7 @@ class ClientRepository:
     def update(self, client_id: int, **fields) -> Optional[Client]:
         """Update client fields."""
         client = self.get_by_id(client_id)
-        if not client:
-            return None
-
-        for key, value in fields.items():
-            if hasattr(client, key):
-                setattr(client, key, value)
-
-        self.db.commit()
-        self.db.refresh(client)
-        return client
+        return self._update_entity(client, **fields)
 
     def set_status(self, client_id: int, status: ClientStatus) -> Optional[Client]:
         """Set client status."""

@@ -70,12 +70,6 @@ async def import_clients_from_excel(
     user: CurrentUser,
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
-    if user.role != UserRole.ADVISOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only advisors can import clients",
-        )
-
     try:
         import openpyxl
     except ImportError as exc:

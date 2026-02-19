@@ -18,7 +18,13 @@ from app.vat_reports.services import data_entry, filing, intake, queries
 
 
 class VatReportService:
-    """Orchestrates the VAT reporting lifecycle."""
+    """Orchestrates the VAT reporting lifecycle.
+
+    Note: This is an intentional façade that simply forwards to the underlying
+    intake/data-entry/filing/query modules. Keeping the boundary allows future
+    orchestration (cross-cutting validation, metrics, permissions) without
+    touching callers that already depend on this service.
+    """
 
     def __init__(self, db: Session):
         self.db = db

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 from app.utils.time import utcnow
 
 
@@ -31,9 +32,7 @@ class BillingService:
             ValueError: If client doesn't exist or amount is invalid
         """
         # Validate client exists
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         # Validate amount
         if amount <= 0:

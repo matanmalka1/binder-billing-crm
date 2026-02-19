@@ -2,14 +2,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.charge.models.charge import Charge, ChargeStatus
 
 
-class ChargeRepository:
+class ChargeRepository(BaseRepository):
     """Data access layer for Charge entities."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -53,8 +54,8 @@ class ChargeRepository:
         if status:
             query = query.filter(Charge.status == status)
 
-        offset = (page - 1) * page_size
-        return query.order_by(Charge.created_at.desc()).offset(offset).limit(page_size).all()
+        query = query.order_by(Charge.created_at.desc())
+        return self._paginate(query, page, page_size)
 
     def count_charges(
         self,
@@ -80,15 +81,4 @@ class ChargeRepository:
     ) -> Optional[Charge]:
         """Update charge status and additional fields."""
         charge = self.get_by_id(charge_id)
-        if not charge:
-            return None
-
-        charge.status = new_status
-
-        for key, value in additional_fields.items():
-            if hasattr(charge, key):
-                setattr(charge, key, value)
-
-        self.db.commit()
-        self.db.refresh(charge)
-        return charge
+        return self._update_status(charge, new_status, **additional_fields)

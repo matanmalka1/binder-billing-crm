@@ -142,6 +142,8 @@ def list_binders(
 
     items = []
     for binder in binders:
+        # Pre-compute states/signals once so we can filter without re-running
+        # derive_* twice; single-item endpoints recompute inside _to_binder_response.
         current_work_state = WorkStateService.derive_work_state(
             binder,
             reference_date,

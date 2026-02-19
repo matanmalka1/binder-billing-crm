@@ -7,7 +7,8 @@ from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.binders.services.binder_helpers import BinderHelpers
+from app.clients.services.client_lookup import get_client_or_raise
+from app.binders.services import binder_helpers
 from app.notification.services.notification_service import NotificationService
 
 
@@ -31,15 +32,13 @@ class BinderService:
         notes: Optional[str] = None,
     ) -> Binder:
         """Receive new binder (intake flow)."""
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        client = get_client_or_raise(self.client_repo, client_id)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
         if existing:
             raise ValueError(f"Active binder {binder_number} already exists")
 
-        expected_return_at = BinderHelpers.calculate_expected_return(received_at)
+        expected_return_at = binder_helpers.calculate_expected_return(received_at)
 
         binder = self.binder_repo.create(
             client_id=client_id,
@@ -70,7 +69,7 @@ class BinderService:
         if not binder:
             raise ValueError(f"Binder {binder_id} not found")
 
-        BinderHelpers.validate_ready_transition(binder)
+        binder_helpers.validate_ready_transition(binder)
 
         old_status = binder.status.value
         updated = self.binder_repo.update_status(binder_id, BinderStatus.READY_FOR_PICKUP)
@@ -92,7 +91,7 @@ class BinderService:
         if not binder:
             raise ValueError(f"Binder {binder_id} not found")
 
-        BinderHelpers.validate_return_transition(binder, pickup_person_name)
+        binder_helpers.validate_return_transition(binder, pickup_person_name)
 
         old_status = binder.status.value
         returned_at = date.today()

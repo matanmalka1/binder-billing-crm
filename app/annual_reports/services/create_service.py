@@ -7,6 +7,7 @@ from app.annual_reports.models import (
     DeadlineType,
 )
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 from app.utils.time import utcnow
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -34,9 +35,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         try:
             ct = ClientTypeForReport(client_type)

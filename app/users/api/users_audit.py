@@ -30,7 +30,6 @@ def list_audit_logs(
     from_ts: Optional[datetime] = Query(None, alias="from"),
     to_ts: Optional[datetime] = Query(None, alias="to"),
 ):
-    _ = user
     service = AuditLogService(db)
     items, total = service.list_logs(
         page=page,

@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.reminders.api.deps import advisor_or_secretary
+from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderListResponse, ReminderResponse
 from app.reminders.services import ReminderService
 
@@ -13,12 +13,12 @@ list_router = APIRouter()
 
 @list_router.get("/", response_model=ReminderListResponse)
 def list_reminders(
-    deps = Depends(advisor_or_secretary),
+    db: DBSession,
+    _user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
 ):
-    db, _user = deps
     service = ReminderService(db)
 
     try:

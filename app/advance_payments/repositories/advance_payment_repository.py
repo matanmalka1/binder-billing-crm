@@ -3,13 +3,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.utils.time import utcnow
 
 
-class AdvancePaymentRepository:
+class AdvancePaymentRepository(BaseRepository):
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def list_by_client_year(self, client_id: int, year: int) -> list[AdvancePayment]:
         return (
@@ -27,15 +28,7 @@ class AdvancePaymentRepository:
 
     def update(self, id: int, **fields) -> Optional[AdvancePayment]:
         payment = self.get_by_id(id)
-        if payment is None:
-            return None
-        for key, value in fields.items():
-            if hasattr(payment, key):
-                setattr(payment, key, value)
-        payment.updated_at = utcnow()
-        self.db.commit()
-        self.db.refresh(payment)
-        return payment
+        return self._update_entity(payment, touch_updated_at=True, **fields)
 
     def create(
         self,

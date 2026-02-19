@@ -7,6 +7,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise
 
 
 class CorrespondenceService:
@@ -26,9 +27,7 @@ class CorrespondenceService:
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise ValueError(f"Client {client_id} not found")
+        get_client_or_raise(self.client_repo, client_id)
 
         if contact_id is not None:
             contact = self.contact_repo.get_by_id(contact_id)
