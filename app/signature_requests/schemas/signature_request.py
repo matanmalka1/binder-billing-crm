@@ -66,8 +66,8 @@ class SignatureRequestResponse(BaseModel):
     decline_reason: Optional[str] = None
     signed_document_key: Optional[str] = None
 
-    # NOTE: signing_token is intentionally excluded from this response.
-    # It is only returned once at send-time via SignatureRequestSentResponse.
+    # signing_token is intentionally excluded from this response; it is only
+    # returned once at send-time via SignatureRequestSentResponse.
 
     model_config = {"from_attributes": True}
 

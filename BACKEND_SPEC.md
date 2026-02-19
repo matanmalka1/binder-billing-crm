@@ -1,620 +1,291 @@
-# Backend Specification: 6 New API Endpoints
-## Binder & Billing CRM — Post Sprint 6 Extension
-
-This document specifies every new API endpoint required by the frontend
-feature set built in the Sprint 7 frontend pass. All rules from
-`PROJECT_RULES.md` apply in full. This document does not relax any of
-them.
-
----
-
-## 0. Context
-
-The frontend calls six areas that have no backend implementation yet:
-
-| # | Feature | Prefix |
-|---|---------|--------|
-| 1 | Tax Profile | `GET/PATCH /clients/{id}/tax-profile` |
-| 2 | Correspondence Log | `GET/POST /clients/{id}/correspondence` |
-| 3 | Annual Report Detail | `GET/PATCH /annual-reports/{id}/details` |
-| 4 | Advance Payments | `GET/PATCH /advance-payments` |
-| 5 | Authority Contacts | already implemented ✅ |
-| 6 | Dashboard widgets | already served by existing endpoints ✅ |
-
-Features 5 and 6 are fully implemented. This document covers 1–4 only.
-
----
-
-## 1. Engineering Rules (from PROJECT_RULES.md)
-
-Non-negotiable — do not deviate:
-
-- **150 lines max** per Python file.
-- **No raw SQL**. ORM only.
-- Strict layering: **API → Service → Repository → ORM**.
-- **No business logic** in API routers.
-- All new background jobs must be idempotent (none required here).
-- Health endpoint stays deterministic and safe.
-- **Derived state is never persisted** (SLA, WorkState, signals).
-- Authorization enforced at both endpoint level and service/action level.
-
----
-
-## 2. General Conventions
-
-- All new routers mount under `/api/v1` (matching `app/main.py`).
-- All new routers require `Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))` unless noted.
-- Response schemas use `model_config = {"from_attributes": True}`.
-- Nullable fields use `Optional[X] = None`.
-- Dates use `datetime.date`; timestamps use `datetime.datetime` (naive UTC via `utcnow()`).
-- New ORM models are auto-created by `Base.metadata.create_all` in `APP_ENV=development`. No migration files needed now.
-- Register each new router in `app/api/__init__.py` and `app/main.py` following the existing pattern exactly.
-
----
-
-## 3. Feature 1 — Tax Profile
-
-### 3.1 Purpose
-
-Store per-client tax metadata that does not belong on the core `Client`
-model: VAT type, business classification, the month the client's tax year
-starts, and the name of any external accountant.
-
-### 3.2 ORM Model — `app/models/client_tax_profile.py`
-
-```
-Table: client_tax_profiles
-Columns:
-  id           INTEGER  PK autoincrement
-  client_id    INTEGER  FK → clients.id  NOT NULL  UNIQUE  INDEX
-  vat_type     Enum("monthly","bimonthly","exempt")  nullable
-  business_type  String  nullable
-  tax_year_start  Integer  nullable   -- e.g. 1 = January, 4 = April
-  accountant_name  String  nullable
-  created_at   DateTime  default=utcnow  NOT NULL
-  updated_at   DateTime  nullable
-```
-
-Add `ClientTaxProfile` and `VatType` to `app/models/__init__.py`.
-
-### 3.3 Repository — `app/repositories/client_tax_profile_repository.py`
-
-Methods:
-
-```
-get_by_client_id(client_id: int) -> Optional[ClientTaxProfile]
-upsert(client_id: int, **fields) -> ClientTaxProfile
-    # Create if not exists, update otherwise. Set updated_at = utcnow().
-```
-
-### 3.4 Service — `app/services/client_tax_profile_service.py`
-
-```
-get_profile(client_id: int) -> Optional[ClientTaxProfile]
-    # Returns None (not an error) if no profile row exists yet.
-
-update_profile(client_id: int, **fields) -> ClientTaxProfile
-    # Validates client exists. Calls repo.upsert().
-    # Raises ValueError if client not found.
-```
-
-### 3.5 Schemas — `app/schemas/client_tax_profile.py`
-
-```python
-class TaxProfileResponse(BaseModel):
-    client_id: int
-    vat_type: Optional[str] = None          # "monthly" | "bimonthly" | "exempt"
-    business_type: Optional[str] = None
-    tax_year_start: Optional[int] = None
-    accountant_name: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    model_config = {"from_attributes": True}
-
-class TaxProfileUpdateRequest(BaseModel):
-    vat_type: Optional[str] = None
-    business_type: Optional[str] = None
-    tax_year_start: Optional[int] = None
-    accountant_name: Optional[str] = None
-```
-
-When `GET` finds no profile row, return a `TaxProfileResponse` with all
-optional fields `None` and `client_id` set (do not return 404).
-
-### 3.6 API Router — `app/api/client_tax_profile.py`
-
-```
-prefix = /clients
-tags   = ["client-tax-profile"]
-auth   = require_role(ADVISOR, SECRETARY)
-
-GET  /clients/{client_id}/tax-profile
-     → TaxProfileResponse
-     404 if client does not exist.
-
-PATCH /clients/{client_id}/tax-profile
-     body: TaxProfileUpdateRequest
-     → TaxProfileResponse
-     400 if vat_type value is not a valid enum member.
-     404 if client does not exist (service raises ValueError).
-```
-
-Register as `client_tax_profile` in `app/api/__init__.py` and
-`app/main.py`.
-
----
-
-## 4. Feature 2 — Correspondence Log
-
-### 4.1 Purpose
-
-Per-client log of communications with tax authorities or the client
-themselves. Each entry records who was spoken to, what type of
-communication it was, a subject line, optional notes, and when it
-occurred.
-
-### 4.2 ORM Model — `app/models/correspondence.py`
-
-```
-Table: correspondence_entries
-Columns:
-  id                    INTEGER  PK autoincrement
-  client_id             INTEGER  FK → clients.id  NOT NULL  INDEX
-  contact_id            INTEGER  FK → authority_contacts.id  nullable  INDEX
-  correspondence_type   Enum("call","letter","email","meeting")  NOT NULL
-  subject               String  NOT NULL
-  notes                 Text  nullable
-  occurred_at           DateTime  NOT NULL
-  created_by            INTEGER  FK → users.id  NOT NULL
-  created_at            DateTime  default=utcnow  NOT NULL
-
-Indexes:
-  idx_correspondence_client  (client_id)
-  idx_correspondence_occurred (occurred_at)
-```
-
-Add `Correspondence`, `CorrespondenceType` to `app/models/__init__.py`.
-
-### 4.3 Repository — `app/repositories/correspondence_repository.py`
-
-```
-create(
-    client_id, contact_id, correspondence_type,
-    subject, notes, occurred_at, created_by
-) -> Correspondence
-
-list_by_client(client_id: int) -> list[Correspondence]
-    # Order by occurred_at DESC
-```
-
-### 4.4 Service — `app/services/correspondence_service.py`
-
-```
-add_entry(
-    client_id, contact_id, correspondence_type,
-    subject, notes, occurred_at, created_by
-) -> Correspondence
-    # Validates client exists.
-    # Validates contact_id belongs to client_id when provided.
-    # Raises ValueError on any violation.
-
-list_client_entries(client_id: int) -> list[Correspondence]
-```
-
-### 4.5 Schemas — `app/schemas/correspondence.py`
-
-```python
-class CorrespondenceCreateRequest(BaseModel):
-    contact_id: Optional[int] = None
-    correspondence_type: str          # validated against enum in API layer
-    subject: str
-    notes: Optional[str] = None
-    occurred_at: datetime             # ISO string from frontend
-
-class CorrespondenceResponse(BaseModel):
-    id: int
-    client_id: int
-    contact_id: Optional[int] = None
-    correspondence_type: str
-    subject: str
-    notes: Optional[str] = None
-    occurred_at: datetime
-    created_by: int
-    created_at: datetime
-    model_config = {"from_attributes": True}
-
-class CorrespondenceListResponse(BaseModel):
-    items: list[CorrespondenceResponse]
-```
-
-### 4.6 API Router — `app/api/correspondence.py`
-
-```
-prefix = /clients
-tags   = ["correspondence"]
-auth   = require_role(ADVISOR, SECRETARY)
-
-GET  /clients/{client_id}/correspondence
-     → CorrespondenceListResponse
-
-POST /clients/{client_id}/correspondence
-     body: CorrespondenceCreateRequest
-     → CorrespondenceResponse  201
-     400 if correspondence_type is invalid.
-     404 if client not found (service ValueError).
-     400 if contact_id is provided but does not belong to the client.
-```
-
-The `created_by` field is taken from `user.id` (the current authenticated
-user), not from the request body.
-
-Register as `correspondence` in `app/api/__init__.py` and `app/main.py`.
-
----
-
-## 5. Feature 3 — Annual Report Detail
-
-### 5.1 Purpose
-
-Extend existing `AnnualReport` records with four advisory fields:
-tax refund amount, tax due amount, the datetime the client approved the
-report, and internal notes. These are optional enrichment fields — they
-are never required to create or transition a report.
-
-### 5.2 Approach — extend existing model via a companion table
-
-Do **not** add columns to `annual_reports`. Create a companion table
-`annual_report_details` with a 1:1 relationship.
-
-### 5.3 ORM Model — `app/models/annual_report_detail.py`
-
-```
-Table: annual_report_details
-Columns:
-  id                 INTEGER  PK autoincrement
-  report_id          INTEGER  FK → annual_reports.id  NOT NULL  UNIQUE  INDEX
-  tax_refund_amount  Numeric(10,2)  nullable
-  tax_due_amount     Numeric(10,2)  nullable
-  client_approved_at  DateTime  nullable
-  internal_notes     Text  nullable
-  created_at         DateTime  default=utcnow  NOT NULL
-  updated_at         DateTime  nullable
-```
-
-Add `AnnualReportDetail` to `app/models/__init__.py`.
-
-### 5.4 Repository — `app/repositories/annual_report_detail_repository.py`
-
-```
-get_by_report_id(report_id: int) -> Optional[AnnualReportDetail]
-upsert(report_id: int, **fields) -> AnnualReportDetail
-    # Create if not exists, update otherwise. Set updated_at = utcnow().
-```
-
-### 5.5 Service — `app/services/annual_report_detail_service.py`
-
-```
-get_detail(report_id: int) -> Optional[AnnualReportDetail]
-    # Returns None if no detail row. Never raises on missing detail.
-
-update_detail(report_id: int, **fields) -> AnnualReportDetail
-    # Validates report exists via AnnualReportRepository.
-    # Raises ValueError if report not found.
-    # Calls repo.upsert().
-```
-
-### 5.6 Schemas — `app/schemas/annual_report_detail.py`
-
-```python
-class AnnualReportDetailResponse(BaseModel):
-    report_id: int
-    tax_refund_amount: Optional[float] = None
-    tax_due_amount: Optional[float] = None
-    client_approved_at: Optional[datetime] = None
-    internal_notes: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    model_config = {"from_attributes": True}
-
-class AnnualReportDetailUpdateRequest(BaseModel):
-    tax_refund_amount: Optional[float] = None
-    tax_due_amount: Optional[float] = None
-    client_approved_at: Optional[datetime] = None
-    internal_notes: Optional[str] = None
-```
-
-When `GET` finds no detail row, return `AnnualReportDetailResponse` with
-all optional fields `None` and `report_id` set. Do **not** 404.
-
-### 5.7 API Router — `app/api/annual_report_detail.py`
-
-```
-prefix = /annual-reports
-tags   = ["annual-report-detail"]
-auth   = require_role(ADVISOR, SECRETARY)
-
-GET  /annual-reports/{report_id}/details
-     → AnnualReportDetailResponse
-     404 if the parent annual_report does not exist.
-
-PATCH /annual-reports/{report_id}/details
-     body: AnnualReportDetailUpdateRequest
-     → AnnualReportDetailResponse
-     400 on validation errors.
-     404 if the parent annual_report does not exist.
-```
-
-Register as `annual_report_detail` in `app/api/__init__.py` and
-`app/main.py`. Mount **before** the existing `annual_report` router in
-`app/main.py` (same ordering hygiene as `binders_operations` before
-`binders`).
-
----
-
-## 6. Feature 4 — Advance Payments
-
-### 6.1 Purpose
-
-Track monthly advance tax payments (מקדמות מס) per client per year. Each
-row represents one calendar month for one client. The advisor sets the
-expected amount when creating a tax deadline; the secretary records what
-was actually paid.
-
-### 6.2 ORM Model — `app/models/advance_payment.py`
-
-```
-Table: advance_payments
-Columns:
-  id               INTEGER  PK autoincrement
-  client_id        INTEGER  FK → clients.id  NOT NULL  INDEX
-  tax_deadline_id  INTEGER  FK → tax_deadlines.id  nullable  INDEX
-  month            Integer  NOT NULL   -- 1..12
-  year             Integer  NOT NULL
-  expected_amount  Numeric(10,2)  nullable
-  paid_amount      Numeric(10,2)  nullable
-  status           Enum("pending","paid","partial","overdue")  default="pending"  NOT NULL
-  due_date         Date  NOT NULL
-  created_at       DateTime  default=utcnow  NOT NULL
-  updated_at       DateTime  nullable
-
-Unique constraint: (client_id, year, month)
-Index: idx_advance_payment_client_year (client_id, year)
-Index: idx_advance_payment_status (status)
-```
-
-Add `AdvancePayment`, `AdvancePaymentStatus` to
-`app/models/__init__.py`.
-
-### 6.3 Repository — `app/repositories/advance_payment_repository.py`
-
-```
-list_by_client_year(client_id: int, year: int) -> list[AdvancePayment]
-    # Returns up to 12 rows. Order by month ASC.
-
-get_by_id(id: int) -> Optional[AdvancePayment]
-
-update(id: int, **fields) -> Optional[AdvancePayment]
-    # Sets updated_at = utcnow(). Returns None if not found.
-
-create(
-    client_id, year, month, due_date,
-    expected_amount=None, paid_amount=None,
-    tax_deadline_id=None
-) -> AdvancePayment
-    # status defaults to "pending".
-```
-
-### 6.4 Service — `app/services/advance_payment_service.py`
-
-```
-list_payments(client_id: int, year: int) -> list[AdvancePayment]
-    # No business logic beyond fetching. Returns existing rows.
-    # Does NOT auto-generate missing months — rows are created externally
-    # (manually or via a future job).
-
-update_payment(payment_id: int, **fields) -> AdvancePayment
-    # Validates payment exists.
-    # Validates status is a valid enum value when provided.
-    # Raises ValueError on any violation.
-    # Calls repo.update().
-```
-
-### 6.5 Schemas — `app/schemas/advance_payment.py`
-
-```python
-class AdvancePaymentRow(BaseModel):
-    id: int
-    client_id: int
-    tax_deadline_id: Optional[int] = None
-    month: int
-    year: int
-    expected_amount: Optional[float] = None
-    paid_amount: Optional[float] = None
-    status: str                        # "pending"|"paid"|"partial"|"overdue"
-    due_date: date
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    model_config = {"from_attributes": True}
-
-class AdvancePaymentListResponse(BaseModel):
-    items: list[AdvancePaymentRow]
-    page: int
-    page_size: int
-    total: int
-
-class AdvancePaymentUpdateRequest(BaseModel):
-    paid_amount: Optional[float] = None
-    status: Optional[str] = None
-```
-
-### 6.6 API Router — `app/api/advance_payments.py`
-
-```
-prefix = /advance-payments
-tags   = ["advance-payments"]
-auth   = require_role(ADVISOR, SECRETARY)
-
-GET  /advance-payments
-     Query params:
-       client_id: int  (required)
-       year: int       (required)
-       page: int = 1
-       page_size: int = 20
-     → AdvancePaymentListResponse
-     400 if client_id or year is missing.
-     404 if client does not exist.
-
-PATCH /advance-payments/{payment_id}
-     body: AdvancePaymentUpdateRequest
-     → AdvancePaymentRow
-     400 if status value is not a valid enum member.
-     404 if payment not found (service ValueError).
-```
-
-Register as `advance_payments` in `app/api/__init__.py` and
-`app/main.py`.
-
----
-
-## 7. Registration Checklist
-
-After implementing all four features, the following files must be
-updated:
-
-### `app/api/__init__.py`
-
-Add to the import block and `__all__` list:
-
-```python
-from app.api import (
-    ...
-    annual_report_detail,
-    advance_payments,
-    client_tax_profile,
-    correspondence,
-)
-```
-
-### `app/main.py`
-
-Add `include_router` calls. Ordering matters — detail routers before
-their parent routers:
-
-```python
-app.include_router(annual_report_detail.router, prefix="/api/v1")  # before annual_report
-app.include_router(annual_report.router, prefix="/api/v1")
-...
-app.include_router(client_tax_profile.router, prefix="/api/v1")
-app.include_router(correspondence.router, prefix="/api/v1")
-app.include_router(advance_payments.router, prefix="/api/v1")
-```
-
-### `app/models/__init__.py`
-
-Add all new model classes and enums.
-
-### `app/repositories/__init__.py`
-
-Add all new repository classes.
-
----
-
-## 8. Authorization Matrix
-
-| Endpoint | ADVISOR | SECRETARY |
-|----------|---------|-----------|
-| GET /clients/{id}/tax-profile | ✅ | ✅ |
-| PATCH /clients/{id}/tax-profile | ✅ | ✅ |
-| GET /clients/{id}/correspondence | ✅ | ✅ |
-| POST /clients/{id}/correspondence | ✅ | ✅ |
-| GET /annual-reports/{id}/details | ✅ | ✅ |
-| PATCH /annual-reports/{id}/details | ✅ | ✅ |
-| GET /advance-payments | ✅ | ✅ |
-| PATCH /advance-payments/{id} | ✅ | ✅ |
-
-No endpoint in this batch is ADVISOR-only.
-
----
-
-## 9. Error Response Conventions
-
-All errors follow the existing `ErrorResponse.build()` envelope from
-`app/core/exceptions.py`. Routers raise `HTTPException`; the centralized
-handler formats them. Do not build custom error responses in routers.
-
-```
-404 → "Client not found" / "Report not found" / "Payment not found"
-400 → descriptive message from ValueError caught in router
-422 → handled automatically by FastAPI request validation
-```
-
----
-
-## 10. File Size Constraint
-
-Each new file must be **≤ 150 lines**. Split if needed:
-
-- If a service grows past 150 lines, extract a `*_helpers.py` or
-  `*_validators.py` module (see `binder_helpers.py` as precedent).
-- If a router grows past 150 lines, split into a sub-router module.
-
----
-
-## 11. Testing Notes
-
-The existing test suite uses `APP_ENV=test` with a fresh SQLite DB. All
-four new ORM models will be auto-created by `Base.metadata.create_all`.
-No test fixtures need to be seeded for the models to be present.
-
-When writing tests:
-
-- Use the existing `client` fixture to get a valid `client_id`.
-- For Advance Payments, create rows manually via the repo in the test
-  setup — the `GET` endpoint does not auto-generate rows.
-- For Annual Report Detail and Tax Profile, `GET` before `PATCH` should
-  return all-null fields (not 404).
-
----
-
-## 12. Summary of New Files
-
-```
-app/models/client_tax_profile.py
-app/models/correspondence.py
-app/models/annual_report_detail.py
-app/models/advance_payment.py
-
-app/repositories/client_tax_profile_repository.py
-app/repositories/correspondence_repository.py
-app/repositories/annual_report_detail_repository.py
-app/repositories/advance_payment_repository.py
-
-app/services/client_tax_profile_service.py
-app/services/correspondence_service.py
-app/services/annual_report_detail_service.py
-app/services/advance_payment_service.py
-
-app/schemas/client_tax_profile.py
-app/schemas/correspondence.py
-app/schemas/annual_report_detail.py
-app/schemas/advance_payment.py
-
-app/api/client_tax_profile.py
-app/api/correspondence.py
-app/api/annual_report_detail.py
-app/api/advance_payments.py
-```
-
-Updated files:
-```
-app/models/__init__.py
-app/repositories/__init__.py
-app/api/__init__.py
-app/main.py
-```
-
-Total new files: **16**. Total changed files: **4**.
-
----
-
-End of specification.
+# Backend Capability Specification  
+Binder & Billing CRM
+
+## 1. System Overview
+- **Architecture:** FastAPI app with strict layering `API → Service → Repository → ORM` and no raw SQL. ORM models use SQLAlchemy; schema auto-creates in `APP_ENV=development/test` via `Base.metadata.create_all()`. Production expects managed migrations. File-size rule: Python files targeted to ≤150 lines (some legacy files exceed).
+- **Routing:** Business APIs mounted at `/api/v1/*`. Public endpoints: `GET /` (service probe), `GET /info`, `GET /health`. All other routes require JWT auth.
+- **Auth model:** Bearer JWT (also set as HttpOnly cookie on login). Roles: `advisor` (super role) and `secretary`. Role enforcement via `require_role` dependency; inactive users or token-version mismatch → 401. Most business routes allow both roles; user/admin routes are advisor-only.
+- **Error handling:** Central `app/core/exceptions.py` wraps HTTPException/validation/DB errors into `{"detail": ..., "error": {type,status_code,detail}}`. Routers raise HTTPException with plain strings; 422 handled by FastAPI.
+- **Pagination conventions:** Query params `page` (default 1, ge 1) and `page_size` (defaults vary: 20 most routes, 50 for timeline/annual-report season). Many list endpoints slice in service/repo; some (tax-deadlines list without client filter) paginate in router after fetching all.
+- **Enum handling:** Business enums are `str` subclasses defined beside models. Routers manually coerce/validate (e.g., `DeadlineType`, `VatType`, `CorrespondenceType`); invalid values return 400 with the raw message.
+- **Derived state (never persisted):** SLA state, work_state, and operational signals are computed in services (SLAService, WorkStateService, SignalsService). Binder overdue/approaching and attention items are runtime derivations only.
+- **Notifications:** Stored in `notifications` table; send flow uses stub WhatsApp/Email channels. Triggered by binder intake and SLA job; no public API.
+- **Storage:** Permanent documents saved through `LocalStorageProvider` (local filesystem path key stored in DB). No S3 integration in code.
+- **Time handling:** `utils.time.utcnow()` returns naive UTC datetime; all timestamps persisted naive UTC.
+
+## 2. Domain: Clients
+### Implemented Endpoints
+- `POST /api/v1/clients` (advisor|secretary) — create client; 409 if `id_number` already exists.
+- `GET /api/v1/clients` — filters: `status`, `has_signals`; paginated.
+- `GET /api/v1/clients/{client_id}` — 404 if missing.
+- `PATCH /api/v1/clients/{client_id}` — advisor required to set status `frozen/closed`; sets `closed_at` to today if closing without date.
+- `GET /api/v1/clients/{client_id}/binders` — paginated list of binders with SLA/work_state enrichment; 404 if client missing.
+- Excel helpers: `GET /api/v1/clients/export`, `GET /api/v1/clients/template`, `POST /api/v1/clients/import` (advisor-only; openpyxl required).
+### Service Layer
+- Validates unique `id_number` on create.
+- `update_client` enforces advisor for freeze/close; fills `closed_at` default.
+- `list_clients` optional `has_signals` filter computed via SignalsService over binders, documents, unpaid charges.
+### Repository Capabilities
+- CRUD + list/count with optional status; simple offset pagination.
+### ORM Model
+- `Client`: unique `id_number`, optional unique `primary_binder_number`; enums `ClientType`, `ClientStatus`.
+### Known Gaps
+- No delete endpoint. Import does per-row error collection; no dry-run. Signals-based filtering loads up to 1000 clients in memory.
+
+## 3. Domain: Binders
+### Implemented Endpoints
+- `POST /api/v1/binders/receive` — create binder; prevents duplicate active `binder_number`; sets expected_return_at = received_at +90d; logs status history; sends notification.
+- `POST /api/v1/binders/{id}/ready` — allowed from `in_office|overdue`; else 400.
+- `POST /api/v1/binders/{id}/return` — requires `pickup_person_name` (defaults to current user name); allowed from `ready_for_pickup|overdue`; stamps `returned_at` today.
+- `GET /api/v1/binders` — filters `status`, `client_id`, `work_state`, `sla_state`; derives `days_in_office`, `work_state`, `sla_state`, `signals`, `available_actions`.
+- `GET /api/v1/binders/{id}` — single binder with derived fields; 404 if missing.
+- Operations lists (paginated): `GET /api/v1/binders/open`, `/overdue`, `/due-today`.
+- History: `GET /api/v1/binders/{id}/history` — 404 if binder missing.
+### Service Layer
+- BinderService handles transitions, validates readiness/return; writes status logs; triggers notifications.
+- BinderOperationsService provides SLA-enriched lists; uses SLAService, WorkStateService, SignalsService.
+- DailySLAJobService (no endpoint) scans active binders, sends approaching/overdue/ready notifications with idempotency checks per trigger.
+### Repository Capabilities
+- BinderRepository CRUD, list_active with filters, status updates, count by status; BinderStatusLog append/list; extensions for open/overdue/due-today/client lists with pagination.
+### ORM Model
+- `Binder` with enum `BinderStatus`; active-unique `binder_number` enforced via partial index; multiple date indexes.
+- `BinderStatusLog` append-only audit trail.
+### Known Gaps
+- No binder deletion. Overdue flag stored? No—derived only. WorkState uses recent notifications heuristic; may query notifications per binder on each call.
+
+## 4. Domain: Charges
+### Implemented Endpoints
+- `POST /api/v1/charges` (advisor) — create draft; amount must be >0; 400 on invalid client/amount.
+- `POST /api/v1/charges/{id}/issue` (advisor) — only from draft.
+- `POST /api/v1/charges/{id}/mark-paid` (advisor) — only from issued.
+- `POST /api/v1/charges/{id}/cancel` (advisor) — cannot cancel paid or already canceled.
+- `GET /api/v1/charges` (advisor|secretary) — filters `client_id`, `status`; paginated; secretary response omits amount/currency.
+- `GET /api/v1/charges/{id}` — 404 if missing; secretary sees redacted fields.
+### Service Layer
+- Validates client existence and status transitions; sets timestamps on issue/paid.
+### Repository Capabilities
+- Create, get, list (order by created_at desc), count, update_status with optional extra fields.
+### ORM Model
+- `Charge` with enums `ChargeType`, `ChargeStatus`; monetary fields Numeric(10,2); timestamps for issue/paid.
+### Known Gaps
+- No invoice issuance; charges can exist without downstream invoice. No soft-delete.
+
+## 5. Domain: Tax Deadlines
+### Implemented Endpoints
+- `POST /api/v1/tax-deadlines` — create pending deadline; validates `DeadlineType`; 400 if client missing.
+- `GET /api/v1/tax-deadlines` — filters `client_id`, `deadline_type`, `status`; if no `client_id` provided, returns all pending due up to year 2099 then paginates in-memory.
+- `GET /api/v1/tax-deadlines/{id}` — 404 if missing.
+- `POST /api/v1/tax-deadlines/{id}/complete` — idempotent; 400 if not found.
+- `GET /api/v1/tax-deadlines/dashboard/urgent` — returns `urgent` (overdue/red/yellow) and `upcoming` lists with client names.
+### Service Layer
+- Validates client existence on create; computes urgency (overdue/red ≤2 days, yellow ≤7, else green).
+### Repository Capabilities
+- Create, get, update_status, list_pending_due_by_date, list_overdue, list_by_client with optional status/type.
+### ORM Model
+- `TaxDeadline` with enums `DeadlineType`; status string (pending/completed); indexes on status, type, due_date.
+### Known Gaps
+- No edit/delete. Non-pending deadlines still returned when listing by client if status filter omitted.
+
+## 6. Domain: Annual Reports
+### Implemented Endpoints
+- Create/read:
+  - `POST /api/v1/annual-reports` — creates report, auto-selects `form_type` via `client_type` → `FORM_MAP`, sets deadline (standard/extended/custom), generates schedules, seeds status history.
+  - `GET /api/v1/annual-reports` — list with optional `tax_year`, paginated (default 20, max 200).
+  - `GET /api/v1/annual-reports/{id}` — returns schedules + status history; 404 if missing.
+  - `GET /api/v1/annual-reports/kanban/view` — stage-grouped view.
+  - `GET /api/v1/annual-reports/overdue` — filing_deadline passed & open statuses.
+- Status/deadline:
+  - `POST /api/v1/annual-reports/{id}/status` — validated against `VALID_TRANSITIONS`; populates status history; accepts optional ITA refs and amounts.
+  - `POST /api/v1/annual-reports/{id}/submit` — convenience to `submitted`.
+  - `POST /api/v1/annual-reports/{id}/deadline` — recomputes deadline per `DeadlineType`, logs history.
+  - `POST /api/v1/annual-reports/{id}/transition` — stage shortcut mapping; auto-inserts COLLECTING_DOCS step when jumping from NOT_STARTED.
+  - `GET /api/v1/annual-reports/{id}/history` — status history list (404 if report missing).
+- Schedules:
+  - `GET /api/v1/annual-reports/{id}/schedules`
+  - `POST /api/v1/annual-reports/{id}/schedules` — add schedule; validates enum.
+  - `POST /api/v1/annual-reports/{id}/schedules/complete` — marks required schedule complete or 400 if absent.
+- Detail companion table:
+  - `GET /api/v1/annual-reports/{id}/details` — returns all-null payload if detail row absent; 404 if report missing.
+  - `PATCH /api/v1/annual-reports/{id}/details` — upsert tax_refund_amount/tax_due_amount/client_approved_at/internal_notes; 404 if report missing.
+- Client & season views:
+  - `GET /api/v1/clients/{id}/annual-reports`
+  - `GET /api/v1/tax-year/{tax_year}/reports` (paginated 50 default)
+  - `GET /api/v1/tax-year/{tax_year}/summary` — counts per status, completion %, overdue count.
+### Service Layer
+- Create validates client and uniqueness per (client,tax_year); derives deadlines; auto-adds schedules based on income flags; appends status history.
+- Transition enforces `VALID_TRANSITIONS`, sets submitted/assessment/refund fields when relevant, logs history.
+- Deadline update recalculates dates; schedule service manages required/complete flags.
+- Query service provides kanban grouping into `ReportStage`.
+### Repository Capabilities
+- AnnualReportRepository composes report/schedule/status-history mixins: create/get/list/count by status/tax_year, list_overdue, list_all_with_clients (for kanban), append_status_history, schedule add/complete/check completion, detail upsert/read.
+### ORM Models
+- `AnnualReport` with enums `AnnualReportStatus`, `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year); status & deadline indexes.
+- `AnnualReportDetail` 1:1 with report (unique report_id).
+- `AnnualReportScheduleEntry` with `AnnualReportSchedule` enum and completion flags.
+- `AnnualReportStatusHistory` append-only audit log.
+### Known Gaps
+- No delete; no reassignment validation for `assigned_to`; kanban `days_until_due` uses created_at vs filing_deadline (not remaining days).
+
+## 7. Domain: Dashboard
+### Implemented Endpoints
+- `GET /api/v1/dashboard/summary` (any authenticated user) — counts binders by status + attention items (idle/ready/unpaid for advisor).
+- `GET /api/v1/dashboard/overview` (advisor) — totals + quick_actions + attention.
+- `GET /api/v1/dashboard/work-queue` — paginated operational queue with work_state/signals.
+- `GET /api/v1/dashboard/alerts` — overdue/near-SLA alerts.
+- `GET /api/v1/dashboard/attention` — attention items; unpaid charges only for advisor.
+- `GET /api/v1/dashboard/tax-submissions` — tax-year widget built from annual report statuses.
+### Services/Logic
+- DashboardService aggregates counts and delegates to DashboardExtendedService.
+- DashboardExtendedService builds work_queue/alerts/attention using SLAService, WorkStateService, SignalsService and unpaid charges (advisor only).
+- DashboardOverviewService computes metrics via DashboardOverviewRepository and assembles quick actions (ready/return binder, mark charge paid, freeze/activate client).
+- DashboardTaxService aggregates submission stats + delegates deadline summary (reuse TaxDeadlineService).
+### Known Gaps
+- No caching; overview quick actions pick first matching entities (heuristic). Attention lists load all active binders in memory.
+
+## 8. Domain: Notifications (internal)
+- **Endpoints:** None.
+- **Service:** NotificationService sends via WhatsAppChannel then email fallback; persists every attempt; idempotency for SLA job via NotificationRepository `exists_for_binder_trigger`.
+- **Models/Enums:** NotificationChannel (`whatsapp|email`), NotificationStatus (`pending|sent|failed`), NotificationTrigger (binder events, manual payment reminder).
+- **Repository:** create/mark_sent/mark_failed, list_by_client (pagination), check existing trigger.
+- **Gaps:** WhatsApp/Email channels are stubs; no delivery webhook; no resend UI.
+
+## 9. Domain: Authority Contacts
+### Implemented Endpoints
+- `POST /api/v1/clients/{id}/authority-contacts` (advisor|secretary) — create contact; validates `ContactType`.
+- `GET /api/v1/clients/{id}/authority-contacts` — optional `contact_type` filter.
+- `PATCH /api/v1/authority-contacts/{contact_id}` — updates; validates contact_type when provided; 400 if not found.
+- `DELETE /api/v1/authority-contacts/{contact_id}` — advisor-only; 404 if missing.
+### Service/Repo/Model
+- Validates client existence on create; otherwise straightforward CRUD. Model indexed by client_id/contact_type; enum `ContactType`.
+### Gaps
+- No pagination on list; no cross-tenant checks beyond client existence.
+
+## 10. Domain: Advance Payments
+### Implemented Endpoints
+- `GET /api/v1/advance-payments` — requires `client_id` and `year` (defaults to current UTC year); paginated slice of in-memory list; 404 if client missing.
+- `PATCH /api/v1/advance-payments/{payment_id}` — updates `paid_amount`/`status`; validates enum; 404 if missing.
+### Service/Repo/Model
+- Repository: list_by_client_year ordered by month asc; get/update/create; unique (client,year,month); status index.
+- Service validates status values; no creation exposed via API.
+### Gaps
+- No API to create rows; assumes external seeding. Pagination done after fetching all rows.
+
+## 11. Domain: Client Tax Profile
+### Implemented Endpoints
+- `GET /api/v1/clients/{id}/tax-profile` — returns empty payload (fields None) if row absent; 404 if client missing.
+- `PATCH /api/v1/clients/{id}/tax-profile` — validates `vat_type` enum; 404 if client missing.
+### Service/Repo/Model
+- Upsert profile; sets `updated_at` on updates. Enum `VatType` (monthly/bimonthly/exempt); one-to-one via unique client_id.
+### Gaps
+- No creation timestamp in response when row absent (by design). No delete.
+
+## 12. Domain: Correspondence
+### Implemented Endpoints
+- `GET /api/v1/clients/{id}/correspondence` — list entries ordered by occurred_at desc.
+- `POST /api/v1/clients/{id}/correspondence` — creates entry; validates `correspondence_type`; 404 if client missing; 400 if contact_id not linked to client.
+### Service/Repo/Model
+- Model includes optional contact_id (FK authority_contacts), created_by current user, occurred_at required; indexes on client_id and occurred_at.
+### Gaps
+- No pagination; no update/delete.
+
+## 13. Domain: Permanent Documents
+### Implemented Endpoints
+- `POST /api/v1/documents/upload` — multipart upload; validates `DocumentType`; stores via LocalStorageProvider; 400 on missing client or import errors.
+- `GET /api/v1/documents/client/{id}` — list documents for client.
+- `GET /api/v1/documents/client/{id}/signals` — returns operational signals (missing docs + binder SLA summaries).
+### Service/Repo/Model
+- DocumentType enum (`id_copy`, `power_of_attorney`, `engagement_agreement`); `is_present` flag always True on upload. SignalsService uses PermanentDocumentService `get_missing_document_types`.
+### Gaps
+- No delete/replace; storage provider is local only; upload reads entire file into memory.
+
+## 14. Domain: Reminders
+### Implemented Endpoints
+- `GET /api/v1/reminders` — filters optional `status` (pending/sent/canceled), paginated.
+- `GET /api/v1/reminders/{id}` — 404 if missing.
+- `POST /api/v1/reminders` — creates reminder; type-specific required FK checks: `tax_deadline_id` for tax_deadline_approaching, `binder_id` for binder_idle, `charge_id` for unpaid_charge, custom requires message. Validates `days_before` ≥0 and client existence; type regex enforced by schema.
+- `POST /api/v1/reminders/{id}/cancel` — only pending; 400 otherwise.
+- `POST /api/v1/reminders/{id}/mark-sent` — only pending; stamps sent_at.
+### Service/Repo/Model
+- ReminderType enum, ReminderStatus enum; repo provides list/count by status and pending-by-date. Service delegates to factory/status modules with validation.
+### Gaps
+- No scheduled job wired to send_on; reminders are stored but not dispatched. Pagination sometimes after DB query limited to 20 default.
+
+## 15. Domain: Timeline
+### Implemented Endpoint
+- `GET /api/v1/clients/{id}/timeline` — paginated (page_size default 50, max 200) aggregated events.
+### Service/Logic
+- Aggregates binder events (receive/return/status changes), notifications, charges (created/issued/paid), and attached invoice if present; sorts by timestamp desc.
+- Uses `actions` contracts to attach available_actions.
+### Repositories/Models
+- No dedicated timeline table; pulls from Binder, BinderStatusLog, Notification, Charge, Invoice. TimelineRepository only lists binders by client.
+### Gaps
+- No events for tax deadlines/annual reports; pagination done after loading all events into memory.
+
+## 16. Domain: Search
+### Implemented Endpoint
+- `GET /api/v1/search` — filters: general `query`, `client_name`, `id_number`, `binder_number`, `work_state`, `sla_state`, `signal_type[]`, `has_signals`; paginated.
+### Service/Logic
+- Client search scans up to 1000 clients in memory; binder search iterates active binders, derives work_state/sla_state/signals per binder, applies filters, returns mixed result objects.
+### Gaps
+- No full-text/indexed search; bounded in-memory scans; no pagination at DB level.
+
+## 17. Domain: Users & Authentication
+### Auth Endpoints
+- `POST /api/v1/auth/login` — bcrypt verify; sets JWT cookie; doubles TTL if `rememberMe=true`; 401 on invalid creds; 401 inactive user.
+- `POST /api/v1/auth/logout` — clears cookie (token remains valid until expiry).
+### User Management Endpoints (advisor-only)
+- `POST /api/v1/users` — create; validates password length ≥8; 409 if email exists.
+- `GET /api/v1/users` — paginated list.
+- `GET /api/v1/users/{id}` — 404 if missing.
+- `PATCH /api/v1/users/{id}` — mutable: full_name, phone, role; immutable fields rejected with 400.
+- `POST /api/v1/users/{id}/activate` — reactivate.
+- `POST /api/v1/users/{id}/deactivate` — cannot deactivate self; bumps token_version.
+- `POST /api/v1/users/{id}/reset-password` — validates password length; bumps token_version.
+- Audit logs: `GET /api/v1/users/audit-logs` with filters (action/target/actor/email/date range), paginated; advisor-only.
+### Services/Repos/Models
+- `UserRole` enum; `User` model with token_version + last_login_at. AuthService handles JWT encode/decode with exp, tv match. Audit logs stored in `user_audit_logs` with enums `AuditAction`, `AuditStatus`.
+### Known Gaps
+- No password change for self; no MFA; logout does not invalidate token server-side.
+
+## 18. Domain: Signature Requests (Digital Signing)
+### Implemented Endpoints
+- Advisor/secretary:
+  - `POST /api/v1/signature-requests` — create draft; validates request_type enum; links optional annual_report_id/document_id.
+  - `GET /api/v1/signature-requests/pending` — paginated pending_signature list.
+  - `GET /api/v1/signature-requests/{id}` — returns request + audit trail; 404 if missing.
+  - `POST /api/v1/signature-requests/{id}/send` — sets signing token, expiry, status pending_signature; returns token once.
+  - `POST /api/v1/signature-requests/{id}/cancel` — sets status canceled; requires reason optional.
+  - `GET /api/v1/signature-requests/{id}/audit-trail`
+- Client-scoped:
+  - `GET /api/v1/clients/{id}/signature-requests` — optional status filter; paginated.
+- Public signer (no JWT):
+  - `GET /sign/{token}` — records view; returns signer-facing summary or 400 on invalid/expired.
+  - `POST /sign/{token}/approve` — marks signed, records audit.
+  - `POST /sign/{token}/decline` — marks declined with reason.
+### Service/Repo/Model
+- Model `SignatureRequest` with enums `SignatureRequestStatus`, `SignatureRequestType`; audit events table append-only. Repository supports create/update, list by client/status, list pending, get by token, expire_overdue (not scheduled). Service modules handle token generation, expiry days, audit logging, signer IP/user-agent capture.
+### Gaps
+- No job wired to expire overdue requests automatically. Storage_key/content_hash optional; no actual document upload in flow.
+
+## 19. Domain: Reports (Aging)
+### Implemented Endpoints
+- `GET /api/v1/reports/aging` (advisor) — returns computed aging buckets for issued-but-unpaid charges as of `as_of_date` (default today).
+- `GET /api/v1/reports/aging/export?format=excel|pdf` — generates temp file via openpyxl/reportlab; returns download; 500 if library missing.
+### Service/Logic
+- AgingReportService groups unpaid charges per client into 0-30/31-60/61-90/90+; computes totals and oldest invoice age.
+- ExportService writes to temp `exports/` dir; returns filepath/filename.
+### Gaps
+- No CSV; no streaming; memory aggregation over all issued charges (page_size 10000).
+
+## 20. Domain: Advance / Misc Infrastructure
+- **Notifications job & SLA job:** Present as services only; no scheduler wiring.
+- **Invoice:** ORM + repository for charge-linked invoice references; no API/services creating invoices (only read in timeline).
+- **Actions:** Pure metadata for UI available_actions (binders/charges/clients); no API.
+- **Middleware:** RequestIDMiddleware adds `X-Request-ID` if missing.
+- **Health/Info Root:** `GET /health` verifies DB connectivity; `GET /info` returns app/env; `GET /` returns static service status.
+
+## 21. Known Cross-Cutting Gaps
+- Many list endpoints paginate in memory after full fetch (clients has_signals, tax-deadlines global list, timeline aggregation, search, dashboard attention/work-queue).
+- No rate limiting or throttling.
+- No background workers configured for reminders, signature expiry, or SLA job; these must be triggered externally.
+- Storage/notification providers are local stubs—no cloud integration present in code.

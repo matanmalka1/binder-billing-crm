@@ -1,91 +1,50 @@
+"""
+Notification service — email-only (SendGrid).
+
+WhatsApp is disabled. All client notifications go through email.
+The service is non-blocking: it always returns True so calling code
+is never interrupted by a notification failure.
+"""
+from __future__ import annotations
+
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
+from app.infrastructure.notifications import EmailChannel
 from app.binders.models.binder import Binder
 from app.clients.models.client import Client
 from app.notification.models.notification import NotificationChannel, NotificationTrigger
 from app.clients.repositories.client_repository import ClientRepository
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.core import get_logger
+
+logger = get_logger(__name__)
+
+_SUBJECTS: dict[NotificationTrigger, str] = {
+    NotificationTrigger.BINDER_RECEIVED: "התיק שלך התקבל במשרד",
+    NotificationTrigger.BINDER_APPROACHING_SLA: "תזכורת: מועד החזרת התיק מתקרב",
+    NotificationTrigger.BINDER_OVERDUE: "התיק שלך עבר את מועד ההחזרה",
+    NotificationTrigger.BINDER_READY_FOR_PICKUP: "התיק שלך מוכן לאיסוף",
+    NotificationTrigger.MANUAL_PAYMENT_REMINDER: "תזכורת תשלום",
+}
 
 
 class NotificationService:
-    """Notification engine for Sprint 4."""
+    """Notification engine — sends emails via SendGrid."""
 
     def __init__(self, db: Session):
         self.db = db
         self.notification_repo = NotificationRepository(db)
         self.client_repo = ClientRepository(db)
-        self.whatsapp = WhatsAppChannel()
         self.email = EmailChannel()
 
-    def send_notification(
-        self,
-        client_id: int,
-        trigger: NotificationTrigger,
-        content: str,
-        binder_id: Optional[int] = None,
-    ) -> bool:
-        """
-        Send notification with fallback and persistence.
-        
-        Non-blocking: Always returns True to avoid blocking operations.
-        Persists notification regardless of send status.
-        """
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            return True
-
-        recipient = self._get_recipient(client)
-        if not recipient:
-            return True
-
-        # Try WhatsApp first
-        notification = self.notification_repo.create(
-            client_id=client_id,
-            binder_id=binder_id,
-            trigger=trigger,
-            channel=NotificationChannel.WHATSAPP,
-            recipient=recipient,
-            content_snapshot=content,
-        )
-
-        success, error = self.whatsapp.send(recipient, content)
-
-        if success:
-            self.notification_repo.mark_sent(notification.id)
-            return True
-
-        # WhatsApp failed, mark and try email fallback
-        self.notification_repo.mark_failed(notification.id, error or "WhatsApp send failed")
-
-        if client.email:
-            email_notification = self.notification_repo.create(
-                client_id=client_id,
-                binder_id=binder_id,
-                trigger=trigger,
-                channel=NotificationChannel.EMAIL,
-                recipient=client.email,
-                content_snapshot=content,
-            )
-
-            email_success, email_error = self.email.send(client.email, content)
-
-            if email_success:
-                self.notification_repo.mark_sent(email_notification.id)
-            else:
-                self.notification_repo.mark_failed(
-                    email_notification.id, email_error or "Email send failed"
-                )
-
-        return True
-
     def notify_binder_received(self, binder: Binder, client: Client) -> bool:
-        """Send notification when binder is received."""
         content = (
-            f"Binder {binder.binder_number} received on {binder.received_at}. "
-            f"Expected return: {binder.expected_return_at}."
+            f"שלום {client.full_name},\n\n"
+            f"תיק מספר {binder.binder_number} התקבל במשרד בתאריך {binder.received_at}.\n"
+            f"מועד החזרה משוער: {binder.expected_return_at}.\n\n"
+            f"בברכה"
         )
         return self.send_notification(
             client_id=client.id,
@@ -95,10 +54,11 @@ class NotificationService:
         )
 
     def notify_approaching_sla(self, binder: Binder, client: Client, days_remaining: int) -> bool:
-        """Send notification when binder is approaching SLA threshold."""
         content = (
-            f"Binder {binder.binder_number} approaching deadline. "
-            f"{days_remaining} days remaining until {binder.expected_return_at}."
+            f"שלום {client.full_name},\n\n"
+            f"תיק מספר {binder.binder_number} צפוי להיות מוכן בעוד {days_remaining} ימים "
+            f"(עד {binder.expected_return_at}).\n\n"
+            f"בברכה"
         )
         return self.send_notification(
             client_id=client.id,
@@ -108,10 +68,12 @@ class NotificationService:
         )
 
     def notify_overdue(self, binder: Binder, client: Client, days_overdue: int) -> bool:
-        """Send notification when binder is overdue."""
         content = (
-            f"OVERDUE: Binder {binder.binder_number} is {days_overdue} days overdue. "
-            f"Expected return was {binder.expected_return_at}."
+            f"שלום {client.full_name},\n\n"
+            f"תיק מספר {binder.binder_number} עבר את מועד ההחזרה המתוכנן "
+            f"({binder.expected_return_at}) לפני {days_overdue} ימים.\n"
+            f"אנא צרו קשר עם המשרד לתיאום.\n\n"
+            f"בברכה"
         )
         return self.send_notification(
             client_id=client.id,
@@ -121,8 +83,11 @@ class NotificationService:
         )
 
     def notify_ready_for_pickup(self, binder: Binder, client: Client) -> bool:
-        """Send notification when binder is ready for pickup."""
-        content = f"Binder {binder.binder_number} is ready for pickup."
+        content = (
+            f"שלום {client.full_name},\n\n"
+            f"תיק מספר {binder.binder_number} מוכן לאיסוף מהמשרד.\n\n"
+            f"בברכה"
+        )
         return self.send_notification(
             client_id=client.id,
             trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
@@ -131,14 +96,75 @@ class NotificationService:
         )
 
     def notify_payment_reminder(self, client: Client, reminder_text: str) -> bool:
-        """Send manual payment reminder (advisor-triggered)."""
         return self.send_notification(
             client_id=client.id,
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             content=reminder_text,
         )
 
-    @staticmethod
-    def _get_recipient(client: Client) -> Optional[str]:
-        """Get notification recipient (phone for WhatsApp)."""
-        return client.phone
+    def send_notification(
+        self,
+        client_id: int,
+        trigger: NotificationTrigger,
+        content: str,
+        binder_id: Optional[int] = None,
+    ) -> bool:
+        """
+        Persist + send an email notification.
+
+        Never raises — always returns True so callers are not interrupted.
+        """
+        try:
+            client = self.client_repo.get_by_id(client_id)
+            if not client:
+                logger.warning("send_notification: client %s not found", client_id)
+                return True
+
+            if not client.email:
+                logger.info(
+                    "send_notification: client %s has no email, skipping trigger=%s",
+                    client_id,
+                    trigger.value,
+                )
+                return True
+
+            subject = _SUBJECTS.get(trigger, "הודעה ממערכת ניהול התיקים")
+
+            notification = self.notification_repo.create(
+                client_id=client_id,
+                binder_id=binder_id,
+                trigger=trigger,
+                channel=NotificationChannel.EMAIL,
+                recipient=client.email,
+                content_snapshot=content,
+            )
+
+            # Send
+            success, error = self.email.send(client.email, content, subject=subject)
+
+            if success:
+                self.notification_repo.mark_sent(notification.id)
+                logger.info(
+                    "Notification sent | client=%s trigger=%s email=%s",
+                    client_id,
+                    trigger.value,
+                    client.email,
+                )
+            else:
+                self.notification_repo.mark_failed(notification.id, error or "unknown error")
+                logger.error(
+                    "Notification failed | client=%s trigger=%s error=%s",
+                    client_id,
+                    trigger.value,
+                    error,
+                )
+
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "Unexpected error in send_notification | client=%s trigger=%s error=%s",
+                client_id,
+                trigger,
+                exc,
+            )
+
+        return True

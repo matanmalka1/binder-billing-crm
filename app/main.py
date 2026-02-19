@@ -34,10 +34,8 @@ from app.tax_deadline.api import tax_deadline
 from app.timeline.api import timeline
 from app.users.api import auth
 
-# Validate environment before starting
 EnvValidator.validate()
 
-# Setup structured logging
 setup_logging(level=config.LOG_LEVEL)
 logger = get_logger(__name__)
 if config.APP_ENV == "development":
@@ -63,7 +61,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Root endpoint (simple service presence check)
 @app.get("/")
 def root():
     return {
@@ -71,13 +68,10 @@ def root():
         "status": "running",
     }
 
-# Setup exception handlers
 setup_exception_handlers(app)
 
-# Request ID middleware (before CORS)
 app.add_middleware(RequestIDMiddleware)
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.CORS_ALLOWED_ORIGINS,
@@ -95,10 +89,8 @@ def info():
     }
 
 
-# API routes
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
-# NOTE: annual_report_detail before the other annual_report routers (ordering hygiene — avoids path conflicts)
 app.include_router(annual_report_detail.router, prefix="/api/v1")
 app.include_router(annual_report_create_read.router, prefix="/api/v1")
 app.include_router(annual_report_schedule.router, prefix="/api/v1")
@@ -111,7 +103,6 @@ app.include_router(dashboard_tax.router, prefix="/api/v1")
 # Place Excel routes before parameterized /clients/{id} to avoid path conflicts
 app.include_router(clients_excel.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
-# NOTE: operational binder routes before `/binders/{binder_id}` to avoid path conflicts
 app.include_router(binders_operations.router, prefix="/api/v1")
 app.include_router(binders.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
@@ -131,7 +122,6 @@ app.include_router(client_tax_profile.router, prefix="/api/v1")
 app.include_router(correspondence.router, prefix="/api/v1")
 app.include_router(advance_payments.router, prefix="/api/v1")
 app.include_router(signature_requests_routers.router, prefix="/api/v1")
-# Public signer routes (no /api/v1 prefix)
 app.include_router(signature_requests_routers.signer_router)
 
 def handle_shutdown(signum, frame):
@@ -140,7 +130,6 @@ def handle_shutdown(signum, frame):
     sys.exit(0)
 
 
-# Register shutdown handlers
 signal.signal(signal.SIGTERM, handle_shutdown)
 signal.signal(signal.SIGINT, handle_shutdown)
 

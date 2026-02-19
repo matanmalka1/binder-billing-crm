@@ -10,11 +10,6 @@ except Exception:
 
 
 def _load_env_files() -> None:
-    """
-    Load dotenv from env-specific file before Config is initialized.
-
-    Existing environment variables always win (override=False).
-    """
     if load_dotenv is None:
         return
 
@@ -76,8 +71,17 @@ class Config:
 
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
-    # Phase 2 placeholders
+    # ── Notifications ──────────────────────────────────────────────────
+    # Set NOTIFICATIONS_ENABLED=true in production to actually send emails.
+    # In development/test the EmailChannel logs instead of sending.
     NOTIFICATIONS_ENABLED: bool = os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
+
+    # SendGrid
+    SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
+    EMAIL_FROM_ADDRESS: str = os.getenv("EMAIL_FROM_ADDRESS", "")   # must be verified in SendGrid
+    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "")
+
+    # ── Invoice provider (future) ──────────────────────────────────────
     INVOICE_PROVIDER_BASE_URL: str = os.getenv("INVOICE_PROVIDER_BASE_URL", "")
     INVOICE_PROVIDER_API_KEY: str = os.getenv("INVOICE_PROVIDER_API_KEY", "")
 
