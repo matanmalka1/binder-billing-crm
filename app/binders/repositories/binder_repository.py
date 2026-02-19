@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 
 
 class BinderRepository:
@@ -16,6 +16,7 @@ class BinderRepository:
         self,
         client_id: int,
         binder_number: str,
+        binder_type: BinderType,
         received_at: date,
         expected_return_at: date,
         received_by: int,
@@ -25,6 +26,7 @@ class BinderRepository:
         binder = Binder(
             client_id=client_id,
             binder_number=binder_number,
+            binder_type=binder_type,
             received_at=received_at,
             expected_return_at=expected_return_at,
             received_by=received_by,

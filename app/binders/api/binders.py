@@ -54,6 +54,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
         binder = service.receive_binder(
             client_id=request.client_id,
             binder_number=request.binder_number,
+            binder_type=request.binder_type,
             received_at=request.received_at,
             received_by=request.received_by,
             notes=request.notes,

@@ -12,12 +12,24 @@ class BinderStatus(str, PyEnum):
     OVERDUE = "overdue"
 
 
+class BinderType(str, PyEnum):
+    VAT = "vat"
+    INCOME_TAX = "income_tax"
+    NATIONAL_INSURANCE = "national_insurance"
+    CAPITAL_DECLARATION = "capital_declaration"
+    ANNUAL_REPORT = "annual_report"
+    SALARY = "salary"
+    BOOKKEEPING = "bookkeeping"
+    OTHER = "other"
+
+
 class Binder(Base):
     __tablename__ = "binders"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     binder_number = Column(String, nullable=False)
+    binder_type = Column(Enum(BinderType), nullable=False)
     received_at = Column(Date, nullable=False)
     expected_return_at = Column(Date, nullable=False)
     returned_at = Column(Date, nullable=True)

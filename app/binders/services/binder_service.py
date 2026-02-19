@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_repository import ClientRepository
@@ -25,6 +25,7 @@ class BinderService:
         self,
         client_id: int,
         binder_number: str,
+        binder_type: BinderType,
         received_at: date,
         received_by: int,
         notes: Optional[str] = None,
@@ -43,6 +44,7 @@ class BinderService:
         binder = self.binder_repo.create(
             client_id=client_id,
             binder_number=binder_number,
+            binder_type=binder_type,
             received_at=received_at,
             expected_return_at=expected_return_at,
             received_by=received_by,

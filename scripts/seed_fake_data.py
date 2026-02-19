@@ -34,7 +34,7 @@ from app.annual_reports.models.annual_report_enums import (
     ReportStage,
 )
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client, ClientStatus, ClientType
@@ -271,6 +271,7 @@ class Seeder:
                 binder = Binder(
                     client_id=client.id,
                     binder_number=f"B-{binder_serial}",
+                    binder_type=self.rng.choice(list(BinderType)),
                     received_at=received_at,
                     expected_return_at=expected_return_at,
                     returned_at=returned_at,

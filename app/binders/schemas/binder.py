@@ -3,10 +3,13 @@ from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
+from app.binders.models.binder import BinderType
+
 
 class BinderReceiveRequest(BaseModel):
     client_id: int
     binder_number: str
+    binder_type: BinderType
     received_at: date
     received_by: int
     notes: Optional[str] = None
@@ -21,6 +24,7 @@ class BinderResponse(BaseModel):
     id: int
     client_id: int
     binder_number: str
+    binder_type: BinderType
     status: str
     received_at: date
     expected_return_at: date
