@@ -94,8 +94,10 @@ def add_invoice(
             f"Invoice number '{invoice_number}' already exists for this period and type"
         )
 
+    original_status = item.status
+
     # Auto-transition MATERIAL_RECEIVED → DATA_ENTRY_IN_PROGRESS on first invoice
-    if item.status == VatWorkItemStatus.MATERIAL_RECEIVED:
+    if original_status == VatWorkItemStatus.MATERIAL_RECEIVED:
         work_item_repo.update_status(item_id, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
         work_item_repo.append_audit(
             work_item_id=item_id,
@@ -105,13 +107,12 @@ def add_invoice(
             new_value=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS.value,
             note="Auto-transitioned on first invoice entry",
         )
-
-    if item.status not in (
+    elif original_status not in (
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
         VatWorkItemStatus.READY_FOR_REVIEW,  # allow advisor to add during review
     ):
         raise ValueError(
-            f"Cannot add invoices to work item in status {item.status.value}"
+            f"Cannot add invoices to work item in status {original_status.value}"
         )
 
     invoice = invoice_repo.create(
@@ -209,7 +210,10 @@ def mark_ready_for_review(
     if not item:
         raise ValueError(f"VAT work item {item_id} not found")
 
-    _assert_transition_allowed(item, VatWorkItemStatus.READY_FOR_REVIEW)
+    if item.status != VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS:
+        raise ValueError(
+            f"Cannot mark ready for review from status {item.status.value}"
+        )
 
     updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW)
 

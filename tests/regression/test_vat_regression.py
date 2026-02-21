@@ -23,6 +23,7 @@ def test_vat_module_does_not_break_binder_receive(client, advisor_headers, test_
         json={
             "client_id": c.id,
             "binder_number": "VAT-REG-001",
+            "binder_type": "vat",
             "received_at": "2026-02-01",
             "received_by": 1,
         },
