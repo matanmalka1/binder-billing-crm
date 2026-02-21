@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 from app.binders.services.daily_sla_job_service import DailySLAJobService
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -14,6 +14,7 @@ def test_daily_job_scans_active_binders(test_db, test_user):
         id_number="444444444",
         client_type=ClientType.COMPANY,
         phone="0501234567",
+        email="jobtestclient@example.com",
         opened_at=date.today(),
     )
     test_db.add(client)
@@ -24,6 +25,7 @@ def test_daily_job_scans_active_binders(test_db, test_user):
     binder1 = Binder(
         client_id=client.id,
         binder_number="BND-JOB-1",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=80),
         expected_return_at=date.today() - timedelta(days=5),  # Overdue
         status=BinderStatus.IN_OFFICE,
@@ -32,6 +34,7 @@ def test_daily_job_scans_active_binders(test_db, test_user):
     binder2 = Binder(
         client_id=client.id,
         binder_number="BND-JOB-2",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=76),
         expected_return_at=date.today() + timedelta(days=14),  # Approaching
         status=BinderStatus.IN_OFFICE,
@@ -40,6 +43,7 @@ def test_daily_job_scans_active_binders(test_db, test_user):
     binder3 = Binder(
         client_id=client.id,
         binder_number="BND-JOB-3",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=5),
         expected_return_at=date.today() + timedelta(days=60),
         status=BinderStatus.READY_FOR_PICKUP,
@@ -71,6 +75,7 @@ def test_daily_job_idempotency(test_db, test_user):
         id_number="555555555",
         client_type=ClientType.OSEK_MURSHE,
         phone="0501234567",
+        email="idempotentclient@example.com",
         opened_at=date.today(),
     )
     test_db.add(client)
@@ -80,6 +85,7 @@ def test_daily_job_idempotency(test_db, test_user):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-IDEM-1",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,

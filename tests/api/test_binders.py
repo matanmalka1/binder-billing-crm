@@ -27,6 +27,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-001",
+            "binder_type": "other",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
             "notes": "Test binder",
@@ -68,6 +69,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-002",
+            "binder_type": "other",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
         },
@@ -119,6 +121,7 @@ def test_binder_list_includes_available_actions(client, auth_token, test_db, tes
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-003",
+            "binder_type": "other",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
         },

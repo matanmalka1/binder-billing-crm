@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 from app.binders.services.signals_service import SignalsService
 
@@ -40,6 +40,7 @@ def test_operational_signals_binders_nearing_sla(test_db, test_user):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-NEAR-1",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=76),
         expected_return_at=date.today() + timedelta(days=14),
         status=BinderStatus.IN_OFFICE,
@@ -73,6 +74,7 @@ def test_operational_signals_overdue_binders(test_db, test_user):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-OVER-1",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,

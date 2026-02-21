@@ -23,6 +23,7 @@ def test_sprint1_unchanged(client, advisor_headers, test_db):
         json={
             "client_id": test_client.id,
             "binder_number": "S5-REG-001",
+            "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
         },

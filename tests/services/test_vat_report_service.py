@@ -167,7 +167,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = item
         invoice_repo.get_by_number.return_value = None
         invoice_repo.create.return_value = _make_invoice()
-        invoice_repo.sum_vat_by_type.return_value = 170.0
+        invoice_repo.sum_vat_both_types.return_value = (170.0, 0.0)
 
         return data_entry.add_invoice(
             work_item_repo,

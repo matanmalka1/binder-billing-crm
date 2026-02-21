@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 
 
@@ -18,6 +18,7 @@ def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
     binder = Binder(
         client_id=test_client.id,
         binder_number="WQ-001",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=5),
         expected_return_at=date.today() + timedelta(days=85),
         status=BinderStatus.IN_OFFICE,

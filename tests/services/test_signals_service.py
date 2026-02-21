@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 from app.binders.services.signals_service import SignalsService, SignalType
 
@@ -19,6 +19,7 @@ def test_overdue_signal(test_db):
     binder = Binder(
         client_id=client.id,
         binder_number="SIG-OVER",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,
@@ -47,6 +48,7 @@ def test_near_sla_signal(test_db):
     binder = Binder(
         client_id=client.id,
         binder_number="SIG-NEAR",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=80),
         expected_return_at=date.today() + timedelta(days=10),
         status=BinderStatus.IN_OFFICE,
@@ -75,6 +77,7 @@ def test_idle_signal(test_db):
     binder = Binder(
         client_id=client.id,
         binder_number="SIG-IDLE",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=30),
         expected_return_at=date.today() + timedelta(days=60),
         status=BinderStatus.IN_OFFICE,

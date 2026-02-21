@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 
 
@@ -22,6 +22,7 @@ def test_sprint1_binder_receive_still_works(client, advisor_headers, test_db):
         json={
             "client_id": test_client.id,
             "binder_number": "REG-001",
+            "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
         },
@@ -48,6 +49,7 @@ def test_sprint2_operational_endpoints_unchanged(client, advisor_headers, test_d
     binder = Binder(
         client_id=test_client.id,
         binder_number="REG-002",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,

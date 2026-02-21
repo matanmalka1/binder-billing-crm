@@ -2,7 +2,7 @@
 from datetime import date, timedelta
 from unittest.mock import patch
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 from app.binders.services.daily_sla_job_service import DailySLAJobService
 
@@ -29,6 +29,7 @@ def test_job_completes_despite_individual_errors(test_db, test_user):
         binder = Binder(
             client_id=client.id,
             binder_number=f"BND-ERR-{i}",
+            binder_type=BinderType.OTHER,
             received_at=date.today() - timedelta(days=100),
             expected_return_at=date.today() - timedelta(days=10),
             status=BinderStatus.IN_OFFICE,
@@ -70,6 +71,7 @@ def test_job_reports_error_count(test_db, test_user):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-ERR-COUNT",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,
@@ -108,6 +110,7 @@ def test_job_is_idempotent_after_errors(test_db, test_user):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-RETRY",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
         expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,

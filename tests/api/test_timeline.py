@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 
 
@@ -19,6 +19,7 @@ def test_client_timeline_endpoint(client, advisor_headers, test_db, test_user):
     binder = Binder(
         client_id=test_client.id,
         binder_number="TL-BND-1",
+        binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=2),
         expected_return_at=date.today() + timedelta(days=88),
         status=BinderStatus.IN_OFFICE,

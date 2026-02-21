@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 from app.notification.models.notification import NotificationStatus, NotificationTrigger
 from app.notification.services.notification_service import NotificationService
@@ -13,6 +13,7 @@ def test_notification_persisted_on_binder_received(test_db):
         id_number="111111111",
         client_type=ClientType.COMPANY,
         phone="0501234567",
+        email="testclient@example.com",
         opened_at=date.today(),
     )
     test_db.add(client)
@@ -22,6 +23,7 @@ def test_notification_persisted_on_binder_received(test_db):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-001",
+        binder_type=BinderType.OTHER,
         received_at=date.today(),
         expected_return_at=date(2026, 5, 10),
         status=BinderStatus.IN_OFFICE,

@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.clients.models.client import Client, ClientType
 
@@ -20,6 +20,7 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
     b_open = Binder(
         client_id=c.id,
         binder_number="BND-OPEN",
+        binder_type=BinderType.OTHER,
         received_at=today,
         expected_return_at=today + timedelta(days=1),
         status=BinderStatus.IN_OFFICE,
@@ -28,6 +29,7 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
     b_overdue = Binder(
         client_id=c.id,
         binder_number="BND-OVERDUE",
+        binder_type=BinderType.OTHER,
         received_at=today - timedelta(days=100),
         expected_return_at=today - timedelta(days=1),
         status=BinderStatus.IN_OFFICE,
@@ -36,6 +38,7 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
     b_due_today = Binder(
         client_id=c.id,
         binder_number="BND-DUE",
+        binder_type=BinderType.OTHER,
         received_at=today,
         expected_return_at=today,
         status=BinderStatus.IN_OFFICE,
