@@ -56,6 +56,7 @@ class Reminder(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False)
     sent_at = Column(DateTime, nullable=True)
     canceled_at = Column(DateTime, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     __table_args__ = (
         Index("idx_reminder_status_send_on", "status", "send_on"),

@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 
 
 class TaxDeadlineRepository:
@@ -27,7 +27,7 @@ class TaxDeadlineRepository:
             due_date=due_date,
             payment_amount=payment_amount,
             description=description,
-            status="pending",
+            status=TaxDeadlineStatus.PENDING,
         )
         self.db.add(deadline)
         self.db.commit()
@@ -41,7 +41,7 @@ class TaxDeadlineRepository:
     def update_status(
         self,
         deadline_id: int,
-        status: str,
+        status: TaxDeadlineStatus,
         completed_at: Optional[date] = None,
     ) -> Optional[TaxDeadline]:
         """Update deadline status (and optional completion date)."""
@@ -66,7 +66,7 @@ class TaxDeadlineRepository:
         return (
             self.db.query(TaxDeadline)
             .filter(
-                TaxDeadline.status == "pending",
+                TaxDeadline.status == TaxDeadlineStatus.PENDING,
                 TaxDeadline.due_date >= from_date,
                 TaxDeadline.due_date <= to_date,
             )
@@ -79,7 +79,7 @@ class TaxDeadlineRepository:
         return (
             self.db.query(TaxDeadline)
             .filter(
-                TaxDeadline.status == "pending",
+                TaxDeadline.status == TaxDeadlineStatus.PENDING,
                 TaxDeadline.due_date < reference_date,
             )
             .order_by(TaxDeadline.due_date.asc())

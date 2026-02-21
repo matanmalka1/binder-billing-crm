@@ -24,6 +24,12 @@ class ChargeResponse(BaseModel):
     created_at: datetime
     issued_at: Optional[datetime] = None
     paid_at: Optional[datetime] = None
+    created_by: Optional[int] = None
+    issued_by: Optional[int] = None
+    paid_by: Optional[int] = None
+    canceled_by: Optional[int] = None
+    canceled_at: Optional[datetime] = None
+    cancellation_reason: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +48,10 @@ class ChargeResponseSecretary(BaseModel):
     paid_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+class ChargeCancelRequest(BaseModel):
+    reason: Optional[str] = None
 
 
 class ChargeListResponse(BaseModel):

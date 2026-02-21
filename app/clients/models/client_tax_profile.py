@@ -24,7 +24,7 @@ class ClientTaxProfile(Base):
     tax_year_start = Column(Integer, nullable=True)
     accountant_name = Column(String, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 
     def __repr__(self):
         return (

@@ -18,6 +18,7 @@ def create_tax_deadline_reminder(
     target_date: date,
     days_before: int,
     message: Optional[str] = None,
+    created_by: Optional[int] = None,
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if days_before < 0:
@@ -35,6 +36,7 @@ def create_tax_deadline_reminder(
         send_on=send_on,
         message=message,
         tax_deadline_id=tax_deadline_id,
+        created_by=created_by,
     )
 
 
@@ -46,6 +48,7 @@ def create_idle_binder_reminder(
     binder_id: int,
     days_idle: int,
     message: Optional[str] = None,
+    created_by: Optional[int] = None,
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if days_idle < 0:
@@ -64,6 +67,7 @@ def create_idle_binder_reminder(
         send_on=send_on,
         message=message,
         binder_id=binder_id,
+        created_by=created_by,
     )
 
 
@@ -75,6 +79,7 @@ def create_unpaid_charge_reminder(
     charge_id: int,
     days_unpaid: int,
     message: Optional[str] = None,
+    created_by: Optional[int] = None,
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if days_unpaid < 0:
@@ -93,6 +98,7 @@ def create_unpaid_charge_reminder(
         send_on=send_on,
         message=message,
         charge_id=charge_id,
+        created_by=created_by,
     )
 
 
@@ -104,6 +110,7 @@ def create_custom_reminder(
     target_date: date,
     days_before: int,
     message: str,
+    created_by: Optional[int] = None,
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if days_before < 0:
@@ -120,4 +127,5 @@ def create_custom_reminder(
         days_before=days_before,
         send_on=send_on,
         message=message.strip(),
+        created_by=created_by,
     )

@@ -39,6 +39,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             opened_at=request.opened_at,
             phone=request.phone,
             email=request.email,
+            actor_id=user.id,
         )
         return _to_client_response(client, user.role)
     except ValueError as e:

@@ -24,6 +24,7 @@ class ReminderRepository(BaseRepository):
         binder_id: Optional[int] = None,
         charge_id: Optional[int] = None,
         tax_deadline_id: Optional[int] = None,
+        created_by: Optional[int] = None,
     ) -> Reminder:
         """Create new reminder."""
         reminder = Reminder(
@@ -37,6 +38,7 @@ class ReminderRepository(BaseRepository):
             binder_id=binder_id,
             charge_id=charge_id,
             tax_deadline_id=tax_deadline_id,
+            created_by=created_by,
         )
         self.db.add(reminder)
         self.db.commit()

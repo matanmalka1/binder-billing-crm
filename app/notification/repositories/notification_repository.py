@@ -20,6 +20,7 @@ class NotificationRepository:
         recipient: str,
         content_snapshot: str,
         binder_id: Optional[int] = None,
+        triggered_by: Optional[int] = None,
     ) -> Notification:
         """Create new notification record."""
         notification = Notification(
@@ -30,6 +31,7 @@ class NotificationRepository:
             recipient=recipient,
             content_snapshot=content_snapshot,
             status=NotificationStatus.PENDING,
+            triggered_by=triggered_by,
         )
         self.db.add(notification)
         self.db.commit()

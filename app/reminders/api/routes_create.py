@@ -13,7 +13,7 @@ create_router = APIRouter()
 def create_reminder(
     request: ReminderCreateRequest,
     db: DBSession,
-    _user: CurrentUser,
+    user: CurrentUser,
 ):
     service = ReminderService(db)
 
@@ -30,6 +30,7 @@ def create_reminder(
                 target_date=request.target_date,
                 days_before=request.days_before,
                 message=request.message,
+                created_by=user.id,
             )
 
         elif request.reminder_type == "binder_idle":
@@ -43,6 +44,7 @@ def create_reminder(
                 binder_id=request.binder_id,
                 days_idle=request.days_before,
                 message=request.message,
+                created_by=user.id,
             )
 
         elif request.reminder_type == "unpaid_charge":
@@ -56,6 +58,7 @@ def create_reminder(
                 charge_id=request.charge_id,
                 days_unpaid=request.days_before,
                 message=request.message,
+                created_by=user.id,
             )
 
         elif request.reminder_type == "custom":
@@ -69,6 +72,7 @@ def create_reminder(
                 target_date=request.target_date,
                 days_before=request.days_before,
                 message=request.message,
+                created_by=user.id,
             )
 
         else:

@@ -21,6 +21,11 @@ class UrgencyLevel(str, PyEnum):
     OVERDUE = "overdue"
 
 
+class TaxDeadlineStatus(str, PyEnum):
+    PENDING = "pending"
+    COMPLETED = "completed"
+
+
 class TaxDeadline(Base):
     __tablename__ = "tax_deadlines"
 
@@ -28,7 +33,7 @@ class TaxDeadline(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     deadline_type = Column(Enum(DeadlineType), nullable=False)
     due_date = Column(Date, nullable=False, index=True)
-    status = Column(String, default="pending", nullable=False)
+    status = Column(Enum(TaxDeadlineStatus), default=TaxDeadlineStatus.PENDING, nullable=False)
 
     # Financial
     payment_amount = Column(Numeric(10, 2), nullable=True)

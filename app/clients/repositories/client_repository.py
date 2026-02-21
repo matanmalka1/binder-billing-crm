@@ -22,6 +22,7 @@ class ClientRepository(BaseRepository):
         phone: Optional[str] = None,
         email: Optional[str] = None,
         notes: Optional[str] = None,
+        created_by: Optional[int] = None,
     ) -> Client:
         """Create new client."""
         client = Client(
@@ -32,6 +33,7 @@ class ClientRepository(BaseRepository):
             phone=phone,
             email=email,
             notes=notes,
+            created_by=created_by,
         )
         self.db.add(client)
         self.db.commit()

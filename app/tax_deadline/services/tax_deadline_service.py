@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, UrgencyLevel
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -43,12 +43,12 @@ class TaxDeadlineService:
         if not deadline:
             raise ValueError(f"Deadline {deadline_id} not found")
 
-        if deadline.status == "completed":
+        if deadline.status == TaxDeadlineStatus.COMPLETED:
             return deadline
 
         return self.deadline_repo.update_status(
             deadline_id,
-            "completed",
+            TaxDeadlineStatus.COMPLETED,
             completed_at=utcnow(),
         )
 
@@ -81,7 +81,7 @@ class TaxDeadlineService:
         reference_date: Optional[date] = None,
     ) -> Optional[UrgencyLevel]:
         """Compute urgency level for deadline."""
-        if deadline.status == "completed":
+        if deadline.status == TaxDeadlineStatus.COMPLETED:
             return None
 
         if reference_date is None:

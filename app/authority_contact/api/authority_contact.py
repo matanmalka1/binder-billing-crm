@@ -118,6 +118,6 @@ def delete_authority_contact(contact_id: int, db: DBSession, user: CurrentUser):
     service = AuthorityContactService(db)
 
     try:
-        service.delete_contact(contact_id)
+        service.delete_contact(contact_id, actor_id=user.id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

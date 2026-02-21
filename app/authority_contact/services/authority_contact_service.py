@@ -60,9 +60,9 @@ class AuthorityContactService:
         """List contacts for client."""
         return self.contact_repo.list_by_client(client_id, contact_type)
 
-    def delete_contact(self, contact_id: int) -> None:
-        """Delete contact."""
-        success = self.contact_repo.delete(contact_id)
+    def delete_contact(self, contact_id: int, actor_id: int) -> None:
+        """Soft-delete contact."""
+        success = self.contact_repo.delete(contact_id, deleted_by=actor_id)
         if not success:
             raise ValueError(f"Contact {contact_id} not found")
 

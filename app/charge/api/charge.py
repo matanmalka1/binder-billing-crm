@@ -1,10 +1,10 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.charge.schemas.charge import ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
+from app.charge.schemas.charge import ChargeCancelRequest, ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.charge.services.billing_service import BillingService
 
 router = APIRouter(
@@ -30,6 +30,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
             charge_type=request.charge_type,
             period=request.period,
             currency=request.currency,
+            actor_id=user.id,
         )
         return ChargeResponse.model_validate(charge)
     except ValueError as e:
@@ -46,7 +47,7 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     service = BillingService(db)
 
     try:
-        charge = service.issue_charge(charge_id)
+        charge = service.issue_charge(charge_id, actor_id=user.id)
         return ChargeResponse.model_validate(charge)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -62,7 +63,7 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     service = BillingService(db)
 
     try:
-        charge = service.mark_charge_paid(charge_id)
+        charge = service.mark_charge_paid(charge_id, actor_id=user.id)
         return ChargeResponse.model_validate(charge)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -73,12 +74,12 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     response_model=ChargeResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser):
+def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest)):
     """Cancel a charge (ADVISOR only)."""
     service = BillingService(db)
 
     try:
-        charge = service.cancel_charge(charge_id)
+        charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
         return ChargeResponse.model_validate(charge)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

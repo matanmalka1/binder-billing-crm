@@ -26,6 +26,7 @@ class ClientService:
         phone: Optional[str] = None,
         email: Optional[str] = None,
         notes: Optional[str] = None,
+        actor_id: Optional[int] = None,
     ) -> Client:
         """Create new client. Raises ValueError if ID number exists."""
         existing = self.client_repo.get_by_id_number(id_number)
@@ -40,6 +41,7 @@ class ClientService:
             phone=phone,
             email=email,
             notes=notes,
+            created_by=actor_id,
         )
 
     def get_client(self, client_id: int) -> Optional[Client]:

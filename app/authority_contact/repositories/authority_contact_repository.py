@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.utils.time import utcnow
 
 
 class AuthorityContactRepository(BaseRepository):
@@ -38,9 +39,11 @@ class AuthorityContactRepository(BaseRepository):
         return contact
 
     def get_by_id(self, contact_id: int) -> Optional[AuthorityContact]:
-        """Retrieve contact by ID."""
+        """Retrieve contact by ID (excludes soft-deleted)."""
         return (
-            self.db.query(AuthorityContact).filter(AuthorityContact.id == contact_id).first()
+            self.db.query(AuthorityContact)
+            .filter(AuthorityContact.id == contact_id, AuthorityContact.deleted_at.is_(None))
+            .first()
         )
 
     def list_by_client(
@@ -50,7 +53,8 @@ class AuthorityContactRepository(BaseRepository):
     ) -> list[AuthorityContact]:
         """List contacts for a client."""
         query = self.db.query(AuthorityContact).filter(
-            AuthorityContact.client_id == client_id
+            AuthorityContact.client_id == client_id,
+            AuthorityContact.deleted_at.is_(None),
         )
 
         if contact_type:
@@ -61,14 +65,15 @@ class AuthorityContactRepository(BaseRepository):
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""
         contact = self.get_by_id(contact_id)
-        return self._update_entity(contact, **fields)
+        return self._update_entity(contact, touch_updated_at=True, **fields)
 
-    def delete(self, contact_id: int) -> bool:
-        """Delete contact."""
+    def delete(self, contact_id: int, deleted_by: int) -> bool:
+        """Soft-delete contact, preserving the record for audit."""
         contact = self.get_by_id(contact_id)
         if not contact:
             return False
 
-        self.db.delete(contact)
+        contact.deleted_at = utcnow()
+        contact.deleted_by = deleted_by
         self.db.commit()
         return True

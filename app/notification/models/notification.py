@@ -40,6 +40,7 @@ class Notification(Base):
     failed_at = Column(DateTime, nullable=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
+    triggered_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     def __repr__(self):
         return f"<Notification(id={self.id}, trigger='{self.trigger}', channel='{self.channel}', status='{self.status}')>"

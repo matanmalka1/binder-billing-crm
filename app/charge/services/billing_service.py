@@ -22,12 +22,13 @@ class BillingService:
         client_id: int,
         amount: float,
         charge_type: str,
+        actor_id: int = None,
         period: Optional[str] = None,
         currency: str = "ILS",
     ) -> Charge:
         """
         Create new charge in draft status.
-        
+
         Raises:
             ValueError: If client doesn't exist or amount is invalid
         """
@@ -45,9 +46,10 @@ class BillingService:
             charge_type=charge_type,
             period=period,
             currency=currency,
+            created_by=actor_id,
         )
 
-    def issue_charge(self, charge_id: int) -> Charge:
+    def issue_charge(self, charge_id: int, actor_id: int = None) -> Charge:
         """
         Issue a draft charge.
         
@@ -69,9 +71,10 @@ class BillingService:
             charge_id,
             ChargeStatus.ISSUED,
             issued_at=utcnow(),
+            issued_by=actor_id,
         )
 
-    def mark_charge_paid(self, charge_id: int) -> Charge:
+    def mark_charge_paid(self, charge_id: int, actor_id: int = None) -> Charge:
         """
         Mark an issued charge as paid.
         
@@ -95,9 +98,10 @@ class BillingService:
             charge_id,
             ChargeStatus.PAID,
             paid_at=utcnow(),
+            paid_by=actor_id,
         )
 
-    def cancel_charge(self, charge_id: int) -> Charge:
+    def cancel_charge(self, charge_id: int, actor_id: int = None, reason: Optional[str] = None) -> Charge:
         """
         Cancel a draft or issued charge.
         
@@ -118,7 +122,13 @@ class BillingService:
         if charge.status == ChargeStatus.CANCELED:
             raise ValueError("Charge already canceled")
 
-        return self.charge_repo.update_status(charge_id, ChargeStatus.CANCELED)
+        return self.charge_repo.update_status(
+            charge_id,
+            ChargeStatus.CANCELED,
+            canceled_by=actor_id,
+            canceled_at=utcnow(),
+            cancellation_reason=reason,
+        )
 
     def get_charge(self, charge_id: int) -> Optional[Charge]:
         """Get charge by ID."""

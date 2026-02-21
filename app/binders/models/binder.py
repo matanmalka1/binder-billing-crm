@@ -1,8 +1,9 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String, Text, Index
+from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text, Index
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class BinderStatus(str, PyEnum):
@@ -38,6 +39,7 @@ class Binder(Base):
     returned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     pickup_person_name = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     __table_args__ = (
         Index("idx_binder_status", "status"),

@@ -35,7 +35,7 @@ class AdvancePayment(Base):
     )
     due_date = Column(Date, nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 
     __table_args__ = (
         UniqueConstraint("client_id", "year", "month", name="uq_advance_payment_client_year_month"),

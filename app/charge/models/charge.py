@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
 
 from app.database import Base
 from app.utils.time import utcnow
@@ -31,6 +31,12 @@ class Charge(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False)
     issued_at = Column(DateTime, nullable=True)
     paid_at = Column(DateTime, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    issued_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    paid_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    canceled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    canceled_at = Column(DateTime, nullable=True)
+    cancellation_reason = Column(Text, nullable=True)
 
     def __repr__(self):
         return f"<Charge(id={self.id}, client_id={self.client_id}, amount={self.amount}, status='{self.status}')>"

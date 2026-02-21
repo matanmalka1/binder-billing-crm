@@ -19,6 +19,7 @@ class ChargeRepository(BaseRepository):
         charge_type: str,
         currency: str = "ILS",
         period: Optional[str] = None,
+        created_by: Optional[int] = None,
     ) -> Charge:
         """Create new charge in draft status."""
         charge = Charge(
@@ -28,6 +29,7 @@ class ChargeRepository(BaseRepository):
             charge_type=charge_type,
             period=period,
             status=ChargeStatus.DRAFT,
+            created_by=created_by,
         )
         self.db.add(charge)
         self.db.commit()

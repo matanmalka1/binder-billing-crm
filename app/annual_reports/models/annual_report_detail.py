@@ -16,7 +16,7 @@ class AnnualReportDetail(Base):
     client_approved_at = Column(DateTime, nullable=True)
     internal_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 
     def __repr__(self):
         return (

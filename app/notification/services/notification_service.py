@@ -95,11 +95,12 @@ class NotificationService:
             binder_id=binder.id,
         )
 
-    def notify_payment_reminder(self, client: Client, reminder_text: str) -> bool:
+    def notify_payment_reminder(self, client: Client, reminder_text: str, triggered_by: Optional[int] = None) -> bool:
         return self.send_notification(
             client_id=client.id,
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             content=reminder_text,
+            triggered_by=triggered_by,
         )
 
     def send_notification(
@@ -108,6 +109,7 @@ class NotificationService:
         trigger: NotificationTrigger,
         content: str,
         binder_id: Optional[int] = None,
+        triggered_by: Optional[int] = None,
     ) -> bool:
         """
         Persist + send an email notification.
@@ -137,6 +139,7 @@ class NotificationService:
                 channel=NotificationChannel.EMAIL,
                 recipient=client.email,
                 content_snapshot=content,
+                triggered_by=triggered_by,
             )
 
             # Send
