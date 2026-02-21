@@ -39,9 +39,8 @@ def _recalculate_totals(
     invoice_repo: VatInvoiceRepository,
     item_id: int,
 ) -> None:
-    """Recompute output / input VAT totals from stored invoices."""
-    output_vat = invoice_repo.sum_vat_by_type(item_id, InvoiceType.INCOME)
-    input_vat = invoice_repo.sum_vat_by_type(item_id, InvoiceType.EXPENSE)
+    """Recompute output / input VAT totals from stored invoices (single query)."""
+    output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
     work_item_repo.update_vat_totals(item_id, output_vat, input_vat)
 
 

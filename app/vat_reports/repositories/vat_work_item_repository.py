@@ -75,6 +75,23 @@ class VatWorkItemRepository:
     def count_by_status(self, status: VatWorkItemStatus) -> int:
         return self.db.query(VatWorkItem).filter(VatWorkItem.status == status).count()
 
+    def list_all(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> list[VatWorkItem]:
+        offset = (page - 1) * page_size
+        return (
+            self.db.query(VatWorkItem)
+            .order_by(VatWorkItem.period.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_all(self) -> int:
+        return self.db.query(VatWorkItem).count()
+
     def update_status(
         self,
         item_id: int,

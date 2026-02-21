@@ -35,6 +35,7 @@ class VatWorkItemCreateRequest(BaseModel):
 class VatWorkItemResponse(BaseModel):
     id: int
     client_id: int
+    client_name: Optional[str] = None
     period: str
     status: VatWorkItemStatus
     pending_materials_note: Optional[str]

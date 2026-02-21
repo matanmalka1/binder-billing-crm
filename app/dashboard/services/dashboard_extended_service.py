@@ -130,11 +130,19 @@ class DashboardExtendedService:
                 page=1,
                 page_size=1000,
             )
-            for charge in unpaid_charges:
-                client = self.client_repo.get_by_id(charge.client_id)
-                if not client:
-                    continue
-                items.append(unpaid_charge_attention_item(charge, client))
+            if unpaid_charges:
+                charge_client_ids = {c.client_id for c in unpaid_charges}
+                charge_clients = (
+                    self.db.query(Client)
+                    .filter(Client.id.in_(charge_client_ids))
+                    .all()
+                )
+                charge_client_map = {c.id: c for c in charge_clients}
+                for charge in unpaid_charges:
+                    client = charge_client_map.get(charge.client_id)
+                    if not client:
+                        continue
+                    items.append(unpaid_charge_attention_item(charge, client))
 
         self._attention_cache[cache_key] = (now, items)
         return items

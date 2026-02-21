@@ -29,6 +29,16 @@ def list_work_items_by_status(
     return items, total
 
 
+def list_all_work_items(
+    work_item_repo: VatWorkItemRepository,
+    page: int = 1,
+    page_size: int = 50,
+):
+    items = work_item_repo.list_all(page=page, page_size=page_size)
+    total = work_item_repo.count_all()
+    return items, total
+
+
 def list_invoices(
     invoice_repo: VatInvoiceRepository,
     item_id: int,

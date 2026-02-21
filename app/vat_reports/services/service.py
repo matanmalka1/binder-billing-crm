@@ -7,8 +7,6 @@ throughout this codebase.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.client_repository import ClientRepository
@@ -75,6 +73,9 @@ class VatReportService:
 
     def list_work_items_by_status(self, **kwargs):
         return queries.list_work_items_by_status(self.work_item_repo, **kwargs)
+
+    def list_all_work_items(self, **kwargs):
+        return queries.list_all_work_items(self.work_item_repo, **kwargs)
 
     def list_invoices(self, **kwargs):
         return queries.list_invoices(self.invoice_repo, **kwargs)

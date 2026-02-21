@@ -60,6 +60,12 @@ class ClientRepository(BaseRepository):
 
         return self._paginate(query, page, page_size)
 
+    def list_by_ids(self, client_ids: list[int]) -> list[Client]:
+        """Batch fetch clients by a list of IDs (single query)."""
+        if not client_ids:
+            return []
+        return self.db.query(Client).filter(Client.id.in_(client_ids)).all()
+
     def list_all(self, status: Optional[str] = None) -> list[Client]:
         """List all clients (optionally filtered by status)."""
         query = self.db.query(Client)
