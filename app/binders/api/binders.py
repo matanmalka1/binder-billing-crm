@@ -11,6 +11,7 @@ from app.binders.services.sla_service import SLAService
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 from app.actions.action_contracts import get_binder_actions
+from app.clients.repositories.client_repository import ClientRepository
 
 router = APIRouter(
     prefix="/binders",
@@ -27,6 +28,7 @@ def _to_binder_response(
     work_state: Optional[str] = None,
     sla_state: Optional[str] = None,
     signals: Optional[list[str]] = None,
+    client_name: Optional[str] = None,
 ) -> BinderResponse:
     response = BinderResponse.model_validate(binder)
     response.days_in_office = (reference_date - binder.received_at).days
@@ -41,6 +43,7 @@ def _to_binder_response(
         reference_date,
     )
     response.available_actions = get_binder_actions(binder)
+    response.client_name = client_name
     return response
 
 
@@ -60,11 +63,15 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
             notes=request.notes,
         )
 
+        client_repo = ClientRepository(db)
+        client = client_repo.get_by_id(binder.client_id)
+
         return _to_binder_response(
             binder=binder,
             db=db,
             signals_service=signals_service,
             reference_date=date.today(),
+            client_name=client.full_name if client else None,
         )
 
     except ValueError as e:
@@ -79,11 +86,14 @@ def mark_ready_for_pickup(binder_id: int, db: DBSession, user: CurrentUser):
 
     try:
         binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
+        client_repo = ClientRepository(db)
+        client = client_repo.get_by_id(binder.client_id)
         return _to_binder_response(
             binder=binder,
             db=db,
             signals_service=signals_service,
             reference_date=date.today(),
+            client_name=client.full_name if client else None,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -113,11 +123,14 @@ def return_binder(
             pickup_person_name=pickup_person_name,
             returned_by=returned_by,
         )
+        client_repo = ClientRepository(db)
+        client = client_repo.get_by_id(binder.client_id)
         return _to_binder_response(
             binder=binder,
             db=db,
             signals_service=signals_service,
             reference_date=date.today(),
+            client_name=client.full_name if client else None,
         )
 
     except ValueError as e:
@@ -140,10 +153,14 @@ def list_binders(
 
     binders = service.list_active_binders(client_id=client_id, status=status_filter)
 
+    # Batch-fetch client names (single query for all binders on this page)
+    client_repo = ClientRepository(db)
+    client_ids = list({b.client_id for b in binders})
+    clients = client_repo.list_by_ids(client_ids)
+    client_name_map: dict[int, str] = {c.id: c.full_name for c in clients}
+
     items = []
     for binder in binders:
-        # Pre-compute states/signals once so we can filter without re-running
-        # derive_* twice; single-item endpoints recompute inside _to_binder_response.
         current_work_state = WorkStateService.derive_work_state(
             binder,
             reference_date,
@@ -166,6 +183,7 @@ def list_binders(
                 work_state=current_work_state,
                 sla_state=current_sla_state,
                 signals=current_signals,
+                client_name=client_name_map.get(binder.client_id),
             )
         )
 
@@ -182,9 +200,13 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     if not binder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
 
+    client_repo = ClientRepository(db)
+    client = client_repo.get_by_id(binder.client_id)
+
     return _to_binder_response(
         binder=binder,
         db=db,
         signals_service=signals_service,
         reference_date=date.today(),
+        client_name=client.full_name if client else None,
     )

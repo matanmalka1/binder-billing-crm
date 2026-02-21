@@ -23,6 +23,7 @@ class BinderReturnRequest(BaseModel):
 class BinderResponse(BaseModel):
     id: int
     client_id: int
+    client_name: Optional[str] = None
     binder_number: str
     binder_type: BinderType
     status: str

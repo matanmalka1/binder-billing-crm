@@ -130,8 +130,13 @@ class BillingService:
         status: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[Charge], int]:
-        """List charges with pagination. Returns (items, total)."""
+    ) -> tuple[list[Charge], int, dict[int, str]]:
+        """
+        List charges with pagination.
+
+        Returns (items, total, client_name_map) where client_name_map maps
+        client_id → full_name for all charges in the page.
+        """
         items = self.charge_repo.list_charges(
             client_id=client_id,
             status=status,
@@ -139,4 +144,10 @@ class BillingService:
             page_size=page_size,
         )
         total = self.charge_repo.count_charges(client_id=client_id, status=status)
-        return items, total
+
+        # Batch-fetch client names for this page (single extra query)
+        client_ids = list({c.client_id for c in items})
+        clients = self.client_repo.list_by_ids(client_ids)
+        client_name_map: dict[int, str] = {c.id: c.full_name for c in clients}
+
+        return items, total, client_name_map

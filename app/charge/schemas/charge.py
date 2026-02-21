@@ -15,6 +15,7 @@ class ChargeCreateRequest(BaseModel):
 class ChargeResponse(BaseModel):
     id: int
     client_id: int
+    client_name: Optional[str] = None
     amount: float
     currency: str
     charge_type: str
@@ -32,6 +33,7 @@ class ChargeResponseSecretary(BaseModel):
 
     id: int
     client_id: int
+    client_name: Optional[str] = None
     charge_type: str
     period: Optional[str] = None
     status: str

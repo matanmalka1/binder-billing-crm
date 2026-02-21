@@ -51,14 +51,37 @@ class ClientRepository(BaseRepository):
         status: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
+        search: Optional[str] = None,
     ) -> list[Client]:
-        """List clients with optional filters."""
+        """List clients with optional filters. search matches full_name or id_number."""
         query = self.db.query(Client)
 
         if status:
             query = query.filter(Client.status == status)
 
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.filter(
+                Client.full_name.ilike(term) | Client.id_number.ilike(term)
+            )
+
         return self._paginate(query, page, page_size)
+
+    def count(
+        self,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> int:
+        """Count clients with optional filters."""
+        query = self.db.query(Client)
+        if status:
+            query = query.filter(Client.status == status)
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.filter(
+                Client.full_name.ilike(term) | Client.id_number.ilike(term)
+            )
+        return query.count()
 
     def list_by_ids(self, client_ids: list[int]) -> list[Client]:
         """Batch fetch clients by a list of IDs (single query)."""
@@ -72,13 +95,6 @@ class ClientRepository(BaseRepository):
         if status:
             query = query.filter(Client.status == status)
         return query.order_by(Client.full_name).all()
-
-    def count(self, status: Optional[str] = None) -> int:
-        """Count clients with optional filters."""
-        query = self.db.query(Client)
-        if status:
-            query = query.filter(Client.status == status)
-        return query.count()
 
     def update(self, client_id: int, **fields) -> Optional[Client]:
         """Update client fields."""

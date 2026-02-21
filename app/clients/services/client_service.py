@@ -68,15 +68,20 @@ class ClientService:
         page: int = 1,
         page_size: int = 20,
         has_signals: Optional[bool] = None,
+        search: Optional[str] = None,
         reference_date: Optional[date] = None,
     ) -> tuple[list[Client], int]:
         """List clients with pagination. Returns (items, total)."""
         if has_signals is None:
-            items = self.client_repo.list(status=status, page=page, page_size=page_size)
-            total = self.client_repo.count(status=status)
+            items = self.client_repo.list(
+                status=status, page=page, page_size=page_size, search=search
+            )
+            total = self.client_repo.count(status=status, search=search)
             return items, total
 
-        base_clients = self.client_repo.list(status=status, page=1, page_size=1000)
+        base_clients = self.client_repo.list(
+            status=status, page=1, page_size=1000, search=search
+        )
         filtered = [
             client
             for client in base_clients

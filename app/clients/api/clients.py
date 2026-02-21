@@ -51,6 +51,7 @@ def list_clients(
     user: CurrentUser,
     status_filter: Optional[str] = Query(None, alias="status"),
     has_signals: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -59,6 +60,7 @@ def list_clients(
     items, total = service.list_clients(
         status=status_filter,
         has_signals=has_signals,
+        search=search or None,
         page=page,
         page_size=page_size,
     )

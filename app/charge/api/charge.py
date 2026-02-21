@@ -99,17 +99,22 @@ def list_charges(
 ):
     """List charges with role-based data filtering."""
     service = BillingService(db)
-    items, total = service.list_charges(
+    items, total, client_name_map = service.list_charges(
         client_id=client_id,
         status=status_filter,
         page=page,
         page_size=page_size,
     )
 
+    def _enrich(charge, schema):
+        data = schema.model_validate(charge).model_dump()
+        data["client_name"] = client_name_map.get(charge.client_id)
+        return schema(**data)
+
     # Secretary sees limited view
     if user.role == UserRole.SECRETARY:
         return ChargeListResponse(
-            items=[ChargeResponseSecretary.model_validate(c) for c in items],
+            items=[_enrich(c, ChargeResponseSecretary) for c in items],
             page=page,
             page_size=page_size,
             total=total,
@@ -117,7 +122,7 @@ def list_charges(
 
     # Advisor sees full view
     return ChargeListResponse(
-        items=[ChargeResponse.model_validate(c) for c in items],
+        items=[_enrich(c, ChargeResponse) for c in items],
         page=page,
         page_size=page_size,
         total=total,
