@@ -4,9 +4,12 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
+from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
+from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
+    AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
     DeadlineType,
@@ -118,4 +121,45 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
             ),
         )
         db.add(detail)
+    db.flush()
+
+
+def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
+    for report in reports:
+        for schedule in list(AnnualReportSchedule):
+            is_required = rng.random() < 0.4
+            is_complete = is_required and rng.random() < 0.5
+            entry = AnnualReportScheduleEntry(
+                annual_report_id=report.id,
+                schedule=schedule,
+                is_required=is_required,
+                is_complete=is_complete,
+                notes="Auto-seeded" if is_required else None,
+                created_at=report.created_at,
+                completed_at=(report.created_at + timedelta(days=rng.randint(5, 60))) if is_complete else None,
+            )
+            db.add(entry)
+    db.flush()
+
+
+def create_annual_report_status_history(db, rng: Random, reports) -> None:
+    for report in reports:
+        possible_statuses = list(AnnualReportStatus)
+        start_index = 0
+        target_index = possible_statuses.index(report.status)
+        # Build linear history up to current status
+        history_statuses = possible_statuses[start_index : target_index + 1]
+        previous = None
+        for status in history_statuses:
+            entry = AnnualReportStatusHistory(
+                annual_report_id=report.id,
+                from_status=previous,
+                to_status=status,
+                changed_by=None,
+                changed_by_name="Seeder",
+                note="Auto-generated status history",
+                occurred_at=report.created_at + timedelta(hours=rng.randint(1, 72)),
+            )
+            db.add(entry)
+            previous = status
     db.flush()

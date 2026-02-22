@@ -5,7 +5,9 @@ from typing import Dict
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 from app.authority_contact.models.authority_contact import AuthorityContact
 from app.binders.models.binder import Binder
 from app.binders.models.binder_status_log import BinderStatusLog
@@ -18,12 +20,29 @@ from app.invoice.models.invoice import Invoice
 from app.notification.models.notification import Notification
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.models.reminder import Reminder
+from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.users.models.user import User
 from app.users.models.user_audit_log import UserAuditLog
+from app.vat_reports.models.vat_audit_log import VatAuditLog
+from app.vat_reports.models.vat_invoice import VatInvoice
+from app.vat_reports.models.vat_work_item import VatWorkItem
 
 from .config import SeedConfig
-from .domains import binders, charges, clients, contacts, documents, notifications, reminders, reports, taxes, users
+from .domains import (
+    binders,
+    charges,
+    clients,
+    contacts,
+    documents,
+    notifications,
+    reminders,
+    reports,
+    signature_requests,
+    taxes,
+    users,
+    vat,
+)
 
 
 class Seeder:
@@ -49,12 +68,27 @@ class Seeder:
             contacts.create_client_tax_profiles(db, self.rng, seeded_clients)
             contacts.create_correspondence(db, self.rng, seeded_clients, seeded_users)
             reports.create_annual_report_details(db, self.rng, seeded_reports)
+            reports.create_annual_report_schedule_entries(db, self.rng, seeded_reports)
+            reports.create_annual_report_status_history(db, self.rng, seeded_reports)
             taxes.create_advance_payments(db, self.rng, seeded_clients, seeded_deadlines)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_binders)
             reminders.create_reminders(db, self.rng, seeded_clients, seeded_binders, seeded_charges, seeded_deadlines)
-            documents.create_documents(db, self.rng, seeded_clients, seeded_users)
+            seeded_documents = documents.create_documents(db, self.rng, seeded_clients, seeded_users)
             binders.create_binder_logs(db, self.rng, seeded_binders, seeded_users)
             users.create_user_audit_logs(db, self.rng, seeded_users)
+            vat_work_items = vat.create_vat_work_items(db, self.rng, self.cfg, seeded_clients, seeded_users)
+            vat.create_vat_invoices(db, self.rng, self.cfg, vat_work_items, seeded_users)
+            vat.create_vat_audit_logs(db, self.rng, vat_work_items, seeded_users)
+            signature_requests_seeded = signature_requests.create_signature_requests(
+                db,
+                self.rng,
+                self.cfg,
+                seeded_clients,
+                seeded_users,
+                seeded_reports,
+                seeded_documents,
+            )
+            signature_requests.create_signature_audit_events(db, self.rng, signature_requests_seeded)
 
             db.commit()
             self._print_counts(db)
@@ -66,6 +100,11 @@ class Seeder:
 
     def _reset(self, db) -> None:
         for model in [
+            VatAuditLog,
+            VatInvoice,
+            VatWorkItem,
+            SignatureAuditEvent,
+            SignatureRequest,
             UserAuditLog,
             BinderStatusLog,
             Notification,
@@ -74,6 +113,8 @@ class Seeder:
             PermanentDocument,
             Invoice,
             TaxDeadline,
+            AnnualReportStatusHistory,
+            AnnualReportScheduleEntry,
             AnnualReportDetail,
             AuthorityContact,
             Correspondence,
@@ -97,6 +138,8 @@ class Seeder:
             "tax_deadlines": db.query(TaxDeadline).count(),
             "annual_reports": db.query(AnnualReport).count(),
             "annual_report_details": db.query(AnnualReportDetail).count(),
+            "annual_report_status_history": db.query(AnnualReportStatusHistory).count(),
+            "annual_report_schedules": db.query(AnnualReportScheduleEntry).count(),
             "authority_contacts": db.query(AuthorityContact).count(),
             "client_tax_profiles": db.query(ClientTaxProfile).count(),
             "correspondence_entries": db.query(Correspondence).count(),
@@ -106,6 +149,11 @@ class Seeder:
             "advance_payments": db.query(AdvancePayment).count(),
             "user_audit_logs": db.query(UserAuditLog).count(),
             "reminders": db.query(Reminder).count(),
+            "vat_work_items": db.query(VatWorkItem).count(),
+            "vat_invoices": db.query(VatInvoice).count(),
+            "vat_audit_logs": db.query(VatAuditLog).count(),
+            "signature_requests": db.query(SignatureRequest).count(),
+            "signature_audit_events": db.query(SignatureAuditEvent).count(),
         }
         print("Seeding completed. Current row counts:")
         for key, value in counts.items():

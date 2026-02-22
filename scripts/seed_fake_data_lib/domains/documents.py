@@ -7,6 +7,7 @@ from app.permanent_documents.models.permanent_document import DocumentType, Perm
 
 
 def create_documents(db, rng: Random, clients, users):
+    documents: list[PermanentDocument] = []
     for client in clients:
         docs = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]
         if rng.random() < 0.8:
@@ -24,4 +25,6 @@ def create_documents(db, rng: Random, clients, users):
                 uploaded_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 500)),
             )
             db.add(document)
+            documents.append(document)
     db.flush()
+    return documents
