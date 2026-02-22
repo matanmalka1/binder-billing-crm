@@ -19,7 +19,6 @@ class BinderRepository(BaseRepository):
         binder_number: str,
         binder_type: BinderType,
         received_at: date,
-        expected_return_at: date,
         received_by: int,
         notes: Optional[str] = None,
     ) -> Binder:
@@ -29,7 +28,6 @@ class BinderRepository(BaseRepository):
             binder_number=binder_number,
             binder_type=binder_type,
             received_at=received_at,
-            expected_return_at=expected_return_at,
             received_by=received_by,
             status=BinderStatus.IN_OFFICE,
             notes=notes,
@@ -74,10 +72,11 @@ class BinderRepository(BaseRepository):
         self,
         binder_id: int,
         new_status: BinderStatus,
+        binder: Optional[Binder] = None,
         **additional_fields,
     ) -> Optional[Binder]:
         """Update binder status and optional fields."""
-        binder = self.get_by_id(binder_id)
+        binder = binder or self.get_by_id(binder_id)
         return self._update_status(binder, new_status, **additional_fields)
 
     def count_by_status(self, status: BinderStatus) -> int:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Numeric, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text
 
 from app.database import Base
 from app.utils.time import utcnow
@@ -9,7 +9,7 @@ class AnnualReportDetail(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     report_id = Column(
-        Integer, ForeignKey("annual_reports.id"), nullable=False, unique=True, index=True
+        Integer, ForeignKey("annual_reports.id"), nullable=False, unique=True
     )
     tax_refund_amount = Column(Numeric(10, 2), nullable=True)
     tax_due_amount = Column(Numeric(10, 2), nullable=True)

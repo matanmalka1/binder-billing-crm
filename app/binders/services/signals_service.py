@@ -10,7 +10,6 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
-from app.binders.services.sla_service import SLAService
 from app.binders.services.work_state_service import WorkStateService
 from app.charge.models.charge import ChargeStatus
 from app.binders.models.binder import BinderStatus
@@ -20,8 +19,6 @@ class SignalType(str, PyEnum):
     """Operational signal types (internal, non-blocking)."""
 
     MISSING_DOCUMENTS = "missing_permanent_documents"
-    NEAR_SLA = "near_sla"
-    OVERDUE = "overdue"
     READY_FOR_PICKUP = "ready_for_pickup"
     UNPAID_CHARGES = "unpaid_charges"
     IDLE_BINDER = "idle_binder"
@@ -58,14 +55,6 @@ class SignalsService:
             reference_date = date.today()
 
         signals = []
-
-        # Overdue signal
-        if SLAService.is_overdue(binder, reference_date):
-            signals.append(SignalType.OVERDUE.value)
-
-        # Near SLA signal
-        elif SLAService.is_approaching_sla(binder, reference_date):
-            signals.append(SignalType.NEAR_SLA.value)
 
         # Ready for pickup signal
         if binder.status == BinderStatus.READY_FOR_PICKUP:

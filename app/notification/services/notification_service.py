@@ -23,8 +23,6 @@ logger = get_logger(__name__)
 
 _SUBJECTS: dict[NotificationTrigger, str] = {
     NotificationTrigger.BINDER_RECEIVED: "התיק שלך התקבל במשרד",
-    NotificationTrigger.BINDER_APPROACHING_SLA: "תזכורת: מועד החזרת התיק מתקרב",
-    NotificationTrigger.BINDER_OVERDUE: "התיק שלך עבר את מועד ההחזרה",
     NotificationTrigger.BINDER_READY_FOR_PICKUP: "התיק שלך מוכן לאיסוף",
     NotificationTrigger.MANUAL_PAYMENT_REMINDER: "תזכורת תשלום",
 }
@@ -42,42 +40,12 @@ class NotificationService:
     def notify_binder_received(self, binder: Binder, client: Client) -> bool:
         content = (
             f"שלום {client.full_name},\n\n"
-            f"תיק מספר {binder.binder_number} התקבל במשרד בתאריך {binder.received_at}.\n"
-            f"מועד החזרה משוער: {binder.expected_return_at}.\n\n"
+            f"תיק מספר {binder.binder_number} התקבל במשרד בתאריך {binder.received_at}.\n\n"
             f"בברכה"
         )
         return self.send_notification(
             client_id=client.id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
-            content=content,
-            binder_id=binder.id,
-        )
-
-    def notify_approaching_sla(self, binder: Binder, client: Client, days_remaining: int) -> bool:
-        content = (
-            f"שלום {client.full_name},\n\n"
-            f"תיק מספר {binder.binder_number} צפוי להיות מוכן בעוד {days_remaining} ימים "
-            f"(עד {binder.expected_return_at}).\n\n"
-            f"בברכה"
-        )
-        return self.send_notification(
-            client_id=client.id,
-            trigger=NotificationTrigger.BINDER_APPROACHING_SLA,
-            content=content,
-            binder_id=binder.id,
-        )
-
-    def notify_overdue(self, binder: Binder, client: Client, days_overdue: int) -> bool:
-        content = (
-            f"שלום {client.full_name},\n\n"
-            f"תיק מספר {binder.binder_number} עבר את מועד ההחזרה המתוכנן "
-            f"({binder.expected_return_at}) לפני {days_overdue} ימים.\n"
-            f"אנא צרו קשר עם המשרד לתיאום.\n\n"
-            f"בברכה"
-        )
-        return self.send_notification(
-            client_id=client.id,
-            trigger=NotificationTrigger.BINDER_OVERDUE,
             content=content,
             binder_id=binder.id,
         )

@@ -22,5 +22,3 @@ class PermanentDocumentListResponse(BaseModel):
 class OperationalSignalsResponse(BaseModel):
     client_id: int
     missing_documents: list[str]
-    binders_nearing_sla: list[dict]
-    binders_overdue: list[dict]

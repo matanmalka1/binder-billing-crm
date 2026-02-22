@@ -12,7 +12,6 @@ class SearchResult(BaseModel):
     binder_id: Optional[int] = None
     binder_number: Optional[str] = None
     work_state: Optional[str] = None
-    sla_state: Optional[str] = None
     signals: list[str] = Field(default_factory=list)
 
 

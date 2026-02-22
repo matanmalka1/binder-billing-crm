@@ -5,7 +5,11 @@ from decimal import Decimal
 from random import Random
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType as TaxDeadlineType
+from app.tax_deadline.models.tax_deadline import (
+    TaxDeadline,
+    DeadlineType as TaxDeadlineType,
+    TaxDeadlineStatus,
+)
 
 
 def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
@@ -19,10 +23,14 @@ def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
         for _ in range(num):
             due_offset = rng.randint(-30, 60)
             due_date = today + timedelta(days=due_offset)
-            status = "completed" if due_date < today and rng.random() < 0.5 else "pending"
+            status = (
+                TaxDeadlineStatus.COMPLETED
+                if due_date < today and rng.random() < 0.5
+                else TaxDeadlineStatus.PENDING
+            )
             completed_at = (
                 datetime.now(UTC) - timedelta(days=rng.randint(1, 30))
-                if status == "completed"
+                if status == TaxDeadlineStatus.COMPLETED
                 else None
             )
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))

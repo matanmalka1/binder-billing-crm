@@ -34,68 +34,6 @@ Use the token for authenticated calls:
 
 ---
 
-## Dashboard: Work Queue
-
-`GET /api/v1/dashboard/work-queue?page=1&page_size=20`
-
-### Response `200`
-
-```json
-{
-  "items": [
-    {
-      "binder_id": 10,
-      "client_id": 123,
-      "client_name": "Example Corp",
-      "binder_number": "WQ-001",
-      "work_state": "in_progress",
-      "signals": ["near_sla"],
-      "days_since_received": 5,
-      "expected_return_at": "2026-05-06"
-    }
-  ],
-  "page": 1,
-  "page_size": 20,
-  "total": 1
-}
-```
-
----
-
-## Dashboard: Alerts
-
-`GET /api/v1/dashboard/alerts`
-
-### Response `200`
-
-```json
-{
-  "items": [
-    {
-      "binder_id": 11,
-      "client_id": 124,
-      "client_name": "Another Corp",
-      "binder_number": "BND-011",
-      "alert_type": "overdue",
-      "days_overdue": 7,
-      "days_remaining": null
-    },
-    {
-      "binder_id": 12,
-      "client_id": 125,
-      "client_name": "Near SLA Ltd",
-      "binder_number": "BND-012",
-      "alert_type": "near_sla",
-      "days_overdue": null,
-      "days_remaining": 12
-    }
-  ],
-  "total": 2
-}
-```
-
----
-
 ## Dashboard: Attention
 
 `GET /api/v1/dashboard/attention`
@@ -135,7 +73,7 @@ Use the token for authenticated calls:
 
 ## Search: Combined Filters
 
-`GET /api/v1/search?query=BND&work_state=in_progress&sla_state=approaching&signal_type=near_sla&signal_type=idle_binder&has_signals=true&page=1&page_size=20`
+`GET /api/v1/search?query=BND&work_state=in_progress&signal_type=idle_binder&has_signals=true&page=1&page_size=20`
 
 ### Response `200`
 
@@ -149,7 +87,7 @@ Use the token for authenticated calls:
       "binder_id": 10,
       "binder_number": "BND-010",
       "work_state": "in_progress",
-      "signals": ["near_sla"]
+      "signals": ["idle_binder"]
     }
   ],
   "page": 1,
@@ -189,17 +127,6 @@ Use the token for authenticated calls:
       "description": "Charge paid: one_time",
       "metadata": {
         "amount": 1500.0
-      }
-    },
-    {
-      "event_type": "notification_sent",
-      "timestamp": "2026-02-01T09:00:00",
-      "binder_id": 10,
-      "charge_id": null,
-      "description": "Notification: binder_approaching_sla",
-      "metadata": {
-        "trigger": "binder_approaching_sla",
-        "channel": "whatsapp"
       }
     },
     {
@@ -310,4 +237,3 @@ Response `200`:
   }
 }
 ```
-

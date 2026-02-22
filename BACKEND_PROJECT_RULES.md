@@ -83,19 +83,10 @@ These modules are not business domains and do not follow the full layer structur
 
 The following must **never** be persisted:
 
-- SLA state
-- Overdue / near-SLA status
 - WorkState
 - Operational signals
 
 All such states are computed dynamically in the Service layer.
-
-#### 4.2 SLA Rules
-
-- SLA logic lives in `SLAService`
-- SLA is derived from timestamps only (`received_at` → `expected_return_at`, 90-day window)
-- No SLA status columns are allowed
-- No background job may persist SLA state
 
 ### 5. Operational Concepts
 
@@ -112,7 +103,7 @@ All such states are computed dynamically in the Service layer.
 - Signals do not block actions
 - Signals are not notifications
 - Signals are computed, not stored
-- Known signals: `MISSING_DOCS`, `NEAR_SLA`, `OVERDUE`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`
+- Known signals: `MISSING_DOCS`, `OVERDUE`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`
 
 ### 6. Authorization Philosophy
 
@@ -129,7 +120,6 @@ All such states are computed dynamically in the Service layer.
 - Notifications must persist content snapshots
 - Notification emission must be idempotent
 - Daily jobs must:
-  - Use `SLAService` for SLA logic
   - Avoid duplicate notifications
   - Never mutate derived state
 

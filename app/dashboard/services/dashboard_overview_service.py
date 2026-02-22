@@ -143,9 +143,6 @@ class DashboardOverviewService:
             {
                 "total_clients": int,
                 "active_binders": int,
-                "overdue_binders": int,
-                "binders_due_today": int,
-                "binders_due_this_week": int
             }
         """
         if reference_date is None:
@@ -153,7 +150,6 @@ class DashboardOverviewService:
 
         overview = self.repo.get_overview_metrics(reference_date)
         overview["work_state"] = None
-        overview["sla_state"] = None
         overview["signals"] = []
         overview["quick_actions"] = self._build_quick_actions(user_role)
         attention_items = self.extended_service.get_attention_items(user_role=user_role)

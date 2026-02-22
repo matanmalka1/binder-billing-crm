@@ -45,11 +45,9 @@ class AuthorityContactService:
         **fields,
     ) -> AuthorityContact:
         """Update contact details."""
-        contact = self.contact_repo.get_by_id(contact_id)
-        if not contact:
-            raise ValueError(f"Contact {contact_id} not found")
-
         updated = self.contact_repo.update(contact_id, **fields)
+        if not updated:
+            raise ValueError(f"Contact {contact_id} not found")
         return updated
 
     def list_client_contacts(

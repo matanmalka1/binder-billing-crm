@@ -5,18 +5,15 @@ from pydantic import BaseModel
 
 
 class BinderDetailResponse(BaseModel):
-    """Binder response with derived SLA fields."""
-    
+    """Binder response with derived operational fields."""
+
     id: int
     client_id: int
     binder_number: str
     status: str
     received_at: date
-    expected_return_at: date
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
-    is_overdue: bool
-    days_overdue: int
     work_state: Optional[str] = None
     signals: list[str] = []
 

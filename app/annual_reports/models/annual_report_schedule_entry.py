@@ -1,6 +1,6 @@
 """Annual report schedule entries (annex tracking)."""
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Index, Integer, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Text
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
@@ -24,10 +24,6 @@ class AnnualReportScheduleEntry(Base):
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
-
-    __table_args__ = (
-        Index("idx_schedule_entry_report", "annual_report_id"),
-    )
 
 
 __all__ = ["AnnualReportScheduleEntry"]

@@ -101,8 +101,6 @@ def test_secretary_can_view_operational_signals(client, secretary_headers, test_
     data = response.json()
     assert data["client_id"] == c.id
     assert "missing_documents" in data
-    assert "binders_nearing_sla" in data
-    assert "binders_overdue" in data
 
 
 def test_advisor_can_view_operational_signals(client, advisor_headers, test_db):

@@ -20,7 +20,6 @@ def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
         binder_number="WQ-001",
         binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=5),
-        expected_return_at=date.today() + timedelta(days=85),
         status=BinderStatus.IN_OFFICE,
         received_by=test_user.id,
     )
@@ -33,16 +32,6 @@ def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
     data = response.json()
     assert "items" in data
     assert data["total"] >= 1
-
-
-def test_alerts_endpoint(client, advisor_headers):
-    """Test alerts endpoint."""
-    response = client.get("/api/v1/dashboard/alerts", headers=advisor_headers)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "items" in data
-    assert "total" in data
 
 
 def test_attention_endpoint(client, advisor_headers):

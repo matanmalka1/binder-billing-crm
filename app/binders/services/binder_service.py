@@ -38,14 +38,11 @@ class BinderService:
         if existing:
             raise ValueError(f"Active binder {binder_number} already exists")
 
-        expected_return_at = binder_helpers.calculate_expected_return(received_at)
-
         binder = self.binder_repo.create(
             client_id=client_id,
             binder_number=binder_number,
             binder_type=binder_type,
             received_at=received_at,
-            expected_return_at=expected_return_at,
             received_by=received_by,
             notes=notes,
         )
@@ -72,7 +69,11 @@ class BinderService:
         binder_helpers.validate_ready_transition(binder)
 
         old_status = binder.status.value
-        updated = self.binder_repo.update_status(binder_id, BinderStatus.READY_FOR_PICKUP)
+        updated = self.binder_repo.update_status(
+            binder_id,
+            BinderStatus.READY_FOR_PICKUP,
+            binder=binder,
+        )
 
         self.status_log_repo.append(
             binder_id=binder_id,
@@ -99,6 +100,7 @@ class BinderService:
         updated = self.binder_repo.update_status(
             binder_id,
             BinderStatus.RETURNED,
+            binder=binder,
             returned_at=returned_at,
             returned_by=returned_by,
             pickup_person_name=pickup_person_name.strip(),

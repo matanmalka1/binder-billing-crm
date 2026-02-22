@@ -39,7 +39,7 @@ def list_client_binders(
     )
     
     enriched = [
-        BinderDetailResponse(**service.enrich_binder_with_sla(b, db))
+        BinderDetailResponse(**service.enrich_binder(b, db))
         for b in items
     ]
     

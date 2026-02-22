@@ -5,6 +5,7 @@ from random import Random
 
 from app.binders.models.binder import BinderStatus
 from app.charge.models.charge import ChargeStatus
+from app.tax_deadline.models.tax_deadline import TaxDeadlineStatus
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 
 
@@ -26,7 +27,7 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
         client_charges = charges_by_client.get(client.id, [])
         client_deadlines = deadlines_by_client.get(client.id, [])
 
-        pending_deadlines = [dl for dl in client_deadlines if dl.status == "pending"]
+        pending_deadlines = [dl for dl in client_deadlines if dl.status == TaxDeadlineStatus.PENDING]
         if pending_deadlines:
             deadline = rng.choice(pending_deadlines)
             days_before = 7

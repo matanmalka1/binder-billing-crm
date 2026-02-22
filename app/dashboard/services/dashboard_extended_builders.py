@@ -7,31 +7,6 @@ def work_queue_item(binder, client, work_state, signals, reference_date) -> dict
         "work_state": work_state.value,
         "signals": signals,
         "days_since_received": (reference_date - binder.received_at).days,
-        "expected_return_at": binder.expected_return_at,
-    }
-
-
-def overdue_alert_item(binder, client, days_overdue: int) -> dict:
-    return {
-        "binder_id": binder.id,
-        "client_id": client.id,
-        "client_name": client.full_name,
-        "binder_number": binder.binder_number,
-        "alert_type": "overdue",
-        "days_overdue": days_overdue,
-        "days_remaining": None,
-    }
-
-
-def near_sla_alert_item(binder, client, days_remaining: int) -> dict:
-    return {
-        "binder_id": binder.id,
-        "client_id": client.id,
-        "client_name": client.full_name,
-        "binder_number": binder.binder_number,
-        "alert_type": "near_sla",
-        "days_overdue": None,
-        "days_remaining": days_remaining,
     }
 
 

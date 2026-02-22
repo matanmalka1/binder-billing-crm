@@ -1,7 +1,7 @@
-from datetime import date
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
+
 
 class ConfirmDetails(BaseModel):
     title: str
@@ -34,15 +34,11 @@ class AttentionResponse(BaseModel):
 
 
 class DashboardOverviewResponse(BaseModel):
-    """Sprint 2 dashboard overview for management."""
+    """Dashboard overview for management."""
 
     total_clients: int
     active_binders: int
-    overdue_binders: int
-    binders_due_today: int
-    binders_due_this_week: int
     work_state: Optional[str] = None
-    sla_state: Optional[str] = None
     signals: Optional[list[str]] = None
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
@@ -56,26 +52,10 @@ class WorkQueueItem(BaseModel):
     work_state: str
     signals: list[str]
     days_since_received: int
-    expected_return_at: date
 
 
 class WorkQueueResponse(BaseModel):
     items: list[WorkQueueItem]
     page: int
     page_size: int
-    total: int
-
-
-class AlertItem(BaseModel):
-    binder_id: int
-    client_id: int
-    client_name: str
-    binder_number: str
-    alert_type: str
-    days_overdue: Optional[int] = None
-    days_remaining: Optional[int] = None
-
-
-class AlertsResponse(BaseModel):
-    items: list[AlertItem]
     total: int

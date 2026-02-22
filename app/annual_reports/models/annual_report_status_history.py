@@ -1,6 +1,6 @@
 """Append-only status history for annual reports."""
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
@@ -21,10 +21,6 @@ class AnnualReportStatusHistory(Base):
     changed_by_name = Column(String, nullable=False)
     note = Column(Text, nullable=True)
     occurred_at = Column(DateTime, default=utcnow, nullable=False)
-
-    __table_args__ = (
-        Index("idx_status_history_report", "annual_report_id"),
-    )
 
 
 __all__ = ["AnnualReportStatusHistory"]

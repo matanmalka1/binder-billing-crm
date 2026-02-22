@@ -184,7 +184,6 @@ Response shape:
       "client_name": "Example Corp",
       "binder_number": "BND-001",
       "work_state": "in_progress",
-      "signals": ["near_sla"],
       "days_since_received": 15,
       "expected_return_at": "2026-03-01"
     }
@@ -359,8 +358,7 @@ Response shape:
   - `id_number` (optional)
   - `binder_number` (optional)
   - `work_state` (optional: `waiting_for_work` | `in_progress` | `completed`)
-  - `sla_state` (optional: `on_track` | `approaching` | `overdue`)
-  - `signal_type` (optional, array: `missing_permanent_documents` | `near_sla` | `overdue` | `ready_for_pickup` | `unpaid_charges` | `idle_binder`)
+  - `signal_type` (optional, array: `missing_permanent_documents` | `overdue` | `ready_for_pickup` | `unpaid_charges` | `idle_binder`)
   - `has_signals` (optional, boolean)
   - `page` (default: 1, min: 1)
   - `page_size` (default: 20, min: 1, max: 100)
@@ -375,7 +373,6 @@ Response shape:
       "binder_id": 1,
       "binder_number": "BND-001",
       "work_state": "in_progress",
-      "signals": ["near_sla"]
     }
   ],
   "page": 1,

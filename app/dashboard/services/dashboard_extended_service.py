@@ -12,20 +12,17 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.dashboard.services.dashboard_extended_builders import (
     idle_attention_item,
-    near_sla_alert_item,
-    overdue_alert_item,
     ready_attention_item,
     unpaid_charge_attention_item,
     work_queue_item,
 )
 from app.binders.services.signals_service import SignalsService
-from app.binders.services.sla_service import SLAService
 from app.binders.services.work_state_service import WorkStateService
 from app.clients.models.client import Client
 
 
 class DashboardExtendedService:
-    """Sprint 6 dashboard extensions for operational UX."""
+    """Dashboard extensions for operational UX."""
 
     # in-process cache for attention items keyed by (role, reference_date_iso)
     _attention_cache: dict[Tuple[Optional[str], str], Tuple[float, list]] = {}
@@ -75,29 +72,6 @@ class DashboardExtendedService:
         total = len(items)
         offset = (page - 1) * page_size
         return items[offset : offset + page_size], total
-
-    def get_alerts(
-        self,
-        reference_date: Optional[date] = None,
-    ) -> list[dict]:
-        if reference_date is None:
-            reference_date = date.today()
-
-        alerts = []
-        for binder, client in self._active_binders_with_clients():
-            if SLAService.is_overdue(binder, reference_date):
-                alerts.append(
-                    overdue_alert_item(
-                        binder, client, SLAService.days_overdue(binder, reference_date)
-                    )
-                )
-            elif SLAService.is_approaching_sla(binder, reference_date):
-                alerts.append(
-                    near_sla_alert_item(
-                        binder, client, SLAService.days_remaining(binder, reference_date)
-                    )
-                )
-        return alerts
 
     def get_attention_items(
         self,

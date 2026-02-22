@@ -5,9 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.search.services.search_filters import matches_signal_type, matches_sla_state
+from app.search.services.search_filters import matches_signal_type
 from app.binders.services.signals_service import SignalsService
-from app.binders.services.sla_service import SLAService
 from app.binders.services.work_state_service import WorkStateService
 
 
@@ -27,7 +26,6 @@ class SearchService:
         id_number: Optional[str] = None,
         binder_number: Optional[str] = None,
         work_state: Optional[str] = None,
-        sla_state: Optional[str] = None,
         signal_type: Optional[list[str]] = None,
         has_signals: Optional[bool] = None,
         page: int = 1,
@@ -62,12 +60,11 @@ class SearchService:
                             "binder_id": None,
                             "binder_number": None,
                             "work_state": None,
-                            "sla_state": None,
                             "signals": [],
                         }
                     )
 
-        if query or binder_number or work_state or sla_state or signal_type or has_signals is not None:
+        if query or binder_number or work_state or signal_type or has_signals is not None:
             binders = self.binder_repo.list_active()
             for binder in binders:
                 match = True
@@ -79,13 +76,10 @@ class SearchService:
                 current_work_state = WorkStateService.derive_work_state(
                     binder, reference_date, self.db
                 )
-                current_sla_state = SLAService.derive_sla_state(binder, reference_date)
                 current_signals = self.signals_service.compute_binder_signals(
                     binder, reference_date
                 )
 
-                if sla_state and match:
-                    match = matches_sla_state(binder, sla_state, reference_date)
                 if signal_type and match:
                     match = matches_signal_type(current_signals, signal_type)
                 if work_state and match:
@@ -103,7 +97,6 @@ class SearchService:
                             "binder_id": binder.id,
                             "binder_number": binder.binder_number,
                             "work_state": current_work_state.value,
-                            "sla_state": current_sla_state,
                             "signals": current_signals,
                         }
                     )

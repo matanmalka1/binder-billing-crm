@@ -1,13 +1,10 @@
-from datetime import date
-
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.binders.services.sla_service import SLAService
 
 
 class BinderRepositoryExtensions:
-    """Sprint 2 binder query extensions."""
+    """Binder query extensions."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -23,7 +20,7 @@ class BinderRepositoryExtensions:
             .filter(Binder.status != BinderStatus.RETURNED)
             .order_by(Binder.received_at.desc(), Binder.id.desc())
         )
-        
+
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
@@ -32,58 +29,6 @@ class BinderRepositoryExtensions:
         return (
             self.db.query(Binder)
             .filter(Binder.status != BinderStatus.RETURNED)
-            .count()
-        )
-
-    def list_overdue_candidates(
-        self,
-        reference_date: date,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Binder]:
-        """
-        List binders where expected_return_at < reference_date.
-        
-        Note: Overdue status is derived at read time.
-        """
-        query = (
-            self.db.query(Binder)
-            .filter(SLAService.overdue_filter(reference_date))
-            .order_by(Binder.expected_return_at.asc(), Binder.id.desc())
-        )
-        
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
-
-    def count_overdue_candidates(self, reference_date: date) -> int:
-        """Count overdue candidate binders."""
-        return (
-            self.db.query(Binder)
-            .filter(SLAService.overdue_filter(reference_date))
-            .count()
-        )
-
-    def list_due_today(
-        self,
-        reference_date: date,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Binder]:
-        """List binders due on reference_date."""
-        query = (
-            self.db.query(Binder)
-            .filter(SLAService.due_today_filter(reference_date))
-            .order_by(Binder.id.desc())
-        )
-        
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
-
-    def count_due_today(self, reference_date: date) -> int:
-        """Count binders due today."""
-        return (
-            self.db.query(Binder)
-            .filter(SLAService.due_today_filter(reference_date))
             .count()
         )
 
@@ -99,7 +44,7 @@ class BinderRepositoryExtensions:
             .filter(Binder.client_id == client_id)
             .order_by(Binder.received_at.desc(), Binder.id.desc())
         )
-        
+
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 

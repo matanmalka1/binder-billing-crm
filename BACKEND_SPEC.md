@@ -8,8 +8,8 @@ Binder & Billing CRM
 - **Error handling:** Central `app/core/exceptions.py` wraps HTTPException/validation/DB errors into `{"detail": ..., "error": {type,status_code,detail}}`. Routers raise HTTPException with plain strings; 422 handled by FastAPI.
 - **Pagination conventions:** Query params `page` (default 1, ge 1) and `page_size` (defaults vary: 20 most routes, 50 for timeline/annual-report season). Many list endpoints slice in service/repo; some (tax-deadlines list without client filter) paginate in router after fetching all.
 - **Enum handling:** Business enums are `str` subclasses defined beside models. Routers manually coerce/validate (e.g., `DeadlineType`, `VatType`, `CorrespondenceType`); invalid values return 400 with the raw message.
-- **Derived state (never persisted):** SLA state, work_state, and operational signals are computed in services (SLAService, WorkStateService, SignalsService). Binder overdue/approaching and attention items are runtime derivations only.
-- **Notifications:** Stored in `notifications` table; send flow uses stub WhatsApp/Email channels. Triggered by binder intake and SLA job; no public API.
+- **Derived state (never persisted):** work_state and operational signals are computed in services (WorkStateService, SignalsService). Attention items are runtime derivations only.
+- **Notifications:** Stored in `notifications` table; send flow uses stub WhatsApp/Email channels. Triggered by binder intake; no public API.
 - **Storage:** Permanent documents saved through `LocalStorageProvider` (local filesystem path key stored in DB). No S3 integration in code.
 - **Time handling:** `utils.time.utcnow()` returns naive UTC datetime; all timestamps persisted naive UTC.
 
@@ -19,7 +19,7 @@ Binder & Billing CRM
 - `GET /api/v1/clients` — filters: `status`, `has_signals`; paginated.
 - `GET /api/v1/clients/{client_id}` — 404 if missing.
 - `PATCH /api/v1/clients/{client_id}` — advisor required to set status `frozen/closed`; sets `closed_at` to today if closing without date.
-- `GET /api/v1/clients/{client_id}/binders` — paginated list of binders with SLA/work_state enrichment; 404 if client missing.
+- `GET /api/v1/clients/{client_id}/binders` — paginated list of binders with work_state enrichment; 404 if client missing.
 - Excel helpers: `GET /api/v1/clients/export`, `GET /api/v1/clients/template`, `POST /api/v1/clients/import` (advisor-only; openpyxl required).
 ### Service Layer
 - Validates unique `id_number` on create.
@@ -37,14 +37,13 @@ Binder & Billing CRM
 - `POST /api/v1/binders/receive` — create binder; prevents duplicate active `binder_number`; sets expected_return_at = received_at +90d; logs status history; sends notification.
 - `POST /api/v1/binders/{id}/ready` — allowed from `in_office|overdue`; else 400.
 - `POST /api/v1/binders/{id}/return` — requires `pickup_person_name` (defaults to current user name); allowed from `ready_for_pickup|overdue`; stamps `returned_at` today.
-- `GET /api/v1/binders` — filters `status`, `client_id`, `work_state`, `sla_state`; derives `days_in_office`, `work_state`, `sla_state`, `signals`, `available_actions`.
+- `GET /api/v1/binders` — filters `status`, `client_id`, `work_state`; derives `days_in_office`, `work_state`, `signals`, `available_actions`.
 - `GET /api/v1/binders/{id}` — single binder with derived fields; 404 if missing.
 - Operations lists (paginated): `GET /api/v1/binders/open`, `/overdue`, `/due-today`.
 - History: `GET /api/v1/binders/{id}/history` — 404 if binder missing.
 ### Service Layer
 - BinderService handles transitions, validates readiness/return; writes status logs; triggers notifications.
-- BinderOperationsService provides SLA-enriched lists; uses SLAService, WorkStateService, SignalsService.
-- DailySLAJobService (no endpoint) scans active binders, sends approaching/overdue/ready notifications with idempotency checks per trigger.
+- BinderOperationsService provides work_state-enriched lists; uses WorkStateService, SignalsService.
 ### Repository Capabilities
 - BinderRepository CRUD, list_active with filters, status updates, count by status; BinderStatusLog append/list; extensions for open/overdue/due-today/client lists with pagination.
 ### ORM Model
@@ -131,12 +130,12 @@ Binder & Billing CRM
 - `GET /api/v1/dashboard/summary` (any authenticated user) — counts binders by status + attention items (idle/ready/unpaid for advisor).
 - `GET /api/v1/dashboard/overview` (advisor) — totals + quick_actions + attention.
 - `GET /api/v1/dashboard/work-queue` — paginated operational queue with work_state/signals.
-- `GET /api/v1/dashboard/alerts` — overdue/near-SLA alerts.
+- `GET /api/v1/dashboard/alerts` — overdue alerts.
 - `GET /api/v1/dashboard/attention` — attention items; unpaid charges only for advisor.
 - `GET /api/v1/dashboard/tax-submissions` — tax-year widget built from annual report statuses.
 ### Services/Logic
 - DashboardService aggregates counts and delegates to DashboardExtendedService.
-- DashboardExtendedService builds work_queue/alerts/attention using SLAService, WorkStateService, SignalsService and unpaid charges (advisor only).
+- DashboardExtendedService builds work_queue/alerts/attention using WorkStateService, SignalsService and unpaid charges (advisor only).
 - DashboardOverviewService computes metrics via DashboardOverviewRepository and assembles quick actions (ready/return binder, mark charge paid, freeze/activate client).
 - DashboardTaxService aggregates submission stats + delegates deadline summary (reuse TaxDeadlineService).
 ### Known Gaps
@@ -144,7 +143,7 @@ Binder & Billing CRM
 
 ## 8. Domain: Notifications (internal)
 - **Endpoints:** None.
-- **Service:** NotificationService sends via WhatsAppChannel then email fallback; persists every attempt; idempotency for SLA job via NotificationRepository `exists_for_binder_trigger`.
+- **Service:** NotificationService sends via WhatsAppChannel then email fallback; persists every attempt; idempotency via NotificationRepository `exists_for_binder_trigger`.
 - **Models/Enums:** NotificationChannel (`whatsapp|email`), NotificationStatus (`pending|sent|failed`), NotificationTrigger (binder events, manual payment reminder).
 - **Repository:** create/mark_sent/mark_failed, list_by_client (pagination), check existing trigger.
 - **Gaps:** WhatsApp/Email channels are stubs; no delivery webhook; no resend UI.
@@ -192,7 +191,7 @@ Binder & Billing CRM
 ### Implemented Endpoints
 - `POST /api/v1/documents/upload` — multipart upload; validates `DocumentType`; stores via LocalStorageProvider; 400 on missing client or import errors.
 - `GET /api/v1/documents/client/{id}` — list documents for client.
-- `GET /api/v1/documents/client/{id}/signals` — returns operational signals (missing docs + binder SLA summaries).
+- `GET /api/v1/documents/client/{id}/signals` — returns operational signals (missing docs).
 ### Service/Repo/Model
 - DocumentType enum (`id_copy`, `power_of_attorney`, `engagement_agreement`); `is_present` flag always True on upload. SignalsService uses PermanentDocumentService `get_missing_document_types`.
 ### Gaps
@@ -223,9 +222,9 @@ Binder & Billing CRM
 
 ## 16. Domain: Search
 ### Implemented Endpoint
-- `GET /api/v1/search` — filters: general `query`, `client_name`, `id_number`, `binder_number`, `work_state`, `sla_state`, `signal_type[]`, `has_signals`; paginated.
+- `GET /api/v1/search` — filters: general `query`, `client_name`, `id_number`, `binder_number`, `work_state`, `signal_type[]`, `has_signals`; paginated.
 ### Service/Logic
-- Client search scans up to 1000 clients in memory; binder search iterates active binders, derives work_state/sla_state/signals per binder, applies filters, returns mixed result objects.
+- Client search scans up to 1000 clients in memory; binder search iterates active binders, derives work_state/signals per binder, applies filters, returns mixed result objects.
 ### Gaps
 - No full-text/indexed search; bounded in-memory scans; no pagination at DB level.
 
@@ -278,7 +277,7 @@ Binder & Billing CRM
 - No CSV; no streaming; memory aggregation over all issued charges (page_size 10000).
 
 ## 20. Domain: Advance / Misc Infrastructure
-- **Notifications job & SLA job:** Present as services only; no scheduler wiring.
+- **Notifications job:** Present as services only; no scheduler wiring.
 - **Invoice:** ORM + repository for charge-linked invoice references; no API/services creating invoices (only read in timeline).
 - **Actions:** Pure metadata for UI available_actions (binders/charges/clients); no API.
 - **Middleware:** RequestIDMiddleware adds `X-Request-ID` if missing.
@@ -287,5 +286,5 @@ Binder & Billing CRM
 ## 21. Known Cross-Cutting Gaps
 - Many list endpoints paginate in memory after full fetch (clients has_signals, tax-deadlines global list, timeline aggregation, search, dashboard attention/work-queue).
 - No rate limiting or throttling.
-- No background workers configured for reminders, signature expiry, or SLA job; these must be triggered externally.
+- No background workers configured for reminders or signature expiry; these must be triggered externally.
 - Storage/notification providers are local stubs—no cloud integration present in code.

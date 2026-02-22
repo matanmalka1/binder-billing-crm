@@ -22,7 +22,7 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
     status = _value(binder.status)
     actions: list[dict[str, Any]] = []
 
-    if status in (BinderStatus.IN_OFFICE.value, BinderStatus.OVERDUE.value):
+    if status == BinderStatus.IN_OFFICE.value:
         actions.append(
             build_action(
                 key="ready",
@@ -33,7 +33,7 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
             )
         )
 
-    if status in (BinderStatus.READY_FOR_PICKUP.value, BinderStatus.OVERDUE.value):
+    if status == BinderStatus.READY_FOR_PICKUP.value:
         actions.append(
             build_action(
                 key="return",

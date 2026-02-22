@@ -20,19 +20,15 @@ def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
         for _ in range(num):
             received_days_ago = rng.randint(0, 120)
             received_at = date.today() - timedelta(days=received_days_ago)
-            expected_return_at = received_at + timedelta(days=rng.randint(7, 30))
 
             if rng.random() < 0.4:
                 status = BinderStatus.RETURNED
                 returned_at = min(
                     date.today(),
-                    expected_return_at + timedelta(days=rng.randint(-2, 8)),
+                    received_at + timedelta(days=rng.randint(5, 30)),
                 )
             else:
-                if expected_return_at < date.today():
-                    status = rng.choice([BinderStatus.OVERDUE, BinderStatus.READY_FOR_PICKUP])
-                else:
-                    status = rng.choice([BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP])
+                status = rng.choice([BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP])
                 returned_at = None
 
             binder = Binder(
@@ -40,7 +36,6 @@ def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
                 binder_number=f"B-{binder_serial}",
                 binder_type=rng.choice(list(BinderType)),
                 received_at=received_at,
-                expected_return_at=expected_return_at,
                 returned_at=returned_at,
                 status=status,
                 received_by=rng.choice(users).id,
@@ -61,8 +56,6 @@ def create_binder_logs(db, rng: Random, binders, users) -> None:
         logs.append(("none", BinderStatus.IN_OFFICE.value, "Binder intake"))
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "Processing complete"))
-        elif binder.status == BinderStatus.OVERDUE:
-            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.OVERDUE.value, "SLA breach"))
         elif binder.status == BinderStatus.RETURNED:
             logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "Ready for pickup"))
             logs.append((BinderStatus.READY_FOR_PICKUP.value, BinderStatus.RETURNED.value, "Picked up"))

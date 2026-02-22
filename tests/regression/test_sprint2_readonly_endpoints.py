@@ -22,7 +22,6 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
         binder_number="BND-OPEN",
         binder_type=BinderType.OTHER,
         received_at=today,
-        expected_return_at=today + timedelta(days=1),
         status=BinderStatus.IN_OFFICE,
         received_by=test_user.id,
     )
@@ -31,7 +30,6 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
         binder_number="BND-OVERDUE",
         binder_type=BinderType.OTHER,
         received_at=today - timedelta(days=100),
-        expected_return_at=today - timedelta(days=1),
         status=BinderStatus.IN_OFFICE,
         received_by=test_user.id,
     )
@@ -40,7 +38,6 @@ def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test
         binder_number="BND-DUE",
         binder_type=BinderType.OTHER,
         received_at=today,
-        expected_return_at=today,
         status=BinderStatus.IN_OFFICE,
         received_by=test_user.id,
     )

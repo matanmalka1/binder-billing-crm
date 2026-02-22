@@ -24,7 +24,6 @@ class DashboardService:
             {
                 "binders_in_office": int,
                 "binders_ready_for_pickup": int,
-                "binders_overdue": int,
                 "attention": {"items": list, "total": int}
             }
         """
@@ -34,6 +33,5 @@ class DashboardService:
             "binders_ready_for_pickup": self.binder_repo.count_by_status(
                 BinderStatus.READY_FOR_PICKUP
             ),
-            "binders_overdue": self.binder_repo.count_by_status(BinderStatus.OVERDUE),
             "attention": {"items": attention_items, "total": len(attention_items)},
         }

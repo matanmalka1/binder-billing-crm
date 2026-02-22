@@ -51,7 +51,6 @@ def test_sprint2_operational_endpoints_unchanged(client, advisor_headers, test_d
         binder_number="REG-002",
         binder_type=BinderType.OTHER,
         received_at=date.today() - timedelta(days=100),
-        expected_return_at=date.today() - timedelta(days=10),
         status=BinderStatus.IN_OFFICE,
         received_by=test_user.id,
     )
@@ -60,11 +59,6 @@ def test_sprint2_operational_endpoints_unchanged(client, advisor_headers, test_d
 
     # Test open binders endpoint
     response = client.get("/api/v1/binders/open", headers=advisor_headers)
-    assert response.status_code == 200
-    assert "items" in response.json()
-
-    # Test overdue binders endpoint
-    response = client.get("/api/v1/binders/overdue", headers=advisor_headers)
     assert response.status_code == 200
     assert "items" in response.json()
 

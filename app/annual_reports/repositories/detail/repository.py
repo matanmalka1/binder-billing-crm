@@ -3,7 +3,6 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models import AnnualReportDetail
-from app.utils.time import utcnow
 
 
 class AnnualReportDetailRepository:
@@ -26,7 +25,6 @@ class AnnualReportDetailRepository:
             for key, value in fields.items():
                 if hasattr(detail, key):
                     setattr(detail, key, value)
-            detail.updated_at = utcnow()
         self.db.commit()
         self.db.refresh(detail)
         return detail

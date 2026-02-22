@@ -3,7 +3,6 @@
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models import AnnualReportStatus, AnnualReportStatusHistory
-from app.utils.time import utcnow
 
 
 class AnnualReportStatusHistoryRepository:
@@ -26,7 +25,6 @@ class AnnualReportStatusHistoryRepository:
             changed_by=changed_by,
             changed_by_name=changed_by_name,
             note=note,
-            occurred_at=utcnow(),
         )
         self.db.add(entry)
         self.db.commit()

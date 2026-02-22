@@ -20,9 +20,6 @@ def get_dashboard_overview(db: DBSession, user: CurrentUser):
     Returns management-level metrics:
     - Total clients
     - Active binders
-    - Overdue binders
-    - Binders due today
-    - Binders due this week
     """
     service = DashboardOverviewService(db)
     overview = service.get_overview(user_role=user.role)

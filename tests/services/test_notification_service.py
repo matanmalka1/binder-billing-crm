@@ -25,7 +25,6 @@ def test_notification_persisted_on_binder_received(test_db):
         binder_number="BND-001",
         binder_type=BinderType.OTHER,
         received_at=date.today(),
-        expected_return_at=date(2026, 5, 10),
         status=BinderStatus.IN_OFFICE,
         received_by=1,
     )

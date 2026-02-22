@@ -7,7 +7,6 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.binders.schemas.binder import BinderListResponse, BinderReceiveRequest, BinderResponse, BinderReturnRequest
 from app.binders.services.binder_service import BinderService
-from app.binders.services.sla_service import SLAService
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 from app.actions.action_contracts import get_binder_actions
@@ -26,7 +25,6 @@ def _to_binder_response(
     signals_service: SignalsService,
     reference_date: date,
     work_state: Optional[str] = None,
-    sla_state: Optional[str] = None,
     signals: Optional[list[str]] = None,
     client_name: Optional[str] = None,
 ) -> BinderResponse:
@@ -37,7 +35,6 @@ def _to_binder_response(
         reference_date,
         db,
     ).value
-    response.sla_state = sla_state or SLAService.derive_sla_state(binder, reference_date)
     response.signals = signals if signals is not None else signals_service.compute_binder_signals(
         binder,
         reference_date,
@@ -144,7 +141,6 @@ def list_binders(
     status_filter: Optional[str] = Query(None, alias="status"),
     client_id: Optional[int] = None,
     work_state: Optional[str] = None,
-    sla_state: Optional[str] = None,
 ):
     """List active binders with optional filters."""
     service = BinderService(db)
@@ -166,12 +162,9 @@ def list_binders(
             reference_date,
             db,
         ).value
-        current_sla_state = SLAService.derive_sla_state(binder, reference_date)
         current_signals = signals_service.compute_binder_signals(binder, reference_date)
 
         if work_state and current_work_state != work_state:
-            continue
-        if sla_state and current_sla_state != sla_state:
             continue
 
         items.append(
@@ -181,7 +174,6 @@ def list_binders(
                 signals_service=signals_service,
                 reference_date=reference_date,
                 work_state=current_work_state,
-                sla_state=current_sla_state,
                 signals=current_signals,
                 client_name=client_name_map.get(binder.client_id),
             )

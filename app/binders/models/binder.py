@@ -10,7 +10,6 @@ class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
-    OVERDUE = "overdue"
 
 
 class BinderType(str, PyEnum):
@@ -32,7 +31,6 @@ class Binder(Base):
     binder_number = Column(String, nullable=False)
     binder_type = Column(Enum(BinderType), nullable=False)
     received_at = Column(Date, nullable=False)
-    expected_return_at = Column(Date, nullable=False)
     returned_at = Column(Date, nullable=True)
     status = Column(Enum(BinderStatus), default=BinderStatus.IN_OFFICE, nullable=False)
     received_by = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -44,7 +42,6 @@ class Binder(Base):
     __table_args__ = (
         Index("idx_binder_status", "status"),
         Index("idx_binder_received_at", "received_at"),
-        Index("idx_binder_expected_return_at", "expected_return_at"),
         Index(
             "idx_active_binder_unique",
             "binder_number",

@@ -19,8 +19,6 @@ class NotificationStatus(str, PyEnum):
 
 class NotificationTrigger(str, PyEnum):
     BINDER_RECEIVED = "binder_received"
-    BINDER_APPROACHING_SLA = "binder_approaching_sla"
-    BINDER_OVERDUE = "binder_overdue"
     BINDER_READY_FOR_PICKUP = "binder_ready_for_pickup"
     MANUAL_PAYMENT_REMINDER = "manual_payment_reminder"
 

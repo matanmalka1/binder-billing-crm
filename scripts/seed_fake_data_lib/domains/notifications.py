@@ -24,15 +24,13 @@ def create_notifications(db, rng: Random, clients, binders) -> None:
         channel = NotificationChannel.EMAIL if is_email else NotificationChannel.WHATSAPP
         recipient = client.email if is_email else (client.phone or "0500000000")
 
-        if binder.status == BinderStatus.OVERDUE:
-            trigger = NotificationTrigger.BINDER_OVERDUE
-        elif binder.status == BinderStatus.READY_FOR_PICKUP:
+        if binder.status == BinderStatus.READY_FOR_PICKUP:
             trigger = NotificationTrigger.BINDER_READY_FOR_PICKUP
         else:
             trigger = rng.choice(
                 [
                     NotificationTrigger.BINDER_RECEIVED,
-                    NotificationTrigger.BINDER_APPROACHING_SLA,
+                    NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 ]
             )
 

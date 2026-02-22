@@ -1,7 +1,6 @@
 """Regression tests for Sprint 5 hardening."""
-from datetime import date, timedelta
+from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus
 from app.clients.models.client import Client, ClientType
 
 
@@ -38,10 +37,6 @@ def test_sprint1_unchanged(client, advisor_headers, test_db):
 def test_sprint2_unchanged(client, advisor_headers):
     """Test Sprint 2 operational endpoints unchanged."""
     response = client.get("/api/v1/binders/open", headers=advisor_headers)
-    assert response.status_code == 200
-    assert "items" in response.json()
-
-    response = client.get("/api/v1/binders/overdue", headers=advisor_headers)
     assert response.status_code == 200
     assert "items" in response.json()
 
@@ -85,7 +80,6 @@ def test_sprint4_unchanged(client, advisor_headers, secretary_headers, test_db):
     test_db.commit()
     test_db.refresh(test_client)
 
-    # Test operational signals (Sprint 4)
     response = client.get(
         f"/api/v1/documents/client/{test_client.id}/signals",
         headers=secretary_headers,
@@ -94,4 +88,3 @@ def test_sprint4_unchanged(client, advisor_headers, secretary_headers, test_db):
     assert response.status_code == 200
     data = response.json()
     assert "missing_documents" in data
-    assert "binders_nearing_sla" in data
