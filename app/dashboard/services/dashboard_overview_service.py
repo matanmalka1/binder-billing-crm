@@ -42,32 +42,36 @@ class DashboardOverviewService:
                 break
 
         if ready_candidate is not None:
-            actions.append(
-                build_action(
-                    key="ready",
-                    label="מוכן לאיסוף",
-                    method="post",
-                    endpoint=f"/binders/{ready_candidate.id}/ready",
-                    action_id=f"binder-{ready_candidate.id}-ready",
-                )
+            ready_client = self.client_repo.get_by_id(ready_candidate.client_id)
+            action = build_action(
+                key="ready",
+                label="מוכן לאיסוף",
+                method="post",
+                endpoint=f"/binders/{ready_candidate.id}/ready",
+                action_id=f"binder-{ready_candidate.id}-ready",
             )
+            action["client_name"] = ready_client.full_name if ready_client else None
+            action["binder_number"] = ready_candidate.binder_number
+            actions.append(action)
 
         if return_candidate is not None:
-            actions.append(
-                build_action(
-                    key="return",
-                    label="החזרת קלסר",
-                    method="post",
-                    endpoint=f"/binders/{return_candidate.id}/return",
-                    action_id=f"binder-{return_candidate.id}-return",
-                    confirm={
-                        "title": "אישור החזרת קלסר",
-                        "message": "האם לאשר החזרת קלסר ללקוח?",
-                        "confirm_label": "אישור",
-                        "cancel_label": "ביטול",
-                    },
-                )
+            return_client = self.client_repo.get_by_id(return_candidate.client_id)
+            action = build_action(
+                key="return",
+                label="החזרת קלסר",
+                method="post",
+                endpoint=f"/binders/{return_candidate.id}/return",
+                action_id=f"binder-{return_candidate.id}-return",
+                confirm={
+                    "title": "אישור החזרת קלסר",
+                    "message": "האם לאשר החזרת קלסר ללקוח?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
             )
+            action["client_name"] = return_client.full_name if return_client else None
+            action["binder_number"] = return_candidate.binder_number
+            actions.append(action)
 
         if user_role == UserRole.ADVISOR:
             issued_charges = self.charge_repo.list_charges(
@@ -77,15 +81,16 @@ class DashboardOverviewService:
             )
             if issued_charges:
                 charge = issued_charges[0]
-                actions.append(
-                    build_action(
-                        key="mark_paid",
-                        label="סימון חיוב כשולם",
-                        method="post",
-                        endpoint=f"/charges/{charge.id}/mark-paid",
-                        action_id=f"charge-{charge.id}-mark_paid",
-                    )
+                charge_client = self.client_repo.get_by_id(charge.client_id) if charge.client_id else None
+                action = build_action(
+                    key="mark_paid",
+                    label="סימון חיוב כשולם",
+                    method="post",
+                    endpoint=f"/charges/{charge.id}/mark-paid",
+                    action_id=f"charge-{charge.id}-mark_paid",
                 )
+                action["client_name"] = charge_client.full_name if charge_client else None
+                actions.append(action)
 
             active_clients = self.client_repo.list(
                 status=ClientStatus.ACTIVE.value,
@@ -94,22 +99,22 @@ class DashboardOverviewService:
             )
             if active_clients:
                 client = active_clients[0]
-                actions.append(
-                    build_action(
-                        key="freeze",
-                        label="הקפאת לקוח",
-                        method="patch",
-                        endpoint=f"/clients/{client.id}",
-                        payload={"status": "frozen"},
-                        action_id=f"client-{client.id}-freeze",
-                        confirm={
-                            "title": "אישור הקפאת לקוח",
-                            "message": "האם להקפיא את הלקוח?",
-                            "confirm_label": "הקפאה",
-                            "cancel_label": "ביטול",
-                        },
-                    )
+                action = build_action(
+                    key="freeze",
+                    label="הקפאת לקוח",
+                    method="patch",
+                    endpoint=f"/clients/{client.id}",
+                    payload={"status": "frozen"},
+                    action_id=f"client-{client.id}-freeze",
+                    confirm={
+                        "title": "אישור הקפאת לקוח",
+                        "message": "האם להקפיא את הלקוח?",
+                        "confirm_label": "הקפאה",
+                        "cancel_label": "ביטול",
+                    },
                 )
+                action["client_name"] = client.full_name
+                actions.append(action)
 
         frozen_clients = self.client_repo.list(
             status=ClientStatus.FROZEN.value,
@@ -118,16 +123,16 @@ class DashboardOverviewService:
         )
         if frozen_clients:
             client = frozen_clients[0]
-            actions.append(
-                build_action(
-                    key="activate",
-                    label="הפעלת לקוח",
-                    method="patch",
-                    endpoint=f"/clients/{client.id}",
-                    payload={"status": "active"},
-                    action_id=f"client-{client.id}-activate",
-                )
+            action = build_action(
+                key="activate",
+                label="הפעלת לקוח",
+                method="patch",
+                endpoint=f"/clients/{client.id}",
+                payload={"status": "active"},
+                action_id=f"client-{client.id}-activate",
             )
+            action["client_name"] = client.full_name
+            actions.append(action)
 
         return actions
 

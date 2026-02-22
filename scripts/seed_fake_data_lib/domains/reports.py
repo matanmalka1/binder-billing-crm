@@ -142,7 +142,9 @@ def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
     db.flush()
 
 
-def create_annual_report_status_history(db, rng: Random, reports) -> None:
+def create_annual_report_status_history(db, rng: Random, reports, users) -> None:
+    user_lookup = {u.id: u for u in users}
+    fallback_user = users[0] if users else None
     for report in reports:
         possible_statuses = list(AnnualReportStatus)
         start_index = 0
@@ -151,12 +153,18 @@ def create_annual_report_status_history(db, rng: Random, reports) -> None:
         history_statuses = possible_statuses[start_index : target_index + 1]
         previous = None
         for status in history_statuses:
+            actor_id = report.created_by or report.assigned_to or (fallback_user.id if fallback_user else None)
+            actor_name = (
+                user_lookup.get(actor_id).full_name
+                if actor_id in user_lookup
+                else "Seeder"
+            )
             entry = AnnualReportStatusHistory(
                 annual_report_id=report.id,
                 from_status=previous,
                 to_status=status,
-                changed_by=None,
-                changed_by_name="Seeder",
+                changed_by=actor_id,
+                changed_by_name=actor_name,
                 note="Auto-generated status history",
                 occurred_at=report.created_at + timedelta(hours=rng.randint(1, 72)),
             )

@@ -69,7 +69,7 @@ class Seeder:
             contacts.create_correspondence(db, self.rng, seeded_clients, seeded_users)
             reports.create_annual_report_details(db, self.rng, seeded_reports)
             reports.create_annual_report_schedule_entries(db, self.rng, seeded_reports)
-            reports.create_annual_report_status_history(db, self.rng, seeded_reports)
+            reports.create_annual_report_status_history(db, self.rng, seeded_reports, seeded_users)
             taxes.create_advance_payments(db, self.rng, seeded_clients, seeded_deadlines)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_binders)
             reminders.create_reminders(db, self.rng, seeded_clients, seeded_binders, seeded_charges, seeded_deadlines)

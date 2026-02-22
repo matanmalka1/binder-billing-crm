@@ -1,6 +1,5 @@
 from datetime import date
-from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -23,9 +22,6 @@ from app.clients.models.client import Client
 
 class DashboardExtendedService:
     """Dashboard extensions for operational UX."""
-
-    # in-process cache for attention items keyed by (role, reference_date_iso)
-    _attention_cache: dict[Tuple[Optional[str], str], Tuple[float, list]] = {}
 
     def __init__(self, db: Session):
         self.db = db
@@ -77,19 +73,9 @@ class DashboardExtendedService:
         self,
         user_role: Optional[UserRole] = None,
         reference_date: Optional[date] = None,
-        cache_ttl_seconds: int = 30,
     ) -> list[dict]:
         if reference_date is None:
             reference_date = date.today()
-
-        cache_key = (
-            user_role.value if isinstance(user_role, UserRole) else user_role,
-            reference_date.isoformat(),
-        )
-        cached = self._attention_cache.get(cache_key)
-        now = datetime.now().timestamp()
-        if cached and now - cached[0] <= cache_ttl_seconds:
-            return cached[1]
 
         items = []
         for binder, client in self._active_binders_with_clients():
@@ -118,5 +104,4 @@ class DashboardExtendedService:
                         continue
                     items.append(unpaid_charge_attention_item(charge, client))
 
-        self._attention_cache[cache_key] = (now, items)
         return items

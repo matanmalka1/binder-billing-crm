@@ -18,6 +18,8 @@ class DashboardQuickAction(BaseModel):
     endpoint: str
     payload: Optional[dict[str, Any]] = None
     confirm: Optional[ConfirmDetails] = None
+    client_name: Optional[str] = None
+    binder_number: Optional[str] = None
 
 
 class AttentionItem(BaseModel):
