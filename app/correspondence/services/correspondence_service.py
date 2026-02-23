@@ -46,5 +46,7 @@ class CorrespondenceService:
             notes=notes,
         )
 
-    def list_client_entries(self, client_id: int) -> list[Correspondence]:
-        return self.repo.list_by_client(client_id)
+    def list_client_entries(
+        self, client_id: int, *, page: int, page_size: int
+    ) -> tuple[list[Correspondence], int]:
+        return self.repo.list_by_client_paginated(client_id, page=page, page_size=page_size)

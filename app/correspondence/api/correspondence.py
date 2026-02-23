@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -18,11 +18,20 @@ router = APIRouter(
 
 
 @router.get("/{client_id}/correspondence", response_model=CorrespondenceListResponse)
-def list_correspondence(client_id: int, db: DBSession, user: CurrentUser):
+def list_correspondence(
+    client_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
     service = CorrespondenceService(db)
-    entries = service.list_client_entries(client_id)
+    entries, total = service.list_client_entries(client_id, page=page, page_size=page_size)
     return CorrespondenceListResponse(
-        items=[CorrespondenceResponse.model_validate(e) for e in entries]
+        items=[CorrespondenceResponse.model_validate(e) for e in entries],
+        page=page,
+        page_size=page_size,
+        total=total,
     )
 
 

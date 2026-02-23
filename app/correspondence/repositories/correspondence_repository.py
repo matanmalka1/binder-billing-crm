@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
@@ -34,10 +35,16 @@ class CorrespondenceRepository:
         self.db.refresh(entry)
         return entry
 
-    def list_by_client(self, client_id: int) -> list[Correspondence]:
-        return (
+    def list_by_client_paginated(
+        self, client_id: int, *, page: int, page_size: int
+    ) -> tuple[list[Correspondence], int]:
+        query = (
             self.db.query(Correspondence)
             .filter(Correspondence.client_id == client_id)
             .order_by(Correspondence.occurred_at.desc())
-            .all()
         )
+
+        total = query.with_entities(func.count()).scalar() or 0
+        offset = (page - 1) * page_size
+        items = query.offset(offset).limit(page_size).all()
+        return items, total

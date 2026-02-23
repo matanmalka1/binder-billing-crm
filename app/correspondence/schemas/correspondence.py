@@ -28,3 +28,6 @@ class CorrespondenceResponse(BaseModel):
 
 class CorrespondenceListResponse(BaseModel):
     items: list[CorrespondenceResponse]
+    page: int
+    page_size: int
+    total: int
