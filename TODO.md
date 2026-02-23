@@ -122,7 +122,7 @@ Add an empty state to the reminders table when items.length === 0 showing a Hebr
 
 Complexity: S
 
-12. ClientDetails page doesn't surface VAT work items, Annual Reports, or Permanent Documents for the selected client
+✅ 12. ClientDetails page doesn't surface VAT work items, Annual Reports, or Permanent Documents for the selected client
     Files:
 
 Frontend: src/pages/ClientDetails.tsx — shows binders, charges, tax profile, authority contacts, correspondence, signature requests
@@ -133,7 +133,7 @@ Add summary cards or "quick links" on ClientDetails for: (a) Annual Reports (cou
 
 Complexity: M
 
-13. Advance Payments page has no "create" flow — monthly rows are pre-generated, not explained
+✅ 13. Advance Payments page has no "create" flow — monthly rows are pre-generated, not explained
     Files:
 
 Frontend: src/pages/tax/AdvancePayments.tsx — only shows and edits existing rows; no creation
@@ -143,7 +143,7 @@ Verify whether advance payment rows are auto-created (from deadline creation) or
 
 Complexity: S (docs/UX) | M (create flow if needed)
 
-14. AgingReport export uses window.open(result.download_url) — backend must return a download_url field
+✅ 14. AgingReport export uses window.open(result.download_url) — backend must return a download_url field
     Files:
 
 Frontend: src/features/reports/hooks/useAgingReport.ts — window.open(result.download_url, "\_blank")
@@ -153,7 +153,7 @@ Read reports.py export handler and confirm response shape. If it streams a file 
 
 Complexity: S (verify & fix)
 
-15. Dashboard Tax Submissions endpoint defined but no page uses it
+✅ 15. Dashboard Tax Submissions endpoint defined but no page uses it
     Files:
 
 Frontend: src/api/endpoints.ts — dashboardTaxSubmissions: "/dashboard/tax-submissions"
@@ -163,7 +163,7 @@ Verify backend has GET /dashboard/tax-submissions. If it exists and returns data
 
 Complexity: S (verify & either wire up or remove)
 
-16. TaxDeadlines page — no link from deadline to its related advance payments
+✅ 16. TaxDeadlines page — no link from deadline to its related advance payments
     Files:
 
 Frontend: src/pages/TaxDeadlines.tsx
@@ -173,7 +173,7 @@ Add a "ראה תשלומי מקדמה" (View advance payments) action in the dea
 
 Complexity: S
 
-🟢 Low Priority / Nice to Have 17. No route or UI for viewing a single AnnualReport detail page
+✅ 🟢 Low Priority / Nice to Have 17. No route or UI for viewing a single AnnualReport detail page
 Files:
 
 Backend: GET /api/v1/annual-reports/{report_id} returns full AnnualReportDetailResponse with schedules and status history
@@ -183,7 +183,7 @@ Add a /tax/reports/:reportId route and a AnnualReportDetail page that renders th
 
 Complexity: M
 
-18. Search page doesn't link to individual result entities
+✅ 18. Search page doesn't link to individual result entities
     Files:
 
 Frontend: src/pages/Search.tsx — displays results table
@@ -193,7 +193,7 @@ Make client rows in search results clickable, navigating to /clients/{client_id}
 
 Complexity: S
 
-19. Documents page has no per-client filtering — shows all or nothing
+✅ 19. Documents page has no per-client filtering — shows all or nothing
     Files:
 
 Frontend: src/pages/Documents.tsx
@@ -203,7 +203,7 @@ Verify whether the Documents page has a client selector. If listByClient always 
 
 Complexity: S
 
-20. No loading feedback on login form submission
+✅ 20. No loading feedback on login form submission
     Files:
 
 Frontend: src/pages/Login.tsx
@@ -212,7 +212,7 @@ Confirm the login form submit button shows a loading spinner or is disabled whil
 
 Complexity: S
 
-21. Binder detail drawer — no link to client details page
+✅ 21. Binder detail drawer — no link to client details page
     Files:
 
 Frontend: src/pages/Binders.tsx — binder detail drawer
@@ -222,7 +222,7 @@ Add a "פתח כרטיס לקוח" (Open client card) link inside the binder dra
 
 Complexity: S
 
-22. Annual report internal_notes field not surfaced in Kanban card or any UI
+✅ 22. Annual report internal_notes field not surfaced in Kanban card or any UI
     Files:
 
 Backend: AnnualReportDetailResponse.internal_notes: Optional[str] — returned in detail response
@@ -232,7 +232,7 @@ Add internal_notes to frontend type and display it in the annual report detail v
 
 Complexity: S
 
-🔵 Technical Debt 23. UserUpdateRequest backend schema exposes internal fields
+✅ 🔵 Technical Debt 23. UserUpdateRequest backend schema exposes internal fields
 Files:
 
 Backend: app/users/api/users.py — UserUpdateRequest includes id, token_version, created_at, last_login_at, is_active as optional updatable fields

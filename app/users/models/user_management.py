@@ -19,12 +19,7 @@ class UserUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     role: Optional[UserRole] = None
-    email: Optional[str] = None
-    id: Optional[int] = None
-    token_version: Optional[int] = None
-    created_at: Optional[datetime] = None
-    last_login_at: Optional[datetime] = None
-    is_active: Optional[bool] = None
+    email: Optional[EmailStr] = None
 
 
 class PasswordResetRequest(BaseModel):
@@ -69,4 +64,3 @@ class UserAuditLogListResponse(BaseModel):
     page: int
     page_size: int
     total: int
-

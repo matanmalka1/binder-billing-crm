@@ -68,6 +68,11 @@ class UserManagementService:
         **fields,
     ) -> Optional[User]:
         ensure_advisor(actor_role)
+        if "email" in fields:
+            existing = self.user_repo.get_by_email(fields["email"])
+            if existing and existing.id != user_id:
+                raise ValueError(f"User with email {fields['email']} already exists")
+
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))

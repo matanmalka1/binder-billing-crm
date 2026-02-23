@@ -1,10 +1,11 @@
 """Routes: invoice data entry (add / delete / list)."""
 
-from typing import Optional
+from typing import Optional, Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import User, UserRole
 from app.vat_reports.models.vat_enums import InvoiceType
 from app.vat_reports.schemas import (
     SendBackForCorrectionRequest,
@@ -131,23 +132,12 @@ def send_back_for_correction(
     item_id: int,
     request: SendBackForCorrectionRequest,
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: Annotated[User, Depends(require_role(UserRole.ADVISOR))],
 ):
     """
     Advisor sends work item back for correction.
     READY_FOR_REVIEW → DATA_ENTRY_IN_PROGRESS.
-
-    Advisor only.
     """
-    from app.users.api.deps import require_role
-    from app.users.models.user import UserRole
-
-    if current_user.role not in (UserRole.ADVISOR,):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only advisors can send work items back for correction",
-        )
-
     service = VatReportService(db)
     try:
         item = service.send_back_for_correction(
