@@ -63,7 +63,7 @@ Create a /signature-requests page (or /reports/signature-requests) showing all p
 
 Complexity: M
 
-6. useImportExport.ts hardcodes URL paths — architectural violation
+✅ 6. useImportExport.ts hardcodes URL paths — architectural violation
    Files:
 
 Frontend: src/features/importExport/hooks/useImportExport.ts lines ~24, 59, 75 — uses `/${entityType}/export`, `/${entityType}/import`, `/${entityType}/template`
@@ -73,7 +73,7 @@ Replace the three hardcoded URL constructions with direct references to ENDPOINT
 
 Complexity: S
 
-7. Correspondence endpoints not defined in endpoints.ts
+✅ 7. Correspondence endpoints not defined in endpoints.ts
    Files:
 
 Frontend: src/api/correspondence.api.ts — hardcodes `/clients/${clientId}/correspondence` inline
@@ -83,7 +83,7 @@ Add correspondenceList: (id) => `/clients/${id}/correspondence` and corresponden
 
 Complexity: S
 
-8. usersAuditLogs endpoint missing from endpoints.ts
+✅ 8. usersAuditLogs endpoint missing from endpoints.ts
    Files:
 
 Frontend: src/api/endpoints.ts — has users, userById, userActivate, userDeactivate, userResetPassword but no userAuditLogs

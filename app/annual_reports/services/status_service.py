@@ -63,6 +63,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
             note=note,
         )
 
+        self._attach_client_names([report])
         return report
 
     def update_deadline(
@@ -106,4 +107,5 @@ class AnnualReportStatusService(AnnualReportBaseService):
             ),
         )
 
+        self._attach_client_names([report])
         return report

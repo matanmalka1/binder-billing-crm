@@ -5,9 +5,22 @@ class AnnualReportBaseService:
     """Shared helpers for annual report service mixins."""
 
     repo: any  # set by concrete service
+    client_repo: any  # set by concrete service
 
     def _get_or_raise(self, report_id: int) -> AnnualReport:
         report = self.repo.get_by_id(report_id)
         if not report:
             raise ValueError(f"Annual report {report_id} not found")
         return report
+
+    def _attach_client_names(self, reports: list[AnnualReport]) -> None:
+        """
+        Enrich report objects with client_name so response schemas include it.
+        """
+        if not reports:
+            return
+        client_ids = {r.client_id for r in reports}
+        clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
+        id_to_name = {c.id: c.full_name for c in clients}
+        for r in reports:
+            r.client_name = id_to_name.get(r.client_id)  # type: ignore[attr-defined]

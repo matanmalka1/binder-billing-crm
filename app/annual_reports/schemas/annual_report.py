@@ -26,6 +26,7 @@ class AnnualReportCreateRequest(BaseModel):
 class AnnualReportResponse(BaseModel):
     id: int
     client_id: int
+    client_name: Optional[str] = None
     tax_year: int
     client_type: str
     form_type: str
