@@ -3,6 +3,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+
 
 class AdvancePaymentRow(BaseModel):
     id: int
@@ -12,12 +14,12 @@ class AdvancePaymentRow(BaseModel):
     year: int
     expected_amount: Optional[float] = None
     paid_amount: Optional[float] = None
-    status: str
+    status: AdvancePaymentStatus
     due_date: date
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "use_enum_values": True}
 
 
 class AdvancePaymentListResponse(BaseModel):
@@ -29,7 +31,7 @@ class AdvancePaymentListResponse(BaseModel):
 
 class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[float] = None
-    status: Optional[str] = None
+    status: Optional[AdvancePaymentStatus] = None
 
 
 class AdvancePaymentCreateRequest(BaseModel):

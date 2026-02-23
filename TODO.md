@@ -242,7 +242,7 @@ Restrict UserUpdateRequest to only full_name, phone, role, email. Move is_active
 
 Complexity: S
 
-24. VAT send-back role check uses manual current_user.role instead of require_role() dependency
+✅ 24. VAT send-back role check uses manual current_user.role instead of require_role() dependency
     Files:
 
 Backend: app/vat_reports/api/routes_data_entry.py lines ~142–149
