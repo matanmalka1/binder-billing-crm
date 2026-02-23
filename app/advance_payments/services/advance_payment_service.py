@@ -16,6 +16,37 @@ class AdvancePaymentService:
     def list_payments(self, client_id: int, year: int) -> list[AdvancePayment]:
         return self.repo.list_by_client_year(client_id, year)
 
+    def create_payment(
+        self,
+        client_id: int,
+        year: int,
+        month: int,
+        due_date,
+        expected_amount=None,
+        paid_amount=None,
+        tax_deadline_id: Optional[int] = None,
+    ) -> AdvancePayment:
+        # Validate client exists
+        if not self.client_repo.get_by_id(client_id):
+            raise ValueError("Client not found")
+
+        if month < 1 or month > 12:
+            raise ValueError("month must be between 1 and 12")
+
+        existing = self.repo.list_by_client_year(client_id, year)
+        if any(p.month == month for p in existing):
+            raise ValueError("Advance payment for this month already exists")
+
+        return self.repo.create(
+            client_id=client_id,
+            year=year,
+            month=month,
+            due_date=due_date,
+            expected_amount=expected_amount,
+            paid_amount=paid_amount,
+            tax_deadline_id=tax_deadline_id,
+        )
+
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)
         if not payment:

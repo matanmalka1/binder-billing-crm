@@ -53,7 +53,7 @@ Build the User Management feature: page at /settings/users, API file, hook, and 
 
 Complexity: L
 
-🟠 High Priority 5. No dedicated staff-facing Signature Requests management page
+✅ 🟠 High Priority 5. No dedicated staff-facing Signature Requests management page
 Files:
 
 Backend: app/signature_requests/api/routes_advisor.py — GET /signature-requests/pending, full CRUD
@@ -93,7 +93,7 @@ Add userAuditLogs: "/users/audit-logs" to endpoints.ts. Required for the user ma
 
 Complexity: S
 
-9. Annual report response missing client_name field that frontend expects
+✅ 9. Annual report response missing client_name field that frontend expects
    Files:
 
 Frontend: src/api/annualReports.api.ts — AnnualReportFull.client_name?: string | null
@@ -103,7 +103,7 @@ Determine if client_name is populated server-side (check service layer). If not,
 
 Complexity: M
 
-🟡 Medium Priority 10. No page for staff to view/manage Reminders per-client
+✅ 🟡 Medium Priority 10. No page for staff to view/manage Reminders per-client
 Files:
 
 Backend: GET /api/v1/reminders supports client_id filter (check routes_list.py)
@@ -113,7 +113,7 @@ Add a "client reminders" view in the ClientDetails page (similar to how Correspo
 
 Complexity: M
 
-11. Reminders page has no explicit empty state
+✅ 11. Reminders page has no explicit empty state
     Files:
 
 Frontend: src/pages/reports/Reminders.tsx — uses PageStateGuard but no explicit "no reminders" empty state message

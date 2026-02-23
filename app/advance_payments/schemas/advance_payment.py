@@ -30,3 +30,21 @@ class AdvancePaymentListResponse(BaseModel):
 class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[float] = None
     status: Optional[str] = None
+
+
+class AdvancePaymentCreateRequest(BaseModel):
+    client_id: int
+    year: int
+    month: int  # 1-12
+    due_date: date
+    expected_amount: Optional[float] = None
+    paid_amount: Optional[float] = None
+    tax_deadline_id: Optional[int] = None
+
+    model_config = {"json_schema_extra": {"example": {
+        "client_id": 123,
+        "year": 2026,
+        "month": 3,
+        "due_date": "2026-03-15",
+        "expected_amount": 2500.0,
+    }}}
