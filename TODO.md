@@ -251,7 +251,7 @@ Replace inline if current_user.role != UserRole.ADVISOR: raise HTTPException(403
 
 Complexity: S
 
-25. AdvancePaymentRow.status is typed str in both frontend and backend — no enum validation
+✅ 25. AdvancePaymentRow.status is typed str in both frontend and backend — no enum validation
     Files:
 
 Backend: app/advance_payments/schemas/advance_payment.py — status: str
@@ -261,7 +261,7 @@ Define a proper AdvancePaymentStatus enum in the backend (PENDING, PAID, PARTIAL
 
 Complexity: S
 
-26. CorrespondenceListResponse returns { items: [...] } — no pagination
+✅ 26. CorrespondenceListResponse returns { items: [...] } — no pagination
     Files:
 
 Backend: app/correspondence/api/correspondence.py — CorrespondenceListResponse is { items: list[CorrespondenceResponse] } with no page/total fields
@@ -271,7 +271,7 @@ If a client ever has many correspondence entries, this will load everything at o
 
 Complexity: M
 
-27. DashboardOverviewResponse.quick_actions typed as optional nullable in frontend, always a list in backend
+✅ 27. DashboardOverviewResponse.quick_actions typed as optional nullable in frontend, always a list in backend
     Files:
 
 Frontend: src/api/dashboard.api.ts — quick_actions?: BackendAction[] | null

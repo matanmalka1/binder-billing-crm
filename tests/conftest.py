@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from app.database import Base, get_db
 from app.main import app
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.clients.models.client import Client, ClientType
 
 
 @pytest.fixture(scope="function")
@@ -106,3 +108,18 @@ def advisor_headers(auth_token):
 @pytest.fixture(scope="function")
 def secretary_headers(secretary_token):
     return {"Authorization": f"Bearer {secretary_token}"}
+
+
+@pytest.fixture(scope="function")
+def vat_client(test_db):
+    """A client fixture for VAT work item tests."""
+    client = Client(
+        full_name="VAT Test Client",
+        id_number="VAT999001",
+        client_type=ClientType.OSEK_MURSHE,
+        opened_at=date(2024, 1, 1),
+    )
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+    return client
