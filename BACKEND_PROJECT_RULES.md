@@ -9,7 +9,6 @@ Its purpose is to:
 
 - Preserve long-term architectural integrity
 - Prevent scope creep and hidden regressions
-- Ensure consistency across sprints and contributors
 - Serve as the highest-level engineering contract
 
 If a conflict arises between this document and other documentation, **this document prevails** unless explicitly amended.
@@ -129,16 +128,7 @@ All such states are computed dynamically in the Service layer.
 - Production: PostgreSQL. Migrations must be managed explicitly before any schema change is deployed.
 - ORM is the single source of truth for schema; no schema changes outside of model files.
 
-### 9. Sprint Discipline
-
-- Every sprint requires:
-  - Formal specification
-  - Explicit freeze
-- Out-of-scope features are forbidden
-- Deviations require explicit approval
-- Completed sprints are immutable (Sprints 1–9 are frozen)
-
-### 10. What This Project Is NOT
+### 9. What This Project Is NOT
 
 This project is explicitly **not**:
 
@@ -148,7 +138,7 @@ This project is explicitly **not**:
 - Analytics-first
 - UI-driven
 
-### 11. Amendment Policy
+### 10. Amendment Policy
 
 This document may only be amended by:
 

@@ -1,4 +1,4 @@
-# API Examples (Response Shapes Match Frozen Sprint 6 Backend)
+# API Examples 
 
 All examples use base path `/api/v1` and JSON requests unless stated otherwise.
 
