@@ -54,5 +54,5 @@ htmlcov/
 # macOS
 .DS_Store
 
-# Local dev/test storage (Sprint 4)
+# Local dev/test storage 
 storage/
