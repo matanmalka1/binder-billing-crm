@@ -52,7 +52,6 @@ class DeadlineType(str, PyEnum):
 class ReportStage(str, PyEnum):
     """
     Higher-level workflow stages used by dashboards.
-    (Implemented per Sprint 7/8 specifications.)
     """
 
     MATERIAL_COLLECTION = "material_collection"

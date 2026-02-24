@@ -5,7 +5,7 @@ from app.binders.models.binder_status_log import BinderStatusLog
 from app.clients.models.client import Client, ClientType
 
 
-def test_sprint2_get_endpoints_do_not_mutate_state(client, advisor_headers, test_db, test_user):
+def test_readonly_get_endpoints_do_not_mutate_state(client, advisor_headers, test_db, test_user):
     today = date.today()
     c = Client(
         full_name="Client D",

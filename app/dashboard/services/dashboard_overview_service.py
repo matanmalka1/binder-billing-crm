@@ -15,7 +15,7 @@ from app.dashboard.services.dashboard_extended_service import DashboardExtendedS
 
 
 class DashboardOverviewService:
-    """Sprint 2 dashboard overview business logic."""
+    """ dashboard overview business logic."""
 
     def __init__(self, db: Session):
         self.db = db

@@ -31,8 +31,6 @@ class WorkStateService:
         """
         Derive work state from binder properties.
         
-        Sprint 6: Now incorporates notification history as input.
-        
         Logic:
         - COMPLETED: status == RETURNED
         - IN_PROGRESS: received within last 14 days OR ready_for_pickup OR recent notification activity
@@ -62,7 +60,7 @@ class WorkStateService:
         if days_since_received < WorkStateService.IDLE_THRESHOLD_DAYS:
             return WorkState.IN_PROGRESS
 
-        # Sprint 6: Check notification history for recent activity
+        # Check notification history for recent activity
         if db is not None:
             if WorkStateService._has_recent_notification_activity(
                 binder, reference_date, db
@@ -81,7 +79,7 @@ class WorkStateService:
         """
         Check if binder has notification activity within the idle threshold.
         
-        Sprint 6 addition: Recent notifications indicate active work.
+        Recent notifications indicate active work.
         """
         
         notification_repo = NotificationRepository(db)

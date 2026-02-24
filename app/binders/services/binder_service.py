@@ -55,7 +55,7 @@ class BinderService:
             notes="Binder received",
         )
 
-        # Sprint 4: Send binder received notification
+        # Send binder received notification
         self.notification_service.notify_binder_received(binder, client)
 
         return binder

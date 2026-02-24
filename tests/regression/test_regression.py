@@ -4,8 +4,8 @@ from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
 
 
-def test_sprint1_binder_receive_still_works(client, advisor_headers, test_db):
-    """Regression: Sprint 1 binder receive endpoint unchanged."""
+def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_headers, test_db):
+    """Regression: binder receive endpoint unchanged."""
     test_client = Client(
         full_name="Regression Test Client",
         id_number="000000003",
@@ -34,10 +34,10 @@ def test_sprint1_binder_receive_still_works(client, advisor_headers, test_db):
     assert data["status"] == "in_office"
 
 
-def test_sprint2_operational_endpoints_unchanged(client, advisor_headers, test_db, test_user):
-    """Regression: Sprint 2 operational endpoints unchanged."""
+def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, test_user):
+    """Regression: operational endpoints unchanged."""
     test_client = Client(
-        full_name="Sprint2 Regression Client",
+        full_name="Regression Client",
         id_number="000000004",
         client_type=ClientType.OSEK_PATUR,
         opened_at=date.today(),
@@ -63,10 +63,10 @@ def test_sprint2_operational_endpoints_unchanged(client, advisor_headers, test_d
     assert "items" in response.json()
 
 
-def test_sprint3_billing_endpoints_unchanged(client, advisor_headers, test_db):
-    """Regression: Sprint 3 billing endpoints unchanged."""
+def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers, test_db):
+    """Regression: billing endpoints unchanged."""
     test_client = Client(
-        full_name="Sprint3 Regression Client",
+        full_name="Regression Client",
         id_number="000000005",
         client_type=ClientType.EMPLOYEE,
         opened_at=date.today(),

@@ -10,7 +10,7 @@ from app.permanent_documents.repositories.permanent_document_repository import P
 
 
 class PermanentDocumentService:
-    """Permanent document management service for Sprint 4."""
+    """Permanent document management service """
 
     def __init__(self, db: Session, storage: Optional[StorageProvider] = None):
         self.db = db

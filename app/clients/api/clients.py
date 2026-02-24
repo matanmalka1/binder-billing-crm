@@ -96,14 +96,14 @@ def update_client(
     """
     Update client.
 
-    Sprint 6 cleanup: Authorization moved to service layer.
+    Authorization moved to service layer.
     """
     service = ClientService(db)
 
     update_data = request.model_dump(exclude_unset=True)
 
     try:
-        # Sprint 6: Pass user role to service for authorization
+        #  Pass user role to service for authorization
         client = service.update_client(client_id, user.role, **update_data)
     except PermissionError as e:
         raise HTTPException(

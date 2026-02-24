@@ -1,11 +1,10 @@
-"""Regression tests for Sprint 5 hardening."""
 from datetime import date
 
 from app.clients.models.client import Client, ClientType
 
 
-def test_sprint1_unchanged(client, advisor_headers, test_db):
-    """Test Sprint 1 binder receive unchanged."""
+def test_binder_receive_accepts_and_stores_binder(client, advisor_headers, test_db):
+    """Test binder receive unchanged."""
     test_client = Client(
         full_name="S5 Regression Client",
         id_number="555555550",
@@ -34,15 +33,15 @@ def test_sprint1_unchanged(client, advisor_headers, test_db):
     assert data["status"] == "in_office"
 
 
-def test_sprint2_unchanged(client, advisor_headers):
-    """Test Sprint 2 operational endpoints unchanged."""
+def test_open_binders_endpoint_includes_items(client, advisor_headers):
+    """Test operational endpoints unchanged."""
     response = client.get("/api/v1/binders/open", headers=advisor_headers)
     assert response.status_code == 200
     assert "items" in response.json()
 
 
-def test_sprint3_unchanged(client, advisor_headers, test_db):
-    """Test Sprint 3 billing unchanged."""
+def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db):
+    """Test billing unchanged."""
     test_client = Client(
         full_name="S5 Billing Client",
         id_number="555555551",
@@ -68,8 +67,8 @@ def test_sprint3_unchanged(client, advisor_headers, test_db):
     assert data["status"] == "draft"
 
 
-def test_sprint4_unchanged(client, advisor_headers, secretary_headers, test_db):
-    """Test Sprint 4 notifications unchanged."""
+def test_document_signals_endpoint_returns_missing_documents(client, advisor_headers, secretary_headers, test_db):
+    """Test notifications unchanged."""
     test_client = Client(
         full_name="S5 Notification Client",
         id_number="555555552",

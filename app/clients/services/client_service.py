@@ -110,7 +110,7 @@ class ClientService:
         if not client:
             return None
 
-        # Sprint 6: Authorization logic in service, not router
+        # Authorization logic in service, not router
         if "status" in fields and fields["status"] in ["frozen", "closed"]:
             if user_role != UserRole.ADVISOR:
                 raise PermissionError("Only advisors can freeze or close clients")
