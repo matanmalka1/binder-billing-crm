@@ -1,7 +1,5 @@
 # API Contract
 
-Updated to reflect the FastAPI codebase as of 2026-02-24. The document replaces all prior sprint-based notes.
-
 ## Conventions
 
 - Base path for authenticated business APIs: `/api/v1`. Public meta endpoints: `GET /`, `GET /info`, `GET /health`. Public signing endpoints live under `/sign/*`.
