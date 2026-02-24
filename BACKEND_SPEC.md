@@ -1,421 +1,235 @@
 # Backend Capability Specification
 
-Binder & Billing CRM
+> Routes are authoritative in `API_CONTRACT.md`. This document covers implementation details: service logic, repo capabilities, ORM models, and known gaps per domain.
 
-## 1. System Overview
+---
 
-- **Architecture:** FastAPI app with strict layering `API → Service → Repository → ORM` and no raw SQL. ORM models use SQLAlchemy; schema auto-creates in `APP_ENV=development/test` via `Base.metadata.create_all()`. Production expects managed migrations. File-size rule: Python files targeted to ≤150 lines (some legacy files exceed).
-- **Routing:** Business APIs mounted at `/api/v1/*`. Public endpoints: `GET /` (service probe), `GET /info`, `GET /health`. All other routes require JWT auth.
-- **Auth model:** Bearer JWT (also set as HttpOnly cookie on login). Roles: `advisor` (super role) and `secretary`. Role enforcement via `require_role` dependency; inactive users or token-version mismatch → 401. Most business routes allow both roles; user/admin routes are advisor-only.
-- **Error handling:** Central `app/core/exceptions.py` wraps HTTPException/validation/DB errors into `{"detail": ..., "error": {type,status_code,detail}}`. Routers raise HTTPException with plain strings; 422 handled by FastAPI.
-- **Pagination conventions:** Query params `page` (default 1, ge 1) and `page_size` (defaults vary: 20 most routes, 50 for timeline/annual-report season). Many list endpoints slice in service/repo; some (tax-deadlines list without client filter) paginate in router after fetching all.
-- **Enum handling:** Business enums are `str` subclasses defined beside models. Routers manually coerce/validate (e.g., `DeadlineType`, `VatType`, `CorrespondenceType`); invalid values return 400 with the raw message.
-- **Derived state (never persisted):** work_state and operational signals are computed in services (WorkStateService, SignalsService). Attention items are runtime derivations only.
-- **Notifications:** Stored in `notifications` table; send flow uses stub WhatsApp/Email channels. Triggered by binder intake; no public API.
-- **Storage:** Permanent documents saved through `LocalStorageProvider` (local filesystem path key stored in DB). No S3 integration in code.
-- **Time handling:** `utils.time.utcnow()` returns naive UTC datetime; all timestamps persisted naive UTC.
+## System-Wide Notes
 
-## 2. Domain: Clients
+- **Error handling:** `app/core/exceptions.py` wraps HTTPException/validation/DB errors into standard envelope. Routers raise `HTTPException` with plain strings.
+- **Pagination:** Most list endpoints paginate via offset in repo. Exceptions: clients `has_signals` filter, tax-deadlines global list, timeline aggregation, and search all paginate in memory after full fetch.
+- **Enum handling:** Business enums are `str` subclasses defined beside models. Invalid values return 400.
+- **Timestamps:** `utils.time.utcnow()` — naive UTC everywhere.
+- **Derived state:** `work_state` and signals are computed in `WorkStateService`/`SignalsService`, never persisted.
+- **Storage:** `LocalStorageProvider` — local filesystem only, no S3.
+- **Notifications:** Triggered by binder intake; WhatsApp/Email channels are stubs.
 
-### Implemented Endpoints
+---
 
-- `POST /api/v1/clients` (advisor|secretary) — create client; 409 if `id_number` already exists.
-- `GET /api/v1/clients` — filters: `status`, `has_signals`; paginated.
-- `GET /api/v1/clients/{client_id}` — 404 if missing.
-- `PATCH /api/v1/clients/{client_id}` — advisor required to set status `frozen/closed`; sets `closed_at` to today if closing without date.
-- `GET /api/v1/clients/{client_id}/binders` — paginated list of binders with work_state enrichment; 404 if client missing.
-- Excel helpers: `GET /api/v1/clients/export`, `GET /api/v1/clients/template`, `POST /api/v1/clients/import` (advisor-only; openpyxl required).
+## 1. Clients
 
-### Service Layer
+**Service:** Validates unique `id_number` on create. `update_client` enforces advisor for `frozen`/`closed`; fills `closed_at` default. `list_clients` optional `has_signals` filter runs `SignalsService` over binders, documents, and unpaid charges.
 
-- Validates unique `id_number` on create.
-- `update_client` enforces advisor for freeze/close; fills `closed_at` default.
-- `list_clients` optional `has_signals` filter computed via SignalsService over binders, documents, unpaid charges.
+**Repo:** CRUD + list/count with optional status; simple offset pagination.
 
-### Repository Capabilities
+**ORM:** `Client` — unique `id_number`, optional unique `primary_binder_number`; enums `ClientType`, `ClientStatus`.
 
-- CRUD + list/count with optional status; simple offset pagination.
+**Gaps:** No delete. Import does per-row error collection; no dry-run. `has_signals` filter loads up to 1000 clients in memory.
 
-### ORM Model
+---
 
-- `Client`: unique `id_number`, optional unique `primary_binder_number`; enums `ClientType`, `ClientStatus`.
+## 2. Binders
 
-### Known Gaps
+**Service:** `BinderService` handles transitions, validates readiness/return, writes status logs, triggers notifications. `BinderOperationsService` provides work_state-enriched lists via `WorkStateService` and `SignalsService`.
 
-- No delete endpoint. Import does per-row error collection; no dry-run. Signals-based filtering loads up to 1000 clients in memory.
+**Repo:** `BinderRepository` — CRUD, list_active with filters, status updates, count by status. `BinderStatusLog` — append/list. Extensions for open/overdue/due-today/client lists with pagination.
 
-## 3. Domain: Binders
+**ORM:** `Binder` — `BinderStatus` enum; active-unique `binder_number` via partial index; multiple date indexes. `BinderStatusLog` — append-only.
 
-### Implemented Endpoints
+**Gaps:** No deletion. WorkState uses recent-notifications heuristic; may query notifications per binder on each call.
 
-- `POST /api/v1/binders/receive` — create binder; prevents duplicate active `binder_number`; sets expected_return_at = received_at +90d; logs status history; sends notification.
-- `POST /api/v1/binders/{id}/ready` — allowed from `in_office|overdue`; else 400.
-- `POST /api/v1/binders/{id}/return` — requires `pickup_person_name` (defaults to current user name); allowed from `ready_for_pickup|overdue`; stamps `returned_at` today.
-- `GET /api/v1/binders` — filters `status`, `client_id`, `work_state`; derives `days_in_office`, `work_state`, `signals`, `available_actions`.
-- `GET /api/v1/binders/{id}` — single binder with derived fields; 404 if missing.
-- Operations lists (paginated): `GET /api/v1/binders/open`, `/overdue`, `/due-today`.
-- History: `GET /api/v1/binders/{id}/history` — 404 if binder missing.
+---
 
-### Service Layer
+## 3. Charges
 
-- BinderService handles transitions, validates readiness/return; writes status logs; triggers notifications.
-- BinderOperationsService provides work_state-enriched lists; uses WorkStateService, SignalsService.
+**Service:** Validates client existence and status transitions; sets `issued_at`/`paid_at` timestamps.
 
-### Repository Capabilities
+**Repo:** Create, get, list (order by `created_at` desc), count, `update_status` with optional extra fields.
 
-- BinderRepository CRUD, list_active with filters, status updates, count by status; BinderStatusLog append/list; extensions for open/overdue/due-today/client lists with pagination.
+**ORM:** `Charge` — `ChargeType`, `ChargeStatus` enums; monetary fields `Numeric(10,2)`; issue/paid timestamps.
 
-### ORM Model
+**Gaps:** No invoice issuance from charges. No soft-delete.
 
-- `Binder` with enum `BinderStatus`; active-unique `binder_number` enforced via partial index; multiple date indexes.
-- `BinderStatusLog` append-only audit trail.
+---
 
-### Known Gaps
+## 4. Tax Deadlines
 
-- No binder deletion. Overdue flag stored? No—derived only. WorkState uses recent notifications heuristic; may query notifications per binder on each call.
+**Service:** Validates client on create. Computes urgency: overdue = red, ≤2 days = red, ≤7 days = yellow, else green.
 
-## 4. Domain: Charges
+**Repo:** Create, get, `update_status`, `list_pending_due_by_date`, `list_overdue`, `list_by_client` with optional status/type filter.
 
-### Implemented Endpoints
+**ORM:** `TaxDeadline` — `DeadlineType` enum; status string; indexes on status, type, `due_date`.
 
-- `POST /api/v1/charges` (advisor) — create draft; amount must be >0; 400 on invalid client/amount.
-- `POST /api/v1/charges/{id}/issue` (advisor) — only from draft.
-- `POST /api/v1/charges/{id}/mark-paid` (advisor) — only from issued.
-- `POST /api/v1/charges/{id}/cancel` (advisor) — cannot cancel paid or already canceled.
-- `GET /api/v1/charges` (advisor|secretary) — filters `client_id`, `status`; paginated; secretary response omits amount/currency.
-- `GET /api/v1/charges/{id}` — 404 if missing; secretary sees redacted fields.
+**Gaps:** No edit/delete. Without `client_id` filter, all pending deadlines are fetched then paginated in memory.
 
-### Service Layer
+---
 
-- Validates client existence and status transitions; sets timestamps on issue/paid.
+## 5. Annual Reports
 
-### Repository Capabilities
+**Service:** Create validates client and uniqueness per (client, tax_year); derives deadlines; auto-adds schedules from income flags; seeds status history. Transition enforces `VALID_TRANSITIONS`, sets submitted/assessment/refund fields, logs history. Deadline update recalculates dates. Query service groups into `ReportStage` for kanban.
 
-- Create, get, list (order by created_at desc), count, update_status with optional extra fields.
+**Repo:** `AnnualReportRepository` — create/get/list/count by status/tax_year, `list_overdue`, `list_all_with_clients` (kanban), `append_status_history`, schedule add/complete/check, detail upsert/read.
 
-### ORM Model
+**ORM:** `AnnualReport` — enums `AnnualReportStatus`, `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year). `AnnualReportDetail` — 1:1 with report. `AnnualReportScheduleEntry` — `AnnualReportSchedule` enum + completion flags. `AnnualReportStatusHistory` — append-only.
 
-- `Charge` with enums `ChargeType`, `ChargeStatus`; monetary fields Numeric(10,2); timestamps for issue/paid.
+**Gaps:** No delete. No `assigned_to` validation. Kanban `days_until_due` incorrectly uses `created_at` vs `filing_deadline`.
 
-### Known Gaps
+---
 
-- No invoice issuance; charges can exist without downstream invoice. No soft-delete.
+## 6. Dashboard
 
-## 5. Domain: Tax Deadlines
+**Service:** `DashboardService` aggregates counts; delegates to `DashboardExtendedService`. `DashboardExtendedService` builds work_queue/alerts/attention via `WorkStateService`, `SignalsService`, unpaid charges (advisor only). `DashboardOverviewService` assembles quick actions (ready/return binder, mark charge paid, freeze/activate client). `DashboardTaxService` aggregates submission stats.
 
-### Implemented Endpoints
+**Gaps:** No caching. Quick actions pick first matching entity (heuristic). Attention lists load all active binders in memory.
 
-- `POST /api/v1/tax-deadlines` — create pending deadline; validates `DeadlineType`; 400 if client missing.
-- `GET /api/v1/tax-deadlines` — filters `client_id`, `deadline_type`, `status`; if no `client_id` provided, returns all pending due up to year 2099 then paginates in-memory.
-- `GET /api/v1/tax-deadlines/{id}` — 404 if missing.
-- `POST /api/v1/tax-deadlines/{id}/complete` — idempotent; 400 if not found.
-- `GET /api/v1/tax-deadlines/dashboard/urgent` — returns `urgent` (overdue/red/yellow) and `upcoming` lists with client names.
+---
 
-### Service Layer
+## 7. Notifications (internal — no API)
 
-- Validates client existence on create; computes urgency (overdue/red ≤2 days, yellow ≤7, else green).
+**Service:** `NotificationService` — sends via `WhatsAppChannel` then email fallback; persists every attempt; idempotency via `exists_for_binder_trigger`.
 
-### Repository Capabilities
+**ORM:** `Notification` — enums `NotificationChannel` (`whatsapp|email`), `NotificationStatus` (`pending|sent|failed`), `NotificationTrigger`.
 
-- Create, get, update_status, list_pending_due_by_date, list_overdue, list_by_client with optional status/type.
+**Repo:** create, `mark_sent`, `mark_failed`, `list_by_client`, `check_existing_trigger`.
 
-### ORM Model
+**Gaps:** Channels are stubs. No delivery webhook. No resend UI. No scheduler wired.
 
-- `TaxDeadline` with enums `DeadlineType`; status string (pending/completed); indexes on status, type, due_date.
+---
 
-### Known Gaps
+## 8. Authority Contacts
 
-- No edit/delete. Non-pending deadlines still returned when listing by client if status filter omitted.
+**Service:** Validates client existence on create; otherwise CRUD.
 
-## 6. Domain: Annual Reports
+**ORM:** `AuthorityContact` — indexed by `client_id`/`contact_type`; `ContactType` enum.
 
-### Implemented Endpoints
+**Gaps:** No pagination on list endpoint.
 
-- Create/read:
-  - `POST /api/v1/annual-reports` — creates report, auto-selects `form_type` via `client_type` → `FORM_MAP`, sets deadline (standard/extended/custom), generates schedules, seeds status history.
-  - `GET /api/v1/annual-reports` — list with optional `tax_year`, paginated (default 20, max 200).
-  - `GET /api/v1/annual-reports/{id}` — returns schedules + status history; 404 if missing.
-  - `GET /api/v1/annual-reports/kanban/view` — stage-grouped view.
-  - `GET /api/v1/annual-reports/overdue` — filing_deadline passed & open statuses.
-- Status/deadline:
-  - `POST /api/v1/annual-reports/{id}/status` — validated against `VALID_TRANSITIONS`; populates status history; accepts optional ITA refs and amounts.
-  - `POST /api/v1/annual-reports/{id}/submit` — convenience to `submitted`.
-  - `POST /api/v1/annual-reports/{id}/deadline` — recomputes deadline per `DeadlineType`, logs history.
-  - `POST /api/v1/annual-reports/{id}/transition` — stage shortcut mapping; auto-inserts COLLECTING_DOCS step when jumping from NOT_STARTED.
-  - `GET /api/v1/annual-reports/{id}/history` — status history list (404 if report missing).
-- Schedules:
-  - `GET /api/v1/annual-reports/{id}/schedules`
-  - `POST /api/v1/annual-reports/{id}/schedules` — add schedule; validates enum.
-  - `POST /api/v1/annual-reports/{id}/schedules/complete` — marks required schedule complete or 400 if absent.
-- Detail companion table:
-  - `GET /api/v1/annual-reports/{id}/details` — returns all-null payload if detail row absent; 404 if report missing.
-  - `PATCH /api/v1/annual-reports/{id}/details` — upsert tax_refund_amount/tax_due_amount/client_approved_at/internal_notes; 404 if report missing.
-- Client & season views:
-  - `GET /api/v1/clients/{id}/annual-reports`
-  - `GET /api/v1/tax-year/{tax_year}/reports` (paginated 50 default)
-  - `GET /api/v1/tax-year/{tax_year}/summary` — counts per status, completion %, overdue count.
+---
 
-### Service Layer
+## 9. Advance Payments
 
-- Create validates client and uniqueness per (client,tax_year); derives deadlines; auto-adds schedules based on income flags; appends status history.
-- Transition enforces `VALID_TRANSITIONS`, sets submitted/assessment/refund fields when relevant, logs history.
-- Deadline update recalculates dates; schedule service manages required/complete flags.
-- Query service provides kanban grouping into `ReportStage`.
+**Service:** Validates status enum values. No creation exposed via API — rows assumed externally seeded.
 
-### Repository Capabilities
+**Repo:** `list_by_client_year` ordered by month asc; get/update/create; unique (client, year, month); status index.
 
-- AnnualReportRepository composes report/schedule/status-history mixins: create/get/list/count by status/tax_year, list_overdue, list_all_with_clients (for kanban), append_status_history, schedule add/complete/check completion, detail upsert/read.
+**ORM:** `AdvancePayment` — status as string (no enum enforcement at ORM level).
 
-### ORM Models
+**Gaps:** No create API. Pagination done after fetching all rows in memory.
 
-- `AnnualReport` with enums `AnnualReportStatus`, `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year); status & deadline indexes.
-- `AnnualReportDetail` 1:1 with report (unique report_id).
-- `AnnualReportScheduleEntry` with `AnnualReportSchedule` enum and completion flags.
-- `AnnualReportStatusHistory` append-only audit log.
+---
 
-### Known Gaps
+## 10. Client Tax Profile
 
-- No delete; no reassignment validation for `assigned_to`; kanban `days_until_due` uses created_at vs filing_deadline (not remaining days).
+**Service:** Upsert; sets `updated_at` on update.
 
-## 7. Domain: Dashboard
+**ORM:** `ClientTaxProfile` — `VatType` enum (`monthly`, `bimonthly`, `exempt`); unique `client_id`.
 
-### Implemented Endpoints
+**Gaps:** No delete. No creation timestamp in empty shell response (by design).
 
-- `GET /api/v1/dashboard/summary` (any authenticated user) — counts binders by status + attention items (idle/ready/unpaid for advisor).
-- `GET /api/v1/dashboard/overview` (advisor) — totals + quick_actions + attention.
-- `GET /api/v1/dashboard/work-queue` — paginated operational queue with work_state/signals.
-- `GET /api/v1/dashboard/alerts` — overdue alerts.
-- `GET /api/v1/dashboard/attention` — attention items; unpaid charges only for advisor.
-- `GET /api/v1/dashboard/tax-submissions` — tax-year widget built from annual report statuses.
+---
 
-### Services/Logic
+## 11. Correspondence
 
-- DashboardService aggregates counts and delegates to DashboardExtendedService.
-- DashboardExtendedService builds work_queue/alerts/attention using WorkStateService, SignalsService and unpaid charges (advisor only).
-- DashboardOverviewService computes metrics via DashboardOverviewRepository and assembles quick actions (ready/return binder, mark charge paid, freeze/activate client).
-- DashboardTaxService aggregates submission stats + delegates deadline summary (reuse TaxDeadlineService).
+**Service:** Validates `contact_id` is linked to client before create.
 
-### Known Gaps
+**ORM:** `Correspondence` — optional `contact_id` FK to authority_contacts; `created_by` current user; `occurred_at` required; indexes on `client_id` and `occurred_at`.
 
-- No caching; overview quick actions pick first matching entities (heuristic). Attention lists load all active binders in memory.
+**Gaps:** No pagination. No update/delete.
 
-## 8. Domain: Notifications (internal)
+---
 
-- **Endpoints:** None.
-- **Service:** NotificationService sends via WhatsAppChannel then email fallback; persists every attempt; idempotency via NotificationRepository `exists_for_binder_trigger`.
-- **Models/Enums:** NotificationChannel (`whatsapp|email`), NotificationStatus (`pending|sent|failed`), NotificationTrigger (binder events, manual payment reminder).
-- **Repository:** create/mark_sent/mark_failed, list_by_client (pagination), check existing trigger.
-- **Gaps:** WhatsApp/Email channels are stubs; no delivery webhook; no resend UI.
+## 12. Permanent Documents
 
-## 9. Domain: Authority Contacts
+**Service:** `DocumentType` enum validated on upload. `SignalsService` calls `get_missing_document_types`.
 
-### Implemented Endpoints
+**ORM:** `PermanentDocument` — `is_present` always True on upload; `storage_key` holds local path.
 
-- `POST /api/v1/clients/{id}/authority-contacts` (advisor|secretary) — create contact; validates `ContactType`.
-- `GET /api/v1/clients/{id}/authority-contacts` — optional `contact_type` filter.
-- `PATCH /api/v1/authority-contacts/{contact_id}` — updates; validates contact_type when provided; 400 if not found.
-- `DELETE /api/v1/authority-contacts/{contact_id}` — advisor-only; 404 if missing.
+**Gaps:** No delete/replace. Storage is local filesystem only. Upload reads entire file into memory.
 
-### Service/Repo/Model
+---
 
-- Validates client existence on create; otherwise straightforward CRUD. Model indexed by client_id/contact_type; enum `ContactType`.
+## 13. Reminders
 
-### Gaps
+**Service:** Type-specific FK validation (`tax_deadline_id`/`binder_id`/`charge_id`). Status transitions: pending → sent or canceled only.
 
-- No pagination on list; no cross-tenant checks beyond client existence.
+**ORM:** `Reminder` — `ReminderType`, `ReminderStatus` enums; `send_on` date; `sent_at` timestamp.
 
-## 10. Domain: Advance Payments
+**Repo:** list/count by status; `pending_by_date`.
 
-### Implemented Endpoints
+**Gaps:** No scheduler wired to `send_on`. Reminders are stored but never auto-dispatched.
 
-- `GET /api/v1/advance-payments` — requires `client_id` and `year` (defaults to current UTC year); paginated slice of in-memory list; 404 if client missing.
-- `PATCH /api/v1/advance-payments/{payment_id}` — updates `paid_amount`/`status`; validates enum; 404 if missing.
+---
 
-### Service/Repo/Model
+## 14. Timeline
 
-- Repository: list_by_client_year ordered by month asc; get/update/create; unique (client,year,month); status index.
-- Service validates status values; no creation exposed via API.
+**Service:** Aggregates binder events (receive/return/status changes), notifications, charges (created/issued/paid), invoice if present; sorts by timestamp desc. Attaches `available_actions` via `actions` contracts.
 
-### Gaps
+**Repo:** No dedicated table. Pulls from `Binder`, `BinderStatusLog`, `Notification`, `Charge`, `Invoice`.
 
-- No API to create rows; assumes external seeding. Pagination done after fetching all rows.
+**Gaps:** No events for tax deadlines or annual reports. Full aggregation happens in memory before pagination.
 
-## 11. Domain: Client Tax Profile
+---
 
-### Implemented Endpoints
+## 15. Search
 
-- `GET /api/v1/clients/{id}/tax-profile` — returns empty payload (fields None) if row absent; 404 if client missing.
-- `PATCH /api/v1/clients/{id}/tax-profile` — validates `vat_type` enum; 404 if client missing.
+**Service:** Client search scans up to 1000 clients in memory. Binder search iterates all active binders, derives work_state/signals per binder, applies filters.
 
-### Service/Repo/Model
+**Gaps:** No full-text or indexed search. No DB-level pagination.
 
-- Upsert profile; sets `updated_at` on updates. Enum `VatType` (monthly/bimonthly/exempt); one-to-one via unique client_id.
+---
 
-### Gaps
+## 16. Users & Authentication
 
-- No creation timestamp in response when row absent (by design). No delete.
+**Auth service:** bcrypt verify; JWT encode/decode with `exp` + `token_version` match; doubles TTL on `remember_me`.
 
-## 12. Domain: Correspondence
+**User service:** Password min 8 chars. Deactivation bumps `token_version` to invalidate active sessions. Audit events stored in `user_audit_logs`.
 
-### Implemented Endpoints
+**ORM:** `User` — `UserRole` enum; `token_version`, `last_login_at`. `UserAuditLog` — `AuditAction`, `AuditStatus` enums.
 
-- `GET /api/v1/clients/{id}/correspondence` — list entries ordered by occurred_at desc.
-- `POST /api/v1/clients/{id}/correspondence` — creates entry; validates `correspondence_type`; 404 if client missing; 400 if contact_id not linked to client.
+**Gaps:** No self-service password change. No MFA. Logout does not server-side invalidate JWT.
 
-### Service/Repo/Model
+---
 
-- Model includes optional contact_id (FK authority_contacts), created_by current user, occurred_at required; indexes on client_id and occurred_at.
+## 17. Signature Requests
 
-### Gaps
+**Service:** Token generation, expiry (default 14 days), audit logging, signer IP/user-agent capture. `expire_overdue` method exists but is not scheduled.
 
-- No pagination; no update/delete.
+**ORM:** `SignatureRequest` — `SignatureRequestStatus`, `SignatureRequestType` enums. `SignatureRequestAuditEvent` — append-only; field names `occurred_at` and `audit_trail`.
 
-## 13. Domain: Permanent Documents
+**Gaps:** No scheduled expiry job. No actual document upload in signing flow.
 
-### Implemented Endpoints
+---
 
-- `POST /api/v1/documents/upload` — multipart upload; validates `DocumentType`; stores via LocalStorageProvider; 400 on missing client or import errors.
-- `GET /api/v1/documents/client/{id}` — list documents for client.
-- `GET /api/v1/documents/client/{id}/signals` — returns operational signals (missing docs).
+## 18. Reports (Aging)
 
-### Service/Repo/Model
+**Service:** `AgingReportService` groups unpaid charges per client into 0-30/31-60/61-90/90+ day buckets. `ExportService` writes to temp `exports/` dir.
 
-- DocumentType enum (`id_copy`, `power_of_attorney`, `engagement_agreement`); `is_present` flag always True on upload. SignalsService uses PermanentDocumentService `get_missing_document_types`.
+**Gaps:** No CSV format. No streaming. Aggregates over full issued charge set (page_size 10000).
 
-### Gaps
+---
 
-- No delete/replace; storage provider is local only; upload reads entire file into memory.
+## 19. VAT Reports
 
-## 14. Domain: Reminders
+**Service:** Status machine: `pending_materials → material_received → data_entry_in_progress → ready_for_review → filed`. `send-back` moves back to `data_entry_in_progress`. Filing locks period. Invoices blocked after filing.
 
-### Implemented Endpoints
+**ORM:** `VatWorkItem` — status enum; `VatInvoice` — `invoice_type` enum.
 
-- `GET /api/v1/reminders` — filters optional `status` (pending/sent/canceled), paginated.
-- `GET /api/v1/reminders/{id}` — 404 if missing.
-- `POST /api/v1/reminders` — creates reminder; type-specific required FK checks: `tax_deadline_id` for tax_deadline_approaching, `binder_id` for binder_idle, `charge_id` for unpaid_charge, custom requires message. Validates `days_before` ≥0 and client existence; type regex enforced by schema.
-- `POST /api/v1/reminders/{id}/cancel` — only pending; 400 otherwise.
-- `POST /api/v1/reminders/{id}/mark-sent` — only pending; stamps sent_at.
+**Gaps:** No period uniqueness enforcement at DB level beyond service check.
 
-### Service/Repo/Model
+---
 
-- ReminderType enum, ReminderStatus enum; repo provides list/count by status and pending-by-date. Service delegates to factory/status modules with validation.
+## 20. Infrastructure & Misc
 
-### Gaps
+- **Invoice:** ORM + repo for charge-linked invoice references; no API/service creates invoices (read-only in timeline).
+- **Actions:** Pure metadata for `available_actions` on binders/charges/clients; no API.
+- **Middleware:** `RequestIDMiddleware` adds `X-Request-ID` if missing.
+- **Background jobs:** No scheduler configured. Reminder dispatch and signature expiry must be triggered externally.
 
-- No scheduled job wired to send_on; reminders are stored but not dispatched. Pagination sometimes after DB query limited to 20 default.
+---
 
-## 15. Domain: Timeline
+## Cross-Cutting Gaps
 
-### Implemented Endpoint
-
-- `GET /api/v1/clients/{id}/timeline` — paginated (page_size default 50, max 200) aggregated events.
-
-### Service/Logic
-
-- Aggregates binder events (receive/return/status changes), notifications, charges (created/issued/paid), and attached invoice if present; sorts by timestamp desc.
-- Uses `actions` contracts to attach available_actions.
-
-### Repositories/Models
-
-- No dedicated timeline table; pulls from Binder, BinderStatusLog, Notification, Charge, Invoice. TimelineRepository only lists binders by client.
-
-### Gaps
-
-- No events for tax deadlines/annual reports; pagination done after loading all events into memory.
-
-## 16. Domain: Search
-
-### Implemented Endpoint
-
-- `GET /api/v1/search` — filters: general `query`, `client_name`, `id_number`, `binder_number`, `work_state`, `signal_type[]`, `has_signals`; paginated.
-
-### Service/Logic
-
-- Client search scans up to 1000 clients in memory; binder search iterates active binders, derives work_state/signals per binder, applies filters, returns mixed result objects.
-
-### Gaps
-
-- No full-text/indexed search; bounded in-memory scans; no pagination at DB level.
-
-## 17. Domain: Users & Authentication
-
-### Auth Endpoints
-
-- `POST /api/v1/auth/login` — bcrypt verify; sets JWT cookie; doubles TTL if `rememberMe=true`; 401 on invalid creds; 401 inactive user.
-- `POST /api/v1/auth/logout` — clears cookie (token remains valid until expiry).
-
-### User Management Endpoints (advisor-only)
-
-- `POST /api/v1/users` — create; validates password length ≥8; 409 if email exists.
-- `GET /api/v1/users` — paginated list.
-- `GET /api/v1/users/{id}` — 404 if missing.
-- `PATCH /api/v1/users/{id}` — mutable: full_name, phone, role; immutable fields rejected with 400.
-- `POST /api/v1/users/{id}/activate` — reactivate.
-- `POST /api/v1/users/{id}/deactivate` — cannot deactivate self; bumps token_version.
-- `POST /api/v1/users/{id}/reset-password` — validates password length; bumps token_version.
-- Audit logs: `GET /api/v1/users/audit-logs` with filters (action/target/actor/email/date range), paginated; advisor-only.
-
-### Services/Repos/Models
-
-- `UserRole` enum; `User` model with token_version + last_login_at. AuthService handles JWT encode/decode with exp, tv match. Audit logs stored in `user_audit_logs` with enums `AuditAction`, `AuditStatus`.
-
-### Known Gaps
-
-- No password change for self; no MFA; logout does not invalidate token server-side.
-
-## 18. Domain: Signature Requests (Digital Signing)
-
-### Implemented Endpoints
-
-- Advisor/secretary:
-  - `POST /api/v1/signature-requests` — create draft; validates request_type enum; links optional annual_report_id/document_id.
-  - `GET /api/v1/signature-requests/pending` — paginated pending_signature list.
-  - `GET /api/v1/signature-requests/{id}` — returns request + audit trail; 404 if missing.
-  - `POST /api/v1/signature-requests/{id}/send` — sets signing token, expiry, status pending_signature; returns token once.
-  - `POST /api/v1/signature-requests/{id}/cancel` — sets status canceled; requires reason optional.
-  - `GET /api/v1/signature-requests/{id}/audit-trail`
-- Client-scoped:
-  - `GET /api/v1/clients/{id}/signature-requests` — optional status filter; paginated.
-- Public signer (no JWT):
-  - `GET /sign/{token}` — records view; returns signer-facing summary or 400 on invalid/expired.
-  - `POST /sign/{token}/approve` — marks signed, records audit.
-  - `POST /sign/{token}/decline` — marks declined with reason.
-
-### Service/Repo/Model
-
-- Model `SignatureRequest` with enums `SignatureRequestStatus`, `SignatureRequestType`; audit events table append-only. Repository supports create/update, list by client/status, list pending, get by token, expire_overdue (not scheduled). Service modules handle token generation, expiry days, audit logging, signer IP/user-agent capture.
-
-### Gaps
-
-- No job wired to expire overdue requests automatically. Storage_key/content_hash optional; no actual document upload in flow.
-
-## 19. Domain: Reports (Aging)
-
-### Implemented Endpoints
-
-- `GET /api/v1/reports/aging` (advisor) — returns computed aging buckets for issued-but-unpaid charges as of `as_of_date` (default today).
-- `GET /api/v1/reports/aging/export?format=excel|pdf` — generates temp file via openpyxl/reportlab; returns download; 500 if library missing.
-
-### Service/Logic
-
-- AgingReportService groups unpaid charges per client into 0-30/31-60/61-90/90+; computes totals and oldest invoice age.
-- ExportService writes to temp `exports/` dir; returns filepath/filename.
-
-### Gaps
-
-- No CSV; no streaming; memory aggregation over all issued charges (page_size 10000).
-
-## 20. Domain: Advance / Misc Infrastructure
-
-- **Notifications job:** Present as services only; no scheduler wiring.
-- **Invoice:** ORM + repository for charge-linked invoice references; no API/services creating invoices (only read in timeline).
-- **Actions:** Pure metadata for UI available_actions (binders/charges/clients); no API.
-- **Middleware:** RequestIDMiddleware adds `X-Request-ID` if missing.
-- **Health/Info Root:** `GET /health` verifies DB connectivity; `GET /info` returns app/env; `GET /` returns static service status.
-
-## 21. Known Cross-Cutting Gaps
-
-- Many list endpoints paginate in memory after full fetch (clients has_signals, tax-deadlines global list, timeline aggregation, search, dashboard attention/work-queue).
-- No rate limiting or throttling.
-- No background workers configured for reminders or signature expiry; these must be triggered externally.
-- Storage/notification providers are local stubs—no cloud integration present in code.
+- Many list endpoints paginate in memory after full DB fetch.
+- No rate limiting or throttling anywhere.
+- No background workers configured for reminders, signature expiry, or notifications.
+- Storage and notification providers are local stubs — no cloud integration.
