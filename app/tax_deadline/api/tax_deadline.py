@@ -12,6 +12,7 @@ from app.tax_deadline.schemas.tax_deadline import (
     TaxDeadlineCreateRequest,
     TaxDeadlineListResponse,
     TaxDeadlineResponse,
+    TaxDeadlineUpdateRequest,
 )
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 
@@ -113,6 +114,49 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
         return TaxDeadlineResponse.model_validate(deadline)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.put("/{deadline_id}", response_model=TaxDeadlineResponse)
+def update_tax_deadline(
+    deadline_id: int,
+    request: TaxDeadlineUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Update editable fields on a tax deadline."""
+    service = TaxDeadlineService(db)
+
+    deadline_type = None
+    if request.deadline_type:
+        try:
+            deadline_type = DeadlineType(request.deadline_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid deadline type: {request.deadline_type}",
+            )
+
+    try:
+        deadline = service.update_deadline(
+            deadline_id,
+            deadline_type=deadline_type,
+            due_date=request.due_date,
+            payment_amount=request.payment_amount,
+            description=request.description,
+        )
+        return TaxDeadlineResponse.model_validate(deadline)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.delete("/{deadline_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
+    """Delete a tax deadline."""
+    service = TaxDeadlineService(db)
+    try:
+        service.delete_deadline(deadline_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.get("/dashboard/urgent", response_model=DashboardDeadlinesResponse)

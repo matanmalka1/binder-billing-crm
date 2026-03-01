@@ -102,3 +102,40 @@ class TaxDeadlineRepository:
             query = query.filter(TaxDeadline.deadline_type == deadline_type)
 
         return query.order_by(TaxDeadline.due_date.asc()).all()
+
+    def update(
+        self,
+        deadline_id: int,
+        *,
+        deadline_type: Optional[DeadlineType] = None,
+        due_date: Optional[date] = None,
+        payment_amount: Optional[float] = None,
+        description: Optional[str] = None,
+    ) -> Optional[TaxDeadline]:
+        """Update editable fields on a deadline."""
+        deadline = self.get_by_id(deadline_id)
+        if not deadline:
+            return None
+
+        if deadline_type:
+            deadline.deadline_type = deadline_type
+        if due_date:
+            deadline.due_date = due_date
+        if payment_amount is not None:
+            deadline.payment_amount = payment_amount
+        if description is not None:
+            deadline.description = description
+
+        self.db.commit()
+        self.db.refresh(deadline)
+        return deadline
+
+    def delete(self, deadline_id: int) -> bool:
+        """Delete a deadline by ID."""
+        deadline = self.get_by_id(deadline_id)
+        if not deadline:
+            return False
+
+        self.db.delete(deadline)
+        self.db.commit()
+        return True

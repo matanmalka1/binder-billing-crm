@@ -52,6 +52,38 @@ class TaxDeadlineService:
             completed_at=utcnow(),
         )
 
+    def update_deadline(
+        self,
+        deadline_id: int,
+        *,
+        deadline_type: Optional[DeadlineType] = None,
+        due_date: Optional[date] = None,
+        payment_amount: Optional[float] = None,
+        description: Optional[str] = None,
+    ) -> TaxDeadline:
+        """Update editable fields on a deadline."""
+        if not any([deadline_type, due_date, payment_amount is not None, description is not None]):
+            raise ValueError("No fields provided to update")
+
+        deadline = self.deadline_repo.update(
+            deadline_id,
+            deadline_type=deadline_type,
+            due_date=due_date,
+            payment_amount=payment_amount,
+            description=description,
+        )
+
+        if not deadline:
+            raise ValueError(f"Deadline {deadline_id} not found")
+
+        return deadline
+
+    def delete_deadline(self, deadline_id: int) -> None:
+        """Delete a deadline."""
+        deleted = self.deadline_repo.delete(deadline_id)
+        if not deleted:
+            raise ValueError(f"Deadline {deadline_id} not found")
+
     def get_upcoming_deadlines(
         self,
         days_ahead: int = 7,

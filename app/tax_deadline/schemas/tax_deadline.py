@@ -27,6 +27,13 @@ class TaxDeadlineResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TaxDeadlineUpdateRequest(BaseModel):
+    deadline_type: Optional[str] = None
+    due_date: Optional[date] = None
+    payment_amount: Optional[float] = None
+    description: Optional[str] = None
+
+
 class TaxDeadlineListResponse(BaseModel):
     items: list[TaxDeadlineResponse]
     page: int
