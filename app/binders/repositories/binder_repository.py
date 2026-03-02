@@ -56,8 +56,14 @@ class BinderRepository(BaseRepository):
         self,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        sort_by: str = "received_at",
+        sort_dir: str = "desc",
+        page: int = 1,
+        page_size: int = 1000,
     ) -> list[Binder]:
-        """List active binders with optional filters."""
+        """List active binders with optional filters, sorting, and pagination."""
+        from sqlalchemy import asc, desc
+
         query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED)
 
         if client_id:
@@ -66,7 +72,37 @@ class BinderRepository(BaseRepository):
         if status:
             query = query.filter(Binder.status == status)
 
-        return query.all()
+        sort_col_map = {
+            "received_at": Binder.received_at,
+            "days_in_office": Binder.received_at,  # older received_at → more days
+            "status": Binder.status,
+        }
+        col = sort_col_map.get(sort_by, Binder.received_at)
+        # For days_in_office, ascending days = descending received_at and vice versa
+        effective_dir = sort_dir
+        if sort_by == "days_in_office":
+            effective_dir = "asc" if sort_dir == "desc" else "desc"
+
+        order_fn = asc if effective_dir == "asc" else desc
+        query = query.order_by(order_fn(col))
+
+        return self._paginate(query, page, page_size)
+
+    def count_active(
+        self,
+        client_id: Optional[int] = None,
+        status: Optional[str] = None,
+    ) -> int:
+        """Count active binders with optional filters."""
+        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED)
+
+        if client_id:
+            query = query.filter(Binder.client_id == client_id)
+
+        if status:
+            query = query.filter(Binder.status == status)
+
+        return query.count()
 
     def update_status(
         self,

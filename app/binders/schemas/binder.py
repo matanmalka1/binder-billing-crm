@@ -40,3 +40,6 @@ class BinderResponse(BaseModel):
 
 class BinderListResponse(BaseModel):
     items: list[BinderResponse]
+    page: int
+    page_size: int
+    total: int

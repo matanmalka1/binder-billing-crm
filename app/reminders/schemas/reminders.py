@@ -28,6 +28,7 @@ class ReminderResponse(BaseModel):
     
     id: int
     client_id: int
+    client_name: Optional[str] = None
     reminder_type: str
     status: str
     target_date: date

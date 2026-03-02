@@ -121,7 +121,16 @@ class BinderService:
         return self.binder_repo.get_by_id(binder_id)
 
     def list_active_binders(
-        self, client_id: Optional[int] = None, status: Optional[str] = None
+        self,
+        client_id: Optional[int] = None,
+        status: Optional[str] = None,
+        sort_by: str = "received_at",
+        sort_dir: str = "desc",
     ) -> list[Binder]:
         """List active binders with optional filters."""
-        return self.binder_repo.list_active(client_id=client_id, status=status)
+        return self.binder_repo.list_active(
+            client_id=client_id,
+            status=status,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )

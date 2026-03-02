@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.tax_deadline.models.tax_deadline import DeadlineType
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.users.models.user import UserRole
 from app.tax_deadline.schemas.tax_deadline import (
     DashboardDeadlinesResponse,
@@ -81,8 +81,18 @@ def list_tax_deadlines(
     offset = (page - 1) * page_size
     paginated = items[offset : offset + page_size]
 
+    from app.clients.repositories.client_repository import ClientRepository
+    client_repo = ClientRepository(db)
+    client_ids = {d.client_id for d in paginated}
+    clients = {c.id: c for c in client_repo.list_all() if c.id in client_ids}
+
+    def to_response(d: TaxDeadline) -> TaxDeadlineResponse:
+        r = TaxDeadlineResponse.model_validate(d)
+        r.client_name = clients[d.client_id].full_name if d.client_id in clients else None
+        return r
+
     return TaxDeadlineListResponse(
-        items=[TaxDeadlineResponse.model_validate(d) for d in paginated],
+        items=[to_response(d) for d in paginated],
         page=page,
         page_size=page_size,
         total=total,

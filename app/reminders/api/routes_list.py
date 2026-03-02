@@ -22,12 +22,17 @@ def list_reminders(
     service = ReminderService(db)
 
     try:
-        items, total = service.get_reminders(status=status_filter, page=page, page_size=page_size)
+        items, total, name_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    def _to_response(r) -> ReminderResponse:
+        resp = ReminderResponse.model_validate(r)
+        resp.client_name = name_map.get(r.client_id)
+        return resp
+
     return ReminderListResponse(
-        items=[ReminderResponse.model_validate(r) for r in items],
+        items=[_to_response(r) for r in items],
         page=page,
         page_size=page_size,
         total=total,
