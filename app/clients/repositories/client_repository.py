@@ -88,6 +88,27 @@ class ClientRepository(BaseRepository):
             )
         return query.count()
 
+    def search(
+        self,
+        query: Optional[str] = None,
+        client_name: Optional[str] = None,
+        id_number: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[Client], int]:
+        """DB-level search returning (items, total)."""
+        q = self.db.query(Client)
+        if query:
+            term = f"%{query.strip()}%"
+            q = q.filter(Client.full_name.ilike(term) | Client.id_number.ilike(term))
+        if client_name:
+            q = q.filter(Client.full_name.ilike(f"%{client_name.strip()}%"))
+        if id_number:
+            q = q.filter(Client.id_number.ilike(f"%{id_number.strip()}%"))
+        total = q.count()
+        items = self._paginate(q.order_by(Client.opened_at.desc()), page, page_size)
+        return items, total
+
     def list_by_ids(self, client_ids: list[int]) -> list[Client]:
         """Batch fetch clients by a list of IDs (single query)."""
         if not client_ids:

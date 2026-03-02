@@ -56,6 +56,7 @@ class BinderRepository(BaseRepository):
         self,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        binder_number: Optional[str] = None,
         sort_by: str = "received_at",
         sort_dir: str = "desc",
         page: int = 1,
@@ -71,6 +72,9 @@ class BinderRepository(BaseRepository):
 
         if status:
             query = query.filter(Binder.status == status)
+
+        if binder_number:
+            query = query.filter(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
 
         sort_col_map = {
             "received_at": Binder.received_at,

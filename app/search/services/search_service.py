@@ -35,44 +35,60 @@ class SearchService:
         if reference_date is None:
             reference_date = date.today()
 
-        results = []
+        # Binder-only derived-state filters need full binder list (in-memory by design)
+        binder_derived_filter = work_state or signal_type or has_signals is not None
+
+        # --- Client search: DB-level filtering ---
+        if query or client_name or id_number:
+            if not binder_derived_filter and not binder_number:
+                # Pure client search: paginate at DB level
+                clients, total = self.client_repo.search(
+                    query=query,
+                    client_name=client_name,
+                    id_number=id_number,
+                    page=page,
+                    page_size=page_size,
+                )
+                return [
+                    {
+                        "result_type": "client",
+                        "client_id": c.id,
+                        "client_name": c.full_name,
+                        "binder_id": None,
+                        "binder_number": None,
+                        "work_state": None,
+                        "signals": [],
+                    }
+                    for c in clients
+                ], total
+
+        # --- Mixed / binder-filtered search: build full result set then paginate ---
+        results: list[dict] = []
 
         if query or client_name or id_number:
-            clients = self.client_repo.list(page=1, page_size=1000)
-            for client in clients:
-                match = True
-                if query:
-                    query_lower = query.lower()
-                    match = (
-                        query_lower in client.full_name.lower()
-                        or query_lower in client.id_number
-                    )
-                if client_name and match:
-                    match = client_name.lower() in client.full_name.lower()
-                if id_number and match:
-                    match = id_number in client.id_number
-                if match:
-                    results.append(
-                        {
-                            "result_type": "client",
-                            "client_id": client.id,
-                            "client_name": client.full_name,
-                            "binder_id": None,
-                            "binder_number": None,
-                            "work_state": None,
-                            "signals": [],
-                        }
-                    )
+            all_clients, _ = self.client_repo.search(
+                query=query,
+                client_name=client_name,
+                id_number=id_number,
+            )
+            for c in all_clients:
+                results.append(
+                    {
+                        "result_type": "client",
+                        "client_id": c.id,
+                        "client_name": c.full_name,
+                        "binder_id": None,
+                        "binder_number": None,
+                        "work_state": None,
+                        "signals": [],
+                    }
+                )
 
-        if query or binder_number or work_state or signal_type or has_signals is not None:
-            binders = self.binder_repo.list_active()
+        if query or binder_number or binder_derived_filter:
+            # binder_number filter pushed to DB; work_state/signal_type stay in Python
+            db_binder_number = binder_number or (query if not (client_name or id_number) else None)
+            binders = self.binder_repo.list_active(binder_number=db_binder_number)
             for binder in binders:
-                match = True
-                if query:
-                    match = query.lower() in binder.binder_number.lower()
-                if binder_number and match:
-                    match = binder_number.lower() in binder.binder_number.lower()
-
                 current_work_state = WorkStateService.derive_work_state(
                     binder, reference_date, self.db
                 )
@@ -80,7 +96,8 @@ class SearchService:
                     binder, reference_date
                 )
 
-                if signal_type and match:
+                match = True
+                if signal_type:
                     match = matches_signal_type(current_signals, signal_type)
                 if work_state and match:
                     match = current_work_state.value == work_state
@@ -103,4 +120,4 @@ class SearchService:
 
         total = len(results)
         offset = (page - 1) * page_size
-        return results[offset : offset + page_size], total
+        return results[offset: offset + page_size], total
