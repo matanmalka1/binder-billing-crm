@@ -8,6 +8,7 @@ from app.annual_reports.models import (
 )
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
+from app.users.repositories.user_repository import UserRepository
 from app.utils.time import utcnow
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -48,6 +49,11 @@ class AnnualReportCreateService(AnnualReportBaseService):
         except ValueError:
             valid = [e.value for e in DeadlineType]
             raise ValueError(f"Invalid deadline_type '{deadline_type}'. Valid: {valid}")
+
+        if assigned_to is not None:
+            user_repo = UserRepository(self.db)
+            if not user_repo.get_by_id(assigned_to):
+                raise ValueError(f"Assigned user {assigned_to} not found")
 
         existing = self.repo.get_by_client_year(client_id, tax_year)
         if existing:

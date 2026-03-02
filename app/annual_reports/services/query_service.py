@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 
 from app.annual_reports.models import AnnualReport
@@ -70,7 +71,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
                     "client_id": report.client_id,
                     "client_name": client_name,
                     "tax_year": report.tax_year,
-                    "days_until_due": None if not report.filing_deadline else (report.filing_deadline.date() - report.created_at.date()).days,
+                    "days_until_due": None if not report.filing_deadline else (report.filing_deadline.date() - date.today()).days,
                 }
             )
 
