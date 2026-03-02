@@ -69,6 +69,7 @@ class ClientRepository(BaseRepository):
                 Client.full_name.ilike(term) | Client.id_number.ilike(term)
             )
 
+        query = query.order_by(Client.opened_at.desc())
         return self._paginate(query, page, page_size)
 
     def count(

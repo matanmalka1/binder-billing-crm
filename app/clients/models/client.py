@@ -30,6 +30,8 @@ class Client(Base):
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
+    address = Column(String, nullable=True)
+    business_sector = Column(String, nullable=True)
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)

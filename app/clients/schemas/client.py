@@ -19,6 +19,10 @@ class ClientUpdateRequest(BaseModel):
     email: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
+    client_type: Optional[str] = None
+    primary_binder_number: Optional[str] = None
+    address: Optional[str] = None
+    business_sector: Optional[str] = None
 
 
 class ClientResponse(BaseModel):
@@ -27,8 +31,12 @@ class ClientResponse(BaseModel):
     id_number: str
     client_type: str
     status: str
+    primary_binder_number: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
+    notes: Optional[str] = None
+    address: Optional[str] = None
+    business_sector: Optional[str] = None
     opened_at: date
     closed_at: Optional[date] = None
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
