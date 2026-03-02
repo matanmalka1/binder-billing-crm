@@ -23,13 +23,7 @@ def _load_env_files() -> None:
     if env_file:
         load_dotenv(dotenv_path=env_file, override=False)
     else:
-        if app_env == "production":
-            selected = root_dir / ".env.production"
-        elif app_env == "development":
-            selected = root_dir / ".env.development"
-        else:
-            selected = root_dir / f".env.{app_env}"
-
+        selected = root_dir / f".env.{app_env}"
         if selected.exists():
             load_dotenv(dotenv_path=selected, override=False)
 
@@ -50,10 +44,9 @@ class Config:
         "sqlite:///./binder_crm_test.db" if APP_ENV == "test" else "sqlite:///./binder_crm.db"
     )
 
-    _jwt_secret = os.getenv("JWT_SECRET")
-    if not _jwt_secret:
+    JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
+    if not JWT_SECRET:
         raise ValueError("JWT_SECRET must be set")
-    JWT_SECRET: str = _jwt_secret
     
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
 

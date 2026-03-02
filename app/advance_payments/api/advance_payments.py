@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentListResponse,
     AdvancePaymentRow,
@@ -80,14 +79,6 @@ def update_advance_payment(
     db: DBSession,
     user: CurrentUser,
 ):
-    if request.status is not None:
-        try:
-            AdvancePaymentStatus(request.status)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid status: {request.status}",
-            )
     service = AdvancePaymentService(db)
     try:
         update_data = request.model_dump(exclude_unset=True)

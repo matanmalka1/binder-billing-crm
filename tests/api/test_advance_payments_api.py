@@ -85,8 +85,7 @@ def test_update_advance_payment_invalid_status_returns_400(client, test_db, advi
         json={"status": "unknown"},
     )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid status: unknown"
+    assert response.status_code == 422
 
 
 def test_update_advance_payment_not_found_returns_404(client, advisor_headers):

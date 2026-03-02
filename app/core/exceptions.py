@@ -39,6 +39,17 @@ class ErrorResponse:
         }
 
 
+def _error_json(status_code: int, detail: Any, error_type: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content=ErrorResponse.build(
+            status_code=status_code,
+            detail=detail,
+            error_type=error_type,
+        ),
+    )
+
+
 def setup_exception_handlers(app: FastAPI) -> None:
     """Register centralized exception handlers."""
 
@@ -51,14 +62,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
             f"HTTP exception: {exc.status_code} - {exc.detail}",
             extra={"path": request.url.path},
         )
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=ErrorResponse.build(
-                status_code=exc.status_code,
-                detail=exc.detail,
-                error_type="http_error",
-            ),
-        )
+        return _error_json(exc.status_code, exc.detail, "http_error")
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(
@@ -82,14 +86,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
                 }
                 safe_err["ctx"] = safe_ctx
             safe_errors.append(safe_err)
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content=ErrorResponse.build(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=safe_errors,
-                error_type="validation_error",
-            ),
-        )
+        return _error_json(status.HTTP_422_UNPROCESSABLE_ENTITY, safe_errors, "validation_error")
 
     @app.exception_handler(SQLAlchemyError)
     async def database_exception_handler(
@@ -101,14 +98,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
             exc_info=exc,
             extra={"path": request.url.path},
         )
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=ErrorResponse.build(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal Server Error",
-                error_type="database_error",
-            ),
-        )
+        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error", "database_error")
 
     @app.exception_handler(Exception)
     async def general_exception_handler(
@@ -120,11 +110,4 @@ def setup_exception_handlers(app: FastAPI) -> None:
             exc_info=exc,
             extra={"path": request.url.path},
         )
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content=ErrorResponse.build(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal Server Error",
-                error_type="server_error",
-            ),
-        )
+        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error", "server_error")

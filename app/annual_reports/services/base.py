@@ -1,11 +1,13 @@
+from typing import Any
+
 from app.annual_reports.models import AnnualReport
 
 
 class AnnualReportBaseService:
     """Shared helpers for annual report service mixins."""
 
-    repo: any  # set by concrete service
-    client_repo: any  # set by concrete service
+    repo: Any  # set by concrete service
+    client_repo: Any  # set by concrete service
 
     def _get_or_raise(self, report_id: int) -> AnnualReport:
         report = self.repo.get_by_id(report_id)

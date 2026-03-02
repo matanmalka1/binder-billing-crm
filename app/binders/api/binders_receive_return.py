@@ -1,4 +1,3 @@
-from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,10 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.binders.schemas.binder import BinderReceiveRequest, BinderResponse, BinderReturnRequest
 from app.binders.services.binder_service import BinderService
 from app.binders.services.signals_service import SignalsService
-from app.clients.repositories.client_repository import ClientRepository
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.binders.api.binders_common import to_binder_response
+from app.binders.api.binders_common import fetch_client_and_build_response
 
 router = APIRouter(
     prefix="/binders",
@@ -33,17 +31,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
             received_by=request.received_by,
             notes=request.notes,
         )
-
-        client_repo = ClientRepository(db)
-        client = client_repo.get_by_id(binder.client_id)
-
-        return to_binder_response(
-            binder=binder,
-            db=db,
-            signals_service=signals_service,
-            reference_date=date.today(),
-            client_name=client.full_name if client else None,
-        )
+        return fetch_client_and_build_response(binder, db, signals_service)
 
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
@@ -57,15 +45,7 @@ def mark_ready_for_pickup(binder_id: int, db: DBSession, user: CurrentUser):
 
     try:
         binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
-        client_repo = ClientRepository(db)
-        client = client_repo.get_by_id(binder.client_id)
-        return to_binder_response(
-            binder=binder,
-            db=db,
-            signals_service=signals_service,
-            reference_date=date.today(),
-            client_name=client.full_name if client else None,
-        )
+        return fetch_client_and_build_response(binder, db, signals_service)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -94,15 +74,7 @@ def return_binder(
             pickup_person_name=pickup_person_name,
             returned_by=returned_by,
         )
-        client_repo = ClientRepository(db)
-        client = client_repo.get_by_id(binder.client_id)
-        return to_binder_response(
-            binder=binder,
-            db=db,
-            signals_service=signals_service,
-            reference_date=date.today(),
-            client_name=client.full_name if client else None,
-        )
+        return fetch_client_and_build_response(binder, db, signals_service)
 
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

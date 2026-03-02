@@ -92,6 +92,22 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
     return actions
 
 
+def _cancel_charge_action(charge_id: int) -> dict[str, Any]:
+    return build_action(
+        key="cancel_charge",
+        label="ביטול חיוב",
+        method="post",
+        endpoint=f"/charges/{charge_id}/cancel",
+        action_id=_generate_action_id("charge", charge_id, "cancel_charge"),
+        confirm={
+            "title": "אישור ביטול חיוב",
+            "message": "האם לבטל את החיוב?",
+            "confirm_label": "ביטול",
+            "cancel_label": "חזרה",
+        },
+    )
+
+
 def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
     """Return executable actions for a charge."""
 
@@ -108,21 +124,7 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 action_id=_generate_action_id("charge", charge.id, "issue_charge"),
             )
         )
-        actions.append(
-            build_action(
-                key="cancel_charge",
-                label="ביטול חיוב",
-                method="post",
-                endpoint=f"/charges/{charge.id}/cancel",
-                action_id=_generate_action_id("charge", charge.id, "cancel_charge"),
-                confirm={
-                    "title": "אישור ביטול חיוב",
-                    "message": "האם לבטל את החיוב?",
-                    "confirm_label": "ביטול",
-                    "cancel_label": "חזרה",
-                },
-            )
-        )
+        actions.append(_cancel_charge_action(charge.id))
 
     if status == ChargeStatus.ISSUED.value:
         actions.append(
@@ -134,21 +136,7 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 action_id=_generate_action_id("charge", charge.id, "mark_paid"),
             )
         )
-        actions.append(
-            build_action(
-                key="cancel_charge",
-                label="ביטול חיוב",
-                method="post",
-                endpoint=f"/charges/{charge.id}/cancel",
-                action_id=_generate_action_id("charge", charge.id, "cancel_charge"),
-                confirm={
-                    "title": "אישור ביטול חיוב",
-                    "message": "האם לבטל את החיוב?",
-                    "confirm_label": "ביטול",
-                    "cancel_label": "חזרה",
-                },
-            )
-        )
+        actions.append(_cancel_charge_action(charge.id))
 
     return actions
 
@@ -168,10 +156,12 @@ def build_action(
         "label": label,
         "method": method,
         "endpoint": endpoint,
-        "confirm": confirm,
     }
 
     if payload is not None:
         action["payload"] = payload
+
+    if confirm is not None:
+        action["confirm"] = confirm
 
     return action

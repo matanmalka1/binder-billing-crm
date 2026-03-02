@@ -19,6 +19,8 @@ from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 from app.clients.models.client import Client
 
+_BULK_PAGE_SIZE = 1000
+
 
 class DashboardExtendedService:
     """Dashboard extensions for operational UX."""
@@ -88,7 +90,7 @@ class DashboardExtendedService:
             unpaid_charges = self.charge_repo.list_charges(
                 status=ChargeStatus.ISSUED.value,
                 page=1,
-                page_size=1000,
+                page_size=_BULK_PAGE_SIZE,
             )
             if unpaid_charges:
                 charge_client_ids = {c.client_id for c in unpaid_charges}

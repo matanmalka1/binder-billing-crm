@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -24,7 +24,7 @@ def get_schedules(report_id: int, db: DBSession, user: CurrentUser):
     try:
         return [ScheduleEntryResponse.model_validate(s) for s in service.get_schedules(report_id)]
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.post("/{report_id}/schedules", response_model=ScheduleEntryResponse, status_code=201)
@@ -35,7 +35,7 @@ def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: 
         entry = service.add_schedule(report_id, body.schedule, notes=body.notes)
         return ScheduleEntryResponse.model_validate(entry)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse)
@@ -46,4 +46,4 @@ def complete_schedule(report_id: int, body: ScheduleCompleteRequest, db: DBSessi
         entry = service.complete_schedule(report_id, body.schedule)
         return ScheduleEntryResponse.model_validate(entry)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

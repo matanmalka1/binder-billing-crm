@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from typing import BinaryIO
 
@@ -18,7 +19,6 @@ class StorageProvider(ABC):
         Returns:
             Storage key for retrieval
         """
-        pass
 
 
 class LocalStorageProvider(StorageProvider):
@@ -26,13 +26,10 @@ class LocalStorageProvider(StorageProvider):
 
     def __init__(self, base_path: str = "./storage"):
         self.base_path = base_path
-        import os
         os.makedirs(base_path, exist_ok=True)
 
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
         """Upload file to local storage."""
-        import os
-
         file_path = os.path.join(self.base_path, key)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 

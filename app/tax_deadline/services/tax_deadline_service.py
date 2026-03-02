@@ -139,6 +139,12 @@ class TaxDeadlineService:
         """Get deadlines for client."""
         return self.deadline_repo.list_by_client(client_id, status, deadline_type)
 
+    def build_client_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
+        """Return {client_id: full_name} for the given deadlines."""
+        client_ids = list({d.client_id for d in deadlines})
+        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        return {c.id: c.full_name for c in clients}
+
     def get_urgent_deadlines_summary(
         self,
         reference_date: Optional[date] = None,

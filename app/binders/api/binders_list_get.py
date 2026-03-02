@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.binders.api.binders_common import to_binder_response
+from app.binders.api.binders_common import fetch_client_and_build_response, to_binder_response
 from app.binders.schemas.binder import BinderListResponse, BinderResponse
 from app.binders.services.binder_service import BinderService
 from app.binders.services.signals_service import SignalsService
@@ -120,13 +120,4 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     if not binder:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
 
-    client_repo = ClientRepository(db)
-    client = client_repo.get_by_id(binder.client_id)
-
-    return to_binder_response(
-        binder=binder,
-        db=db,
-        signals_service=signals_service,
-        reference_date=date.today(),
-        client_name=client.full_name if client else None,
-    )
+    return fetch_client_and_build_response(binder, db, signals_service)

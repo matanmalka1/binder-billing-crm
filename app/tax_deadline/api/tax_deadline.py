@@ -81,14 +81,11 @@ def list_tax_deadlines(
     offset = (page - 1) * page_size
     paginated = items[offset : offset + page_size]
 
-    from app.clients.repositories.client_repository import ClientRepository
-    client_repo = ClientRepository(db)
-    client_ids = {d.client_id for d in paginated}
-    clients = {c.id: c for c in client_repo.list_all() if c.id in client_ids}
+    client_name_map = service.build_client_name_map(paginated)
 
     def to_response(d: TaxDeadline) -> TaxDeadlineResponse:
         r = TaxDeadlineResponse.model_validate(d)
-        r.client_name = clients[d.client_id].full_name if d.client_id in clients else None
+        r.client_name = client_name_map.get(d.client_id)
         return r
 
     return TaxDeadlineListResponse(
@@ -173,22 +170,21 @@ def delete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
 def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     """Get urgent deadlines for dashboard."""
     service = TaxDeadlineService(db)
-    from app.clients.repositories.client_repository import ClientRepository
-
-    client_repo = ClientRepository(db)
 
     summary = service.get_urgent_deadlines_summary()
+
+    urgent_deadlines = [item["deadline"] for item in summary["urgent"]]
+    client_name_map = service.build_client_name_map(urgent_deadlines)
 
     urgent_items = []
     for item in summary["urgent"]:
         deadline = item["deadline"]
-        client = client_repo.get_by_id(deadline.client_id)
 
         urgent_items.append(
             DeadlineUrgentItem(
                 id=deadline.id,
                 client_id=deadline.client_id,
-                client_name=client.full_name if client else "Unknown",
+                client_name=client_name_map.get(deadline.client_id) or "Unknown",
                 deadline_type=deadline.deadline_type.value,
                 due_date=deadline.due_date,
                 urgency=item["urgency"].value,

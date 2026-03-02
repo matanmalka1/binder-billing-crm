@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+_BULK_PAGE_SIZE = 1000
+
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.invoice.repositories.invoice_repository import InvoiceRepository
@@ -42,12 +44,12 @@ class TimelineService:
                 events.append(binder_returned_event(binder))
             self._append_status_change_events(events, binder)
 
-        notifications = self.notification_repo.list_by_client(client_id, page=1, page_size=1000)
+        notifications = self.notification_repo.list_by_client(client_id, page=1, page_size=_BULK_PAGE_SIZE)
         for notification in notifications:
             events.append(notification_sent_event(notification))
 
         charges = self.charge_repo.list_charges(
-            client_id=client_id, page=1, page_size=1000
+            client_id=client_id, page=1, page_size=_BULK_PAGE_SIZE
         )
         for charge in charges:
             events.append(charge_created_event(charge))

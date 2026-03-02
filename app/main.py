@@ -1,5 +1,3 @@
-import signal
-import sys
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -125,15 +123,6 @@ app.include_router(advance_payments.router, prefix="/api/v1")
 app.include_router(signature_requests_routers.router, prefix="/api/v1")
 app.include_router(signature_requests_routers.signer_router)
 app.include_router(vat_reports_router, prefix="/api/v1")
-
-def handle_shutdown(signum, frame):
-    """Handle shutdown signals gracefully."""
-    logger.info(f"Received signal {signum}, initiating graceful shutdown")
-    sys.exit(0)
-
-
-signal.signal(signal.SIGTERM, handle_shutdown)
-signal.signal(signal.SIGINT, handle_shutdown)
 
 if __name__ == "__main__":
     import uvicorn
