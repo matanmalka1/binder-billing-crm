@@ -41,7 +41,7 @@ def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
                 received_by=rng.choice(users).id,
                 returned_by=rng.choice(users).id if status == BinderStatus.RETURNED else None,
                 pickup_person_name=(full_name(rng) if status == BinderStatus.RETURNED else None),
-                notes=rng.choice(["", "Urgent handling", "Client requested callback"]),
+                notes=rng.choice(["", "דחוף", "הלקוח ביקש שיחה חוזרת"]),
             )
             binder_serial += 1
             db.add(binder)
@@ -53,12 +53,12 @@ def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
 def create_binder_logs(db, rng: Random, binders, users) -> None:
     for binder in binders:
         logs = []
-        logs.append(("none", BinderStatus.IN_OFFICE.value, "Binder intake"))
+        logs.append(("none", BinderStatus.IN_OFFICE.value, "קבלת קלסר"))
         if binder.status == BinderStatus.READY_FOR_PICKUP:
-            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "Processing complete"))
+            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "הטיפול הושלם"))
         elif binder.status == BinderStatus.RETURNED:
-            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "Ready for pickup"))
-            logs.append((BinderStatus.READY_FOR_PICKUP.value, BinderStatus.RETURNED.value, "Picked up"))
+            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "מוכן לאיסוף"))
+            logs.append((BinderStatus.READY_FOR_PICKUP.value, BinderStatus.RETURNED.value, "נמסר ללקוח"))
 
         for old_status, new_status, note in logs:
             log = BinderStatusLog(

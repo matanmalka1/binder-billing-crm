@@ -78,7 +78,7 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
                 has_foreign_income=rng.random() < 0.2,
                 has_depreciation=rng.random() < 0.2,
                 has_exempt_rental=rng.random() < 0.15,
-                notes=rng.choice(["", "Needs review", "Client signature pending"]),
+                notes=rng.choice(["", "דורש בדיקה", "ממתין לחתימת לקוח"]),
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 400)),
                 updated_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
                 created_by=rng.choice(advisors) if advisors else None,
@@ -114,9 +114,9 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
             internal_notes=rng.choice(
                 [
                     None,
-                    "Pending client confirmation",
-                    "Include revised payroll figures",
-                    "Double-check VAT inputs",
+                    "ממתין לאישור לקוח",
+                    "לעדכן נתוני שכר מתוקנים",
+                    "לבדוק שוב את קלטי המע""מ",
                 ]
             ),
         )
@@ -134,7 +134,7 @@ def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
                 schedule=schedule,
                 is_required=is_required,
                 is_complete=is_complete,
-                notes="Auto-seeded" if is_required else None,
+                notes="נוצר אוטומטית" if is_required else None,
                 created_at=report.created_at,
                 completed_at=(report.created_at + timedelta(days=rng.randint(5, 60))) if is_complete else None,
             )
@@ -165,7 +165,7 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
                 to_status=status,
                 changed_by=actor_id,
                 changed_by_name=actor_name,
-                note="Auto-generated status history",
+                note="היסטוריית סטטוסים שנוצרה אוטומטית",
                 occurred_at=report.created_at + timedelta(hours=rng.randint(1, 72)),
             )
             db.add(entry)

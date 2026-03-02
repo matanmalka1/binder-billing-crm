@@ -12,6 +12,16 @@ from app.tax_deadline.models.tax_deadline import (
 )
 
 
+# Hebrew labels for deadline types used in seed descriptions
+DEADLINE_LABELS = {
+    TaxDeadlineType.ADVANCE_PAYMENT: "מקדמה",
+    TaxDeadlineType.ANNUAL_REPORT: "דוח שנתי",
+    TaxDeadlineType.NATIONAL_INSURANCE: "ביטוח לאומי",
+    TaxDeadlineType.VAT: "מע""מ",
+    TaxDeadlineType.OTHER: "אחר",
+}
+
+
 def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     today = date.today()
@@ -35,7 +45,7 @@ def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
             )
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))
             deadline_type = rng.choice(list(TaxDeadlineType))
-            description = f"{deadline_type.value.replace('_', ' ').title()} reminder"
+            description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(
                 client_id=client.id,
                 deadline_type=deadline_type,

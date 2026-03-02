@@ -46,8 +46,8 @@ def create_signature_requests(db, rng: Random, cfg, clients, users, annual_repor
                 annual_report_id=report.id if report else None,
                 document_id=document.id if document else None,
                 request_type=rng.choice(list(SignatureRequestType)),
-                title="Signature request " + client.full_name,
-                description="Please sign and return",
+                title="בקשת חתימה " + client.full_name,
+                description="נא לחתום ולהחזיר",
                 content_hash=None,
                 storage_key=document.storage_key if document else None,
                 signer_name=client.full_name,
@@ -94,9 +94,9 @@ def create_signature_audit_events(db, rng: Random, requests: Iterable[SignatureR
                 event_type=event_type,
                 actor_type="advisor",
                 actor_id=request.created_by,
-                actor_name="Seeder",
+                actor_name="זורע נתונים",
                 ip_address="127.0.0.1",
-                user_agent="seeder/1.0",
+                user_agent="seeder/1.0 בעברית",
                 occurred_at=ts or request.created_at,
             )
             db.add(audit)

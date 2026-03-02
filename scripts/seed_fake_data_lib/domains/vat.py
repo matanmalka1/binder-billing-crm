@@ -58,7 +58,7 @@ def create_vat_work_items(db, rng: Random, cfg, clients, users) -> list[VatWorkI
                 assigned_to=rng.choice(advisors) if advisors and rng.random() < 0.7 else None,
                 period=period,
                 status=status,
-                pending_materials_note="Awaiting invoices from client"
+                pending_materials_note="ממתינים לחשבוניות מהלקוח"
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
                 else None,
             )
@@ -96,7 +96,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 invoice_type=invoice_type,
                 invoice_number=invoice_number,
                 invoice_date=datetime.now(UTC) - timedelta(days=rng.randint(1, 60)),
-                counterparty_name=rng.choice(["Client", "Supplier", "Agency"]) + f" {rng.randint(1, 999)}",
+                counterparty_name=rng.choice(["לקוח", "ספק", "סוכנות"]) + f" {rng.randint(1, 999)}",
                 counterparty_id=str(rng.randint(100000000, 999999999)),
                 net_amount=base_amount,
                 vat_amount=vat_amount,
@@ -124,7 +124,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
             work_item.final_vat_amount = work_item.net_vat
             work_item.is_overridden = rng.random() < 0.1
             if work_item.is_overridden:
-                work_item.override_justification = "Manual adjustment for rounding"
+                work_item.override_justification = "התאמה ידנית לעיגול"
 
     db.flush()
     return invoices

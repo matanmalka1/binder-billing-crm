@@ -32,6 +32,7 @@ def list_binders(
     query: Optional[str] = None,
     client_name: Optional[str] = None,
     binder_number: Optional[str] = None,
+    year: Optional[int] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     sort_by: Optional[str] = Query(None),
@@ -83,6 +84,9 @@ def list_binders(
             continue
 
         if binder_number and binder_number.lower() not in binder.binder_number.lower():
+            continue
+
+        if year and binder.received_at.year != year:
             continue
 
         items.append(

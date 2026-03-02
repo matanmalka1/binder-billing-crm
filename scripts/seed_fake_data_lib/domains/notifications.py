@@ -49,10 +49,10 @@ def create_notifications(db, rng: Random, clients, binders) -> None:
             channel=channel,
             status=status,
             recipient=recipient,
-            content_snapshot=f"Automated message for binder {binder.binder_number}",
+            content_snapshot=f"הודעה אוטומטית עבור קלסר {binder.binder_number}",
             sent_at=sent_at,
             failed_at=failed_at,
-            error_message=("provider_timeout" if status == NotificationStatus.FAILED else None),
+            error_message=("פסק זמן מול הספק" if status == NotificationStatus.FAILED else None),
             created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
         )
         db.add(notification)

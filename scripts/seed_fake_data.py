@@ -3,8 +3,8 @@
 
 from __future__ import annotations
 
-from seed_fake_data_lib.config import parse_args
-from seed_fake_data_lib.seeder import Seeder
+from scripts.seed_fake_data_lib.config import parse_args
+from scripts.seed_fake_data_lib.seeder import Seeder
 
 
 def main() -> None:

@@ -59,11 +59,12 @@ def create_invoices(db, charges) -> None:
     for charge in charges:
         if charge.status not in (ChargeStatus.ISSUED, ChargeStatus.PAID):
             continue
+        invoice_id = f"חשבונית-{invoice_serial}"
         invoice = Invoice(
             charge_id=charge.id,
-            provider="demo-provider",
-            external_invoice_id=f"INV-{invoice_serial}",
-            document_url=f"https://example.local/invoices/INV-{invoice_serial}.pdf",
+            provider="ספק-דמו",
+            external_invoice_id=invoice_id,
+            document_url=f"https://example.local/invoices/{invoice_id}.pdf",
             issued_at=charge.issued_at or charge.created_at,
             created_at=charge.created_at,
         )

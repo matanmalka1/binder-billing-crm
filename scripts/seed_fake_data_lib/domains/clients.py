@@ -27,7 +27,7 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
 
         client_type = rng.choice(list(ClientType))
         if client_type == ClientType.COMPANY:
-            full_name_value = f"{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} Ltd"
+            full_name_value = f"{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע""מ"
         else:
             full_name_value = full_name(rng)
 
@@ -38,8 +38,8 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             status=status,
             primary_binder_number=f"PB-{50000 + i}",
             phone=f"05{rng.randint(10000000, 99999999)}",
-            email=f"client{i + 1}@example.com",
-            notes=rng.choice(["", "VIP", "Prefers WhatsApp", "Monthly follow-up"]),
+            email=f"לקוח{i + 1}@example.com",
+            notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
             opened_at=opened_at,
             closed_at=closed_at,
         )
