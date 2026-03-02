@@ -7,6 +7,7 @@ from app.correspondence.schemas.correspondence import (
     CorrespondenceCreateRequest,
     CorrespondenceListResponse,
     CorrespondenceResponse,
+    CorrespondenceUpdateRequest,
 )
 from app.correspondence.services.correspondence_service import CorrespondenceService
 
@@ -70,3 +71,54 @@ def create_correspondence(
         if "not found" in detail:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
+@router.patch(
+    "/{client_id}/correspondence/{correspondence_id}",
+    response_model=CorrespondenceResponse,
+)
+def update_correspondence(
+    client_id: int,
+    correspondence_id: int,
+    request: CorrespondenceUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    update_data = request.model_dump(exclude_unset=True)
+    if "correspondence_type" in update_data:
+        try:
+            update_data["correspondence_type"] = CorrespondenceType(
+                update_data["correspondence_type"]
+            )
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid correspondence_type: {update_data['correspondence_type']}",
+            )
+    service = CorrespondenceService(db)
+    try:
+        entry = service.update_entry(correspondence_id, client_id, **update_data)
+        return CorrespondenceResponse.model_validate(entry)
+    except ValueError as e:
+        detail = str(e)
+        if "not found" in detail:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
+@router.delete(
+    "/{client_id}/correspondence/{correspondence_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_correspondence(
+    client_id: int,
+    correspondence_id: int,
+    db: DBSession,
+    user: CurrentUser,
+):
+    service = CorrespondenceService(db)
+    try:
+        service.delete_entry(correspondence_id, client_id, actor_id=user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

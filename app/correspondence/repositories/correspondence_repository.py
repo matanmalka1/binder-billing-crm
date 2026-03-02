@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
+from app.utils.time import utcnow
 
 
 class CorrespondenceRepository:
@@ -40,7 +41,10 @@ class CorrespondenceRepository:
     ) -> tuple[list[Correspondence], int]:
         query = (
             self.db.query(Correspondence)
-            .filter(Correspondence.client_id == client_id)
+            .filter(
+                Correspondence.client_id == client_id,
+                Correspondence.deleted_at.is_(None),
+            )
             .order_by(Correspondence.occurred_at.desc())
         )
 
@@ -48,3 +52,30 @@ class CorrespondenceRepository:
         offset = (page - 1) * page_size
         items = query.offset(offset).limit(page_size).all()
         return items, total
+
+    def get_by_id(self, entry_id: int) -> Optional[Correspondence]:
+        return (
+            self.db.query(Correspondence)
+            .filter(Correspondence.id == entry_id, Correspondence.deleted_at.is_(None))
+            .first()
+        )
+
+    def update(self, entry_id: int, **fields) -> Optional[Correspondence]:
+        entry = self.get_by_id(entry_id)
+        if not entry:
+            return None
+        for key, value in fields.items():
+            if hasattr(entry, key):
+                setattr(entry, key, value)
+        self.db.commit()
+        self.db.refresh(entry)
+        return entry
+
+    def soft_delete(self, entry_id: int, deleted_by: int) -> bool:
+        entry = self.get_by_id(entry_id)
+        if not entry:
+            return False
+        entry.deleted_at = utcnow()
+        entry.deleted_by = deleted_by
+        self.db.commit()
+        return True

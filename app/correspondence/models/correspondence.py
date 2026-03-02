@@ -27,6 +27,8 @@ class Correspondence(Base):
     occurred_at = Column(DateTime, nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         Index("idx_correspondence_client", "client_id"),

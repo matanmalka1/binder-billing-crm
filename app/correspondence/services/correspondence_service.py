@@ -50,3 +50,32 @@ class CorrespondenceService:
         self, client_id: int, *, page: int, page_size: int
     ) -> tuple[list[Correspondence], int]:
         return self.repo.list_by_client_paginated(client_id, page=page, page_size=page_size)
+
+    def update_entry(
+        self,
+        entry_id: int,
+        client_id: int,
+        **fields,
+    ) -> Correspondence:
+        entry = self.repo.get_by_id(entry_id)
+        if not entry or entry.client_id != client_id:
+            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+
+        contact_id = fields.get("contact_id", entry.contact_id)
+        if contact_id is not None:
+            contact = self.contact_repo.get_by_id(contact_id)
+            if not contact or contact.client_id != client_id:
+                raise ValueError(
+                    f"Contact {contact_id} does not belong to client {client_id}"
+                )
+
+        updated = self.repo.update(entry_id, **fields)
+        if not updated:
+            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+        return updated
+
+    def delete_entry(self, entry_id: int, client_id: int, actor_id: int) -> None:
+        entry = self.repo.get_by_id(entry_id)
+        if not entry or entry.client_id != client_id:
+            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+        self.repo.soft_delete(entry_id, deleted_by=actor_id)

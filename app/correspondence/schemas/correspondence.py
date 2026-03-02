@@ -12,6 +12,14 @@ class CorrespondenceCreateRequest(BaseModel):
     occurred_at: datetime
 
 
+class CorrespondenceUpdateRequest(BaseModel):
+    contact_id: Optional[int] = None
+    correspondence_type: Optional[str] = None
+    subject: Optional[str] = None
+    notes: Optional[str] = None
+    occurred_at: Optional[datetime] = None
+
+
 class CorrespondenceResponse(BaseModel):
     id: int
     client_id: int
