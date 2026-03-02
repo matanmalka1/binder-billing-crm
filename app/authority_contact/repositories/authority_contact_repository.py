@@ -50,8 +50,10 @@ class AuthorityContactRepository(BaseRepository):
         self,
         client_id: int,
         contact_type: Optional[ContactType] = None,
+        page: int = 1,
+        page_size: int = 20,
     ) -> list[AuthorityContact]:
-        """List contacts for a client."""
+        """List contacts for a client with optional pagination."""
         query = self.db.query(AuthorityContact).filter(
             AuthorityContact.client_id == client_id,
             AuthorityContact.deleted_at.is_(None),
@@ -60,7 +62,22 @@ class AuthorityContactRepository(BaseRepository):
         if contact_type:
             query = query.filter(AuthorityContact.contact_type == contact_type)
 
-        return query.order_by(AuthorityContact.created_at.desc()).all()
+        query = query.order_by(AuthorityContact.created_at.desc())
+        return self._paginate(query, page, page_size)
+
+    def count_by_client(
+        self,
+        client_id: int,
+        contact_type: Optional[ContactType] = None,
+    ) -> int:
+        """Count non-deleted contacts for a client."""
+        query = self.db.query(AuthorityContact).filter(
+            AuthorityContact.client_id == client_id,
+            AuthorityContact.deleted_at.is_(None),
+        )
+        if contact_type:
+            query = query.filter(AuthorityContact.contact_type == contact_type)
+        return query.count()
 
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""

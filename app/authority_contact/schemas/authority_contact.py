@@ -39,3 +39,6 @@ class AuthorityContactResponse(BaseModel):
 
 class AuthorityContactListResponse(BaseModel):
     items: list[AuthorityContactResponse]
+    page: int
+    page_size: int
+    total: int

@@ -54,9 +54,15 @@ class AuthorityContactService:
         self,
         client_id: int,
         contact_type: Optional[ContactType] = None,
-    ) -> list[AuthorityContact]:
-        """List contacts for client."""
-        return self.contact_repo.list_by_client(client_id, contact_type)
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[AuthorityContact], int]:
+        """List contacts for client with pagination."""
+        items = self.contact_repo.list_by_client(
+            client_id, contact_type, page=page, page_size=page_size
+        )
+        total = self.contact_repo.count_by_client(client_id, contact_type)
+        return items, total
 
     def delete_contact(self, contact_id: int, actor_id: int) -> None:
         """Soft-delete contact."""

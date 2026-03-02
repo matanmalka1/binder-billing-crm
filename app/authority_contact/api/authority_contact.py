@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.authority_contact.models.authority_contact import ContactType
@@ -56,8 +56,10 @@ def list_authority_contacts(
     db: DBSession,
     user: CurrentUser,
     contact_type: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ):
-    """List authority contacts for client."""
+    """List authority contacts for client with pagination."""
     service = AuthorityContactService(db)
 
     type_enum = None
@@ -70,10 +72,13 @@ def list_authority_contacts(
                 detail=f"Invalid contact type: {contact_type}",
             )
 
-    contacts = service.list_client_contacts(client_id, type_enum)
+    contacts, total = service.list_client_contacts(client_id, type_enum, page=page, page_size=page_size)
 
     return AuthorityContactListResponse(
-        items=[AuthorityContactResponse.model_validate(c) for c in contacts]
+        items=[AuthorityContactResponse.model_validate(c) for c in contacts],
+        page=page,
+        page_size=page_size,
+        total=total,
     )
 
 
