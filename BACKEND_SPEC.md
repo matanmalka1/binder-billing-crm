@@ -7,7 +7,7 @@
 ## System-Wide Notes
 
 - **Error handling:** `app/core/exceptions.py` wraps HTTPException/validation/DB errors into standard envelope. Routers raise `HTTPException` with plain strings.
-- **Pagination:** Most list endpoints paginate via offset in repo. Exceptions: clients `has_signals` filter, tax-deadlines global list, timeline aggregation, and search all paginate in memory after full fetch.
+- **Pagination:** Most list endpoints paginate via offset in repo. Exceptions: clients `has_signals` filter, tax-deadlines global list, timeline aggregation, and mixed search results paginate in memory after full fetch.
 - **Enum handling:** Business enums are `str` subclasses defined beside models. Invalid values return 400.
 - **Timestamps:** `utils.time.utcnow()` — naive UTC everywhere.
 - **Derived state:** `work_state` and signals are computed in `WorkStateService`/`SignalsService`, never persisted.
@@ -60,7 +60,7 @@
 
 **ORM:** `TaxDeadline` — `DeadlineType` enum; status string; indexes on status, type, `due_date`.
 
-**Gaps:** No edit/delete. Without `client_id` filter, all pending deadlines are fetched then paginated in memory.
+**Gaps:** Without `client_id` filter, all pending deadlines are fetched then paginated in memory.
 
 ---
 
@@ -72,7 +72,7 @@
 
 **ORM:** `AnnualReport` — enums `AnnualReportStatus`, `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year). `AnnualReportDetail` — 1:1 with report. `AnnualReportScheduleEntry` — `AnnualReportSchedule` enum + completion flags. `AnnualReportStatusHistory` — append-only.
 
-**Gaps:** No delete. No `assigned_to` validation. Kanban `days_until_due` incorrectly uses `created_at` vs `filing_deadline`.
+**Gaps:** No delete.
 
 ---
 
@@ -102,7 +102,7 @@
 
 **ORM:** `AuthorityContact` — indexed by `client_id`/`contact_type`; `ContactType` enum.
 
-**Gaps:** No pagination on list endpoint.
+**Gaps:** None.
 
 ---
 
@@ -114,7 +114,7 @@
 
 **ORM:** `AdvancePayment` — status as string (no enum enforcement at ORM level).
 
-**Gaps:** No create API. Pagination done after fetching all rows in memory.
+**Gaps:** Pagination done after fetching all rows in memory.
 
 ---
 
@@ -134,7 +134,7 @@
 
 **ORM:** `Correspondence` — optional `contact_id` FK to authority_contacts; `created_by` current user; `occurred_at` required; indexes on `client_id` and `occurred_at`.
 
-**Gaps:** No pagination. No update/delete.
+**Gaps:** No pagination. Soft-delete implemented; no hard delete.
 
 ---
 
@@ -172,9 +172,9 @@
 
 ## 15. Search
 
-**Service:** Client search scans up to 1000 clients in memory. Binder search iterates all active binders, derives work_state/signals per binder, applies filters.
+**Service:** Pure client-only searches use DB-level `ilike` filtering with real DB pagination. `binder_number` filter pushed to DB via `list_active`. Mixed searches (client + binder results) and derived-state filters (`work_state`, `signal_type`) remain in-memory. work_state/signals are derived and cannot be persisted.
 
-**Gaps:** No full-text or indexed search. No DB-level pagination.
+**Gaps:** No full-text or indexed search. Mixed searches paginate in memory after full fetch.
 
 ---
 
