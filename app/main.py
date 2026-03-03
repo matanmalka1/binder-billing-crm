@@ -13,7 +13,7 @@ from app.annual_reports.api import (
     annual_report_status,
 )
 from app.binders.api import binders, binders_history, binders_operations
-from app.clients.api import client_tax_profile, clients, clients_binders, clients_excel
+from app.clients.api import client_status_card, client_tax_profile, clients, clients_binders, clients_excel
 from app.dashboard.api import dashboard, dashboard_extended, dashboard_overview, dashboard_tax
 from app.users.api import users, users_audit
 from app.signature_requests.api import routers as signature_requests_routers
@@ -102,6 +102,7 @@ app.include_router(dashboard_tax.router, prefix="/api/v1")
 # Place Excel routes before parameterized /clients/{id} to avoid path conflicts
 app.include_router(clients_excel.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
+app.include_router(client_status_card.router, prefix="/api/v1")
 app.include_router(binders_operations.router, prefix="/api/v1")
 app.include_router(binders.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")

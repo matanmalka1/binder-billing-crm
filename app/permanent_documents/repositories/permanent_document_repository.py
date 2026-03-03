@@ -36,14 +36,24 @@ class PermanentDocumentRepository:
         return self.db.query(PermanentDocument).filter(PermanentDocument.id == document_id).first()
 
     def list_by_client(self, client_id: int) -> list[PermanentDocument]:
-        """List all permanent documents for a client."""
+        """List non-deleted permanent documents for a client."""
         return (
             self.db.query(PermanentDocument)
-            .filter(PermanentDocument.client_id == client_id)
+            .filter(
+                PermanentDocument.client_id == client_id,
+                PermanentDocument.is_deleted == False,  # noqa: E712
+            )
             .order_by(PermanentDocument.uploaded_at.desc())
             .all()
         )
 
     def count_by_client(self, client_id: int) -> int:
-        """Count permanent documents for a client."""
-        return self.db.query(PermanentDocument).filter(PermanentDocument.client_id == client_id).count()
+        """Count non-deleted permanent documents for a client."""
+        return (
+            self.db.query(PermanentDocument)
+            .filter(
+                PermanentDocument.client_id == client_id,
+                PermanentDocument.is_deleted == False,  # noqa: E712
+            )
+            .count()
+        )

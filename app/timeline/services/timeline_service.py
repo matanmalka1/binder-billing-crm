@@ -2,10 +2,12 @@ from sqlalchemy.orm import Session
 
 _BULK_PAGE_SIZE = 1000
 
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.timeline.repositories.timeline_repository import TimelineRepository
 from app.timeline.services.timeline_event_builders import (
     binder_received_event,
@@ -16,6 +18,10 @@ from app.timeline.services.timeline_event_builders import (
     charge_paid_event,
     invoice_attached_event,
     notification_sent_event,
+)
+from app.timeline.services.timeline_tax_builders import (
+    annual_report_status_changed_event,
+    tax_deadline_due_event,
 )
 
 
@@ -61,6 +67,9 @@ class TimelineService:
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
+        events.extend(self._build_tax_deadline_events(client_id))
+        events.extend(self._build_annual_report_events(client_id))
+
         events.sort(key=lambda e: e["timestamp"], reverse=True)
         total = len(events)
         offset = (page - 1) * page_size
@@ -70,3 +79,19 @@ class TimelineService:
         logs = self.status_log_repo.list_by_binder(binder.id)
         for status_log in logs:
             events.append(binder_status_change_event(binder, status_log))
+
+    def _build_tax_deadline_events(self, client_id: int) -> list[dict]:
+        deadlines = (
+            self.timeline_repo.db.query(TaxDeadline)
+            .filter(TaxDeadline.client_id == client_id)
+            .all()
+        )
+        return [tax_deadline_due_event(d) for d in deadlines]
+
+    def _build_annual_report_events(self, client_id: int) -> list[dict]:
+        reports = (
+            self.timeline_repo.db.query(AnnualReport)
+            .filter(AnnualReport.client_id == client_id)
+            .all()
+        )
+        return [annual_report_status_changed_event(r) for r in reports]

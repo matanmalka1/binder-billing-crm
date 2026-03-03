@@ -94,3 +94,35 @@ def get_operational_signals(
     signals = service.compute_client_operational_signals(client_id)
 
     return OperationalSignalsResponse(**signals)
+
+
+@router.delete(
+    "/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_document(document_id: int, db: DBSession, user: CurrentUser):
+    """Soft-delete a permanent document (ADVISOR only)."""
+    PermanentDocumentService(db).delete_document(document_id)
+
+
+@router.put(
+    "/{document_id}/replace",
+    response_model=PermanentDocumentResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def replace_document(
+    document_id: int,
+    file: Annotated[UploadFile, File(...)],
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Replace the file for an existing document (ADVISOR only)."""
+    file_data = BytesIO(file.file.read())
+    doc = PermanentDocumentService(db).replace_document(
+        document_id=document_id,
+        file_data=file_data,
+        filename=file.filename or "document",
+        uploaded_by=user.id,
+    )
+    return PermanentDocumentResponse.model_validate(doc)

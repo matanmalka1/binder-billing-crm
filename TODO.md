@@ -91,34 +91,34 @@
 > **Depends on:** Feature 1 (VAT summary endpoint must exist)
 
 ### Backend
-- [ ] Create `app/clients/services/status_card_service.py`
+- [x] Create `app/clients/services/status_card_service.py`
   - Query VatWorkItem for current year → net_vat total, periods filed/total, latest period
   - Query AnnualReport for current year → status, form_type, filing_deadline, refund_due, tax_due
   - Query Charge for ISSUED status → total_outstanding, unpaid_count
   - Query AdvancePayment for current year → total_paid, count
   - Query Binder → active_count, in_office_count
   - Assemble single response object
-- [ ] Add Pydantic schema `ClientStatusCardResponse` in `app/clients/schemas/`
-- [ ] Add route `GET /api/v1/clients/{client_id}/status-card` in `app/clients/api/clients.py`
+- [x] Add Pydantic schema `ClientStatusCardResponse` in `app/clients/schemas/`
+- [x] Add route `GET /api/v1/clients/{client_id}/status-card` in `app/clients/api/client_status_card.py`
   - Roles: ADVISOR + SECRETARY
 
 ### Frontend
-- [ ] Add `ENDPOINTS.clientStatusCard(clientId)` in `src/api/endpoints.ts`
-- [ ] Add `clientsApi.getStatusCard(clientId)` in `src/api/clients.api.ts`
-- [ ] Add `QK.clients.statusCard(clientId)` in `src/lib/queryKeys.ts`
-- [ ] Create `src/features/clients/components/ClientStatusCard.tsx`
+- [x] Add `ENDPOINTS.clientStatusCard(clientId)` in `src/api/endpoints.ts`
+- [x] Add `clientsApi.getStatusCard(clientId)` in `src/api/clients.api.ts`
+- [x] Add `QK.clients.statusCard(clientId)` in `src/lib/queryKeys.ts`
+- [x] Create `src/features/clients/components/ClientStatusCard.tsx`
   - 2×3 grid of summary tiles
   - Tiles: מע״מ שנה נוכחית · דוח שנתי · חיובים פתוחים · מקדמות · קלסרים · מסמכים
   - Each tile: icon + title + primary metric + secondary detail
   - TailwindCSS only — no new dependencies
-- [ ] Add `ClientStatusCard` as first section in client detail page
+- [x] Add `ClientStatusCard` as first section in client detail page
 
 ---
 
 ## Feature 5 — Timeline: Tax Events
 
 ### Backend
-- [ ] Extend `app/timeline/services/timeline_service.py`
+- [x] Extend `app/timeline/services/timeline_service.py`
   - Import `TaxDeadline` and `AnnualReport` models (service-level only, no repo-layer cross-domain)
   - Add `_build_tax_deadline_events(client_id)` → event_type `"tax_deadline_due"`, description = deadline type + due date + amount, metadata includes `tax_deadline_id`
   - Add `_build_annual_report_events(client_id)` → event_type `"annual_report_status_changed"`, description = form type + status + year, metadata includes `annual_report_id`
@@ -126,37 +126,37 @@
   - Both event types: `actions = []`
 
 ### Frontend
-- [ ] In `src/features/timeline/` add Hebrew label + icon for `"tax_deadline_due"`
+- [x] In `src/features/timeline/` add Hebrew label + icon for `"tax_deadline_due"`
   - Label: "מועד מס" · icon: `CalendarClock` (lucide-react)
-- [ ] In `src/features/timeline/` add Hebrew label + icon for `"annual_report_status_changed"`
+- [x] In `src/features/timeline/` add Hebrew label + icon for `"annual_report_status_changed"`
   - Label: "דוח שנתי" · icon: `FileText` (lucide-react)
-- [ ] In `src/features/taxDeadlines/hooks/` — add timeline invalidation on create/complete mutations
+- [x] In `src/features/taxDeadlines/hooks/` — add timeline invalidation on create/complete mutations
   - `queryClient.invalidateQueries({ queryKey: QK.clients.timeline(clientId) })`
-- [ ] In `src/features/annualReports/hooks/` — add timeline invalidation on status transition mutations
+- [x] In `src/features/annualReports/hooks/` — add timeline invalidation on status transition mutations
 
 ---
 
 ## Feature 6 — Document Delete / Replace
 
 ### Backend
-- [ ] Add `is_deleted` boolean column (default `False`) to `PermanentDocument` ORM model
-- [ ] Update `GET /api/v1/documents/client/{client_id}` to filter `is_deleted = False`
-- [ ] Add `delete_document(document_id, requesting_user)` to `app/permanent_documents/services/`
+- [x] Add `is_deleted` boolean column (default `False`) to `PermanentDocument` ORM model
+- [x] Update `GET /api/v1/documents/client/{client_id}` to filter `is_deleted = False`
+- [x] Add `delete_document(document_id, requesting_user)` to `app/permanent_documents/services/`
   - Set `is_deleted = True` (soft delete — no filesystem removal in this sprint)
   - Raise 404 if not found
-- [ ] Add `replace_document(document_id, file, requesting_user)` to service
+- [x] Add `replace_document(document_id, file, requesting_user)` to service
   - Accept new file upload
   - Overwrite `storage_key`, reset `uploaded_at`, keep `is_present = True`
   - Raise 404 if not found or is_deleted
-- [ ] Add routes to `app/permanent_documents/api/`
+- [x] Add routes to `app/permanent_documents/api/`
   - `DELETE /api/v1/documents/{document_id}` — ADVISOR only → 204
   - `PUT /api/v1/documents/{document_id}/replace` — ADVISOR only, multipart upload → 200 + updated document
 
 ### Frontend
-- [ ] Add `ENDPOINTS.documentById(id)` and `ENDPOINTS.documentReplace(id)` in `src/api/endpoints.ts`
-- [ ] Add `documentsApi.deleteDocument(id)` in `src/api/documents.api.ts`
-- [ ] Add `documentsApi.replaceDocument(id, file)` in `src/api/documents.api.ts`
-- [ ] In `DocumentsDataCards.tsx`, add per-row actions (ADVISOR only):
+- [x] Add `ENDPOINTS.documentById(id)` and `ENDPOINTS.documentReplace(id)` in `src/api/endpoints.ts`
+- [x] Add `documentsApi.deleteDocument(id)` in `src/api/documents.api.ts`
+- [x] Add `documentsApi.replaceDocument(id, file)` in `src/api/documents.api.ts`
+- [x] In `DocumentsDataCards.tsx`, add per-row actions (ADVISOR only):
   - "מחק" button (`Trash2` icon) — show confirmation dialog before calling delete
   - "החלף" button (`RefreshCw` icon) — open hidden file input, upload on file selection
   - On delete success: `toast.success("מסמך נמחק")`, invalidate documents query

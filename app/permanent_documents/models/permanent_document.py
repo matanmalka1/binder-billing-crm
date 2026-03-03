@@ -20,6 +20,7 @@ class PermanentDocument(Base):
     document_type = Column(Enum(DocumentType), nullable=False)
     storage_key = Column(String, nullable=False)
     is_present = Column(Boolean, default=True, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     uploaded_at = Column(DateTime, default=utcnow, nullable=False)
 

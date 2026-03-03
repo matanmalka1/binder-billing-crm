@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import BinaryIO, Optional
 
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.infrastructure.storage import LocalStorageProvider, StorageProvider
@@ -73,3 +75,32 @@ class PermanentDocumentService:
         missing_types = all_types - existing_types
 
         return list(missing_types)
+
+    def delete_document(self, document_id: int) -> None:
+        """Soft-delete a document (set is_deleted=True). Raises 404 if not found."""
+        doc = self.document_repo.get_by_id(document_id)
+        if not doc or doc.is_deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        doc.is_deleted = True
+        self.db.commit()
+
+    def replace_document(
+        self,
+        document_id: int,
+        file_data: BinaryIO,
+        filename: str,
+        uploaded_by: int,
+    ) -> PermanentDocument:
+        """Replace file for an existing document. Raises 404 if not found or deleted."""
+        doc = self.document_repo.get_by_id(document_id)
+        if not doc or doc.is_deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        storage_key = f"clients/{doc.client_id}/{doc.document_type.value}/{filename}"
+        self.storage.upload(storage_key, file_data, "application/octet-stream")
+        doc.storage_key = storage_key
+        doc.uploaded_at = datetime.utcnow()
+        doc.uploaded_by = uploaded_by
+        doc.is_present = True
+        self.db.commit()
+        self.db.refresh(doc)
+        return doc
