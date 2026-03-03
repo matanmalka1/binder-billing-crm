@@ -13,8 +13,10 @@ class AdvancePaymentService:
         self.repo = AdvancePaymentRepository(db)
         self.client_repo = ClientRepository(db)
 
-    def list_payments(self, client_id: int, year: int) -> list[AdvancePayment]:
-        return self.repo.list_by_client_year(client_id, year)
+    def list_payments(
+        self, client_id: int, year: int, page: int = 1, page_size: int = 50
+    ) -> tuple[list[AdvancePayment], int]:
+        return self.repo.list_by_client_year(client_id, year, page=page, page_size=page_size)
 
     def create_payment(
         self,
@@ -33,7 +35,7 @@ class AdvancePaymentService:
         if month < 1 or month > 12:
             raise ValueError("month must be between 1 and 12")
 
-        existing = self.repo.list_by_client_year(client_id, year)
+        existing, _ = self.repo.list_by_client_year(client_id, year, page=1, page_size=12)
         if any(p.month == month for p in existing):
             raise RuntimeError("Advance payment for this month already exists")
 

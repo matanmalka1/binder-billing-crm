@@ -12,16 +12,24 @@ class AdvancePaymentRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def list_by_client_year(self, client_id: int, year: int) -> list[AdvancePayment]:
-        return (
+    def list_by_client_year(
+        self,
+        client_id: int,
+        year: int,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[AdvancePayment], int]:
+        query = (
             self.db.query(AdvancePayment)
             .filter(
                 AdvancePayment.client_id == client_id,
                 AdvancePayment.year == year,
             )
             .order_by(AdvancePayment.month.asc())
-            .all()
         )
+        total = query.count()
+        items = self._paginate(query, page, page_size)
+        return items, total
 
     def get_by_id(self, id: int) -> Optional[AdvancePayment]:
         return self.db.query(AdvancePayment).filter(AdvancePayment.id == id).first()

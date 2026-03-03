@@ -37,13 +37,10 @@ def list_advance_payments(
         year = utcnow().year
 
     service = AdvancePaymentService(db)
-    items = service.list_payments(client_id, year)
-    total = len(items)
-    offset = (page - 1) * page_size
-    paginated = items[offset: offset + page_size]
+    items, total = service.list_payments(client_id, year, page=page, page_size=page_size)
 
     return AdvancePaymentListResponse(
-        items=[AdvancePaymentRow.model_validate(p) for p in paginated],
+        items=[AdvancePaymentRow.model_validate(p) for p in items],
         page=page,
         page_size=page_size,
         total=total,

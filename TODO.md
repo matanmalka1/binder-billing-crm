@@ -167,26 +167,26 @@
 ## Feature 7 — Fix In-Memory Pagination
 
 ### Backend — Advance Payments
-- [ ] Update `app/advance_payments/repositories/` `list_by_client_year`
+- [x] Update `app/advance_payments/repositories/` `list_by_client_year`
   - Add `page: int = 1`, `page_size: int = 50` parameters
   - Run `SELECT COUNT(*)` before applying `LIMIT` / `OFFSET`
   - Return `{ items, total, page, page_size }`
-- [ ] Update `app/advance_payments/schemas/` — add `AdvancePaymentListResponse` (PaginatedResponse pattern)
-- [ ] Update `app/advance_payments/services/` to pass pagination params and return paginated schema
-- [ ] Update `app/advance_payments/api/` — accept `page` / `page_size` query params, return new schema
+- [x] Update `app/advance_payments/schemas/` — add `AdvancePaymentListResponse` (PaginatedResponse pattern)
+- [x] Update `app/advance_payments/services/` to pass pagination params and return paginated schema
+- [x] Update `app/advance_payments/api/` — accept `page` / `page_size` query params, return new schema
 
 ### Backend — Authority Contacts
-- [ ] Update `app/authority_contact/repositories/` `list_by_client`
+- [x] Update `app/authority_contact/repositories/` `list_by_client`
   - Add `page: int = 1`, `page_size: int = 50` parameters
   - Run `SELECT COUNT(*)` before applying `LIMIT` / `OFFSET`
   - Return `{ items, total, page, page_size }`
-- [ ] Update `app/authority_contact/schemas/` — add `AuthorityContactListResponse`
-- [ ] Update `app/authority_contact/services/` and `app/authority_contact/api/` accordingly
+- [x] Update `app/authority_contact/schemas/` — add `AuthorityContactListResponse`
+- [x] Update `app/authority_contact/services/` and `app/authority_contact/api/` accordingly
 
 ### Frontend
-- [ ] Check `src/features/advancePayments/` — if currently reading flat array, update to read `.items`
-- [ ] Check `src/features/authorityContacts/` — if currently reading flat array, update to read `.items`
-- [ ] Update any TypeScript response types for both domains to match paginated shape
+- [x] Check `src/features/advancePayments/` — if currently reading flat array, update to read `.items`
+- [x] Check `src/features/authorityContacts/` — if currently reading flat array, update to read `.items`
+- [x] Update any TypeScript response types for both domains to match paginated shape
 
 ---
 
