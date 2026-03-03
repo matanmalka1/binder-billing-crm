@@ -1,7 +1,6 @@
 from app.vat_reports.schemas.vat_report import (  # noqa: F401
     FileVatReturnRequest,
     MarkMaterialsCompleteRequest,
-    MarkReadyForReviewRequest,
     SendBackForCorrectionRequest,
     VatAuditLogResponse,
     VatAuditTrailResponse,
@@ -16,7 +15,6 @@ from app.vat_reports.schemas.vat_report import (  # noqa: F401
 __all__ = [
     "FileVatReturnRequest",
     "MarkMaterialsCompleteRequest",
-    "MarkReadyForReviewRequest",
     "SendBackForCorrectionRequest",
     "VatAuditLogResponse",
     "VatAuditTrailResponse",

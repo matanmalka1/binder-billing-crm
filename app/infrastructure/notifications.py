@@ -12,21 +12,6 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 
-# ─── WhatsApp (disabled) ──────────────────────────────────────────────────────
-
-class WhatsAppChannel:
-    """
-    WhatsApp channel — NOT implemented.
-
-    Always returns (False, reason) so the notification service falls back
-    to email automatically. Replace this class when WhatsApp is needed.
-    """
-
-    def send(self, recipient: str, content: str) -> tuple[bool, Optional[str]]:
-        logger.debug("WhatsApp is disabled; skipping send to %s", recipient)
-        return (False, "WhatsApp channel is not enabled")
-
-
 # ─── Email via SendGrid ────────────────────────────────────────────────────────
 
 class EmailChannel:

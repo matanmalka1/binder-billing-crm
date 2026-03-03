@@ -117,10 +117,6 @@ class VatInvoiceListResponse(BaseModel):
 
 # ── Status transitions ────────────────────────────────────────────────────────
 
-class MarkReadyForReviewRequest(BaseModel):
-    pass
-
-
 class SendBackForCorrectionRequest(BaseModel):
     correction_note: str
 
