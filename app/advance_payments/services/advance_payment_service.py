@@ -28,14 +28,14 @@ class AdvancePaymentService:
     ) -> AdvancePayment:
         # Validate client exists
         if not self.client_repo.get_by_id(client_id):
-            raise ValueError("Client not found")
+            raise LookupError("Client not found")
 
         if month < 1 or month > 12:
             raise ValueError("month must be between 1 and 12")
 
         existing = self.repo.list_by_client_year(client_id, year)
         if any(p.month == month for p in existing):
-            raise ValueError("Advance payment for this month already exists")
+            raise RuntimeError("Advance payment for this month already exists")
 
         return self.repo.create(
             client_id=client_id,

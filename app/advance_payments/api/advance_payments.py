@@ -50,7 +50,12 @@ def list_advance_payments(
     )
 
 
-@router.post("", response_model=AdvancePaymentRow, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=AdvancePaymentRow,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def create_advance_payment(
     request: AdvancePaymentCreateRequest,
     db: DBSession,
@@ -68,6 +73,10 @@ def create_advance_payment(
             tax_deadline_id=request.tax_deadline_id,
         )
         return AdvancePaymentRow.model_validate(payment)
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

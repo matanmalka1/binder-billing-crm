@@ -9,49 +9,49 @@
 ## Feature 1 — VAT Summary per Client
 
 ### Backend
-- [ ] Create `app/vat_reports/schemas/vat_client_summary_schema.py`
+- [x] Create `app/vat_reports/schemas/vat_client_summary_schema.py`
   - `VatPeriodRow` — period, status, total_output_vat, total_input_vat, net_vat, final_vat_amount, filed_at
   - `VatAnnualSummary` — year, total_output_vat, total_input_vat, net_vat, periods_count, filed_count
   - `VatClientSummaryResponse` — client_id, periods: list[VatPeriodRow], annual: list[VatAnnualSummary]
-- [ ] Create `app/vat_reports/repositories/vat_client_summary_repository.py`
+- [x] Create `app/vat_reports/repositories/vat_client_summary_repository.py`
   - `get_periods_for_client(client_id)` — query VatWorkItem ordered by period desc
   - `get_annual_aggregates(client_id)` — group by year, sum vat fields, count periods/filed
-- [ ] Create `app/vat_reports/services/vat_client_summary_service.py`
+- [x] Create `app/vat_reports/services/vat_client_summary_service.py`
   - Validate client exists (raise 404 if not)
   - Call repository, assemble response
-- [ ] Add route to `app/vat_reports/api/vat_reports.py`
+- [x] Add route to `app/vat_reports/api/vat_reports.py`
   - `GET /api/v1/vat-reports/client/{client_id}/summary`
   - Roles: ADVISOR + SECRETARY
 
 ### Frontend
-- [ ] Add `ENDPOINTS.vatClientSummary` in `src/api/endpoints.ts`
-- [ ] Add `vatReportsApi.getClientSummary(clientId)` in `src/api/vatReports.api.ts`
-- [ ] Add `QK.tax.vatWorkItems.clientSummary(clientId)` in `src/lib/queryKeys.ts`
-- [ ] Create `src/features/vatReports/components/VatClientSummaryPanel.tsx`
+- [x] Add `ENDPOINTS.vatClientSummary` in `src/api/endpoints.ts`
+- [x] Add `vatReportsApi.getClientSummary(clientId)` in `src/api/vatReports.api.ts`
+- [x] Add `QK.tax.vatWorkItems.clientSummary(clientId)` in `src/lib/queryKeys.ts`
+- [x] Create `src/features/vatReports/components/VatClientSummaryPanel.tsx`
   - Table: תקופה · סטטוס · עסקאות · תשומות · נטו · סופי · הוגש
   - Annual summary cards below table (year, total net, filed/total periods)
   - Use existing `Card`, `DataTable`, `Badge` ui/ components
-- [ ] Wire panel into client detail page under tab "מע״מ" (create tab if missing)
+- [x] Wire panel into client detail page under tab "מע״מ" (create tab if missing)
 
 ---
 
 ## Feature 2 — VAT Export per Client
 
 ### Backend
-- [ ] Create `app/vat_reports/services/vat_export_service.py` (≤150 lines)
+- [x] Create `app/vat_reports/services/vat_export_service.py` (≤150 lines)
   - `export_to_excel(client_id, year)` — openpyxl, sheet name "מע״מ {year}", columns + totals row
   - `export_to_pdf(client_id, year)` — reportlab, RTL layout, client name + year header, totals row, generated_at footer
   - Both return `{ filepath, filename, format, generated_at }`
-- [ ] Add route to `app/vat_reports/api/vat_reports.py`
+- [x] Add route to `app/vat_reports/api/vat_reports.py`
   - `GET /api/v1/vat-reports/client/{client_id}/export?format=excel|pdf&year=YYYY`
   - Returns `FileResponse` with correct `Content-Disposition`
   - Role: ADVISOR only
 
 ### Frontend
-- [ ] Add `ENDPOINTS.vatClientExport(clientId)` in `src/api/endpoints.ts`
-- [ ] Add `vatReportsApi.exportClientVat(clientId, format, year)` in `src/api/vatReports.api.ts`
+- [x] Add `ENDPOINTS.vatClientExport(clientId)` in `src/api/endpoints.ts`
+- [x] Add `vatReportsApi.exportClientVat(clientId, format, year)` in `src/api/vatReports.api.ts`
   - Follow same blob → link-click pattern as `reportsApi.exportAgingReport`
-- [ ] Add export controls to `VatClientSummaryPanel`
+- [x] Add export controls to `VatClientSummaryPanel`
   - Year selector (default: current year)
   - Two buttons: "ייצוא Excel" · "ייצוא PDF"
   - Show loading state on button during download
@@ -61,22 +61,22 @@
 ## Feature 3 — Advance Payments Create API + UI
 
 ### Backend
-- [ ] Add `AdvancePaymentCreateRequest` schema to `app/advance_payments/schemas/`
+- [x] Add `AdvancePaymentCreateRequest` schema to `app/advance_payments/schemas/`
   - Fields: client_id (int), year (int), month (int 1–12), amount (Decimal), status (optional)
-- [ ] Add `create_advance_payment(payload)` to `app/advance_payments/repositories/`
+- [x] Add `create_advance_payment(payload)` to `app/advance_payments/repositories/`
   - Raise 409 on unique (client_id, year, month) conflict
-- [ ] Add `create(payload)` to `app/advance_payments/services/`
+- [x] Add `create(payload)` to `app/advance_payments/services/`
   - Validate client exists (404 if not)
   - Validate month in 1–12 (400 if not)
   - Call repo; propagate 409
-- [ ] Add route `POST /api/v1/advance-payments/` to `app/advance_payments/api/`
+- [x] Add route `POST /api/v1/advance-payments/` to `app/advance_payments/api/`
   - Role: ADVISOR only
   - Return 201 + created object
 
 ### Frontend
-- [ ] Add `ENDPOINTS.advancePayments` in `src/api/endpoints.ts` (if not present)
-- [ ] Add `advancePaymentsApi.create(payload)` in `src/api/advancePayments.api.ts`
-- [ ] In client detail "מקדמות" section:
+- [x] Add `ENDPOINTS.advancePayments` in `src/api/endpoints.ts` (if not present)
+- [x] Add `advancePaymentsApi.create(payload)` in `src/api/advancePayments.api.ts`
+- [x] In client detail "מקדמות" section:
   - Add "הוסף מקדמה" button — visible to ADVISOR only (check `useAuthStore`)
   - Create modal form with: year (number input), month (select, Hebrew labels), amount (number input)
   - Validate with Zod schema before submit
