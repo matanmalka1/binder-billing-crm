@@ -10,6 +10,7 @@ class TaxProfileResponse(BaseModel):
     business_type: Optional[str] = None
     tax_year_start: Optional[int] = None
     accountant_name: Optional[str] = None
+    advance_rate: Optional[float] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -21,3 +22,4 @@ class TaxProfileUpdateRequest(BaseModel):
     business_type: Optional[str] = None
     tax_year_start: Optional[int] = None
     accountant_name: Optional[str] = None
+    advance_rate: Optional[float] = None

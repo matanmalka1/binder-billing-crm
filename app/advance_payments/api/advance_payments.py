@@ -5,6 +5,7 @@ from app.users.models.user import UserRole
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentListResponse,
     AdvancePaymentRow,
+    AdvancePaymentSuggestionResponse,
     AdvancePaymentUpdateRequest,
     AdvancePaymentCreateRequest,
 )
@@ -76,6 +77,23 @@ def create_advance_payment(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/suggest", response_model=AdvancePaymentSuggestionResponse)
+def suggest_advance_payment(
+    db: DBSession,
+    user: CurrentUser,
+    client_id: int = Query(...),
+    year: int = Query(...),
+):
+    service = AdvancePaymentService(db)
+    suggested = service.suggest_expected_amount(client_id, year)
+    return AdvancePaymentSuggestionResponse(
+        client_id=client_id,
+        year=year,
+        suggested_amount=suggested,
+        has_data=suggested is not None,
+    )
 
 
 @router.patch("/{payment_id}", response_model=AdvancePaymentRow)

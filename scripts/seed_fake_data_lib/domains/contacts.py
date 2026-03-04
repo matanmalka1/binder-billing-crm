@@ -59,6 +59,7 @@ def create_client_tax_profiles(db, rng: Random, clients):
                 "TaxWise",
                 "Levi Accounting",
             ]),
+            advance_rate=rng.choice([None, None, 2.5, 3.0, 4.0, 5.5, 7.0]),
             created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 200)),
         )
         db.add(profile)

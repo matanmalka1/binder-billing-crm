@@ -1,6 +1,8 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
@@ -37,6 +39,24 @@ class AdvancePaymentRepository(BaseRepository):
     def update(self, id: int, **fields) -> Optional[AdvancePayment]:
         payment = self.get_by_id(id)
         return self._update_entity(payment, touch_updated_at=True, **fields)
+
+    def get_annual_output_vat(self, client_id: int, year: int) -> Optional[Decimal]:
+        """Sum total_output_vat for all VatWorkItems in a given year for a client.
+        Returns None if no work items exist for that year."""
+        from app.vat_reports.models.vat_work_item import VatWorkItem
+
+        prefix = f"{year}-%"
+        result = (
+            self.db.query(func.sum(VatWorkItem.total_output_vat))
+            .filter(
+                VatWorkItem.client_id == client_id,
+                VatWorkItem.period.like(prefix),
+            )
+            .scalar()
+        )
+        if result is None:
+            return None
+        return Decimal(str(result))
 
     def create(
         self,

@@ -1,10 +1,16 @@
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.services.advance_payment_calculator import (
+    calculate_expected_amount,
+    derive_annual_income_from_vat,
+)
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
 
 
 class AdvancePaymentService:
@@ -12,6 +18,7 @@ class AdvancePaymentService:
         self.db = db
         self.repo = AdvancePaymentRepository(db)
         self.client_repo = ClientRepository(db)
+        self.tax_profile_repo = ClientTaxProfileRepository(db)
 
     def list_payments(
         self, client_id: int, year: int, page: int = 1, page_size: int = 50
@@ -65,3 +72,21 @@ class AdvancePaymentService:
 
         updated = self.repo.update(payment_id, **fields)
         return updated
+
+    def suggest_expected_amount(
+        self, client_id: int, year: int
+    ) -> Optional[Decimal]:
+        """
+        Return a monthly advance suggestion based on prior year VAT output and
+        the client's advance_rate. Returns None if either is missing.
+        """
+        profile = self.tax_profile_repo.get_by_client_id(client_id)
+        if profile is None or profile.advance_rate is None:
+            return None
+
+        prior_year_vat = self.repo.get_annual_output_vat(client_id, year - 1)
+        if prior_year_vat is None:
+            return None
+
+        annual_income = derive_annual_income_from_vat(prior_year_vat)
+        return calculate_expected_amount(annual_income, Decimal(str(profile.advance_rate)))

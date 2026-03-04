@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String
 
 from app.database import Base
 from app.utils.time import utcnow
@@ -23,6 +23,7 @@ class ClientTaxProfile(Base):
     business_type = Column(String, nullable=True)
     tax_year_start = Column(Integer, nullable=True)
     accountant_name = Column(String, nullable=True)
+    advance_rate = Column(Numeric(5, 2), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 

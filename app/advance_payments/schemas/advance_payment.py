@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -50,3 +51,10 @@ class AdvancePaymentCreateRequest(BaseModel):
         "due_date": "2026-03-15",
         "expected_amount": 2500.0,
     }}}
+
+
+class AdvancePaymentSuggestionResponse(BaseModel):
+    client_id: int
+    year: int
+    suggested_amount: Optional[Decimal] = None
+    has_data: bool
