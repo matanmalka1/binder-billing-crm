@@ -194,17 +194,17 @@
 
 Apply to every feature before marking it done:
 
-- [ ] No Python file exceeds 150 lines — split if needed
-- [ ] No raw SQL anywhere — ORM only
-- [ ] Layer order respected: API → Service → Repository (no skipping)
-- [ ] New endpoint registered in `src/api/endpoints.ts`
-- [ ] New query key registered in `src/lib/queryKeys.ts`
-- [ ] React Query options: `staleTime: 30_000`, `retry: 1`
-- [ ] All UI text is Hebrew — zero English visible to user
-- [ ] Role enforcement: `require_role()` on backend, `useAuthStore()` on frontend
-- [ ] `npm run typecheck` passes with zero errors
-- [ ] `npm run lint` passes with zero warnings
-- [ ] Backend tests pass: `JWT_SECRET=test-secret pytest -q`
+- [x] No Python file exceeds 150 lines — split if needed
+- [x] No raw SQL anywhere — ORM only
+- [x] Layer order respected: API → Service → Repository (no skipping)
+- [x] New endpoint registered in `src/api/endpoints.ts`
+- [x] New query key registered in `src/lib/queryKeys.ts`
+- [x] React Query options: `staleTime: 30_000`, `retry: 1`
+- [x] All UI text is Hebrew — zero English visible to user
+- [x] Role enforcement: `require_role()` on backend, `useAuthStore()` on frontend
+- [x] `npm run typecheck` passes with zero errors
+- [x] `npm run lint` passes with zero warnings
+- [x] Backend tests pass: `JWT_SECRET=test-secret pytest -q`
 
 ---
 
