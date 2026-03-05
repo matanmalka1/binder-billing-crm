@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.annual_reports.models import AnnualReport
+from app.annual_reports.schemas.annual_report import AnnualReportResponse
 
 
 class AnnualReportBaseService:
@@ -15,14 +16,17 @@ class AnnualReportBaseService:
             raise ValueError(f"Annual report {report_id} not found")
         return report
 
-    def _attach_client_names(self, reports: list[AnnualReport]) -> None:
+    def _to_responses(self, reports: list[AnnualReport]) -> list[AnnualReportResponse]:
         """
-        Enrich report objects with client_name so response schemas include it.
+        Project ORM instances to AnnualReportResponse, populating client_name
+        from the client repository rather than mutating the ORM objects.
         """
         if not reports:
-            return
+            return []
         client_ids = {r.client_id for r in reports}
         clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
         id_to_name = {c.id: c.full_name for c in clients}
-        for r in reports:
-            r.client_name = id_to_name.get(r.client_id)  # type: ignore[attr-defined]
+        return [
+            AnnualReportResponse.model_validate(r, update={"client_name": id_to_name.get(r.client_id)})
+            for r in reports
+        ]
