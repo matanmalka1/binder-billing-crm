@@ -9,6 +9,7 @@ from app.utils.time import utcnow
 class AuditAction(str, PyEnum):
     LOGIN_SUCCESS = "login_success"
     LOGIN_FAILURE = "login_failure"
+    LOGOUT = "logout"
     USER_CREATED = "user_created"
     USER_UPDATED = "user_updated"
     USER_ACTIVATED = "user_activated"
@@ -33,4 +34,3 @@ class UserAuditLog(Base):
     reason = Column(String, nullable=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
-

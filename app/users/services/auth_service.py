@@ -81,58 +81,49 @@ class AuthService:
         logger.info(f"Successful login for user: {email}")
         return user
 
+    def logout(self, user: User) -> None:
+        """
+        Invalidate all active tokens for the user by bumping token_version.
+
+        This ensures that any token — whether sent via cookie or Authorization header —
+        is rejected on the next request, even before the JWT expiry time.
+        """
+        self.user_repo.bump_token_version(user.id)
+        self.audit_log_service.log(
+            action=AuditAction.LOGOUT,
+            status=AuditStatus.SUCCESS,
+            actor_user_id=user.id,
+            target_user_id=user.id,
+            email=user.email,
+        )
+        logger.info(f"User logged out and token invalidated: {user.email}")
+
     @staticmethod
     def generate_token(user: User, ttl_hours: int | None = None) -> str:
         """
         Generate JWT token for authenticated user.
-        
-        Token includes explicit expiration (iat + exp).
+
+        Embeds token_version so the server can invalidate tokens
+        without a token blacklist.
         """
+        ttl = ttl_hours if ttl_hours is not None else config.JWT_TTL_HOURS
         now = datetime.now(UTC)
-        effective_ttl = ttl_hours or config.JWT_TTL_HOURS
-        expiration = now + timedelta(hours=effective_ttl)
-        
         payload = {
             "sub": str(user.id),
-            "email": user.email,
-            "role": user.role.value,
             "tv": user.token_version,
             "iat": now,
-            "exp": expiration,
+            "exp": now + timedelta(hours=ttl),
         }
-        
-        token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
-        logger.info(
-            f"Generated token for user {user.id}, expires at {expiration}"
-        )
-        return token
+        return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
     @staticmethod
     def decode_token(token: str) -> Optional[dict]:
-        """
-        Decode and validate JWT token.
-        
-        Enforces expiration checking.
-        Returns None if token is invalid or expired.
-        """
+        """Decode and validate JWT token. Returns payload or None."""
         try:
-            payload = jwt.decode(
-                token,
-                config.JWT_SECRET,
-                algorithms=["HS256"],
-                options={"verify_exp": True},  # Enforce expiration
-            )
-            
-            # Validate required fields
-            if "sub" not in payload or "role" not in payload or "tv" not in payload:
-                logger.warning("Token missing required fields")
-                return None
-            
-            return payload
-            
+            return jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
-            logger.warning("Expired token rejected")
+            logger.debug("Token has expired")
             return None
         except jwt.InvalidTokenError as e:
-            logger.warning(f"Invalid token: {str(e)}")
+            logger.debug(f"Invalid token: {e}")
             return None

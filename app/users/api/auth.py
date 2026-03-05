@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from app.users.api.deps import DBSession
+from app.users.api.deps import CurrentUser, DBSession
 from app.users.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.users.services.auth_service import AuthService
 from app.config import config
@@ -28,13 +28,11 @@ def login(request: LoginRequest, db: DBSession, response: Response):
         )
 
     ttl_hours = config.JWT_TTL_HOURS
-    # Extend session if user selected "remember me" (double the TTL)
     if request.remember_me:
         ttl_hours = config.JWT_TTL_HOURS * 2
 
     token = auth_service.generate_token(user, ttl_hours=ttl_hours)
 
-    # Set HttpOnly cookie for token-based auth (sent automatically by browser)
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
@@ -56,12 +54,16 @@ def login(request: LoginRequest, db: DBSession, response: Response):
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response):
+def logout(db: DBSession, current_user: CurrentUser, response: Response):
     """
-    Clear the auth cookie to end the session on the client.
-    Token remains valid server-side until expiration, but the browser
-    will no longer send it after the cookie is deleted.
+    Invalidate the user's token server-side and clear the auth cookie.
+
+    Bumps token_version on the User record so all active tokens — including
+    any Bearer token held outside the cookie — are rejected immediately.
     """
+    auth_service = AuthService(db)
+    auth_service.logout(current_user)
+
     response.delete_cookie(
         key=COOKIE_NAME,
         path="/",
@@ -69,4 +71,3 @@ def logout(response: Response):
         secure=config.APP_ENV == "production",
         samesite=COOKIE_SAMESITE,
     )
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

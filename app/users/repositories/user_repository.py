@@ -73,6 +73,17 @@ class UserRepository(BaseRepository):
         """Activate user."""
         return self.update(user_id, is_active=True)
 
+    def bump_token_version(self, user_id: int) -> Optional[User]:
+        """Invalidate all active tokens for a user without changing any other field."""
+        user = self.get_by_id(user_id)
+        if not user:
+            return None
+
+        user.token_version += 1
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
     def deactivate_and_bump_token(self, user_id: int) -> Optional[User]:
         """Deactivate user and invalidate active tokens."""
         user = self.get_by_id(user_id)
