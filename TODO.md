@@ -75,56 +75,8 @@ The `isHandlingAuthExpiry` global flag is reset via `setTimeout(..., 5000)`. Und
 
 **Fix:** Wire an external scheduler (e.g. APScheduler in-process or a cron job) to call these methods daily. Jobs must remain idempotent per `BACKEND_PROJECT_RULES.md §2`.
 
----
 
-## #13 — `void` suppresses errors in mutation `onSuccess`
 
-**Severity:** 🟡  
-**Layer:** Frontend  
-**File:** `src/features/users/hooks/useUsersPage.ts`
-
-```typescript
-onSuccess: () => { void invalidateUsers(queryClient); }
-```
-
-Using `void` swallows any rejection from `invalidateUsers`. If invalidation fails silently, the UI shows stale data without any error.
-
-**Fix:** Make `onSuccess` async and `await` the call:
-
-```typescript
-onSuccess: async () => { await invalidateUsers(queryClient); }
-```
-
----
-
-## #14 — Duplicate storage key constant
-
-**Severity:** 🟡  
-**Layer:** Frontend  
-**Files:** `src/api/client.ts` · `src/store/auth.store.ts`
-
-`AUTH_PERSIST_STORAGE_KEY` (in `client.ts`) and `AUTH_STORAGE_NAME` (in `auth.store.ts`) are the same string literal defined in two places. If one is changed, the other silently diverges and auth state becomes unreadable.
-
-**Fix:** Export a single constant from one file and import it in the other.
-
----
-
-## #17 — Circular import workaround in `notifications.py`
-
-**Severity:** 🟡  
-**Layer:** Backend  
-**File:** `app/infrastructure/notifications.py`
-
-```python
-def __init__(self) -> None:
-    from app.config import config  # local import to avoid circular
-```
-
-The local import inside `__init__` is a symptom of a circular dependency between `infrastructure` and `config`. This pattern hides the structural problem.
-
-**Fix:** Resolve the circular dependency at the module level — typically by injecting config values as constructor parameters rather than importing the config module directly inside the class.
-
----
 
 ## Cross-cutting items (no single owner)
 

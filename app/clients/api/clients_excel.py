@@ -1,7 +1,7 @@
 import io
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -63,13 +63,24 @@ def download_client_template(db: DBSession):
     )
 
 
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
 @router.post("/import")
 async def import_clients_from_excel(
     file: UploadFile,
+    request: Request,
     db: DBSession,
     user: CurrentUser,
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
+    content_length = request.headers.get("Content-Length")
+    if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File exceeds the 10 MB size limit",
+        )
+
     try:
         import openpyxl
     except ImportError as exc:
@@ -78,7 +89,12 @@ async def import_clients_from_excel(
             detail="openpyxl is required for client import",
         ) from exc
 
-    contents = await file.read()
+    contents = await file.read(MAX_UPLOAD_SIZE + 1)
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File exceeds the 10 MB size limit",
+        )
     try:
         workbook = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
     except Exception as exc:
