@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 from app.clients.repositories.client_repository import ClientRepository
+from app.core.logging import get_logger
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_client_summary_repository import (
@@ -12,6 +13,8 @@ from app.vat_reports.repositories.vat_client_summary_repository import (
 from app.vat_reports.schemas.vat_client_summary_schema import VatClientSummaryResponse
 from app.vat_reports.services.vat_client_summary_service import get_client_summary
 from app.vat_reports.services.vat_export_service import export_to_excel, export_to_pdf
+
+logger = get_logger(__name__)
 
 router = APIRouter(
     prefix="/vat",
@@ -57,8 +60,12 @@ def export_vat_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ImportError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Export failed: {exc}")
+    except Exception:
+        logger.exception("VAT export failed for client_id=%s year=%s", client_id, year)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Export failed. Please try again.",
+        )
 
     return FileResponse(
         path=result["filepath"],
