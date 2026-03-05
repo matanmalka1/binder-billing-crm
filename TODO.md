@@ -65,39 +65,6 @@ The `isHandlingAuthExpiry` global flag is reset via `setTimeout(..., 5000)`. Und
 
 ---
 
-## #10 — Generic `Exception` in VAT export leaks internal details
-
-**Severity:** 🟠  
-**Layer:** Backend  
-**File:** `app/vat_reports/api/routes_client_summary.py`
-
-```python
-except Exception as exc:
-    raise HTTPException(500, detail=f"Export failed: {exc}")
-```
-
-`str(exc)` may include file paths, stack frames, or library internals.
-
-**Fix:** Log the full exception with `logger.exception(...)`, then raise with a generic message: `detail="Export failed. Please try again."`.
-
----
-
-## #11 — ORM monkeypatching in annual reports
-
-**Severity:** 🟡  
-**Layer:** Backend  
-**File:** `app/annual_reports/services/base.py`
-
-```python
-r.client_name = id_to_name.get(r.client_id)  # type: ignore[attr-defined]
-```
-
-Setting ad-hoc attributes on ORM instances is fragile — SQLAlchemy may discard them on refresh, and the pattern propagates through the codebase.
-
-**Fix:** Project to a Pydantic response schema that explicitly includes `client_name: Optional[str]` and populate it at construction time rather than mutating the ORM object.
-
----
-
 ## #12 — Background jobs not scheduled
 
 **Severity:** 🟡 (known gap)  
