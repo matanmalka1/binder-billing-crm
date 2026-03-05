@@ -27,7 +27,6 @@ class ClientUpdateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
-    business_sector: Optional[str] = None
 
 
 class ClientResponse(BaseModel):
@@ -46,7 +45,6 @@ class ClientResponse(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
-    business_sector: Optional[str] = None
     opened_at: date
     closed_at: Optional[date] = None
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
