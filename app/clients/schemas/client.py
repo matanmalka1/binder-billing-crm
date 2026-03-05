@@ -21,7 +21,12 @@ class ClientUpdateRequest(BaseModel):
     status: Optional[str] = None
     client_type: Optional[str] = None
     primary_binder_number: Optional[str] = None
-    address: Optional[str] = None
+    # Structured address fields
+    address_street: Optional[str] = None
+    address_building_number: Optional[str] = None
+    address_apartment: Optional[str] = None
+    address_city: Optional[str] = None
+    address_zip_code: Optional[str] = None
     business_sector: Optional[str] = None
 
 
@@ -35,7 +40,12 @@ class ClientResponse(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
-    address: Optional[str] = None
+    # Structured address fields
+    address_street: Optional[str] = None
+    address_building_number: Optional[str] = None
+    address_apartment: Optional[str] = None
+    address_city: Optional[str] = None
+    address_zip_code: Optional[str] = None
     business_sector: Optional[str] = None
     opened_at: date
     closed_at: Optional[date] = None
