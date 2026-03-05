@@ -8,6 +8,11 @@ from app.users.models.user import UserRole
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.signals_service import SignalsService
 
+# Safety ceiling for in-memory signal filtering.
+# Prevents OOM when client count grows. Known architectural debt —
+# a proper fix requires persisting signal state or a materialized view.
+_HAS_SIGNALS_FETCH_LIMIT = 1000
+
 
 class ClientService:
     """Client management business logic."""
@@ -57,7 +62,6 @@ class ClientService:
             client_id=client_id,
             reference_date=reference_date,
         )
-
         return bool(
             signals.get("missing_documents")
             or signals.get("unpaid_charges")
@@ -81,8 +85,10 @@ class ClientService:
             total = self.client_repo.count(status=status, search=search)
             return items, total
 
+        # In-memory signal filtering — bounded by _HAS_SIGNALS_FETCH_LIMIT.
+        # Results beyond the ceiling are silently excluded (known debt).
         base_clients = self.client_repo.list(
-            status=status, page=1, page_size=1000, search=search
+            status=status, page=1, page_size=_HAS_SIGNALS_FETCH_LIMIT, search=search
         )
         filtered = [
             client
@@ -105,17 +111,14 @@ class ClientService:
         user_role: UserRole,
         **fields,
     ) -> Optional[Client]:
-
         client = self.client_repo.get_by_id(client_id)
         if not client:
             return None
 
-        # Authorization logic in service, not router
         if "status" in fields and fields["status"] in ["frozen", "closed"]:
             if user_role != UserRole.ADVISOR:
                 raise PermissionError("Only advisors can freeze or close clients")
 
-        # Prevent updating status to closed without closed_at
         if "status" in fields and fields["status"] == ClientStatus.CLOSED:
             if "closed_at" not in fields:
                 fields["closed_at"] = date.today()
