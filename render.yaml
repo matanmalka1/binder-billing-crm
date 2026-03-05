@@ -7,3 +7,55 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.13"
+
+      - key: APP_ENV
+        value: production
+
+      - key: LOG_LEVEL
+        value: WARNING
+
+      - key: JWT_TTL_HOURS
+        value: "8"
+
+      # Set in Render dashboard — do not commit secrets
+      - key: DATABASE_URL
+        sync: false
+
+      - key: JWT_SECRET
+        sync: false
+
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      # Notifications (SendGrid)
+      - key: NOTIFICATIONS_ENABLED
+        value: "false"
+
+      - key: SENDGRID_API_KEY
+        sync: false
+
+      - key: EMAIL_FROM_ADDRESS
+        sync: false
+
+      - key: EMAIL_FROM_NAME
+        sync: false
+
+      # Invoice provider
+      - key: INVOICE_PROVIDER_BASE_URL
+        sync: false
+
+      - key: INVOICE_PROVIDER_API_KEY
+        sync: false
+
+      # Storage (Cloudflare R2 / AWS S3)
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+
+      - key: R2_BUCKET_NAME
+        sync: false
+
+      - key: R2_ENDPOINT_URL
+        sync: false
