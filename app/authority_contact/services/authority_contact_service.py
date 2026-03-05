@@ -47,7 +47,7 @@ class AuthorityContactService:
         """Update contact details."""
         updated = self.contact_repo.update(contact_id, **fields)
         if not updated:
-            raise ValueError(f"Contact {contact_id} not found")
+            raise ValueError(f"איש קשר {contact_id} לא נמצא")
         return updated
 
     def list_client_contacts(
@@ -68,7 +68,7 @@ class AuthorityContactService:
         """Soft-delete contact."""
         success = self.contact_repo.delete(contact_id, deleted_by=actor_id)
         if not success:
-            raise ValueError(f"Contact {contact_id} not found")
+            raise ValueError(f"איש קשר {contact_id} לא נמצא")
 
     def get_contact(self, contact_id: int) -> Optional[AuthorityContact]:
         """Get contact by ID."""

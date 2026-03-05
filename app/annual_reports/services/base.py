@@ -13,7 +13,7 @@ class AnnualReportBaseService:
     def _get_or_raise(self, report_id: int) -> AnnualReport:
         report = self.repo.get_by_id(report_id)
         if not report:
-            raise ValueError(f"Annual report {report_id} not found")
+            raise ValueError(f"דוח שנתי {report_id} לא נמצא")
         return report
 
     def _to_responses(self, reports: list[AnnualReport]) -> list[AnnualReportResponse]:

@@ -28,14 +28,14 @@ class AnnualReportStatusService(AnnualReportBaseService):
             ns = AnnualReportStatus(new_status)
         except ValueError:
             valid = [e.value for e in AnnualReportStatus]
-            raise ValueError(f"Invalid status '{new_status}'. Valid: {valid}")
+            raise ValueError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {valid}")
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
             raise ValueError(
-                f"Cannot transition from '{report.status.value}' to '{ns.value}'. "
-                f"Allowed next statuses: {allowed}"
-            )
+                f"לא ניתן לעבור מ-'{report.status.value}' ל-'{ns.value}'. "
+                f"סטטוסים הבאים מותרים: {allowed}"
+                    )
 
         update_fields: dict = {"status": ns}
 
@@ -78,7 +78,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
-            raise ValueError(f"Invalid deadline_type '{deadline_type}'")
+            raise ValueError(f"סוג מועד אחרון לא חוקי '{deadline_type}'")
 
         if dt == DeadlineType.STANDARD:
             filing_deadline = standard_deadline(report.tax_year)
@@ -101,8 +101,8 @@ class AnnualReportStatusService(AnnualReportBaseService):
             changed_by=changed_by,
             changed_by_name=changed_by_name,
             note=(
-                f"Deadline updated to {dt.value}: "
-                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'custom'}"
+                f"המועד האחרון עודכן ל-{dt.value}: "
+                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'מותאם אישית'}"
                 + (f" — {custom_deadline_note}" if custom_deadline_note else "")
             ),
         )

@@ -42,23 +42,23 @@ class AnnualReportCreateService(AnnualReportBaseService):
             ct = ClientTypeForReport(client_type)
         except ValueError:
             valid = [e.value for e in ClientTypeForReport]
-            raise ValueError(f"Invalid client_type '{client_type}'. Valid: {valid}")
+            raise ValueError(f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {valid}")
 
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
             valid = [e.value for e in DeadlineType]
-            raise ValueError(f"Invalid deadline_type '{deadline_type}'. Valid: {valid}")
+            raise ValueError(f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {valid}")
 
         if assigned_to is not None:
             user_repo = UserRepository(self.db)
             if not user_repo.get_by_id(assigned_to):
-                raise ValueError(f"Assigned user {assigned_to} not found")
+                raise ValueError(f"משתמש מוקצה {assigned_to} לא נמצא")
 
         existing = self.repo.get_by_client_year(client_id, tax_year)
         if existing:
             raise ValueError(
-                f"Annual report for client {client_id} tax year {tax_year} already exists "
+                f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} כבר קיים "
                 f"(id={existing.id}, status={existing.status.value})"
             )
 
@@ -98,7 +98,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             changed_by=created_by,
             changed_by_name=created_by_name,
             note=(
-                f"Report created. Form: {form_type.value}, Deadline: "
+                f"הדוח נוצר. טופס: {form_type.value}, מועד אחרון: "
                 f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'TBD'}"
             ),
         )

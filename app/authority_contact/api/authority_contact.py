@@ -69,7 +69,7 @@ def list_authority_contacts(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid contact type: {contact_type}",
+                detail=f"סוג איש קשר לא חוקי: {contact_type}",
             )
 
     contacts, total = service.list_client_contacts(client_id, type_enum, page=page, page_size=page_size)

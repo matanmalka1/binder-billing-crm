@@ -12,7 +12,7 @@ class AnnualReportScheduleService(AnnualReportBaseService):
             s = AnnualReportSchedule(schedule)
         except ValueError:
             valid = [e.value for e in AnnualReportSchedule]
-            raise ValueError(f"Invalid schedule '{schedule}'. Valid: {valid}")
+            raise ValueError(f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}")
         return self.repo.add_schedule(report_id, s, notes=notes)
 
     def complete_schedule(self, report_id: int, schedule: str):
@@ -20,10 +20,10 @@ class AnnualReportScheduleService(AnnualReportBaseService):
         try:
             s = AnnualReportSchedule(schedule)
         except ValueError:
-            raise ValueError(f"Invalid schedule '{schedule}'")
+           raise ValueError(f"לוח זמנים לא חוקי '{schedule}'")
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
-            raise ValueError(f"Schedule '{schedule}' not found on report {report_id}")
+            raise ValueError(f"לוח זמנים '{schedule}' לא נמצא בדוח {report_id}")
         return entry
 
     def get_schedules(self, report_id: int):
