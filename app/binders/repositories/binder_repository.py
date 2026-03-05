@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.utils.time import utcnow
 
 
 class BinderRepository(BaseRepository):
@@ -38,16 +39,21 @@ class BinderRepository(BaseRepository):
         return binder
 
     def get_by_id(self, binder_id: int) -> Optional[Binder]:
-        """Retrieve binder by ID."""
-        return self.db.query(Binder).filter(Binder.id == binder_id).first()
+        """Retrieve binder by ID (excludes soft-deleted)."""
+        return (
+            self.db.query(Binder)
+            .filter(Binder.id == binder_id, Binder.deleted_at.is_(None))
+            .first()
+        )
 
     def get_active_by_number(self, binder_number: str) -> Optional[Binder]:
-        """Get active (non-returned) binder by number."""
+        """Get active (non-returned) binder by number (excludes soft-deleted)."""
         return (
             self.db.query(Binder)
             .filter(
                 Binder.binder_number == binder_number,
                 Binder.status != BinderStatus.RETURNED,
+                Binder.deleted_at.is_(None),
             )
             .first()
         )
@@ -65,7 +71,7 @@ class BinderRepository(BaseRepository):
         """List active binders with optional filters, sorting, and pagination."""
         from sqlalchemy import asc, desc
 
-        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED)
+        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
 
         if client_id:
             query = query.filter(Binder.client_id == client_id)
@@ -98,7 +104,7 @@ class BinderRepository(BaseRepository):
         status: Optional[str] = None,
     ) -> int:
         """Count active binders with optional filters."""
-        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED)
+        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
 
         if client_id:
             query = query.filter(Binder.client_id == client_id)
@@ -121,4 +127,18 @@ class BinderRepository(BaseRepository):
 
     def count_by_status(self, status: BinderStatus) -> int:
         """Count binders by status."""
-        return self.db.query(Binder).filter(Binder.status == status).count()
+        return (
+            self.db.query(Binder)
+            .filter(Binder.status == status, Binder.deleted_at.is_(None))
+            .count()
+        )
+
+    def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
+        """Soft-delete a binder by setting deleted_at."""
+        binder = self.db.query(Binder).filter(Binder.id == binder_id).first()
+        if not binder:
+            return False
+        binder.deleted_at = utcnow()
+        binder.deleted_by = deleted_by
+        self.db.commit()
+        return True

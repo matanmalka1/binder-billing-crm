@@ -37,6 +37,8 @@ class Charge(Base):
     canceled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     canceled_at = Column(DateTime, nullable=True)
     cancellation_reason = Column(Text, nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     def __repr__(self):
         return f"<Charge(id={self.id}, client_id={self.client_id}, amount={self.amount}, status='{self.status}')>"

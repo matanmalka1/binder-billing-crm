@@ -38,6 +38,8 @@ class Binder(Base):
     pickup_person_name = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         Index("idx_binder_status", "status"),

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -148,3 +148,21 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
         return ChargeResponseSecretary.model_validate(charge)
 
     return ChargeResponse.model_validate(charge)
+
+
+@router.delete(
+    "/{charge_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_charge(charge_id: int, db: DBSession, user: CurrentUser):
+    """Soft-delete a draft charge (ADVISOR only)."""
+    service = BillingService(db)
+    try:
+        service.delete_charge(charge_id, actor_id=user.id)
+    except ValueError as e:
+        detail = str(e)
+        if "not found" in detail:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

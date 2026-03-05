@@ -74,6 +74,8 @@ class AnnualReport(Base):
     # Timestamps
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         Index("idx_annual_report_client_year", "client_id", "tax_year", unique=True),

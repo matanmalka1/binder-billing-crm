@@ -24,19 +24,27 @@ class AnnualReportReportRepository(BaseRepository):
         return report
 
     def get_by_id(self, report_id: int) -> Optional[AnnualReport]:
-        return self.db.query(AnnualReport).filter(AnnualReport.id == report_id).first()
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.id == report_id, AnnualReport.deleted_at.is_(None))
+            .first()
+        )
 
     def get_by_client_year(self, client_id: int, tax_year: int) -> Optional[AnnualReport]:
         return (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.client_id == client_id, AnnualReport.tax_year == tax_year)
+            .filter(
+                AnnualReport.client_id == client_id,
+                AnnualReport.tax_year == tax_year,
+                AnnualReport.deleted_at.is_(None),
+            )
             .first()
         )
 
     def list_by_client(self, client_id: int) -> list[AnnualReport]:
         return (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.client_id == client_id)
+            .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.tax_year.desc())
             .all()
         )
@@ -49,7 +57,7 @@ class AnnualReportReportRepository(BaseRepository):
         page: int = 1,
         page_size: int = 50,
     ) -> list[AnnualReport]:
-        q = self.db.query(AnnualReport).filter(AnnualReport.status == status)
+        q = self.db.query(AnnualReport).filter(AnnualReport.status == status, AnnualReport.deleted_at.is_(None))
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
         if assigned_to:
@@ -62,7 +70,7 @@ class AnnualReportReportRepository(BaseRepository):
         status: AnnualReportStatus,
         tax_year: Optional[int] = None,
     ) -> int:
-        q = self.db.query(AnnualReport).filter(AnnualReport.status == status)
+        q = self.db.query(AnnualReport).filter(AnnualReport.status == status, AnnualReport.deleted_at.is_(None))
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
         return q.count()
@@ -75,13 +83,17 @@ class AnnualReportReportRepository(BaseRepository):
     ) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.tax_year == tax_year)
+            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.status.asc(), AnnualReport.filing_deadline.asc())
         )
         return self._paginate(q, page, page_size)
 
     def count_by_tax_year(self, tax_year: int) -> int:
-        return self.db.query(AnnualReport).filter(AnnualReport.tax_year == tax_year).count()
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
+            .count()
+        )
 
     def list_all(
         self,
@@ -90,6 +102,7 @@ class AnnualReportReportRepository(BaseRepository):
     ) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
+            .filter(AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.tax_year.desc(), AnnualReport.created_at.desc())
         )
         return self._paginate(q, page, page_size)
@@ -99,12 +112,17 @@ class AnnualReportReportRepository(BaseRepository):
         return (
             self.db.query(AnnualReport, Client.full_name.label("client_name"))
             .join(Client, Client.id == AnnualReport.client_id)
+            .filter(AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.filing_deadline.asc().nulls_last(), AnnualReport.id.asc())
             .all()
         )
 
     def count_all(self) -> int:
-        return self.db.query(AnnualReport).count()
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.deleted_at.is_(None))
+            .count()
+        )
 
     def list_overdue(self, tax_year: Optional[int] = None) -> list[AnnualReport]:
         """Reports past their filing deadline and not yet submitted."""
@@ -122,6 +140,7 @@ class AnnualReportReportRepository(BaseRepository):
                 AnnualReport.status.in_(open_statuses),
                 AnnualReport.filing_deadline < now,
                 AnnualReport.filing_deadline.isnot(None),
+                AnnualReport.deleted_at.is_(None),
             )
         )
         if tax_year:
@@ -134,13 +153,23 @@ class AnnualReportReportRepository(BaseRepository):
 
     # ── Season dashboard ───────────────────────────────────────────────────
 
+    def soft_delete(self, report_id: int, deleted_by: int) -> bool:
+        """Soft-delete an annual report by setting deleted_at."""
+        report = self.db.query(AnnualReport).filter(AnnualReport.id == report_id).first()
+        if not report:
+            return False
+        report.deleted_at = utcnow()
+        report.deleted_by = deleted_by
+        self.db.commit()
+        return True
+
     def get_season_summary(self, tax_year: int) -> dict:
         """
         Counts of each status for a given tax year (for dashboards).
         """
         all_reports = (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.tax_year == tax_year)
+            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
             .all()
         )
         summary = {s.value: 0 for s in AnnualReportStatus}

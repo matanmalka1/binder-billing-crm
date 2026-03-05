@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -115,3 +115,17 @@ def update_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
 
     return _to_client_response(client, user.role)
+
+
+@router.delete(
+    "/{client_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_client(client_id: int, db: DBSession, user: CurrentUser):
+    """Soft-delete a client (ADVISOR only)."""
+    service = ClientService(db)
+    deleted = service.delete_client(client_id, actor_id=user.id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

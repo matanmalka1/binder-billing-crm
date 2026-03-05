@@ -21,5 +21,12 @@ class AnnualReportService(
         self.repo = AnnualReportRepository(db)
         self.client_repo = ClientRepository(db)
 
+    def delete_report(self, report_id: int, actor_id: int) -> bool:
+        """Soft-delete an annual report. Returns False if not found."""
+        report = self.repo.get_by_id(report_id)
+        if not report:
+            return False
+        return self.repo.soft_delete(report_id, deleted_by=actor_id)
+
 
 __all__ = ["AnnualReportService"]

@@ -130,6 +130,27 @@ class BillingService:
             cancellation_reason=reason,
         )
 
+    def delete_charge(self, charge_id: int, actor_id: Optional[int] = None) -> bool:
+        """
+        Soft-delete a draft charge.
+
+        Rules:
+        - Only DRAFT charges can be deleted (use cancel for issued charges)
+
+        Raises:
+            ValueError: If charge not found or not in draft status
+        """
+        charge = self.charge_repo.get_by_id(charge_id)
+        if not charge:
+            raise ValueError(f"Charge {charge_id} not found")
+
+        if charge.status != ChargeStatus.DRAFT:
+            raise ValueError(
+                f"Only draft charges can be deleted. Use cancel for status '{charge.status.value}'"
+            )
+
+        return self.charge_repo.soft_delete(charge_id, deleted_by=actor_id)
+
     def get_charge(self, charge_id: int) -> Optional[Charge]:
         """Get charge by ID."""
         return self.charge_repo.get_by_id(charge_id)

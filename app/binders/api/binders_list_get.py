@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.binders.api.binders_common import fetch_client_and_build_response, to_binder_response
 from app.binders.schemas.binder import BinderListResponse, BinderResponse
@@ -125,3 +125,17 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
 
     return fetch_client_and_build_response(binder, db, signals_service)
+
+
+@router.delete(
+    "/{binder_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_binder(binder_id: int, db: DBSession, user: CurrentUser):
+    """Soft-delete a binder (ADVISOR only)."""
+    service = BinderService(db)
+    deleted = service.delete_binder(binder_id, actor_id=user.id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

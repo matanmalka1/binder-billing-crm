@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.clients.models.client import Client, ClientStatus
+from app.utils.time import utcnow
 
 
 class ClientRepository(BaseRepository):
@@ -43,12 +44,20 @@ class ClientRepository(BaseRepository):
         return client
 
     def get_by_id(self, client_id: int) -> Optional[Client]:
-        """Retrieve client by ID."""
-        return self.db.query(Client).filter(Client.id == client_id).first()
+        """Retrieve client by ID (excludes soft-deleted)."""
+        return (
+            self.db.query(Client)
+            .filter(Client.id == client_id, Client.deleted_at.is_(None))
+            .first()
+        )
 
     def get_by_id_number(self, id_number: str) -> Optional[Client]:
-        """Retrieve client by ID number."""
-        return self.db.query(Client).filter(Client.id_number == id_number).first()
+        """Retrieve client by ID number (excludes soft-deleted)."""
+        return (
+            self.db.query(Client)
+            .filter(Client.id_number == id_number, Client.deleted_at.is_(None))
+            .first()
+        )
 
     def list(
         self,
@@ -58,7 +67,7 @@ class ClientRepository(BaseRepository):
         search: Optional[str] = None,
     ) -> list[Client]:
         """List clients with optional filters. search matches full_name or id_number."""
-        query = self.db.query(Client)
+        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
 
         if status:
             query = query.filter(Client.status == status)
@@ -78,7 +87,7 @@ class ClientRepository(BaseRepository):
         search: Optional[str] = None,
     ) -> int:
         """Count clients with optional filters."""
-        query = self.db.query(Client)
+        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if status:
             query = query.filter(Client.status == status)
         if search:
@@ -97,7 +106,7 @@ class ClientRepository(BaseRepository):
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
         """DB-level search returning (items, total)."""
-        q = self.db.query(Client)
+        q = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if query:
             term = f"%{query.strip()}%"
             q = q.filter(Client.full_name.ilike(term) | Client.id_number.ilike(term))
@@ -117,10 +126,20 @@ class ClientRepository(BaseRepository):
 
     def list_all(self, status: Optional[str] = None) -> list[Client]:
         """List all clients (optionally filtered by status)."""
-        query = self.db.query(Client)
+        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if status:
             query = query.filter(Client.status == status)
         return query.order_by(Client.full_name).all()
+
+    def soft_delete(self, client_id: int, deleted_by: int) -> bool:
+        """Soft-delete a client by setting deleted_at."""
+        client = self.db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            return False
+        client.deleted_at = utcnow()
+        client.deleted_by = deleted_by
+        self.db.commit()
+        return True
 
     def update(self, client_id: int, **fields) -> Optional[Client]:
         """Update client fields."""

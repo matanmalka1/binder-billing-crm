@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -98,3 +98,17 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
     return _build_detail(report, service)
+
+
+@router.delete(
+    "/{report_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
+    """Soft-delete an annual report (ADVISOR only)."""
+    service = AnnualReportService(db)
+    deleted = service.delete_report(report_id, actor_id=user.id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

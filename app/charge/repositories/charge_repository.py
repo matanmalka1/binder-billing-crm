@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.charge.models.charge import Charge, ChargeStatus
+from app.utils.time import utcnow
 
 
 class ChargeRepository(BaseRepository):
@@ -37,8 +38,12 @@ class ChargeRepository(BaseRepository):
         return charge
 
     def get_by_id(self, charge_id: int) -> Optional[Charge]:
-        """Retrieve charge by ID."""
-        return self.db.query(Charge).filter(Charge.id == charge_id).first()
+        """Retrieve charge by ID (excludes soft-deleted)."""
+        return (
+            self.db.query(Charge)
+            .filter(Charge.id == charge_id, Charge.deleted_at.is_(None))
+            .first()
+        )
 
     def list_charges(
         self,
@@ -48,7 +53,7 @@ class ChargeRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Charge]:
         """List charges with optional filters and pagination."""
-        query = self.db.query(Charge)
+        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
 
         if client_id:
             query = query.filter(Charge.client_id == client_id)
@@ -65,7 +70,7 @@ class ChargeRepository(BaseRepository):
         status: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
-        query = self.db.query(Charge)
+        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
 
         if client_id:
             query = query.filter(Charge.client_id == client_id)
@@ -84,3 +89,13 @@ class ChargeRepository(BaseRepository):
         """Update charge status and additional fields."""
         charge = self.get_by_id(charge_id)
         return self._update_status(charge, new_status, **additional_fields)
+
+    def soft_delete(self, charge_id: int, deleted_by: int) -> bool:
+        """Soft-delete a charge by setting deleted_at."""
+        charge = self.db.query(Charge).filter(Charge.id == charge_id).first()
+        if not charge:
+            return False
+        charge.deleted_at = utcnow()
+        charge.deleted_by = deleted_by
+        self.db.commit()
+        return True

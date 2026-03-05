@@ -24,16 +24,16 @@
 ## 🟠 High — Major Functional Gaps
 
 ### Clients
-- [ ] No client deletion
+- [x] No client deletion — soft-delete via `DELETE /clients/{id}` (ADVISOR only)
 - [ ] `has_signals` filter loads up to 1,000 clients into memory — no real pagination
 - [ ] Client import: no dry-run before insertion
 
 ### Binders
-- [ ] No binder deletion
+- [x] No binder deletion — soft-delete via `DELETE /binders/{id}` (ADVISOR only)
 - [ ] `WorkState` calculates notifications per binder on every call — no cache
 
 ### Charges
-- [ ] No soft-delete for charges
+- [x] No soft-delete for charges — soft-delete via `DELETE /charges/{id}` (ADVISOR only, DRAFT only)
 - [ ] No mechanism to issue an invoice directly from a charge in the UI
 
 ### Permanent Documents
@@ -42,10 +42,10 @@
 - [ ] Upload loads the entire file into memory — no streaming
 
 ### Correspondence
-- [ ] No pagination — all client correspondence is loaded at once
+- [x] No pagination — all client correspondence is loaded at once — paginated via `list_by_client_paginated` (already implemented)
 
 ### Annual Reports
-- [ ] No deletion of annual reports
+- [x] No deletion of annual reports — soft-delete via `DELETE /annual-reports/{id}` (ADVISOR only)
 
 ### Aging Report
 - [ ] No CSV format — only JSON/Excel

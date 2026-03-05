@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
 
@@ -35,6 +35,8 @@ class Client(Base):
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    deleted_at = Column(DateTime, nullable=True)
+    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     def __repr__(self):
         return f"<Client(id={self.id}, name='{self.full_name}', status='{self.status}')>"

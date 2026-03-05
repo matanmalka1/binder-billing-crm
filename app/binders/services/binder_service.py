@@ -120,6 +120,13 @@ class BinderService:
         """Get binder by ID."""
         return self.binder_repo.get_by_id(binder_id)
 
+    def delete_binder(self, binder_id: int, actor_id: int) -> bool:
+        """Soft-delete a binder. Returns False if not found."""
+        binder = self.binder_repo.get_by_id(binder_id)
+        if not binder:
+            return False
+        return self.binder_repo.soft_delete(binder_id, deleted_by=actor_id)
+
     def list_active_binders(
         self,
         client_id: Optional[int] = None,

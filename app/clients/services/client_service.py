@@ -105,6 +105,13 @@ class ClientService:
         """Return every client matching the optional status filter."""
         return self.client_repo.list_all(status=status)
 
+    def delete_client(self, client_id: int, actor_id: int) -> bool:
+        """Soft-delete a client. Returns False if not found."""
+        client = self.client_repo.get_by_id(client_id)
+        if not client:
+            return False
+        return self.client_repo.soft_delete(client_id, deleted_by=actor_id)
+
     def update_client(
         self,
         client_id: int,
