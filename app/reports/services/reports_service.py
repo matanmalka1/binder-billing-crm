@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -6,6 +6,11 @@ from sqlalchemy.orm import Session
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
+
+# Safety ceiling for unpaid charge fetch in aging report.
+# At 10 000 rows the fetch is an OOM risk in production.
+# Known architectural debt — proper fix requires streaming aggregation.
+_AGING_CHARGE_FETCH_LIMIT = 2000
 
 
 class AgingReportService:
@@ -22,37 +27,38 @@ class AgingReportService:
     ) -> dict:
         """
         Generate aging report for all clients.
-        
+
         Categorizes outstanding charges by age:
         - Current: 0-30 days
         - 30 days: 31-60 days
         - 60 days: 61-90 days
         - 90+ days: 91+ days
+
+        Note: bounded to _AGING_CHARGE_FETCH_LIMIT unpaid charges.
+        Charges beyond the ceiling are silently excluded (known debt).
         """
         if as_of_date is None:
             as_of_date = date.today()
 
-        # Get all unpaid charges (issued but not paid)
         unpaid_charges = self.charge_repo.list_charges(
             status=ChargeStatus.ISSUED.value,
             page=1,
-            page_size=10000,
+            page_size=_AGING_CHARGE_FETCH_LIMIT,
         )
 
-        # Group by client
         client_aging = {}
-        
+
         for charge in unpaid_charges:
             if not charge.issued_at:
                 continue
-                
+
             client_id = charge.client_id
-            
+
             if client_id not in client_aging:
                 client = self.client_repo.get_by_id(client_id)
                 if not client:
                     continue
-                    
+
                 client_aging[client_id] = {
                     "client_name": client.full_name,
                     "current": 0.0,
@@ -63,11 +69,9 @@ class AgingReportService:
                     "oldest_date": None,
                 }
 
-            # Calculate age of debt
             days_old = (as_of_date - charge.issued_at.date()).days
             amount = float(charge.amount)
 
-            # Categorize by age
             if days_old <= 30:
                 client_aging[client_id]["current"] += amount
             elif days_old <= 60:
@@ -79,12 +83,12 @@ class AgingReportService:
 
             client_aging[client_id]["total"] += amount
 
-            # Track oldest invoice
-            if (client_aging[client_id]["oldest_date"] is None or 
-                charge.issued_at.date() < client_aging[client_id]["oldest_date"]):
+            if (
+                client_aging[client_id]["oldest_date"] is None
+                or charge.issued_at.date() < client_aging[client_id]["oldest_date"]
+            ):
                 client_aging[client_id]["oldest_date"] = charge.issued_at.date()
 
-        # Build response
         items = []
         total_outstanding = 0.0
 
@@ -104,13 +108,11 @@ class AgingReportService:
                 "oldest_invoice_date": data["oldest_date"],
                 "oldest_invoice_days": oldest_days,
             })
-            
+
             total_outstanding += data["total"]
 
-        # Sort by total outstanding (descending)
         items.sort(key=lambda x: x["total_outstanding"], reverse=True)
 
-        # Calculate summary
         summary = {
             "total_clients": len(items),
             "total_current": round(sum(item["current"] for item in items), 2),
