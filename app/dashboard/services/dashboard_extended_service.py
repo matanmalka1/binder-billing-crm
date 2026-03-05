@@ -3,27 +3,30 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import BinderStatus
-from app.charge.models.charge import ChargeStatus
-from app.users.models.user import UserRole
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
+from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.models.client import Client
 from app.clients.repositories.client_repository import ClientRepository
+from app.binders.services.signals_service import SignalsService
+from app.binders.services.work_state_service import WorkStateService
+from app.users.models.user import UserRole
 from app.dashboard.services.dashboard_extended_builders import (
     idle_attention_item,
     ready_attention_item,
     unpaid_charge_attention_item,
     work_queue_item,
 )
-from app.binders.services.signals_service import SignalsService
-from app.binders.services.work_state_service import WorkStateService
-from app.clients.models.client import Client
 
-_BULK_PAGE_SIZE = 1000
+# Safety ceilings for in-memory aggregations.
+# Known architectural debt — proper fix requires persisting derived state.
+_ACTIVE_BINDERS_FETCH_LIMIT = 1000
+_UNPAID_CHARGES_FETCH_LIMIT = 500
 
 
 class DashboardExtendedService:
-    """Dashboard extensions for operational UX."""
+    """Extended dashboard: work queue, alerts, and attention items."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -34,9 +37,15 @@ class DashboardExtendedService:
         self._cached_active_binders_with_clients: Optional[list[tuple]] = None
 
     def _active_binders_with_clients(self) -> list[tuple]:
-        """Fetch active binders once and attach client objects to avoid N+1."""
+        """Fetch active binders once and attach client objects to avoid N+1.
+
+        Bounded to _ACTIVE_BINDERS_FETCH_LIMIT. Binders beyond the ceiling
+        are excluded from dashboard calculations (known debt).
+        """
         if self._cached_active_binders_with_clients is None:
-            binders = self.binder_repo.list_active()
+            binders = self.binder_repo.list_active(
+                page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
+            )
             client_ids = {binder.client_id for binder in binders}
             clients = (
                 self.db.query(Client)
@@ -90,7 +99,7 @@ class DashboardExtendedService:
             unpaid_charges = self.charge_repo.list_charges(
                 status=ChargeStatus.ISSUED.value,
                 page=1,
-                page_size=_BULK_PAGE_SIZE,
+                page_size=_UNPAID_CHARGES_FETCH_LIMIT,
             )
             if unpaid_charges:
                 charge_client_ids = {c.client_id for c in unpaid_charges}
