@@ -38,7 +38,6 @@ class Client(Base):
     address_apartment = Column(String, nullable=True)
     address_city = Column(String, nullable=True)
     address_zip_code = Column(String, nullable=True)
-    business_sector = Column(String, nullable=True)
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
