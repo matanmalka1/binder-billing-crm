@@ -1,11 +1,11 @@
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from typing import Iterable
 
 from sqlalchemy.orm import Session
 
 from app.clients.models.client import Client
+from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 
 class ClientExcelService:
@@ -35,9 +35,8 @@ class ClientExcelService:
 
     def __init__(self, db: Session):
         self.db = db
-        export_base = Path(tempfile.gettempdir()) / "exports" / "clients"
-        export_base.mkdir(parents=True, exist_ok=True)
-        self.export_dir = export_base
+        self.export_dir = Path(tempfile.gettempdir()) / "exports" / "clients"
+        self.export_dir.mkdir(parents=True, exist_ok=True)
 
     def export_clients(self, clients: Iterable[Client]) -> dict:
         """Create an Excel file containing the provided clients."""
@@ -46,8 +45,8 @@ class ClientExcelService:
             for col_index, (attr, _) in enumerate(self.EXPORT_COLUMNS, start=1):
                 ws.cell(row=row_index, column=col_index, value=self._value_from_client(client, attr))
 
-        self._adjust_column_widths(ws, self.EXPORT_COLUMNS)
-        return self._save_workbook(wb, prefix="clients_export")
+        adjust_column_widths(ws)
+        return save_workbook_to_temp(wb, prefix="clients_export", export_dir=self.export_dir)
 
     def generate_template(self) -> dict:
         """Create a client import template that includes helper headers."""
@@ -56,8 +55,8 @@ class ClientExcelService:
         for col_index, value in enumerate(sample_row, start=1):
             ws.cell(row=2, column=col_index, value=value)
 
-        self._adjust_column_widths(ws, self.TEMPLATE_COLUMNS)
-        return self._save_workbook(wb, prefix="clients_template")
+        adjust_column_widths(ws)
+        return save_workbook_to_temp(wb, prefix="clients_template", export_dir=self.export_dir)
 
     def _create_workbook_with_columns(self, columns: list[tuple[str, str]]):
         try:
@@ -78,26 +77,6 @@ class ClientExcelService:
 
         ws.freeze_panes = "A2"
         return wb, ws
-
-    def _adjust_column_widths(self, ws, columns: list[tuple[str, str]]):
-        try:
-            from openpyxl.utils import get_column_letter
-        except ImportError:
-            return
-
-        for index, (_, header) in enumerate(columns, start=1):
-            column_letter = get_column_letter(index)
-            max_length = len(header)
-            for cell in ws[column_letter]:
-                if cell.value:
-                    max_length = max(max_length, len(str(cell.value)))
-            ws.column_dimensions[column_letter].width = min(max_length + 2, 50)
-
-    def _save_workbook(self, wb, prefix: str) -> dict:
-        filename = f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-        filepath = self.export_dir / filename
-        wb.save(filepath)
-        return {"filepath": str(filepath), "filename": filename}
 
     def _value_from_client(self, client: Client, attr: str):
         value = getattr(client, attr, "")

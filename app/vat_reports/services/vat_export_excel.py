@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict
 
+from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 
 
@@ -20,7 +20,6 @@ def export_vat_to_excel(
     try:
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
-        from openpyxl.utils import get_column_letter
     except ImportError:
         raise ImportError("openpyxl is required. Install with: pip install openpyxl")
 
@@ -67,11 +66,11 @@ def export_vat_to_excel(
     ws.cell(row=row, column=4, value=float(totals["input"]))
     ws.cell(row=row, column=5, value=float(totals["net"]))
 
-    for idx, col_cells in enumerate(ws.iter_cols(), start=1):
-        max_len = max((len(str(c.value)) for c in col_cells if c.value), default=10)
-        ws.column_dimensions[get_column_letter(idx)].width = min(max_len + 2, 40)
+    adjust_column_widths(ws, max_width=40)
 
-    filename = f"vat_{client_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    filepath = os.path.join(export_dir, filename)
-    wb.save(filepath)
-    return {"filepath": filepath, "filename": filename, "format": "excel", "generated_at": datetime.now()}
+    return save_workbook_to_temp(
+        wb,
+        prefix=f"vat_{client_id}_{year}",
+        export_dir=export_dir,
+        extra_meta={"format": "excel", "generated_at": datetime.now()},
+    )

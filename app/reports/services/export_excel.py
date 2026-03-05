@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import os
 from datetime import datetime
 from typing import Dict
+
+from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 
 def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str, object]:
@@ -13,7 +14,6 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
     try:
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
-        from openpyxl.utils import get_column_letter
     except ImportError:
         raise ImportError("openpyxl is required for Excel export. Install with: pip install openpyxl")
 
@@ -71,21 +71,11 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
     ws.cell(row=row, column=5, value=report_data["summary"]["total_60_days"])
     ws.cell(row=row, column=6, value=report_data["summary"]["total_90_plus"])
 
-    for idx, column in enumerate(ws.iter_cols(), start=1):
-        max_length = 0
-        column_letter = get_column_letter(idx)
-        for cell in column:
-            if cell.value is not None:
-                max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[column_letter].width = min(max_length + 2, 50)
+    adjust_column_widths(ws)
 
-    filename = f"aging_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    filepath = os.path.join(export_dir, filename)
-    wb.save(filepath)
-
-    return {
-        "filepath": filepath,
-        "filename": filename,
-        "format": "excel",
-        "generated_at": datetime.now(),
-    }
+    return save_workbook_to_temp(
+        wb,
+        prefix="aging_report",
+        export_dir=export_dir,
+        extra_meta={"format": "excel", "generated_at": datetime.now()},
+    )
