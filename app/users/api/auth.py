@@ -11,7 +11,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 COOKIE_NAME = "access_token"
-COOKIE_SAMESITE = "lax"
+COOKIE_SAMESITE = "none" if config.APP_ENV == "production" else "lax"
 
 
 @router.post("/login", response_model=LoginResponse)
