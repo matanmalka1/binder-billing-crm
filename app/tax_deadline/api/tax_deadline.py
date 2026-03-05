@@ -22,6 +22,11 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
+# Safety ceiling for global (non-client-scoped) deadline list.
+# Without client_id, all pending deadlines are fetched in memory.
+# Known architectural debt — a proper fix requires DB-level pagination.
+_GLOBAL_DEADLINE_FETCH_LIMIT = 500
+
 
 @router.post("", response_model=TaxDeadlineResponse, status_code=status.HTTP_201_CREATED)
 def create_tax_deadline(
@@ -70,12 +75,16 @@ def list_tax_deadlines(
             )
 
     if client_id:
+        # Client-scoped: naturally bounded, no ceiling needed.
         items = service.get_client_deadlines(client_id, status_filter, type_enum)
     else:
+        # Global fetch — bounded to _GLOBAL_DEADLINE_FETCH_LIMIT rows.
+        # Records beyond the ceiling are silently excluded (known debt).
         items = service.deadline_repo.list_pending_due_by_date(
             date.today(),
             date(2099, 12, 31),
         )
+        items = items[:_GLOBAL_DEADLINE_FETCH_LIMIT]
 
     total = len(items)
     offset = (page - 1) * page_size
@@ -179,7 +188,6 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     urgent_items = []
     for item in summary["urgent"]:
         deadline = item["deadline"]
-
         urgent_items.append(
             DeadlineUrgentItem(
                 id=deadline.id,
