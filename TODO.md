@@ -109,40 +109,6 @@ onSuccess: async () => { await invalidateUsers(queryClient); }
 
 ---
 
-## #15 — `utcnow()` duplicated in test utility
-
-**Severity:** 🟡  
-**Layer:** Backend  
-**Files:** `app/utils/time.py` · `tests/services/annual_report_enums.py`
-
-`utcnow()` is implemented twice. The test file defines its own copy instead of importing from `app/utils/time`.
-
-**Fix:** Remove the duplicate definition and add `from app.utils.time import utcnow` to the test file.
-
----
-
-## #16 — Partial version pinning in `requirements.txt`
-
-**Severity:** 🟡  
-**Layer:** Backend  
-**File:** `requirements.txt`
-
-Several packages use floor constraints (`>=`) or no version at all:
-
-```
-gunicorn          # no version
-openpyxl>=3.1.0
-reportlab>=4.0.0
-requests>=2.31.0
-psycopg2-binary>=2.9
-```
-
-In production, `pip install` may resolve a later version that introduces breaking changes.
-
-**Fix:** Pin all packages to exact versions (`==`). Use `requirements.lock.txt` (which already exists and is fully pinned) as the source of truth for production installs, or consolidate both files.
-
----
-
 ## #17 — Circular import workaround in `notifications.py`
 
 **Severity:** 🟡  

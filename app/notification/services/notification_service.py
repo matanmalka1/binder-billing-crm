@@ -11,6 +11,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.config import config
 from app.infrastructure.notifications import EmailChannel
 from app.binders.models.binder import Binder
 from app.clients.models.client import Client
@@ -35,7 +36,12 @@ class NotificationService:
         self.db = db
         self.notification_repo = NotificationRepository(db)
         self.client_repo = ClientRepository(db)
-        self.email = EmailChannel()
+        self.email = EmailChannel(
+            enabled=config.NOTIFICATIONS_ENABLED,
+            api_key=config.SENDGRID_API_KEY,
+            from_address=config.EMAIL_FROM_ADDRESS,
+            from_name=config.EMAIL_FROM_NAME,
+        )
 
     def notify_binder_received(self, binder: Binder, client: Client) -> bool:
         content = (

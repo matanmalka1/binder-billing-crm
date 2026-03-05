@@ -18,22 +18,28 @@ class EmailChannel:
     """
     Email channel backed by SendGrid.
 
-    Requires environment variables:
-        SENDGRID_API_KEY   — your SendGrid API key (sg.xxx...)
-        EMAIL_FROM_ADDRESS — verified sender address, e.g. crm@yourfirm.co.il
-        EMAIL_FROM_NAME    — display name, e.g. "המשרד שלי"
+    Callers inject configuration values (typically from app.config.config):
+        api_key      — SendGrid API key (sg.xxx...)
+        from_address — verified sender address, e.g. crm@yourfirm.co.il
+        from_name    — display name, e.g. "המשרד שלי"
+        enabled      — feature flag; when False the channel logs instead of sending
 
     When NOTIFICATIONS_ENABLED=false (the default), the channel logs the
     message and returns success without actually sending — safe for dev/test.
     """
 
-    def __init__(self) -> None:
-        from app.config import config  # local import to avoid circular
-
-        self._enabled = config.NOTIFICATIONS_ENABLED
-        self._api_key = config.SENDGRID_API_KEY
-        self._from_address = config.EMAIL_FROM_ADDRESS
-        self._from_name = config.EMAIL_FROM_NAME
+    def __init__(
+        self,
+        *,
+        enabled: bool,
+        api_key: str,
+        from_address: str,
+        from_name: str = "",
+    ) -> None:
+        self._enabled = enabled
+        self._api_key = api_key
+        self._from_address = from_address
+        self._from_name = from_name
 
     # ------------------------------------------------------------------
     def send(self, recipient: str, content: str, subject: Optional[str] = None) -> tuple[bool, Optional[str]]:
