@@ -33,7 +33,7 @@ class UserManagementService:
         validate_password(password)
 
         if self.user_repo.get_by_email(email):
-            raise ValueError(f"User with email {email} already exists")
+            raise ValueError(f"כבר קיים משתמש עם המייל {email}")
 
         user = self.user_repo.create(
             full_name=full_name,
@@ -71,7 +71,7 @@ class UserManagementService:
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
-                raise ValueError(f"User with email {fields['email']} already exists")
+                raise ValueError(f"כבר קיים משתמש עם המייל  {fields['email']}")
 
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
