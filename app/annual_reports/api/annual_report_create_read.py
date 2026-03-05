@@ -20,10 +20,10 @@ router = APIRouter(
 )
 
 
-def _build_detail(report, service: AnnualReportService) -> AnnualReportDetailResponse:
+def _build_detail(report: AnnualReportResponse, service: AnnualReportService) -> AnnualReportDetailResponse:
     schedules = service.get_schedules(report.id)
     history = service.get_status_history(report.id)
-    response = AnnualReportDetailResponse.model_validate(report)
+    response = AnnualReportDetailResponse(**report.model_dump())
     response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
     response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
     return response
@@ -34,7 +34,7 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
     """Create a new annual income tax report for a client."""
     service = AnnualReportService(db)
     try:
-        report = service.create_report(
+        orm_report = service.create_report(
             client_id=body.client_id,
             tax_year=body.tax_year,
             client_type=body.client_type,
@@ -52,6 +52,7 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+    report = service.get_report(orm_report.id)
     return _build_detail(report, service)
 
 
@@ -67,7 +68,7 @@ def list_annual_reports(
     service = AnnualReportService(db)
     items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
     return AnnualReportListResponse(
-        items=[AnnualReportResponse.model_validate(r) for r in items],
+        items=items,
         page=page,
         page_size=page_size,
         total=total,
@@ -86,8 +87,7 @@ def get_kanban_view(db: DBSession, user: CurrentUser):
 def list_overdue(db: DBSession, user: CurrentUser, tax_year: int | None = Query(None)):
     """Reports past their filing deadline that have not been submitted."""
     service = AnnualReportService(db)
-    reports = service.get_overdue(tax_year=tax_year)
-    return [AnnualReportResponse.model_validate(r) for r in reports]
+    return service.get_overdue(tax_year=tax_year)
 
 
 @router.get("/{report_id}", response_model=AnnualReportDetailResponse)
@@ -95,6 +95,6 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     """Get a single report with its schedule entries and status history."""
     service = AnnualReportService(db)
     report = service.get_report(report_id)
-    if not report:
+    if report is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
     return _build_detail(report, service)
