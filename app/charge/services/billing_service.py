@@ -22,7 +22,7 @@ class BillingService:
         client_id: int,
         amount: float,
         charge_type: str,
-        actor_id: int = None,
+        actor_id: Optional[int] = None,
         period: Optional[str] = None,
         currency: str = "ILS",
     ) -> Charge:
@@ -49,7 +49,7 @@ class BillingService:
             created_by=actor_id,
         )
 
-    def issue_charge(self, charge_id: int, actor_id: int = None) -> Charge:
+    def issue_charge(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
         """
         Issue a draft charge.
         
@@ -74,7 +74,7 @@ class BillingService:
             issued_by=actor_id,
         )
 
-    def mark_charge_paid(self, charge_id: int, actor_id: int = None) -> Charge:
+    def mark_charge_paid(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
         """
         Mark an issued charge as paid.
         
@@ -101,7 +101,7 @@ class BillingService:
             paid_by=actor_id,
         )
 
-    def cancel_charge(self, charge_id: int, actor_id: int = None, reason: Optional[str] = None) -> Charge:
+    def cancel_charge(self, charge_id: int, actor_id: Optional[int] = None, reason: Optional[str] = None) -> Charge:
         """
         Cancel a draft or issued charge.
         
