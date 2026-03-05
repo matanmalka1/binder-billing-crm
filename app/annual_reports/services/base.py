@@ -26,7 +26,9 @@ class AnnualReportBaseService:
         client_ids = {r.client_id for r in reports}
         clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
         id_to_name = {c.id: c.full_name for c in clients}
-        return [
-            AnnualReportResponse.model_validate(r, update={"client_name": id_to_name.get(r.client_id)})
-            for r in reports
-        ]
+        result = []
+        for r in reports:
+            obj = AnnualReportResponse.model_validate(r)
+            obj.client_name = id_to_name.get(r.client_id)
+            result.append(obj)
+        return result
