@@ -49,7 +49,7 @@ def transition_status(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return AnnualReportResponse.model_validate(report)
+    return report
 
 
 @router.post("/{report_id}/submit", response_model=AnnualReportResponse)
@@ -78,7 +78,7 @@ def submit_report(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return AnnualReportResponse.model_validate(report)
+    return report
 
 
 @router.post("/{report_id}/deadline", response_model=AnnualReportResponse)
@@ -105,7 +105,7 @@ def update_deadline(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return AnnualReportResponse.model_validate(report)
+    return report
 
 
 @router.post("/{report_id}/transition", response_model=AnnualReportResponse)
@@ -142,7 +142,7 @@ def transition_stage(
         current = service.get_report(report_id)
         if (
             current
-            and current.status == AnnualReportStatus.NOT_STARTED
+            and current.status == AnnualReportStatus.NOT_STARTED.value
             and target_status == AnnualReportStatus.DOCS_COMPLETE
         ):
             service.transition_status(
@@ -161,7 +161,7 @@ def transition_stage(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    return AnnualReportResponse.model_validate(report)
+    return report
 
 
 @router.get("/{report_id}/history", response_model=list[StatusHistoryResponse])
