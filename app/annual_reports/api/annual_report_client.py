@@ -17,5 +17,4 @@ clients_router = APIRouter(
 def list_client_reports(client_id: int, db: DBSession, user: CurrentUser):
     """All annual reports for a client, sorted newest year first."""
     service = AnnualReportService(db)
-    reports = service.get_client_reports(client_id)
-    return [AnnualReportResponse.model_validate(r) for r in reports]
+    return service.get_client_reports(client_id)
