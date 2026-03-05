@@ -1,5 +1,7 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum as PyEnum
+
+from app.utils.time import utcnow
 
 
 class ClientTypeForReport(str, PyEnum):
@@ -71,14 +73,9 @@ SCHEDULE_FLAGS = [
 ]
 
 
-def utcnow():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
-
-
 def standard_deadline(tax_year: int):
     return datetime(tax_year + 1, 4, 30, 23, 59, 59)
 
 
 def extended_deadline(tax_year: int):
     return datetime(tax_year + 2, 1, 31, 23, 59, 59)
-
