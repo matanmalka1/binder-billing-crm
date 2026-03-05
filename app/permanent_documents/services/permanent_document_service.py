@@ -4,7 +4,7 @@ from typing import BinaryIO, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.infrastructure.storage import LocalStorageProvider, StorageProvider
+from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import DocumentType, PermanentDocument
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
@@ -12,13 +12,13 @@ from app.permanent_documents.repositories.permanent_document_repository import P
 
 
 class PermanentDocumentService:
-    """Permanent document management service """
+    """Permanent document management service."""
 
     def __init__(self, db: Session, storage: Optional[StorageProvider] = None):
         self.db = db
         self.document_repo = PermanentDocumentRepository(db)
         self.client_repo = ClientRepository(db)
-        self.storage = storage or LocalStorageProvider()
+        self.storage = storage or get_storage_provider()
 
     def upload_document(
         self,
@@ -30,13 +30,13 @@ class PermanentDocumentService:
     ) -> PermanentDocument:
         """
         Upload permanent document.
-        
+
         Rules:
         - Valid client required
         - Valid document type required
-        - Stores in cloud storage
+        - Stores in cloud storage (R2) or local (dev/test)
         - Marks is_present = True
-        
+
         Raises:
             ValueError: If client not found or document type invalid
         """
@@ -58,6 +58,25 @@ class PermanentDocumentService:
 
         return document
 
+    def get_download_url(self, document_id: int, expires_in: int = 3600) -> str:
+        """
+        Generate a presigned download URL for a document.
+
+        Args:
+            document_id: Document ID
+            expires_in: URL expiry in seconds (default: 1 hour)
+
+        Returns:
+            Presigned URL string
+
+        Raises:
+            HTTPException 404: If document not found or deleted
+        """
+        doc = self.document_repo.get_by_id(document_id)
+        if not doc or doc.is_deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
+
     def list_client_documents(self, client_id: int) -> list[PermanentDocument]:
         """List all permanent documents for a client."""
         return self.document_repo.list_by_client(client_id)
@@ -65,7 +84,7 @@ class PermanentDocumentService:
     def get_missing_document_types(self, client_id: int) -> list[DocumentType]:
         """
         Get list of missing document types for a client.
-        
+
         Operational signal: advisory only.
         """
         existing_docs = self.document_repo.list_by_client(client_id)

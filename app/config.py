@@ -78,5 +78,12 @@ class Config:
     INVOICE_PROVIDER_BASE_URL: str = os.getenv("INVOICE_PROVIDER_BASE_URL", "")
     INVOICE_PROVIDER_API_KEY: str = os.getenv("INVOICE_PROVIDER_API_KEY", "")
 
+    # ── Storage (Cloudflare R2 / AWS S3) ──────────────────────────────
+    # In development/test, LocalStorageProvider is used automatically.
+    # In staging/production, set these vars to enable cloud storage.
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "")
+    R2_ENDPOINT_URL: str = os.getenv("R2_ENDPOINT_URL", "")  # e.g. https://<id>.r2.cloudflarestorage.com
 
 config = Config()
