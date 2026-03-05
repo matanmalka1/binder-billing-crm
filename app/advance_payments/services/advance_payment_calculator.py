@@ -12,7 +12,7 @@ def derive_annual_income_from_vat(
 ) -> Decimal:
     """Reverse-calculate annual taxable income from total output VAT."""
     if vat_rate == 0:
-        raise ValueError("vat_rate cannot be zero")
+        raise ValueError("שיעור המע״מ לא יכול להיות אפס")
     return total_output_vat / vat_rate
 
 

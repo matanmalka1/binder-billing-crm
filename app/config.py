@@ -46,7 +46,7 @@ class Config:
 
     JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
     if not JWT_SECRET:
-        raise ValueError("JWT_SECRET must be set")
+        raise ValueError("JWT_SECRET חייב להיות מוגדר")
     
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
 

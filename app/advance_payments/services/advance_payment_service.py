@@ -37,14 +37,14 @@ class AdvancePaymentService:
     ) -> AdvancePayment:
         # Validate client exists
         if not self.client_repo.get_by_id(client_id):
-            raise LookupError("Client not found")
+            raise LookupError("לקוח לא נמצא")
 
         if month < 1 or month > 12:
-            raise ValueError("month must be between 1 and 12")
+            raise ValueError("החודש חייב להיות בין 1 ל-12")
 
         existing, _ = self.repo.list_by_client_year(client_id, year, page=1, page_size=12)
         if any(p.month == month for p in existing):
-            raise RuntimeError("Advance payment for this month already exists")
+            raise RuntimeError("תשלום מקדמה לחודש זה כבר קיים")
 
         return self.repo.create(
             client_id=client_id,
@@ -59,15 +59,15 @@ class AdvancePaymentService:
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)
         if not payment:
-            raise ValueError(f"Advance payment {payment_id} not found")
+            raise ValueError(f"תשלום מקדמה {payment_id} לא נמצא")
 
         if "status" in fields and fields["status"] is not None:
             try:
                 AdvancePaymentStatus(fields["status"])
             except ValueError:
                 raise ValueError(
-                    f"Invalid status: {fields['status']}. "
-                    f"Must be one of: pending, paid, partial, overdue"
+                    f"סטטוס לא חוקי: {fields['status']}. "  
+                    f"חייב להיות אחד מ: pending, paid, partial, overdue"
                 )
 
         updated = self.repo.update(payment_id, **fields)
