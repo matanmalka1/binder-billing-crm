@@ -103,7 +103,4 @@ class AnnualReportCreateService(AnnualReportBaseService):
             ),
         )
 
-        # Enrich for responses
-        self._attach_client_names([report])
-
         return report
