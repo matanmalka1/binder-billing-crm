@@ -29,7 +29,7 @@ class CorrespondenceResponse(BaseModel):
     notes: Optional[str] = None
     occurred_at: datetime
     created_by: int
-    created_at: datetime
+    created_at: Optional[datetime] = None  # nullable — older seeded rows may lack this
 
     model_config = {"from_attributes": True}
 
