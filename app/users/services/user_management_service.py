@@ -76,10 +76,10 @@ class UserManagementService:
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))
-            raise ValueError(f"Immutable fields cannot be updated: {disallowed}")
+            raise ValueError(f"לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}")
 
         if not fields:
-            raise ValueError("At least one mutable field must be provided")
+            raise ValueError("חובה לספק לפחות שדה אחד הניתן לשינוי")
 
         user = self.user_repo.update(user_id, **fields)
         if not user:
@@ -118,7 +118,7 @@ class UserManagementService:
     ) -> Optional[User]:
         ensure_advisor(actor_role)
         if actor_user_id == target_user_id:
-            raise ValueError("You cannot deactivate your own account")
+            raise ValueError("אינך יכול להשבית את החשבון שלך")
 
         user = self.user_repo.deactivate_and_bump_token(target_user_id)
         if not user:
