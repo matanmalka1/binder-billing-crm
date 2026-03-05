@@ -36,7 +36,7 @@ class ClientService:
         """Create new client. Raises ValueError if ID number exists."""
         existing = self.client_repo.get_by_id_number(id_number)
         if existing:
-            raise ValueError(f"Client with ID number {id_number} already exists")
+            raise ValueError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים")
 
         return self.client_repo.create(
             full_name=full_name,
@@ -124,7 +124,7 @@ class ClientService:
 
         if "status" in fields and fields["status"] in ["frozen", "closed"]:
             if user_role != UserRole.ADVISOR:
-                raise PermissionError("Only advisors can freeze or close clients")
+                raise PermissionError("רק יועצים יכולים להקפיא או לסגור לקוחות")
 
         if "status" in fields and fields["status"] == ClientStatus.CLOSED:
             if "closed_at" not in fields:

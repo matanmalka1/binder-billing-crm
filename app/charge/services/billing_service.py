@@ -37,7 +37,7 @@ class BillingService:
 
         # Validate amount
         if amount <= 0:
-            raise ValueError("Amount must be positive")
+            raise ValueError("הסכום חייב להיות חיובי")
 
         # Create charge in draft status
         return self.charge_repo.create(
@@ -62,10 +62,10 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} not found")
+            raise ValueError(f"חיוב {charge_id} לא נמצא")
 
         if charge.status != ChargeStatus.DRAFT:
-            raise ValueError(f"Cannot issue charge with status {charge.status.value}")
+            raise ValueError(f"לא ניתן להנפיק חיוב עם הסטטוס {charge.status.value}")
 
         return self.charge_repo.update_status(
             charge_id,
@@ -87,11 +87,11 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} not found")
+            raise ValueError(f"Charge {charge_id} לא נמצא")
 
         if charge.status != ChargeStatus.ISSUED:
             raise ValueError(
-                f"Cannot mark charge as paid with status {charge.status.value}"
+                f"לא ניתן לסמן חיוב כשולם כאשר הסטטוס הוא {charge.status.value}"
             )
 
         return self.charge_repo.update_status(
@@ -100,6 +100,7 @@ class BillingService:
             paid_at=utcnow(),
             paid_by=actor_id,
         )
+    
 
     def cancel_charge(self, charge_id: int, actor_id: Optional[int] = None, reason: Optional[str] = None) -> Charge:
         """
@@ -114,13 +115,13 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} not found")
+            raise ValueError(f"חיוב {charge_id} לא נמצא")
 
         if charge.status == ChargeStatus.PAID:
-            raise ValueError("Cannot cancel paid charge")
+            raise ValueError("לא ניתן לבטל חיוב ששולם")
 
         if charge.status == ChargeStatus.CANCELED:
-            raise ValueError("Charge already canceled")
+            raise ValueError("החיוב כבר בוטל")
 
         return self.charge_repo.update_status(
             charge_id,
@@ -142,11 +143,11 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} not found")
+            raise ValueError(f"חיוב {charge_id} לא נמצא")
 
         if charge.status != ChargeStatus.DRAFT:
             raise ValueError(
-                f"Only draft charges can be deleted. Use cancel for status '{charge.status.value}'"
+                f"ניתן למחוק רק חיובים במצב טיוטה. השתמש בביטול עבור סטטוס '{charge.status.value}'"
             )
 
         return self.charge_repo.soft_delete(charge_id, deleted_by=actor_id)

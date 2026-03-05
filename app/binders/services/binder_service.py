@@ -36,7 +36,7 @@ class BinderService:
 
         existing = self.binder_repo.get_active_by_number(binder_number)
         if existing:
-            raise ValueError(f"Active binder {binder_number} already exists")
+            raise ValueError(f"כבר קיים קלסר פעיל עם המספר {binder_number}")
 
         binder = self.binder_repo.create(
             client_id=client_id,
@@ -64,7 +64,7 @@ class BinderService:
         """Mark binder as ready for pickup."""
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise ValueError(f"Binder {binder_id} not found")
+            raise ValueError(f"הקלסר {binder_id} לא נמצא")
 
         binder_helpers.validate_ready_transition(binder)
 
@@ -90,7 +90,7 @@ class BinderService:
         """Return binder to client."""
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise ValueError(f"Binder {binder_id} not found")
+            raise ValueError(f"הקלסר {binder_id} לא נמצא")
 
         binder_helpers.validate_return_transition(binder, pickup_person_name)
 

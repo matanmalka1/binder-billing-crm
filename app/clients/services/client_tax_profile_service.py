@@ -19,5 +19,5 @@ class ClientTaxProfileService:
     def update_profile(self, client_id: int, **fields) -> ClientTaxProfile:
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise ValueError(f"Client {client_id} not found")
+            raise ValueError(f"לקוח {client_id} לא נמצא")
         return self.repo.upsert(client_id, **fields)
