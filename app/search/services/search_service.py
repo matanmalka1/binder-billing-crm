@@ -9,6 +9,12 @@ from app.search.services.search_filters import matches_signal_type
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 
+# Safety ceiling for mixed / derived-state searches that must be resolved in memory.
+# Pure client-only searches already use DB-level pagination and are not affected.
+# Known architectural debt — signals and work_state cannot be persisted per CLAUDE.md.
+_MIXED_SEARCH_BINDER_LIMIT = 1000
+_MIXED_SEARCH_CLIENT_LIMIT = 500
+
 
 class SearchService:
     """Unified search for clients and binders."""
@@ -35,13 +41,11 @@ class SearchService:
         if reference_date is None:
             reference_date = date.today()
 
-        # Binder-only derived-state filters need full binder list (in-memory by design)
         binder_derived_filter = work_state or signal_type or has_signals is not None
 
         # --- Client search: DB-level filtering ---
         if query or client_name or id_number:
             if not binder_derived_filter and not binder_number:
-                # Pure client search: paginate at DB level
                 clients, total = self.client_repo.search(
                     query=query,
                     client_name=client_name,
@@ -63,6 +67,7 @@ class SearchService:
                 ], total
 
         # --- Mixed / binder-filtered search: build full result set then paginate ---
+        # Bounded by _MIXED_SEARCH_*_LIMIT. Results beyond ceiling are excluded.
         results: list[dict] = []
 
         if query or client_name or id_number:
@@ -70,6 +75,8 @@ class SearchService:
                 query=query,
                 client_name=client_name,
                 id_number=id_number,
+                page=1,
+                page_size=_MIXED_SEARCH_CLIENT_LIMIT,
             )
             for c in all_clients:
                 results.append(
@@ -85,9 +92,13 @@ class SearchService:
                 )
 
         if query or binder_number or binder_derived_filter:
-            # binder_number filter pushed to DB; work_state/signal_type stay in Python
             db_binder_number = binder_number or (query if not (client_name or id_number) else None)
-            binders = self.binder_repo.list_active(binder_number=db_binder_number)
+            # Bounded fetch — binders beyond ceiling are excluded from results.
+            binders = self.binder_repo.list_active(
+                binder_number=db_binder_number,
+                page=1,
+                page_size=_MIXED_SEARCH_BINDER_LIMIT,
+            )
             for binder in binders:
                 current_work_state = WorkStateService.derive_work_state(
                     binder, reference_date, self.db
