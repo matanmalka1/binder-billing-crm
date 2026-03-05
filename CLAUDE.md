@@ -39,7 +39,8 @@ JWT_SECRET=test-secret pytest -q
 ## Stack
 
 - FastAPI, SQLAlchemy ORM (no raw SQL), Pydantic v2
-- Dev: SQLite (`Base.metadata.create_all()`); Prod: PostgreSQL
+- Dev: SQLite; Prod: PostgreSQL
+- Migrations: Alembic (`alembic/`) — `Base.metadata.create_all()` is NOT used
 - Auth: JWT HS256, `token_version` invalidation on User model
 
 ---
@@ -64,6 +65,16 @@ app/<domain>/
 ```
 
 Infra (`core/`, `utils/`, `infrastructure/`, `middleware/`, `actions/`) — no layer structure.
+
+---
+
+## Migrations (Alembic)
+
+- All schema changes go through Alembic — never modify the DB directly or use `create_all()`
+- Migration files live in `alembic/versions/` — named `NNNN_<description>.py` with sequential revision IDs
+- After changing any SQLAlchemy model: `alembic revision --autogenerate -m "<description>"`, then review and run `alembic upgrade head`
+- `down_revision` must always point to the previous migration — never `None` except the initial
+- Production deploy: start command prepends `alembic upgrade head &&` before the server command
 
 ---
 
