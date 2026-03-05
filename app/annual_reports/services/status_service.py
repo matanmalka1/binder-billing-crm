@@ -2,6 +2,7 @@ from typing import Optional
 from datetime import datetime
 
 from app.annual_reports.models import AnnualReport, AnnualReportStatus, DeadlineType
+from app.annual_reports.schemas.annual_report import AnnualReportResponse
 from app.utils.time import utcnow
 from .constants import VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
@@ -21,7 +22,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         refund_due: Optional[float] = None,
         tax_due: Optional[float] = None,
         submitted_at: Optional[datetime] = None,
-    ) -> AnnualReport:
+    ) -> AnnualReportResponse:
         report = self._get_or_raise(report_id)
         try:
             ns = AnnualReportStatus(new_status)
@@ -52,7 +53,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
                 update_fields["tax_due"] = tax_due
 
         old_status = report.status
-        report = self.repo.update(report_id, **update_fields)
+        updated = self.repo.update(report_id, **update_fields)
 
         self.repo.append_status_history(
             annual_report_id=report_id,
@@ -63,8 +64,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
             note=note,
         )
 
-        self._attach_client_names([report])
-        return report
+        return self._to_responses([updated])[0]
 
     def update_deadline(
         self,
@@ -73,7 +73,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         changed_by: int,
         changed_by_name: str,
         custom_deadline_note: Optional[str] = None,
-    ) -> AnnualReport:
+    ) -> AnnualReportResponse:
         report = self._get_or_raise(report_id)
         try:
             dt = DeadlineType(deadline_type)
@@ -87,7 +87,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         else:
             filing_deadline = None
 
-        report = self.repo.update(
+        updated = self.repo.update(
             report_id,
             deadline_type=dt,
             filing_deadline=filing_deadline,
@@ -96,8 +96,8 @@ class AnnualReportStatusService(AnnualReportBaseService):
 
         self.repo.append_status_history(
             annual_report_id=report_id,
-            from_status=report.status,
-            to_status=report.status,
+            from_status=updated.status,
+            to_status=updated.status,
             changed_by=changed_by,
             changed_by_name=changed_by_name,
             note=(
@@ -107,5 +107,4 @@ class AnnualReportStatusService(AnnualReportBaseService):
             ),
         )
 
-        self._attach_client_names([report])
-        return report
+        return self._to_responses([updated])[0]
