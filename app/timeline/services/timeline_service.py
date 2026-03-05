@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
 
-_BULK_PAGE_SIZE = 1000
+# Safety ceiling for per-entity bulk fetches in timeline aggregation.
+# The timeline is per-client so these limits are per-client, not global.
+# A client with more than this many charges/notifications is pathological
+# in the current CRM context. Known architectural debt.
+_TIMELINE_BULK_LIMIT = 500
 
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
@@ -50,12 +54,16 @@ class TimelineService:
                 events.append(binder_returned_event(binder))
             self._append_status_change_events(events, binder)
 
-        notifications = self.notification_repo.list_by_client(client_id, page=1, page_size=_BULK_PAGE_SIZE)
+        # Bounded fetch — clients with more than _TIMELINE_BULK_LIMIT
+        # notifications or charges will have older events silently truncated.
+        notifications = self.notification_repo.list_by_client(
+            client_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+        )
         for notification in notifications:
             events.append(notification_sent_event(notification))
 
         charges = self.charge_repo.list_charges(
-            client_id=client_id, page=1, page_size=_BULK_PAGE_SIZE
+            client_id=client_id, page=1, page_size=_TIMELINE_BULK_LIMIT
         )
         for charge in charges:
             events.append(charge_created_event(charge))
@@ -81,17 +89,21 @@ class TimelineService:
             events.append(binder_status_change_event(binder, status_log))
 
     def _build_tax_deadline_events(self, client_id: int) -> list[dict]:
+        # Tax deadlines are per-client and naturally bounded (months × years).
         deadlines = (
             self.timeline_repo.db.query(TaxDeadline)
             .filter(TaxDeadline.client_id == client_id)
+            .limit(_TIMELINE_BULK_LIMIT)
             .all()
         )
         return [tax_deadline_due_event(d) for d in deadlines]
 
     def _build_annual_report_events(self, client_id: int) -> list[dict]:
+        # Annual reports are bounded by tax years — limit is a safety net only.
         reports = (
             self.timeline_repo.db.query(AnnualReport)
             .filter(AnnualReport.client_id == client_id)
+            .limit(_TIMELINE_BULK_LIMIT)
             .all()
         )
         return [annual_report_status_changed_event(r) for r in reports]
