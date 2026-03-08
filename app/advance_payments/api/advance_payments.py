@@ -96,7 +96,11 @@ def suggest_advance_payment(
     )
 
 
-@router.patch("/{payment_id}", response_model=AdvancePaymentRow)
+@router.patch(
+    "/{payment_id}",
+    response_model=AdvancePaymentRow,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def update_advance_payment(
     payment_id: int,
     request: AdvancePaymentUpdateRequest,

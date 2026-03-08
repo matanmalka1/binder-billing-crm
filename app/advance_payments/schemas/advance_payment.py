@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 
@@ -32,13 +32,20 @@ class AdvancePaymentListResponse(BaseModel):
 
 class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[float] = None
+    expected_amount: Optional[float] = None
     status: Optional[AdvancePaymentStatus] = None
+
+    @model_validator(mode="after")
+    def require_at_least_one_field(self) -> "AdvancePaymentUpdateRequest":
+        if self.paid_amount is None and self.expected_amount is None and self.status is None:
+            raise ValueError("יש לספק לפחות שדה אחד לעדכון")
+        return self
 
 
 class AdvancePaymentCreateRequest(BaseModel):
     client_id: int
     year: int
-    month: int  # 1-12
+    month: int = Field(..., ge=1, le=12)
     due_date: date
     expected_amount: Optional[float] = None
     paid_amount: Optional[float] = None
@@ -58,3 +65,24 @@ class AdvancePaymentSuggestionResponse(BaseModel):
     year: int
     suggested_amount: Optional[Decimal] = None
     has_data: bool
+
+
+class AdvancePaymentOverviewRow(BaseModel):
+    id: int
+    client_id: int
+    client_name: str
+    month: int
+    year: int
+    expected_amount: Optional[float] = None
+    paid_amount: Optional[float] = None
+    status: AdvancePaymentStatus
+    due_date: date
+
+    model_config = {"from_attributes": True, "use_enum_values": True}
+
+
+class AdvancePaymentOverviewResponse(BaseModel):
+    items: list[AdvancePaymentOverviewRow]
+    page: int
+    page_size: int
+    total: int

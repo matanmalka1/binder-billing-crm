@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.utils.time import utcnow
 
 
 class AdvancePaymentRepository(BaseRepository):
@@ -36,8 +35,7 @@ class AdvancePaymentRepository(BaseRepository):
     def get_by_id(self, id: int) -> Optional[AdvancePayment]:
         return self.db.query(AdvancePayment).filter(AdvancePayment.id == id).first()
 
-    def update(self, id: int, **fields) -> Optional[AdvancePayment]:
-        payment = self.get_by_id(id)
+    def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
 
     def get_annual_output_vat(self, client_id: int, year: int) -> Optional[Decimal]:
@@ -57,6 +55,30 @@ class AdvancePaymentRepository(BaseRepository):
         if result is None:
             return None
         return Decimal(str(result))
+
+    def list_overview(
+        self,
+        year: int,
+        month: Optional[int],
+        statuses: list[AdvancePaymentStatus],
+        page: int = 1,
+        page_size: int = 50,
+    ):
+        from app.clients.models.client import Client
+
+        query = (
+            self.db.query(AdvancePayment, Client.full_name)
+            .join(Client, Client.id == AdvancePayment.client_id)
+            .filter(AdvancePayment.year == year)
+        )
+        if month is not None:
+            query = query.filter(AdvancePayment.month == month)
+        if statuses:
+            query = query.filter(AdvancePayment.status.in_(statuses))
+        query = query.order_by(Client.full_name.asc(), AdvancePayment.month.asc())
+        total = query.count()
+        rows = self._paginate(query, page, page_size)
+        return rows, total
 
     def create(
         self,

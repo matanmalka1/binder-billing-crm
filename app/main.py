@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.advance_payments.api import advance_payments
+from app.advance_payments.api import advance_payments, advance_payments_overview  # noqa: F401
 from app.annual_reports.api import (
     annual_report_client,
     annual_report_create_read,

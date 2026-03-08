@@ -39,9 +39,6 @@ class AdvancePaymentService:
         if not self.client_repo.get_by_id(client_id):
             raise LookupError("לקוח לא נמצא")
 
-        if month < 1 or month > 12:
-            raise ValueError("החודש חייב להיות בין 1 ל-12")
-
         existing, _ = self.repo.list_by_client_year(client_id, year, page=1, page_size=12)
         if any(p.month == month for p in existing):
             raise RuntimeError("תשלום מקדמה לחודש זה כבר קיים")
@@ -56,22 +53,31 @@ class AdvancePaymentService:
             tax_deadline_id=tax_deadline_id,
         )
 
+    _ALLOWED_UPDATE_FIELDS = {"paid_amount", "expected_amount", "status"}
+
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)
         if not payment:
             raise ValueError(f"תשלום מקדמה {payment_id} לא נמצא")
 
-        if "status" in fields and fields["status"] is not None:
-            try:
-                AdvancePaymentStatus(fields["status"])
-            except ValueError:
-                raise ValueError(
-                    f"סטטוס לא חוקי: {fields['status']}. "  
-                    f"חייב להיות אחד מ: pending, paid, partial, overdue"
-                )
+        filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
+        return self.repo.update(payment, **filtered)
 
-        updated = self.repo.update(payment_id, **fields)
-        return updated
+    def list_overview(
+        self,
+        year: int,
+        month=None,
+        statuses=None,
+        page: int = 1,
+        page_size: int = 50,
+    ):
+        if statuses is None:
+            statuses = [
+                AdvancePaymentStatus.PENDING,
+                AdvancePaymentStatus.OVERDUE,
+                AdvancePaymentStatus.PARTIAL,
+            ]
+        return self.repo.list_overview(year, month, statuses, page=page, page_size=page_size)
 
     def suggest_expected_amount(
         self, client_id: int, year: int
