@@ -47,6 +47,9 @@ class ReminderService:
     def get_pending_reminders(self, **kwargs):
         return queries.get_pending_reminders(self.reminder_repo, self.client_repo, **kwargs)
 
+    def get_reminders_by_client(self, **kwargs):
+        return queries.get_reminders_by_client(self.reminder_repo, self.client_repo, **kwargs)
+
     def get_reminder(self, reminder_id: int):
         return queries.get_reminder(self.reminder_repo, reminder_id)
 

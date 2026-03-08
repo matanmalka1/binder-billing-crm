@@ -84,7 +84,7 @@ def mark_materials_complete(
 
     if item.status != VatWorkItemStatus.PENDING_MATERIALS:
         raise ValueError(
-            f"Cannot mark materials complete from status {item.status.value}"
+            f"לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}"
         )
 
     from app.vat_reports.services.constants import ACTION_STATUS_CHANGED

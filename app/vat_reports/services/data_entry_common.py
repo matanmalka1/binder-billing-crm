@@ -20,7 +20,7 @@ def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
     allowed = VALID_TRANSITIONS.get(item.status, set())
     if target_status not in allowed:
         raise ValueError(
-            f"Cannot transition from {item.status.value} to {target_status.value}"
+            f"לא ניתן לעבור מ-{item.status.value} ל-{target_status.value}"
         )
 
 

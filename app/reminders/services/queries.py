@@ -60,5 +60,18 @@ def get_pending_reminders(
     return items, total, _build_name_map(client_repo, items)
 
 
+def get_reminders_by_client(
+    reminder_repo: ReminderRepository,
+    client_repo: ClientRepository,
+    *,
+    client_id: int,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Reminder], int, Dict[int, str]]:
+    items = reminder_repo.list_by_client(client_id=client_id, page=page, page_size=page_size)
+    total = reminder_repo.count_by_client(client_id)
+    return items, total, _build_name_map(client_repo, items)
+
+
 def get_reminder(reminder_repo: ReminderRepository, reminder_id: int) -> Optional[Reminder]:
     return reminder_repo.get_by_id(reminder_id)

@@ -18,11 +18,17 @@ def list_reminders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
+    client_id: Optional[int] = Query(None),
 ):
     service = ReminderService(db)
 
     try:
-        items, total, name_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
+        if client_id is not None:
+            items, total, name_map = service.get_reminders_by_client(
+                client_id=client_id, page=page, page_size=page_size
+            )
+        else:
+            items, total, name_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

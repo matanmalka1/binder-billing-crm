@@ -44,7 +44,7 @@ class InvoiceService:
         # Validate charge is issued
         if charge.status != ChargeStatus.ISSUED:
             raise ValueError(
-                f"Cannot attach invoice to charge with status {charge.status.value}"
+                f"לא ניתן לצרף חשבונית לחיוב במצב {charge.status.value}"
             )
 
         # Validate no existing invoice
