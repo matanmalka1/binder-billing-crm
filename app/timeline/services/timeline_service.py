@@ -11,8 +11,11 @@ from app.binders.repositories.binder_status_log_repository import BinderStatusLo
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.timeline.repositories.timeline_repository import TimelineRepository
+from app.timeline.services.timeline_client_aggregator import build_client_events
 from app.timeline.services.timeline_event_builders import (
     binder_received_event,
     binder_returned_event,
@@ -38,6 +41,8 @@ class TimelineService:
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
         self.notification_repo = NotificationRepository(db)
+        self.reminder_repo = ReminderRepository(db)
+        self.sig_repo = SignatureRequestRepository(db)
 
     def get_client_timeline(
         self,
@@ -77,6 +82,11 @@ class TimelineService:
 
         events.extend(self._build_tax_deadline_events(client_id))
         events.extend(self._build_annual_report_events(client_id))
+        events.extend(
+            build_client_events(
+                self.timeline_repo.db, client_id, self.reminder_repo, self.sig_repo
+            )
+        )
 
         events.sort(key=lambda e: e["timestamp"], reverse=True)
         total = len(events)
@@ -107,3 +117,4 @@ class TimelineService:
             .all()
         )
         return [annual_report_status_changed_event(r) for r in reports]
+
