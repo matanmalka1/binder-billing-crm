@@ -12,6 +12,18 @@ signer_router = APIRouter(
 )
 
 
+def _to_signer_view(req) -> SignerViewResponse:
+    return SignerViewResponse(
+        request_id=req.id,
+        title=req.title,
+        description=req.description,
+        signer_name=req.signer_name,
+        status=req.status.value,
+        content_hash=req.content_hash,
+        expires_at=req.expires_at,
+    )
+
+
 @signer_router.get("/{token}", response_model=SignerViewResponse)
 def signer_view(token: str, raw_request: Request, db: DBSession):
     service = SignatureRequestService(db)
@@ -21,15 +33,7 @@ def signer_view(token: str, raw_request: Request, db: DBSession):
             ip_address=raw_request.client.host if raw_request.client else None,
             user_agent=raw_request.headers.get("user-agent"),
         )
-        return SignerViewResponse(
-            request_id=req.id,
-            title=req.title,
-            description=req.description,
-            signer_name=req.signer_name,
-            status=req.status.value,
-            content_hash=req.content_hash,
-            expires_at=req.expires_at,
-        )
+        return _to_signer_view(req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -43,15 +47,7 @@ def signer_approve(token: str, raw_request: Request, db: DBSession):
             ip_address=raw_request.client.host if raw_request.client else None,
             user_agent=raw_request.headers.get("user-agent"),
         )
-        return SignerViewResponse(
-            request_id=req.id,
-            title=req.title,
-            description=req.description,
-            signer_name=req.signer_name,
-            status=req.status.value,
-            content_hash=req.content_hash,
-            expires_at=req.expires_at,
-        )
+        return _to_signer_view(req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -66,14 +62,6 @@ def signer_decline(token: str, body: SignerDeclineRequest, raw_request: Request,
             ip_address=raw_request.client.host if raw_request.client else None,
             user_agent=raw_request.headers.get("user-agent"),
         )
-        return SignerViewResponse(
-            request_id=req.id,
-            title=req.title,
-            description=req.description,
-            signer_name=req.signer_name,
-            status=req.status.value,
-            content_hash=req.content_hash,
-            expires_at=req.expires_at,
-        )
+        return _to_signer_view(req)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

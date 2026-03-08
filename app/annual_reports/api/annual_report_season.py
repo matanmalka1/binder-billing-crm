@@ -4,7 +4,6 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
     AnnualReportListResponse,
-    AnnualReportResponse,
     SeasonSummaryResponse,
 )
 from app.annual_reports.services import AnnualReportService
@@ -29,7 +28,7 @@ def list_season_reports(
     service = AnnualReportService(db)
     items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
     return AnnualReportListResponse(
-        items=[AnnualReportResponse.model_validate(r) for r in items],
+        items=items,
         page=page,
         page_size=page_size,
         total=total,
