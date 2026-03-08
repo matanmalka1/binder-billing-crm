@@ -48,7 +48,8 @@ class Reminder(Base):
     binder_id = Column(Integer, ForeignKey("binders.id"), nullable=True, index=True)
     charge_id = Column(Integer, ForeignKey("charges.id"), nullable=True, index=True)
     tax_deadline_id = Column(Integer, ForeignKey("tax_deadlines.id"), nullable=True, index=True)
-    
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
+
     # Message
     message = Column(Text, nullable=False)
     

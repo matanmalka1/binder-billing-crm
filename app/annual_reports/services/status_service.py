@@ -10,6 +10,16 @@ from .base import AnnualReportBaseService
 
 
 class AnnualReportStatusService(AnnualReportBaseService):
+
+    def _assert_filing_readiness(self, report_id: int) -> None:
+        """Raise ValueError listing all blocking issues before SUBMITTED transition."""
+        from app.annual_reports.services.financial_service import AnnualReportFinancialService
+        svc = AnnualReportFinancialService(self.db)
+        result = svc.get_readiness_check(report_id)
+        if not result.is_ready:
+            issues_str = "; ".join(result.issues)
+            raise ValueError(f"הדוח אינו מוכן להגשה: {issues_str}")
+
     def transition_status(
         self,
         report_id: int,
@@ -36,6 +46,9 @@ class AnnualReportStatusService(AnnualReportBaseService):
                 f"לא ניתן לעבור מ-'{report.status.value}' ל-'{ns.value}'. "
                 f"סטטוסים הבאים מותרים: {allowed}"
                     )
+
+        if ns == AnnualReportStatus.SUBMITTED:
+            self._assert_filing_readiness(report_id)
 
         update_fields: dict = {"status": ns}
 

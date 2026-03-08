@@ -45,15 +45,24 @@ class AnnualReportQueryService(AnnualReportBaseService):
         return self.repo.get_status_history(report_id)
 
     def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
-        """Return report with schedules and status history assembled. None if not found."""
+        """Return report with schedules, history, and financial summary. None if not found."""
+        from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
+        from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
         report = self.get_report(report_id)
         if report is None:
             return None
         schedules = self.repo.get_schedules(report_id)
         history = self.repo.get_status_history(report_id)
+        income_repo = AnnualReportIncomeRepository(self.db)
+        expense_repo = AnnualReportExpenseRepository(self.db)
+        total_income = income_repo.total_income(report_id)
+        total_expenses = expense_repo.total_expenses(report_id)
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
         response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
+        response.total_income = float(total_income)
+        response.total_expenses = float(total_expenses)
+        response.taxable_income = float(total_income - total_expenses)
         return response
 
     def kanban_view(self) -> list[dict]:

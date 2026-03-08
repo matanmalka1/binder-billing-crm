@@ -98,6 +98,11 @@ class AnnualReportDetailResponse(AnnualReportResponse):
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
 
+    # Financial summary (from income/expense lines)
+    total_income: float = 0.0
+    total_expenses: float = 0.0
+    taxable_income: float = 0.0
+
 
 # ── Status transition ────────────────────────────────────────────────────────
 

@@ -36,6 +36,7 @@ class Binder(Base):
     received_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     returned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     pickup_person_name = Column(String, nullable=True)
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     deleted_at = Column(DateTime, nullable=True)

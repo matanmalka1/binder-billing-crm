@@ -1,0 +1,50 @@
+"""Deductible expense line items for an annual tax report."""
+
+from enum import Enum as PyEnum
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
+
+from app.database import Base
+from app.utils.time import utcnow
+
+
+class ExpenseCategoryType(str, PyEnum):
+    OFFICE_RENT = "office_rent"               # שכירות משרד
+    PROFESSIONAL_SERVICES = "professional_services"  # שירותים מקצועיים
+    SALARIES = "salaries"                     # שכר עבודה
+    DEPRECIATION = "depreciation"             # פחת
+    VEHICLE = "vehicle"                       # רכב
+    MARKETING = "marketing"                   # שיווק ופרסום
+    INSURANCE = "insurance"                   # ביטוח
+    COMMUNICATION = "communication"           # תקשורת
+    TRAVEL = "travel"                         # נסיעות
+    TRAINING = "training"                     # הכשרה מקצועית
+    BANK_FEES = "bank_fees"                   # עמלות בנק
+    OTHER = "other"                           # אחר
+
+
+class AnnualReportExpenseLine(Base):
+    """
+    Single deductible expense line attached to an annual report.
+    """
+
+    __tablename__ = "annual_report_expense_lines"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    annual_report_id = Column(
+        Integer, ForeignKey("annual_reports.id"), nullable=False, index=True
+    )
+    category = Column(Enum(ExpenseCategoryType), nullable=False)
+    amount = Column(Numeric(14, 2), nullable=False)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    def __repr__(self):
+        return (
+            f"<AnnualReportExpenseLine(id={self.id}, report_id={self.annual_report_id}, "
+            f"category={self.category}, amount={self.amount})>"
+        )
+
+
+__all__ = ["AnnualReportExpenseLine", "ExpenseCategoryType"]

@@ -9,6 +9,7 @@ from app.annual_reports.api import (
     annual_report_client,
     annual_report_create_read,
     annual_report_detail,
+    annual_report_financials,
     annual_report_schedule,
     annual_report_season,
     annual_report_status,
@@ -117,6 +118,7 @@ def info():
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(annual_report_detail.router, prefix="/api/v1")
+app.include_router(annual_report_financials.router, prefix="/api/v1")
 app.include_router(annual_report_create_read.router, prefix="/api/v1")
 app.include_router(annual_report_schedule.router, prefix="/api/v1")
 app.include_router(annual_report_status.router, prefix="/api/v1")

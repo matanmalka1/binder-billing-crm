@@ -1,0 +1,78 @@
+"""Schemas for income/expense lines and financial summary."""
+
+from decimal import Decimal
+from typing import Optional
+from datetime import datetime
+
+from pydantic import BaseModel
+
+
+# ── Income ────────────────────────────────────────────────────────────────────
+
+class IncomeLineCreateRequest(BaseModel):
+    source_type: str   # IncomeSourceType value
+    amount: Decimal
+    description: Optional[str] = None
+
+
+class IncomeLineUpdateRequest(BaseModel):
+    source_type: Optional[str] = None
+    amount: Optional[Decimal] = None
+    description: Optional[str] = None
+
+
+class IncomeLineResponse(BaseModel):
+    id: int
+    annual_report_id: int
+    source_type: str
+    amount: float
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+# ── Expenses ──────────────────────────────────────────────────────────────────
+
+class ExpenseLineCreateRequest(BaseModel):
+    category: str   # ExpenseCategoryType value
+    amount: Decimal
+    description: Optional[str] = None
+
+
+class ExpenseLineUpdateRequest(BaseModel):
+    category: Optional[str] = None
+    amount: Optional[Decimal] = None
+    description: Optional[str] = None
+
+
+class ExpenseLineResponse(BaseModel):
+    id: int
+    annual_report_id: int
+    category: str
+    amount: float
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+# ── Financial summary ─────────────────────────────────────────────────────────
+
+class FinancialSummaryResponse(BaseModel):
+    annual_report_id: int
+    total_income: float
+    total_expenses: float
+    taxable_income: float
+    income_lines: list[IncomeLineResponse] = []
+    expense_lines: list[ExpenseLineResponse] = []
+
+
+# ── Readiness check ───────────────────────────────────────────────────────────
+
+class ReadinessCheckResponse(BaseModel):
+    annual_report_id: int
+    is_ready: bool
+    issues: list[str]

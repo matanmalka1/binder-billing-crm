@@ -37,6 +37,7 @@ class Charge(Base):
     canceled_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     canceled_at = Column(DateTime, nullable=True)
     cancellation_reason = Column(Text, nullable=True)
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
