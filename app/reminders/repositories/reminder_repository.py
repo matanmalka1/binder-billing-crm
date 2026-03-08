@@ -97,6 +97,20 @@ class ReminderRepository(BaseRepository):
         """Count reminders by status."""
         return self.db.query(Reminder).filter(Reminder.status == status).count()
 
+    def list_by_client(
+        self,
+        client_id: int,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[Reminder]:
+        """List all reminders for a specific client."""
+        query = (
+            self.db.query(Reminder)
+            .filter(Reminder.client_id == client_id)
+            .order_by(Reminder.created_at.desc())
+        )
+        return self._paginate(query, page, page_size)
+
     def update_status(
         self,
         reminder_id: int,
