@@ -103,7 +103,10 @@ def get_operational_signals(
 )
 def delete_document(document_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete a permanent document (ADVISOR only)."""
-    PermanentDocumentService(db).delete_document(document_id)
+    try:
+        PermanentDocumentService(db).delete_document(document_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.put(
@@ -119,10 +122,13 @@ def replace_document(
 ):
     """Replace the file for an existing document (ADVISOR only)."""
     file_data = BytesIO(file.file.read())
-    doc = PermanentDocumentService(db).replace_document(
-        document_id=document_id,
-        file_data=file_data,
-        filename=file.filename or "document",
-        uploaded_by=user.id,
-    )
+    try:
+        doc = PermanentDocumentService(db).replace_document(
+            document_id=document_id,
+            file_data=file_data,
+            filename=file.filename or "document",
+            uploaded_by=user.id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return PermanentDocumentResponse.model_validate(doc)

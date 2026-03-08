@@ -21,6 +21,11 @@ class AnnualReportService(
         self.repo = AnnualReportRepository(db)
         self.client_repo = ClientRepository(db)
 
+    def assert_report_exists(self, report_id: int) -> None:
+        """Raise ValueError if the report does not exist."""
+        if not self.repo.get_by_id(report_id):
+            raise ValueError(f"הדוח השנתי {report_id} לא נמצא")
+
     def delete_report(self, report_id: int, actor_id: int) -> bool:
         """Soft-delete an annual report. Returns False if not found."""
         report = self.repo.get_by_id(report_id)

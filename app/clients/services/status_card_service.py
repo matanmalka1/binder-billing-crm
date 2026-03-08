@@ -31,8 +31,7 @@ class StatusCardService:
     def get_status_card(self, client_id: int) -> ClientStatusCardResponse:
         client = self._client_repo.get_by_id(client_id)
         if not client:
-            from fastapi import HTTPException, status
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
+            raise ValueError("הלקוח לא נמצא")
 
         year = datetime.utcnow().year
         return ClientStatusCardResponse(

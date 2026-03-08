@@ -1,10 +1,9 @@
-from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
+from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.users.models.user import UserRole
 from app.tax_deadline.schemas.tax_deadline import (
     DashboardDeadlinesResponse,
@@ -78,13 +77,7 @@ def list_tax_deadlines(
         # Client-scoped: naturally bounded, no ceiling needed.
         items = service.get_client_deadlines(client_id, status_filter, type_enum)
     else:
-        # Global fetch — bounded to _GLOBAL_DEADLINE_FETCH_LIMIT rows.
-        # Records beyond the ceiling are silently excluded (known debt).
-        items = service.deadline_repo.list_pending_due_by_date(
-            date.today(),
-            date(2099, 12, 31),
-        )
-        items = items[:_GLOBAL_DEADLINE_FETCH_LIMIT]
+        items = service.list_all_pending()[:_GLOBAL_DEADLINE_FETCH_LIMIT]
 
     total = len(items)
     offset = (page - 1) * page_size
@@ -109,14 +102,10 @@ def list_tax_deadlines(
 def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Get tax deadline by ID."""
     service = TaxDeadlineService(db)
-    deadline = service.deadline_repo.get_by_id(deadline_id)
-
-    if not deadline:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="מועד המס לא נמצא",
-        )
-
+    try:
+        deadline = service.get_deadline(deadline_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return TaxDeadlineResponse.model_validate(deadline)
 
 

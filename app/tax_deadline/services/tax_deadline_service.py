@@ -78,6 +78,19 @@ class TaxDeadlineService:
 
         return deadline
 
+    def get_deadline(self, deadline_id: int) -> TaxDeadline:
+        """Return deadline by ID. Raises ValueError if not found."""
+        deadline = self.deadline_repo.get_by_id(deadline_id)
+        if not deadline:
+            raise ValueError(f"מועד המס {deadline_id} לא נמצא")
+        return deadline
+
+    def list_all_pending(self) -> list[TaxDeadline]:
+        """Return all pending deadlines regardless of client."""
+        return self.deadline_repo.list_pending_due_by_date(
+            date.today(), date(2099, 12, 31)
+        )
+
     def delete_deadline(self, deadline_id: int) -> None:
         """Delete a deadline."""
         deleted = self.deadline_repo.delete(deadline_id)

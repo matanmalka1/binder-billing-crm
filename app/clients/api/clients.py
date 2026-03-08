@@ -58,13 +58,16 @@ def list_clients(
 ):
     """List clients with pagination."""
     service = ClientService(db)
-    items, total = service.list_clients(
-        status=status_filter,
-        has_signals=has_signals,
-        search=search or None,
-        page=page,
-        page_size=page_size,
-    )
+    try:
+        items, total = service.list_clients(
+            status=status_filter,
+            has_signals=has_signals,
+            search=search or None,
+            page=page,
+            page_size=page_size,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return ClientListResponse(
         items=[_to_client_response(c, user.role) for c in items],

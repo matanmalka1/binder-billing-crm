@@ -7,6 +7,7 @@ from app.annual_reports.schemas.annual_report_detail import (
     ReportDetailResponse,
 )
 from app.annual_reports.services import AnnualReportDetailService
+from app.annual_reports.services.annual_report_service import AnnualReportService
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -15,18 +16,12 @@ router = APIRouter(
 )
 
 
-def _verify_report_exists(report_id: int, db) -> None:
-    from app.annual_reports.repositories import AnnualReportRepository
-    report = AnnualReportRepository(db).get_by_id(report_id)
-    if not report:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="הדוח השנתי לא נמצא"
-        )
-
-
 @router.get("/{report_id}/details", response_model=ReportDetailResponse)
 def get_annual_report_detail(report_id: int, db: DBSession, user: CurrentUser):
-    _verify_report_exists(report_id, db)
+    try:
+        AnnualReportService(db).assert_report_exists(report_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     service = AnnualReportDetailService(db)
     detail = service.get_detail(report_id)
     if detail is None:
@@ -41,7 +36,10 @@ def update_annual_report_detail(
     db: DBSession,
     user: CurrentUser,
 ):
-    _verify_report_exists(report_id, db)
+    try:
+        AnnualReportService(db).assert_report_exists(report_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     service = AnnualReportDetailService(db)
     try:
         update_data = request.model_dump(exclude_unset=True)

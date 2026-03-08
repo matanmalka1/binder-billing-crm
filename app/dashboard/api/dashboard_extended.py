@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -24,7 +24,10 @@ def get_work_queue(
 ):
     """Get operational work queue."""
     service = DashboardExtendedService(db)
-    items, total = service.get_work_queue(page=page, page_size=page_size)
+    try:
+        items, total = service.get_work_queue(page=page, page_size=page_size)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     return WorkQueueResponse(
         items=items,
@@ -41,7 +44,10 @@ def get_attention_items(
 ):
     """Get items requiring attention."""
     service = DashboardExtendedService(db)
-    items = service.get_attention_items(user_role=user.role)
+    try:
+        items = service.get_attention_items(user_role=user.role)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
     return AttentionResponse(
         items=items,

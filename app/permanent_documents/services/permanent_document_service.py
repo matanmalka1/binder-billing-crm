@@ -1,7 +1,6 @@
 from datetime import datetime
 from typing import BinaryIO, Optional
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.infrastructure.storage import StorageProvider, get_storage_provider
@@ -74,7 +73,7 @@ class PermanentDocumentService:
         """
         doc = self.document_repo.get_by_id(document_id)
         if not doc or doc.is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המסמך לא נמצא")
+            raise ValueError("המסמך לא נמצא")
         return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
 
     def list_client_documents(self, client_id: int) -> list[PermanentDocument]:
@@ -99,7 +98,7 @@ class PermanentDocumentService:
         """Soft-delete a document (set is_deleted=True). Raises 404 if not found."""
         doc = self.document_repo.get_by_id(document_id)
         if not doc or doc.is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המסמך לא נמצא")
+            raise ValueError("המסמך לא נמצא")
         doc.is_deleted = True
         self.db.commit()
 
@@ -113,7 +112,7 @@ class PermanentDocumentService:
         """Replace file for an existing document. Raises 404 if not found or deleted."""
         doc = self.document_repo.get_by_id(document_id)
         if not doc or doc.is_deleted:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המסמך לא נמצא")
+            raise ValueError("המסמך לא נמצא")
         storage_key = f"clients/{doc.client_id}/{doc.document_type.value}/{filename}"
         self.storage.upload(storage_key, file_data, "application/octet-stream")
         doc.storage_key = storage_key

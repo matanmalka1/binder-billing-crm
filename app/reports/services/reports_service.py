@@ -7,9 +7,8 @@ from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 
-# Safety ceiling for unpaid charge fetch in aging report.
-# At 10 000 rows the fetch is an OOM risk in production.
-# Known architectural debt — proper fix requires streaming aggregation.
+# Hard limit for unpaid charge fetch in aging report.
+# Proper fix: streaming/SQL aggregation (Sprint 10+).
 _AGING_CHARGE_FETCH_LIMIT = 2000
 
 
@@ -40,6 +39,12 @@ class AgingReportService:
         if as_of_date is None:
             as_of_date = date.today()
 
+        total_unpaid = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
+        if total_unpaid > _AGING_CHARGE_FETCH_LIMIT:
+            raise ValueError(
+                f"מספר החיובים הלא משולמים ({total_unpaid}) חורג מהמגבלה לדוח הגיול "
+                f"({_AGING_CHARGE_FETCH_LIMIT})."
+            )
         unpaid_charges = self.charge_repo.list_charges(
             status=ChargeStatus.ISSUED.value,
             page=1,

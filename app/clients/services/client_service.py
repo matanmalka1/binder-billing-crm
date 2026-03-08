@@ -8,9 +8,9 @@ from app.users.models.user import UserRole
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.signals_service import SignalsService
 
-# Safety ceiling for in-memory signal filtering.
-# Prevents OOM when client count grows. Known architectural debt —
-# a proper fix requires persisting signal state or a materialized view.
+# Hard limit for in-memory signal filtering.
+# Exceeding this means the deployment has outgrown in-memory signal computation.
+# Proper fix: persist signal state or use a materialized view (Sprint 10+).
 _HAS_SIGNALS_FETCH_LIMIT = 1000
 
 
@@ -85,8 +85,12 @@ class ClientService:
             total = self.client_repo.count(status=status, search=search)
             return items, total
 
-        # In-memory signal filtering — bounded by _HAS_SIGNALS_FETCH_LIMIT.
-        # Results beyond the ceiling are silently excluded (known debt).
+        total_count = self.client_repo.count(status=status, search=search)
+        if total_count > _HAS_SIGNALS_FETCH_LIMIT:
+            raise ValueError(
+                f"מספר הלקוחות ({total_count}) חורג מהמגבלה לסינון לפי איתותים ({_HAS_SIGNALS_FETCH_LIMIT}). "
+                "יש להשתמש בפילטרים נוספים."
+            )
         base_clients = self.client_repo.list(
             status=status, page=1, page_size=_HAS_SIGNALS_FETCH_LIMIT, search=search
         )
