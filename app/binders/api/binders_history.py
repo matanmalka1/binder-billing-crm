@@ -25,7 +25,7 @@ def get_binder_history(
     if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Binder not found",
+            detail="הקלסר לא נמצא",
         )
     
     binder, logs = result

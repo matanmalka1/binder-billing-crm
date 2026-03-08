@@ -32,7 +32,7 @@ def file_vat_return(
     if current_user.role != UserRole.ADVISOR:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only advisors can file a VAT return",
+            detail="רק יועצים יכולים להגיש דוח מע\"מ",
         )
 
     service = VatReportService(db)

@@ -87,7 +87,7 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} לא נמצא")
+            raise ValueError(f"החיוב {charge_id} לא נמצא")
 
         if charge.status != ChargeStatus.ISSUED:
             raise ValueError(

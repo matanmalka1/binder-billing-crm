@@ -25,7 +25,7 @@ def get_current_user(
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing authentication token",
+            detail="חסר טוקן אימות",
         )
 
     payload = AuthService.decode_token(token)
@@ -33,7 +33,7 @@ def get_current_user(
     if not payload or "sub" not in payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
+            detail="הטוקן אינו תקין או שפג תוקפו",
         )
 
     try:
@@ -42,7 +42,7 @@ def get_current_user(
     except (ValueError, KeyError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token format",
+            detail="פורמט הטוקן אינו תקין",
         )
 
     user_repo = UserRepository(db)
@@ -51,13 +51,13 @@ def get_current_user(
     if not user or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found or inactive",
+            detail="המשתמש לא נמצא או שאינו פעיל",
         )
 
     if token_version != user.token_version:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
+            detail="הטוקן אינו תקין או שפג תוקפו",
         )
 
     return user
@@ -70,7 +70,7 @@ def require_role(*allowed_roles: UserRole):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Insufficient permissions",
+                detail="אין הרשאות מתאימות",
             )
         return current_user
 

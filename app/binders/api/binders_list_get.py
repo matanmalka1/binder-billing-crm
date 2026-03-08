@@ -122,7 +122,7 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     binder = service.get_binder(binder_id)
 
     if not binder:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הקלסר לא נמצא")
 
     return fetch_client_and_build_response(binder, db, signals_service)
 
@@ -137,5 +137,5 @@ def delete_binder(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderService(db)
     deleted = service.delete_binder(binder_id, actor_id=user.id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Binder not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הקלסר לא נמצא")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

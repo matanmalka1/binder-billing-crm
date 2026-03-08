@@ -81,7 +81,7 @@ def get_client(client_id: int, db: DBSession, user: CurrentUser):
     client = service.get_client(client_id)
 
     if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
 
     return _to_client_response(client, user.role)
 
@@ -112,7 +112,7 @@ def update_client(
         )
 
     if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
 
     return _to_client_response(client, user.role)
 
@@ -127,5 +127,5 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
     service = ClientService(db)
     deleted = service.delete_client(client_id, actor_id=user.id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

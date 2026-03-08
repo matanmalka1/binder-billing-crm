@@ -33,7 +33,7 @@ class ErrorResponse:
             "detail": detail,
             "error": {
                 "type": error_type,
-                "detail": detail if isinstance(detail, str) else "Invalid request data",
+                "detail": detail if isinstance(detail, str) else "נתוני הבקשה אינם תקינים",
                 "status_code": status_code,
             },
         }
@@ -98,7 +98,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
             exc_info=exc,
             extra={"path": request.url.path},
         )
-        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error", "database_error")
+        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "database_error")
 
     @app.exception_handler(Exception)
     async def general_exception_handler(
@@ -110,4 +110,4 @@ def setup_exception_handlers(app: FastAPI) -> None:
             exc_info=exc,
             extra={"path": request.url.path},
         )
-        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal Server Error", "server_error")
+        return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "server_error")

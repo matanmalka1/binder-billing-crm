@@ -70,7 +70,7 @@ def export_aging_report(
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid format. Use 'excel' or 'pdf'",
+                detail="פורמט לא תקין. יש להשתמש ב-'excel' או 'pdf'",
             )
         
         # Return file directly as download
@@ -86,10 +86,10 @@ def export_aging_report(
     except ImportError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Export library not installed: {str(e)}",
+            detail=f"ספריית הייצוא אינה מותקנת: {str(e)}",
         )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Export failed: {str(e)}",
+            detail=f"הייצוא נכשל: {str(e)}",
         )

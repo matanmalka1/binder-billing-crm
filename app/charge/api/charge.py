@@ -141,7 +141,7 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
 
     if not charge:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Charge not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="החיוב לא נמצא"
         )
 
     if user.role == UserRole.SECRETARY:

@@ -33,7 +33,7 @@ class CorrespondenceService:
             contact = self.contact_repo.get_by_id(contact_id)
             if not contact or contact.client_id != client_id:
                 raise ValueError(
-                    f"Contact {contact_id} does not belong to client {client_id}"
+                    f"איש הקשר {contact_id} אינו שייך ללקוח {client_id}"
                 )
 
         return self.repo.create(
@@ -66,7 +66,7 @@ class CorrespondenceService:
             contact = self.contact_repo.get_by_id(contact_id)
             if not contact or contact.client_id != client_id:
                 raise ValueError(
-                    f"Contact {contact_id} does not belong to client {client_id}"
+                    f"איש הקשר {contact_id} אינו שייך ללקוח {client_id}"
                 )
 
         updated = self.repo.update(entry_id, **fields)

@@ -64,7 +64,7 @@ def export_vat_client(
         logger.exception("VAT export failed for client_id=%s year=%s", client_id, year)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Export failed. Please try again.",
+            detail="הייצוא נכשל. יש לנסות שוב.",
         )
 
     return FileResponse(

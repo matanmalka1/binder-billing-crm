@@ -41,7 +41,7 @@ def create_work_item(
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"VAT work item already exists for client {request.client_id} period {request.period}",
+            detail=f"כבר קיים פריט עבודה למע\"מ עבור לקוח {request.client_id} לתקופה {request.period}",
         )
     return item
 

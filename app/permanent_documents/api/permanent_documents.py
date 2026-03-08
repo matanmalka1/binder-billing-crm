@@ -43,7 +43,7 @@ def upload_permanent_document(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid document type: {document_type}",
+            detail=f"סוג המסמך אינו תקין: {document_type}",
         )
 
     try:

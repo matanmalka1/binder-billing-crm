@@ -29,7 +29,7 @@ def list_client_binders(
     if not service.client_exists(client_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Client not found",
+            detail="הלקוח לא נמצא",
         )
 
     items, total = service.get_client_binders(

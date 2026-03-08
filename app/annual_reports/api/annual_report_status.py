@@ -133,7 +133,7 @@ def transition_stage(
     if not target_status:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid stage '{body.to_stage}'",
+            detail=f"השלב '{body.to_stage}' אינו תקין",
         )
 
     service = AnnualReportService(db)

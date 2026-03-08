@@ -108,8 +108,8 @@ class S3StorageProvider(StorageProvider):
             from botocore.config import Config
         except ImportError:
             raise RuntimeError(
-                "boto3 is required for S3StorageProvider. "
-                "Install it with: pip install boto3"
+                "הספרייה boto3 נדרשת עבור S3StorageProvider. "
+                "יש להתקין באמצעות: pip install boto3"
             )
 
         self._bucket = bucket_name
@@ -191,7 +191,7 @@ def get_storage_provider() -> StorageProvider:
     ]
     if missing:
         raise RuntimeError(
-            f"S3StorageProvider requires these env vars to be set: {', '.join(missing)}"
+            f"S3StorageProvider דורש שמשתני הסביבה הבאים יהיו מוגדרים: {', '.join(missing)}"
         )
 
     logger.info("Storage: using S3StorageProvider (env=%s)", config.APP_ENV)

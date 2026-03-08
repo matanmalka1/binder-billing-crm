@@ -5,7 +5,7 @@ from app.config import config
 
 
 if config.APP_ENV == "production" and config.DATABASE_URL.startswith("sqlite"):
-    raise RuntimeError("SQLite is not allowed in production environment")
+    raise RuntimeError("SQLite אינו מותר בסביבת ייצור")
 
 # Create engine
 engine = create_engine(

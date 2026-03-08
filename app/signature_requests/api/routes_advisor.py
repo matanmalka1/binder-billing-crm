@@ -72,7 +72,7 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
     req = service.get_request(request_id)
     if not req:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signature request not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה")
 
     audit_events = service.get_audit_trail(request_id)
     response = SignatureRequestWithAuditResponse.model_validate(req)
@@ -128,6 +128,6 @@ def get_audit_trail(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
     req = service.get_request(request_id)
     if not req:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signature request not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה")
     events = service.get_audit_trail(request_id)
     return [SignatureAuditEventResponse.model_validate(e) for e in events]

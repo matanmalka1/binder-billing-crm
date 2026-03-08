@@ -24,7 +24,7 @@ def login(request: LoginRequest, db: DBSession, response: Response):
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="אימייל או סיסמה שגויים",
         )
 
     ttl_hours = config.JWT_TTL_HOURS

@@ -96,7 +96,7 @@ def delete_invoice(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
 
 
 @router.post(

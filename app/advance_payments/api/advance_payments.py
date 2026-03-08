@@ -32,7 +32,7 @@ def list_advance_payments(
 
     client = ClientRepository(db).get_by_id(client_id)
     if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
 
     if year is None:
         year = utcnow().year

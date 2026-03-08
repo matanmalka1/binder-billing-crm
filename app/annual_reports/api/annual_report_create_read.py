@@ -96,7 +96,7 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     service = AnnualReportService(db)
     report = service.get_report(report_id)
     if report is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
     return _build_detail(report, service)
 
 
@@ -110,5 +110,5 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     service = AnnualReportService(db)
     deleted = service.delete_report(report_id, actor_id=user.id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

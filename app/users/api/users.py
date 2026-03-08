@@ -54,7 +54,7 @@ def get_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     found = service.get_user(actor_role=user.role, user_id=user_id)
     if not found:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return found
 
 
@@ -75,7 +75,7 @@ def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: C
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return updated
 
 
@@ -91,7 +91,7 @@ def activate_user(user_id: int, db: DBSession, user: CurrentUser):
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return updated
 
 
@@ -110,7 +110,7 @@ def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return updated
 
 
@@ -130,5 +130,5 @@ def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, u
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return updated

@@ -71,7 +71,7 @@ def list_tax_deadlines(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid deadline type: {deadline_type}",
+                detail=f"סוג מועד המס אינו תקין: {deadline_type}",
             )
 
     if client_id:
@@ -114,7 +114,7 @@ def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     if not deadline:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tax deadline not found",
+            detail="מועד המס לא נמצא",
         )
 
     return TaxDeadlineResponse.model_validate(deadline)
@@ -149,7 +149,7 @@ def update_tax_deadline(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid deadline type: {request.deadline_type}",
+                detail=f"סוג מועד המס אינו תקין: {request.deadline_type}",
             )
 
     try:
@@ -192,7 +192,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
             DeadlineUrgentItem(
                 id=deadline.id,
                 client_id=deadline.client_id,
-                client_name=client_name_map.get(deadline.client_id) or "Unknown",
+                client_name=client_name_map.get(deadline.client_id) or "לא ידוע",
                 deadline_type=deadline.deadline_type.value,
                 due_date=deadline.due_date,
                 urgency=item["urgency"].value,

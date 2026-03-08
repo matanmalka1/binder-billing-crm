@@ -22,7 +22,7 @@ def create_reminder(
             if not request.tax_deadline_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="tax_deadline_id required for tax_deadline_approaching reminders",
+                    detail="נדרש tax_deadline_id עבור תזכורות מסוג tax_deadline_approaching",
                 )
             reminder = service.create_tax_deadline_reminder(
                 client_id=request.client_id,
@@ -37,7 +37,7 @@ def create_reminder(
             if not request.binder_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="binder_id required for binder_idle reminders",
+                    detail="נדרש binder_id עבור תזכורות מסוג binder_idle",
                 )
             reminder = service.create_idle_binder_reminder(
                 client_id=request.client_id,
@@ -51,7 +51,7 @@ def create_reminder(
             if not request.charge_id:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="charge_id required for unpaid_charge reminders",
+                    detail="נדרש charge_id עבור תזכורות מסוג unpaid_charge",
                 )
             reminder = service.create_unpaid_charge_reminder(
                 client_id=request.client_id,
@@ -65,7 +65,7 @@ def create_reminder(
             if not request.message:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="message is required for custom reminders",
+                    detail="נדרש message עבור תזכורות מותאמות אישית",
                 )
             reminder = service.create_custom_reminder(
                 client_id=request.client_id,
@@ -78,7 +78,7 @@ def create_reminder(
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Unsupported reminder type: {request.reminder_type}",
+                detail=f"סוג התזכורת אינו נתמך: {request.reminder_type}",
             )
 
         return ReminderResponse.model_validate(reminder)

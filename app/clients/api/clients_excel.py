@@ -78,7 +78,7 @@ async def import_clients_from_excel(
     if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File exceeds the 10 MB size limit",
+            detail="הקובץ חורג ממגבלת הגודל של 10MB",
         )
 
     try:
@@ -86,21 +86,21 @@ async def import_clients_from_excel(
     except ImportError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="openpyxl is required for client import",
+            detail="הספרייה openpyxl נדרשת לצורך ייבוא לקוחות",
         ) from exc
 
     contents = await file.read(MAX_UPLOAD_SIZE + 1)
     if len(contents) > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File exceeds the 10 MB size limit",
+            detail="הקובץ חורג ממגבלת הגודל של 10MB",
         )
     try:
         workbook = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unable to read Excel file: {exc}",
+            detail=f"לא ניתן לקרוא את קובץ האקסל: {exc}",
         )
 
     worksheet = workbook.active
@@ -127,7 +127,7 @@ async def import_clients_from_excel(
             errors.append(
                 {
                     "row": row_index,
-                    "error": "Full Name, ID Number, and Client Type are required",
+                    "error": "שם מלא, מספר מזהה וסוג לקוח הם שדות חובה",
                 }
             )
             continue

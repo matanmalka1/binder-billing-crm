@@ -123,7 +123,7 @@ def update_authority_contact(
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid contact type: {update_data['contact_type']}",
+                detail=f"סוג איש הקשר אינו תקין: {update_data['contact_type']}",
             )
 
     try:

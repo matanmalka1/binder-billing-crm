@@ -20,7 +20,7 @@ def _verify_report_exists(report_id: int, db) -> None:
     report = AnnualReportRepository(db).get_by_id(report_id)
     if not report:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Annual report not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="הדוח השנתי לא נמצא"
         )
 
 
