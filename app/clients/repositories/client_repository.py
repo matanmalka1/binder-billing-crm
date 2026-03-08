@@ -146,6 +146,3 @@ class ClientRepository(BaseRepository):
         client = self.get_by_id(client_id)
         return self._update_entity(client, **fields)
 
-    def set_status(self, client_id: int, status: ClientStatus) -> Optional[Client]:
-        """Set client status."""
-        return self.update(client_id, status=status)

@@ -96,6 +96,20 @@ def get_operational_signals(
     return OperationalSignalsResponse(**signals)
 
 
+@router.get(
+    "/{document_id}/download-url",
+    response_model=dict,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
+def get_download_url(document_id: int, db: DBSession, user: CurrentUser):
+    """Get a presigned download URL for a document (expires in 1 hour)."""
+    try:
+        url = PermanentDocumentService(db).get_download_url(document_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return {"url": url}
+
+
 @router.delete(
     "/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,

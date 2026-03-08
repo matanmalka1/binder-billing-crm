@@ -17,7 +17,7 @@ class InvoiceService:
         self.invoice_repo = InvoiceRepository(db)
         self.charge_repo = ChargeRepository(db)
 
-    def attach_invoice_to_charge(
+    def attach_invoice_to_charge(  # TODO(sprint-future): call from BillingService.issue_charge when external invoice provider is integrated
         self,
         charge_id: int,
         provider: str,

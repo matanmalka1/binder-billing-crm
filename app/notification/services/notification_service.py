@@ -69,7 +69,7 @@ class NotificationService:
             binder_id=binder.id,
         )
 
-    def notify_payment_reminder(self, client: Client, reminder_text: str, triggered_by: Optional[int] = None) -> bool:
+    def notify_payment_reminder(self, client: Client, reminder_text: str, triggered_by: Optional[int] = None) -> bool:  # TODO(sprint-future): call from ReminderService or charge flow when payment reminder automation is wired
         return self.send_notification(
             client_id=client.id,
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,

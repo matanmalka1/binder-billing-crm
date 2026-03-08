@@ -82,6 +82,10 @@ class BinderService:
             changed_by=user_id,
         )
 
+        client = self.client_repo.get_by_id(binder.client_id)
+        if client:
+            self.notification_service.notify_ready_for_pickup(updated, client)
+
         return updated
 
     def return_binder(

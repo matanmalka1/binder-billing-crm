@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories import AnnualReportRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 
 
 class DashboardTaxService:
@@ -16,7 +15,6 @@ class DashboardTaxService:
         self.db = db
         self.report_repo = AnnualReportRepository(db)
         self.client_repo = ClientRepository(db)
-        self.deadline_service = TaxDeadlineService(db)
 
     def get_submission_widget_data(
         self,
@@ -64,9 +62,3 @@ class DashboardTaxService:
             "submission_percentage": submission_percentage,
         }
 
-    def get_deadline_summary(
-        self,
-        reference_date: Optional[date] = None,
-    ) -> dict:
-        """Get deadline summary for dashboard."""
-        return self.deadline_service.get_urgent_deadlines_summary(reference_date)

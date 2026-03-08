@@ -67,18 +67,6 @@ class NotificationRepository:
         """Retrieve notification by ID."""
         return self.db.query(Notification).filter(Notification.id == notification_id).first()
 
-    def exists_for_binder_trigger(self, binder_id: int, trigger: NotificationTrigger) -> bool:
-        """Check if a notification already exists for a binder and trigger."""
-        existing = (
-            self.db.query(Notification.id)
-            .filter(
-                Notification.binder_id == binder_id,
-                Notification.trigger == trigger,
-            )
-            .first()
-        )
-        return existing is not None
-
     def list_by_client(self, client_id: int, page: int = 1, page_size: int = 20) -> list[Notification]:
         """List notifications for a client with pagination."""
         offset = (page - 1) * page_size
