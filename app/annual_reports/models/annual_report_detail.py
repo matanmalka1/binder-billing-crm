@@ -14,6 +14,7 @@ class AnnualReportDetail(Base):
     tax_refund_amount = Column(Numeric(10, 2), nullable=True)
     tax_due_amount = Column(Numeric(10, 2), nullable=True)
     client_approved_at = Column(DateTime, nullable=True)
+    credit_points = Column(Numeric(5, 2), nullable=True, default=2.25)
     internal_notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

@@ -22,3 +22,4 @@ class AnnualReportDetailUpdateRequest(BaseModel):
     tax_due_amount: Optional[float] = None
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
+    credit_points: Optional[float] = None

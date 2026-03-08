@@ -70,6 +70,16 @@ class FinancialSummaryResponse(BaseModel):
     expense_lines: list[ExpenseLineResponse] = []
 
 
+# ── Tax calculation ───────────────────────────────────────────────────────────
+
+class TaxCalculationResponse(BaseModel):
+    taxable_income: float
+    tax_before_credits: float
+    credit_points_value: float
+    tax_after_credits: float
+    effective_rate: float
+
+
 # ── Readiness check ───────────────────────────────────────────────────────────
 
 class ReadinessCheckResponse(BaseModel):

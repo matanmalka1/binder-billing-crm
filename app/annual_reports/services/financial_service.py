@@ -17,6 +17,7 @@ from app.annual_reports.schemas.annual_report_financials import (
     ExpenseLineResponse,
     ReadinessCheckResponse,
 )
+from app.annual_reports.services.tax_engine import calculate_tax, TaxCalculationResult
 
 
 class AnnualReportFinancialService:
@@ -126,6 +127,14 @@ class AnnualReportFinancialService:
             income_lines=[IncomeLineResponse.model_validate(l) for l in income_lines],
             expense_lines=[ExpenseLineResponse.model_validate(l) for l in expense_lines],
         )
+
+    # ── Tax calculation ───────────────────────────────────────────────────────
+
+    def get_tax_calculation(self, report_id: int) -> TaxCalculationResult:
+        summary = self.get_financial_summary(report_id)
+        detail = self.detail_repo.get_by_report_id(report_id)
+        credit_points = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
+        return calculate_tax(summary.taxable_income, credit_points)
 
     # ── Readiness ─────────────────────────────────────────────────────────────
 

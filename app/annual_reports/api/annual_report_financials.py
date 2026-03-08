@@ -13,6 +13,7 @@ from app.annual_reports.schemas.annual_report_financials import (
     IncomeLineResponse,
     IncomeLineUpdateRequest,
     ReadinessCheckResponse,
+    TaxCalculationResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 
@@ -32,6 +33,25 @@ def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
     try:
         return svc.get_financial_summary(report_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# ── Tax calculation ───────────────────────────────────────────────────────────
+
+@router.get("/{report_id}/tax-calculation", response_model=TaxCalculationResponse)
+def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
+    """Israeli 2024 income tax calculation for this report."""
+    svc = AnnualReportFinancialService(db)
+    try:
+        result = svc.get_tax_calculation(report_id)
+        return TaxCalculationResponse(
+            taxable_income=result.taxable_income,
+            tax_before_credits=result.tax_before_credits,
+            credit_points_value=result.credit_points_value,
+            tax_after_credits=result.tax_after_credits,
+            effective_rate=result.effective_rate,
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
