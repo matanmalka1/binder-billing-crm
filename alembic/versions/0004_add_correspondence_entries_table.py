@@ -19,6 +19,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    correspondence_type_enum = sa.Enum("call", "letter", "email", "meeting", name="correspondencetype")
+    correspondence_type_enum.create(op.get_bind(), checkfirst=True)
     op.create_table(
         "correspondence_entries",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -50,3 +52,4 @@ def downgrade() -> None:
     op.drop_index("idx_correspondence_occurred", table_name="correspondence_entries")
     op.drop_index("idx_correspondence_client", table_name="correspondence_entries")
     op.drop_table("correspondence_entries")
+    sa.Enum(name="correspondencetype").drop(op.get_bind(), checkfirst=True)
