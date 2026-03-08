@@ -18,9 +18,19 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _table_exists(conn, table_name: str) -> bool:
+    return sa.inspect(conn).has_table(table_name)
+
+
 def upgrade() -> None:
+    conn = op.get_bind()
+
+    if _table_exists(conn, "correspondence_entries"):
+        return
+
     correspondence_type_enum = sa.Enum("call", "letter", "email", "meeting", name="correspondencetype")
-    correspondence_type_enum.create(op.get_bind(), checkfirst=True)
+    correspondence_type_enum.create(conn, checkfirst=True)
+
     op.create_table(
         "correspondence_entries",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
