@@ -85,7 +85,7 @@ def list_tax_deadlines(
 
     client_name_map = service.build_client_name_map(paginated)
 
-    def to_response(d: TaxDeadline) -> TaxDeadlineResponse:
+    def to_response(d) -> TaxDeadlineResponse:
         r = TaxDeadlineResponse.model_validate(d)
         r.client_name = client_name_map.get(d.client_id)
         return r

@@ -32,6 +32,9 @@ from app.tax_deadline.api import tax_deadline
 from app.timeline.api import timeline
 from app.users.api import auth
 from app.vat_reports.api.routers import router as vat_reports_router
+from app.signature_requests.services.admin_actions import expire_overdue_requests
+from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.database import SessionLocal
 
 EnvValidator.validate()
 
@@ -45,6 +48,13 @@ if config.APP_ENV == "development":
 async def lifespan(app: FastAPI):
     """Application lifespan with graceful startup and shutdown."""
     logger.info("Application starting")
+    db = SessionLocal()
+    try:
+        count = expire_overdue_requests(SignatureRequestRepository(db))
+        if count:
+            logger.info("Expired %d overdue signature request(s) on startup", count)
+    finally:
+        db.close()
     yield
     logger.info("Application shutting down")
 
