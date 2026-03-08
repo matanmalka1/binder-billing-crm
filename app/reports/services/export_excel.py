@@ -15,7 +15,7 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
     except ImportError:
-        raise ImportError("openpyxl is required for Excel export. Install with: pip install openpyxl")
+        raise ImportError("הספרייה openpyxl נדרשת לצורך ייצוא לאקסל. יש להתקין באמצעות: pip install openpyxl")
 
     wb = openpyxl.Workbook()
     ws = wb.active

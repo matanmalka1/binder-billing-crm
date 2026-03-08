@@ -30,7 +30,7 @@ def export_vat_to_pdf(
         from reportlab.lib.units import cm
         from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
     except ImportError:
-        raise ImportError("reportlab is required. Install with: pip install reportlab")
+        raise ImportError("הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab")
 
     filename = f"vat_{client_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)

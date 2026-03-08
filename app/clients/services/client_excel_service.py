@@ -63,7 +63,7 @@ class ClientExcelService:
             from openpyxl import Workbook
             from openpyxl.styles import Alignment, Font
         except ImportError as exc:
-            raise ImportError("openpyxl is required for client Excel exports") from exc
+            raise ImportError("הספרייה openpyxl נדרשת לצורך ייצוא לקוחות לאקסל") from exc
 
         wb = Workbook()
         ws = wb.active

@@ -11,7 +11,7 @@ IMMUTABLE_UPDATE_FIELDS = {
 
 def ensure_advisor(actor_role: UserRole) -> None:
     if actor_role != UserRole.ADVISOR:
-        raise PermissionError("Only advisors can manage users")
+        raise PermissionError("רק יועצים יכולים לנהל משתמשים")
 
 
 def validate_password(password: str) -> None:

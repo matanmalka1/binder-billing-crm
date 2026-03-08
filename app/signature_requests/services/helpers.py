@@ -28,7 +28,7 @@ def assert_signable(repo: SignatureRequestRepository, req: SignatureRequest) -> 
     """Raise if request is not in a state that allows signer actions."""
     if req.status != SignatureRequestStatus.PENDING_SIGNATURE:
         raise ValueError(
-            f"This request is '{req.status.value}' and cannot be signed or declined."
+            f"בקשה זו נמצאת בסטטוס '{req.status.value}' ולא ניתן לאשר או לדחות אותה."
         )
     if req.expires_at and utcnow() > req.expires_at:
         repo.update(req.id, status=SignatureRequestStatus.EXPIRED, signing_token=None)

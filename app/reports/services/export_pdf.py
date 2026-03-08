@@ -17,7 +17,7 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
         from reportlab.lib.units import cm
         from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
     except ImportError:
-        raise ImportError("reportlab is required for PDF export. Install with: pip install reportlab")
+        raise ImportError("הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab")
 
     filename = f"aging_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
