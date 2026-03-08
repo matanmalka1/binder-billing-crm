@@ -26,7 +26,7 @@ def upgrade() -> None:
         sa.Column("contact_id", sa.Integer(), nullable=True),
         sa.Column(
             "correspondence_type",
-            sa.Enum("call", "letter", "email", "meeting", name="correspondencetype"),
+            sa.Enum("call", "letter", "email", "meeting", name="correspondencetype", create_type=False),
             nullable=False,
         ),
         sa.Column("subject", sa.String(), nullable=False),
