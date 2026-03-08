@@ -82,6 +82,26 @@ def list_authority_contacts(
     )
 
 
+@router.get(
+    "/authority-contacts/{contact_id}",
+    response_model=AuthorityContactResponse,
+)
+def get_authority_contact(
+    contact_id: int,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Get a single authority contact by ID."""
+    service = AuthorityContactService(db)
+    contact = service.get_contact(contact_id)
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"איש קשר {contact_id} לא נמצא",
+        )
+    return AuthorityContactResponse.model_validate(contact)
+
+
 @router.patch(
     "/authority-contacts/{contact_id}",
     response_model=AuthorityContactResponse,
