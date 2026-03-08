@@ -3,6 +3,7 @@ from enum import Enum as PyEnum
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
+from app.utils.time import utcnow
 
 
 class ClientType(str, PyEnum):
@@ -40,6 +41,7 @@ class Client(Base):
     address_zip_code = Column(String, nullable=True)
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
