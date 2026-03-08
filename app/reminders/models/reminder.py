@@ -32,8 +32,8 @@ class Reminder(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    reminder_type = Column(Enum(ReminderType), nullable=False)
-    status = Column(Enum(ReminderStatus), default=ReminderStatus.PENDING, nullable=False)
+    reminder_type = Column(Enum(ReminderType, values_callable=lambda x: [e.value for e in x]), nullable=False)
+    status = Column(Enum(ReminderStatus, values_callable=lambda x: [e.value for e in x]), default=ReminderStatus.PENDING, nullable=False)
     
     # Target date (when the actual event occurs)
     target_date = Column(Date, nullable=False, index=True)
