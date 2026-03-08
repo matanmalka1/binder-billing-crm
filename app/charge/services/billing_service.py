@@ -1,11 +1,13 @@
-from typing import Optional
+from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
+from app.users.models.user import UserRole
 from app.utils.time import utcnow
 
 
@@ -183,3 +185,29 @@ class BillingService:
         client_name_map: dict[int, str] = {c.id: c.full_name for c in clients}
 
         return items, total, client_name_map
+
+    def list_charges_for_role(
+        self,
+        user_role: UserRole,
+        client_id: Optional[int] = None,
+        status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> ChargeListResponse:
+        """List charges serialized and role-shaped in one call."""
+        items, total, client_name_map = self.list_charges(
+            client_id=client_id, status=status, page=page, page_size=page_size
+        )
+        schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
+
+        def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
+            data = schema.model_validate(charge).model_dump()
+            data["client_name"] = client_name_map.get(charge.client_id)
+            return schema(**data)
+
+        return ChargeListResponse(
+            items=[_enrich(c) for c in items],
+            page=page,
+            page_size=page_size,
+            total=total,
+        )

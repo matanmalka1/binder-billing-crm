@@ -2,16 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
+from app.annual_reports.schemas import (
     AnnualReportResponse,
-    StatusHistoryResponse,
     StatusTransitionRequest,
     DeadlineUpdateRequest,
-    StageTransitionRequest,
-    SubmitRequest,
 )
 from app.annual_reports.services import AnnualReportService
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 
 
 router = APIRouter(
@@ -52,35 +48,6 @@ def transition_status(
     return report
 
 
-@router.post("/{report_id}/submit", response_model=AnnualReportResponse)
-def submit_report(
-    report_id: int,
-    body: SubmitRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    """
-    Mark a report as submitted.
-
-    Sets status to SUBMITTED, stamps submitted_at (or uses provided timestamp),
-    and records status history.
-    """
-    service = AnnualReportService(db)
-    try:
-        report = service.transition_status(
-            report_id=report_id,
-            new_status=AnnualReportStatus.SUBMITTED.value,
-            changed_by=user.id,
-            changed_by_name=user.full_name,
-            note=body.note,
-            ita_reference=body.ita_reference,
-            submitted_at=body.submitted_at,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    return report
-
-
 @router.post("/{report_id}/deadline", response_model=AnnualReportResponse)
 def update_deadline(
     report_id: int,
@@ -106,69 +73,3 @@ def update_deadline(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return report
-
-
-@router.post("/{report_id}/transition", response_model=AnnualReportResponse)
-def transition_stage(
-    report_id: int,
-    body: StageTransitionRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    """
-    Kanban helper endpoint used by the frontend.
-
-    Maps UI stage keys to concrete status transitions while honoring the valid
-    status graph. Unknown stages return 400.
-    """
-    stage_map = {
-        "material_collection": AnnualReportStatus.COLLECTING_DOCS,
-        "in_progress": AnnualReportStatus.DOCS_COMPLETE,
-        "final_review": AnnualReportStatus.IN_PREPARATION,
-        "client_signature": AnnualReportStatus.PENDING_CLIENT,
-        "transmitted": AnnualReportStatus.SUBMITTED,
-    }
-
-    target_status = stage_map.get(body.to_stage)
-    if not target_status:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"השלב '{body.to_stage}' אינו תקין",
-        )
-
-    service = AnnualReportService(db)
-    try:
-        # NOT_STARTED cannot jump directly to DOCS_COMPLETE — step through COLLECTING_DOCS first.
-        current = service.get_report(report_id)
-        if (
-            current
-            and current.status == AnnualReportStatus.NOT_STARTED.value
-            and target_status == AnnualReportStatus.DOCS_COMPLETE
-        ):
-            service.transition_status(
-                report_id=report_id,
-                new_status=AnnualReportStatus.COLLECTING_DOCS.value,
-                changed_by=user.id,
-                changed_by_name=user.full_name,
-                note="Kanban intermediate step",
-            )
-        report = service.transition_status(
-            report_id=report_id,
-            new_status=target_status.value,
-            changed_by=user.id,
-            changed_by_name=user.full_name,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-    return report
-
-
-@router.get("/{report_id}/history", response_model=list[StatusHistoryResponse])
-def get_history(report_id: int, db: DBSession, user: CurrentUser):
-    """Full status history for a report."""
-    service = AnnualReportService(db)
-    try:
-        return [StatusHistoryResponse.model_validate(h) for h in service.get_status_history(report_id)]
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

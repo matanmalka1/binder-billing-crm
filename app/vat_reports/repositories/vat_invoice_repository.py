@@ -69,19 +69,6 @@ class VatInvoiceRepository:
             q = q.filter(VatInvoice.invoice_type == invoice_type)
         return q.order_by(VatInvoice.invoice_date.asc()).all()
 
-    def sum_vat_by_type(self, work_item_id: int, invoice_type: InvoiceType) -> float:
-        from sqlalchemy import func
-
-        result = (
-            self.db.query(func.coalesce(func.sum(VatInvoice.vat_amount), 0))
-            .filter(
-                VatInvoice.work_item_id == work_item_id,
-                VatInvoice.invoice_type == invoice_type,
-            )
-            .scalar()
-        )
-        return float(result)
-
     def sum_vat_both_types(self, work_item_id: int) -> tuple[float, float]:
         """Return (output_vat, input_vat) in a single grouped query."""
         from sqlalchemy import func

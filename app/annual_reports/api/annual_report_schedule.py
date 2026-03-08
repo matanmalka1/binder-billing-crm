@@ -17,16 +17,6 @@ router = APIRouter(
 )
 
 
-@router.get("/{report_id}/schedules", response_model=list[ScheduleEntryResponse])
-def get_schedules(report_id: int, db: DBSession, user: CurrentUser):
-    """Return all schedule entries for a report."""
-    service = AnnualReportService(db)
-    try:
-        return [ScheduleEntryResponse.model_validate(s) for s in service.get_schedules(report_id)]
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
 @router.post("/{report_id}/schedules", response_model=ScheduleEntryResponse, status_code=201)
 def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: CurrentUser):
     """Manually add a schedule to a report (auto-generated ones are created at report creation)."""

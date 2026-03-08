@@ -10,7 +10,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.dashboard.repositories.dashboard_overview_repository import DashboardOverviewRepository
-from app.actions.action_contracts import build_action, get_binder_actions
+from app.actions.action_contracts import get_binder_actions, get_charge_actions, get_client_actions
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 
 
@@ -34,43 +34,25 @@ class DashboardOverviewService:
         return_candidate = None
         for binder in binders:
             binder_actions = get_binder_actions(binder)
-            if ready_candidate is None and any(action["key"] == "ready" for action in binder_actions):
-                ready_candidate = binder
-            if return_candidate is None and any(action["key"] == "return" for action in binder_actions):
-                return_candidate = binder
+            if ready_candidate is None and any(a["key"] == "ready" for a in binder_actions):
+                ready_candidate = (binder, next(a for a in binder_actions if a["key"] == "ready"))
+            if return_candidate is None and any(a["key"] == "return" for a in binder_actions):
+                return_candidate = (binder, next(a for a in binder_actions if a["key"] == "return"))
             if ready_candidate and return_candidate:
                 break
 
         if ready_candidate is not None:
-            ready_client = self.client_repo.get_by_id(ready_candidate.client_id)
-            action = build_action(
-                key="ready",
-                label="מוכן לאיסוף",
-                method="post",
-                endpoint=f"/binders/{ready_candidate.id}/ready",
-                action_id=f"binder-{ready_candidate.id}-ready",
-            )
-            action["client_name"] = ready_client.full_name if ready_client else None
-            action["binder_number"] = ready_candidate.binder_number
+            binder, action = ready_candidate
+            client = self.client_repo.get_by_id(binder.client_id)
+            action["client_name"] = client.full_name if client else None
+            action["binder_number"] = binder.binder_number
             actions.append(action)
 
         if return_candidate is not None:
-            return_client = self.client_repo.get_by_id(return_candidate.client_id)
-            action = build_action(
-                key="return",
-                label="החזרת קלסר",
-                method="post",
-                endpoint=f"/binders/{return_candidate.id}/return",
-                action_id=f"binder-{return_candidate.id}-return",
-                confirm={
-                    "title": "אישור החזרת קלסר",
-                    "message": "האם לאשר החזרת קלסר ללקוח?",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                },
-            )
-            action["client_name"] = return_client.full_name if return_client else None
-            action["binder_number"] = return_candidate.binder_number
+            binder, action = return_candidate
+            client = self.client_repo.get_by_id(binder.client_id)
+            action["client_name"] = client.full_name if client else None
+            action["binder_number"] = binder.binder_number
             actions.append(action)
 
         if user_role == UserRole.ADVISOR:
@@ -81,16 +63,12 @@ class DashboardOverviewService:
             )
             if issued_charges:
                 charge = issued_charges[0]
-                charge_client = self.client_repo.get_by_id(charge.client_id) if charge.client_id else None
-                action = build_action(
-                    key="mark_paid",
-                    label="סימון חיוב כשולם",
-                    method="post",
-                    endpoint=f"/charges/{charge.id}/mark-paid",
-                    action_id=f"charge-{charge.id}-mark_paid",
-                )
-                action["client_name"] = charge_client.full_name if charge_client else None
-                actions.append(action)
+                charge_actions = get_charge_actions(charge)
+                mark_paid = next((a for a in charge_actions if a["key"] == "mark_paid"), None)
+                if mark_paid:
+                    charge_client = self.client_repo.get_by_id(charge.client_id) if charge.client_id else None
+                    mark_paid["client_name"] = charge_client.full_name if charge_client else None
+                    actions.append(mark_paid)
 
             active_clients = self.client_repo.list(
                 status=ClientStatus.ACTIVE.value,
@@ -99,22 +77,11 @@ class DashboardOverviewService:
             )
             if active_clients:
                 client = active_clients[0]
-                action = build_action(
-                    key="freeze",
-                    label="הקפאת לקוח",
-                    method="patch",
-                    endpoint=f"/clients/{client.id}",
-                    payload={"status": "frozen"},
-                    action_id=f"client-{client.id}-freeze",
-                    confirm={
-                        "title": "אישור הקפאת לקוח",
-                        "message": "האם להקפיא את הלקוח?",
-                        "confirm_label": "הקפאה",
-                        "cancel_label": "ביטול",
-                    },
-                )
-                action["client_name"] = client.full_name
-                actions.append(action)
+                client_actions = get_client_actions(client, user_role)
+                freeze = next((a for a in client_actions if a["key"] == "freeze"), None)
+                if freeze:
+                    freeze["client_name"] = client.full_name
+                    actions.append(freeze)
 
         frozen_clients = self.client_repo.list(
             status=ClientStatus.FROZEN.value,
@@ -123,16 +90,11 @@ class DashboardOverviewService:
         )
         if frozen_clients:
             client = frozen_clients[0]
-            action = build_action(
-                key="activate",
-                label="הפעלת לקוח",
-                method="patch",
-                endpoint=f"/clients/{client.id}",
-                payload={"status": "active"},
-                action_id=f"client-{client.id}-activate",
-            )
-            action["client_name"] = client.full_name
-            actions.append(action)
+            client_actions = get_client_actions(client, user_role)
+            activate = next((a for a in client_actions if a["key"] == "activate"), None)
+            if activate:
+                activate["client_name"] = client.full_name
+                actions.append(activate)
 
         return actions
 

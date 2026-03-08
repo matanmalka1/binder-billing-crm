@@ -3,7 +3,7 @@ from typing import Optional
 
 from app.annual_reports.models import AnnualReport
 from app.annual_reports.models.annual_report_enums import ReportStage
-from app.annual_reports.schemas.annual_report import AnnualReportResponse
+from app.annual_reports.schemas.annual_report import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
 from .base import AnnualReportBaseService
 
 
@@ -43,6 +43,18 @@ class AnnualReportQueryService(AnnualReportBaseService):
     def get_status_history(self, report_id: int) -> list:
         self._get_or_raise(report_id)
         return self.repo.get_status_history(report_id)
+
+    def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
+        """Return report with schedules and status history assembled. None if not found."""
+        report = self.get_report(report_id)
+        if report is None:
+            return None
+        schedules = self.repo.get_schedules(report_id)
+        history = self.repo.get_status_history(report_id)
+        response = AnnualReportDetailResponse(**report.model_dump())
+        response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
+        response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
+        return response
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""

@@ -34,9 +34,7 @@ def get_work_item(
     try:
         item = service.get_work_item(item_id)
         client = service.client_repo.get_by_id(item.client_id)
-        data = VatWorkItemResponse.model_validate(item)
-        data.client_name = client.full_name if client else None
-        return data
+        return _serialize_with_name(item, {item.client_id: client.full_name if client else None})
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 

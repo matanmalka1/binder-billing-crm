@@ -7,8 +7,6 @@ from app.annual_reports.schemas import (
     AnnualReportDetailResponse,
     AnnualReportListResponse,
     AnnualReportResponse,
-    ScheduleEntryResponse,
-    StatusHistoryResponse,
 )
 from app.annual_reports.services import AnnualReportService
 
@@ -18,15 +16,6 @@ router = APIRouter(
     tags=["annual-reports"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-
-
-def _build_detail(report: AnnualReportResponse, service: AnnualReportService) -> AnnualReportDetailResponse:
-    schedules = service.get_schedules(report.id)
-    history = service.get_status_history(report.id)
-    response = AnnualReportDetailResponse(**report.model_dump())
-    response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
-    response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
-    return response
 
 
 @router.post("", response_model=AnnualReportDetailResponse, status_code=status.HTTP_201_CREATED)
@@ -52,8 +41,7 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    report = service.get_report(orm_report.id)
-    return _build_detail(report, service)
+    return service.get_detail_report(orm_report.id)
 
 
 @router.get("", response_model=AnnualReportListResponse)
@@ -94,10 +82,10 @@ def list_overdue(db: DBSession, user: CurrentUser, tax_year: int | None = Query(
 def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     """Get a single report with its schedule entries and status history."""
     service = AnnualReportService(db)
-    report = service.get_report(report_id)
-    if report is None:
+    detail = service.get_detail_report(report_id)
+    if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
-    return _build_detail(report, service)
+    return detail
 
 
 @router.delete(
