@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -44,6 +45,24 @@ if config.APP_ENV == "development":
     logger.info("CORS allowed origins: %s", config.CORS_ALLOWED_ORIGINS)
 
 
+_EXPIRY_INTERVAL_SECONDS = 86_400  # 24 hours
+
+
+async def _daily_expiry_job() -> None:
+    """Run signature expiry check once per day in the background."""
+    while True:
+        await asyncio.sleep(_EXPIRY_INTERVAL_SECONDS)
+        db = SessionLocal()
+        try:
+            count = expire_overdue_requests(SignatureRequestRepository(db))
+            if count:
+                logger.info("Daily job: expired %d overdue signature request(s)", count)
+        except Exception:
+            logger.exception("Daily expiry job failed")
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan with graceful startup and shutdown."""
@@ -55,7 +74,9 @@ async def lifespan(app: FastAPI):
             logger.info("Expired %d overdue signature request(s) on startup", count)
     finally:
         db.close()
+    task = asyncio.create_task(_daily_expiry_job())
     yield
+    task.cancel()
     logger.info("Application shutting down")
 
 

@@ -24,7 +24,7 @@ class DashboardTaxService:
         if tax_year is None:
             tax_year = date.today().year
 
-        total_clients = self.client_repo.count()
+        total_clients = self.client_repo.count(status="active")
 
         # TRANSMITTED / fully done statuses
         submitted = (
@@ -53,6 +53,8 @@ class DashboardTaxService:
             round((submitted / total_clients) * 100, 1) if total_clients > 0 else 0.0
         )
 
+        financials = self.report_repo.sum_financials_by_year(tax_year)
+
         return {
             "tax_year": tax_year,
             "total_clients": total_clients,
@@ -60,5 +62,7 @@ class DashboardTaxService:
             "reports_in_progress": in_progress,
             "reports_not_started": not_started,
             "submission_percentage": submission_percentage,
+            "total_refund_due": financials["total_refund_due"],
+            "total_tax_due": financials["total_tax_due"],
         }
 

@@ -1,7 +1,9 @@
 """Repository operations for the AnnualReport entity."""
 
+from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
@@ -162,6 +164,21 @@ class AnnualReportReportRepository(BaseRepository):
         report.deleted_by = deleted_by
         self.db.commit()
         return True
+
+    def sum_financials_by_year(self, tax_year: int) -> dict:
+        """Sum refund_due and tax_due for all non-deleted reports in a tax year."""
+        row = (
+            self.db.query(
+                func.coalesce(func.sum(AnnualReport.refund_due), 0).label("total_refund_due"),
+                func.coalesce(func.sum(AnnualReport.tax_due), 0).label("total_tax_due"),
+            )
+            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
+            .one()
+        )
+        return {
+            "total_refund_due": Decimal(str(row.total_refund_due)),
+            "total_tax_due": Decimal(str(row.total_tax_due)),
+        }
 
     def get_season_summary(self, tax_year: int) -> dict:
         """

@@ -40,11 +40,7 @@ class AgingReportService:
             as_of_date = date.today()
 
         total_unpaid = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
-        if total_unpaid > _AGING_CHARGE_FETCH_LIMIT:
-            raise ValueError(
-                f"מספר החיובים הלא משולמים ({total_unpaid}) חורג מהמגבלה לדוח הגיול "
-                f"({_AGING_CHARGE_FETCH_LIMIT})."
-            )
+        capped = total_unpaid > _AGING_CHARGE_FETCH_LIMIT
         unpaid_charges = self.charge_repo.list_charges(
             status=ChargeStatus.ISSUED.value,
             page=1,
@@ -131,4 +127,6 @@ class AgingReportService:
             "total_outstanding": round(total_outstanding, 2),
             "items": items,
             "summary": summary,
+            "capped": capped,
+            "cap_limit": _AGING_CHARGE_FETCH_LIMIT,
         }
