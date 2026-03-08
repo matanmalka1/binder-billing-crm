@@ -32,7 +32,7 @@ def file_vat_return(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     if item.status != VatWorkItemStatus.READY_FOR_REVIEW:
         raise ValueError(
@@ -43,7 +43,7 @@ def file_vat_return(
     is_overridden = override_amount is not None
 
     if is_overridden and not override_justification:
-        raise ValueError("override_justification is required when overriding the VAT amount")
+        raise ValueError("נדרש נימוק כאשר מחליפים את הסכום למע\"מ")
 
     if is_overridden:
         final_amount = override_amount

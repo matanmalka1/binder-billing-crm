@@ -15,7 +15,7 @@ def get_client_summary(
 ) -> VatClientSummaryResponse:
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"Client {client_id} not found")
+        raise ValueError(f"לקוח {client_id} לא נמצא")
 
     periods = summary_repo.get_periods_for_client(client_id)
     annual = summary_repo.get_annual_aggregates(client_id)

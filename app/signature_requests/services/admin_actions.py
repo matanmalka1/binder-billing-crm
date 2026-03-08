@@ -20,7 +20,7 @@ def cancel_request(
 
     cancelable = {SignatureRequestStatus.DRAFT, SignatureRequestStatus.PENDING_SIGNATURE}
     if req.status not in cancelable:
-        raise ValueError(f"Cannot cancel a request in '{req.status.value}' status.")
+        raise ValueError(f"לא ניתן לבטל בקשה במצב '{req.status.value}'")
 
     req = repo.update(
         request_id,

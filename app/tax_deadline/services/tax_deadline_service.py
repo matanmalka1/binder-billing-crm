@@ -41,7 +41,7 @@ class TaxDeadlineService:
         """Mark deadline as completed."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
-            raise ValueError(f"Deadline {deadline_id} not found")
+            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
 
         if deadline.status == TaxDeadlineStatus.COMPLETED:
             return deadline
@@ -63,7 +63,7 @@ class TaxDeadlineService:
     ) -> TaxDeadline:
         """Update editable fields on a deadline."""
         if not any([deadline_type, due_date, payment_amount is not None, description is not None]):
-            raise ValueError("No fields provided to update")
+            raise ValueError("לא סופקו שדות לעדכון")
 
         deadline = self.deadline_repo.update(
             deadline_id,
@@ -74,7 +74,7 @@ class TaxDeadlineService:
         )
 
         if not deadline:
-            raise ValueError(f"Deadline {deadline_id} not found")
+            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
 
         return deadline
 
@@ -82,7 +82,7 @@ class TaxDeadlineService:
         """Delete a deadline."""
         deleted = self.deadline_repo.delete(deadline_id)
         if not deleted:
-            raise ValueError(f"Deadline {deadline_id} not found")
+            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
 
     def get_upcoming_deadlines(
         self,

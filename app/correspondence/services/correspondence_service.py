@@ -59,7 +59,7 @@ class CorrespondenceService:
     ) -> Correspondence:
         entry = self.repo.get_by_id(entry_id)
         if not entry or entry.client_id != client_id:
-            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+            raise ValueError(f"המסמך {entry_id} לא נמצא עבור הלקוח {client_id}")
 
         contact_id = fields.get("contact_id", entry.contact_id)
         if contact_id is not None:
@@ -71,11 +71,11 @@ class CorrespondenceService:
 
         updated = self.repo.update(entry_id, **fields)
         if not updated:
-            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+            raise ValueError(f"המסמך {entry_id} לא נמצא עבור הלקוח {client_id}")
         return updated
 
     def delete_entry(self, entry_id: int, client_id: int, actor_id: int) -> None:
         entry = self.repo.get_by_id(entry_id)
         if not entry or entry.client_id != client_id:
-            raise ValueError(f"Correspondence {entry_id} not found for client {client_id}")
+            raise ValueError(f"המסמך {entry_id} לא נמצא עבור הלקוח {client_id}")
         self.repo.soft_delete(entry_id, deleted_by=actor_id)

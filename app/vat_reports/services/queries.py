@@ -10,7 +10,7 @@ from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRep
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
     return item
 
 

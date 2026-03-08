@@ -31,7 +31,9 @@ def get_reminders(
     try:
         status_enum = ReminderStatus(status)
     except ValueError:
-        raise ValueError(f"Invalid status: {status}. Must be one of: pending, sent, canceled")
+        raise ValueError(
+            f"סטטוס לא חוקי: {status}. חייב להיות אחד מהבאים: pending (ממתין), sent (נשלח), canceled (בוטל)"
+        )
 
     items = reminder_repo.list_by_status(status=status_enum, page=page, page_size=page_size)
     total = reminder_repo.count_by_status(status_enum)

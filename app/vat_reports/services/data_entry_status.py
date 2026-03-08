@@ -20,10 +20,12 @@ def mark_ready_for_review(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     if item.status != VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS:
-        raise ValueError(f"Cannot mark ready for review from status {item.status.value}")
+        raise ValueError(
+            f"לא ניתן לסמן מוכן לבדיקה מסטטוס {item.status.value}"
+        )
 
     updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW)
 
@@ -52,11 +54,11 @@ def send_back_for_correction(
     Requires a non-empty correction note.
     """
     if not correction_note or not correction_note.strip():
-        raise ValueError("correction_note is required when sending back for correction")
+        raise ValueError("נדרש טקסט תיקון כאשר מחזירים את הפריט לתיקון")
 
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     assert_transition_allowed(item, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 

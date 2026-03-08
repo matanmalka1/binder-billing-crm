@@ -16,4 +16,4 @@ def ensure_advisor(actor_role: UserRole) -> None:
 
 def validate_password(password: str) -> None:
     if len(password) < 8:
-        raise ValueError("Password must be at least 8 characters long")
+        raise ValueError("הסיסמה חייבת להכיל לפחות 8 תווים")

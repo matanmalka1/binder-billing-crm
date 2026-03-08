@@ -99,22 +99,22 @@ def parse_args() -> SeedConfig:
 
     args = parser.parse_args()
     if args.min_binders_per_client > args.max_binders_per_client:
-        raise ValueError("min-binders-per-client cannot be greater than max-binders-per-client")
+        raise ValueError("המינימום של קלסרים ללקוח לא יכול להיות גבוה מהמרבי")
     if args.min_charges_per_client > args.max_charges_per_client:
-        raise ValueError("min-charges-per-client cannot be greater than max-charges-per-client")
+        raise ValueError("המינימום של חיובים ללקוח לא יכול להיות גבוה מהמרבי")
     if args.min_tax_deadlines_per_client > args.max_tax_deadlines_per_client:
         raise ValueError(
-            "min-tax-deadlines-per-client cannot be greater than max-tax-deadlines-per-client"
+            "המספר המינימלי של מועדי מס ללקוח לא יכול להיות גבוה מהמרבי"
         )
     if args.min_authority_contacts_per_client > args.max_authority_contacts_per_client:
         raise ValueError(
-            "min-authority-contacts-per-client cannot be greater than max-authority-contacts-per-client"
+            "המספר המינימלי של אנשי קשר מוסמכים ללקוח לא יכול להיות גבוה מהמרבי"
         )
     if args.min_vat_work_items_per_client > args.max_vat_work_items_per_client:
-        raise ValueError("min-vat-work-items-per-client cannot be greater than max-vat-work-items-per-client")
+        raise ValueError("המינימום של פריטי עבודה למע\"מ ללקוח לא יכול להיות גבוה מהמרבי")
     if args.min_vat_invoices_per_work_item > args.max_vat_invoices_per_work_item:
         raise ValueError(
-            "min-vat-invoices-per-work-item cannot be greater than max-vat-invoices-per-work-item"
+            "המספר המינימלי של חשבוניות מע\"מ לכל פריט עבודה לא יכול להיות גבוה מהמרבי"
         )
 
     return SeedConfig(

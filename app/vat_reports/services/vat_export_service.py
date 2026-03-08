@@ -25,7 +25,7 @@ def _get_export_dir() -> str:
 def _load(db: Session, client_id: int, year: int):
     client = ClientRepository(db).get_by_id(client_id)
     if not client:
-        raise ValueError(f"Client {client_id} not found")
+        raise ValueError(f"לקוח {client_id} לא נמצא")
     all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_id)
     periods = [p for p in all_periods if p.period.startswith(str(year))]
     return client.full_name, periods

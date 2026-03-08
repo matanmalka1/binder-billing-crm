@@ -32,15 +32,17 @@ def create_work_item(
     """
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"Client {client_id} not found")
+        raise ValueError(f"לקוח {client_id} לא נמצא")
 
     existing = work_item_repo.get_by_client_period(client_id, period)
     if existing:
-        raise ValueError(f"VAT work item already exists for client {client_id} period {period}")
+        raise ValueError(
+            f"פריט עבודה למע\"מ כבר קיים עבור לקוח {client_id} לתקופה {period}"
+        )
 
     if mark_pending:
         if not pending_materials_note:
-            raise ValueError("pending_materials_note is required when mark_pending=True")
+            raise ValueError("נדרש תיאור החומרים כאשר הפריט מסומן כמצב המתנה")
         status = VatWorkItemStatus.PENDING_MATERIALS
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
@@ -78,7 +80,7 @@ def mark_materials_complete(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     if item.status != VatWorkItemStatus.PENDING_MATERIALS:
         raise ValueError(

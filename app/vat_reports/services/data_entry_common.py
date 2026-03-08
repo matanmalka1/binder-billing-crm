@@ -12,7 +12,7 @@ from app.vat_reports.services.constants import VALID_TRANSITIONS
 def assert_editable(item) -> None:
     """Raise if the work item is FILED (immutable)."""
     if item.status == VatWorkItemStatus.FILED:
-        raise ValueError("Cannot modify a filed VAT work item")
+        raise ValueError("לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש")
 
 
 def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:

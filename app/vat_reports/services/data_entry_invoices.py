@@ -39,20 +39,22 @@ def add_invoice(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     assert_editable(item)
 
     if vat_amount < 0:
-        raise ValueError("VAT amount cannot be negative")
+        raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
     if net_amount <= 0:
-        raise ValueError("Net amount must be positive")
+        raise ValueError("הסכום נטו חייב להיות חיובי")
     if invoice_type == InvoiceType.EXPENSE and not expense_category:
-        raise ValueError("expense_category is required for expense invoices")
+        raise ValueError("חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה")
 
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)
     if existing:
-        raise ValueError(f"Invoice number '{invoice_number}' already exists for this period and type")
+        raise ValueError(
+            f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה"
+        )
 
     original_status = item.status
 
@@ -70,7 +72,9 @@ def add_invoice(
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
         VatWorkItemStatus.READY_FOR_REVIEW,
     ):
-        raise ValueError(f"Cannot add invoices to work item in status {original_status.value}")
+        raise ValueError(
+            f"לא ניתן להוסיף חשבוניות לפריט עבודה במצב {original_status.value}"
+        )
 
     invoice = invoice_repo.create(
         work_item_id=item_id,
@@ -116,13 +120,15 @@ def delete_invoice(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"VAT work item {item_id} not found")
+        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
 
     assert_editable(item)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
-        raise ValueError(f"Invoice {invoice_id} not found on work item {item_id}")
+        raise ValueError(
+            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}"
+        )
 
     snapshot = audit_invoice_snapshot(invoice)
 

@@ -39,18 +39,14 @@ class CorrespondenceRepository:
     def list_by_client_paginated(
         self, client_id: int, *, page: int, page_size: int
     ) -> tuple[list[Correspondence], int]:
-        query = (
-            self.db.query(Correspondence)
-            .filter(
-                Correspondence.client_id == client_id,
-                Correspondence.deleted_at.is_(None),
-            )
-            .order_by(Correspondence.occurred_at.desc())
+        base = self.db.query(Correspondence).filter(
+            Correspondence.client_id == client_id,
+            Correspondence.deleted_at.is_(None),
         )
 
-        total = query.with_entities(func.count()).scalar() or 0
+        total = base.with_entities(func.count()).scalar() or 0
         offset = (page - 1) * page_size
-        items = query.offset(offset).limit(page_size).all()
+        items = base.order_by(Correspondence.occurred_at.desc()).offset(offset).limit(page_size).all()
         return items, total
 
     def get_by_id(self, entry_id: int) -> Optional[Correspondence]:

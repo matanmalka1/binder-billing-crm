@@ -39,7 +39,7 @@ class InvoiceService:
         # Validate charge exists
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"Charge {charge_id} not found")
+            raise ValueError(f"חיוב {charge_id} לא נמצא")
 
         # Validate charge is issued
         if charge.status != ChargeStatus.ISSUED:
@@ -49,7 +49,7 @@ class InvoiceService:
 
         # Validate no existing invoice
         if self.invoice_repo.exists_for_charge(charge_id):
-            raise ValueError(f"Charge {charge_id} already has an invoice")
+            raise ValueError(f"לחיוב {charge_id} כבר קיימת חשבונית")
 
         # Create invoice reference
         return self.invoice_repo.create(

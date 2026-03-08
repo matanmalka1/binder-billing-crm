@@ -13,14 +13,14 @@ from app.utils.time import utcnow
 def get_or_raise(repo: SignatureRequestRepository, request_id: int) -> SignatureRequest:
     req = repo.get_by_id(request_id)
     if not req:
-        raise ValueError(f"Signature request {request_id} not found")
+        raise ValueError(f"בקשת חתימה {request_id} לא נמצאה")
     return req
 
 
 def get_by_token_or_raise(repo: SignatureRequestRepository, token: str) -> SignatureRequest:
     req = repo.get_by_token(token)
     if not req:
-        raise ValueError("Invalid or already-used signing token")
+        raise ValueError("שובר חתימה לא חוקי או כבר בשימוש")
     return req
 
 
@@ -38,4 +38,4 @@ def assert_signable(repo: SignatureRequestRepository, req: SignatureRequest) -> 
             actor_type="system",
             notes="Expired detected at signing time.",
         )
-        raise ValueError("This signing request has expired.")
+        raise ValueError("בקשת החתימה הזו פג תוקף")

@@ -32,13 +32,13 @@ def create_request(
     """Create a new signature request in DRAFT status."""
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"Client {client_id} not found")
+        raise ValueError(f"לקוח {client_id} לא נמצא")
 
     try:
         req_type = SignatureRequestType(request_type)
     except ValueError:
         valid = [e.value for e in SignatureRequestType]
-        raise ValueError(f"Invalid request_type '{request_type}'. Valid values: {valid}")
+        raise ValueError(f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid}")
 
     content_hash = None
     if content_to_hash:

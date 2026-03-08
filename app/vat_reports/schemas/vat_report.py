@@ -28,7 +28,7 @@ class VatWorkItemCreateRequest(BaseModel):
     def validate_period(cls, v: str) -> str:
         import re
         if not re.fullmatch(r"\d{4}-(?:0[1-9]|1[0-2])", v):
-            raise ValueError("period must be in YYYY-MM format (e.g. '2026-01')")
+            raise ValueError("התקופה חייבת להיות בפורמט YYYY-MM (למשל '2026-01')")
         return v
 
 
@@ -83,14 +83,14 @@ class VatInvoiceCreateRequest(BaseModel):
     @classmethod
     def net_positive(cls, v: Decimal) -> Decimal:
         if v <= 0:
-            raise ValueError("net_amount must be positive")
+            raise ValueError("הסכום נטו חייב להיות חיובי")
         return v
 
     @field_validator("vat_amount")
     @classmethod
     def vat_non_negative(cls, v: Decimal) -> Decimal:
         if v < 0:
-            raise ValueError("vat_amount cannot be negative")
+            raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
         return v
 
 

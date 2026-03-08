@@ -40,18 +40,18 @@ class AnnualReportService:
     ):
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise ValueError(f"Client {client_id} not found")
+            raise ValueError(f"הלקוח {client_id} לא נמצא")
         try:
             ct = ClientTypeForReport(client_type)
         except ValueError:
-            raise ValueError(f"Invalid client_type '{client_type}'")
+            raise ValueError(f"סוג לקוח '{client_type}' אינו חוקי")
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
-            raise ValueError(f"Invalid deadline_type '{deadline_type}'")
+            raise ValueError(f"סוג מועד אחרון '{deadline_type}' אינו חוקי")
 
         if self.repo.get_by_client_year(client_id, tax_year):
-            raise ValueError(f"Report already exists for client {client_id} year {tax_year}")
+            raise ValueError(f"דוח כבר קיים עבור לקוח {client_id} לשנת {tax_year}")
 
         form_type = FORM_MAP[ct]
         filing_deadline = (
@@ -92,10 +92,12 @@ class AnnualReportService:
         try:
             ns = AnnualReportStatus(new_status)
         except ValueError:
-            raise ValueError(f"Invalid status '{new_status}'")
+            raise ValueError(f"סטטוס '{new_status}' אינו חוקי")
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
-            raise ValueError(f"Cannot transition from '{report.status.value}' to '{ns.value}'. Allowed: {allowed}")
+            raise ValueError(
+                f"לא ניתן לעבור מסטטוס '{report.status.value}' ל'{ns.value}'. מותר: {allowed}"
+            )
         previous_status = report.status
         update = {"status": ns}
         if ns == AnnualReportStatus.SUBMITTED:
@@ -127,10 +129,10 @@ class AnnualReportService:
         try:
             sched = AnnualReportSchedule(schedule)
         except ValueError:
-            raise ValueError(f"Invalid schedule '{schedule}'")
+            raise ValueError(f"לוח זמנים '{schedule}' אינו חוקי")
         entry = self.repo.mark_schedule_complete(rid, sched)
         if not entry:
-            raise ValueError("Schedule not found")
+            raise ValueError("לוח זמנים לא נמצא")
         return entry
 
     def schedules_complete(self, rid):
@@ -143,5 +145,5 @@ class AnnualReportService:
     def _get_or_raise(self, rid):
         report = self.repo.get_by_id(rid)
         if not report:
-            raise ValueError(f"Report {rid} not found")
+            raise ValueError(f"הדוח {rid} לא נמצא")
         return report
