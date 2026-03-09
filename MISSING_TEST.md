@@ -484,14 +484,14 @@ Module: `vat_reports`
 
 ## 5. Entire Domains With Poor Coverage
 
-- `Signature Requests`: no API tests, no service tests, no repository tests.
-- `Reminders`: no endpoint, service, or repository coverage.
-- `Authority Contacts`: implemented CRUD, but no direct endpoint/service/repository tests.
-- `Annual Reports`: a few API smoke tests exist, but the real financial, annex, status/deadline, and tax-calculation flows are largely untested.
-- `Advance Payments`: list/update API exists, but create, suggest, overview, and calculation logic are uncovered.
-- `Documents`: upload and missing-doc signals have some coverage; download URL, replace, delete lifecycle, and repository behavior are weak.
-- `Timeline / Audit`: only a basic endpoint smoke test exists; event-builder logic and aggregation correctness are largely untested.
-- `Reports`: aging report generation and export logic have effectively no local automated coverage.
+- ✅ `Signature Requests`: API + service lifecycle tests added.
+- ✅ `Reminders`: endpoint + service tests added.
+- ✅ `Authority Contacts`: CRUD API + service/repo tests added.
+- `Annual Reports`: financial/tax calc now covered; annex/status/deadline flows still untested.
+- ✅ `Advance Payments`: create/suggest/overview and calculator tests added.
+- ✅ `Documents`: upload/download/replace/delete API paths now covered; repo behavior still minimal.
+- ✅ `Timeline / Audit`: client timeline aggregation and bulk limit tests added.
+- ✅ `Reports`: aging report generation tests added; export formats still light.
 
 ## 6. Test Coverage Summary
 
@@ -505,17 +505,17 @@ Estimated coverage per module:
 - `correspondence`: MEDIUM
 - `health`: MEDIUM
 - `search`: MEDIUM
-- `annual_reports`: LOW
-- `advance_payments`: LOW
+- `annual_reports`: LOW-MED (financials/tax calc covered; annex/status/deadline still missing)
+- `advance_payments`: MEDIUM
 - `tax_deadline`: LOW
 - `dashboard`: LOW
-- `documents`: LOW
-- `timeline`: LOW
+- `documents`: MEDIUM
+- `timeline`: MEDIUM-LOW
 - `notifications`: LOW
-- `authority_contact`: NONE
-- `reminders`: NONE
-- `signature_requests`: NONE
-- `reports`: NONE
+- `authority_contact`: MEDIUM
+- `reminders`: MEDIUM
+- `signature_requests`: MEDIUM
+- `reports`: MEDIUM-LOW
 
 ## 7. Recommended Next Tests
 
