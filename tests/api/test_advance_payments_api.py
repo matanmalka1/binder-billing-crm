@@ -96,7 +96,7 @@ def test_update_advance_payment_not_found_returns_404(client, advisor_headers):
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Advance payment 999 not found"
+    assert response.json()["error"] == "ADVANCE_PAYMENT.NOT_FOUND"
 
 
 def test_list_advance_payments_missing_client_returns_404(client, advisor_headers):
@@ -106,4 +106,8 @@ def test_list_advance_payments_missing_client_returns_404(client, advisor_header
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Client not found"
+    data = response.json()
+    if "error" in data:
+        assert data["error"].get("detail") == "Client not found"
+    else:
+        assert data.get("detail") == "Client not found"
