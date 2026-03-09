@@ -2,6 +2,7 @@
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
@@ -16,7 +17,7 @@ class AnnualReportAdvancesSummaryService:
     def get_advances_summary(self, report_id: int) -> AdvancesSummary:
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise ValueError(f"הדוח השנתי {report_id} לא נמצא")
+            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
 
         payments = (
             self.db.query(AdvancePayment)
