@@ -3,6 +3,7 @@
 import json
 from typing import Tuple
 
+from app.core.exceptions import AppError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -12,15 +13,16 @@ from app.vat_reports.services.constants import VALID_TRANSITIONS
 def assert_editable(item) -> None:
     """Raise if the work item is FILED (immutable)."""
     if item.status == VatWorkItemStatus.FILED:
-        raise ValueError("לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש")
+        raise AppError("filed: לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש", "VAT.FILED_IMMUTABLE")
 
 
 def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
     """Validate status transition against the central transition table."""
     allowed = VALID_TRANSITIONS.get(item.status, set())
     if target_status not in allowed:
-        raise ValueError(
-            f"לא ניתן לעבור מ-{item.status.value} ל-{target_status.value}"
+        raise AppError(
+            f"לא ניתן לעבור מ-{item.status.value} ל-{target_status.value}",
+            "VAT.INVALID_TRANSITION",
         )
 
 
