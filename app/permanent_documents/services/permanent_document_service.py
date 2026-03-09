@@ -38,7 +38,7 @@ class PermanentDocumentService:
         - Marks is_present = True
 
         Raises:
-            ValueError: If client not found or document type invalid
+            AppError: If client not found or document type invalid
         """
         try:
             get_client_or_raise(self.client_repo, client_id)
