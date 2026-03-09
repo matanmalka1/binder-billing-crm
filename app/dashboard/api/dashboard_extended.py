@@ -24,10 +24,7 @@ def get_work_queue(
 ):
     """Get operational work queue."""
     service = DashboardExtendedService(db)
-    try:
-        items, total = service.get_work_queue(page=page, page_size=page_size)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    items, total = service.get_work_queue(page=page, page_size=page_size)
 
     return WorkQueueResponse(
         items=items,
@@ -44,10 +41,7 @@ def get_attention_items(
 ):
     """Get items requiring attention."""
     service = DashboardExtendedService(db)
-    try:
-        items = service.get_attention_items(user_role=user.role)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    items = service.get_attention_items(user_role=user.role)
 
     return AttentionResponse(
         items=items,
