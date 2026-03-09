@@ -7,6 +7,7 @@ Wave 1 — Core Tax Engine (P1, no dependencies) - done
 2.2 — Tax bracket breakdown in response (tax_engine.py) - done
 4.3 — Partial expense recognition rates (annual_report_detail model + financial_service.py) - done
 Wave 2 — Fields & Data Model (P2, depends on Wave 1) - done
+wave complete
 ----------------------------------------------------------
 5.1 / 5.2 — Recognition rate on deduction lines (resolved by 4.3) - done
 5.3 — supporting_document_ref + recognition_rate on expense create/update - done
@@ -16,6 +17,7 @@ Wave 2 — Fields & Data Model (P2, depends on Wave 1) - done
 6.4 — tax_year field on PermanentDocument - done
 6.7 — Document-deduction foreign key link (needs 6.4 + 5.3) - done
 3.9 — notes field on AdvancePayment - done
+wave complete
 ----------------------------------------------------------
 Wave 3 — Advance Payments Analytics (P2)
 3.4 — Delta (expected − paid) in response  - done
@@ -23,12 +25,14 @@ Wave 3 — Advance Payments Analytics (P2)
 3.10 — Delete advance payment endpoint  - done
 3.6 / 3.5 — collection_rate + annual KPI cards - done
 3.12 — Monthly chart data endpoint - done
+wave complete
 ----------------------------------------------------------
 Wave 4 — Report Workflows (P2)
 7.6 — AMENDED status + amend endpoint - done
 1.3 — Auto-compute profit/balance at report creation (needs financial_service stable) - done
 7.1 — Filing timeline endpoint - done
 [INTEGRATION — SKIP] 1.9 / 10.4 — ITA submission integration (stub → real API)
+wave complete execpt 1.9 / 10.4 
 ----------------------------------------------------------
 Wave 5 — Notifications (P2) — done
 8.1 — severity field on Notification model - done 
@@ -36,6 +40,7 @@ Wave 5 — Notifications (P2) — done
 8.6 — Notification center endpoints (needs 8.3) - done
 8.4 — Bulk send + WhatsApp channel - done
 8.2 — available_actions on deadline/report responses - done
+wave complete
 ----------------------------------------------------------
 Wave 6 — Analytics & Export (P3, depends on Waves 1–3)
 4.6 — gross_margin_pct

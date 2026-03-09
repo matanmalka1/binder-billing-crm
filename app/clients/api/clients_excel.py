@@ -35,9 +35,6 @@ def export_clients(db: DBSession):
         path=result["filepath"],
         media_type=EXCEL_MEDIA_TYPE,
         filename=result["filename"],
-        headers={
-            "Content-Disposition": f'attachment; filename="{result["filename"]}"',
-        },
     )
 
 
@@ -57,9 +54,6 @@ def download_client_template(db: DBSession):
         path=result["filepath"],
         media_type=EXCEL_MEDIA_TYPE,
         filename=result["filename"],
-        headers={
-            "Content-Disposition": f'attachment; filename="{result["filename"]}"',
-        },
     )
 
 

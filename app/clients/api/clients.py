@@ -99,14 +99,7 @@ def update_client(
 
     update_data = request.model_dump(exclude_unset=True)
 
-    try:
-        #  Pass user role to service for authorization
-        client = service.update_client(client_id, user.role, **update_data)
-    except PermissionError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e),
-        )
+    client = service.update_client(client_id, user.role, **update_data)
 
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")

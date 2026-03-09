@@ -1,6 +1,6 @@
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.annual_reports .models import AnnualReport, AnnualReportSchedule
 from .base import AnnualReportBaseService
 from .constants import SCHEDULE_FLAGS
@@ -9,21 +9,12 @@ from .constants import SCHEDULE_FLAGS
 class AnnualReportScheduleService(AnnualReportBaseService):
     def add_schedule(self, report_id: int, schedule: str, notes: Optional[str] = None):
         self._get_or_raise(report_id)
-        valid_schedules = {e.value for e in AnnualReportSchedule}
-        if schedule not in valid_schedules:
-            raise AppError(
-                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {sorted(valid_schedules)}",
-                "ANNUAL_REPORT.INVALID_TYPE",
-            )
-        s = AnnualReportSchedule(schedule)
+        s = self._parse_schedule(schedule)
         return self.repo.add_schedule(report_id, s, notes=notes)
 
     def complete_schedule(self, report_id: int, schedule: str):
         self._get_or_raise(report_id)
-        valid_schedules = {e.value for e in AnnualReportSchedule}
-        if schedule not in valid_schedules:
-            raise AppError(f"לוח זמנים לא חוקי '{schedule}'", "ANNUAL_REPORT.INVALID_TYPE")
-        s = AnnualReportSchedule(schedule)
+        s = self._parse_schedule(schedule)
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
             raise NotFoundError(
@@ -31,6 +22,16 @@ class AnnualReportScheduleService(AnnualReportBaseService):
                 "ANNUAL_REPORT.LINE_NOT_FOUND",
             )
         return entry
+
+    def _parse_schedule(self, schedule: str) -> AnnualReportSchedule:
+        try:
+            return AnnualReportSchedule(schedule)
+        except ValueError:
+            valid = sorted(e.value for e in AnnualReportSchedule)
+            raise AppError(
+                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
 
     def get_schedules(self, report_id: int):
         self._get_or_raise(report_id)

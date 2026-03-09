@@ -21,18 +21,15 @@ router = APIRouter(
 @router.post("", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED)
 def create_user(request: UserCreateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    try:
-        return service.create_user(
-            actor_user_id=user.id,
-            actor_role=user.role,
-            full_name=request.full_name,
-            email=request.email,
-            role=request.role,
-            password=request.password,
-            phone=request.phone,
-        )
-    except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    return service.create_user(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        full_name=request.full_name,
+        email=request.email,
+        role=request.role,
+        password=request.password,
+        phone=request.phone,
+    )
 
 
 @router.get("", response_model=UserManagementListResponse)
@@ -60,15 +57,12 @@ def get_user(user_id: int, db: DBSession, user: CurrentUser):
 def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     update_data = request.model_dump(exclude_unset=True, exclude_none=True)
-    try:
-        updated = service.update_user(
-            actor_user_id=user.id,
-            actor_role=user.role,
-            user_id=user_id,
-            **update_data,
-        )
-    except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    updated = service.update_user(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        user_id=user_id,
+        **update_data,
+    )
 
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
@@ -78,14 +72,11 @@ def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: C
 @router.post("/{user_id}/activate", response_model=UserManagementResponse)
 def activate_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    try:
-        updated = service.activate_user(
-            actor_user_id=user.id,
-            actor_role=user.role,
-            user_id=user_id,
-        )
-    except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    updated = service.activate_user(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        user_id=user_id,
+    )
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
     return updated
@@ -94,14 +85,11 @@ def activate_user(user_id: int, db: DBSession, user: CurrentUser):
 @router.post("/{user_id}/deactivate", response_model=UserManagementResponse)
 def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    try:
-        updated = service.deactivate_user(
-            actor_user_id=user.id,
-            actor_role=user.role,
-            target_user_id=user_id,
-        )
-    except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    updated = service.deactivate_user(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        target_user_id=user_id,
+    )
 
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
@@ -111,15 +99,12 @@ def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
 @router.post("/{user_id}/reset-password", response_model=UserManagementResponse)
 def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    try:
-        updated = service.reset_password(
-            actor_user_id=user.id,
-            actor_role=user.role,
-            target_user_id=user_id,
-            new_password=request.new_password,
-        )
-    except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    updated = service.reset_password(
+        actor_user_id=user.id,
+        actor_role=user.role,
+        target_user_id=user_id,
+        new_password=request.new_password,
+    )
 
     if not updated:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")

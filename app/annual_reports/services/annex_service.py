@@ -2,28 +2,23 @@
 
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.annual_reports.schemas.annual_report_annex import AnnexDataLineResponse
+from .base import AnnualReportBaseService
 
 
-class AnnualReportAnnexService:
+class AnnualReportAnnexService(AnnualReportBaseService):
     """Mixin — requires self.db and self.repo (AnnualReportRepository)."""
 
     def _get_annex_repo(self) -> AnnexDataRepository:
         return AnnexDataRepository(self.db)  # type: ignore[attr-defined]
 
-    def _get_report_for_annex(self, report_id: int):
-        report = self.repo.get_by_id(report_id)  # type: ignore[attr-defined]
-        if not report:
-            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
-        return report
-
     def get_annex_lines(
         self, report_id: int, schedule: AnnualReportSchedule
     ) -> list[AnnexDataLineResponse]:
-        self._get_report_for_annex(report_id)
+        self._get_or_raise(report_id)
         repo = self._get_annex_repo()
         rows = repo.list_by_report_and_schedule(report_id, schedule)
         return [AnnexDataLineResponse.model_validate(r) for r in rows]
@@ -35,7 +30,7 @@ class AnnualReportAnnexService:
         data: dict,
         notes: Optional[str] = None,
     ) -> AnnexDataLineResponse:
-        self._get_report_for_annex(report_id)
+        self._get_or_raise(report_id)
         repo = self._get_annex_repo()
         line_number = repo.next_line_number(report_id, schedule)
         row = repo.add_line(report_id, schedule, line_number, data, notes)
@@ -48,7 +43,7 @@ class AnnualReportAnnexService:
         data: dict,
         notes: Optional[str] = None,
     ) -> AnnexDataLineResponse:
-        self._get_report_for_annex(report_id)
+        self._get_or_raise(report_id)
         repo = self._get_annex_repo()
         row = repo.update_line(line_id, data, notes)
         if not row:
@@ -56,7 +51,7 @@ class AnnualReportAnnexService:
         return AnnexDataLineResponse.model_validate(row)
 
     def delete_annex_line(self, report_id: int, line_id: int) -> None:
-        self._get_report_for_annex(report_id)
+        self._get_or_raise(report_id)
         repo = self._get_annex_repo()
         if not repo.delete_line(line_id):
             raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
