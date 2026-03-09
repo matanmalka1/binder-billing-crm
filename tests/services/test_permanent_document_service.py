@@ -1,6 +1,9 @@
 from datetime import date
 from io import BytesIO
 
+import pytest
+
+from app.core.exceptions import NotFoundError
 from app.clients.models.client import Client, ClientType
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.permanent_documents.services.permanent_document_service import (
@@ -80,7 +83,7 @@ def test_upload_document_client_not_found(test_db):
     service = PermanentDocumentService(test_db)
     file_data = BytesIO(b"fake content")
 
-    try:
+    with pytest.raises(NotFoundError) as exc_info:
         service.upload_document(
             client_id=99999,
             document_type=DocumentType.ID_COPY,
@@ -88,6 +91,4 @@ def test_upload_document_client_not_found(test_db):
             filename="test.pdf",
             uploaded_by=1,
         )
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "not found" in str(e).lower()
+    assert exc_info.value.code == "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND"
