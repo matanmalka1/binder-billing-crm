@@ -6,12 +6,14 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+import app.main as main_module
 
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 
 from app.database import Base, get_db
 from app.main import app
+from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.client import Client, ClientType
@@ -49,11 +51,14 @@ def client(test_db):
             pass
     
     app.dependency_overrides[get_db] = override_get_db
-    
+    original_expire = main_module.expire_overdue_requests
+    main_module.expire_overdue_requests = lambda repo: 0
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     app.dependency_overrides.clear()
+    main_module.expire_overdue_requests = original_expire
 
 
 @pytest.fixture(scope="function")
