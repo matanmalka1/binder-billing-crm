@@ -1,5 +1,6 @@
 """Service: client-level VAT summary."""
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
@@ -15,7 +16,7 @@ def get_client_summary(
 ) -> VatClientSummaryResponse:
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"לקוח {client_id} לא נמצא")
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
 
     periods = summary_repo.get_periods_for_client(client_id)
     annual = summary_repo.get_annual_aggregates(client_id)
