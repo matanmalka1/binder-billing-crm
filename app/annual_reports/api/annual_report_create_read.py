@@ -22,24 +22,21 @@ router = APIRouter(
 def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: CurrentUser):
     """Create a new annual income tax report for a client."""
     service = AnnualReportService(db)
-    try:
-        orm_report = service.create_report(
-            client_id=body.client_id,
-            tax_year=body.tax_year,
-            client_type=body.client_type,
-            created_by=user.id,
-            created_by_name=user.full_name,
-            deadline_type=body.deadline_type,
-            assigned_to=body.assigned_to,
-            notes=body.notes,
-            has_rental_income=body.has_rental_income,
-            has_capital_gains=body.has_capital_gains,
-            has_foreign_income=body.has_foreign_income,
-            has_depreciation=body.has_depreciation,
-            has_exempt_rental=body.has_exempt_rental,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    orm_report = service.create_report(
+        client_id=body.client_id,
+        tax_year=body.tax_year,
+        client_type=body.client_type,
+        created_by=user.id,
+        created_by_name=user.full_name,
+        deadline_type=body.deadline_type,
+        assigned_to=body.assigned_to,
+        notes=body.notes,
+        has_rental_income=body.has_rental_income,
+        has_capital_gains=body.has_capital_gains,
+        has_foreign_income=body.has_foreign_income,
+        has_depreciation=body.has_depreciation,
+        has_exempt_rental=body.has_exempt_rental,
+    )
 
     return service.get_detail_report(orm_report.id)
 
