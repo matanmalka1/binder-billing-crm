@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
@@ -36,7 +37,7 @@ class BinderService:
 
         existing = self.binder_repo.get_active_by_number(binder_number)
         if existing:
-            raise ValueError(f"כבר קיים קלסר פעיל עם המספר {binder_number}")
+            raise ConflictError(f"כבר קיים קלסר פעיל עם המספר {binder_number}", "BINDER.CONFLICT")
 
         binder = self.binder_repo.create(
             client_id=client_id,
@@ -64,7 +65,7 @@ class BinderService:
         """Mark binder as ready for pickup."""
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise ValueError(f"הקלסר {binder_id} לא נמצא")
+            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
 
         binder_helpers.validate_ready_transition(binder)
 
@@ -94,7 +95,7 @@ class BinderService:
         """Return binder to client."""
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise ValueError(f"הקלסר {binder_id} לא נמצא")
+            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
 
         binder_helpers.validate_return_transition(binder, pickup_person_name)
 
