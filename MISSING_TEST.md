@@ -20,11 +20,11 @@ Audit basis:
 
 Module: `advance_payments`
 
-- `AdvancePaymentService.create_payment`
-- `AdvancePaymentService.list_overview`
-- `AdvancePaymentService.suggest_expected_amount`
-- `derive_annual_income_from_vat`
-- `calculate_expected_amount`
+- ✅ `AdvancePaymentService.create_payment` (tests/advance_payments/service/test_advance_payment_create_success.py)
+- ✅ `AdvancePaymentService.list_overview` (tests/advance_payments/service/test_advance_payment_overview_kpis.py)
+- ✅ `AdvancePaymentService.suggest_expected_amount` (tests/advance_payments/api/test_advance_payments_kpi_chart.py)
+- ✅ `derive_annual_income_from_vat` (tests/advance_payments/service/test_advance_payment.py)
+- ✅ `calculate_expected_amount` (tests/advance_payments/service/test_advance_payment.py)
 
 Module: `annual_reports`
 
@@ -219,9 +219,9 @@ Module: `vat_reports`
 
 Module: `advance_payments`
 
-- `POST /api/v1/advance-payments`
-- `GET /api/v1/advance-payments/suggest`
-- `GET /api/v1/advance-payments/overview`
+- ✅ `POST /api/v1/advance-payments` (tests/advance_payments/service/test_advance_payment_create_success.py)
+- ✅ `GET /api/v1/advance-payments/suggest` (tests/advance_payments/api/test_advance_payments_kpi_chart.py)
+- ✅ `GET /api/v1/advance-payments/overview` (tests/advance_payments/service/test_advance_payment_overview_kpis.py)
 
 Module: `annual_reports`
 
