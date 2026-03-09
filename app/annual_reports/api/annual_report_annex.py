@@ -31,10 +31,7 @@ def list_annex_lines(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    try:
-        return svc.get_annex_lines(report_id, schedule)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return svc.get_annex_lines(report_id, schedule)
 
 
 @router.post(
@@ -50,10 +47,7 @@ def add_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    try:
-        return svc.add_annex_line(report_id, schedule, body.data, body.notes)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.add_annex_line(report_id, schedule, body.data, body.notes)
 
 
 @router.patch(
@@ -69,10 +63,7 @@ def update_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    try:
-        return svc.update_annex_line(report_id, line_id, body.data, body.notes)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.update_annex_line(report_id, line_id, body.data, body.notes)
 
 
 @router.delete(
@@ -88,7 +79,4 @@ def delete_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    try:
-        svc.delete_annex_line(report_id, line_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    svc.delete_annex_line(report_id, line_id)
