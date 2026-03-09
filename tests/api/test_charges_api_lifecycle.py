@@ -62,23 +62,23 @@ def test_invalid_transitions_return_400(client, advisor_headers, test_db):
 
     pay_draft = client.post(f"/api/v1/charges/{charge_id}/mark-paid", headers=advisor_headers)
     assert pay_draft.status_code == 400
-    assert "draft" in pay_draft.json()["detail"]
+    assert pay_draft.json()["error"] == "CHARGE.INVALID_STATUS"
 
     assert client.post(f"/api/v1/charges/{charge_id}/cancel", headers=advisor_headers).status_code == 200
     issue_canceled = client.post(f"/api/v1/charges/{charge_id}/issue", headers=advisor_headers)
     assert issue_canceled.status_code == 400
-    assert "canceled" in issue_canceled.json()["detail"]
+    assert issue_canceled.json()["error"] == "CHARGE.INVALID_STATUS"
 
     charge_id_2 = _create_charge_via_api(client, advisor_headers, c.id)
     assert client.post(f"/api/v1/charges/{charge_id_2}/issue", headers=advisor_headers).status_code == 200
     assert client.post(f"/api/v1/charges/{charge_id_2}/mark-paid", headers=advisor_headers).status_code == 200
     cancel_paid = client.post(f"/api/v1/charges/{charge_id_2}/cancel", headers=advisor_headers)
     assert cancel_paid.status_code == 400
-    assert "paid" in cancel_paid.json()["detail"].lower()
+    assert cancel_paid.json()["error"] == "CHARGE.INVALID_STATUS"
 
 
 def test_charge_not_found_responses(client, advisor_headers, test_db):
     assert client.get("/api/v1/charges/9999", headers=advisor_headers).status_code == 404
     issue_missing = client.post("/api/v1/charges/9999/issue", headers=advisor_headers)
-    assert issue_missing.status_code == 400
-    assert "not found" in issue_missing.json()["detail"].lower()
+    assert issue_missing.status_code == 404
+    assert issue_missing.json()["error"] == "CHARGE.NOT_FOUND"
