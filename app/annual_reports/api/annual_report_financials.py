@@ -33,10 +33,7 @@ router = APIRouter(
 def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
     """Income + expense lines and taxable income calculation."""
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.get_financial_summary(report_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return svc.get_financial_summary(report_id)
 
 
 # ── Tax calculation ───────────────────────────────────────────────────────────
@@ -45,17 +42,14 @@ def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
 def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
     """Israeli 2024 income tax calculation for this report."""
     svc = AnnualReportFinancialService(db)
-    try:
-        result = svc.get_tax_calculation(report_id)
-        return TaxCalculationResponse(
-            taxable_income=result.taxable_income,
-            tax_before_credits=result.tax_before_credits,
-            credit_points_value=result.credit_points_value,
-            tax_after_credits=result.tax_after_credits,
-            effective_rate=result.effective_rate,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    result = svc.get_tax_calculation(report_id)
+    return TaxCalculationResponse(
+        taxable_income=result.taxable_income,
+        tax_before_credits=result.tax_before_credits,
+        credit_points_value=result.credit_points_value,
+        tax_after_credits=result.tax_after_credits,
+        effective_rate=result.effective_rate,
+    )
 
 
 # ── Advances summary ──────────────────────────────────────────────────────────
@@ -64,10 +58,7 @@ def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
 def get_advances_summary(report_id: int, db: DBSession, user: CurrentUser):
     """Advance payments summary and final tax balance for this report."""
     svc = AnnualReportAdvancesSummaryService(db)
-    try:
-        return svc.get_advances_summary(report_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return svc.get_advances_summary(report_id)
 
 
 # ── Readiness check ───────────────────────────────────────────────────────────
@@ -76,10 +67,7 @@ def get_advances_summary(report_id: int, db: DBSession, user: CurrentUser):
 def get_readiness_check(report_id: int, db: DBSession, user: CurrentUser):
     """Return list of issues blocking this report from being filed."""
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.get_readiness_check(report_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return svc.get_readiness_check(report_id)
 
 
 # ── Income lines ──────────────────────────────────────────────────────────────
@@ -91,10 +79,7 @@ def get_readiness_check(report_id: int, db: DBSession, user: CurrentUser):
 )
 def add_income_line(report_id: int, body: IncomeLineCreateRequest, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.add_income(report_id, body.source_type, body.amount, body.description)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.add_income(report_id, body.source_type, body.amount, body.description)
 
 
 @router.patch("/{report_id}/income/{line_id}", response_model=IncomeLineResponse)
@@ -102,10 +87,7 @@ def update_income_line(
     report_id: int, line_id: int, body: IncomeLineUpdateRequest, db: DBSession, user: CurrentUser
 ):
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.update_income(report_id, line_id, **body.model_dump(exclude_none=True))
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.update_income(report_id, line_id, **body.model_dump(exclude_none=True))
 
 
 @router.delete(
@@ -115,10 +97,7 @@ def update_income_line(
 )
 def delete_income_line(report_id: int, line_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    try:
-        svc.delete_income(report_id, line_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    svc.delete_income(report_id, line_id)
 
 
 # ── Expense lines ─────────────────────────────────────────────────────────────
@@ -130,10 +109,7 @@ def delete_income_line(report_id: int, line_id: int, db: DBSession, user: Curren
 )
 def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.add_expense(report_id, body.category, body.amount, body.description)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.add_expense(report_id, body.category, body.amount, body.description)
 
 
 @router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse)
@@ -141,10 +117,7 @@ def update_expense_line(
     report_id: int, line_id: int, body: ExpenseLineUpdateRequest, db: DBSession, user: CurrentUser
 ):
     svc = AnnualReportFinancialService(db)
-    try:
-        return svc.update_expense(report_id, line_id, **body.model_dump(exclude_none=True))
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return svc.update_expense(report_id, line_id, **body.model_dump(exclude_none=True))
 
 
 @router.delete(
@@ -154,7 +127,4 @@ def update_expense_line(
 )
 def delete_expense_line(report_id: int, line_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    try:
-        svc.delete_expense(report_id, line_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    svc.delete_expense(report_id, line_id)
