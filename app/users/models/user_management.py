@@ -33,6 +33,7 @@ class UserManagementResponse(BaseModel):
     phone: Optional[str]
     role: UserRole
     is_active: bool
+    token_version: int
     created_at: datetime
     last_login_at: Optional[datetime]
 

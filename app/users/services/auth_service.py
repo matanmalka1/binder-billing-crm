@@ -110,6 +110,8 @@ class AuthService:
         now = datetime.now(UTC)
         payload = {
             "sub": str(user.id),
+            "email": user.email,
+            "role": user.role.value,
             "tv": user.token_version,
             "iat": now,
             "exp": now + timedelta(hours=ttl),
@@ -120,7 +122,12 @@ class AuthService:
     def decode_token(token: str) -> Optional[dict]:
         """Decode and validate JWT token. Returns payload or None."""
         try:
-            return jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+            payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+            required_fields = {"sub", "email", "role", "exp", "iat"}
+            if not required_fields.issubset(payload):
+                logger.debug("Token missing required fields")
+                return None
+            return payload
         except jwt.ExpiredSignatureError:
             logger.debug("Token has expired")
             return None
