@@ -1,0 +1,111 @@
+from datetime import date
+
+from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.models.client import Client, ClientType
+from app.users.models.user import User, UserRole
+from app.users.services.auth_service import AuthService
+
+
+def _user(test_db):
+    user = User(
+        full_name="Binder Admin",
+        email="binder.admin@example.com",
+        password_hash=AuthService.hash_password("pass"),
+        role=UserRole.ADVISOR,
+        is_active=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user
+
+
+def _client(test_db, name: str, id_number: str):
+    client = Client(
+        full_name=name,
+        id_number=id_number,
+        client_type=ClientType.COMPANY,
+        opened_at=date(2024, 1, 1),
+    )
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+    return client
+
+
+def test_active_queries_and_soft_delete(test_db):
+    repo = BinderRepository(test_db)
+    user = _user(test_db)
+    client_a = _client(test_db, "Alpha", "B001")
+    client_b = _client(test_db, "Beta", "B002")
+
+    binder_active = repo.create(
+        client_id=client_a.id,
+        binder_number="BA-1",
+        binder_type=BinderType.VAT,
+        received_at=date(2024, 3, 1),
+        received_by=user.id,
+    )
+    binder_returned = repo.create(
+        client_id=client_a.id,
+        binder_number="BA-2",
+        binder_type=BinderType.VAT,
+        received_at=date(2024, 3, 2),
+        received_by=user.id,
+    )
+    repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
+
+    binder_other = repo.create(
+        client_id=client_b.id,
+        binder_number="BB-1",
+        binder_type=BinderType.VAT,
+        received_at=date(2024, 3, 3),
+        received_by=user.id,
+    )
+
+    assert repo.get_active_by_number("BA-1").id == binder_active.id
+    assert repo.get_active_by_number("BA-2") is None
+
+    active_for_client = repo.list_active(client_id=client_a.id)
+    assert [b.id for b in active_for_client] == [binder_active.id]
+
+    assert repo.count_active() == 2  # binder_active + binder_other
+    assert repo.count_active(client_id=client_a.id) == 1
+    assert repo.count_by_status(BinderStatus.IN_OFFICE) == 2
+
+    deleted = repo.soft_delete(binder_active.id, deleted_by=user.id)
+    assert deleted is True
+    assert repo.get_active_by_number("BA-1") is None
+    assert repo.count_active() == 1
+    assert repo.list_active(client_id=client_a.id) == []
+
+
+def test_list_active_respects_sort_and_filters(test_db):
+    repo = BinderRepository(test_db)
+    user = _user(test_db)
+    client = _client(test_db, "Gamma", "B003")
+
+    older = repo.create(
+        client_id=client.id,
+        binder_number="BG-1",
+        binder_type=BinderType.VAT,
+        received_at=date(2024, 1, 1),
+        received_by=user.id,
+    )
+    newer = repo.create(
+        client_id=client.id,
+        binder_number="BG-2",
+        binder_type=BinderType.VAT,
+        received_at=date(2024, 2, 1),
+        received_by=user.id,
+    )
+
+    default_order = repo.list_active()
+    assert [b.binder_number for b in default_order] == ["BG-2", "BG-1"]
+
+    asc_by_days = repo.list_active(sort_by="days_in_office", sort_dir="desc")
+    assert [b.binder_number for b in asc_by_days] == ["BG-1", "BG-2"]
+
+    number_filtered = repo.list_active(binder_number="G-1")
+    assert [b.id for b in number_filtered] == [older.id]

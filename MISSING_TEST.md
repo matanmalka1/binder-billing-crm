@@ -381,11 +381,11 @@ Module: `authority_contact_repository`
 
 Module: `binder_repository`
 
-- `get_active_by_number`
-- `list_active`
-- `count_active`
-- `count_by_status`
-- `soft_delete`
+- ✅ `get_active_by_number`
+- ✅ `list_active`
+- ✅ `count_active`
+- ✅ `count_by_status`
+- ✅ `soft_delete`
 
 Module: `binder_repository_extensions`
 
@@ -396,21 +396,21 @@ Module: `binder_repository_extensions`
 
 Module: `charge_repository`
 
-- `list_charges`
-- `count_charges`
-- `soft_delete`
+- ✅ `list_charges`
+- ✅ `count_charges`
+- ✅ `soft_delete`
 
 Module: `client_repository`
 
-- `get_by_id_number`
-- `list_by_ids`
-- `list_all`
-- `soft_delete`
+- ✅ `get_by_id_number`
+- ✅ `list_by_ids`
+- ✅ `list_all`
+- ✅ `soft_delete`
 
 Module: `client_tax_profile_repository`
 
-- `get_by_client_id`
-- `upsert`
+- ✅ `get_by_client_id`
+- ✅ `upsert`
 
 Module: `correspondence_repository`
 
@@ -427,8 +427,8 @@ Module: `health_repository`
 
 Module: `invoice_repository`
 
-- `get_by_charge_id`
-- `exists_for_charge`
+- ✅ `get_by_charge_id`
+- ✅ `exists_for_charge`
 
 Module: `notification_repository`
 
