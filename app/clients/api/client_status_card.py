@@ -16,7 +16,4 @@ router = APIRouter(
 def get_client_status_card(client_id: int, db: DBSession, user: CurrentUser):
     """Comprehensive status card for a client — VAT, annual report, charges, advances, binders, documents."""
     service = StatusCardService(db)
-    try:
-        return service.get_status_card(client_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return service.get_status_card(client_id)
