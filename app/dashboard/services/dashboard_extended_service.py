@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
@@ -45,9 +46,10 @@ class DashboardExtendedService:
         if self._cached_active_binders_with_clients is None:
             total_active = self.binder_repo.count_active()
             if total_active > _ACTIVE_BINDERS_FETCH_LIMIT:
-                raise ValueError(
+                raise AppError(
                     f"מספר התיקים הפעילים ({total_active}) חורג מהמגבלה לחישוב לוח המחוונים "
-                    f"({_ACTIVE_BINDERS_FETCH_LIMIT})."
+                    f"({_ACTIVE_BINDERS_FETCH_LIMIT}).",
+                    "DASHBOARD.LIMIT_EXCEEDED",
                 )
             binders = self.binder_repo.list_active(
                 page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
@@ -104,9 +106,10 @@ class DashboardExtendedService:
         if user_role == UserRole.ADVISOR:
             total_unpaid = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
             if total_unpaid > _UNPAID_CHARGES_FETCH_LIMIT:
-                raise ValueError(
+                raise AppError(
                     f"מספר החיובים הלא משולמים ({total_unpaid}) חורג מהמגבלה לחישוב לוח המחוונים "
-                    f"({_UNPAID_CHARGES_FETCH_LIMIT})."
+                    f"({_UNPAID_CHARGES_FETCH_LIMIT}).",
+                    "DASHBOARD.LIMIT_EXCEEDED",
                 )
             unpaid_charges = self.charge_repo.list_charges(
                 status=ChargeStatus.ISSUED.value,
