@@ -184,20 +184,20 @@ Module: `timeline`
 - `reminder_created_event`
 - `document_uploaded_event`
 - `signature_request_created_event`
-- `binder_received_event`
-- `binder_returned_event`
-- `binder_status_change_event`
+- ✅ `binder_received_event` (tests/timeline/service/test_timeline_event_builders.py)
+- ✅ `binder_returned_event` (tests/timeline/service/test_timeline_event_builders.py)
+- ✅ `binder_status_change_event` (tests/timeline/service/test_timeline_event_builders.py)
 - `notification_sent_event`
-- `charge_created_event`
+- ✅ `charge_created_event` (tests/timeline/service/test_timeline_event_builders.py)
 - `charge_issued_event`
-- `charge_paid_event`
-- `invoice_attached_event`
-- `tax_deadline_due_event`
-- `annual_report_status_changed_event`
+- ✅ `charge_paid_event` (tests/timeline/service/test_timeline_event_builders.py)
+- ✅ `invoice_attached_event` (tests/timeline/service/test_timeline_event_builders.py)
+- ✅ `tax_deadline_due_event` (tests/timeline/service/test_timeline_tax_builders.py)
+- ✅ `annual_report_status_changed_event` (tests/timeline/service/test_timeline_tax_builders.py)
 
 Module: `users`
 
-- `AuthService.verify_password`
+- ✅ `AuthService.verify_password` (tests/users/services/test_auth_service.py)
 - `UserManagementService.reset_password`
 - `UserManagementService.list_users`
 - `AuditLogService.list_logs`

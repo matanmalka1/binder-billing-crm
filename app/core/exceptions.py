@@ -149,9 +149,9 @@ async def app_error_handler(request, exc: AppError):
 
 
 async def value_error_handler(request, exc: ValueError):
-    from fastapi.responses import JSONResponse
-
-    return JSONResponse(
-        status_code=400,
-        content={"error": "VALIDATION_ERROR", "message": str(exc)},
+    """Normalize ValueError responses to standard error envelope."""
+    return _error_json(
+        status.HTTP_400_BAD_REQUEST,
+        str(exc),
+        "validation_error",
     )

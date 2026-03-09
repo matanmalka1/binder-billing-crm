@@ -47,7 +47,13 @@ def create_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    corr_type = CorrespondenceType(request.correspondence_type)
+    try:
+        corr_type = CorrespondenceType(request.correspondence_type)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid correspondence_type: {request.correspondence_type}",
+        )
     service = CorrespondenceService(db)
     entry = service.add_entry(
         client_id=client_id,
@@ -74,9 +80,15 @@ def update_correspondence(
 ):
     update_data = request.model_dump(exclude_unset=True)
     if "correspondence_type" in update_data:
-        update_data["correspondence_type"] = CorrespondenceType(
-            update_data["correspondence_type"]
-        )
+        try:
+            update_data["correspondence_type"] = CorrespondenceType(
+                update_data["correspondence_type"]
+            )
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid correspondence_type: {update_data['correspondence_type']}",
+            )
     service = CorrespondenceService(db)
     entry = service.update_entry(correspondence_id, client_id, **update_data)
     return CorrespondenceResponse.model_validate(entry)

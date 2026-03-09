@@ -34,7 +34,13 @@ def update_tax_profile(
     user: CurrentUser,
 ):
     if request.vat_type is not None:
-        VatType(request.vat_type)
+        try:
+            VatType(request.vat_type)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid vat_type: {request.vat_type}",
+            )
     service = ClientTaxProfileService(db)
     update_data = request.model_dump(exclude_unset=True)
     profile = service.update_profile(client_id, **update_data)

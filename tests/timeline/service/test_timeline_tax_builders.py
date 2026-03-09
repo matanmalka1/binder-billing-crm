@@ -46,3 +46,17 @@ def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
     assert event["description"] == "דוח שנתי 1301 (2024): איסוף מסמכים"
     assert event["metadata"] == {"annual_report_id": 3}
     assert event["actions"] == event["available_actions"] == []
+
+
+def test_tax_deadline_due_event_without_amount_skips_currency_suffix():
+    deadline = SimpleNamespace(
+        id=8,
+        deadline_type=DeadlineType.ANNUAL_REPORT,
+        due_date=date(2026, 3, 31),
+        payment_amount=None,
+    )
+
+    event = tax_deadline_due_event(deadline)
+
+    assert event["description"] == "מועד דוח שנתי: 31/03/2026"
+    assert event["actions"] == event["available_actions"] == []
