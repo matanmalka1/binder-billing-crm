@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -23,6 +23,13 @@ class NotificationTrigger(str, PyEnum):
     MANUAL_PAYMENT_REMINDER = "manual_payment_reminder"
 
 
+class NotificationSeverity(str, PyEnum):
+    INFO = "info"
+    WARNING = "warning"
+    URGENT = "urgent"
+    CRITICAL = "critical"
+
+
 class Notification(Base):
     __tablename__ = "notifications"
 
@@ -32,11 +39,14 @@ class Notification(Base):
     trigger = Column(Enum(NotificationTrigger), nullable=False)
     channel = Column(Enum(NotificationChannel), nullable=False)
     status = Column(Enum(NotificationStatus), default=NotificationStatus.PENDING, nullable=False)
+    severity = Column(Enum(NotificationSeverity), default=NotificationSeverity.INFO, nullable=False)
     recipient = Column(String, nullable=False)
     content_snapshot = Column(Text, nullable=False)
     sent_at = Column(DateTime, nullable=True)
     failed_at = Column(DateTime, nullable=True)
     error_message = Column(Text, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False)
+    read_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     triggered_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 

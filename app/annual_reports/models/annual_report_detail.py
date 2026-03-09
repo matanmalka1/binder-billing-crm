@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -22,6 +22,7 @@ class AnnualReportDetail(Base):
     donation_amount = Column(Numeric(12, 2), nullable=True, default=0)
     other_credits = Column(Numeric(12, 2), nullable=True, default=0)
     internal_notes = Column(Text, nullable=True)
+    amendment_reason = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 

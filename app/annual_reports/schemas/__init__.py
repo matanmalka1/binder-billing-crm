@@ -1,4 +1,5 @@
 from app.annual_reports.schemas.annual_report import (  # noqa: F401
+    AmendRequest,
     AnnualReportCreateRequest,
     AnnualReportDetailResponse,
     AnnualReportListResponse,
@@ -19,6 +20,7 @@ from app.annual_reports.schemas.annual_report_detail import (
 )
 
 __all__ = [
+    "AmendRequest",
     "AnnualReportCreateRequest",
     "AnnualReportDetailResponse",
     "AnnualReportDetailUpdateRequest",

@@ -1,7 +1,8 @@
 """
 Infrastructure adapters for external notification channels.
 
-WhatsApp: disabled — stub only (returns False so caller falls back to email).
+WhatsApp: 360dialog API — real implementation when WHATSAPP_API_KEY is set;
+          falls back to stub (returns False) so caller can fall back to email.
 Email:    SendGrid — real implementation, gated by NOTIFICATIONS_ENABLED flag.
 """
 from __future__ import annotations
@@ -116,6 +117,70 @@ class EmailChannel:
 
         except Exception as exc:  # noqa: BLE001
             msg = f"SendGrid error: {exc}"
+            logger.error(msg)
+            return (False, msg)
+
+
+# ─── WhatsApp via 360dialog ───────────────────────────────────────────────────
+
+class WhatsAppChannel:
+    """
+    WhatsApp channel backed by 360dialog API.
+
+    When WHATSAPP_API_KEY is empty the channel is disabled and returns
+    (False, "not configured") so the caller can fall back to email.
+    """
+
+    def __init__(self, *, api_key: str, api_url: str, from_number: str) -> None:
+        self._api_key = api_key
+        self._api_url = api_url
+        self._from_number = from_number
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self._api_key and self._from_number)
+
+    def send(self, recipient_phone: str, content: str) -> tuple[bool, Optional[str]]:
+        """
+        Send a WhatsApp text message.
+
+        Returns (True, None) on success, (False, error_message) otherwise.
+        When not configured returns (False, "not configured") immediately.
+        """
+        if not self.enabled:
+            logger.info("[WHATSAPP_DISABLED] Would send WhatsApp to %s", recipient_phone)
+            return (False, "not configured")
+
+        try:
+            import json
+            import urllib.request
+
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": recipient_phone,
+                "type": "text",
+                "text": {"body": content},
+            }
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                self._api_url,
+                data=data,
+                headers={
+                    "D360-API-KEY": self._api_key,
+                    "Content-Type": "application/json",
+                },
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status in (200, 201):
+                    logger.info("WhatsApp sent to %s", recipient_phone)
+                    return (True, None)
+                msg = f"Unexpected WhatsApp status: {resp.status}"
+                logger.warning(msg)
+                return (False, msg)
+
+        except Exception as exc:  # noqa: BLE001
+            msg = f"WhatsApp error: {exc}"
             logger.error(msg)
             return (False, msg)
 

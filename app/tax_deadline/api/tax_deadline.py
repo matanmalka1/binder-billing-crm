@@ -12,8 +12,10 @@ from app.tax_deadline.schemas.tax_deadline import (
     TaxDeadlineListResponse,
     TaxDeadlineResponse,
     TaxDeadlineUpdateRequest,
+    TimelineEntry,
 )
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
+from app.actions.report_deadline_actions import get_tax_deadline_actions
 
 router = APIRouter(
     prefix="/tax-deadlines",
@@ -25,6 +27,14 @@ router = APIRouter(
 # Without client_id, all pending deadlines are fetched in memory.
 # Known architectural debt — a proper fix requires DB-level pagination.
 _GLOBAL_DEADLINE_FETCH_LIMIT = 500
+
+
+def _build_response(deadline, client_name: Optional[str] = None) -> TaxDeadlineResponse:
+    r = TaxDeadlineResponse.model_validate(deadline)
+    if client_name is not None:
+        r.client_name = client_name
+    r.available_actions = get_tax_deadline_actions(deadline)
+    return r
 
 
 @router.post("", response_model=TaxDeadlineResponse, status_code=status.HTTP_201_CREATED)
@@ -44,7 +54,7 @@ def create_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return TaxDeadlineResponse.model_validate(deadline)
+    return _build_response(deadline)
 
 
 @router.get("", response_model=TaxDeadlineListResponse)
@@ -77,9 +87,7 @@ def list_tax_deadlines(
     client_name_map = service.build_client_name_map(paginated)
 
     def to_response(d) -> TaxDeadlineResponse:
-        r = TaxDeadlineResponse.model_validate(d)
-        r.client_name = client_name_map.get(d.client_id)
-        return r
+        return _build_response(d, client_name=client_name_map.get(d.client_id))
 
     return TaxDeadlineListResponse(
         items=[to_response(d) for d in paginated],
@@ -89,12 +97,24 @@ def list_tax_deadlines(
     )
 
 
+@router.get("/timeline", response_model=list[TimelineEntry])
+def get_timeline(
+    client_id: int,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Return all deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
+    service = TaxDeadlineService(db)
+    entries = service.get_timeline(client_id)
+    return [TimelineEntry(**e) for e in entries]
+
+
 @router.get("/{deadline_id}", response_model=TaxDeadlineResponse)
 def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Get tax deadline by ID."""
     service = TaxDeadlineService(db)
     deadline = service.get_deadline(deadline_id)
-    return TaxDeadlineResponse.model_validate(deadline)
+    return _build_response(deadline)
 
 
 @router.post("/{deadline_id}/complete", response_model=TaxDeadlineResponse)
@@ -103,7 +123,7 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     service = TaxDeadlineService(db)
 
     deadline = service.mark_completed(deadline_id)
-    return TaxDeadlineResponse.model_validate(deadline)
+    return _build_response(deadline)
 
 
 @router.put("/{deadline_id}", response_model=TaxDeadlineResponse)
@@ -127,7 +147,7 @@ def update_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return TaxDeadlineResponse.model_validate(deadline)
+    return _build_response(deadline)
 
 
 @router.delete("/{deadline_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -165,6 +185,6 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
             )
         )
 
-    upcoming = [TaxDeadlineResponse.model_validate(d) for d in summary["upcoming"]]
+    upcoming = [_build_response(d) for d in summary["upcoming"]]
 
     return DashboardDeadlinesResponse(urgent=urgent_items, upcoming=upcoming)

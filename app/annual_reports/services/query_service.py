@@ -1,8 +1,9 @@
 from datetime import date
 from typing import Optional
 
-from app.annual_reports.models.annual_report_enums import ReportStage
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
 from app.annual_reports.schemas.annual_report import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
+from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
 
 
@@ -71,7 +72,47 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.tax_due_amount = float(detail.tax_due_amount) if detail.tax_due_amount is not None else None
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes
+            response.amendment_reason = detail.amendment_reason
+        try:
+            from app.annual_reports.services.financial_service import AnnualReportFinancialService
+            from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+            orm_report = self.repo.get_by_id(report_id)
+            tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
+            response.profit = tax.net_profit
+            advances_paid = sum(
+                float(p.paid_amount)
+                for p in self.db.query(AdvancePayment).filter(
+                    AdvancePayment.client_id == orm_report.client_id,
+                    AdvancePayment.year == orm_report.tax_year,
+                    AdvancePayment.status == AdvancePaymentStatus.PAID,
+                ).all()
+                if p.paid_amount is not None
+            )
+            response.final_balance = round(tax.tax_after_credits - advances_paid, 2)
+        except Exception:
+            pass
         return response
+
+    def amend_report(self, report_id: int, reason: str, actor_id: int, actor_name: str) -> AnnualReportDetailResponse:
+        """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
+        from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
+        report = self._get_or_raise(report_id)
+        if report.status != AnnualReportStatus.SUBMITTED:
+            raise ConflictError(
+                f"ניתן לתקן רק דוח בסטטוס 'הוגש'. הסטטוס הנוכחי: {report.status.value}",
+                "ANNUAL_REPORT.INVALID_STATUS_FOR_AMEND",
+            )
+        self.repo.update(report_id, status=AnnualReportStatus.AMENDED)
+        self.repo.append_status_history(
+            annual_report_id=report_id,
+            from_status=AnnualReportStatus.SUBMITTED,
+            to_status=AnnualReportStatus.AMENDED,
+            changed_by=actor_id,
+            changed_by_name=actor_name,
+            note=reason,
+        )
+        AnnualReportDetailRepository(self.db).upsert(report_id, amendment_reason=reason)
+        return self.get_detail_report(report_id)
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""

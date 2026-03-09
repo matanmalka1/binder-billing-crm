@@ -29,6 +29,7 @@ from app.correspondence.api import correspondence
 from app.health.api import health
 from app.middleware.request_id import RequestIDMiddleware
 from app.permanent_documents.api import permanent_documents
+from app.notification.api import notifications as notification_center
 from app.reminders.api import routers as reminders
 from app.reports.api import reports
 from app.search.api import search
@@ -151,6 +152,7 @@ app.include_router(search.router, prefix="/api/v1")
 app.include_router(users_audit.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(reminders.router, prefix="/api/v1")
+app.include_router(notification_center.router, prefix="/api/v1")
 app.include_router(client_tax_profile.router, prefix="/api/v1")
 app.include_router(correspondence.router, prefix="/api/v1")
 app.include_router(advance_payments.router, prefix="/api/v1")

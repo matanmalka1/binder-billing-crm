@@ -1,11 +1,13 @@
 Based on the TODO files, here's the recommended execution order — each level unblocks the next:
 
 Execution Order
+----------------------------------------------------------
 Wave 1 — Core Tax Engine (P1, no dependencies) - done
 2.7 — National insurance dual-rate calculation (tax_engine.py) - done
 2.2 — Tax bracket breakdown in response (tax_engine.py) - done
 4.3 — Partial expense recognition rates (annual_report_detail model + financial_service.py) - done
 Wave 2 — Fields & Data Model (P2, depends on Wave 1) - done
+----------------------------------------------------------
 5.1 / 5.2 — Recognition rate on deduction lines (resolved by 4.3) - done
 5.3 — supporting_document_ref + recognition_rate on expense create/update - done
 5.4 — Per-source credit point breakdown (pension/life insurance/tuition) - done
@@ -14,23 +16,27 @@ Wave 2 — Fields & Data Model (P2, depends on Wave 1) - done
 6.4 — tax_year field on PermanentDocument - done
 6.7 — Document-deduction foreign key link (needs 6.4 + 5.3) - done
 3.9 — notes field on AdvancePayment - done
+----------------------------------------------------------
 Wave 3 — Advance Payments Analytics (P2)
 3.4 — Delta (expected − paid) in response  - done
 3.11 — Status filter on list endpoint  - done
 3.10 — Delete advance payment endpoint  - done
 3.6 / 3.5 — collection_rate + annual KPI cards - done
 3.12 — Monthly chart data endpoint - done
+----------------------------------------------------------
 Wave 4 — Report Workflows (P2)
-7.6 — AMENDED status + amend endpoint
-1.3 — Auto-compute profit/balance at report creation (needs financial_service stable)
-7.1 — Filing timeline endpoint
+7.6 — AMENDED status + amend endpoint - done
+1.3 — Auto-compute profit/balance at report creation (needs financial_service stable) - done
+7.1 — Filing timeline endpoint - done
 [INTEGRATION — SKIP] 1.9 / 10.4 — ITA submission integration (stub → real API)
-Wave 5 — Notifications (P2)
-8.1 — severity field on Notification model
-8.3 — is_read field + bulk mark-as-read (needs 8.1)
-8.6 — Notification center endpoints (needs 8.3)
-8.4 — Bulk send + WhatsApp channel
-8.2 — available_actions on deadline/report responses
+----------------------------------------------------------
+Wave 5 — Notifications (P2) — done
+8.1 — severity field on Notification model - done 
+8.3 — is_read field + bulk mark-as-read (needs 8.1) - done
+8.6 — Notification center endpoints (needs 8.3) - done
+8.4 — Bulk send + WhatsApp channel - done
+8.2 — available_actions on deadline/report responses - done
+----------------------------------------------------------
 Wave 6 — Analytics & Export (P3, depends on Waves 1–3)
 4.6 — gross_margin_pct
 9.3 — Multi-year comparison endpoint
@@ -39,6 +45,7 @@ Wave 6 — Analytics & Export (P3, depends on Waves 1–3)
 4.8 — Multi-year chart (resolved by 9.3)
 9.1 — Dashboard tax KPI cards
 9.5 / 9.6 / 9.7 — Dashboard margin, collection rate, total liability
+----------------------------------------------------------
 Wave 7 — Export & UX (P3)
 10.1 — Annual report PDF export
 10.2 — Annual report Excel export
@@ -51,3 +58,4 @@ Wave 7 — Export & UX (P3)
 3.3 — FUTURE payment status
 3.13 — Bulk reminder send
 2.8 — Live calculation SSE endpoint
+----------------------------------------------------------

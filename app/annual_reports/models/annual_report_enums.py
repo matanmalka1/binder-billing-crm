@@ -27,6 +27,7 @@ class AnnualReportStatus(str, PyEnum):
     IN_PREPARATION = "in_preparation"       # בהכנה
     PENDING_CLIENT = "pending_client"       # ממתין לאישור לקוח
     SUBMITTED = "submitted"                 # הוגש לרשות המסים
+    AMENDED = "amended"                     # דוח מתוקן
     ACCEPTED = "accepted"                   # התקבל / אושר
     ASSESSMENT_ISSUED = "assessment_issued" # שומה הוצאה
     OBJECTION_FILED = "objection_filed"     # השגה הוגשה

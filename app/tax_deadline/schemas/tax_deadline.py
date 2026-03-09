@@ -24,6 +24,7 @@ class TaxDeadlineResponse(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+    available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 
@@ -56,3 +57,14 @@ class DeadlineUrgentItem(BaseModel):
 class DashboardDeadlinesResponse(BaseModel):
     urgent: list[DeadlineUrgentItem]
     upcoming: list[TaxDeadlineResponse]
+
+
+class TimelineEntry(BaseModel):
+    id: int
+    client_id: int
+    deadline_type: str
+    due_date: date
+    status: str
+    days_remaining: int
+    milestone_label: str
+    payment_amount: Optional[float] = None

@@ -153,6 +153,11 @@ class TaxDeadlineService:
         """Get deadlines for client."""
         return self.deadline_repo.list_by_client(client_id, status, deadline_type)
 
+    def get_timeline(self, client_id: int) -> list:
+        """Return deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
+        from app.tax_deadline.services.timeline_service import build_timeline
+        return build_timeline(client_id, self.client_repo, self.deadline_repo)
+
     def build_client_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
         """Return {client_id: full_name} for the given deadlines."""
         client_ids = list({d.client_id for d in deadlines})

@@ -49,6 +49,7 @@ class AnnualReportResponse(BaseModel):
     updated_at: datetime
     assigned_to: Optional[int] = None
     created_by: int
+    available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 
@@ -97,11 +98,20 @@ class AnnualReportDetailResponse(AnnualReportResponse):
     tax_due_amount: Optional[float] = None
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
+    amendment_reason: Optional[str] = None
 
     # Financial summary (from income/expense lines)
     total_income: float = 0.0
     total_expenses: float = 0.0
     taxable_income: float = 0.0
+    profit: Optional[float] = None
+    final_balance: Optional[float] = None
+
+
+# ── Amend ────────────────────────────────────────────────────────────────────
+
+class AmendRequest(BaseModel):
+    reason: str
 
 
 # ── Status transition ────────────────────────────────────────────────────────

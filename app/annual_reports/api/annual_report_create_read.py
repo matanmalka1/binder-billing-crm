@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.annual_reports.schemas import (
+    AmendRequest,
     AnnualReportCreateRequest,
     AnnualReportDetailResponse,
     AnnualReportListResponse,
@@ -99,3 +100,14 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{report_id}/amend",
+    response_model=AnnualReportDetailResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def amend_annual_report(report_id: int, body: AmendRequest, db: DBSession, user: CurrentUser):
+    """Transition a SUBMITTED report to AMENDED and record the amendment reason (ADVISOR only)."""
+    service = AnnualReportService(db)
+    return service.amend_report(report_id, reason=body.reason, actor_id=user.id, actor_name=user.full_name)

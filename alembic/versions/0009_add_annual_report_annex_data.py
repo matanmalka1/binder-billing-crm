@@ -10,6 +10,7 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
 
 
 revision: str = '0009_add_annual_report_annex_data'
@@ -35,20 +36,24 @@ def upgrade() -> None:
         ))
 
     if "annual_report_annex_data" not in tables:
+        if bind.dialect.name == "postgresql":
+            schedule_col_type = postgresql.ENUM(
+                "schedule_b", "schedule_bet", "schedule_gimmel",
+                "schedule_dalet", "schedule_heh",
+                name="annualreportschedule",
+                create_type=False,
+            )
+        else:
+            schedule_col_type = sa.Enum(
+                "schedule_b", "schedule_bet", "schedule_gimmel",
+                "schedule_dalet", "schedule_heh",
+                name="annualreportschedule",
+            )
         op.create_table(
             "annual_report_annex_data",
             sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
             sa.Column("annual_report_id", sa.Integer(), sa.ForeignKey("annual_reports.id"), nullable=False),
-            sa.Column(
-                "schedule",
-                sa.Enum(
-                    "schedule_b", "schedule_bet", "schedule_gimmel",
-                    "schedule_dalet", "schedule_heh",
-                    name="annualreportschedule",
-                    create_type=False,
-                ),
-                nullable=False,
-            ),
+            sa.Column("schedule", schedule_col_type, nullable=False),
             sa.Column("line_number", sa.Integer(), nullable=False),
             sa.Column("data", sa.JSON(), nullable=False),
             sa.Column("notes", sa.Text(), nullable=True),

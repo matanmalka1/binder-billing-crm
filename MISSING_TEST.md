@@ -317,6 +317,9 @@ Module: `vat_reports`
 
 ## 3. Business Logic Missing Tests
 
+- Action contracts (UI action builders):
+  - `app/actions/action_contracts.py`: `get_binder_actions`, `get_client_actions`, `get_charge_actions`, `build_action`
+  - `app/actions/report_deadline_actions.py`: `get_tax_deadline_actions`, `get_annual_report_actions`
 - Annual report `VALID_TRANSITIONS` state machine in real `app/annual_reports/services/constants.py`.
 - Annual report submission readiness guard in `AnnualReportStatusService._assert_filing_readiness`.
 - Annual report financial aggregation and tax calculation in `AnnualReportFinancialService.get_financial_summary` and `calculate_tax`.

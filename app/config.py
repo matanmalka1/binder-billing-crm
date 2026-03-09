@@ -75,6 +75,11 @@ class Config:
     EMAIL_FROM_ADDRESS: str = os.getenv("EMAIL_FROM_ADDRESS", "")   # must be verified in SendGrid
     EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "")
 
+    # WhatsApp (360dialog or Twilio — set key to enable)
+    WHATSAPP_API_KEY: str = os.getenv("WHATSAPP_API_KEY", "")
+    WHATSAPP_API_URL: str = os.getenv("WHATSAPP_API_URL", "https://waba.360dialog.io/v1/messages")
+    WHATSAPP_FROM_NUMBER: str = os.getenv("WHATSAPP_FROM_NUMBER", "")
+
     # ── Invoice provider (future) ──────────────────────────────────────
     INVOICE_PROVIDER_BASE_URL: str = os.getenv("INVOICE_PROVIDER_BASE_URL", "")
     INVOICE_PROVIDER_API_KEY: str = os.getenv("INVOICE_PROVIDER_API_KEY", "")
