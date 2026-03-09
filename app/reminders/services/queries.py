@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional, Tuple, List, Dict
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.clients.repositories.client_repository import ClientRepository
@@ -31,8 +32,9 @@ def get_reminders(
     try:
         status_enum = ReminderStatus(status)
     except ValueError:
-        raise ValueError(
-            f"סטטוס לא חוקי: {status}. חייב להיות אחד מהבאים: pending (ממתין), sent (נשלח), canceled (בוטל)"
+        raise AppError(
+            f"סטטוס לא חוקי: {status}. חייב להיות אחד מהבאים: pending (ממתין), sent (נשלח), canceled (בוטל)",
+            "REMINDER.INVALID_STATUS",
         )
 
     items = reminder_repo.list_by_status(status=status_enum, page=page, page_size=page_size)
