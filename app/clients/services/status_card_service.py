@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.schemas.client_status_card import (
     AdvancePaymentsCard,
@@ -31,7 +32,7 @@ class StatusCardService:
     def get_status_card(self, client_id: int) -> ClientStatusCardResponse:
         client = self._client_repo.get_by_id(client_id)
         if not client:
-            raise ValueError("הלקוח לא נמצא")
+            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
 
         year = datetime.utcnow().year
         return ClientStatusCardResponse(
