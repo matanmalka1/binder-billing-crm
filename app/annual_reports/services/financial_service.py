@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
@@ -31,7 +32,7 @@ class AnnualReportFinancialService:
     def _get_report_or_raise(self, report_id: int):
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise ValueError(f"הדוח השנתי {report_id} לא נמצא")
+            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return report
 
     # ── Income ────────────────────────────────────────────────────────────────
@@ -48,7 +49,10 @@ class AnnualReportFinancialService:
             st = IncomeSourceType(source_type)
         except ValueError:
             valid = [e.value for e in IncomeSourceType]
-            raise ValueError(f"סוג הכנסה לא חוקי '{source_type}'. חוקיים: {valid}")
+            raise AppError(
+                f"סוג הכנסה לא חוקי '{source_type}'. חוקיים: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         line = self.income_repo.add(report_id, st, amount, description)
         return IncomeLineResponse.model_validate(line)
 
@@ -61,16 +65,16 @@ class AnnualReportFinancialService:
                 fields["source_type"] = IncomeSourceType(fields["source_type"])
             except ValueError:
                 valid = [e.value for e in IncomeSourceType]
-                raise ValueError(f"סוג הכנסה לא חוקי. חוקיים: {valid}")
+                raise AppError(f"סוג הכנסה לא חוקי. חוקיים: {valid}", "ANNUAL_REPORT.INVALID_TYPE")
         line = self.income_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
-            raise ValueError(f"שורת הכנסה {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
         return IncomeLineResponse.model_validate(line)
 
     def delete_income(self, report_id: int, line_id: int) -> None:
         self._get_report_or_raise(report_id)
         if not self.income_repo.delete(line_id):
-            raise ValueError(f"שורת הכנסה {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
 
     # ── Expenses ──────────────────────────────────────────────────────────────
 
@@ -86,7 +90,10 @@ class AnnualReportFinancialService:
             cat = ExpenseCategoryType(category)
         except ValueError:
             valid = [e.value for e in ExpenseCategoryType]
-            raise ValueError(f"קטגוריית הוצאה לא חוקית '{category}'. חוקיות: {valid}")
+            raise AppError(
+                f"קטגוריית הוצאה לא חוקית '{category}'. חוקיות: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         line = self.expense_repo.add(report_id, cat, amount, description)
         return ExpenseLineResponse.model_validate(line)
 
@@ -99,16 +106,16 @@ class AnnualReportFinancialService:
                 fields["category"] = ExpenseCategoryType(fields["category"])
             except ValueError:
                 valid = [e.value for e in ExpenseCategoryType]
-                raise ValueError(f"קטגוריית הוצאה לא חוקית. חוקיות: {valid}")
+                raise AppError(f"קטגוריית הוצאה לא חוקית. חוקיות: {valid}", "ANNUAL_REPORT.INVALID_TYPE")
         line = self.expense_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
-            raise ValueError(f"שורת הוצאה {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
         return ExpenseLineResponse.model_validate(line)
 
     def delete_expense(self, report_id: int, line_id: int) -> None:
         self._get_report_or_raise(report_id)
         if not self.expense_repo.delete(line_id):
-            raise ValueError(f"שורת הוצאה {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
 
     # ── Summary ───────────────────────────────────────────────────────────────
 
