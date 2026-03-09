@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -32,13 +33,16 @@ def create_request(
     """Create a new signature request in DRAFT status."""
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"לקוח {client_id} לא נמצא")
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "SIGNATURE_REQUEST.NOT_FOUND")
 
     try:
         req_type = SignatureRequestType(request_type)
     except ValueError:
         valid = [e.value for e in SignatureRequestType]
-        raise ValueError(f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid}")
+        raise AppError(
+            f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid}",
+            "SIGNATURE_REQUEST.INVALID_STATUS",
+        )
 
     content_hash = None
     if content_to_hash:
