@@ -8,7 +8,7 @@ Audit basis:
 - Scanned `app/` only.
 - Ignored `frontend/`, `node_modules/`, `alembic/`, `venv/`.
 - Mapped public services, repositories, routers, and domain rules against the current `tests/` tree.
-- Important note: `tests/services/test_annual_report_*` mostly exercise an in-memory helper in `tests/services/annual_report_service.py`, not the real `app/annual_reports/services/*` code. They were not counted as real coverage for the backend annual reports module.
+- Important note: `tests/annual_reports/service/test_annual_report_*` mostly exercise an in-memory helper in `tests/annual_reports/service/test_annual_report.py`, not the real `app/annual_reports/services/*` code. They were not counted as real coverage for the backend annual reports module.
 - There is no dedicated `tests/repositories/` suite. Repository coverage is mostly indirect via API/service tests, so repository gaps below focus on missing DB-behavior verification.
 
 ## 1. Service Methods Without Tests
