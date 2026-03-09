@@ -85,4 +85,5 @@ def test_cannot_update_immutable_fields(client, advisor_headers, test_db):
 
 def test_cannot_deactivate_self(client, advisor_headers, test_user):
     response = client.post(f"/api/v1/users/{test_user.id}/deactivate", headers=advisor_headers)
-    assert response.status_code == 400
+    assert response.status_code == 403
+    assert response.json()["error"] == "USER.FORBIDDEN"
