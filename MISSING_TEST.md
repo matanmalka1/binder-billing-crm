@@ -222,24 +222,24 @@ Module: `advance_payment_repository`
 
 Module: `annual_reports`
 
-- `AnnualReportDetailRepository.get_by_report_id`
-- `AnnualReportDetailRepository.upsert`
-- `AnnexDataRepository.list_by_report_and_schedule`
-- `AnnexDataRepository.next_line_number`
-- `AnnexDataRepository.add_line`
-- `AnnexDataRepository.update_line`
-- `AnnexDataRepository.delete_line`
-- `AnnexDataRepository.count_by_report_and_schedule`
-- `AnnualReportIncomeRepository.list_by_report`
-- `AnnualReportIncomeRepository.total_income`
-- `AnnualReportExpenseRepository.list_by_report`
-- `AnnualReportExpenseRepository.total_expenses`
-- `AnnualReportReportRepository.list_by_status`
-- `AnnualReportReportRepository.count_by_status`
-- `AnnualReportReportRepository.list_all`
-- `AnnualReportReportRepository.list_all_with_clients`
-- `AnnualReportReportRepository.count_all`
-- `AnnualReportReportRepository.soft_delete`
+- ✅ `AnnualReportDetailRepository.get_by_report_id` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportDetailRepository.upsert` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.list_by_report_and_schedule` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.next_line_number` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.add_line` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.update_line` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.delete_line` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnexDataRepository.count_by_report_and_schedule` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportIncomeRepository.list_by_report` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportIncomeRepository.total_income` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportExpenseRepository.list_by_report` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportExpenseRepository.total_expenses` (tests/annual_reports/repository/test_annual_report_domain_repositories.py)
+- ✅ `AnnualReportReportRepository.list_by_status` (tests/annual_reports/repository/test_annual_report_report_repository.py)
+- ✅ `AnnualReportReportRepository.count_by_status` (tests/annual_reports/repository/test_annual_report_report_repository.py)
+- ✅ `AnnualReportReportRepository.list_all` (tests/annual_reports/repository/test_annual_report_report_repository.py)
+- ✅ `AnnualReportReportRepository.list_all_with_clients` (tests/annual_reports/repository/test_annual_report_report_repository.py)
+- ✅ `AnnualReportReportRepository.count_all` (tests/annual_reports/repository/test_annual_report_report_repository.py)
+- ✅ `AnnualReportReportRepository.soft_delete` (tests/annual_reports/repository/test_annual_report_report_repository.py)
 - ✅ `AnnualReportReportRepository.sum_financials_by_year` (tests/dashboard/api/test_dashboard_tax.py)
 
 Module: `authority_contact_repository`
