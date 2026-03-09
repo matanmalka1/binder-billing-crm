@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake
 from tests.services.vat_report_test_utils import make_item
@@ -33,10 +34,11 @@ class TestCreateWorkItem:
         client_repo = MagicMock()
         client_repo.get_by_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(NotFoundError) as exc_info:
             intake.create_work_item(
                 work_item_repo, client_repo, client_id=99, period="2026-01", created_by=1
             )
+        assert exc_info.value.code == "VAT.NOT_FOUND"
 
     def test_duplicate_period_raises(self):
         work_item_repo = MagicMock()
@@ -44,10 +46,11 @@ class TestCreateWorkItem:
         client_repo.get_by_id.return_value = MagicMock()
         work_item_repo.get_by_client_period.return_value = make_item()
 
-        with pytest.raises(ValueError, match="already exists"):
+        with pytest.raises(ConflictError) as exc_info:
             intake.create_work_item(
                 work_item_repo, client_repo, client_id=10, period="2026-01", created_by=1
             )
+        assert exc_info.value.code == "VAT.CONFLICT"
 
     def test_pending_without_note_raises(self):
         work_item_repo = MagicMock()
@@ -55,7 +58,7 @@ class TestCreateWorkItem:
         client_repo.get_by_id.return_value = MagicMock()
         work_item_repo.get_by_client_period.return_value = None
 
-        with pytest.raises(ValueError, match="pending_materials_note"):
+        with pytest.raises(AppError) as exc_info:
             intake.create_work_item(
                 work_item_repo,
                 client_repo,
@@ -64,6 +67,7 @@ class TestCreateWorkItem:
                 created_by=1,
                 mark_pending=True,
             )
+        assert exc_info.value.code == "VAT.PENDING_NOTE_REQUIRED"
 
     def test_pending_with_note_creates_item(self):
         work_item_repo = MagicMock()
@@ -103,5 +107,6 @@ class TestMarkMaterialsComplete:
             status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
         )
 
-        with pytest.raises(ValueError, match="Cannot mark materials complete"):
+        with pytest.raises(AppError) as exc_info:
             intake.mark_materials_complete(work_item_repo, item_id=1, performed_by=1)
+        assert exc_info.value.code == "VAT.INVALID_TRANSITION"
