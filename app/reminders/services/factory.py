@@ -7,6 +7,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -26,9 +27,9 @@ def create_tax_deadline_reminder(
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if not tax_deadline_repo.get_by_id(tax_deadline_id):
-        raise ValueError(f"מועד מס {tax_deadline_id} לא נמצא")
+        raise NotFoundError(f"מועד מס {tax_deadline_id} לא נמצא", "REMINDER.NOT_FOUND")
     if days_before < 0:
-        raise ValueError("המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי")
+        raise AppError("המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי", "REMINDER.NEGATIVE_DAYS")
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
@@ -59,9 +60,12 @@ def create_idle_binder_reminder(
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if not binder_repo.get_by_id(binder_id):
-        raise ValueError(f"תיק {binder_id} לא נמצא")
+        raise NotFoundError(f"תיק {binder_id} לא נמצא", "REMINDER.NOT_FOUND")
     if days_idle < 0:
-        raise ValueError("המספר המייצג כמה ימים מאז שטיפול הפסיק חייב להיות מספר לא שלילי")
+        raise AppError(
+            "המספר המייצג כמה ימים מאז שטיפול הפסיק חייב להיות מספר לא שלילי",
+            "REMINDER.NEGATIVE_DAYS",
+        )
 
     target_date = date.today() + timedelta(days=days_idle)
     send_on = date.today()
@@ -93,9 +97,12 @@ def create_unpaid_charge_reminder(
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if not charge_repo.get_by_id(charge_id):
-        raise ValueError(f"חיוב {charge_id} לא נמצא")
+        raise NotFoundError(f"חיוב {charge_id} לא נמצא", "REMINDER.NOT_FOUND")
     if days_unpaid < 0:
-        raise ValueError("המספר המייצג כמה ימים מאז שלא שולם החיוב חייב להיות מספר לא שלילי")
+        raise AppError(
+            "המספר המייצג כמה ימים מאז שלא שולם החיוב חייב להיות מספר לא שלילי",
+            "REMINDER.NEGATIVE_DAYS",
+        )
 
     target_date = date.today()
     send_on = date.today()
@@ -126,9 +133,9 @@ def create_custom_reminder(
 ) -> Reminder:
     get_client_or_raise(client_repo, client_id)
     if days_before < 0:
-        raise ValueError("המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי")
+        raise AppError("המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי", "REMINDER.NEGATIVE_DAYS")
     if not message or not message.strip():
-        raise ValueError("נדרש טקסט עבור תזכורות מותאמות אישית")
+        raise AppError("נדרש טקסט עבור תזכורות מותאמות אישית", "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
 
