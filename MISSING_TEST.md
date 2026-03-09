@@ -74,8 +74,8 @@ Module: `binders`
 
 Module: `clients`
 
-- `ClientExcelService.export_clients`
-- `ClientExcelService.generate_template`
+- ✅ `ClientExcelService.export_clients` (tests/clients/api/test_clients_excel.py)
+- ✅ `ClientExcelService.generate_template` (tests/clients/api/test_clients_excel.py)
 - `StatusCardService.get_status_card`
 - `ClientTaxProfileService.get_profile`
 - `ClientTaxProfileService.update_profile`
@@ -89,7 +89,7 @@ Module: `dashboard`
 
 - `DashboardService.get_summary`
 - `DashboardOverviewService.get_overview`
-- `DashboardTaxService.get_submission_widget_data`
+- ✅ `DashboardTaxService.get_submission_widget_data` (tests/dashboard/api/test_dashboard_tax.py)
 - `DashboardExtendedService.get_work_queue`
 - `DashboardExtendedService.get_attention_items`
 - `work_queue_item`
@@ -205,12 +205,12 @@ Module: `users`
 
 Module: `vat_reports`
 
-- `get_client_summary`
-- `export_to_excel`
+- ✅ `get_client_summary` (tests/vat_reports/api/test_vat_client_summary_export.py)
+- ✅ `export_to_excel` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - `export_to_pdf`
-- `export_vat_to_excel`
+- ✅ `export_vat_to_excel` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - `export_vat_to_pdf`
-- `VatReportService.list_client_work_items`
+- ✅ `VatReportService.list_client_work_items` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - `VatReportService.list_all_work_items`
 - `VatReportService.get_audit_trail`
 
@@ -258,13 +258,13 @@ Module: `binders`
 Module: `clients`
 
 - `GET /api/v1/clients/{client_id}/status-card`
-- `GET /api/v1/clients/export`
-- `GET /api/v1/clients/template`
-- `POST /api/v1/clients/import`
+- ✅ `GET /api/v1/clients/export` (tests/clients/api/test_clients_excel.py)
+- ✅ `GET /api/v1/clients/template` (tests/clients/api/test_clients_excel.py)
+- ✅ `POST /api/v1/clients/import` (tests/clients/api/test_clients_excel.py)
 
 Module: `dashboard`
 
-- `GET /api/v1/dashboard/tax-submissions`
+- ✅ `GET /api/v1/dashboard/tax-submissions` (tests/dashboard/api/test_dashboard_tax.py)
 
 Module: `documents`
 
@@ -310,9 +310,9 @@ Module: `users`
 
 Module: `vat_reports`
 
-- `GET /api/v1/vat/clients/{client_id}/work-items`
-- `GET /api/v1/vat/client/{client_id}/summary`
-- `GET /api/v1/vat/client/{client_id}/export`
+- ✅ `GET /api/v1/vat/clients/{client_id}/work-items` (tests/vat_reports/api/test_vat_client_summary_export.py)
+- ✅ `GET /api/v1/vat/client/{client_id}/summary` (tests/vat_reports/api/test_vat_client_summary_export.py)
+- ✅ `GET /api/v1/vat/client/{client_id}/export` (tests/vat_reports/api/test_vat_client_summary_export.py)
 
 ## 3. Business Logic Missing Tests
 
@@ -367,7 +367,7 @@ Module: `annual_reports`
 - `AnnualReportReportRepository.list_all_with_clients`
 - `AnnualReportReportRepository.count_all`
 - `AnnualReportReportRepository.soft_delete`
-- `AnnualReportReportRepository.sum_financials_by_year`
+- ✅ `AnnualReportReportRepository.sum_financials_by_year` (tests/dashboard/api/test_dashboard_tax.py)
 
 Module: `authority_contact_repository`
 
@@ -477,8 +477,8 @@ Module: `user_repository`
 
 Module: `vat_reports`
 
-- `VatClientSummaryRepository.get_periods_for_client`
-- `VatClientSummaryRepository.get_annual_aggregates`
+- ✅ `VatClientSummaryRepository.get_periods_for_client` (tests/vat_reports/api/test_vat_client_summary_export.py)
+- ✅ `VatClientSummaryRepository.get_annual_aggregates` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - `VatInvoiceRepository.list_by_work_item`
 - `VatWorkItemRepository.list_by_status`
 - `VatWorkItemRepository.count_by_status`
@@ -513,7 +513,7 @@ Estimated coverage per module:
 - `annual_reports`: LOW-MED (financials/tax calc covered; annex/status/deadline still missing)
 - `advance_payments`: MEDIUM
 - `tax_deadline`: LOW
-- `dashboard`: LOW
+- `dashboard`: MEDIUM-LOW
 - `documents`: MEDIUM
 - `timeline`: MEDIUM-LOW
 - `notifications`: LOW
