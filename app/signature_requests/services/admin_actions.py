@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.helpers import get_or_raise
@@ -20,7 +21,10 @@ def cancel_request(
 
     cancelable = {SignatureRequestStatus.DRAFT, SignatureRequestStatus.PENDING_SIGNATURE}
     if req.status not in cancelable:
-        raise ValueError(f"לא ניתן לבטל בקשה במצב '{req.status.value}'")
+        raise AppError(
+            f"לא ניתן לבטל בקשה במצב '{req.status.value}'",
+            "SIGNATURE_REQUEST.INVALID_STATUS",
+        )
 
     req = repo.update(
         request_id,
