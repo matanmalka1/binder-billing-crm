@@ -17,8 +17,5 @@ def cancel_reminder(
 ):
     service = ReminderService(db)
 
-    try:
-        reminder = service.cancel_reminder(reminder_id)
-        return ReminderResponse.model_validate(reminder)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    reminder = service.cancel_reminder(reminder_id)
+    return ReminderResponse.model_validate(reminder)
