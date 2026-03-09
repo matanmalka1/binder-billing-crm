@@ -6,6 +6,7 @@ from .create_service import AnnualReportCreateService
 from .query_service import AnnualReportQueryService
 from .schedule_service import AnnualReportScheduleService
 from .status_service import AnnualReportStatusService
+from .annex_service import AnnualReportAnnexService
 
 
 class AnnualReportService(
@@ -13,6 +14,7 @@ class AnnualReportService(
     AnnualReportStatusService,
     AnnualReportScheduleService,
     AnnualReportQueryService,
+    AnnualReportAnnexService,
 ):
     """Facade combining annual report operations."""
 

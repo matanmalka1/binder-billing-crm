@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_financials import (
+    AdvancesSummary,
     ExpenseLineCreateRequest,
     ExpenseLineResponse,
     ExpenseLineUpdateRequest,
@@ -16,6 +17,7 @@ from app.annual_reports.schemas.annual_report_financials import (
     TaxCalculationResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
+from app.annual_reports.services.advances_summary_service import AnnualReportAdvancesSummaryService
 
 
 router = APIRouter(
@@ -52,6 +54,18 @@ def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
             tax_after_credits=result.tax_after_credits,
             effective_rate=result.effective_rate,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+# ── Advances summary ──────────────────────────────────────────────────────────
+
+@router.get("/{report_id}/advances-summary", response_model=AdvancesSummary)
+def get_advances_summary(report_id: int, db: DBSession, user: CurrentUser):
+    """Advance payments summary and final tax balance for this report."""
+    svc = AnnualReportAdvancesSummaryService(db)
+    try:
+        return svc.get_advances_summary(report_id)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

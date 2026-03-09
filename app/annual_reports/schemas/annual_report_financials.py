@@ -1,7 +1,7 @@
 """Schemas for income/expense lines and financial summary."""
 
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -78,6 +78,15 @@ class TaxCalculationResponse(BaseModel):
     credit_points_value: float
     tax_after_credits: float
     effective_rate: float
+
+
+# ── Advances summary ──────────────────────────────────────────────────────────
+
+class AdvancesSummary(BaseModel):
+    total_advances_paid: float
+    advances_count: int
+    final_balance: float
+    balance_type: Literal["due", "refund", "zero"]
 
 
 # ── Readiness check ───────────────────────────────────────────────────────────

@@ -33,6 +33,9 @@ class AdvancePayment(Base):
         default=AdvancePaymentStatus.PENDING,
         nullable=False,
     )
+    annual_report_id = Column(
+        Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
+    )
     due_date = Column(Date, nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

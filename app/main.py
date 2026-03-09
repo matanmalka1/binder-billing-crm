@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.advance_payments.api import advance_payments, advance_payments_overview  # noqa: F401
 from app.annual_reports.api import (
+    annual_report_annex,
     annual_report_client,
     annual_report_create_read,
     annual_report_detail,
@@ -117,6 +118,7 @@ def info():
 
 app.include_router(health.router)
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(annual_report_annex.router, prefix="/api/v1")
 app.include_router(annual_report_detail.router, prefix="/api/v1")
 app.include_router(annual_report_financials.router, prefix="/api/v1")
 app.include_router(annual_report_create_read.router, prefix="/api/v1")
