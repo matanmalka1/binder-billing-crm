@@ -2,6 +2,36 @@
 
 from dataclasses import dataclass
 
+# 2024 National Insurance constants
+_NI_MONTHLY_CEILING = 7_522.0
+_NI_ANNUAL_CEILING = _NI_MONTHLY_CEILING * 12   # ₪90,264
+_NI_RATE_BASE = 0.0597
+_NI_RATE_HIGH = 0.1783
+
+
+@dataclass
+class NationalInsuranceResult:
+    base_amount: float    # NI on income up to ceiling
+    high_amount: float    # NI on income above ceiling
+    total: float
+
+
+def calculate_national_insurance(income: float) -> NationalInsuranceResult:
+    """Calculate Israeli National Insurance (ביטוח לאומי) for 2024.
+
+    5.97% up to ₪90,264 annual ceiling, 17.83% above.
+    """
+    income = max(income, 0.0)
+    base = min(income, _NI_ANNUAL_CEILING)
+    above = max(income - _NI_ANNUAL_CEILING, 0.0)
+    base_amount = round(base * _NI_RATE_BASE, 2)
+    high_amount = round(above * _NI_RATE_HIGH, 2)
+    return NationalInsuranceResult(
+        base_amount=base_amount,
+        high_amount=high_amount,
+        total=round(base_amount + high_amount, 2),
+    )
+
 # 2024 tax brackets: (upper_bound, rate)  — last bracket has no upper bound
 _BRACKETS = [
     (81_480,   0.10),
@@ -17,6 +47,15 @@ _DONATION_CREDIT_RATE = 0.35   # סעיף 46 — 35% of donation amount
 
 
 @dataclass
+class BracketBreakdownItem:
+    rate: float
+    from_amount: float
+    to_amount: float | None
+    taxable_in_bracket: float
+    tax_in_bracket: float
+
+
+@dataclass
 class TaxCalculationResult:
     taxable_income: float
     pension_deduction: float
@@ -26,6 +65,7 @@ class TaxCalculationResult:
     other_credits: float
     tax_after_credits: float
     effective_rate: float
+    brackets: list[BracketBreakdownItem]
 
 
 def calculate_tax(
@@ -57,18 +97,44 @@ def calculate_tax(
             other_credits=other_credits_val,
             tax_after_credits=0.0,
             effective_rate=0.0,
+            brackets=[],
         )
 
     tax = 0.0
     prev = 0.0
+    brackets: list[BracketBreakdownItem] = []
     for upper, rate in _BRACKETS:
         if upper is None:
-            tax += (adjusted_income - prev) * rate
+            taxable_in_bracket = adjusted_income - prev
+            tax_in_bracket = taxable_in_bracket * rate
+            tax += tax_in_bracket
+            if taxable_in_bracket > 0:
+                brackets.append(BracketBreakdownItem(
+                    rate=rate, from_amount=prev, to_amount=None,
+                    taxable_in_bracket=round(taxable_in_bracket, 2),
+                    tax_in_bracket=round(tax_in_bracket, 2),
+                ))
             break
         if adjusted_income <= upper:
-            tax += (adjusted_income - prev) * rate
+            taxable_in_bracket = adjusted_income - prev
+            tax_in_bracket = taxable_in_bracket * rate
+            tax += tax_in_bracket
+            if taxable_in_bracket > 0:
+                brackets.append(BracketBreakdownItem(
+                    rate=rate, from_amount=prev, to_amount=upper,
+                    taxable_in_bracket=round(taxable_in_bracket, 2),
+                    tax_in_bracket=round(tax_in_bracket, 2),
+                ))
             break
-        tax += (upper - prev) * rate
+        taxable_in_bracket = upper - prev
+        tax_in_bracket = taxable_in_bracket * rate
+        tax += tax_in_bracket
+        if taxable_in_bracket > 0:
+            brackets.append(BracketBreakdownItem(
+                rate=rate, from_amount=prev, to_amount=upper,
+                taxable_in_bracket=round(taxable_in_bracket, 2),
+                tax_in_bracket=round(tax_in_bracket, 2),
+            ))
         prev = upper
 
     total_credits = credit_points_value + donation_credit + other_credits_val
@@ -84,7 +150,8 @@ def calculate_tax(
         other_credits=other_credits_val,
         tax_after_credits=round(tax_after_credits, 2),
         effective_rate=round(effective_rate, 6),
+        brackets=brackets,
     )
 
 
-__all__ = ["calculate_tax", "TaxCalculationResult"]
+__all__ = ["calculate_tax", "TaxCalculationResult", "BracketBreakdownItem", "calculate_national_insurance", "NationalInsuranceResult"]

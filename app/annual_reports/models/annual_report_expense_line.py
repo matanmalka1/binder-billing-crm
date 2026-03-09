@@ -1,5 +1,6 @@
 """Deductible expense line items for an annual tax report."""
 
+from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
@@ -23,6 +24,19 @@ class ExpenseCategoryType(str, PyEnum):
     OTHER = "other"                           # אחר
 
 
+# Statutory partial recognition rates (Israeli tax rules)
+STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
+    ExpenseCategoryType.VEHICLE: Decimal("0.75"),
+    ExpenseCategoryType.COMMUNICATION: Decimal("0.80"),
+}
+
+DEFAULT_RECOGNITION_RATE = Decimal("1.00")
+
+
+def default_recognition_rate(category: ExpenseCategoryType) -> Decimal:
+    return STATUTORY_RECOGNITION_RATES.get(category, DEFAULT_RECOGNITION_RATE)
+
+
 class AnnualReportExpenseLine(Base):
     """
     Single deductible expense line attached to an annual report.
@@ -36,6 +50,7 @@ class AnnualReportExpenseLine(Base):
     )
     category = Column(Enum(ExpenseCategoryType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
+    recognition_rate = Column(Numeric(5, 2), nullable=False, default=Decimal("1.00"))
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
@@ -47,4 +62,10 @@ class AnnualReportExpenseLine(Base):
         )
 
 
-__all__ = ["AnnualReportExpenseLine", "ExpenseCategoryType"]
+__all__ = [
+    "AnnualReportExpenseLine",
+    "ExpenseCategoryType",
+    "STATUTORY_RECOGNITION_RATES",
+    "DEFAULT_RECOGNITION_RATE",
+    "default_recognition_rate",
+]

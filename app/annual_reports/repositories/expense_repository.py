@@ -9,6 +9,7 @@ from sqlalchemy import func
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
     ExpenseCategoryType,
+    default_recognition_rate,
 )
 
 
@@ -22,11 +23,14 @@ class AnnualReportExpenseRepository:
         category: ExpenseCategoryType,
         amount: Decimal,
         description: Optional[str] = None,
+        recognition_rate: Optional[Decimal] = None,
     ) -> AnnualReportExpenseLine:
+        rate = recognition_rate if recognition_rate is not None else default_recognition_rate(category)
         line = AnnualReportExpenseLine(
             annual_report_id=annual_report_id,
             category=category,
             amount=amount,
+            recognition_rate=rate,
             description=description,
         )
         self.db.add(line)
@@ -69,12 +73,21 @@ class AnnualReportExpenseRepository:
         return True
 
     def total_expenses(self, annual_report_id: int) -> Decimal:
+        """Sum of gross (unrecognized) expense amounts."""
         result = (
             self.db.query(func.coalesce(func.sum(AnnualReportExpenseLine.amount), 0))
             .filter(AnnualReportExpenseLine.annual_report_id == annual_report_id)
             .scalar()
         )
         return Decimal(str(result))
+
+    def total_recognized_expenses(self, annual_report_id: int) -> Decimal:
+        """Sum of amount × recognition_rate across all expense lines."""
+        lines = self.list_by_report(annual_report_id)
+        return sum(
+            (Decimal(str(l.amount)) * Decimal(str(l.recognition_rate)) for l in lines),
+            Decimal("0"),
+        )
 
 
 __all__ = ["AnnualReportExpenseRepository"]

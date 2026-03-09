@@ -13,12 +13,19 @@ from app.annual_reports.repositories.expense_repository import AnnualReportExpen
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
 from app.annual_reports.schemas.annual_report_financials import (
+    BracketBreakdownItem,
     FinancialSummaryResponse,
     IncomeLineResponse,
     ExpenseLineResponse,
+    NationalInsuranceResponse,
     ReadinessCheckResponse,
+    TaxCalculationResponse,
 )
-from app.annual_reports.services.tax_engine import calculate_tax, TaxCalculationResult
+from app.annual_reports.services.tax_engine import (
+    calculate_tax,
+    TaxCalculationResult,
+    calculate_national_insurance,
+)
 
 
 class AnnualReportFinancialService:
@@ -82,6 +89,7 @@ class AnnualReportFinancialService:
         category: str,
         amount: Decimal,
         description: Optional[str] = None,
+        recognition_rate: Optional[Decimal] = None,
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
@@ -91,7 +99,7 @@ class AnnualReportFinancialService:
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         cat = ExpenseCategoryType(category)
-        line = self.expense_repo.add(report_id, cat, amount, description)
+        line = self.expense_repo.add(report_id, cat, amount, description, recognition_rate)
         return ExpenseLineResponse.model_validate(line)
 
     def update_expense(
@@ -120,12 +128,14 @@ class AnnualReportFinancialService:
         income_lines = self.income_repo.list_by_report(report_id)
         expense_lines = self.expense_repo.list_by_report(report_id)
         total_income = self.income_repo.total_income(report_id)
-        total_expenses = self.expense_repo.total_expenses(report_id)
-        taxable_income = total_income - total_expenses
+        gross_expenses = self.expense_repo.total_expenses(report_id)
+        recognized_expenses = self.expense_repo.total_recognized_expenses(report_id)
+        taxable_income = total_income - recognized_expenses
         return FinancialSummaryResponse(
             annual_report_id=report_id,
             total_income=float(total_income),
-            total_expenses=float(total_expenses),
+            gross_expenses=float(gross_expenses),
+            recognized_expenses=float(recognized_expenses),
             taxable_income=float(taxable_income),
             income_lines=[IncomeLineResponse.model_validate(l) for l in income_lines],
             expense_lines=[ExpenseLineResponse.model_validate(l) for l in expense_lines],
@@ -133,14 +143,40 @@ class AnnualReportFinancialService:
 
     # ── Tax calculation ───────────────────────────────────────────────────────
 
-    def get_tax_calculation(self, report_id: int) -> TaxCalculationResult:
+    def get_tax_calculation(self, report_id: int) -> TaxCalculationResponse:
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
         credit_points = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
         pension_deduction = float(detail.pension_contribution) if (detail and detail.pension_contribution is not None) else 0.0
         donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
-        return calculate_tax(summary.taxable_income, credit_points, pension_deduction, donation_amount, other_credits)
+        tax = calculate_tax(summary.taxable_income, credit_points, pension_deduction, donation_amount, other_credits)
+        ni = calculate_national_insurance(summary.taxable_income)
+        return TaxCalculationResponse(
+            taxable_income=tax.taxable_income,
+            pension_deduction=tax.pension_deduction,
+            tax_before_credits=tax.tax_before_credits,
+            credit_points_value=tax.credit_points_value,
+            donation_credit=tax.donation_credit,
+            other_credits=tax.other_credits,
+            tax_after_credits=tax.tax_after_credits,
+            effective_rate=tax.effective_rate,
+            national_insurance=NationalInsuranceResponse(
+                base_amount=ni.base_amount,
+                high_amount=ni.high_amount,
+                total=ni.total,
+            ),
+            brackets=[
+                BracketBreakdownItem(
+                    rate=b.rate,
+                    from_amount=b.from_amount,
+                    to_amount=b.to_amount,
+                    taxable_in_bracket=b.taxable_in_bracket,
+                    tax_in_bracket=b.tax_in_bracket,
+                )
+                for b in tax.brackets
+            ],
+        )
 
     # ── Readiness ─────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 ## [P1] 2.7 — חישוב ביטוח לאומי (National Insurance Calculation)
-**Status:** MISSING
+**Status:** DONE
 **Gap:** No dual-rate NI calculation (5.97% up to ceiling, 17.83% above) exists anywhere in the tax engine or services.
 **Files to touch:**
 - `app/annual_reports/services/tax_engine.py` — add `calculate_national_insurance(income)` returning `NationalInsuranceResult` with base_amount, high_amount, total
@@ -10,7 +10,7 @@
 ---
 
 ## [P1] 2.2 — ויזואליזציה מדרגות מס (Tax Bracket Breakdown)
-**Status:** MISSING
+**Status:** DONE
 **Gap:** `tax_engine.py` returns only `tax_before_credits` and `effective_rate`; no per-bracket breakdown is returned.
 **Files to touch:**
 - `app/annual_reports/services/tax_engine.py` — accumulate per-bracket results into `BracketBreakdown` list during iteration
@@ -147,7 +147,7 @@
 ---
 
 ## [P1] 4.3 — הוצאות בהכרה חלקית (Partial Expense Recognition)
-**Status:** MISSING
+**Status:** DONE
 **Gap:** No `recognition_rate` field exists on any expense model; statutory partial rates (vehicle 75%, communication 80%) are not applied.
 **Files to touch:**
 - `app/annual_reports/models/annual_report_detail.py` — add `recognition_rate` per expense category (or create separate `ExpenseLine` model with `recognition_rate: Numeric(5,2)`)
@@ -158,7 +158,7 @@
 ---
 
 ## [P2] 5.1 — רשימת ניכויים מוכרים (Deduction List with Recognition %)
-**Status:** PARTIAL
+**Status:** DONE (resolved by 4.3)
 **Gap:** Expenses stored as lines have no separate recognition percentage; there is no dedicated deduction model distinct from expense lines.
 **Files to touch:**
 - Depends on 4.3 implementation — recognition_rate field on expense lines resolves this.
@@ -167,7 +167,7 @@
 ---
 
 ## [P2] 5.2 — אחוז הכרה לניכוי (Recognition Rate per Deduction)
-**Status:** MISSING
+**Status:** DONE (resolved by 4.3)
 **Gap:** `recognition_rate` field does not exist in any model or schema.
 **Files to touch:**
 - Same as 4.3.

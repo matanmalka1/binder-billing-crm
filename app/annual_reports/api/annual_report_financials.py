@@ -42,8 +42,7 @@ def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
 def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
     """Israeli 2024 income tax calculation for this report."""
     svc = AnnualReportFinancialService(db)
-    result = svc.get_tax_calculation(report_id)
-    return TaxCalculationResponse.model_validate(result, from_attributes=True)
+    return svc.get_tax_calculation(report_id)
 
 
 # ── Advances summary ──────────────────────────────────────────────────────────
@@ -103,7 +102,7 @@ def delete_income_line(report_id: int, line_id: int, db: DBSession, user: Curren
 )
 def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    return svc.add_expense(report_id, body.category, body.amount, body.description)
+    return svc.add_expense(report_id, body.category, body.amount, body.description, body.recognition_rate)
 
 
 @router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse)
