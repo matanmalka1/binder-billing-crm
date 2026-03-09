@@ -34,10 +34,7 @@ def get_aging_report(
     """
     
     service = AgingReportService(db)
-    try:
-        report = service.generate_aging_report(as_of_date=as_of_date)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    report = service.generate_aging_report(as_of_date=as_of_date)
     return report
 
 
@@ -56,10 +53,7 @@ def export_aging_report(
     """
     
     report_service = AgingReportService(db)
-    try:
-        report = report_service.generate_aging_report(as_of_date=as_of_date)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    report = report_service.generate_aging_report(as_of_date=as_of_date)
 
     # Export to requested format
     export_service = ExportService(db)
