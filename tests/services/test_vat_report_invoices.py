@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
 from app.vat_reports.services import data_entry
 from tests.services.vat_report_test_utils import make_item, make_invoice
@@ -41,7 +42,7 @@ class TestAddInvoice:
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item()
 
-        with pytest.raises(ValueError, match="negative"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
@@ -54,13 +55,14 @@ class TestAddInvoice:
                 net_amount=1000.0,
                 vat_amount=-1.0,
             )
+        assert exc_info.value.code == "VAT.NEGATIVE_VAT"
 
     def test_zero_net_amount_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item()
 
-        with pytest.raises(ValueError, match="positive"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
@@ -73,13 +75,14 @@ class TestAddInvoice:
                 net_amount=0.0,
                 vat_amount=0.0,
             )
+        assert exc_info.value.code == "VAT.NET_NOT_POSITIVE"
 
     def test_expense_without_category_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item()
 
-        with pytest.raises(ValueError, match="expense_category"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
@@ -92,6 +95,7 @@ class TestAddInvoice:
                 net_amount=500.0,
                 vat_amount=85.0,
             )
+        assert exc_info.value.code == "VAT.EXPENSE_CATEGORY_REQUIRED"
 
     def test_duplicate_invoice_number_raises(self):
         work_item_repo = MagicMock()
@@ -99,7 +103,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = make_item()
         invoice_repo.get_by_number.return_value = make_invoice()  # already exists
 
-        with pytest.raises(ValueError, match="already exists"):
+        with pytest.raises(ConflictError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
@@ -112,13 +116,14 @@ class TestAddInvoice:
                 net_amount=1000.0,
                 vat_amount=170.0,
             )
+        assert exc_info.value.code == "VAT.CONFLICT"
 
     def test_cannot_add_to_filed_item(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.FILED)
 
-        with pytest.raises(ValueError, match="filed"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
@@ -131,3 +136,4 @@ class TestAddInvoice:
                 net_amount=500.0,
                 vat_amount=85.0,
             )
+        assert exc_info.value.code == "VAT.FILED_IMMUTABLE"
