@@ -487,7 +487,7 @@ Module: `vat_reports`
 - ✅ `Signature Requests`: API + service lifecycle tests added.
 - ✅ `Reminders`: endpoint + service tests added.
 - ✅ `Authority Contacts`: CRUD API + service/repo tests added.
-- `Annual Reports`: financial/tax calc now covered; annex/status/deadline flows still untested.
+- `Annual Reports`: financial/tax calc, annex CRUD, status/deadline now covered; readiness/advances summary still untested.
 - ✅ `Advance Payments`: create/suggest/overview and calculator tests added.
 - ✅ `Documents`: upload/download/replace/delete API paths now covered; repo behavior still minimal.
 - ✅ `Timeline / Audit`: client timeline aggregation and bulk limit tests added.
