@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
@@ -41,7 +42,7 @@ class TaxDeadlineService:
         """Mark deadline as completed."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
-            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
+            raise NotFoundError(f"המועד האחרון {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
 
         if deadline.status == TaxDeadlineStatus.COMPLETED:
             return deadline
@@ -63,7 +64,7 @@ class TaxDeadlineService:
     ) -> TaxDeadline:
         """Update editable fields on a deadline."""
         if not any([deadline_type, due_date, payment_amount is not None, description is not None]):
-            raise ValueError("לא סופקו שדות לעדכון")
+            raise AppError("לא סופקו שדות לעדכון", "TAX_DEADLINE.NO_FIELDS_PROVIDED")
 
         deadline = self.deadline_repo.update(
             deadline_id,
@@ -74,15 +75,15 @@ class TaxDeadlineService:
         )
 
         if not deadline:
-            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
+            raise NotFoundError(f"המועד האחרון {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
 
         return deadline
 
     def get_deadline(self, deadline_id: int) -> TaxDeadline:
-        """Return deadline by ID. Raises ValueError if not found."""
+        """Return deadline by ID. Raises NotFoundError if not found."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
-            raise ValueError(f"מועד המס {deadline_id} לא נמצא")
+            raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
         return deadline
 
     def list_all_pending(self) -> list[TaxDeadline]:
@@ -95,7 +96,7 @@ class TaxDeadlineService:
         """Delete a deadline."""
         deleted = self.deadline_repo.delete(deadline_id)
         if not deleted:
-            raise ValueError(f"המועד האחרון {deadline_id} לא נמצא")
+            raise NotFoundError(f"המועד האחרון {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
 
     def get_upcoming_deadlines(
         self,
