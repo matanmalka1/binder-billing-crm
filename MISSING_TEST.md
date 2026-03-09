@@ -30,11 +30,11 @@ Module: `advance_payments`
 
 Module: `annual_reports`
 
-- `AnnualReportQueryService.list_reports`
-- `AnnualReportQueryService.get_detail_report`
-- `AnnualReportQueryService.kanban_view`
-- `AnnualReportQueryService.get_client_reports`
-- `AnnualReportService.delete_report`
+- ✅ `AnnualReportQueryService.list_reports` (tests/annual_reports/service/test_annual_report_query_service.py)
+- ✅ `AnnualReportQueryService.get_detail_report` (tests/annual_reports/service/test_annual_report_query_service.py)
+- ✅ `AnnualReportQueryService.kanban_view` (tests/annual_reports/service/test_annual_report_query_service.py)
+- ✅ `AnnualReportQueryService.get_client_reports` (tests/annual_reports/service/test_annual_report_query_service.py)
+- ✅ `AnnualReportService.delete_report` (tests/annual_reports/service/test_annual_report_delete_report.py)
 
 Module: `binders`
 
@@ -46,7 +46,7 @@ Module: `binders`
 - ✅ `BinderOperationsService.get_client_binders` (tests/binders/service/test_binder_operations_service.py)
 - ✅ `BinderOperationsService.client_exists` (tests/binders/service/test_binder_operations_service.py)
 - ✅ `BinderOperationsService.enrich_binder` (tests/binders/service/test_binder_operations_service.py)
-- `SignalsService.compute_client_signals`
+- ✅ `SignalsService.compute_client_signals` (tests/binders/service/test_signals_service_client_signals.py)
 - ✅ `WorkStateService.is_idle` (tests/binders/service/test_work_state.py)
 
 Module: `clients`
@@ -125,9 +125,9 @@ Module: `vat_reports`
 
 - ✅ `get_client_summary` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - ✅ `export_to_excel` (tests/vat_reports/api/test_vat_client_summary_export.py)
-- `export_to_pdf`
+- ✅ `export_to_pdf` (tests/vat_reports/service/test_vat_export_pdf_functions.py)
 - ✅ `export_vat_to_excel` (tests/vat_reports/api/test_vat_client_summary_export.py)
-- `export_vat_to_pdf`
+- ✅ `export_vat_to_pdf` (tests/vat_reports/service/test_vat_export_pdf_functions.py)
 - ✅ `VatReportService.list_client_work_items` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - ✅ `VatReportService.list_all_work_items` (tests/vat_reports/service/test_vat_report_service_queries.py)
 - ✅ `VatReportService.get_audit_trail` (tests/vat_reports/service/test_vat_report_service_queries.py)
@@ -142,12 +142,12 @@ Module: `advance_payments`
 
 Module: `annual_reports`
 
-- `GET /api/v1/clients/{client_id}/annual-reports`
-- `GET /api/v1/tax-year/{tax_year}/reports`
+- ✅ `GET /api/v1/clients/{client_id}/annual-reports` (tests/annual_reports/api/test_annual_report_client_and_season_list.py)
+- ✅ `GET /api/v1/tax-year/{tax_year}/reports` (tests/annual_reports/api/test_annual_report_client_and_season_list.py)
 
 Module: `binders`
 
-- `GET /api/v1/clients/{client_id}/binders`
+- ✅ `GET /api/v1/clients/{client_id}/binders` (tests/clients/api/test_clients_binders.py)
 
 Module: `clients`
 

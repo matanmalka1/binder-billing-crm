@@ -1,0 +1,34 @@
+from datetime import date
+
+from app.annual_reports.services import AnnualReportService
+from app.clients.models import Client, ClientType
+
+
+def _client(db) -> Client:
+    client = Client(
+        full_name="Annual Delete Client",
+        id_number="ADS001",
+        client_type=ClientType.COMPANY,
+        opened_at=date.today(),
+    )
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+    return client
+
+
+def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_db, test_user):
+    service = AnnualReportService(test_db)
+    client = _client(test_db)
+    report = service.create_report(
+        client_id=client.id,
+        tax_year=2026,
+        client_type="corporation",
+        created_by=test_user.id,
+        created_by_name="Test User",
+    )
+
+    assert service.delete_report(report.id, actor_id=test_user.id) is True
+    assert service.repo.get_by_id(report.id) is None
+    assert service.delete_report(999999, actor_id=test_user.id) is False
+

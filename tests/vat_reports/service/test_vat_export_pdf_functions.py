@@ -1,0 +1,108 @@
+from datetime import date, datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+
+import pytest
+
+from app.clients.models import Client, ClientType
+from app.users.models.user import User, UserRole
+from app.users.services.auth_service import AuthService
+from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
+from app.vat_reports.services.vat_export_service import export_to_pdf
+from app.vat_reports.services.vat_report_service import VatReportService
+
+
+def _user(test_db) -> User:
+    user = User(
+        full_name="VAT Export User",
+        email="vat.export.user@example.com",
+        password_hash=AuthService.hash_password("pass"),
+        role=UserRole.ADVISOR,
+        is_active=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user
+
+
+def _client(test_db) -> Client:
+    client = Client(
+        full_name="VAT Export Client",
+        id_number="VEP001",
+        client_type=ClientType.OSEK_MURSHE,
+        opened_at=date.today(),
+    )
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+    return client
+
+
+def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatch):
+    user = _user(test_db)
+    client = _client(test_db)
+    service = VatReportService(test_db)
+    item_2026 = service.work_item_repo.create(client_id=client.id, period="2026-01", created_by=user.id)
+    item_2025 = service.work_item_repo.create(client_id=client.id, period="2025-12", created_by=user.id)
+    service.work_item_repo.update_vat_totals(item_2026.id, 170.0, 20.0)
+    service.work_item_repo.update_vat_totals(item_2025.id, 85.0, 10.0)
+
+    captured = {}
+
+    def _fake_export(client_name, client_id, year, periods, export_dir):
+        captured["client_name"] = client_name
+        captured["client_id"] = client_id
+        captured["year"] = year
+        captured["periods"] = periods
+        captured["export_dir"] = export_dir
+        return {"format": "pdf", "filepath": "/tmp/fake.pdf", "filename": "fake.pdf", "generated_at": datetime.utcnow()}
+
+    monkeypatch.setattr(
+        "app.vat_reports.services.vat_export_service.export_vat_to_pdf",
+        _fake_export,
+    )
+
+    result = export_to_pdf(test_db, client.id, 2026)
+    assert result["format"] == "pdf"
+    assert captured["client_id"] == client.id
+    assert captured["year"] == 2026
+    assert [p.period for p in captured["periods"]] == ["2026-01"]
+
+
+def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
+    try:
+        import reportlab  # noqa: F401
+    except ImportError:
+        with pytest.raises(ImportError):
+            export_vat_to_pdf(
+                client_name="Client",
+                client_id=1,
+                year=2026,
+                periods=[],
+                export_dir="/tmp",
+            )
+        return
+
+    from app.vat_reports.models.vat_enums import VatWorkItemStatus
+    from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
+
+    period = VatPeriodRow(
+        period="2026-01",
+        status=VatWorkItemStatus.FILED,
+        total_output_vat=Decimal("170.00"),
+        total_input_vat=Decimal("20.00"),
+        net_vat=Decimal("150.00"),
+        final_vat_amount=Decimal("150.00"),
+        filed_at=datetime.utcnow() - timedelta(days=1),
+    )
+
+    payload = export_vat_to_pdf(
+        client_name="Client",
+        client_id=1,
+        year=2026,
+        periods=[period],
+        export_dir="/tmp",
+    )
+    assert payload["format"] == "pdf"
+    assert Path(payload["filepath"]).exists()
