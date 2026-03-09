@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 from app.vat_reports.services import data_entry, filing
 from tests.services.vat_report_test_utils import make_item
@@ -20,8 +21,9 @@ class TestMarkReadyForReview:
         work_item_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.MATERIAL_RECEIVED)
 
-        with pytest.raises(ValueError, match="Cannot mark ready for review"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
+        assert exc_info.value.code == "VAT.INVALID_TRANSITION"
 
 
 class TestSendBackForCorrection:
@@ -42,10 +44,11 @@ class TestSendBackForCorrection:
     def test_empty_note_raises(self):
         work_item_repo = MagicMock()
 
-        with pytest.raises(ValueError, match="correction_note"):
+        with pytest.raises(AppError) as exc_info:
             data_entry.send_back_for_correction(
                 work_item_repo, item_id=1, performed_by=1, correction_note="   "
             )
+        assert exc_info.value.code == "VAT.JUSTIFICATION_REQUIRED"
 
 
 class TestFileVatReturn:
@@ -101,7 +104,7 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW)
 
-        with pytest.raises(ValueError, match="justification"):
+        with pytest.raises(AppError) as exc_info:
             filing.file_vat_return(
                 work_item_repo,
                 item_id=1,
@@ -110,22 +113,25 @@ class TestFileVatReturn:
                 override_amount=1000.0,
                 override_justification=None,
             )
+        assert exc_info.value.code == "VAT.JUSTIFICATION_REQUIRED"
 
     def test_wrong_status_raises(self):
         work_item_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 
-        with pytest.raises(ValueError, match="READY_FOR_REVIEW"):
+        with pytest.raises(AppError) as exc_info:
             filing.file_vat_return(
                 work_item_repo,
                 item_id=1,
                 filed_by=2,
                 filing_method=FilingMethod.ONLINE,
             )
+        assert exc_info.value.code == "VAT.INVALID_TRANSITION"
 
     def test_not_found_raises(self):
         work_item_repo = MagicMock()
         work_item_repo.get_by_id.return_value = None
 
-        with pytest.raises(ValueError, match="not found"):
+        with pytest.raises(NotFoundError) as exc_info:
             filing.file_vat_return(work_item_repo, item_id=999, filed_by=2, filing_method=FilingMethod.ONLINE)
+        assert exc_info.value.code == "VAT.NOT_FOUND"
