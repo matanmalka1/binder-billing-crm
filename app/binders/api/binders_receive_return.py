@@ -20,21 +20,16 @@ router = APIRouter(
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
     """Receive new binder (intake flow)."""
     service = BinderService(db)
-    signals_service = SignalsService(db)
-
-    try:
-        binder = service.receive_binder(
-            client_id=request.client_id,
-            binder_number=request.binder_number,
-            binder_type=request.binder_type,
-            received_at=request.received_at,
-            received_by=request.received_by,
-            notes=request.notes,
-        )
-        return fetch_client_and_build_response(binder, db, signals_service)
-
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+   signals_service = SignalsService(db)
+    binder = service.receive_binder(
+        client_id=request.client_id,
+        binder_number=request.binder_number,
+        binder_type=request.binder_type,
+        received_at=request.received_at,
+        received_by=request.received_by,
+        notes=request.notes,
+    )
+    return fetch_client_and_build_response(binder, db, signals_service)
 
 
 @router.post("/{binder_id}/ready", response_model=BinderResponse)
@@ -43,11 +38,8 @@ def mark_ready_for_pickup(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderService(db)
     signals_service = SignalsService(db)
 
-    try:
-        binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
-        return fetch_client_and_build_response(binder, db, signals_service)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
+    return fetch_client_and_build_response(binder, db, signals_service)
 
 
 @router.post("/{binder_id}/return", response_model=BinderResponse)
@@ -68,13 +60,9 @@ def return_binder(
     )
     returned_by = request.returned_by if request and request.returned_by is not None else user.id
 
-    try:
-        binder = service.return_binder(
-            binder_id=binder_id,
-            pickup_person_name=pickup_person_name,
-            returned_by=returned_by,
-        )
-        return fetch_client_and_build_response(binder, db, signals_service)
-
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    binder = service.return_binder(
+        binder_id=binder_id,
+        pickup_person_name=pickup_person_name,
+        returned_by=returned_by,
+    )
+    return fetch_client_and_build_response(binder, db, signals_service)
