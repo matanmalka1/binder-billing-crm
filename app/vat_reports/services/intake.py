@@ -3,6 +3,7 @@
 import json
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
@@ -32,17 +33,21 @@ def create_work_item(
     """
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise ValueError(f"לקוח {client_id} לא נמצא")
+        raise NotFoundError(f"Client not found: לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
 
     existing = work_item_repo.get_by_client_period(client_id, period)
     if existing:
-        raise ValueError(
-            f"פריט עבודה למע\"מ כבר קיים עבור לקוח {client_id} לתקופה {period}"
+        raise ConflictError(
+            f"already exists: פריט עבודה למע\"מ כבר קיים עבור לקוח {client_id} לתקופה {period}",
+            "VAT.CONFLICT",
         )
 
     if mark_pending:
         if not pending_materials_note:
-            raise ValueError("נדרש תיאור החומרים כאשר הפריט מסומן כמצב המתנה")
+            raise AppError(
+                "pending_materials_note: נדרש תיאור החומרים כאשר הפריט מסומן כמצב המתנה",
+                "VAT.PENDING_NOTE_REQUIRED",
+            )
         status = VatWorkItemStatus.PENDING_MATERIALS
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
@@ -80,11 +85,12 @@ def mark_materials_complete(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
+        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     if item.status != VatWorkItemStatus.PENDING_MATERIALS:
-        raise ValueError(
-            f"לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}"
+        raise AppError(
+            f"Cannot mark materials complete: לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}",
+            "VAT.INVALID_TRANSITION",
         )
 
     from app.vat_reports.services.constants import ACTION_STATUS_CHANGED
