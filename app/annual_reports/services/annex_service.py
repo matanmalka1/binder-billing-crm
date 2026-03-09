@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.annual_reports.schemas.annual_report_annex import AnnexDataLineResponse
@@ -16,7 +17,7 @@ class AnnualReportAnnexService:
     def _get_report_for_annex(self, report_id: int):
         report = self.repo.get_by_id(report_id)  # type: ignore[attr-defined]
         if not report:
-            raise ValueError(f"הדוח השנתי {report_id} לא נמצא")
+            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return report
 
     def get_annex_lines(
@@ -51,14 +52,14 @@ class AnnualReportAnnexService:
         repo = self._get_annex_repo()
         row = repo.update_line(line_id, data, notes)
         if not row:
-            raise ValueError(f"שורת נספח {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
         return AnnexDataLineResponse.model_validate(row)
 
     def delete_annex_line(self, report_id: int, line_id: int) -> None:
         self._get_report_for_annex(report_id)
         repo = self._get_annex_repo()
         if not repo.delete_line(line_id):
-            raise ValueError(f"שורת נספח {line_id} לא נמצאה")
+            raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
 
 
 __all__ = ["AnnualReportAnnexService"]
