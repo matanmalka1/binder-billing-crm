@@ -34,20 +34,17 @@ def create_authority_contact(
     """Create new authority contact for client."""
     service = AuthorityContactService(db)
 
-    try:
-        contact_type = ContactType(request.contact_type)
-        contact = service.add_contact(
-            client_id=client_id,
-            contact_type=contact_type,
-            name=request.name,
-            office=request.office,
-            phone=request.phone,
-            email=request.email,
-            notes=request.notes,
-        )
-        return AuthorityContactResponse.model_validate(contact)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    contact_type = ContactType(request.contact_type)
+    contact = service.add_contact(
+        client_id=client_id,
+        contact_type=contact_type,
+        name=request.name,
+        office=request.office,
+        phone=request.phone,
+        email=request.email,
+        notes=request.notes,
+    )
+    return AuthorityContactResponse.model_validate(contact)
 
 
 @router.get("/{client_id}/authority-contacts", response_model=AuthorityContactListResponse)
@@ -64,13 +61,7 @@ def list_authority_contacts(
 
     type_enum = None
     if contact_type:
-        try:
-            type_enum = ContactType(contact_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג איש קשר לא חוקי: {contact_type}",
-            )
+        type_enum = ContactType(contact_type)
 
     contacts, total = service.list_client_contacts(client_id, type_enum, page=page, page_size=page_size)
 
@@ -118,19 +109,10 @@ def update_authority_contact(
     update_data = request.model_dump(exclude_unset=True)
 
     if "contact_type" in update_data:
-        try:
-            update_data["contact_type"] = ContactType(update_data["contact_type"])
-        except ValueError as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג איש הקשר אינו תקין: {update_data['contact_type']}",
-            )
+        update_data["contact_type"] = ContactType(update_data["contact_type"])
 
-    try:
-        contact = service.update_contact(contact_id, **update_data)
-        return AuthorityContactResponse.model_validate(contact)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    contact = service.update_contact(contact_id, **update_data)
+    return AuthorityContactResponse.model_validate(contact)
 
 
 @router.delete(
@@ -142,7 +124,4 @@ def delete_authority_contact(contact_id: int, db: DBSession, user: CurrentUser):
     """Delete authority contact (ADVISOR only)."""
     service = AuthorityContactService(db)
 
-    try:
-        service.delete_contact(contact_id, actor_id=user.id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    service.delete_contact(contact_id, actor_id=user.id)
