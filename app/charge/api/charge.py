@@ -24,18 +24,15 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
     """Create new charge (ADVISOR only)."""
     service = BillingService(db)
 
-    try:
-        charge = service.create_charge(
-            client_id=request.client_id,
-            amount=request.amount,
-            charge_type=request.charge_type,
-            period=request.period,
-            currency=request.currency,
-            actor_id=user.id,
-        )
-        return ChargeResponse.model_validate(charge)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    charge = service.create_charge(
+        client_id=request.client_id,
+        amount=request.amount,
+        charge_type=request.charge_type,
+        period=request.period,
+        currency=request.currency,
+        actor_id=user.id,
+    )
+    return ChargeResponse.model_validate(charge)
 
 
 @router.post(
@@ -47,11 +44,8 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Issue a draft charge (ADVISOR only)."""
     service = BillingService(db)
 
-    try:
-        charge = service.issue_charge(charge_id, actor_id=user.id)
-        return ChargeResponse.model_validate(charge)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    charge = service.issue_charge(charge_id, actor_id=user.id)
+    return ChargeResponse.model_validate(charge)
 
 
 @router.post(
@@ -63,11 +57,8 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     """Mark issued charge as paid (ADVISOR only)."""
     service = BillingService(db)
 
-    try:
-        charge = service.mark_charge_paid(charge_id, actor_id=user.id)
-        return ChargeResponse.model_validate(charge)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    charge = service.mark_charge_paid(charge_id, actor_id=user.id)
+    return ChargeResponse.model_validate(charge)
 
 
 @router.post(
@@ -79,11 +70,8 @@ def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: Cha
     """Cancel a charge (ADVISOR only)."""
     service = BillingService(db)
 
-    try:
-        charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
-        return ChargeResponse.model_validate(charge)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
+    return ChargeResponse.model_validate(charge)
 
 
 @router.get(
@@ -138,11 +126,5 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
 def delete_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete a draft charge (ADVISOR only)."""
     service = BillingService(db)
-    try:
-        service.delete_charge(charge_id, actor_id=user.id)
-    except ValueError as e:
-        detail = str(e)
-        if "not found" in detail:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+    service.delete_charge(charge_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
