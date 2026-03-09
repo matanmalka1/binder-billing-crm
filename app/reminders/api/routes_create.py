@@ -17,71 +17,67 @@ def create_reminder(
 ):
     service = ReminderService(db)
 
-    try:
-        if request.reminder_type == "tax_deadline_approaching":
-            if not request.tax_deadline_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="נדרש tax_deadline_id עבור תזכורות מסוג tax_deadline_approaching",
-                )
-            reminder = service.create_tax_deadline_reminder(
-                client_id=request.client_id,
-                tax_deadline_id=request.tax_deadline_id,
-                target_date=request.target_date,
-                days_before=request.days_before,
-                message=request.message,
-                created_by=user.id,
-            )
-
-        elif request.reminder_type == "binder_idle":
-            if not request.binder_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="נדרש binder_id עבור תזכורות מסוג binder_idle",
-                )
-            reminder = service.create_idle_binder_reminder(
-                client_id=request.client_id,
-                binder_id=request.binder_id,
-                days_idle=request.days_before,
-                message=request.message,
-                created_by=user.id,
-            )
-
-        elif request.reminder_type == "unpaid_charge":
-            if not request.charge_id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="נדרש charge_id עבור תזכורות מסוג unpaid_charge",
-                )
-            reminder = service.create_unpaid_charge_reminder(
-                client_id=request.client_id,
-                charge_id=request.charge_id,
-                days_unpaid=request.days_before,
-                message=request.message,
-                created_by=user.id,
-            )
-
-        elif request.reminder_type == "custom":
-            if not request.message:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="נדרש message עבור תזכורות מותאמות אישית",
-                )
-            reminder = service.create_custom_reminder(
-                client_id=request.client_id,
-                target_date=request.target_date,
-                days_before=request.days_before,
-                message=request.message,
-                created_by=user.id,
-            )
-
-        else:
+    if request.reminder_type == "tax_deadline_approaching":
+        if not request.tax_deadline_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג התזכורת אינו נתמך: {request.reminder_type}",
+                detail="נדרש tax_deadline_id עבור תזכורות מסוג tax_deadline_approaching",
             )
+        reminder = service.create_tax_deadline_reminder(
+            client_id=request.client_id,
+            tax_deadline_id=request.tax_deadline_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
 
-        return ReminderResponse.model_validate(reminder)
+    elif request.reminder_type == "binder_idle":
+        if not request.binder_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="נדרש binder_id עבור תזכורות מסוג binder_idle",
+            )
+        reminder = service.create_idle_binder_reminder(
+            client_id=request.client_id,
+            binder_id=request.binder_id,
+            days_idle=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
 
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    elif request.reminder_type == "unpaid_charge":
+        if not request.charge_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="נדרש charge_id עבור תזכורות מסוג unpaid_charge",
+            )
+        reminder = service.create_unpaid_charge_reminder(
+            client_id=request.client_id,
+            charge_id=request.charge_id,
+            days_unpaid=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    elif request.reminder_type == "custom":
+        if not request.message:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="נדרש message עבור תזכורות מותאמות אישית",
+            )
+        reminder = service.create_custom_reminder(
+            client_id=request.client_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"סוג התזכורת אינו נתמך: {request.reminder_type}",
+        )
+
+    return ReminderResponse.model_validate(reminder)
