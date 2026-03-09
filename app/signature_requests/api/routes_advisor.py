@@ -64,6 +64,13 @@ def list_pending_requests(
     )
 
 
+@advisor_router.get("/{request_id}/audit-trail", response_model=list[SignatureAuditEventResponse])
+def get_signature_request_audit_trail(request_id: int, db: DBSession, user: CurrentUser):
+    service = SignatureRequestService(db)
+    audit_events = service.get_audit_trail(request_id)
+    return [SignatureAuditEventResponse.model_validate(e) for e in audit_events]
+
+
 @advisor_router.get("/{request_id}", response_model=SignatureRequestWithAuditResponse)
 def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
@@ -112,4 +119,3 @@ def cancel_signature_request(
         reason=body.reason,
     )
     return SignatureRequestResponse.model_validate(req)
-

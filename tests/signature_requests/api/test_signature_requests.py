@@ -185,3 +185,36 @@ def test_invalid_token_returns_error_on_sign(client):
     resp = client.post("/sign/does-not-exist/approve")
     assert resp.status_code == 400
     assert resp.json()["error"] == "SIGNATURE_REQUEST.TOKEN_INVALID"
+
+
+def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_headers):
+    crm_client = _client(test_db)
+
+    create_resp = client.post(
+        "/api/v1/signature-requests",
+        headers=advisor_headers,
+        json={
+            "client_id": crm_client.id,
+            "request_type": "custom",
+            "title": "Audit Trail Endpoint",
+            "signer_name": "Signer",
+        },
+    )
+    request_id = create_resp.json()["id"]
+
+    send_resp = client.post(
+        f"/api/v1/signature-requests/{request_id}/send",
+        headers=advisor_headers,
+        json={"expiry_days": 7},
+    )
+    assert send_resp.status_code == 200
+
+    audit_resp = client.get(
+        f"/api/v1/signature-requests/{request_id}/audit-trail",
+        headers=advisor_headers,
+    )
+    assert audit_resp.status_code == 200
+    payload = audit_resp.json()
+    assert isinstance(payload, list)
+    event_types = [e["event_type"] for e in payload]
+    assert {"created", "sent"} <= set(event_types)
