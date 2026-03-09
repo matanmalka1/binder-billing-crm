@@ -31,12 +31,9 @@ def get_work_item(
 ):
     """Get a single work item by ID."""
     service = VatReportService(db)
-    try:
-        item = service.get_work_item(item_id)
-        client = service.client_repo.get_by_id(item.client_id)
-        return _serialize_with_name(item, {item.client_id: client.full_name if client else None})
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    item = service.get_work_item(item_id)
+    client = service.client_repo.get_by_id(item.client_id)
+    return _serialize_with_name(item, {item.client_id: client.full_name if client else None})
 
 
 @router.get("/clients/{client_id}/work-items", response_model=VatWorkItemListResponse)
