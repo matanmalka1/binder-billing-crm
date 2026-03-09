@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.models.client import Client, ClientStatus
 from app.users.models.user import UserRole
 from app.clients.repositories.client_repository import ClientRepository
@@ -36,7 +37,7 @@ class ClientService:
         """Create new client. Raises ValueError if ID number exists."""
         existing = self.client_repo.get_by_id_number(id_number)
         if existing:
-            raise ValueError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים")
+            raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
 
         return self.client_repo.create(
             full_name=full_name,
@@ -87,9 +88,10 @@ class ClientService:
 
         total_count = self.client_repo.count(status=status, search=search)
         if total_count > _HAS_SIGNALS_FETCH_LIMIT:
-            raise ValueError(
+            raise AppError(
                 f"מספר הלקוחות ({total_count}) חורג מהמגבלה לסינון לפי איתותים ({_HAS_SIGNALS_FETCH_LIMIT}). "
-                "יש להשתמש בפילטרים נוספים."
+                "יש להשתמש בפילטרים נוספים.",
+                "CLIENT.INVALID_STATUS",
             )
         base_clients = self.client_repo.list(
             status=status, page=1, page_size=_HAS_SIGNALS_FETCH_LIMIT, search=search
@@ -128,7 +130,7 @@ class ClientService:
 
         if "status" in fields and fields["status"] in ["frozen", "closed"]:
             if user_role != UserRole.ADVISOR:
-                raise PermissionError("רק יועצים יכולים להקפיא או לסגור לקוחות")
+                raise ForbiddenError("רק יועצים יכולים להקפיא או לסגור לקוחות", "CLIENT.FORBIDDEN")
 
         if "status" in fields and fields["status"] == ClientStatus.CLOSED:
             if "closed_at" not in fields:
