@@ -27,7 +27,7 @@ def create_work_item(
 
     Rules:
     - Client must exist.
-    - Only one work item per (client_id, period) — duplicate raises ValueError.
+    - Only one work item per (client_id, period) — duplicate raises AppError.
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
@@ -81,7 +81,7 @@ def mark_materials_complete(
     Transition PENDING_MATERIALS → MATERIAL_RECEIVED once all documents arrive.
 
     Raises:
-        ValueError: If item not found or not in PENDING_MATERIALS.
+        AppError: If item not found or not in PENDING_MATERIALS.
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
