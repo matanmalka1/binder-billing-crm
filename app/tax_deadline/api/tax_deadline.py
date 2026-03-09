@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.tax_deadline.models.tax_deadline import DeadlineType
@@ -62,13 +62,7 @@ def list_tax_deadlines(
 
     type_enum = None
     if deadline_type:
-        try:
-            type_enum = DeadlineType(deadline_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג מועד המס אינו תקין: {deadline_type}",
-            )
+        type_enum = DeadlineType(deadline_type)
 
     if client_id:
         # Client-scoped: naturally bounded, no ceiling needed.
@@ -124,13 +118,7 @@ def update_tax_deadline(
 
     deadline_type = None
     if request.deadline_type:
-        try:
-            deadline_type = DeadlineType(request.deadline_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג מועד המס אינו תקין: {request.deadline_type}",
-            )
+        deadline_type = DeadlineType(request.deadline_type)
 
     deadline = service.update_deadline(
         deadline_id,
