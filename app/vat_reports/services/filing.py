@@ -3,6 +3,7 @@
 import json
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_FILED, ACTION_OVERRIDE
@@ -32,18 +33,19 @@ def file_vat_return(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
+        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     if item.status != VatWorkItemStatus.READY_FOR_REVIEW:
-        raise ValueError(
+        raise AppError(
             f"Cannot file VAT return from status {item.status.value}. "
-            "Work item must be READY_FOR_REVIEW."
+            "Work item must be READY_FOR_REVIEW.",
+            "VAT.INVALID_TRANSITION",
         )
 
     is_overridden = override_amount is not None
 
     if is_overridden and not override_justification:
-        raise ValueError("נדרש נימוק כאשר מחליפים את הסכום למע\"מ")
+        raise AppError("justification: נדרש נימוק כאשר מחליפים את הסכום למע\"מ", "VAT.JUSTIFICATION_REQUIRED")
 
     if is_overridden:
         final_amount = override_amount
