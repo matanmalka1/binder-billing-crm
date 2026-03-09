@@ -31,19 +31,16 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
     """Create new client."""
     service = ClientService(db)
 
-    try:
-        client = service.create_client(
-            full_name=request.full_name,
-            id_number=request.id_number,
-            client_type=request.client_type,
-            opened_at=request.opened_at,
-            phone=request.phone,
-            email=request.email,
-            actor_id=user.id,
-        )
-        return _to_client_response(client, user.role)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
+    client = service.create_client(
+        full_name=request.full_name,
+        id_number=request.id_number,
+        client_type=request.client_type,
+        opened_at=request.opened_at,
+        phone=request.phone,
+        email=request.email,
+        actor_id=user.id,
+    )
+    return _to_client_response(client, user.role)
 
 
 @router.get("", response_model=ClientListResponse)
@@ -58,16 +55,13 @@ def list_clients(
 ):
     """List clients with pagination."""
     service = ClientService(db)
-    try:
-        items, total = service.list_clients(
-            status=status_filter,
-            has_signals=has_signals,
-            search=search or None,
-            page=page,
-            page_size=page_size,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    items, total = service.list_clients(
+        status=status_filter,
+        has_signals=has_signals,
+        search=search or None,
+        page=page,
+        page_size=page_size,
+    )
 
     return ClientListResponse(
         items=[_to_client_response(c, user.role) for c in items],
