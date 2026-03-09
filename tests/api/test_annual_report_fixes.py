@@ -104,3 +104,86 @@ def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_heade
     assert response.status_code in (200, 201)
     data = response.json()
     assert data.get("assigned_to") == test_user.id
+
+
+# ── Sort tests ────────────────────────────────────────────────────────────────
+
+def _create_report(client, headers, db_client_id: int, tax_year: int):
+    return client.post(
+        "/api/v1/annual-reports",
+        headers=headers,
+        json={
+            "client_id": db_client_id,
+            "tax_year": tax_year,
+            "client_type": "individual",
+            "deadline_type": "standard",
+        },
+    )
+
+
+def test_list_reports_sort_by_tax_year_desc(client, test_db, advisor_headers):
+    """sort_by=tax_year&order=desc must return newer years first."""
+    c = _create_client(test_db, "AR_SORT_001")
+    _create_report(client, advisor_headers, c.id, 2021)
+    _create_report(client, advisor_headers, c.id, 2023)
+
+    resp = client.get(
+        "/api/v1/annual-reports?sort_by=tax_year&order=desc",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    years = [item["tax_year"] for item in resp.json()["items"]]
+    assert years == sorted(years, reverse=True)
+
+
+def test_list_reports_sort_by_tax_year_asc(client, test_db, advisor_headers):
+    """sort_by=tax_year&order=asc must return older years first."""
+    c = _create_client(test_db, "AR_SORT_002")
+    _create_report(client, advisor_headers, c.id, 2020)
+    _create_report(client, advisor_headers, c.id, 2022)
+
+    resp = client.get(
+        "/api/v1/annual-reports?sort_by=tax_year&order=asc",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    years = [item["tax_year"] for item in resp.json()["items"]]
+    assert years == sorted(years)
+
+
+def test_list_reports_invalid_sort_by_returns_422(client, advisor_headers):
+    """sort_by with an invalid value must return 422."""
+    resp = client.get(
+        "/api/v1/annual-reports?sort_by=invalid_field",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 422
+
+
+def test_list_reports_invalid_order_returns_422(client, advisor_headers):
+    """order with a value other than asc/desc must return 422."""
+    resp = client.get(
+        "/api/v1/annual-reports?order=random",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 422
+
+
+def test_list_reports_sort_by_tax_year_with_filter(client, test_db, advisor_headers):
+    """sort_by respects tax_year filter — reports within same year sorted by filing_deadline asc."""
+    c = _create_client(test_db, "AR_SORT_003")
+    # Both reports are for tax_year 2019 but have different filing_deadlines via deadline_type
+    # standard deadline for 2019 is a fixed date; create two clients to get two reports in same year
+    c2 = _create_client(test_db, "AR_SORT_003B")
+    _create_report(client, advisor_headers, c.id, 2019)
+    _create_report(client, advisor_headers, c2.id, 2019)
+
+    resp = client.get(
+        "/api/v1/annual-reports?tax_year=2019&sort_by=client_id&order=asc",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert all(item["tax_year"] == 2019 for item in items)
+    client_ids = [item["client_id"] for item in items]
+    assert client_ids == sorted(client_ids)
