@@ -1,5 +1,5 @@
 ## [P2] 6.4 — סינון לפי שנת מס (Filter by Tax Year)
-**Status:** MISSING
+**Status:** DONE
 **Gap:** `PermanentDocument` model has no `tax_year` field; documents cannot be filtered or scoped by tax year.
 **Files to touch:**
 - `app/permanent_documents/models/permanent_document.py` — add `tax_year: Integer, nullable` column
@@ -12,7 +12,7 @@
 ---
 
 ## [P2] 6.7 — קישור מסמך-ניכוי (Document-Deduction Link)
-**Status:** MISSING
+**Status:** DONE
 **Gap:** No `supporting_document_ref` or `document_id` foreign key exists on any expense/deduction model; documents cannot be linked to specific deductions.
 **Files to touch:**
 - `app/annual_reports/models/annual_report_detail.py` — add `supporting_document_id: ForeignKey(permanent_documents.id), nullable` per expense line (or handle in a join table if multi-document)

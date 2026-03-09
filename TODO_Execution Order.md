@@ -1,18 +1,18 @@
 Based on the TODO files, here's the recommended execution order — each level unblocks the next:
 
 Execution Order
-Wave 1 — Core Tax Engine (P1, no dependencies)
+Wave 1 — Core Tax Engine (P1, no dependencies) - done
 2.7 — National insurance dual-rate calculation (tax_engine.py) - done 
 2.2 — Tax bracket breakdown in response (tax_engine.py) - done 
 4.3 — Partial expense recognition rates (annual_report_detail model + financial_service.py) - done 
 Wave 2 — Fields & Data Model (P2, depends on Wave 1)
-5.1 / 5.2 — Recognition rate on deduction lines (resolved by 4.3)
-5.3 — supporting_document_ref + recognition_rate on expense create/update
-5.4 — Per-source credit point breakdown (pension/life insurance/tuition)
-4.5 — net_profit field in tax calculation response
-2.11 — total_liability aggregating NI + VAT + income tax (needs 2.7)
-6.4 — tax_year field on PermanentDocument
-6.7 — Document-deduction foreign key link (needs 6.4 + 5.3)
+5.1 / 5.2 — Recognition rate on deduction lines (resolved by 4.3) - done
+5.3 — supporting_document_ref + recognition_rate on expense create/update - done
+5.4 — Per-source credit point breakdown (pension/life insurance/tuition) - done
+4.5 — net_profit field in tax calculation response - done
+2.11 — total_liability aggregating NI + VAT + income tax (needs 2.7) - done
+6.4 — tax_year field on PermanentDocument - done
+6.7 — Document-deduction foreign key link (needs 6.4 + 5.3) - done
 3.9 — notes field on AdvancePayment
 Wave 3 — Advance Payments Analytics (P2)
 3.4 — Delta (expected − paid) in response

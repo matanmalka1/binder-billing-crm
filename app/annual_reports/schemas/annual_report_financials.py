@@ -41,6 +41,7 @@ class ExpenseLineCreateRequest(BaseModel):
     description: Optional[str] = None
     recognition_rate: Optional[Decimal] = None  # defaults to statutory rate for category
     supporting_document_ref: Optional[str] = None
+    supporting_document_id: Optional[int] = None
 
 
 class ExpenseLineUpdateRequest(BaseModel):
@@ -49,6 +50,7 @@ class ExpenseLineUpdateRequest(BaseModel):
     description: Optional[str] = None
     recognition_rate: Optional[Decimal] = None
     supporting_document_ref: Optional[str] = None
+    supporting_document_id: Optional[int] = None
 
 
 class ExpenseLineResponse(BaseModel):
@@ -59,11 +61,21 @@ class ExpenseLineResponse(BaseModel):
     recognition_rate: float
     recognized_amount: float = 0.0
     supporting_document_ref: Optional[str] = None
+    supporting_document_id: Optional[int] = None
+    supporting_document_filename: Optional[str] = None
     description: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        instance = super().model_validate(obj, *args, **kwargs)
+        if hasattr(obj, "supporting_document") and obj.supporting_document is not None:
+            key = obj.supporting_document.storage_key or ""
+            object.__setattr__(instance, "supporting_document_filename", key.split("/")[-1])
+        return instance
 
     def model_post_init(self, __context) -> None:
         object.__setattr__(self, "recognized_amount", round(self.amount * self.recognition_rate, 2))
@@ -105,9 +117,11 @@ class TaxCalculationResponse(BaseModel):
     donation_credit: float
     other_credits: float
     tax_after_credits: float
+    net_profit: float
     effective_rate: float
     national_insurance: NationalInsuranceResponse
     brackets: list[BracketBreakdownItem]
+    total_liability: Optional[float] = None
 
 
 # ── Advances summary ──────────────────────────────────────────────────────────

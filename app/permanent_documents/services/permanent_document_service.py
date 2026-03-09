@@ -27,6 +27,7 @@ class PermanentDocumentService:
         file_data: BinaryIO,
         filename: str,
         uploaded_by: int,
+        tax_year: Optional[int] = None,
     ) -> PermanentDocument:
         """
         Upload permanent document.
@@ -57,6 +58,7 @@ class PermanentDocumentService:
             document_type=document_type,
             storage_key=storage_key,
             uploaded_by=uploaded_by,
+            tax_year=tax_year,
         )
 
         return document
@@ -80,9 +82,11 @@ class PermanentDocumentService:
             raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
         return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
 
-    def list_client_documents(self, client_id: int) -> list[PermanentDocument]:
-        """List all permanent documents for a client."""
-        return self.document_repo.list_by_client(client_id)
+    def list_client_documents(
+        self, client_id: int, tax_year: Optional[int] = None
+    ) -> list[PermanentDocument]:
+        """List permanent documents for a client, optionally filtered by tax year."""
+        return self.document_repo.list_by_client(client_id, tax_year=tax_year)
 
     def get_missing_document_types(self, client_id: int) -> list[DocumentType]:
         """

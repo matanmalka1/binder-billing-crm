@@ -1,6 +1,6 @@
-from typing import Annotated
+from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from io import BytesIO
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -34,6 +34,7 @@ def upload_permanent_document(
     file: Annotated[UploadFile, File(...)],
     db: DBSession,
     user: CurrentUser,
+    tax_year: Annotated[Optional[int], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
@@ -46,6 +47,7 @@ def upload_permanent_document(
         file_data=file_data,
         filename=file.filename or "document",
         uploaded_by=user.id,
+        tax_year=tax_year,
     )
     return PermanentDocumentResponse.model_validate(document)
 
@@ -59,10 +61,11 @@ def list_client_documents(
     client_id: int,
     db: DBSession,
     user: CurrentUser,
+    tax_year: Optional[int] = Query(default=None),
 ):
     """List permanent documents for a client."""
     service = PermanentDocumentService(db)
-    documents = service.list_client_documents(client_id)
+    documents = service.list_client_documents(client_id, tax_year=tax_year)
 
     return PermanentDocumentListResponse(
         items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]

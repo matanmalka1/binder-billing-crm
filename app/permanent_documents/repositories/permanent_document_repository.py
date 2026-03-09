@@ -17,6 +17,7 @@ class PermanentDocumentRepository:
         document_type: DocumentType,
         storage_key: str,
         uploaded_by: int,
+        tax_year: Optional[int] = None,
     ) -> PermanentDocument:
         """Create new permanent document record."""
         document = PermanentDocument(
@@ -24,6 +25,7 @@ class PermanentDocumentRepository:
             document_type=document_type,
             storage_key=storage_key,
             uploaded_by=uploaded_by,
+            tax_year=tax_year,
             is_present=True,
         )
         self.db.add(document)
@@ -35,17 +37,17 @@ class PermanentDocumentRepository:
         """Retrieve document by ID."""
         return self.db.query(PermanentDocument).filter(PermanentDocument.id == document_id).first()
 
-    def list_by_client(self, client_id: int) -> list[PermanentDocument]:
-        """List non-deleted permanent documents for a client."""
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
-                PermanentDocument.client_id == client_id,
-                PermanentDocument.is_deleted == False,  # noqa: E712
-            )
-            .order_by(PermanentDocument.uploaded_at.desc())
-            .all()
+    def list_by_client(
+        self, client_id: int, tax_year: Optional[int] = None
+    ) -> list[PermanentDocument]:
+        """List non-deleted permanent documents for a client, optionally filtered by tax_year."""
+        q = self.db.query(PermanentDocument).filter(
+            PermanentDocument.client_id == client_id,
+            PermanentDocument.is_deleted == False,  # noqa: E712
         )
+        if tax_year is not None:
+            q = q.filter(PermanentDocument.tax_year == tax_year)
+        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
 
     def count_by_client(self, client_id: int) -> int:
         """Count non-deleted permanent documents for a client."""

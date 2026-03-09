@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Boolean, SmallInteger
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -19,6 +19,7 @@ class PermanentDocument(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     document_type = Column(Enum(DocumentType), nullable=False)
     storage_key = Column(String, nullable=False)
+    tax_year = Column(SmallInteger, nullable=True, index=True)
     is_present = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)

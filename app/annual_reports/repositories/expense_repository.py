@@ -25,6 +25,7 @@ class AnnualReportExpenseRepository:
         description: Optional[str] = None,
         recognition_rate: Optional[Decimal] = None,
         supporting_document_ref: Optional[str] = None,
+        supporting_document_id: Optional[int] = None,
     ) -> AnnualReportExpenseLine:
         rate = recognition_rate if recognition_rate is not None else default_recognition_rate(category)
         line = AnnualReportExpenseLine(
@@ -33,6 +34,7 @@ class AnnualReportExpenseRepository:
             amount=amount,
             recognition_rate=rate,
             supporting_document_ref=supporting_document_ref,
+            supporting_document_id=supporting_document_id,
             description=description,
         )
         self.db.add(line)

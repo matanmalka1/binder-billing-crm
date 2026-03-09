@@ -4,6 +4,7 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -52,6 +53,10 @@ class AnnualReportExpenseLine(Base):
     amount = Column(Numeric(14, 2), nullable=False)
     recognition_rate = Column(Numeric(5, 2), nullable=False, default=Decimal("1.00"))
     supporting_document_ref = Column(String(255), nullable=True)
+    supporting_document_id = Column(
+        Integer, ForeignKey("permanent_documents.id"), nullable=True, index=True
+    )
+    supporting_document = relationship("PermanentDocument", lazy="select")
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

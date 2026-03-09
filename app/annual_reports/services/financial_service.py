@@ -3,6 +3,7 @@
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
@@ -26,6 +27,8 @@ from app.annual_reports.services.tax_engine import (
     TaxCalculationResult,
     calculate_national_insurance,
 )
+from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
 
 class AnnualReportFinancialService:
@@ -91,6 +94,7 @@ class AnnualReportFinancialService:
         description: Optional[str] = None,
         recognition_rate: Optional[Decimal] = None,
         supporting_document_ref: Optional[str] = None,
+        supporting_document_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
@@ -100,7 +104,10 @@ class AnnualReportFinancialService:
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         cat = ExpenseCategoryType(category)
-        line = self.expense_repo.add(report_id, cat, amount, description, recognition_rate, supporting_document_ref)
+        line = self.expense_repo.add(
+            report_id, cat, amount, description, recognition_rate,
+            supporting_document_ref, supporting_document_id,
+        )
         return ExpenseLineResponse.model_validate(line)
 
     def update_expense(
@@ -157,6 +164,36 @@ class AnnualReportFinancialService:
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
         tax = calculate_tax(summary.taxable_income, credit_points, pension_deduction, donation_amount, other_credits)
         ni = calculate_national_insurance(summary.taxable_income)
+        net_profit = tax.taxable_income - tax.tax_after_credits
+
+        report = self._get_report_or_raise(report_id)
+        year_str = str(report.tax_year)
+        vat_row = (
+            self.db.query(sa_func.sum(VatWorkItem.net_vat).label("total_vat"))
+            .filter(
+                VatWorkItem.client_id == report.client_id,
+                sa_func.substr(VatWorkItem.period, 1, 4) == year_str,
+            )
+            .one_or_none()
+        )
+        vat_balance = float(vat_row[0] or 0) if vat_row and vat_row[0] is not None else None
+
+        advances_paid = sum(
+            float(p.paid_amount)
+            for p in self.db.query(AdvancePayment)
+            .filter(
+                AdvancePayment.client_id == report.client_id,
+                AdvancePayment.year == report.tax_year,
+                AdvancePayment.status == AdvancePaymentStatus.PAID,
+            )
+            .all()
+            if p.paid_amount is not None
+        )
+
+        total_liability = round(
+            tax.tax_after_credits + ni.total + (vat_balance or 0) - advances_paid, 2
+        )
+
         return TaxCalculationResponse(
             taxable_income=tax.taxable_income,
             pension_deduction=tax.pension_deduction,
@@ -165,6 +202,7 @@ class AnnualReportFinancialService:
             donation_credit=tax.donation_credit,
             other_credits=tax.other_credits,
             tax_after_credits=tax.tax_after_credits,
+            net_profit=round(net_profit, 2),
             effective_rate=tax.effective_rate,
             national_insurance=NationalInsuranceResponse(
                 base_amount=ni.base_amount,
@@ -181,6 +219,7 @@ class AnnualReportFinancialService:
                 )
                 for b in tax.brackets
             ],
+            total_liability=total_liability,
         )
 
     # ── Readiness ─────────────────────────────────────────────────────────────
