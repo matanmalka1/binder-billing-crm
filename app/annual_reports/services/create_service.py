@@ -1,5 +1,6 @@
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import (
     AnnualReport,
     AnnualReportStatus,
@@ -42,24 +43,31 @@ class AnnualReportCreateService(AnnualReportBaseService):
             ct = ClientTypeForReport(client_type)
         except ValueError:
             valid = [e.value for e in ClientTypeForReport]
-            raise ValueError(f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {valid}")
+            raise AppError(
+                f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
 
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
             valid = [e.value for e in DeadlineType]
-            raise ValueError(f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {valid}")
+            raise AppError(
+                f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
 
         if assigned_to is not None:
             user_repo = UserRepository(self.db)
             if not user_repo.get_by_id(assigned_to):
-                raise ValueError(f"משתמש מוקצה {assigned_to} לא נמצא")
+                raise NotFoundError(f"משתמש מוקצה {assigned_to} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
 
         existing = self.repo.get_by_client_year(client_id, tax_year)
         if existing:
-            raise ValueError(
+            raise ConflictError(
                 f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} כבר קיים "
-                f"(id={existing.id}, status={existing.status.value})"
+                f"(id={existing.id}, status={existing.status.value})",
+                "ANNUAL_REPORT.CONFLICT",
             )
 
         form_type = FORM_MAP[ct]
