@@ -26,17 +26,14 @@ def create_work_item(
     Accessible by: receptionist, secretary, advisor.
     """
     service = VatReportService(db)
-    try:
-        item = service.create_work_item(
-            client_id=request.client_id,
-            period=request.period,
-            created_by=current_user.id,
-            assigned_to=request.assigned_to,
-            mark_pending=request.mark_pending,
-            pending_materials_note=request.pending_materials_note,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    item = service.create_work_item(
+        client_id=request.client_id,
+        period=request.period,
+        created_by=current_user.id,
+        assigned_to=request.assigned_to,
+        mark_pending=request.mark_pending,
+        pending_materials_note=request.pending_materials_note,
+    )
     except IntegrityError:
         db.rollback()
         raise HTTPException(
@@ -61,11 +58,8 @@ def mark_materials_complete(
     Accessible by: receptionist, secretary, advisor.
     """
     service = VatReportService(db)
-    try:
-        item = service.mark_materials_complete(
-            item_id=item_id,
-            performed_by=current_user.id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    item = service.mark_materials_complete(
+        item_id=item_id,
+        performed_by=current_user.id,
+    )
     return item
