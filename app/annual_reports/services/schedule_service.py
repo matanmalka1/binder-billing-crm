@@ -1,5 +1,6 @@
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports .models import AnnualReport, AnnualReportSchedule
 from .base import AnnualReportBaseService
 from .constants import SCHEDULE_FLAGS
@@ -12,7 +13,10 @@ class AnnualReportScheduleService(AnnualReportBaseService):
             s = AnnualReportSchedule(schedule)
         except ValueError:
             valid = [e.value for e in AnnualReportSchedule]
-            raise ValueError(f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}")
+            raise AppError(
+                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         return self.repo.add_schedule(report_id, s, notes=notes)
 
     def complete_schedule(self, report_id: int, schedule: str):
@@ -20,10 +24,13 @@ class AnnualReportScheduleService(AnnualReportBaseService):
         try:
             s = AnnualReportSchedule(schedule)
         except ValueError:
-           raise ValueError(f"לוח זמנים לא חוקי '{schedule}'")
+            raise AppError(f"לוח זמנים לא חוקי '{schedule}'", "ANNUAL_REPORT.INVALID_TYPE")
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
-            raise ValueError(f"לוח זמנים '{schedule}' לא נמצא בדוח {report_id}")
+            raise NotFoundError(
+                f"לוח זמנים '{schedule}' לא נמצא בדוח {report_id}",
+                "ANNUAL_REPORT.LINE_NOT_FOUND",
+            )
         return entry
 
     def get_schedules(self, report_id: int):
