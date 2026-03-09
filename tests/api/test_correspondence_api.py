@@ -90,10 +90,8 @@ def test_create_correspondence_contact_mismatch_returns_400(client, test_db, adv
         },
     )
 
-    assert response.status_code == 400
-    assert response.json()["detail"] == (
-        f"Contact {contact.id} does not belong to client {other_client.id}"
-    )
+    assert response.status_code == 403
+    assert response.json()["error"] == "CORRESPONDENCE.FORBIDDEN_CONTACT"
 
 
 def test_list_correspondence_ordered_desc(client, test_db, advisor_headers, test_user):
