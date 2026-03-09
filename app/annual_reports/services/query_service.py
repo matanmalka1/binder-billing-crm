@@ -1,7 +1,6 @@
 from datetime import date
 from typing import Optional
 
-from app.annual_reports.models import AnnualReport
 from app.annual_reports.models.annual_report_enums import ReportStage
 from app.annual_reports.schemas.annual_report import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
 from .base import AnnualReportBaseService
@@ -24,12 +23,14 @@ class AnnualReportQueryService(AnnualReportBaseService):
         tax_year: int | None = None,
         page: int = 1,
         page_size: int = 50,
+        sort_by: str = "tax_year",
+        order: str = "desc",
     ) -> tuple[list[AnnualReportResponse], int]:
         if tax_year is not None:
-            items = self.repo.list_by_tax_year(tax_year, page=page, page_size=page_size)
+            items = self.repo.list_by_tax_year(tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order)
             total = self.repo.count_by_tax_year(tax_year)
         else:
-            items = self.repo.list_all(page=page, page_size=page_size)
+            items = self.repo.list_all(page=page, page_size=page_size, sort_by=sort_by, order=order)
             total = self.repo.count_all()
         return self._to_responses(items), total
 
@@ -45,9 +46,10 @@ class AnnualReportQueryService(AnnualReportBaseService):
         return self.repo.get_status_history(report_id)
 
     def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
-        """Return report with schedules, history, and financial summary. None if not found."""
+        """Return report with schedules, history, financial summary, and detail fields. None if not found."""
         from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
         from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
+        from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
         report = self.get_report(report_id)
         if report is None:
             return None
@@ -57,12 +59,18 @@ class AnnualReportQueryService(AnnualReportBaseService):
         expense_repo = AnnualReportExpenseRepository(self.db)
         total_income = income_repo.total_income(report_id)
         total_expenses = expense_repo.total_expenses(report_id)
+        detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
         response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
         response.total_income = float(total_income)
         response.total_expenses = float(total_expenses)
         response.taxable_income = float(total_income - total_expenses)
+        if detail:
+            response.tax_refund_amount = float(detail.tax_refund_amount) if detail.tax_refund_amount is not None else None
+            response.tax_due_amount = float(detail.tax_due_amount) if detail.tax_due_amount is not None else None
+            response.client_approved_at = detail.client_approved_at
+            response.internal_notes = detail.internal_notes
         return response
 
     def kanban_view(self) -> list[dict]:

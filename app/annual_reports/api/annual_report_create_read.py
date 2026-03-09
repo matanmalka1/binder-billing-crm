@@ -48,10 +48,12 @@ def list_annual_reports(
     tax_year: int | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
+    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|client_id)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
     """List annual reports (optionally filter by tax_year)."""
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order)
     return AnnualReportListResponse(
         items=items,
         page=page,

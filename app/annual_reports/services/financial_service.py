@@ -137,7 +137,10 @@ class AnnualReportFinancialService:
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
         credit_points = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
-        return calculate_tax(summary.taxable_income, credit_points)
+        pension_deduction = float(detail.pension_contribution) if (detail and detail.pension_contribution is not None) else 0.0
+        donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
+        other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
+        return calculate_tax(summary.taxable_income, credit_points, pension_deduction, donation_amount, other_credits)
 
     # ── Readiness ─────────────────────────────────────────────────────────────
 
@@ -151,34 +154,52 @@ class AnnualReportFinancialService:
     }
 
     def get_readiness_check(self, report_id: int) -> ReadinessCheckResponse:
-        report = self._get_report_or_raise(report_id)
+        self._get_report_or_raise(report_id)
         issues: list[str] = []
+        passed = 0
 
-        # Check required schedules complete
+        # Check 1: required schedules complete (aggregate — counts as one check)
         schedules = self.report_repo.get_schedules(report_id)
-        for s in schedules:
-            if s.is_required and not s.is_complete:
-                label = self._SCHEDULE_LABELS.get(s.schedule.value, s.schedule.value)
-                issues.append(f"נספח נדרש לא הושלם: {label}")
+        required = [s for s in schedules if s.is_required]
+        if required:
+            incomplete = [s for s in required if not s.is_complete]
+            if incomplete:
+                for s in incomplete:
+                    label = self._SCHEDULE_LABELS.get(s.schedule.value, s.schedule.value)
+                    issues.append(f"נספח נדרש לא הושלם: {label}")
+            else:
+                passed += 1
+        else:
+            passed += 1  # no required schedules → check passes
 
-        # Check income data present
+        # Check 2: income data present
         total_income = self.income_repo.total_income(report_id)
         if total_income == 0:
             issues.append("לא הוזנו נתוני הכנסה לדוח")
+        else:
+            passed += 1
 
-        # Check detail has tax result
+        # Check 3: tax result filled
         detail = self.detail_repo.get_by_report_id(report_id)
         if not detail or (detail.tax_due_amount is None and detail.tax_refund_amount is None):
             issues.append("חסר חישוב מס — יש למלא חוב מס או החזר מס")
+        else:
+            passed += 1
 
-        # Check client approval
+        # Check 4: client approval
         if not detail or not detail.client_approved_at:
             issues.append("הדוח לא אושר על ידי הלקוח")
+        else:
+            passed += 1
+
+        total_checks = 4
+        completion_pct = round(passed / total_checks * 100, 1)
 
         return ReadinessCheckResponse(
             annual_report_id=report_id,
             is_ready=len(issues) == 0,
             issues=issues,
+            completion_pct=completion_pct,
         )
 
 

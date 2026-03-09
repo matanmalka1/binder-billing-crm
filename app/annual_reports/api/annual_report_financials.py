@@ -43,13 +43,7 @@ def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
     """Israeli 2024 income tax calculation for this report."""
     svc = AnnualReportFinancialService(db)
     result = svc.get_tax_calculation(report_id)
-    return TaxCalculationResponse(
-        taxable_income=result.taxable_income,
-        tax_before_credits=result.tax_before_credits,
-        credit_points_value=result.credit_points_value,
-        tax_after_credits=result.tax_after_credits,
-        effective_rate=result.effective_rate,
-    )
+    return TaxCalculationResponse.model_validate(result, from_attributes=True)
 
 
 # ── Advances summary ──────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ _BRACKETS = [
 ]
 
 _CREDIT_POINT_VALUE = 2_904.0  # ₪ per credit point, 2024
+_DONATION_CREDIT_RATE = 0.35   # סעיף 46 — 35% of donation amount
 
 
 @dataclass
@@ -21,6 +22,8 @@ class TaxCalculationResult:
     pension_deduction: float
     tax_before_credits: float
     credit_points_value: float
+    donation_credit: float
+    other_credits: float
     tax_after_credits: float
     effective_rate: float
 
@@ -29,6 +32,8 @@ def calculate_tax(
     taxable_income: float,
     credit_points: float = 2.25,
     pension_deduction: float = 0.0,
+    donation_amount: float = 0.0,
+    other_credits: float = 0.0,
 ) -> TaxCalculationResult:
     """Calculate Israeli income tax for 2024 brackets.
 
@@ -39,6 +44,8 @@ def calculate_tax(
     adjusted_income = taxable_income - deduction
 
     credit_points_value = round(credit_points * _CREDIT_POINT_VALUE, 2)
+    donation_credit = round(max(donation_amount, 0.0) * _DONATION_CREDIT_RATE, 2)
+    other_credits_val = round(max(other_credits, 0.0), 2)
 
     if adjusted_income <= 0:
         return TaxCalculationResult(
@@ -46,6 +53,8 @@ def calculate_tax(
             pension_deduction=round(deduction, 2),
             tax_before_credits=0.0,
             credit_points_value=credit_points_value,
+            donation_credit=donation_credit,
+            other_credits=other_credits_val,
             tax_after_credits=0.0,
             effective_rate=0.0,
         )
@@ -62,7 +71,8 @@ def calculate_tax(
         tax += (upper - prev) * rate
         prev = upper
 
-    tax_after_credits = max(0.0, tax - credit_points_value)
+    total_credits = credit_points_value + donation_credit + other_credits_val
+    tax_after_credits = max(0.0, tax - total_credits)
     effective_rate = tax_after_credits / taxable_income if taxable_income else 0.0
 
     return TaxCalculationResult(
@@ -70,6 +80,8 @@ def calculate_tax(
         pension_deduction=round(deduction, 2),
         tax_before_credits=round(tax, 2),
         credit_points_value=credit_points_value,
+        donation_credit=donation_credit,
+        other_credits=other_credits_val,
         tax_after_credits=round(tax_after_credits, 2),
         effective_rate=round(effective_rate, 6),
     )

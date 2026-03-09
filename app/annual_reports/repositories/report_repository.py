@@ -12,6 +12,20 @@ from app.clients.models.client import Client
 from app.utils.time import utcnow
 
 
+_SORT_COLUMNS = {
+    "tax_year": AnnualReport.tax_year,
+    "status": AnnualReport.status,
+    "filing_deadline": AnnualReport.filing_deadline,
+    "created_at": AnnualReport.created_at,
+    "client_id": AnnualReport.client_id,
+}
+
+
+def _sort_col(sort_by: str, order: str):
+    col = _SORT_COLUMNS.get(sort_by, AnnualReport.created_at)
+    return col.asc() if order == "asc" else col.desc()
+
+
 class AnnualReportReportRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
@@ -82,11 +96,13 @@ class AnnualReportReportRepository(BaseRepository):
         tax_year: int,
         page: int = 1,
         page_size: int = 50,
+        sort_by: str = "status",
+        order: str = "asc",
     ) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
             .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
-            .order_by(AnnualReport.status.asc(), AnnualReport.filing_deadline.asc())
+            .order_by(_sort_col(sort_by, order))
         )
         return self._paginate(q, page, page_size)
 
@@ -101,11 +117,13 @@ class AnnualReportReportRepository(BaseRepository):
         self,
         page: int = 1,
         page_size: int = 50,
+        sort_by: str = "tax_year",
+        order: str = "desc",
     ) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
             .filter(AnnualReport.deleted_at.is_(None))
-            .order_by(AnnualReport.tax_year.desc(), AnnualReport.created_at.desc())
+            .order_by(_sort_col(sort_by, order))
         )
         return self._paginate(q, page, page_size)
 

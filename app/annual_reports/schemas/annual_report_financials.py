@@ -74,8 +74,11 @@ class FinancialSummaryResponse(BaseModel):
 
 class TaxCalculationResponse(BaseModel):
     taxable_income: float
+    pension_deduction: float
     tax_before_credits: float
     credit_points_value: float
+    donation_credit: float
+    other_credits: float
     tax_after_credits: float
     effective_rate: float
 
@@ -95,3 +98,4 @@ class ReadinessCheckResponse(BaseModel):
     annual_report_id: int
     is_ready: bool
     issues: list[str]
+    completion_pct: float  # 0.0–100.0, rounded to 1 decimal
