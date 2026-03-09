@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from io import BytesIO
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -38,26 +38,16 @@ def upload_permanent_document(
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
 
-    try:
-        doc_type = DocumentType(document_type)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"סוג המסמך אינו תקין: {document_type}",
-        )
-
-    try:
-        file_data = BytesIO(file.file.read())
-        document = service.upload_document(
-            client_id=client_id,
-            document_type=doc_type,
-            file_data=file_data,
-            filename=file.filename or "document",
-            uploaded_by=user.id,
-        )
-        return PermanentDocumentResponse.model_validate(document)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    doc_type = DocumentType(document_type)
+    file_data = BytesIO(file.file.read())
+    document = service.upload_document(
+        client_id=client_id,
+        document_type=doc_type,
+        file_data=file_data,
+        filename=file.filename or "document",
+        uploaded_by=user.id,
+    )
+    return PermanentDocumentResponse.model_validate(document)
 
 
 @router.get(
@@ -103,10 +93,7 @@ def get_operational_signals(
 )
 def get_download_url(document_id: int, db: DBSession, user: CurrentUser):
     """Get a presigned download URL for a document (expires in 1 hour)."""
-    try:
-        url = PermanentDocumentService(db).get_download_url(document_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    url = PermanentDocumentService(db).get_download_url(document_id)
     return {"url": url}
 
 
@@ -117,10 +104,7 @@ def get_download_url(document_id: int, db: DBSession, user: CurrentUser):
 )
 def delete_document(document_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete a permanent document (ADVISOR only)."""
-    try:
-        PermanentDocumentService(db).delete_document(document_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    PermanentDocumentService(db).delete_document(document_id)
 
 
 @router.put(
@@ -136,13 +120,10 @@ def replace_document(
 ):
     """Replace the file for an existing document (ADVISOR only)."""
     file_data = BytesIO(file.file.read())
-    try:
-        doc = PermanentDocumentService(db).replace_document(
-            document_id=document_id,
-            file_data=file_data,
-            filename=file.filename or "document",
-            uploaded_by=user.id,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    doc = PermanentDocumentService(db).replace_document(
+        document_id=document_id,
+        file_data=file_data,
+        filename=file.filename or "document",
+        uploaded_by=user.id,
+    )
     return PermanentDocumentResponse.model_validate(doc)
