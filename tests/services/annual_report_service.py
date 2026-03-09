@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from .annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
@@ -40,18 +41,24 @@ class AnnualReportService:
     ):
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise ValueError(f"הלקוח {client_id} לא נמצא")
+            raise NotFoundError(f"הלקוח {client_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         try:
             ct = ClientTypeForReport(client_type)
         except ValueError:
-            raise ValueError(f"סוג לקוח '{client_type}' אינו חוקי")
+            raise AppError(
+                f"Invalid client_type: סוג לקוח '{client_type}' אינו חוקי",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
-            raise ValueError(f"סוג מועד אחרון '{deadline_type}' אינו חוקי")
+            raise AppError(f"סוג מועד אחרון '{deadline_type}' אינו חוקי", "ANNUAL_REPORT.INVALID_TYPE")
 
         if self.repo.get_by_client_year(client_id, tax_year):
-            raise ValueError(f"דוח כבר קיים עבור לקוח {client_id} לשנת {tax_year}")
+            raise ConflictError(
+                f"already exists: דוח כבר קיים עבור לקוח {client_id} לשנת {tax_year}",
+                "ANNUAL_REPORT.CONFLICT",
+            )
 
         form_type = FORM_MAP[ct]
         filing_deadline = (
@@ -92,11 +99,12 @@ class AnnualReportService:
         try:
             ns = AnnualReportStatus(new_status)
         except ValueError:
-            raise ValueError(f"סטטוס '{new_status}' אינו חוקי")
+            raise AppError(f"סטטוס '{new_status}' אינו חוקי", "ANNUAL_REPORT.INVALID_STATUS")
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
-            raise ValueError(
-                f"לא ניתן לעבור מסטטוס '{report.status.value}' ל'{ns.value}'. מותר: {allowed}"
+            raise AppError(
+                f"Cannot transition: לא ניתן לעבור מסטטוס '{report.status.value}' ל'{ns.value}'. מותר: {allowed}",
+                "ANNUAL_REPORT.INVALID_STATUS",
             )
         previous_status = report.status
         update = {"status": ns}
@@ -129,10 +137,10 @@ class AnnualReportService:
         try:
             sched = AnnualReportSchedule(schedule)
         except ValueError:
-            raise ValueError(f"לוח זמנים '{schedule}' אינו חוקי")
+            raise AppError(f"לוח זמנים '{schedule}' אינו חוקי", "ANNUAL_REPORT.INVALID_TYPE")
         entry = self.repo.mark_schedule_complete(rid, sched)
         if not entry:
-            raise ValueError("לוח זמנים לא נמצא")
+            raise NotFoundError("לוח זמנים לא נמצא", "ANNUAL_REPORT.LINE_NOT_FOUND")
         return entry
 
     def schedules_complete(self, rid):
@@ -145,5 +153,5 @@ class AnnualReportService:
     def _get_or_raise(self, rid):
         report = self.repo.get_by_id(rid)
         if not report:
-            raise ValueError(f"הדוח {rid} לא נמצא")
+            raise NotFoundError(f"הדוח {rid} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return report
