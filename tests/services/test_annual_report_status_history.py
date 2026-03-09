@@ -1,3 +1,6 @@
+import pytest
+
+from app.core.exceptions import AppError
 from tests.services.annual_report_enums import AnnualReportStatus
 from tests.services.annual_report_service import AnnualReportService
 
@@ -24,21 +27,17 @@ def test_full_happy_path_closes_report():
 def test_invalid_skip_rejected():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "individual", 1, "Advisor")
-    try:
+    with pytest.raises(AppError) as exc_info:
         service.transition_status(report.id, "submitted", 1, "Advisor")
-        assert False, "Expected ValueError"
-    except ValueError as exc:
-        assert "Cannot transition" in str(exc)
+    assert exc_info.value.code == "ANNUAL_REPORT.INVALID_STATUS"
 
 
 def test_cannot_reopen_closed():
     service = AnnualReportService()
     report = _full_pipeline(service)
-    try:
+    with pytest.raises(AppError) as exc_info:
         service.transition_status(report.id, "collecting_docs", 1, "Advisor")
-        assert False, "Expected ValueError"
-    except ValueError:
-        assert True
+    assert exc_info.value.code == "ANNUAL_REPORT.INVALID_STATUS"
 
 
 def test_assessment_then_objection():
