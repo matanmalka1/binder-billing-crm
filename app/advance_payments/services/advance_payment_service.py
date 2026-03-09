@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_calculator import (
@@ -37,11 +38,11 @@ class AdvancePaymentService:
     ) -> AdvancePayment:
         # Validate client exists
         if not self.client_repo.get_by_id(client_id):
-            raise LookupError("לקוח לא נמצא")
+            raise NotFoundError("Client not found", "ADVANCE_PAYMENT.NOT_FOUND")
 
         existing, _ = self.repo.list_by_client_year(client_id, year, page=1, page_size=12)
         if any(p.month == month for p in existing):
-            raise RuntimeError("תשלום מקדמה לחודש זה כבר קיים")
+            raise ConflictError("תשלום מקדמה לחודש זה כבר קיים", "ADVANCE_PAYMENT.CONFLICT")
 
         return self.repo.create(
             client_id=client_id,
@@ -58,7 +59,7 @@ class AdvancePaymentService:
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)
         if not payment:
-            raise ValueError(f"תשלום מקדמה {payment_id} לא נמצא")
+            raise NotFoundError(f"Advance payment {payment_id} not found", "ADVANCE_PAYMENT.NOT_FOUND")
 
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
         return self.repo.update(payment, **filtered)
