@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, computed_field, model_validator
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 
@@ -20,6 +20,13 @@ class AdvancePaymentRow(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+
+    @computed_field
+    @property
+    def delta(self) -> Optional[float]:
+        if self.expected_amount is None or self.paid_amount is None:
+            return None
+        return self.expected_amount - self.paid_amount
 
     model_config = {"from_attributes": True, "use_enum_values": True}
 
@@ -94,3 +101,16 @@ class AdvancePaymentOverviewResponse(BaseModel):
     page: int
     page_size: int
     total: int
+    total_expected: Optional[float] = None
+    total_paid: Optional[float] = None
+    collection_rate: Optional[float] = None
+
+
+class AnnualKPIResponse(BaseModel):
+    client_id: int
+    year: int
+    total_expected: float
+    total_paid: float
+    collection_rate: float
+    overdue_count: int
+    on_time_count: int

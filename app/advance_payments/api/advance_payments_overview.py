@@ -1,7 +1,8 @@
-from fastapi import HTTPException, Query
+from fastapi import Query
 
 from app.users.api.deps import CurrentUser, DBSession
 from app.advance_payments.schemas.advance_payment import (
+    AnnualKPIResponse,
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
 )
@@ -32,6 +33,7 @@ def list_advance_payments_overview(
         page=page,
         page_size=page_size,
     )
+    kpis = service.get_overview_kpis(year=year, month=month, statuses=resolved_statuses)
     items = [
         AdvancePaymentOverviewRow(
             id=payment.id,
@@ -47,5 +49,23 @@ def list_advance_payments_overview(
         for payment, client_name in rows
     ]
     return AdvancePaymentOverviewResponse(
-        items=items, page=page, page_size=page_size, total=total
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        total_expected=kpis["total_expected"],
+        total_paid=kpis["total_paid"],
+        collection_rate=kpis["collection_rate"],
     )
+
+
+@router.get("/kpi", response_model=AnnualKPIResponse)
+def get_annual_kpis(
+    db: DBSession,
+    user: CurrentUser,
+    client_id: int = Query(...),
+    year: int = Query(...),
+):
+    service = AdvancePaymentService(db)
+    data = service.get_annual_kpis(client_id=client_id, year=year)
+    return AnnualKPIResponse(**data)

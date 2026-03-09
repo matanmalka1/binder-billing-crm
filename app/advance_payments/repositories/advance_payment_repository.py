@@ -17,6 +17,7 @@ class AdvancePaymentRepository(BaseRepository):
         self,
         client_id: int,
         year: int,
+        status: Optional[AdvancePaymentStatus] = None,
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
@@ -28,6 +29,8 @@ class AdvancePaymentRepository(BaseRepository):
             )
             .order_by(AdvancePayment.month.asc())
         )
+        if status is not None:
+            query = query.filter(AdvancePayment.status == status)
         total = query.count()
         items = self._paginate(query, page, page_size)
         return items, total
@@ -37,6 +40,10 @@ class AdvancePaymentRepository(BaseRepository):
 
     def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
+
+    def delete(self, payment: AdvancePayment) -> None:
+        self.db.delete(payment)
+        self.db.commit()
 
     def get_annual_output_vat(self, client_id: int, year: int) -> Optional[Decimal]:
         """Sum total_output_vat for all VatWorkItems in a given year for a client.
@@ -79,6 +86,42 @@ class AdvancePaymentRepository(BaseRepository):
         total = query.count()
         rows = self._paginate(query, page, page_size)
         return rows, total
+
+    def get_annual_kpis(self, client_id: int, year: int) -> dict:
+        rows = (
+            self.db.query(
+                AdvancePayment.status,
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                func.count(AdvancePayment.id).label("count"),
+            )
+            .filter(AdvancePayment.client_id == client_id, AdvancePayment.year == year)
+            .group_by(AdvancePayment.status)
+            .all()
+        )
+        return {
+            "total_expected": sum(float(r.total_expected) for r in rows),
+            "total_paid": sum(float(r.total_paid) for r in rows),
+            "overdue_count": sum(r.count for r in rows if r.status == AdvancePaymentStatus.OVERDUE),
+            "on_time_count": sum(r.count for r in rows if r.status == AdvancePaymentStatus.PAID),
+        }
+
+    def get_overview_kpis(
+        self,
+        year: int,
+        month: Optional[int],
+        statuses: list[AdvancePaymentStatus],
+    ) -> dict:
+        query = self.db.query(
+            func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
+            func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
+        ).filter(AdvancePayment.year == year)
+        if month is not None:
+            query = query.filter(AdvancePayment.month == month)
+        if statuses:
+            query = query.filter(AdvancePayment.status.in_(statuses))
+        total_expected, total_paid = query.one()
+        return {"total_expected": float(total_expected), "total_paid": float(total_paid)}
 
     def create(
         self,

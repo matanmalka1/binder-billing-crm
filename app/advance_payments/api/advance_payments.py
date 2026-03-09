@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Optional
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentListResponse,
     AdvancePaymentRow,
@@ -25,6 +27,7 @@ def list_advance_payments(
     user: CurrentUser,
     client_id: int = Query(...),
     year: int | None = Query(None),
+    status_filter: Optional[AdvancePaymentStatus] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -38,7 +41,7 @@ def list_advance_payments(
         year = utcnow().year
 
     service = AdvancePaymentService(db)
-    items, total = service.list_payments(client_id, year, page=page, page_size=page_size)
+    items, total = service.list_payments(client_id, year, status=status_filter, page=page, page_size=page_size)
 
     return AdvancePaymentListResponse(
         items=[AdvancePaymentRow.model_validate(p) for p in items],
@@ -105,3 +108,16 @@ def update_advance_payment(
     update_data = request.model_dump(exclude_unset=True)
     payment = service.update_payment(payment_id, **update_data)
     return AdvancePaymentRow.model_validate(payment)
+
+
+@router.delete(
+    "/{payment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_advance_payment(
+    payment_id: int,
+    db: DBSession,
+    user: CurrentUser,
+):
+    AdvancePaymentService(db).delete_payment(payment_id)
