@@ -1,6 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
 
@@ -66,6 +66,16 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # Widen alembic_version.version_num if needed (default VARCHAR(32) is too short
+        # for descriptive revision IDs like "0006_annual_report_income_expense_and_fks")
+        dialect = connectable.dialect.name
+        if dialect == "postgresql":
+            connection.execute(text(
+                "ALTER TABLE alembic_version "
+                "ALTER COLUMN version_num TYPE VARCHAR(255)"
+            ))
+            connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,

@@ -20,7 +20,7 @@
 ---
 
 ## [P2] 2.11 — סיכום חבות כולל (Total Liability Summary)
-**Status:** PARTIAL
+**Status:** DONE
 **Gap:** Response includes income tax + advances = `final_balance`, but national insurance and VAT are not aggregated into a single total liability figure.
 **Files to touch:**
 - `app/annual_reports/services/financial_service.py` — fetch VAT balance and NI total, sum into `total_liability`
@@ -198,7 +198,7 @@
 ---
 
 ## [P2] 4.5 — רווח נקי לאחר מס (True Net Profit)
-**Status:** PARTIAL
+**Status:** DONE
 **Gap:** `final_balance` = tax_after_credits − advances_paid; a distinct `net_profit = taxable_income − tax_after_credits` field is not explicitly returned.
 **Files to touch:**
 - `app/annual_reports/schemas/annual_report_financials.py` — add `net_profit` to `TaxCalculationResponse`
