@@ -10,7 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.logging import clear_request_id, set_request_id
+from app.core.logging_config import clear_request_id, set_request_id
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):

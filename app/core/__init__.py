@@ -2,7 +2,7 @@
 
 from app.core.env_validator import EnvValidator
 from app.core.exceptions import setup_exception_handlers
-from app.core.logging import get_logger, setup_logging
+from app.core.logging_config import get_logger, setup_logging
 
 __all__ = [
     "EnvValidator",

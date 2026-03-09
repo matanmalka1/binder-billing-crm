@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 from app.clients.repositories.client_repository import ClientRepository
-from app.core.logging import get_logger
+from app.core.logging_config import get_logger
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_client_summary_repository import (

@@ -14,7 +14,7 @@ from app.vat_reports.schemas import (
     VatInvoiceResponse,
     VatWorkItemResponse,
 )
-from app.vat_reports.services.service import VatReportService
+from app.vat_reports.services.vat_report_service import VatReportService
 
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
 

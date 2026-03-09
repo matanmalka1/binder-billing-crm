@@ -11,6 +11,11 @@ Audit basis:
 - Important note: `tests/annual_reports/service/test_annual_report_*` mostly exercise an in-memory helper in `tests/annual_reports/service/test_annual_report.py`, not the real `app/annual_reports/services/*` code. They were not counted as real coverage for the backend annual reports module.
 - There is no dedicated `tests/repositories/` suite. Repository coverage is mostly indirect via API/service tests, so repository gaps below focus on missing DB-behavior verification.
 
+## Naming notes
+- Prefer domain-scoped filenames over generic ones (e.g., `reminder_service.py`, `signature_request_service.py`, `vat_report_service.py` instead of `service.py`).
+- Avoid vague catch-alls like `helpers.py`; pick the main concern for the filename.
+- Steer clear of stdlib collisions when adding new modules (e.g., `logging_config.py` instead of `logging.py`).
+
 ## 1. Service Methods Without Tests
 
 Module: `advance_payments`

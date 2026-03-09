@@ -6,7 +6,7 @@ import jwt
 from sqlalchemy.orm import Session
 
 from app.config import config
-from app.core.logging import get_logger
+from app.core.logging_config import get_logger
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User
 from app.users.repositories.user_repository import UserRepository
