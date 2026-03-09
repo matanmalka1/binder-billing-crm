@@ -68,6 +68,7 @@ def create_advance_payment(
         expected_amount=request.expected_amount,
         paid_amount=request.paid_amount,
         tax_deadline_id=request.tax_deadline_id,
+        notes=request.notes,
     )
     return AdvancePaymentRow.model_validate(payment)
 

@@ -89,6 +89,7 @@ class AdvancePaymentRepository(BaseRepository):
         expected_amount=None,
         paid_amount=None,
         tax_deadline_id: Optional[int] = None,
+        notes: Optional[str] = None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
             client_id=client_id,
@@ -98,6 +99,7 @@ class AdvancePaymentRepository(BaseRepository):
             expected_amount=expected_amount,
             paid_amount=paid_amount,
             tax_deadline_id=tax_deadline_id,
+            notes=notes,
             status=AdvancePaymentStatus.PENDING,
         )
         self.db.add(payment)

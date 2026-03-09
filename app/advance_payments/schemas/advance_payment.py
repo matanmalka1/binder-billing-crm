@@ -17,6 +17,7 @@ class AdvancePaymentRow(BaseModel):
     paid_amount: Optional[float] = None
     status: AdvancePaymentStatus
     due_date: date
+    notes: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -34,10 +35,16 @@ class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[float] = None
     expected_amount: Optional[float] = None
     status: Optional[AdvancePaymentStatus] = None
+    notes: Optional[str] = Field(None, max_length=500)
 
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "AdvancePaymentUpdateRequest":
-        if self.paid_amount is None and self.expected_amount is None and self.status is None:
+        if (
+            self.paid_amount is None
+            and self.expected_amount is None
+            and self.status is None
+            and self.notes is None
+        ):
             raise ValueError("יש לספק לפחות שדה אחד לעדכון")
         return self
 
@@ -50,6 +57,7 @@ class AdvancePaymentCreateRequest(BaseModel):
     expected_amount: Optional[float] = None
     paid_amount: Optional[float] = None
     tax_deadline_id: Optional[int] = None
+    notes: Optional[str] = Field(None, max_length=500)
 
     model_config = {"json_schema_extra": {"example": {
         "client_id": 123,

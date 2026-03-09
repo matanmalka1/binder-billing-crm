@@ -35,6 +35,7 @@ class AdvancePaymentService:
         expected_amount=None,
         paid_amount=None,
         tax_deadline_id: Optional[int] = None,
+        notes: Optional[str] = None,
     ) -> AdvancePayment:
         # Validate client exists
         if not self.client_repo.get_by_id(client_id):
@@ -52,9 +53,10 @@ class AdvancePaymentService:
             expected_amount=expected_amount,
             paid_amount=paid_amount,
             tax_deadline_id=tax_deadline_id,
+            notes=notes,
         )
 
-    _ALLOWED_UPDATE_FIELDS = {"paid_amount", "expected_amount", "status"}
+    _ALLOWED_UPDATE_FIELDS = {"paid_amount", "expected_amount", "status", "notes"}
 
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)

@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric,
+    Column, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String,
     UniqueConstraint,
 )
 
@@ -37,6 +37,7 @@ class AdvancePayment(Base):
         Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
     )
     due_date = Column(Date, nullable=False)
+    notes = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 

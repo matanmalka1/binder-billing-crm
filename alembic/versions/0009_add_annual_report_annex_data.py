@@ -23,6 +23,17 @@ def upgrade() -> None:
     insp = inspect(bind)
     tables = insp.get_table_names()
 
+    # Create the enum type only if it doesn't already exist (idempotent for PostgreSQL)
+    if bind.dialect.name == "postgresql":
+        bind.execute(sa.text(
+            "DO $$ BEGIN "
+            "CREATE TYPE annualreportschedule AS ENUM ("
+            "'schedule_b', 'schedule_bet', 'schedule_gimmel', 'schedule_dalet', 'schedule_heh'"
+            "); "
+            "EXCEPTION WHEN duplicate_object THEN NULL; "
+            "END $$;"
+        ))
+
     if "annual_report_annex_data" not in tables:
         op.create_table(
             "annual_report_annex_data",
