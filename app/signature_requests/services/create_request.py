@@ -35,14 +35,13 @@ def create_request(
     if not client:
         raise NotFoundError(f"לקוח {client_id} לא נמצא", "SIGNATURE_REQUEST.NOT_FOUND")
 
-    try:
-        req_type = SignatureRequestType(request_type)
-    except ValueError:
-        valid = [e.value for e in SignatureRequestType]
+    valid_types = {e.value for e in SignatureRequestType}
+    if request_type not in valid_types:
         raise AppError(
-            f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid}",
+            f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {sorted(valid_types)}",
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
+    req_type = SignatureRequestType(request_type)
 
     content_hash = None
     if content_to_hash:

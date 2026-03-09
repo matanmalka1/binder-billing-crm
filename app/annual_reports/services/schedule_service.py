@@ -9,22 +9,21 @@ from .constants import SCHEDULE_FLAGS
 class AnnualReportScheduleService(AnnualReportBaseService):
     def add_schedule(self, report_id: int, schedule: str, notes: Optional[str] = None):
         self._get_or_raise(report_id)
-        try:
-            s = AnnualReportSchedule(schedule)
-        except ValueError:
-            valid = [e.value for e in AnnualReportSchedule]
+        valid_schedules = {e.value for e in AnnualReportSchedule}
+        if schedule not in valid_schedules:
             raise AppError(
-                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}",
+                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {sorted(valid_schedules)}",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        s = AnnualReportSchedule(schedule)
         return self.repo.add_schedule(report_id, s, notes=notes)
 
     def complete_schedule(self, report_id: int, schedule: str):
         self._get_or_raise(report_id)
-        try:
-            s = AnnualReportSchedule(schedule)
-        except ValueError:
+        valid_schedules = {e.value for e in AnnualReportSchedule}
+        if schedule not in valid_schedules:
             raise AppError(f"לוח זמנים לא חוקי '{schedule}'", "ANNUAL_REPORT.INVALID_TYPE")
+        s = AnnualReportSchedule(schedule)
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
             raise NotFoundError(

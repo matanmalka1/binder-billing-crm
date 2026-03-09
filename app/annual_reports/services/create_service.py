@@ -39,23 +39,21 @@ class AnnualReportCreateService(AnnualReportBaseService):
         """Create an annual report and initial schedules/history."""
         get_client_or_raise(self.client_repo, client_id)
 
-        try:
-            ct = ClientTypeForReport(client_type)
-        except ValueError:
-            valid = [e.value for e in ClientTypeForReport]
+        valid_client_types = {e.value for e in ClientTypeForReport}
+        if client_type not in valid_client_types:
             raise AppError(
-                f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {valid}",
+                f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {sorted(valid_client_types)}",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        ct = ClientTypeForReport(client_type)
 
-        try:
-            dt = DeadlineType(deadline_type)
-        except ValueError:
-            valid = [e.value for e in DeadlineType]
+        valid_deadline_types = {e.value for e in DeadlineType}
+        if deadline_type not in valid_deadline_types:
             raise AppError(
-                f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {valid}",
+                f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {sorted(valid_deadline_types)}",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        dt = DeadlineType(deadline_type)
 
         if assigned_to is not None:
             user_repo = UserRepository(self.db)

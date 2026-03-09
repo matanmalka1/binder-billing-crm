@@ -45,14 +45,13 @@ class AnnualReportFinancialService:
         description: Optional[str] = None,
     ) -> IncomeLineResponse:
         self._get_report_or_raise(report_id)
-        try:
-            st = IncomeSourceType(source_type)
-        except ValueError:
-            valid = [e.value for e in IncomeSourceType]
+        valid_sources = {e.value for e in IncomeSourceType}
+        if source_type not in valid_sources:
             raise AppError(
-                f"סוג הכנסה לא חוקי '{source_type}'. חוקיים: {valid}",
+                f"סוג הכנסה לא חוקי '{source_type}'. חוקיים: {sorted(valid_sources)}",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        st = IncomeSourceType(source_type)
         line = self.income_repo.add(report_id, st, amount, description)
         return IncomeLineResponse.model_validate(line)
 
@@ -61,11 +60,10 @@ class AnnualReportFinancialService:
     ) -> IncomeLineResponse:
         self._get_report_or_raise(report_id)
         if "source_type" in fields and fields["source_type"] is not None:
-            try:
-                fields["source_type"] = IncomeSourceType(fields["source_type"])
-            except ValueError:
-                valid = [e.value for e in IncomeSourceType]
-                raise AppError(f"סוג הכנסה לא חוקי. חוקיים: {valid}", "ANNUAL_REPORT.INVALID_TYPE")
+            valid_sources = {e.value for e in IncomeSourceType}
+            if fields["source_type"] not in valid_sources:
+                raise AppError(f"סוג הכנסה לא חוקי. חוקיים: {sorted(valid_sources)}", "ANNUAL_REPORT.INVALID_TYPE")
+            fields["source_type"] = IncomeSourceType(fields["source_type"])
         line = self.income_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
             raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
@@ -86,14 +84,13 @@ class AnnualReportFinancialService:
         description: Optional[str] = None,
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
-        try:
-            cat = ExpenseCategoryType(category)
-        except ValueError:
-            valid = [e.value for e in ExpenseCategoryType]
+        valid_categories = {e.value for e in ExpenseCategoryType}
+        if category not in valid_categories:
             raise AppError(
-                f"קטגוריית הוצאה לא חוקית '{category}'. חוקיות: {valid}",
+                f"קטגוריית הוצאה לא חוקית '{category}'. חוקיות: {sorted(valid_categories)}",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        cat = ExpenseCategoryType(category)
         line = self.expense_repo.add(report_id, cat, amount, description)
         return ExpenseLineResponse.model_validate(line)
 
@@ -102,11 +99,10 @@ class AnnualReportFinancialService:
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         if "category" in fields and fields["category"] is not None:
-            try:
-                fields["category"] = ExpenseCategoryType(fields["category"])
-            except ValueError:
-                valid = [e.value for e in ExpenseCategoryType]
-                raise AppError(f"קטגוריית הוצאה לא חוקית. חוקיות: {valid}", "ANNUAL_REPORT.INVALID_TYPE")
+            valid_categories = {e.value for e in ExpenseCategoryType}
+            if fields["category"] not in valid_categories:
+                raise AppError(f"קטגוריית הוצאה לא חוקית. חוקיות: {sorted(valid_categories)}", "ANNUAL_REPORT.INVALID_TYPE")
+            fields["category"] = ExpenseCategoryType(fields["category"])
         line = self.expense_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
             raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")

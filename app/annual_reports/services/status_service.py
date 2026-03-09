@@ -35,11 +35,10 @@ class AnnualReportStatusService(AnnualReportBaseService):
         submitted_at: Optional[datetime] = None,
     ) -> AnnualReportResponse:
         report = self._get_or_raise(report_id)
-        try:
-            ns = AnnualReportStatus(new_status)
-        except ValueError:
-            valid = [e.value for e in AnnualReportStatus]
-            raise AppError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {valid}", "ANNUAL_REPORT.INVALID_STATUS")
+        valid_statuses = {e.value for e in AnnualReportStatus}
+        if new_status not in valid_statuses:
+            raise AppError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {sorted(valid_statuses)}", "ANNUAL_REPORT.INVALID_STATUS")
+        ns = AnnualReportStatus(new_status)
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
@@ -90,10 +89,10 @@ class AnnualReportStatusService(AnnualReportBaseService):
         custom_deadline_note: Optional[str] = None,
     ) -> AnnualReportResponse:
         report = self._get_or_raise(report_id)
-        try:
-            dt = DeadlineType(deadline_type)
-        except ValueError:
+        valid_deadline_types = {e.value for e in DeadlineType}
+        if deadline_type not in valid_deadline_types:
             raise AppError(f"סוג מועד אחרון לא חוקי '{deadline_type}'", "ANNUAL_REPORT.INVALID_TYPE")
+        dt = DeadlineType(deadline_type)
 
         if dt == DeadlineType.STANDARD:
             filing_deadline = standard_deadline(report.tax_year)

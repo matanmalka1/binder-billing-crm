@@ -29,14 +29,13 @@ def list_client_requests(
 ) -> Tuple[List[SignatureRequest], int]:
     status_enum = None
     if status:
-        try:
-            status_enum = SignatureRequestStatus(status)
-        except ValueError:
-            valid = [e.value for e in SignatureRequestStatus]
+        valid_statuses = {e.value for e in SignatureRequestStatus}
+        if status not in valid_statuses:
             raise AppError(
-                f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {valid}",
+                f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {sorted(valid_statuses)}",
                 "SIGNATURE_REQUEST.INVALID_STATUS",
             )
+        status_enum = SignatureRequestStatus(status)
 
     items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
     total = repo.count_by_client(client_id, status=status_enum)
