@@ -31,20 +31,17 @@ def transition_status(
     Attempting an invalid jump returns 400.
     """
     service = AnnualReportService(db)
-    try:
-        report = service.transition_status(
-            report_id=report_id,
-            new_status=body.status,
-            changed_by=user.id,
-            changed_by_name=user.full_name,
-            note=body.note,
-            ita_reference=body.ita_reference,
-            assessment_amount=float(body.assessment_amount) if body.assessment_amount else None,
-            refund_due=float(body.refund_due) if body.refund_due else None,
-            tax_due=float(body.tax_due) if body.tax_due else None,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    report = service.transition_status(
+        report_id=report_id,
+        new_status=body.status,
+        changed_by=user.id,
+        changed_by_name=user.full_name,
+        note=body.note,
+        ita_reference=body.ita_reference,
+        assessment_amount=float(body.assessment_amount) if body.assessment_amount else None,
+        refund_due=float(body.refund_due) if body.refund_due else None,
+        tax_due=float(body.tax_due) if body.tax_due else None,
+    )
     return report
 
 
@@ -62,14 +59,11 @@ def update_deadline(
     after next — used for authorised electronic representatives (מייצגים).
     """
     service = AnnualReportService(db)
-    try:
-        report = service.update_deadline(
-            report_id=report_id,
-            deadline_type=body.deadline_type,
-            changed_by=user.id,
-            changed_by_name=user.full_name,
-            custom_deadline_note=body.custom_deadline_note,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    report = service.update_deadline(
+        report_id=report_id,
+        deadline_type=body.deadline_type,
+        changed_by=user.id,
+        changed_by_name=user.full_name,
+        custom_deadline_note=body.custom_deadline_note,
+    )
     return report
