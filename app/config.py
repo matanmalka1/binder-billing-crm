@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Literal
 
+from app.core.exceptions import AppError
 
 try:
     from dotenv import load_dotenv
@@ -46,7 +47,7 @@ class Config:
 
     JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
     if not JWT_SECRET:
-        raise ValueError("JWT_SECRET חייב להיות מוגדר")
+        raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
     
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
 
