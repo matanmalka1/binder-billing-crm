@@ -19,7 +19,7 @@ def get_tax_profile(client_id: int, db: DBSession, user: CurrentUser):
     from app.clients.repositories.client_repository import ClientRepository
     client = ClientRepository(db).get_by_id(client_id)
     if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
     profile = service.get_profile(client_id)
     if profile is None:
         return TaxProfileResponse(client_id=client_id)
@@ -39,7 +39,7 @@ def update_tax_profile(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג המע\"מ אינו תקין: {request.vat_type}",
+                detail=f"Invalid vat_type: {request.vat_type}",
             )
     service = ClientTaxProfileService(db)
     try:
