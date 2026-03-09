@@ -2,6 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import AnnualReportDetail
 from app.annual_reports.repositories import AnnualReportDetailRepository
 from app.annual_reports.repositories import AnnualReportRepository
@@ -19,5 +20,5 @@ class AnnualReportDetailService:
     def update_detail(self, report_id: int, **fields) -> AnnualReportDetail:
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise ValueError(f"דוח שנתי {report_id} לא נמצא")
+            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return self.repo.upsert(report_id, **fields)
