@@ -77,8 +77,8 @@ Module: `dashboard`
 Module: `permanent_documents`
 
 - ✅ `PermanentDocumentService.get_download_url` (tests/documents/api/test_documents_download_replace.py)
-- `PermanentDocumentService.list_client_documents`
-- `PermanentDocumentService.delete_document`
+- ✅ `PermanentDocumentService.list_client_documents` (tests/permanent_documents/service/test_permanent_document_list_delete.py)
+- ✅ `PermanentDocumentService.delete_document` (tests/permanent_documents/service/test_permanent_document_list_delete.py)
 - ✅ `PermanentDocumentService.replace_document` (tests/documents/api/test_documents_download_replace.py)
 
 Module: `tax_deadline`
@@ -87,7 +87,7 @@ Module: `tax_deadline`
 - ✅ `TaxDeadlineService.get_deadline` (tests/tax_deadline/api/test_tax_deadline_crud.py)
 - ✅ `TaxDeadlineService.list_all_pending` (tests/tax_deadline/api/test_tax_deadline_crud.py)
 - ✅ `TaxDeadlineService.delete_deadline` (tests/tax_deadline/api/test_tax_deadline_crud.py)
-- `TaxDeadlineService.get_client_deadlines`
+- ✅ `TaxDeadlineService.get_client_deadlines` (tests/tax_deadline/service/test_tax_deadline_service_get_client_deadlines.py)
 - ✅ `TaxDeadlineService.build_client_name_map` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
 - ✅ `TaxDeadlineService.get_urgent_deadlines_summary` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
 
@@ -115,9 +115,9 @@ Module: `timeline`
 Module: `users`
 
 - ✅ `AuthService.verify_password` (tests/users/services/test_auth_service.py)
-- `UserManagementService.reset_password`
-- `UserManagementService.list_users`
-- `AuditLogService.list_logs`
+- ✅ `UserManagementService.reset_password` (tests/users/services/test_user_management_service_list_reset.py)
+- ✅ `UserManagementService.list_users` (tests/users/services/test_user_management_service_list_reset.py)
+- ✅ `AuditLogService.list_logs` (tests/users/services/test_audit_log_service.py)
 - ✅ `ensure_advisor` (tests/users/services/test_user_management_policies.py)
 - ✅ `validate_password` (tests/users/services/test_user_management_policies.py)
 
@@ -259,10 +259,10 @@ Module: `binder_repository`
 
 Module: `binder_repository_extensions`
 
-- `list_open_binders`
-- `count_open_binders`
-- `list_by_client`
-- `count_by_client`
+- ✅ `list_open_binders` (tests/binders/repository/test_binder_repository_extensions.py)
+- ✅ `count_open_binders` (tests/binders/repository/test_binder_repository_extensions.py)
+- ✅ `list_by_client` (tests/binders/repository/test_binder_repository_extensions.py)
+- ✅ `count_by_client` (tests/binders/repository/test_binder_repository_extensions.py)
 
 Module: `charge_repository`
 
