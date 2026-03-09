@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestStatus,
@@ -27,8 +28,9 @@ def send_request(
     req = get_or_raise(repo, request_id)
 
     if req.status != SignatureRequestStatus.DRAFT:
-        raise ValueError(
-            f"Cannot send a request in '{req.status.value}' status. Only DRAFT requests can be sent."
+        raise AppError(
+            f"Cannot send a request in '{req.status.value}' status. Only DRAFT requests can be sent.",
+            "SIGNATURE_REQUEST.INVALID_STATUS",
         )
 
     signing_token = secrets.token_urlsafe(32)
