@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 import pytest
 
 from app.clients.models.client import Client, ClientType
+from app.core.exceptions import AppError, ConflictError
 from app.charge.services.billing_service import BillingService
 from app.invoice.services.invoice_service import InvoiceService
 
@@ -26,10 +27,11 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     invoices = InvoiceService(test_db)
 
     draft = billing.create_charge(c.id, 10.0, "one_time")
-    with pytest.raises(ValueError, match="status draft"):
+    with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
             draft.id, "icount", "INV-1", issued_at=datetime.now(UTC).replace(tzinfo=None)
         )
+    assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
     issued = billing.issue_charge(draft.id)
     inv = invoices.attach_invoice_to_charge(
@@ -43,17 +45,19 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     assert inv.external_invoice_id == "INV-2"
 
     billing.mark_charge_paid(issued.id)
-    with pytest.raises(ValueError, match="status paid"):
+    with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
             issued.id, "icount", "INV-3", issued_at=datetime.now(UTC).replace(tzinfo=None)
         )
+    assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
     canceled_id = billing.issue_charge(billing.create_charge(c.id, 30.0, "one_time").id).id
     billing.cancel_charge(canceled_id)
-    with pytest.raises(ValueError, match="status canceled"):
+    with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
             canceled_id, "icount", "INV-4", issued_at=datetime.now(UTC).replace(tzinfo=None)
         )
+    assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
 
 def test_attach_invoice_fails_if_already_attached(test_db):
@@ -65,7 +69,8 @@ def test_attach_invoice_fails_if_already_attached(test_db):
     invoices.attach_invoice_to_charge(
         ch.id, "icount", "INV-10", issued_at=datetime.now(UTC).replace(tzinfo=None)
     )
-    with pytest.raises(ValueError, match="already has an invoice"):
+    with pytest.raises(ConflictError) as exc_info:
         invoices.attach_invoice_to_charge(
             ch.id, "icount", "INV-11", issued_at=datetime.now(UTC).replace(tzinfo=None)
         )
+    assert exc_info.value.code == "INVOICE.CONFLICT"
