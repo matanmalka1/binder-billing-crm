@@ -344,9 +344,9 @@ Current state:
 
 Module: `advance_payment_repository`
 
-- `list_by_client_year`
-- `get_annual_output_vat`
-- `list_overview`
+- ✅ `list_by_client_year`
+- ✅ `get_annual_output_vat`
+- ✅ `list_overview`
 
 Module: `annual_reports`
 
@@ -372,12 +372,12 @@ Module: `annual_reports`
 
 Module: `authority_contact_repository`
 
-- `create`
-- `get_by_id`
-- `list_by_client`
-- `count_by_client`
-- `update`
-- `delete`
+- ✅ `create`
+- ✅ `get_by_id`
+- ✅ `list_by_client`
+- ✅ `count_by_client`
+- ✅ `update`
+- ✅ `delete`
 
 Module: `binder_repository`
 
@@ -419,11 +419,11 @@ Module: `correspondence_repository`
 
 Module: `dashboard_overview_repository`
 
-- `get_overview_metrics`
+- ✅ `get_overview_metrics`
 
 Module: `health_repository`
 
-- `can_connect`
+- ✅ `can_connect`
 
 Module: `invoice_repository`
 
@@ -432,9 +432,9 @@ Module: `invoice_repository`
 
 Module: `notification_repository`
 
-- `mark_sent`
-- `mark_failed`
-- `count_by_client`
+- ✅ `mark_sent`
+- ✅ `mark_failed`
+- ✅ `count_by_client`
 
 Module: `permanent_document_repository`
 
