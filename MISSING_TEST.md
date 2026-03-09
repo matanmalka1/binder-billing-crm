@@ -54,8 +54,8 @@ Module: `clients`
 - ✅ `ClientExcelService.export_clients` (tests/clients/api/test_clients_excel.py)
 - ✅ `ClientExcelService.generate_template` (tests/clients/api/test_clients_excel.py)
 - ✅ `StatusCardService.get_status_card` (tests/clients/api/test_client_status_card.py)
-- `ClientTaxProfileService.get_profile`
-- `ClientTaxProfileService.update_profile`
+- ✅ `ClientTaxProfileService.get_profile` (tests/clients/service/test_client_tax_profile_service.py)
+- ✅ `ClientTaxProfileService.update_profile` (tests/clients/service/test_client_tax_profile_service.py)
 - ✅ `ClientService.list_all_clients` (tests/clients/service/test_client_service_list_all_clients.py)
 
 Module: `correspondence`
@@ -65,14 +65,14 @@ Module: `correspondence`
 Module: `dashboard`
 
 - ✅ `DashboardService.get_summary` (tests/dashboard/service/test_dashboard_service.py)
-- `DashboardOverviewService.get_overview`
+- ✅ `DashboardOverviewService.get_overview` (tests/dashboard/service/test_dashboard_overview_service.py)
 - ✅ `DashboardTaxService.get_submission_widget_data` (tests/dashboard/api/test_dashboard_tax.py)
-- `DashboardExtendedService.get_work_queue`
-- `DashboardExtendedService.get_attention_items`
-- `work_queue_item`
-- `idle_attention_item`
-- `ready_attention_item`
-- `unpaid_charge_attention_item`
+- ✅ `DashboardExtendedService.get_work_queue` (tests/dashboard/service/test_dashboard_extended_service.py)
+- ✅ `DashboardExtendedService.get_attention_items` (tests/dashboard/service/test_dashboard_extended_service.py)
+- ✅ `work_queue_item` (tests/dashboard/service/test_dashboard_extended_builders.py)
+- ✅ `idle_attention_item` (tests/dashboard/service/test_dashboard_extended_builders.py)
+- ✅ `ready_attention_item` (tests/dashboard/service/test_dashboard_extended_builders.py)
+- ✅ `unpaid_charge_attention_item` (tests/dashboard/service/test_dashboard_extended_builders.py)
 
 Module: `permanent_documents`
 
@@ -129,8 +129,8 @@ Module: `vat_reports`
 - ✅ `export_vat_to_excel` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - `export_vat_to_pdf`
 - ✅ `VatReportService.list_client_work_items` (tests/vat_reports/api/test_vat_client_summary_export.py)
-- `VatReportService.list_all_work_items`
-- `VatReportService.get_audit_trail`
+- ✅ `VatReportService.list_all_work_items` (tests/vat_reports/service/test_vat_report_service_queries.py)
+- ✅ `VatReportService.get_audit_trail` (tests/vat_reports/service/test_vat_report_service_queries.py)
 
 ## 2. API Endpoints Without Tests
 
@@ -194,7 +194,8 @@ Module: `vat_reports`
   - `app/actions/report_deadline_actions.py`: `get_tax_deadline_actions`, `get_annual_report_actions`
 - Advance payment suggestion math: prior-year VAT to annual income conversion and monthly rounding.
 - Binder transition guards in `validate_ready_transition` and `validate_return_transition`.
-- Dashboard aging/work-queue builder rules in `dashboard_extended_builders.py`.
+- Dashboard aging/work-queue builder rules:
+  ✅ builder payload helpers covered (tests/dashboard/service/test_dashboard_extended_builders.py); higher-level dashboard aging scenarios still light.
 - Reminder scheduling rules:
   `send_on = target_date - days_before`, negative-day validation, default message generation, linked-entity existence checks.
 - Tax deadline urgency-summary aggregation and client-name map enrichment.
