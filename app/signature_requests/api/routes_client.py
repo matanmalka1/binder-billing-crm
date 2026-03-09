@@ -27,15 +27,12 @@ def list_client_signature_requests(
     page_size: int = Query(20, ge=1, le=100),
 ):
     service = SignatureRequestService(db)
-    try:
-        items, total = service.list_client_requests(
-            client_id=client_id,
-            status=status_filter,
-            page=page,
-            page_size=page_size,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    items, total = service.list_client_requests(
+        client_id=client_id,
+        status=status_filter,
+        page=page,
+        page_size=page_size,
+    )
 
     return SignatureRequestListResponse(
         items=[SignatureRequestResponse.model_validate(r) for r in items],
