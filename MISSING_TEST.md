@@ -118,8 +118,8 @@ Module: `users`
 - `UserManagementService.reset_password`
 - `UserManagementService.list_users`
 - `AuditLogService.list_logs`
-- `ensure_advisor`
-- `validate_password`
+- ✅ `ensure_advisor` (tests/users/services/test_user_management_policies.py)
+- ✅ `validate_password` (tests/users/services/test_user_management_policies.py)
 
 Module: `vat_reports`
 
@@ -201,7 +201,8 @@ Module: `vat_reports`
 - Timeline aggregation ordering, pagination slicing, and event fan-out across binders, charges, notifications, reminders, deadlines, annual reports, and signature requests.
 - Aging report bucketing:
   `current`, `30`, `60`, `90+`, oldest invoice date, sort order, and cap/truncation behavior.
-- User-management policy guards in `ensure_advisor`, immutable field handling, and password validation depth.
+- User-management policy guards:
+  ✅ `ensure_advisor` and `validate_password` covered (tests/users/services/test_user_management_policies.py); immutable field handling remains untested.
 - VAT client summary aggregation and VAT export generation.
 
 ## 4. Repository Methods Without Tests
@@ -283,8 +284,8 @@ Module: `client_tax_profile_repository`
 
 Module: `correspondence_repository`
 
-- `list_by_client_paginated`
-- `soft_delete`
+- ✅ `list_by_client_paginated` (tests/correspondence/repository/test_correspondence_repository.py)
+- ✅ `soft_delete` (tests/correspondence/repository/test_correspondence_repository.py)
 
 Module: `dashboard_overview_repository`
 
@@ -311,13 +312,13 @@ Module: `permanent_document_repository`
 
 Module: `reminder_repository`
 
-- `list_pending_by_date`
-- `count_pending_by_date`
-- `list_by_status`
-- `count_by_status`
-- `count_by_client`
-- `list_by_client`
-- `update_status`
+- ✅ `list_pending_by_date` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `count_pending_by_date` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `list_by_status` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `count_by_status` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `count_by_client` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `list_by_client` (tests/reminders/repository/test_reminder_repository.py)
+- ✅ `update_status` (tests/reminders/repository/test_reminder_repository.py)
 
 Module: `signature_request_repository`
 
@@ -349,13 +350,13 @@ Module: `vat_reports`
 
 - ✅ `VatClientSummaryRepository.get_periods_for_client` (tests/vat_reports/api/test_vat_client_summary_export.py)
 - ✅ `VatClientSummaryRepository.get_annual_aggregates` (tests/vat_reports/api/test_vat_client_summary_export.py)
-- `VatInvoiceRepository.list_by_work_item`
-- `VatWorkItemRepository.list_by_status`
-- `VatWorkItemRepository.count_by_status`
-- `VatWorkItemRepository.list_all`
-- `VatWorkItemRepository.count_all`
-- `VatWorkItemRepository.update_vat_totals`
-- `VatWorkItemRepository.get_audit_trail`
+- ✅ `VatInvoiceRepository.list_by_work_item` (tests/vat_reports/repository/test_vat_invoice_repository.py)
+- ✅ `VatWorkItemRepository.list_by_status` (tests/vat_reports/repository/test_vat_work_item_repository.py)
+- ✅ `VatWorkItemRepository.count_by_status` (tests/vat_reports/repository/test_vat_work_item_repository.py)
+- ✅ `VatWorkItemRepository.list_all` (tests/vat_reports/repository/test_vat_work_item_repository.py)
+- ✅ `VatWorkItemRepository.count_all` (tests/vat_reports/repository/test_vat_work_item_repository.py)
+- ✅ `VatWorkItemRepository.update_vat_totals` (tests/vat_reports/repository/test_vat_work_item_repository.py)
+- ✅ `VatWorkItemRepository.get_audit_trail` (tests/vat_reports/repository/test_vat_work_item_repository.py)
 
 ## 5. Entire Domains With Poor Coverage
 
