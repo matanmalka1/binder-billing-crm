@@ -1,7 +1,6 @@
 from typing import Optional
-
 from sqlalchemy.orm import Session
-
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User, UserRole
 from app.users.repositories.user_repository import UserRepository
@@ -18,7 +17,6 @@ class UserManagementService:
     def __init__(self, db: Session):
         self.user_repo = UserRepository(db)
         self.audit_log_service = AuditLogService(db)
-
     def create_user(
         self,
         actor_user_id: int,
@@ -33,7 +31,7 @@ class UserManagementService:
         validate_password(password)
 
         if self.user_repo.get_by_email(email):
-            raise ValueError(f"כבר קיים משתמש עם המייל {email}")
+            raise ConflictError(f"כבר קיים משתמש עם המייל {email}", "USER.CONFLICT")
 
         user = self.user_repo.create(
             full_name=full_name,
@@ -49,17 +47,14 @@ class UserManagementService:
             target_user_id=user.id,
         )
         return user
-
     def list_users(self, actor_role: UserRole, page: int, page_size: int):
         ensure_advisor(actor_role)
         items = self.user_repo.list(page=page, page_size=page_size)
         total = self.user_repo.count()
         return items, total
-
     def get_user(self, actor_role: UserRole, user_id: int) -> Optional[User]:
         ensure_advisor(actor_role)
         return self.user_repo.get_by_id(user_id)
-
     def update_user(
         self,
         actor_user_id: int,
@@ -71,15 +66,18 @@ class UserManagementService:
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
-                raise ValueError(f"כבר קיים משתמש עם המייל  {fields['email']}")
+                raise ConflictError(f"כבר קיים משתמש עם המייל  {fields['email']}", "USER.CONFLICT")
 
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))
-            raise ValueError(f"לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}")
+            raise AppError(
+                f"לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}",
+                "USER.INVALID_UPDATE",
+            )
 
         if not fields:
-            raise ValueError("חובה לספק לפחות שדה אחד הניתן לשינוי")
+            raise AppError("חובה לספק לפחות שדה אחד הניתן לשינוי", "USER.NO_FIELDS_PROVIDED")
 
         user = self.user_repo.update(user_id, **fields)
         if not user:
@@ -93,7 +91,6 @@ class UserManagementService:
             metadata={"updated_fields": sorted(fields.keys())},
         )
         return user
-
     def activate_user(
         self, actor_user_id: int, actor_role: UserRole, user_id: int
     ) -> Optional[User]:
@@ -101,7 +98,6 @@ class UserManagementService:
         user = self.user_repo.activate(user_id)
         if not user:
             return None
-
         self.audit_log_service.log(
             action=AuditAction.USER_ACTIVATED,
             status=AuditStatus.SUCCESS,
@@ -109,7 +105,6 @@ class UserManagementService:
             target_user_id=user.id,
         )
         return user
-
     def deactivate_user(
         self,
         actor_user_id: int,
@@ -118,7 +113,7 @@ class UserManagementService:
     ) -> Optional[User]:
         ensure_advisor(actor_role)
         if actor_user_id == target_user_id:
-            raise ValueError("אינך יכול להשבית את החשבון שלך")
+            raise ForbiddenError("אינך יכול להשבית את החשבון שלך", "USER.FORBIDDEN")
 
         user = self.user_repo.deactivate_and_bump_token(target_user_id)
         if not user:
@@ -131,7 +126,6 @@ class UserManagementService:
             target_user_id=user.id,
         )
         return user
-
     def reset_password(
         self,
         actor_user_id: int,
