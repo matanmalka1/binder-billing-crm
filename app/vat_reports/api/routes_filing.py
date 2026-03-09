@@ -36,14 +36,11 @@ def file_vat_return(
         )
 
     service = VatReportService(db)
-    try:
-        item = service.file_vat_return(
-            item_id=item_id,
-            filed_by=current_user.id,
-            filing_method=request.filing_method,
-            override_amount=float(request.override_amount) if request.override_amount is not None else None,
-            override_justification=request.override_justification,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    item = service.file_vat_return(
+        item_id=item_id,
+        filed_by=current_user.id,
+        filing_method=request.filing_method,
+        override_amount=float(request.override_amount) if request.override_amount is not None else None,
+        override_justification=request.override_justification,
+    )
     return item
