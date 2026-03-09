@@ -58,7 +58,8 @@ def test_financial_summary_totals(client, test_db, advisor_headers):
     assert resp.status_code == 200
     body = resp.json()
     assert body["total_income"] == 100000
-    assert body["total_expenses"] == 20000
+    assert body["gross_expenses"] == 20000
+    assert body["recognized_expenses"] == 20000
     assert body["taxable_income"] == 80000
     assert len(body["income_lines"]) == 1
     assert len(body["expense_lines"]) == 1
