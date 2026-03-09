@@ -64,7 +64,7 @@ Module: `binders`
 - `BinderService.get_binder`
 - `BinderService.delete_binder`
 - `BinderService.list_active_binders`
-- `BinderHistoryService.get_binder_history`
+- ✅ `BinderHistoryService.get_binder_history` (tests/binders/api/test_binder_history.py)
 - `BinderOperationsService.get_open_binders`
 - `BinderOperationsService.get_client_binders`
 - `BinderOperationsService.client_exists`
@@ -76,7 +76,7 @@ Module: `clients`
 
 - ✅ `ClientExcelService.export_clients` (tests/clients/api/test_clients_excel.py)
 - ✅ `ClientExcelService.generate_template` (tests/clients/api/test_clients_excel.py)
-- `StatusCardService.get_status_card`
+- ✅ `StatusCardService.get_status_card` (tests/clients/api/test_client_status_card.py)
 - `ClientTaxProfileService.get_profile`
 - `ClientTaxProfileService.update_profile`
 - `ClientService.list_all_clients`
@@ -171,7 +171,8 @@ Module: `tax_deadline`
 - `TaxDeadlineService.delete_deadline`
 - `TaxDeadlineService.get_client_deadlines`
 - `TaxDeadlineService.build_client_name_map`
-- `TaxDeadlineService.get_urgent_deadlines_summary`
+- ✅ `TaxDeadlineService.build_client_name_map` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
+- ✅ `TaxDeadlineService.get_urgent_deadlines_summary` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
 
 Module: `timeline`
 
@@ -302,7 +303,7 @@ Module: `tax_deadline`
 - `POST /api/v1/tax-deadlines/{deadline_id}/complete`
 - `PUT /api/v1/tax-deadlines/{deadline_id}`
 - `DELETE /api/v1/tax-deadlines/{deadline_id}`
-- `GET /api/v1/tax-deadlines/dashboard/urgent`
+- ✅ `GET /api/v1/tax-deadlines/dashboard/urgent` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
 
 Module: `users`
 
