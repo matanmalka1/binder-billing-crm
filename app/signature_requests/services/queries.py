@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Tuple, List
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestStatus,
@@ -32,7 +33,10 @@ def list_client_requests(
             status_enum = SignatureRequestStatus(status)
         except ValueError:
             valid = [e.value for e in SignatureRequestStatus]
-            raise ValueError(f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {valid}")
+            raise AppError(
+                f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {valid}",
+                "SIGNATURE_REQUEST.INVALID_STATUS",
+            )
 
     items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
     total = repo.count_by_client(client_id, status=status_enum)
