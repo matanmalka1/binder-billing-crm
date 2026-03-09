@@ -1,6 +1,7 @@
 from typing import Optional
 from datetime import datetime
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import AnnualReport, AnnualReportStatus, DeadlineType
 from app.annual_reports.schemas.annual_report import AnnualReportResponse
 from app.utils.time import utcnow
@@ -18,7 +19,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         result = svc.get_readiness_check(report_id)
         if not result.is_ready:
             issues_str = "; ".join(result.issues)
-            raise ValueError(f"הדוח אינו מוכן להגשה: {issues_str}")
+            raise AppError(f"הדוח אינו מוכן להגשה: {issues_str}", "ANNUAL_REPORT.INVALID_STATUS")
 
     def transition_status(
         self,
@@ -38,14 +39,15 @@ class AnnualReportStatusService(AnnualReportBaseService):
             ns = AnnualReportStatus(new_status)
         except ValueError:
             valid = [e.value for e in AnnualReportStatus]
-            raise ValueError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {valid}")
+            raise AppError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {valid}", "ANNUAL_REPORT.INVALID_STATUS")
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
-            raise ValueError(
+            raise AppError(
                 f"לא ניתן לעבור מ-'{report.status.value}' ל-'{ns.value}'. "
-                f"סטטוסים הבאים מותרים: {allowed}"
-                    )
+                f"סטטוסים הבאים מותרים: {allowed}",
+                "ANNUAL_REPORT.INVALID_STATUS",
+            )
 
         if ns == AnnualReportStatus.SUBMITTED:
             self._assert_filing_readiness(report_id)
@@ -91,7 +93,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
-            raise ValueError(f"סוג מועד אחרון לא חוקי '{deadline_type}'")
+            raise AppError(f"סוג מועד אחרון לא חוקי '{deadline_type}'", "ANNUAL_REPORT.INVALID_TYPE")
 
         if dt == DeadlineType.STANDARD:
             filing_deadline = standard_deadline(report.tax_year)
