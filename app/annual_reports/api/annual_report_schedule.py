@@ -21,19 +21,13 @@ router = APIRouter(
 def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: CurrentUser):
     """Manually add a schedule to a report (auto-generated ones are created at report creation)."""
     service = AnnualReportService(db)
-    try:
-        entry = service.add_schedule(report_id, body.schedule, notes=body.notes)
-        return ScheduleEntryResponse.model_validate(entry)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    entry = service.add_schedule(report_id, body.schedule, notes=body.notes)
+    return ScheduleEntryResponse.model_validate(entry)
 
 
 @router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse)
 def complete_schedule(report_id: int, body: ScheduleCompleteRequest, db: DBSession, user: CurrentUser):
     """Mark a specific schedule as complete."""
     service = AnnualReportService(db)
-    try:
-        entry = service.complete_schedule(report_id, body.schedule)
-        return ScheduleEntryResponse.model_validate(entry)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    entry = service.complete_schedule(report_id, body.schedule)
+    return ScheduleEntryResponse.model_validate(entry)
