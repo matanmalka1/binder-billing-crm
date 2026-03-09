@@ -31,8 +31,6 @@ def create_user(request: UserCreateRequest, db: DBSession, user: CurrentUser):
             password=request.password,
             phone=request.phone,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -69,8 +67,6 @@ def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: C
             user_id=user_id,
             **update_data,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -104,8 +100,6 @@ def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
             actor_role=user.role,
             target_user_id=user_id,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
@@ -124,8 +118,6 @@ def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, u
             target_user_id=user_id,
             new_password=request.new_password,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
 
