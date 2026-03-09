@@ -12,7 +12,8 @@ class TestCreateWorkItem:
         payload = {"client_id": vat_client.id, "period": "2026-02"}
         client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         response = client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
-        assert response.status_code == 400
+        assert response.status_code == 409
+        assert response.json()["error"] == "VAT.CONFLICT"
 
     def test_invalid_period_format_422(self, client, advisor_headers, vat_client):
         response = client.post(
@@ -29,6 +30,7 @@ class TestCreateWorkItem:
             json={"client_id": vat_client.id, "period": "2026-03", "mark_pending": True},
         )
         assert response.status_code == 400
+        assert response.json()["error"] == "VAT.PENDING_NOTE_REQUIRED"
 
     def test_unauthenticated_401(self, client, vat_client):
         response = client.post(
