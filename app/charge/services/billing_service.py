@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
@@ -39,7 +40,7 @@ class BillingService:
 
         # Validate amount
         if amount <= 0:
-            raise ValueError("הסכום חייב להיות חיובי")
+            raise AppError("הסכום חייב להיות חיובי", "CHARGE.AMOUNT_INVALID")
 
         # Create charge in draft status
         return self.charge_repo.create(
@@ -64,10 +65,13 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"חיוב {charge_id} לא נמצא")
+            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.DRAFT:
-            raise ValueError(f"לא ניתן להנפיק חיוב עם הסטטוס {charge.status.value}")
+            raise AppError(
+                f"לא ניתן להנפיק חיוב עם הסטטוס {charge.status.value}",
+                "CHARGE.INVALID_STATUS",
+            )
 
         return self.charge_repo.update_status(
             charge_id,
@@ -89,11 +93,12 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"החיוב {charge_id} לא נמצא")
+            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.ISSUED:
-            raise ValueError(
-                f"לא ניתן לסמן חיוב כשולם כאשר הסטטוס הוא {charge.status.value}"
+            raise AppError(
+                f"לא ניתן לסמן חיוב כשולם כאשר הסטטוס הוא {charge.status.value}",
+                "CHARGE.INVALID_STATUS",
             )
 
         return self.charge_repo.update_status(
@@ -117,13 +122,13 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"חיוב {charge_id} לא נמצא")
+            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
 
         if charge.status == ChargeStatus.PAID:
-            raise ValueError("לא ניתן לבטל חיוב ששולם")
+            raise AppError("Cannot cancel charge in status paid", "CHARGE.INVALID_STATUS")
 
         if charge.status == ChargeStatus.CANCELED:
-            raise ValueError("החיוב כבר בוטל")
+            raise ConflictError("החיוב כבר בוטל", "CHARGE.CONFLICT")
 
         return self.charge_repo.update_status(
             charge_id,
@@ -145,11 +150,12 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise ValueError(f"חיוב {charge_id} לא נמצא")
+            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.DRAFT:
-            raise ValueError(
-                f"ניתן למחוק רק חיובים במצב טיוטה. השתמש בביטול עבור סטטוס '{charge.status.value}'"
+            raise AppError(
+                f"ניתן למחוק רק חיובים במצב טיוטה. השתמש בביטול עבור סטטוס '{charge.status.value}'",
+                "CHARGE.INVALID_STATUS",
             )
 
         return self.charge_repo.soft_delete(charge_id, deleted_by=actor_id)
