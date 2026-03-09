@@ -17,7 +17,7 @@ def mark_ready_for_review(
     Transition DATA_ENTRY_IN_PROGRESS → READY_FOR_REVIEW.
 
     Raises:
-        ValueError: If not in DATA_ENTRY_IN_PROGRESS.
+        AppError: If not in DATA_ENTRY_IN_PROGRESS.
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
