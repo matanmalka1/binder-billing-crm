@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import AnnualReport
 from app.annual_reports.schemas.annual_report import AnnualReportResponse
 
@@ -13,7 +14,7 @@ class AnnualReportBaseService:
     def _get_or_raise(self, report_id: int) -> AnnualReport:
         report = self.repo.get_by_id(report_id)
         if not report:
-            raise ValueError(f"דוח שנתי {report_id} לא נמצא")
+            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return report
 
     def _to_responses(self, reports: list[AnnualReport]) -> list[AnnualReportResponse]:
