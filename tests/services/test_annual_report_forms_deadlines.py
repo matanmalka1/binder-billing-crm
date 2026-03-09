@@ -1,7 +1,7 @@
-from tests.services.annual_report_enums import (
-    AnnualReportForm,
-    DeadlineType,
-)
+import pytest
+
+from app.core.exceptions import AppError, ConflictError
+from tests.services.annual_report_enums import AnnualReportForm, DeadlineType
 from tests.services.annual_report_service import AnnualReportService
 
 
@@ -31,11 +31,9 @@ def test_corporation_gets_6111():
 
 def test_invalid_client_type_raises():
     service = AnnualReportService()
-    try:
+    with pytest.raises(AppError) as exc_info:
         service.create_report(1, 2023, "alien", 1, "Advisor")
-        assert False, "Expected ValueError"
-    except ValueError as exc:
-        assert "Invalid client_type" in str(exc)
+    assert exc_info.value.code == "ANNUAL_REPORT.INVALID_TYPE"
 
 
 def test_standard_deadline():
@@ -66,11 +64,9 @@ def test_extended_later_than_standard():
 def test_duplicate_same_client_year():
     service = AnnualReportService()
     service.create_report(1, 2023, "individual", 1, "Advisor")
-    try:
+    with pytest.raises(ConflictError) as exc_info:
         service.create_report(1, 2023, "individual", 1, "Advisor")
-        assert False, "Expected ValueError"
-    except ValueError as exc:
-        assert "already exists" in str(exc)
+    assert exc_info.value.code == "ANNUAL_REPORT.CONFLICT"
 
 
 def test_same_client_different_years_ok():
