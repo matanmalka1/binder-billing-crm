@@ -2,6 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.repositories.client_repository import ClientRepository
@@ -47,7 +48,7 @@ class AuthorityContactService:
         """Update contact details."""
         updated = self.contact_repo.update(contact_id, **fields)
         if not updated:
-            raise ValueError(f"איש קשר {contact_id} לא נמצא")
+            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
         return updated
 
     def list_client_contacts(
@@ -68,7 +69,7 @@ class AuthorityContactService:
         """Soft-delete contact."""
         success = self.contact_repo.delete(contact_id, deleted_by=actor_id)
         if not success:
-            raise ValueError(f"איש קשר {contact_id} לא נמצא")
+            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
 
     def get_contact(self, contact_id: int) -> Optional[AuthorityContact]:
         """Get contact by ID."""
