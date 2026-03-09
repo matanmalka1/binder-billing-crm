@@ -114,3 +114,16 @@ class AnnualKPIResponse(BaseModel):
     collection_rate: float
     overdue_count: int
     on_time_count: int
+
+
+class MonthlyChartRow(BaseModel):
+    month: int
+    expected_amount: float
+    paid_amount: float
+    overdue_amount: float
+
+
+class ChartDataResponse(BaseModel):
+    client_id: int
+    year: int
+    months: list[MonthlyChartRow]

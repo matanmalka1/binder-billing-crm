@@ -18,7 +18,7 @@ class AnnualReportAnnexData(Base):
     annual_report_id = Column(
         Integer, ForeignKey("annual_reports.id"), nullable=False, index=True
     )
-    schedule = Column(Enum(AnnualReportSchedule), nullable=False)
+    schedule = Column(Enum(AnnualReportSchedule, create_type=False), nullable=False)
     line_number = Column(Integer, nullable=False)
     data = Column(JSON, nullable=False)
     notes = Column(Text, nullable=True)

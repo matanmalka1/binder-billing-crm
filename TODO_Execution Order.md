@@ -18,7 +18,7 @@ Wave 3 — Advance Payments Analytics (P2)
 3.4 — Delta (expected − paid) in response  - done
 3.11 — Status filter on list endpoint  - done
 3.10 — Delete advance payment endpoint  - done
-3.6 / 3.5 — collection_rate + annual KPI cards
+3.6 / 3.5 — collection_rate + annual KPI cards - done
 3.12 — Monthly chart data endpoint
 Wave 4 — Report Workflows (P2)
 7.6 — AMENDED status + amend endpoint

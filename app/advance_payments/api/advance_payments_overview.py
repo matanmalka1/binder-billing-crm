@@ -5,6 +5,7 @@ from app.advance_payments.schemas.advance_payment import (
     AnnualKPIResponse,
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
+    ChartDataResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
@@ -57,6 +58,18 @@ def list_advance_payments_overview(
         total_paid=kpis["total_paid"],
         collection_rate=kpis["collection_rate"],
     )
+
+
+@router.get("/chart", response_model=ChartDataResponse)
+def get_chart_data(
+    db: DBSession,
+    user: CurrentUser,
+    client_id: int = Query(...),
+    year: int = Query(...),
+):
+    service = AdvancePaymentService(db)
+    data = service.get_chart_data(client_id=client_id, year=year)
+    return ChartDataResponse(**data)
 
 
 @router.get("/kpi", response_model=AnnualKPIResponse)

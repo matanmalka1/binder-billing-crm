@@ -17,7 +17,7 @@ class AnnualReportScheduleEntry(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
 
-    schedule = Column(Enum(AnnualReportSchedule), nullable=False)
+    schedule = Column(Enum(AnnualReportSchedule, create_type=False), nullable=False)
     is_required = Column(Boolean, default=True, nullable=False)
     is_complete = Column(Boolean, default=False, nullable=False)
     notes = Column(Text, nullable=True)

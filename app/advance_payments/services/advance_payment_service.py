@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_analytics_repository import AdvancePaymentAnalyticsRepository
 from app.advance_payments.services.advance_payment_calculator import (
     calculate_expected_amount,
     derive_annual_income_from_vat,
@@ -18,6 +19,7 @@ class AdvancePaymentService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = AdvancePaymentRepository(db)
+        self.analytics_repo = AdvancePaymentAnalyticsRepository(db)
         self.client_repo = ClientRepository(db)
         self.tax_profile_repo = ClientTaxProfileRepository(db)
 
@@ -96,7 +98,7 @@ class AdvancePaymentService:
     def get_annual_kpis(self, client_id: int, year: int) -> dict:
         if not self.client_repo.get_by_id(client_id):
             raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
-        data = self.repo.get_annual_kpis(client_id, year)
+        data = self.analytics_repo.get_annual_kpis(client_id, year)
         total_expected = data["total_expected"]
         total_paid = data["total_paid"]
         collection_rate = (total_paid / total_expected * 100) if total_expected > 0 else 0.0
@@ -109,11 +111,17 @@ class AdvancePaymentService:
                 AdvancePaymentStatus.OVERDUE,
                 AdvancePaymentStatus.PARTIAL,
             ]
-        data = self.repo.get_overview_kpis(year, month, statuses)
+        data = self.analytics_repo.get_overview_kpis(year, month, statuses)
         total_expected = data["total_expected"]
         total_paid = data["total_paid"]
         collection_rate = (total_paid / total_expected * 100) if total_expected > 0 else 0.0
         return {**data, "collection_rate": round(collection_rate, 2)}
+
+    def get_chart_data(self, client_id: int, year: int) -> dict:
+        if not self.client_repo.get_by_id(client_id):
+            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
+        months = self.analytics_repo.monthly_chart_data(client_id, year)
+        return {"client_id": client_id, "year": year, "months": months}
 
     def suggest_expected_amount(
         self, client_id: int, year: int
