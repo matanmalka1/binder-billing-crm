@@ -1,14 +1,14 @@
 """add notes to advance_payments
 
-Revision ID: 0017
-Revises: 0016
-Create Date: 2026-03-09
+Revision ID: 0013_add_notes_to_advance_payments
+Revises: 0012_add_tax_year_to_permanent_documents
+Create Date: 2026-03-09 00:00:00.000000
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0017"
-down_revision = "0016"
+revision = "0013_add_notes_to_advance_payments"
+down_revision = "0012_add_tax_year_to_permanent_documents"
 branch_labels = None
 depends_on = None
 
