@@ -99,10 +99,10 @@ Module: `dashboard`
 
 Module: `permanent_documents`
 
-- `PermanentDocumentService.get_download_url`
+- ✅ `PermanentDocumentService.get_download_url` (tests/documents/api/test_documents_download_replace.py)
 - `PermanentDocumentService.list_client_documents`
 - `PermanentDocumentService.delete_document`
-- `PermanentDocumentService.replace_document`
+- ✅ `PermanentDocumentService.replace_document` (tests/documents/api/test_documents_download_replace.py)
 
 Module: `reminders`
 
@@ -165,10 +165,10 @@ Module: `signature_requests`
 
 Module: `tax_deadline`
 
-- `TaxDeadlineService.update_deadline`
-- `TaxDeadlineService.get_deadline`
-- `TaxDeadlineService.list_all_pending`
-- `TaxDeadlineService.delete_deadline`
+- ✅ `TaxDeadlineService.update_deadline` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `TaxDeadlineService.get_deadline` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `TaxDeadlineService.list_all_pending` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `TaxDeadlineService.delete_deadline` (tests/tax_deadline/api/test_tax_deadline_crud.py)
 - `TaxDeadlineService.get_client_deadlines`
 - `TaxDeadlineService.build_client_name_map`
 - ✅ `TaxDeadlineService.build_client_name_map` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
@@ -269,8 +269,8 @@ Module: `dashboard`
 
 Module: `documents`
 
-- `GET /api/v1/documents/{document_id}/download-url`
-- `PUT /api/v1/documents/{document_id}/replace`
+- ✅ `GET /api/v1/documents/{document_id}/download-url` (tests/documents/api/test_documents_download_replace.py)
+- ✅ `PUT /api/v1/documents/{document_id}/replace` (tests/documents/api/test_documents_download_replace.py)
 
 Module: `reminders`
 
@@ -282,7 +282,7 @@ Module: `reminders`
 Module: `reports`
 
 - `GET /api/v1/reports/aging`
-- `GET /api/v1/reports/aging/export`
+- ✅ `GET /api/v1/reports/aging/export` (tests/reports/api/test_reports_aging_export.py)
 
 Module: `signature_requests`
 
@@ -298,11 +298,11 @@ Module: `signature_requests`
 
 Module: `tax_deadline`
 
-- `GET /api/v1/tax-deadlines`
-- `GET /api/v1/tax-deadlines/{deadline_id}`
-- `POST /api/v1/tax-deadlines/{deadline_id}/complete`
-- `PUT /api/v1/tax-deadlines/{deadline_id}`
-- `DELETE /api/v1/tax-deadlines/{deadline_id}`
+- ✅ `GET /api/v1/tax-deadlines` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `GET /api/v1/tax-deadlines/{deadline_id}` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `POST /api/v1/tax-deadlines/{deadline_id}/complete` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `PUT /api/v1/tax-deadlines/{deadline_id}` (tests/tax_deadline/api/test_tax_deadline_crud.py)
+- ✅ `DELETE /api/v1/tax-deadlines/{deadline_id}` (tests/tax_deadline/api/test_tax_deadline_crud.py)
 - ✅ `GET /api/v1/tax-deadlines/dashboard/urgent` (tests/tax_deadline/api/test_tax_deadline_dashboard.py)
 
 Module: `users`
