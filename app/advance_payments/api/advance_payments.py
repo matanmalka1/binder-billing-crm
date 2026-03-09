@@ -60,23 +60,16 @@ def create_advance_payment(
     user: CurrentUser,
 ):
     service = AdvancePaymentService(db)
-    try:
-        payment = service.create_payment(
-            client_id=request.client_id,
-            year=request.year,
-            month=request.month,
-            due_date=request.due_date,
-            expected_amount=request.expected_amount,
-            paid_amount=request.paid_amount,
-            tax_deadline_id=request.tax_deadline_id,
-        )
-        return AdvancePaymentRow.model_validate(payment)
-    except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-    except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    payment = service.create_payment(
+        client_id=request.client_id,
+        year=request.year,
+        month=request.month,
+        due_date=request.due_date,
+        expected_amount=request.expected_amount,
+        paid_amount=request.paid_amount,
+        tax_deadline_id=request.tax_deadline_id,
+    )
+    return AdvancePaymentRow.model_validate(payment)
 
 
 @router.get("/suggest", response_model=AdvancePaymentSuggestionResponse)
@@ -108,9 +101,6 @@ def update_advance_payment(
     user: CurrentUser,
 ):
     service = AdvancePaymentService(db)
-    try:
-        update_data = request.model_dump(exclude_unset=True)
-        payment = service.update_payment(payment_id, **update_data)
-        return AdvancePaymentRow.model_validate(payment)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    update_data = request.model_dump(exclude_unset=True)
+    payment = service.update_payment(payment_id, **update_data)
+    return AdvancePaymentRow.model_validate(payment)
