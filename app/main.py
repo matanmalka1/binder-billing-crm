@@ -24,6 +24,7 @@ from app.authority_contact.api import authority_contact
 from app.charge.api import charge
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
+from app.core.exceptions import AppError, app_error_handler
 from app.correspondence.api import correspondence
 from app.health.api import health
 from app.middleware.request_id import RequestIDMiddleware
@@ -96,6 +97,7 @@ def root():
     }
 
 setup_exception_handlers(app)
+app.add_exception_handler(AppError, app_error_handler)
 
 app.add_middleware(RequestIDMiddleware)
 
