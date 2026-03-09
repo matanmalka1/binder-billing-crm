@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderListResponse, ReminderResponse

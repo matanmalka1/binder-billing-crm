@@ -146,3 +146,12 @@ async def app_error_handler(request, exc: AppError):
         status_code=exc.status_code,
         content={"error": exc.code, "message": exc.message},
     )
+
+
+async def value_error_handler(request, exc: ValueError):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=400,
+        content={"error": "VALIDATION_ERROR", "message": str(exc)},
+    )

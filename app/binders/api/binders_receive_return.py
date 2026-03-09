@@ -20,7 +20,7 @@ router = APIRouter(
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
     """Receive new binder (intake flow)."""
     service = BinderService(db)
-   signals_service = SignalsService(db)
+    signals_service = SignalsService(db)
     binder = service.receive_binder(
         client_id=request.client_id,
         binder_number=request.binder_number,

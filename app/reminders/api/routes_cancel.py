@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter
 
 from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderResponse
