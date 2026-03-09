@@ -93,20 +93,20 @@ Module: `tax_deadline`
 
 Module: `timeline`
 
-- `TimelineService.get_client_timeline`
-- `build_client_events`
-- `client_created_event`
-- `client_info_updated_event`
-- `tax_profile_updated_event`
-- `reminder_created_event`
-- `document_uploaded_event`
-- `signature_request_created_event`
+- ✅ `TimelineService.get_client_timeline` (tests/timeline/service/test_timeline_service_get_client_timeline.py)
+- ✅ `build_client_events` (tests/timeline/service/test_timeline_client_aggregator.py)
+- ✅ `client_created_event` (tests/timeline/service/test_timeline_client_builders.py)
+- ✅ `client_info_updated_event` (tests/timeline/service/test_timeline_client_builders.py)
+- ✅ `tax_profile_updated_event` (tests/timeline/service/test_timeline_client_builders.py)
+- ✅ `reminder_created_event` (tests/timeline/service/test_timeline_client_builders.py)
+- ✅ `document_uploaded_event` (tests/timeline/service/test_timeline_client_builders.py)
+- ✅ `signature_request_created_event` (tests/timeline/service/test_timeline_client_builders.py)
 - ✅ `binder_received_event` (tests/timeline/service/test_timeline_event_builders.py)
 - ✅ `binder_returned_event` (tests/timeline/service/test_timeline_event_builders.py)
 - ✅ `binder_status_change_event` (tests/timeline/service/test_timeline_event_builders.py)
-- `notification_sent_event`
+- ✅ `notification_sent_event` (tests/timeline/service/test_timeline_event_builders_additional.py)
 - ✅ `charge_created_event` (tests/timeline/service/test_timeline_event_builders.py)
-- `charge_issued_event`
+- ✅ `charge_issued_event` (tests/timeline/service/test_timeline_event_builders_additional.py)
 - ✅ `charge_paid_event` (tests/timeline/service/test_timeline_event_builders.py)
 - ✅ `invoice_attached_event` (tests/timeline/service/test_timeline_event_builders.py)
 - ✅ `tax_deadline_due_event` (tests/timeline/service/test_timeline_tax_builders.py)
@@ -179,7 +179,7 @@ Module: `tax_deadline`
 
 Module: `users`
 
-- `POST /api/v1/users/{user_id}/reset-password`
+- ✅ `POST /api/v1/users/{user_id}/reset-password` (tests/users/api/test_user_reset_password.py)
 
 Module: `vat_reports`
 
@@ -199,7 +199,8 @@ Module: `vat_reports`
 - Reminder scheduling rules:
   `send_on = target_date - days_before`, negative-day validation, default message generation, linked-entity existence checks.
 - Tax deadline urgency-summary aggregation and client-name map enrichment.
-- Timeline aggregation ordering, pagination slicing, and event fan-out across binders, charges, notifications, reminders, deadlines, annual reports, and signature requests.
+- Timeline aggregation:
+  ✅ ordering/pagination and multi-source fan-out coverage added (tests/timeline/service/test_timeline_service_get_client_timeline.py, tests/timeline/service/test_timeline_client_aggregator.py, tests/timeline/service/test_timeline_client_builders.py).
 - Aging report bucketing:
   `current`, `30`, `60`, `90+`, oldest invoice date, sort order, and cap/truncation behavior.
 - User-management policy guards:
