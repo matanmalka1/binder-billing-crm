@@ -29,7 +29,7 @@ def file_vat_return(
     - Status becomes FILED (immutable — no further edits allowed).
 
     Raises:
-        ValueError: Any rule violation.
+        AppError: Any rule violation.
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
