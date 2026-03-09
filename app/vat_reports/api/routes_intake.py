@@ -1,7 +1,7 @@
 """Routes: work item creation and material intake."""
 
-from fastapi import APIRouter, HTTPException, status
-from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, status
+
 
 from app.users.api.deps import CurrentUser, DBSession
 from app.users.models.user import UserRole
@@ -34,12 +34,6 @@ def create_work_item(
         mark_pending=request.mark_pending,
         pending_materials_note=request.pending_materials_note,
     )
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"כבר קיים פריט עבודה למע\"מ עבור לקוח {request.client_id} לתקופה {request.period}",
-        )
     return item
 
 
