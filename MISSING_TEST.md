@@ -307,7 +307,7 @@ Module: `notification_repository`
 
 Module: `permanent_document_repository`
 
-- `count_by_client`
+- ✅ `count_by_client` (tests/permanent_documents/repository/test_permanent_document_repository.py)
 
 Module: `reminder_repository`
 
@@ -321,29 +321,29 @@ Module: `reminder_repository`
 
 Module: `signature_request_repository`
 
-- `get_by_token`
-- `count_by_client`
-- `list_pending`
-- `count_pending`
-- `list_expired_pending`
-- `append_audit_event`
-- `list_audit_events`
+- ✅ `get_by_token` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `count_by_client` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `list_pending` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `count_pending` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `list_expired_pending` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `append_audit_event` (tests/signature_requests/repository/test_signature_request_repository.py)
+- ✅ `list_audit_events` (tests/signature_requests/repository/test_signature_request_repository.py)
 
 Module: `tax_deadline_repository`
 
-- `list_pending_due_by_date`
+- ✅ `list_pending_due_by_date` (tests/tax_deadline/repository/test_tax_deadline_repository.py)
 
 Module: `timeline_repository`
 
-- `list_client_binders`
+- ✅ `list_client_binders` (tests/timeline/repository/test_timeline_repository.py)
 
 Module: `user_repository`
 
-- `get_by_email`
-- `update_last_login`
-- `bump_token_version`
-- `deactivate_and_bump_token`
-- `set_password_and_bump_token`
+- ✅ `get_by_email` (tests/users/repository/test_user_repository.py)
+- ✅ `update_last_login` (tests/users/repository/test_user_repository.py)
+- ✅ `bump_token_version` (tests/users/repository/test_user_repository.py)
+- ✅ `deactivate_and_bump_token` (tests/users/repository/test_user_repository.py)
+- ✅ `set_password_and_bump_token` (tests/users/repository/test_user_repository.py)
 
 Module: `vat_reports`
 

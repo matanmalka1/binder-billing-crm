@@ -1,0 +1,132 @@
+from datetime import date, timedelta
+
+from app.clients.models import Client, ClientType
+from app.signature_requests.models.signature_request import (
+    SignatureRequestStatus,
+    SignatureRequestType,
+)
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
+from app.users.models.user import User, UserRole
+from app.users.services.auth_service import AuthService
+from app.utils.time_utils import utcnow
+
+
+def _user(test_db) -> User:
+    user = User(
+        full_name="Signature Repo User",
+        email="signature.repo@example.com",
+        password_hash=AuthService.hash_password("pass"),
+        role=UserRole.ADVISOR,
+        is_active=True,
+    )
+    test_db.add(user)
+    test_db.commit()
+    test_db.refresh(user)
+    return user
+
+
+def _client(test_db, *, suffix: str) -> Client:
+    client = Client(
+        full_name=f"Signature Repo Client {suffix}",
+        id_number=f"SIG-R-{suffix}",
+        client_type=ClientType.COMPANY,
+        opened_at=date.today(),
+    )
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+    return client
+
+
+def test_signature_request_repository_pending_expired_and_audit_methods(test_db):
+    repo = SignatureRequestRepository(test_db)
+    user = _user(test_db)
+    client_a = _client(test_db, suffix="A")
+    client_b = _client(test_db, suffix="B")
+    now = utcnow()
+
+    draft = repo.create(
+        client_id=client_a.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.CUSTOM,
+        title="Draft",
+        signer_name="Signer A",
+    )
+    expired_pending = repo.create(
+        client_id=client_a.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.CUSTOM,
+        title="Expired Pending",
+        signer_name="Signer B",
+    )
+    active_pending = repo.create(
+        client_id=client_a.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.CUSTOM,
+        title="Active Pending",
+        signer_name="Signer C",
+    )
+    other_client_pending = repo.create(
+        client_id=client_b.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.CUSTOM,
+        title="Other Client",
+        signer_name="Signer D",
+    )
+
+    repo.update(
+        expired_pending.id,
+        status=SignatureRequestStatus.PENDING_SIGNATURE,
+        signing_token="tok-expired",
+        sent_at=now - timedelta(days=2),
+        expires_at=now - timedelta(minutes=1),
+    )
+    repo.update(
+        active_pending.id,
+        status=SignatureRequestStatus.PENDING_SIGNATURE,
+        signing_token="tok-active",
+        sent_at=now - timedelta(days=1),
+        expires_at=now + timedelta(days=1),
+    )
+    repo.update(
+        other_client_pending.id,
+        status=SignatureRequestStatus.PENDING_SIGNATURE,
+        signing_token="tok-other",
+        sent_at=now - timedelta(days=3),
+        expires_at=now + timedelta(days=1),
+    )
+
+    assert repo.get_by_token("tok-active").id == active_pending.id
+    assert repo.count_by_client(client_a.id) == 3
+    assert repo.count_by_client(client_a.id, status=SignatureRequestStatus.PENDING_SIGNATURE) == 2
+
+    pending = repo.list_pending(page=1, page_size=10)
+    assert [item.id for item in pending] == [
+        other_client_pending.id,
+        expired_pending.id,
+        active_pending.id,
+    ]
+    assert repo.count_pending() == 3
+
+    expired = repo.list_expired_pending()
+    assert [item.id for item in expired] == [expired_pending.id]
+    assert draft.id not in [item.id for item in expired]
+
+    late = repo.append_audit_event(
+        signature_request_id=active_pending.id,
+        event_type="late",
+        actor_type="system",
+    )
+    early = repo.append_audit_event(
+        signature_request_id=active_pending.id,
+        event_type="early",
+        actor_type="system",
+    )
+    late.occurred_at = now + timedelta(minutes=1)
+    early.occurred_at = now - timedelta(minutes=1)
+    test_db.commit()
+
+    audit_events = repo.list_audit_events(active_pending.id)
+    assert [event.event_type for event in audit_events] == ["early", "late"]
