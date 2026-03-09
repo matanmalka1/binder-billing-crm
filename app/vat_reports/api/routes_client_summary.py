@@ -33,10 +33,7 @@ def get_vat_client_summary(
 ):
     summary_repo = VatClientSummaryRepository(db)
     client_repo = ClientRepository(db)
-    try:
-        return get_client_summary(summary_repo, client_repo, client_id=client_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+    return get_client_summary(summary_repo, client_repo, client_id=client_id)
 
 
 @router.get(
@@ -56,8 +53,6 @@ def export_vat_client(
         else:
             result = export_to_pdf(db, client_id, year)
             media_type = "application/pdf"
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except ImportError as exc:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
     except Exception:
