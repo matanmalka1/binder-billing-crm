@@ -33,7 +33,7 @@ class BillingService:
         Create new charge in draft status.
 
         Raises:
-            ValueError: If client doesn't exist or amount is invalid
+            AppError: If client doesn't exist or amount is invalid
         """
         # Validate client exists
         get_client_or_raise(self.client_repo, client_id)
@@ -61,7 +61,7 @@ class BillingService:
         - Amount and type become immutable after issue
         
         Raises:
-            ValueError: If charge not found or not in draft status
+            AppError: If charge not found or not in draft status
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
@@ -89,7 +89,7 @@ class BillingService:
         - Paid charges are immutable
         
         Raises:
-            ValueError: If charge not found or not in issued status
+            AppError: If charge not found or not in issued status
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
@@ -118,7 +118,7 @@ class BillingService:
         - Already canceled charges cannot be re-canceled
         
         Raises:
-            ValueError: If charge not found or in invalid status
+            AppError: If charge not found or in invalid status
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
@@ -146,7 +146,7 @@ class BillingService:
         - Only DRAFT charges can be deleted (use cancel for issued charges)
 
         Raises:
-            ValueError: If charge not found or not in draft status
+            AppError: If charge not found or not in draft status
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
