@@ -10,7 +10,7 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentCreateRequest,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 router = APIRouter(
     prefix="/advance-payments",

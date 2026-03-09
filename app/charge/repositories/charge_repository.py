@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.charge.models.charge import Charge, ChargeStatus
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class ChargeRepository(BaseRepository):

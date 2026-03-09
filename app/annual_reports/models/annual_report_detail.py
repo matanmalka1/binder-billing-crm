@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, Text
 
 from app.database import Base
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class AnnualReportDetail(Base):

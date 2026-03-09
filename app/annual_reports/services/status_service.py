@@ -4,7 +4,7 @@ from datetime import datetime
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import AnnualReport, AnnualReportStatus, DeadlineType
 from app.annual_reports.schemas.annual_report import AnnualReportResponse
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 from .constants import VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService

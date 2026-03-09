@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.common.repositories import BaseRepository
 from app.annual_reports.models import AnnualReport, AnnualReportStatus
 from app.clients.models.client import Client
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 _SORT_COLUMNS = {

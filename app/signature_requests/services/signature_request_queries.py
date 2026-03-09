@@ -8,7 +8,7 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.helpers import get_or_raise
+from app.signature_requests.services.signature_request_validations import get_or_raise
 
 
 def get_request(repo: SignatureRequestRepository, request_id: int) -> Optional[SignatureRequest]:

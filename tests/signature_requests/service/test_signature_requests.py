@@ -8,7 +8,7 @@ from app.signature_requests.repositories.signature_request_repository import Sig
 from app.signature_requests.services import SignatureRequestService
 from app.signature_requests.services.admin_actions import expire_overdue_requests
 from app.core.exceptions import AppError
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 def _client(db) -> Client:

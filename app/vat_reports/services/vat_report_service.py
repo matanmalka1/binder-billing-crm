@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services import data_entry, filing, intake, queries
+from app.vat_reports.services import data_entry, filing, intake, vat_report_queries
 
 
 class VatReportService:
@@ -66,19 +66,19 @@ class VatReportService:
     # ── Queries ──────────────────────────────────────────────────────────────
 
     def get_work_item(self, item_id: int):
-        return queries.get_work_item(self.work_item_repo, item_id)
+        return vat_report_queries.get_work_item(self.work_item_repo, item_id)
 
     def list_client_work_items(self, client_id: int):
-        return queries.list_client_work_items(self.work_item_repo, client_id)
+        return vat_report_queries.list_client_work_items(self.work_item_repo, client_id)
 
     def list_work_items_by_status(self, **kwargs):
-        return queries.list_work_items_by_status(self.work_item_repo, **kwargs)
+        return vat_report_queries.list_work_items_by_status(self.work_item_repo, **kwargs)
 
     def list_all_work_items(self, **kwargs):
-        return queries.list_all_work_items(self.work_item_repo, **kwargs)
+        return vat_report_queries.list_all_work_items(self.work_item_repo, **kwargs)
 
     def list_invoices(self, **kwargs):
-        return queries.list_invoices(self.invoice_repo, **kwargs)
+        return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
     def get_audit_trail(self, item_id: int):
-        return queries.get_audit_trail(self.work_item_repo, item_id)
+        return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)

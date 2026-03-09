@@ -30,7 +30,7 @@ from sqlalchemy import (
 )
 
 from app.database import Base
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class SignatureRequestStatus(str, PyEnum):

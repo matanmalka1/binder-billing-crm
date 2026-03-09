@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, JSON, Text
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class AnnualReportAnnexData(Base):

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class ClientTypeForReport(str, PyEnum):

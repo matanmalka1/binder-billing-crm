@@ -9,8 +9,8 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.utils.time import utcnow
-from app.signature_requests.services.helpers import get_or_raise
+from app.utils.time_utils import utcnow
+from app.signature_requests.services.signature_request_validations import get_or_raise
 
 
 DEFAULT_EXPIRY_DAYS = 14

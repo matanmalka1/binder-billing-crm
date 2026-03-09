@@ -3,7 +3,7 @@ from enum import Enum as PyEnum
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class NotificationChannel(str, PyEnum):

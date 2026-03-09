@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus, BinderType
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class BinderRepository(BaseRepository):

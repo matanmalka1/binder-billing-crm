@@ -10,7 +10,7 @@ from app.annual_reports.models import (
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.users.repositories.user_repository import UserRepository
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService

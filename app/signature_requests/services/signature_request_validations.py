@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 def get_or_raise(repo: SignatureRequestRepository, request_id: int) -> SignatureRequest:

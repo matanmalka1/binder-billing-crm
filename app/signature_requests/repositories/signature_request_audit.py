@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.signature_requests.models.signature_request import SignatureAuditEvent
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class SignatureRequestAuditMixin:

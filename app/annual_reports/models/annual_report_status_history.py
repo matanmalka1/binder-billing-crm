@@ -4,7 +4,7 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class AnnualReportStatusHistory(Base):

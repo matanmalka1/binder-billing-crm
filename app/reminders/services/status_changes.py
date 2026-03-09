@@ -3,7 +3,7 @@ from __future__ import annotations
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 def mark_sent(reminder_repo: ReminderRepository, reminder_id: int) -> Reminder:

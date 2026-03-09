@@ -27,7 +27,7 @@ from sqlalchemy import (
 )
 
 from app.database import Base
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 
 

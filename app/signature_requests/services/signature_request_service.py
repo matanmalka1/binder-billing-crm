@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.clients.repositories.client_repository import ClientRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services import admin_actions, create_request, queries, send_request, signer_actions
+from app.signature_requests.services import (
+    admin_actions,
+    create_request,
+    send_request,
+    signature_request_queries,
+    signer_actions,
+)
 
 
 class SignatureRequestService:
@@ -45,16 +51,16 @@ class SignatureRequestService:
 
     # Queries
     def get_request(self, request_id: int):
-        return queries.get_request(self.repo, request_id)
+        return signature_request_queries.get_request(self.repo, request_id)
 
     def get_by_token(self, token: str):
-        return queries.get_by_token(self.repo, token)
+        return signature_request_queries.get_by_token(self.repo, token)
 
     def list_client_requests(self, **kwargs):
-        return queries.list_client_requests(self.repo, **kwargs)
+        return signature_request_queries.list_client_requests(self.repo, **kwargs)
 
     def list_pending_requests(self, **kwargs):
-        return queries.list_pending_requests(self.repo, **kwargs)
+        return signature_request_queries.list_pending_requests(self.repo, **kwargs)
 
     def get_audit_trail(self, request_id: int):
-        return queries.get_audit_trail(self.repo, request_id)
+        return signature_request_queries.get_audit_trail(self.repo, request_id)

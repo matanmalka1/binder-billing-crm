@@ -8,7 +8,7 @@ from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxD
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class TaxDeadlineService:

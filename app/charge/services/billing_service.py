@@ -9,7 +9,7 @@ from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, Charge
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.users.models.user import UserRole
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class BillingService:

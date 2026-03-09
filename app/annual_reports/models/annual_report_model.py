@@ -20,7 +20,7 @@ from app.annual_reports.models.annual_report_enums import (
     ClientTypeForReport,
     DeadlineType,
 )
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class AnnualReport(Base):

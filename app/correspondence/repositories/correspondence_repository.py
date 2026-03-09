@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class CorrespondenceRepository:

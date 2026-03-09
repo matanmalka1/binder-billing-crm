@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem

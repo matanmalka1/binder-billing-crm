@@ -6,7 +6,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.reminders.services import factory, queries, status_changes
+from app.reminders.services import factory, reminder_queries, status_changes
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 
@@ -42,16 +42,16 @@ class ReminderService:
 
     # Queries
     def get_reminders(self, **kwargs):
-        return queries.get_reminders(self.reminder_repo, self.client_repo, **kwargs)
+        return reminder_queries.get_reminders(self.reminder_repo, self.client_repo, **kwargs)
 
     def get_pending_reminders(self, **kwargs):
-        return queries.get_pending_reminders(self.reminder_repo, self.client_repo, **kwargs)
+        return reminder_queries.get_pending_reminders(self.reminder_repo, self.client_repo, **kwargs)
 
     def get_reminders_by_client(self, **kwargs):
-        return queries.get_reminders_by_client(self.reminder_repo, self.client_repo, **kwargs)
+        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.client_repo, **kwargs)
 
     def get_reminder(self, reminder_id: int):
-        return queries.get_reminder(self.reminder_repo, reminder_id)
+        return reminder_queries.get_reminder(self.reminder_repo, reminder_id)
 
     # Status changes
     def mark_sent(self, reminder_id: int):

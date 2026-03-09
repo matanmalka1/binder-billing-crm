@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.notification.models.notification import Notification, NotificationChannel, NotificationStatus, NotificationTrigger
-from app.utils.time import utcnow
+from app.utils.time_utils import utcnow
 
 
 class NotificationRepository:

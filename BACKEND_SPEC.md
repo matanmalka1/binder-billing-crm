@@ -9,7 +9,7 @@
 - **Error handling:** `app/core/exceptions.py` wraps HTTPException/validation/DB errors into standard envelope. Routers raise `HTTPException` with plain strings.
 - **Pagination:** Most list endpoints paginate via offset in repo. Exceptions: clients `has_signals` filter, tax-deadlines global list, timeline aggregation, and mixed search results paginate in memory after full fetch.
 - **Enum handling:** Business enums are `str` subclasses defined beside models. Invalid values return 400.
-- **Timestamps:** `utils.time.utcnow()` — naive UTC everywhere.
+- **Timestamps:** `utils.time_utils.utcnow()` — naive UTC everywhere.
 - **Derived state:** `work_state` and signals are computed in `WorkStateService`/`SignalsService`, never persisted.
 - **Storage:** `LocalStorageProvider` — local filesystem only, no S3.
 - **Notifications:** Triggered by binder intake; WhatsApp/Email channels are stubs.
