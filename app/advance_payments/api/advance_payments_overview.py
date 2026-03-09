@@ -22,10 +22,7 @@ def list_advance_payments_overview(
 ):
     resolved_statuses = None
     if status:
-        try:
-            resolved_statuses = [AdvancePaymentStatus(s) for s in status]
-        except ValueError:
-            raise HTTPException(status_code=400, detail="סטטוס לא חוקי")
+        resolved_statuses = [AdvancePaymentStatus(s) for s in status]
 
     service = AdvancePaymentService(db)
     rows, total = service.list_overview(
