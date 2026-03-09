@@ -36,18 +36,15 @@ def create_tax_deadline(
     """Create new tax deadline."""
     service = TaxDeadlineService(db)
 
-    try:
-        deadline_type = DeadlineType(request.deadline_type)
-        deadline = service.create_deadline(
-            client_id=request.client_id,
-            deadline_type=deadline_type,
-            due_date=request.due_date,
-            payment_amount=request.payment_amount,
-            description=request.description,
-        )
-        return TaxDeadlineResponse.model_validate(deadline)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    deadline_type = DeadlineType(request.deadline_type)
+    deadline = service.create_deadline(
+        client_id=request.client_id,
+        deadline_type=deadline_type,
+        due_date=request.due_date,
+        payment_amount=request.payment_amount,
+        description=request.description,
+    )
+    return TaxDeadlineResponse.model_validate(deadline)
 
 
 @router.get("", response_model=TaxDeadlineListResponse)
@@ -102,10 +99,7 @@ def list_tax_deadlines(
 def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Get tax deadline by ID."""
     service = TaxDeadlineService(db)
-    try:
-        deadline = service.get_deadline(deadline_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    deadline = service.get_deadline(deadline_id)
     return TaxDeadlineResponse.model_validate(deadline)
 
 
@@ -114,11 +108,8 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Mark deadline as completed."""
     service = TaxDeadlineService(db)
 
-    try:
-        deadline = service.mark_completed(deadline_id)
-        return TaxDeadlineResponse.model_validate(deadline)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    deadline = service.mark_completed(deadline_id)
+    return TaxDeadlineResponse.model_validate(deadline)
 
 
 @router.put("/{deadline_id}", response_model=TaxDeadlineResponse)
@@ -141,27 +132,21 @@ def update_tax_deadline(
                 detail=f"סוג מועד המס אינו תקין: {request.deadline_type}",
             )
 
-    try:
-        deadline = service.update_deadline(
-            deadline_id,
-            deadline_type=deadline_type,
-            due_date=request.due_date,
-            payment_amount=request.payment_amount,
-            description=request.description,
-        )
-        return TaxDeadlineResponse.model_validate(deadline)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    deadline = service.update_deadline(
+        deadline_id,
+        deadline_type=deadline_type,
+        due_date=request.due_date,
+        payment_amount=request.payment_amount,
+        description=request.description,
+    )
+    return TaxDeadlineResponse.model_validate(deadline)
 
 
 @router.delete("/{deadline_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Delete a tax deadline."""
     service = TaxDeadlineService(db)
-    try:
-        service.delete_deadline(deadline_id)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    service.delete_deadline(deadline_id)
 
 
 @router.get("/dashboard/urgent", response_model=DashboardDeadlinesResponse)
