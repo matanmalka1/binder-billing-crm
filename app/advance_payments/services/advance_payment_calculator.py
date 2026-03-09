@@ -5,6 +5,7 @@ No DB access — all inputs are passed as arguments.
 
 from decimal import ROUND_HALF_UP, Decimal
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 
 def derive_annual_income_from_vat(
     total_output_vat: Decimal,
@@ -12,7 +13,7 @@ def derive_annual_income_from_vat(
 ) -> Decimal:
     """Reverse-calculate annual taxable income from total output VAT."""
     if vat_rate == 0:
-        raise ValueError("שיעור המע״מ לא יכול להיות אפס")
+        raise AppError("שיעור המע״מ לא יכול להיות אפס", "ADVANCE_PAYMENT.RATE_INVALID")
     return total_output_vat / vat_rate
 
 
