@@ -36,21 +36,18 @@ def add_invoice(
     Accessible by: secretary, advisor.
     """
     service = VatReportService(db)
-    try:
-        invoice = service.add_invoice(
-            item_id=item_id,
-            created_by=current_user.id,
-            invoice_type=request.invoice_type,
-            invoice_number=request.invoice_number,
-            invoice_date=request.invoice_date,
-            counterparty_name=request.counterparty_name,
-            net_amount=float(request.net_amount),
-            vat_amount=float(request.vat_amount),
-            counterparty_id=request.counterparty_id,
-            expense_category=request.expense_category,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    invoice = service.add_invoice(
+        item_id=item_id,
+        created_by=current_user.id,
+        invoice_type=request.invoice_type,
+        invoice_number=request.invoice_number,
+        invoice_date=request.invoice_date,
+        counterparty_name=request.counterparty_name,
+        net_amount=float(request.net_amount),
+        vat_amount=float(request.vat_amount),
+        counterparty_id=request.counterparty_id,
+        expense_category=request.expense_category,
+    )
     return invoice
 
 
@@ -86,14 +83,11 @@ def delete_invoice(
     Not allowed after filing.
     """
     service = VatReportService(db)
-    try:
-        deleted = service.delete_invoice(
-            item_id=item_id,
-            invoice_id=invoice_id,
-            performed_by=current_user.id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    deleted = service.delete_invoice(
+        item_id=item_id,
+        invoice_id=invoice_id,
+        performed_by=current_user.id,
+    )
 
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
@@ -114,13 +108,10 @@ def mark_ready_for_review(
     Accessible by: secretary, advisor.
     """
     service = VatReportService(db)
-    try:
-        item = service.mark_ready_for_review(
-            item_id=item_id,
-            performed_by=current_user.id,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    item = service.mark_ready_for_review(
+        item_id=item_id,
+        performed_by=current_user.id,
+    )
     return item
 
 
@@ -139,12 +130,9 @@ def send_back_for_correction(
     READY_FOR_REVIEW → DATA_ENTRY_IN_PROGRESS.
     """
     service = VatReportService(db)
-    try:
-        item = service.send_back_for_correction(
-            item_id=item_id,
-            performed_by=current_user.id,
-            correction_note=request.correction_note,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    item = service.send_back_for_correction(
+        item_id=item_id,
+        performed_by=current_user.id,
+        correction_note=request.correction_note,
+    )
     return item
