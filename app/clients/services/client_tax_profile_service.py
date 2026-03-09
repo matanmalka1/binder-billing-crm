@@ -2,6 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.models.client_tax_profile import ClientTaxProfile
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
@@ -19,5 +20,5 @@ class ClientTaxProfileService:
     def update_profile(self, client_id: int, **fields) -> ClientTaxProfile:
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise ValueError(f"לקוח {client_id} לא נמצא")
+            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
         return self.repo.upsert(client_id, **fields)
