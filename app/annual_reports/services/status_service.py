@@ -13,7 +13,7 @@ from .base import AnnualReportBaseService
 class AnnualReportStatusService(AnnualReportBaseService):
 
     def _assert_filing_readiness(self, report_id: int) -> None:
-        """Raise ValueError listing all blocking issues before SUBMITTED transition."""
+        """Raise AppError listing all blocking issues before SUBMITTED transition."""
         from app.annual_reports.services.financial_service import AnnualReportFinancialService
         svc = AnnualReportFinancialService(self.db)
         result = svc.get_readiness_check(report_id)
