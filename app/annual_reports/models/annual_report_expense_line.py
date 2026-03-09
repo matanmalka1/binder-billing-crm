@@ -51,6 +51,7 @@ class AnnualReportExpenseLine(Base):
     category = Column(Enum(ExpenseCategoryType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
     recognition_rate = Column(Numeric(5, 2), nullable=False, default=Decimal("1.00"))
+    supporting_document_ref = Column(String(255), nullable=True)
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

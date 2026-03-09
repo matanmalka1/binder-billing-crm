@@ -102,7 +102,7 @@ def delete_income_line(report_id: int, line_id: int, db: DBSession, user: Curren
 )
 def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    return svc.add_expense(report_id, body.category, body.amount, body.description, body.recognition_rate)
+    return svc.add_expense(report_id, body.category, body.amount, body.description, body.recognition_rate, body.supporting_document_ref)
 
 
 @router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse)

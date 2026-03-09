@@ -176,7 +176,7 @@
 ---
 
 ## [P2] 5.3 — מודאל הוספת ניכוי (Add Deduction Modal Fields)
-**Status:** PARTIAL
+**Status:** DONE
 **Gap:** Expense creation endpoint lacks `supporting_document_ref` and `recognition_rate` fields; `calculated_recognized_value` is not returned.
 **Files to touch:**
 - `app/annual_reports/models/annual_report_detail.py` — add `supporting_document_ref: String(255), nullable`
@@ -187,7 +187,7 @@
 ---
 
 ## [P2] 5.4 — לוח זיכויים אישיים (Personal Credits Breakdown)
-**Status:** PARTIAL
+**Status:** DONE
 **Gap:** `credit_points` is stored as an aggregate; individual credit sources (pension, life insurance, tuition) are not tracked as separate line items.
 **Files to touch:**
 - `app/annual_reports/models/annual_report_detail.py` — add `pension_credit_points`, `life_insurance_credit_points`, `tuition_credit_points` optional fields

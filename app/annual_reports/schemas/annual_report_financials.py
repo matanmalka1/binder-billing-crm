@@ -40,6 +40,7 @@ class ExpenseLineCreateRequest(BaseModel):
     amount: Decimal
     description: Optional[str] = None
     recognition_rate: Optional[Decimal] = None  # defaults to statutory rate for category
+    supporting_document_ref: Optional[str] = None
 
 
 class ExpenseLineUpdateRequest(BaseModel):
@@ -47,6 +48,7 @@ class ExpenseLineUpdateRequest(BaseModel):
     amount: Optional[Decimal] = None
     description: Optional[str] = None
     recognition_rate: Optional[Decimal] = None
+    supporting_document_ref: Optional[str] = None
 
 
 class ExpenseLineResponse(BaseModel):
@@ -56,6 +58,7 @@ class ExpenseLineResponse(BaseModel):
     amount: float
     recognition_rate: float
     recognized_amount: float = 0.0
+    supporting_document_ref: Optional[str] = None
     description: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None

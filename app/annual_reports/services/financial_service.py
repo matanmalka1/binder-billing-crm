@@ -90,6 +90,7 @@ class AnnualReportFinancialService:
         amount: Decimal,
         description: Optional[str] = None,
         recognition_rate: Optional[Decimal] = None,
+        supporting_document_ref: Optional[str] = None,
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
@@ -99,7 +100,7 @@ class AnnualReportFinancialService:
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         cat = ExpenseCategoryType(category)
-        line = self.expense_repo.add(report_id, cat, amount, description, recognition_rate)
+        line = self.expense_repo.add(report_id, cat, amount, description, recognition_rate, supporting_document_ref)
         return ExpenseLineResponse.model_validate(line)
 
     def update_expense(
@@ -146,7 +147,11 @@ class AnnualReportFinancialService:
     def get_tax_calculation(self, report_id: int) -> TaxCalculationResponse:
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
-        credit_points = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
+        base_cp = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
+        pension_cp = float(detail.pension_credit_points) if (detail and detail.pension_credit_points is not None) else 0.0
+        life_ins_cp = float(detail.life_insurance_credit_points) if (detail and detail.life_insurance_credit_points is not None) else 0.0
+        tuition_cp = float(detail.tuition_credit_points) if (detail and detail.tuition_credit_points is not None) else 0.0
+        credit_points = base_cp + pension_cp + life_ins_cp + tuition_cp
         pension_deduction = float(detail.pension_contribution) if (detail and detail.pension_contribution is not None) else 0.0
         donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0

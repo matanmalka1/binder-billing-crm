@@ -11,6 +11,9 @@ class ReportDetailResponse(BaseModel):
     tax_due_amount: Optional[float] = None
     client_approved_at: Optional[datetime] = None
     credit_points: Optional[float] = None
+    pension_credit_points: Optional[float] = None
+    life_insurance_credit_points: Optional[float] = None
+    tuition_credit_points: Optional[float] = None
     pension_contribution: Optional[float] = None
     donation_amount: Optional[float] = None
     other_credits: Optional[float] = None
@@ -27,6 +30,9 @@ class AnnualReportDetailUpdateRequest(BaseModel):
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
     credit_points: Optional[float] = None
+    pension_credit_points: Optional[float] = None
+    life_insurance_credit_points: Optional[float] = None
+    tuition_credit_points: Optional[float] = None
     pension_contribution: Optional[float] = None
     donation_amount: Optional[float] = None
     other_credits: Optional[float] = None
