@@ -87,7 +87,7 @@ def test_annual_report_detail_missing_report_returns_404(client, advisor_headers
         headers=advisor_headers,
     )
     assert response.status_code == 404
-    assert response.json()["detail"] == "Annual report not found"
+    assert response.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
 
     patch_response = client.patch(
         "/api/v1/annual-reports/999/details",
@@ -95,4 +95,4 @@ def test_annual_report_detail_missing_report_returns_404(client, advisor_headers
         json={"tax_due_amount": 10},
     )
     assert patch_response.status_code == 404
-    assert patch_response.json()["detail"] == "Annual report not found"
+    assert patch_response.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
