@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -39,21 +40,25 @@ def add_invoice(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
+        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_editable(item)
 
     if vat_amount < 0:
-        raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
+        raise AppError("negative: הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
     if net_amount <= 0:
-        raise ValueError("הסכום נטו חייב להיות חיובי")
+        raise AppError("positive: הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
     if invoice_type == InvoiceType.EXPENSE and not expense_category:
-        raise ValueError("חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה")
+        raise AppError(
+            "expense_category: חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
+            "VAT.EXPENSE_CATEGORY_REQUIRED",
+        )
 
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)
     if existing:
-        raise ValueError(
-            f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה"
+        raise ConflictError(
+            f"already exists: מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
+            "VAT.CONFLICT",
         )
 
     original_status = item.status
@@ -72,8 +77,9 @@ def add_invoice(
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
         VatWorkItemStatus.READY_FOR_REVIEW,
     ):
-        raise ValueError(
-            f"לא ניתן להוסיף חשבוניות לפריט עבודה במצב {original_status.value}"
+        raise AppError(
+            f"לא ניתן להוסיף חשבוניות לפריט עבודה במצב {original_status.value}",
+            "VAT.INVALID_STATUS",
         )
 
     invoice = invoice_repo.create(
@@ -120,14 +126,15 @@ def delete_invoice(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise ValueError(f"פריט עבודה {item_id} למע\"מ לא נמצא")
+        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_editable(item)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
-        raise ValueError(
-            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}"
+        raise NotFoundError(
+            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}",
+            "VAT.NOT_FOUND",
         )
 
     snapshot = audit_invoice_snapshot(invoice)
