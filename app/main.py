@@ -13,6 +13,7 @@ from app.annual_reports.api import (
     annual_report_financials,
     annual_report_schedule,
     annual_report_season,
+    annual_report_kanban,
     annual_report_status,
 )
 from app.binders.api import binders, binders_history, binders_operations
@@ -127,6 +128,7 @@ app.include_router(annual_report_detail.router, prefix="/api/v1")
 app.include_router(annual_report_financials.router, prefix="/api/v1")
 app.include_router(annual_report_create_read.router, prefix="/api/v1")
 app.include_router(annual_report_schedule.router, prefix="/api/v1")
+app.include_router(annual_report_kanban.router, prefix="/api/v1")
 app.include_router(annual_report_status.router, prefix="/api/v1")
 app.include_router(annual_report_client.clients_router, prefix="/api/v1")
 app.include_router(annual_report_season.season_router, prefix="/api/v1")
