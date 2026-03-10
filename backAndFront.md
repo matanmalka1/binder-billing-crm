@@ -408,17 +408,17 @@ Neither is called from any rendered component — status history is completely i
 
 | Task | Domain | Type | Severity | BE Files | FE Files | New Files |
 |------|--------|------|----------|----------|----------|-----------|
-| 1 | Annual Reports | Missing backend endpoint | **Critical** | 1 | 0 | 0 |
-| 2 | Annual Reports | Missing backend endpoint + dead FE code | **Critical** | 2 | 1 | 0 |
-| 3 | Annual Reports | Missing backend endpoint — Kanban broken | **Critical** | 3 | 0 | 1 BE |
-| 4 | Annual Reports | Missing backend endpoint | **Critical** | 1 | 0 | 0 |
-| 5 | Users | Silently ignored filter | **Critical** | 3 | 0 | 0 |
-| 6 | Annual Reports | Wrong TypeScript type | Medium | 0 | 1 | 0 |
-| 7 | Auth | Incomplete TypeScript type | Low | 0 | 1 | 0 |
-| 8 | Charges | Missing UI + unused backend field | Low | 0 | 2 | 0 |
-| 9 | Users | Incomplete TypeScript type | Low | 0 | 1 | 0 |
-| 10 | Binders | Missing UI component | Low | 0 | 2 | 1 FE |
-| 11 | Annual Reports | Missing UI component (needs Task 1) | Low | 0 | 2 | 0 |
+| 1 ✅ | Annual Reports | Missing backend endpoint | **Critical** | 1 | 0 | 0 |
+| 2 ✅ | Annual Reports | Missing backend endpoint + dead FE code | **Critical** | 2 | 1 | 0 |
+| 3 ✅ | Annual Reports | Missing backend endpoint — Kanban broken | **Critical** | 3 | 0 | 1 BE |
+| 4 ✅ | Annual Reports | Missing backend endpoint | **Critical** | 1 | 0 | 0 |
+| 5 ✅ | Users | Silently ignored filter | **Critical** | 3 | 0 | 0 |
+| 6 ✅ | Annual Reports | Wrong TypeScript type | Medium | 0 | 1 | 0 |
+| 7 ✅ | Auth | Incomplete TypeScript type | Low | 0 | 1 | 0 |
+| 8 ✅ | Charges | Missing UI + unused backend field | Low | 0 | 2 | 0 |
+| 9 ✅ | Users | Incomplete TypeScript type | Low | 0 | 1 | 0 |
+| 10 ✅ | Binders | Missing UI component | Low | 0 | 2 | 1 FE |
+| 11 ✅ | Annual Reports | Missing UI component (needs Task 1) | Low | 0 | 2 | 0 |
 
 **No Alembic migrations required for any task.**
 All backend changes expose existing service/schema/model infrastructure via new HTTP routes or add filter params.
