@@ -68,3 +68,38 @@ def test_update_deadline_sets_extended_date(client, test_db, advisor_headers):
     assert body["deadline_type"] == "extended"
     # Extended deadline should be Jan 31 two years after tax year
     assert body["filing_deadline"].startswith("2028-01-31")
+
+
+def test_get_status_history_returns_ordered_entries(client, test_db, advisor_headers):
+    report_id = _create_report(test_db)
+    client.post(
+        f"/api/v1/annual-reports/{report_id}/status",
+        headers=advisor_headers,
+        json={"status": "collecting_docs"},
+    )
+    client.post(
+        f"/api/v1/annual-reports/{report_id}/status",
+        headers=advisor_headers,
+        json={"status": "docs_complete"},
+    )
+
+    resp = client.get(
+        f"/api/v1/annual-reports/{report_id}/history",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body, list)
+    assert len(body) >= 2
+    assert body[-2]["to_status"] == "collecting_docs"
+    assert body[-1]["to_status"] == "docs_complete"
+    assert body[-1]["annual_report_id"] == report_id
+
+
+def test_get_status_history_returns_404_for_missing_report(client, advisor_headers):
+    resp = client.get(
+        "/api/v1/annual-reports/999999/history",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
