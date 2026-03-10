@@ -2,11 +2,14 @@ from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.core.exceptions import NotFoundError
 from app.annual_reports.schemas import (
+    AnnualReportDetailResponse,
     AnnualReportResponse,
     DeadlineUpdateRequest,
     StatusHistoryResponse,
     StatusTransitionRequest,
+    SubmitRequest,
 )
 from app.annual_reports.services import AnnualReportService
 
@@ -44,6 +47,29 @@ def transition_status(
         tax_due=float(body.tax_due) if body.tax_due else None,
     )
     return report
+
+
+@router.post("/{report_id}/submit", response_model=AnnualReportDetailResponse)
+def submit_report(
+    report_id: int,
+    body: SubmitRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    service = AnnualReportService(db)
+    service.transition_status(
+        report_id=report_id,
+        new_status="submitted",
+        changed_by=user.id,
+        changed_by_name=user.full_name,
+        note=body.note,
+        ita_reference=body.ita_reference,
+        submitted_at=body.submitted_at,
+    )
+    detail = service.get_detail_report(report_id)
+    if detail is None:
+        raise NotFoundError("Annual report not found", "ANNUAL_REPORT.NOT_FOUND")
+    return detail
 
 
 @router.post("/{report_id}/deadline", response_model=AnnualReportResponse)

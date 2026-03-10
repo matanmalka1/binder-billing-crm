@@ -103,3 +103,36 @@ def test_get_status_history_returns_404_for_missing_report(client, advisor_heade
     )
     assert resp.status_code == 404
     assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+
+
+def test_submit_endpoint_exists(client, test_db, advisor_headers):
+    report_id = _create_report(test_db)
+
+    resp = client.post(
+        f"/api/v1/annual-reports/{report_id}/submit",
+        headers=advisor_headers,
+        json={},
+    )
+    assert resp.status_code != 404
+
+
+def test_submit_invalid_transition_returns_400(client, test_db, advisor_headers):
+    report_id = _create_report(test_db)
+
+    resp = client.post(
+        f"/api/v1/annual-reports/{report_id}/submit",
+        headers=advisor_headers,
+        json={},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "ANNUAL_REPORT.INVALID_STATUS"
+
+
+def test_submit_not_found_returns_404(client, advisor_headers):
+    resp = client.post(
+        "/api/v1/annual-reports/999999/submit",
+        headers=advisor_headers,
+        json={},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
