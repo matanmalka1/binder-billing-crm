@@ -40,6 +40,33 @@ def test_advisor_can_create_list_and_get_users(client, advisor_headers):
     assert get_response.json()["email"] == "new.secretary@example.com"
 
 
+def test_list_users_supports_is_active_filter(client, advisor_headers, test_db):
+    active_user = _make_user(test_db, "active.only@example.com")
+    inactive_user = _make_user(test_db, "inactive.only@example.com")
+    inactive_user.is_active = False
+    test_db.commit()
+
+    all_response = client.get("/api/v1/users", headers=advisor_headers)
+    assert all_response.status_code == 200
+    all_ids = {item["id"] for item in all_response.json()["items"]}
+    assert active_user.id in all_ids
+    assert inactive_user.id in all_ids
+
+    active_response = client.get("/api/v1/users?is_active=true", headers=advisor_headers)
+    assert active_response.status_code == 200
+    active_body = active_response.json()
+    assert active_body["total"] >= 2
+    assert all(item["is_active"] is True for item in active_body["items"])
+    assert inactive_user.id not in {item["id"] for item in active_body["items"]}
+
+    inactive_response = client.get("/api/v1/users?is_active=false", headers=advisor_headers)
+    assert inactive_response.status_code == 200
+    inactive_body = inactive_response.json()
+    assert inactive_body["total"] == 1
+    assert {item["id"] for item in inactive_body["items"]} == {inactive_user.id}
+    assert all(item["is_active"] is False for item in inactive_body["items"])
+
+
 def test_secretary_cannot_access_user_management(client, secretary_headers):
     response = client.get("/api/v1/users", headers=secretary_headers)
     assert response.status_code == 403

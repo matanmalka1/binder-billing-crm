@@ -47,10 +47,16 @@ class UserManagementService:
             target_user_id=user.id,
         )
         return user
-    def list_users(self, actor_role: UserRole, page: int, page_size: int):
+    def list_users(
+        self,
+        actor_role: UserRole,
+        page: int,
+        page_size: int,
+        is_active: Optional[bool] = None,
+    ):
         ensure_advisor(actor_role)
-        items = self.user_repo.list(page=page, page_size=page_size)
-        total = self.user_repo.count()
+        items = self.user_repo.list(page=page, page_size=page_size, is_active=is_active)
+        total = self.user_repo.count(is_active=is_active)
         return items, total
     def get_user(self, actor_role: UserRole, user_id: int) -> Optional[User]:
         ensure_advisor(actor_role)

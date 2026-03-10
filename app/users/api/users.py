@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from typing import Optional
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -38,9 +39,15 @@ def list_users(
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    is_active: Optional[bool] = Query(None),
 ):
     service = UserManagementService(db)
-    items, total = service.list_users(actor_role=user.role, page=page, page_size=page_size)
+    items, total = service.list_users(
+        actor_role=user.role,
+        page=page,
+        page_size=page_size,
+        is_active=is_active,
+    )
     return UserManagementListResponse(items=items, page=page, page_size=page_size, total=total)
 
 

@@ -21,20 +21,25 @@ class UserRepository(BaseRepository):
         """Retrieve user by email."""
         return self.db.query(User).filter(User.email == email).first()
 
-    def list(self, page: int = 1, page_size: int = 20) -> list[User]:
+    def list(
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        is_active: Optional[bool] = None,
+    ) -> list[User]:
         """List users with pagination."""
         offset = (page - 1) * page_size
-        return (
-            self.db.query(User)
-            .order_by(User.id.asc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        query = self.db.query(User)
+        if is_active is not None:
+            query = query.filter(User.is_active == is_active)
+        return query.order_by(User.id.asc()).offset(offset).limit(page_size).all()
 
-    def count(self) -> int:
+    def count(self, is_active: Optional[bool] = None) -> int:
         """Count users."""
-        return self.db.query(User).count()
+        query = self.db.query(User)
+        if is_active is not None:
+            query = query.filter(User.is_active == is_active)
+        return query.count()
 
     def create(
         self,

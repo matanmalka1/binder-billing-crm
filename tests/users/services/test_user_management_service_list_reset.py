@@ -6,13 +6,13 @@ from app.users.services.auth_service import AuthService
 from app.users.services.user_management_service import UserManagementService
 
 
-def _managed_user(test_db, *, email: str) -> User:
+def _managed_user(test_db, *, email: str, is_active: bool = True) -> User:
     user = User(
         full_name="Managed Account",
         email=email,
         password_hash=AuthService.hash_password("password123"),
         role=UserRole.SECRETARY,
-        is_active=True,
+        is_active=is_active,
     )
     test_db.add(user)
     test_db.commit()
@@ -24,11 +24,30 @@ def test_list_users_and_reset_password(test_db, test_user):
     service = UserManagementService(test_db)
     user_repo = UserRepository(test_db)
     target = _managed_user(test_db, email="reset.target@example.com")
-    _managed_user(test_db, email="reset.other@example.com")
+    inactive = _managed_user(test_db, email="reset.other@example.com", is_active=False)
 
     items, total = service.list_users(actor_role=UserRole.ADVISOR, page=1, page_size=10)
     assert total >= 3
     assert target.id in {u.id for u in items}
+    assert inactive.id in {u.id for u in items}
+
+    active_items, active_total = service.list_users(
+        actor_role=UserRole.ADVISOR,
+        page=1,
+        page_size=10,
+        is_active=True,
+    )
+    assert active_total == 2
+    assert all(item.is_active is True for item in active_items)
+
+    inactive_items, inactive_total = service.list_users(
+        actor_role=UserRole.ADVISOR,
+        page=1,
+        page_size=10,
+        is_active=False,
+    )
+    assert inactive_total == 1
+    assert {item.id for item in inactive_items} == {inactive.id}
 
     before_token_version = user_repo.get_by_id(target.id).token_version
     updated = service.reset_password(
