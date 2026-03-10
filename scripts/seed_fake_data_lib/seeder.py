@@ -5,9 +5,12 @@ from typing import Dict
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.annual_reports.models.annual_report_expense_line import AnnualReportExpenseLine
+from app.annual_reports.models.annual_report_income_line import AnnualReportIncomeLine
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
+from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.authority_contact.models.authority_contact import AuthorityContact
 from app.binders.models.binder import Binder
 from app.binders.models.binder_status_log import BinderStatusLog
@@ -68,6 +71,9 @@ class Seeder:
             contacts.create_client_tax_profiles(db, self.rng, seeded_clients)
             contacts.create_correspondence(db, self.rng, seeded_clients, seeded_users)
             reports.create_annual_report_details(db, self.rng, seeded_reports)
+            reports.create_annual_report_income_lines(db, self.rng, seeded_reports)
+            reports.create_annual_report_expense_lines(db, self.rng, seeded_reports)
+            reports.create_annual_report_annex_data(db, self.rng, seeded_reports)
             reports.create_annual_report_schedule_entries(db, self.rng, seeded_reports)
             reports.create_annual_report_status_history(db, self.rng, seeded_reports, seeded_users)
             taxes.create_advance_payments(db, self.rng, seeded_clients, seeded_deadlines)
@@ -115,6 +121,9 @@ class Seeder:
             TaxDeadline,
             AnnualReportStatusHistory,
             AnnualReportScheduleEntry,
+            AnnualReportAnnexData,
+            AnnualReportExpenseLine,
+            AnnualReportIncomeLine,
             AnnualReportDetail,
             AuthorityContact,
             Correspondence,
@@ -138,6 +147,9 @@ class Seeder:
             "tax_deadlines": db.query(TaxDeadline).count(),
             "annual_reports": db.query(AnnualReport).count(),
             "annual_report_details": db.query(AnnualReportDetail).count(),
+            "annual_report_income_lines": db.query(AnnualReportIncomeLine).count(),
+            "annual_report_expense_lines": db.query(AnnualReportExpenseLine).count(),
+            "annual_report_annex_data": db.query(AnnualReportAnnexData).count(),
             "annual_report_status_history": db.query(AnnualReportStatusHistory).count(),
             "annual_report_schedules": db.query(AnnualReportScheduleEntry).count(),
             "authority_contacts": db.query(AuthorityContact).count(),

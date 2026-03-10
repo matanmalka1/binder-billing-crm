@@ -4,9 +4,16 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
+from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
+from app.annual_reports.models.annual_report_expense_line import (
+    AnnualReportExpenseLine,
+    ExpenseCategoryType,
+    default_recognition_rate,
+)
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.annual_reports.models.annual_report_income_line import AnnualReportIncomeLine, IncomeSourceType
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
@@ -139,6 +146,116 @@ def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
                 completed_at=(report.created_at + timedelta(days=rng.randint(5, 60))) if is_complete else None,
             )
             db.add(entry)
+    db.flush()
+
+
+def create_annual_report_income_lines(db, rng: Random, reports) -> None:
+    for report in reports:
+        source_candidates = [IncomeSourceType.SALARY]
+        if report.client_type in (ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.CORPORATION):
+            source_candidates.extend(
+                [IncomeSourceType.BUSINESS, IncomeSourceType.INTEREST, IncomeSourceType.DIVIDENDS]
+            )
+        if report.has_rental_income:
+            source_candidates.append(IncomeSourceType.RENTAL)
+        if report.has_capital_gains:
+            source_candidates.append(IncomeSourceType.CAPITAL_GAINS)
+        if report.has_foreign_income:
+            source_candidates.append(IncomeSourceType.FOREIGN)
+
+        unique_sources = list(dict.fromkeys(source_candidates))
+        line_count = min(len(unique_sources), rng.randint(1, 3))
+        chosen_sources = rng.sample(unique_sources, k=line_count)
+
+        for source_type in chosen_sources:
+            line = AnnualReportIncomeLine(
+                annual_report_id=report.id,
+                source_type=source_type,
+                amount=Decimal(str(round(rng.uniform(2_500, 120_000), 2))),
+                description=rng.choice(
+                    [None, "שורה שנוצרה אוטומטית", "נדרש אימות מסמכים תומכים"]
+                ),
+                created_at=report.created_at,
+            )
+            db.add(line)
+    db.flush()
+
+
+def create_annual_report_expense_lines(db, rng: Random, reports) -> None:
+    base_categories = [
+        ExpenseCategoryType.PROFESSIONAL_SERVICES,
+        ExpenseCategoryType.BANK_FEES,
+        ExpenseCategoryType.INSURANCE,
+    ]
+    for report in reports:
+        category_candidates = list(base_categories)
+        if report.client_type in (ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.CORPORATION):
+            category_candidates.extend(
+                [
+                    ExpenseCategoryType.OFFICE_RENT,
+                    ExpenseCategoryType.COMMUNICATION,
+                    ExpenseCategoryType.VEHICLE,
+                    ExpenseCategoryType.MARKETING,
+                ]
+            )
+        if report.has_depreciation:
+            category_candidates.append(ExpenseCategoryType.DEPRECIATION)
+        unique_categories = list(dict.fromkeys(category_candidates))
+        line_count = min(len(unique_categories), rng.randint(1, 4))
+        chosen_categories = rng.sample(unique_categories, k=line_count)
+
+        for category in chosen_categories:
+            expense_line = AnnualReportExpenseLine(
+                annual_report_id=report.id,
+                category=category,
+                amount=Decimal(str(round(rng.uniform(200, 40_000), 2))),
+                recognition_rate=default_recognition_rate(category),
+                supporting_document_ref=None,
+                supporting_document_id=None,
+                description=rng.choice(
+                    [None, "הוצאה מוכרת", "לבדוק התאמה לחשבונית"]
+                ),
+                created_at=report.created_at,
+            )
+            db.add(expense_line)
+    db.flush()
+
+
+def create_annual_report_annex_data(db, rng: Random, reports) -> None:
+    for report in reports:
+        applicable_schedules: list[AnnualReportSchedule] = []
+        if report.has_rental_income:
+            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_B)
+        if report.has_capital_gains:
+            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_BET)
+        if report.has_foreign_income:
+            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_GIMMEL)
+        if report.has_depreciation:
+            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_DALET)
+        if report.has_exempt_rental:
+            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_HEH)
+
+        if not applicable_schedules:
+            applicable_schedules = [rng.choice(list(AnnualReportSchedule))]
+
+        for line_number, schedule in enumerate(applicable_schedules, start=1):
+            annex_line = AnnualReportAnnexData(
+                annual_report_id=report.id,
+                schedule=schedule,
+                line_number=line_number,
+                data={
+                    "amount": float(round(rng.uniform(500, 90_000), 2)),
+                    "description": rng.choice(
+                        [
+                            "נתון שנוצר אוטומטית לצורך סביבת דמו",
+                            "ערך להשלמה בבדיקת רו\"ח",
+                        ]
+                    ),
+                },
+                notes=rng.choice([None, "נדרש מסמך תומך"]),
+                created_at=report.created_at,
+            )
+            db.add(annex_line)
     db.flush()
 
 

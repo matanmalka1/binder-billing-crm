@@ -11,7 +11,7 @@
 - **Enum handling:** Business enums are `str` subclasses defined beside models. Invalid values return 400.
 - **Timestamps:** `utils.time_utils.utcnow()` — naive UTC everywhere.
 - **Derived state:** `work_state` and signals are computed in `WorkStateService`/`SignalsService`, never persisted.
-- **Storage:** `LocalStorageProvider` — local filesystem only, no S3.
+- **Storage:** Environment-dependent — `LocalStorageProvider` (dev/test, local filesystem); `S3StorageProvider` (prod, Cloudflare R2 / AWS S3). Factory in `app/infrastructure/storage.py`.
 - **Notifications:** Triggered by binder intake; WhatsApp/Email channels are stubs.
 
 ---
@@ -24,7 +24,7 @@
 
 **ORM:** `Client` — unique `id_number`, optional unique `primary_binder_number`; enums `ClientType`, `ClientStatus`.
 
-**Gaps:** No delete. Import does per-row error collection; no dry-run. `has_signals` filter loads up to 1000 clients in memory.
+**Gaps:** Import does per-row error collection; no transactional rollback on partial failure. `has_signals` filter hard-capped at `_HAS_SIGNALS_FETCH_LIMIT = 1000`; raises error if total client count exceeds limit.
 
 ---
 
@@ -36,7 +36,7 @@
 
 **ORM:** `Binder` — `BinderStatus` enum; active-unique `binder_number` via partial index; multiple date indexes. `BinderStatusLog` — append-only.
 
-**Gaps:** No deletion. WorkState uses recent-notifications heuristic; may query notifications per binder on each call.
+**Gaps:** WorkState notification check fetches up to 100 notifications by `client_id` then filters in memory for the specific binder — no binder-scoped query exists.
 
 ---
 
@@ -60,7 +60,7 @@
 
 **ORM:** `TaxDeadline` — `DeadlineType` enum; status string; indexes on status, type, `due_date`.
 
-**Gaps:** Without `client_id` filter, all pending deadlines are fetched then paginated in memory.
+**Gaps:** Global list (no `client_id`) fetches all pending deadlines via a single unbounded DB query (`list_pending_due_by_date` to far-future date); no server-side pagination at the repo level.
 
 ---
 
@@ -70,9 +70,9 @@
 
 **Repo:** `AnnualReportRepository` — create/get/list/count by status/tax_year, `list_overdue`, `list_all_with_clients` (kanban), `append_status_history`, schedule add/complete/check, detail upsert/read.
 
-**ORM:** `AnnualReport` — enums `AnnualReportStatus`, `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year). `AnnualReportDetail` — 1:1 with report. `AnnualReportScheduleEntry` — `AnnualReportSchedule` enum + completion flags. `AnnualReportStatusHistory` — append-only.
+**ORM:** `AnnualReport` — enums `AnnualReportStatus` (includes `amended`), `ClientTypeForReport`, `AnnualReportForm`, `DeadlineType`; unique index on (client_id, tax_year). `AnnualReportDetail` — 1:1 with report. `AnnualReportScheduleEntry` — `AnnualReportSchedule` enum + completion flags. `AnnualReportStatusHistory` — append-only.
 
-**Gaps:** No delete.
+**Gaps:** None beyond standard gaps noted system-wide.
 
 ---
 
@@ -80,13 +80,15 @@
 
 **Service:** `DashboardService` aggregates counts; delegates to `DashboardExtendedService`. `DashboardExtendedService` builds work_queue/alerts/attention via `WorkStateService`, `SignalsService`, unpaid charges (advisor only). `DashboardOverviewService` assembles quick actions (ready/return binder, mark charge paid, freeze/activate client). `DashboardTaxService` aggregates submission stats.
 
-**Gaps:** No caching. Quick actions pick first matching entity (heuristic). Attention lists load all active binders in memory.
+**Gaps:** Request-scoped cache for active binders (instance-level `_cached_active_binders_with_clients`). Attention lists hard-capped at `_ACTIVE_BINDERS_FETCH_LIMIT = 1000` active binders and `_UNPAID_CHARGES_FETCH_LIMIT = 500` charges; raises error if either limit is exceeded.
 
 ---
 
-## 7. Notifications (internal — no API)
+## 7. Notifications
 
 **Service:** `NotificationService` — sends via `WhatsAppChannel` then email fallback; persists every attempt; idempotency via `exists_for_binder_trigger`.
+
+**API:** `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/mark-read`, `POST /api/v1/notifications/mark-all-read`.
 
 **ORM:** `Notification` — enums `NotificationChannel` (`whatsapp|email`), `NotificationStatus` (`pending|sent|failed`), `NotificationTrigger`.
 
@@ -108,13 +110,13 @@
 
 ## 9. Advance Payments
 
-**Service:** Validates status enum values. No creation exposed via API — rows assumed externally seeded.
+**Service:** Validates status enum values. Create (ADVISOR only) validates client existence and uniqueness per (client, year, month). Provides suggest, overview, chart, and KPI aggregations.
 
 **Repo:** `list_by_client_year` ordered by month asc; get/update/create; unique (client, year, month); status index.
 
 **ORM:** `AdvancePayment` — status as string (no enum enforcement at ORM level).
 
-**Gaps:** Pagination done after fetching all rows in memory.
+**Gaps:** None beyond standard gaps noted system-wide.
 
 ---
 
@@ -124,7 +126,7 @@
 
 **ORM:** `ClientTaxProfile` — `VatType` enum (`monthly`, `bimonthly`, `exempt`); unique `client_id`.
 
-**Gaps:** No delete. No creation timestamp in empty shell response (by design).
+**Gaps:** No delete endpoint. Empty shell response returns `null` for all optional fields (`created_at`, `vat_type`, etc.) — by design.
 
 ---
 
@@ -134,7 +136,7 @@
 
 **ORM:** `Correspondence` — optional `contact_id` FK to authority_contacts; `created_by` current user; `occurred_at` required; indexes on `client_id` and `occurred_at`.
 
-**Gaps:** No pagination. Soft-delete implemented; no hard delete.
+**Gaps:** Soft-delete implemented; no hard delete.
 
 ---
 
@@ -144,7 +146,7 @@
 
 **ORM:** `PermanentDocument` — `is_present` always True on upload; `storage_key` holds local path.
 
-**Gaps:** No delete/replace. Storage is local filesystem only. Upload reads entire file into memory.
+**Gaps:** Local storage (dev) reads entire file into memory on upload (`file_data.read()`); S3 provider (prod) streams via `upload_fileobj`.
 
 ---
 
@@ -186,7 +188,7 @@
 
 **ORM:** `User` — `UserRole` enum; `token_version`, `last_login_at`. `UserAuditLog` — `AuditAction`, `AuditStatus` enums.
 
-**Gaps:** No self-service password change. No MFA. Logout does not server-side invalidate JWT.
+**Gaps:** No self-service password change. No MFA.
 
 ---
 

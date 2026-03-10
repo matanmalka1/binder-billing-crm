@@ -3,10 +3,10 @@
 ## Conventions
 
 - Base path: `/api/v1`. Public meta: `GET /`, `GET /info`, `GET /health`. Public signing: `/sign/*`.
-- Auth: `POST /api/v1/auth/login` issues JWT; send as `Authorization: Bearer <token>` or via HttpOnly `access_token` cookie. `POST /api/v1/auth/logout` clears cookie.
+- Auth: `POST /api/v1/auth/login` issues JWT; send as `Authorization: Bearer <token>` or via HttpOnly `access_token` cookie. `POST /api/v1/auth/logout` clears cookie and server-side invalidates token.
 - Roles: `advisor` (elevated) and `secretary` (operational). `require_role` enforces where noted; otherwise any authenticated user may access.
 - Content types: JSON unless stated; uploads use `multipart/form-data`; downloads return files with appropriate headers.
-- Pagination: `page` (default 1) and `page_size` (default 20, max 100) unless noted. Exceptions: timeline/annual-report season default 50; VAT work-items default 50.
+- Pagination: `page` (default 1) and `page_size` (default 20, max 100) unless noted. Exceptions: timeline/annual-report season default 50; VAT work-items default 50, max 200.
 - Error envelope: `{ "detail": "...", "error": { "type": "...", "detail": "...", "status_code": N } }`.
 
 ---
@@ -22,7 +22,7 @@
 ## Authentication
 
 - `POST /api/v1/auth/login` — body: `email`, `password`, `remember_me?`; returns `{ token, user { id, full_name, role } }`; sets HttpOnly cookie (`remember_me` doubles TTL).
-- `POST /api/v1/auth/logout` — clears auth cookie; 204.
+- `POST /api/v1/auth/logout` — bumps `token_version` (invalidates all active tokens); clears auth cookie; 204.
 
 ---
 
@@ -41,10 +41,12 @@
 
 ## Clients (advisor + secretary)
 
-- `POST /api/v1/clients` — create (`full_name`, `id_number`, `client_type`, `opened_at`, `phone?`, `email?`, `notes?`); 409 on duplicate `id_number`.
+- `POST /api/v1/clients` — create (`full_name`, `id_number`, `client_type`, `opened_at`, `phone?`, `email?`); 409 on duplicate `id_number`.
 - `GET /api/v1/clients` — filters: `status`, `has_signals`, `search`; paginated.
 - `GET /api/v1/clients/{id}` — 404 if missing.
-- `PATCH /api/v1/clients/{id}` — update `full_name`, `phone`, `email`, `notes`, `status`; advisor required for `frozen`/`closed`.
+- `PATCH /api/v1/clients/{id}` — updatable: `full_name`, `phone`, `email`, `notes`, `status`, `client_type`, `primary_binder_number`, `address_street`, `address_building_number`, `address_apartment`, `address_city`, `address_zip_code`; advisor required for `frozen`/`closed`.
+- `DELETE /api/v1/clients/{id}` (advisor) — soft-delete; 204.
+- `GET /api/v1/clients/{id}/status-card` — summary card with signals and open items.
 
 ### Excel import/export
 
@@ -60,27 +62,31 @@
 - `GET /api/v1/clients/{id}/timeline` — paginated event feed (default page_size 50, max 200).
 - `GET /api/v1/clients/{id}/correspondence` — paginated list ordered by `occurred_at` desc.
 - `POST /api/v1/clients/{id}/correspondence` — body: `correspondence_type`, `subject`, `occurred_at`, `notes?`, `contact_id?`; 400 if `contact_id` not linked to client.
-- `GET /api/v1/clients/{id}/authority-contacts` — optional `contact_type` filter.
+- `PATCH /api/v1/clients/{id}/correspondence/{correspondence_id}` — partial update.
+- `DELETE /api/v1/clients/{id}/correspondence/{correspondence_id}` (advisor) — 204.
+- `GET /api/v1/clients/{id}/authority-contacts` — filters: `contact_type?`; paginated.
 - `POST /api/v1/clients/{id}/authority-contacts` — create (`contact_type`, `name`, `office?`, `phone?`, `email?`, `notes?`).
 - `GET /api/v1/clients/{id}/signature-requests` — optional `status` filter; paginated.
 - `GET /api/v1/clients/{id}/annual-reports` — list all, newest first.
 
 ### Authority contacts (delete = advisor only)
 
+- `GET /api/v1/authority-contacts/{id}` — 404 if missing.
 - `PATCH /api/v1/authority-contacts/{id}` — partial update; validates `contact_type` when provided.
-- `DELETE /api/v1/authority-contacts/{id}` — advisor only; 204.
+- `DELETE /api/v1/authority-contacts/{id}` (advisor) — 204.
 
 ---
 
 ## Binders (advisor + secretary)
 
 - `POST /api/v1/binders/receive` — intake (`client_id`, `binder_number`, `binder_type`, `received_at`, `received_by`, `notes?`); 201 or 409 on duplicate active binder number.
-- `POST /api/v1/binders/{id}/ready` — from `in_office` or `overdue`; 400 otherwise.
-- `POST /api/v1/binders/{id}/return` — `pickup_person_name?`, `returned_by?`; from `ready_for_pickup` or `overdue`.
-- `GET /api/v1/binders` — filters: `status`, `client_id`, `work_state`; returns signals & available actions.
+- `POST /api/v1/binders/{id}/ready` — from `in_office` only; 400 otherwise.
+- `POST /api/v1/binders/{id}/return` — `pickup_person_name?`, `returned_by?`; from `ready_for_pickup` only.
+- `GET /api/v1/binders` — filters: `status`, `client_id`, `work_state`, `query`, `client_name`, `binder_number`, `year`; sort: `sort_by` (received_at|days_in_office|status|client_name), `sort_dir` (asc|desc); paginated.
 - `GET /api/v1/binders/{id}` — single binder with signals/work state; 404 if missing.
 - `GET /api/v1/binders/open` — paginated; status != `returned`.
 - `GET /api/v1/binders/{id}/history` — audit log; 404 if missing.
+- `DELETE /api/v1/binders/{id}` (advisor) — soft-delete; 204.
 
 ---
 
@@ -113,9 +119,12 @@
 
 ## Permanent Documents
 
-- `POST /api/v1/documents/upload` — multipart: `client_id`, `document_type`, `file`.
-- `GET /api/v1/documents/client/{id}` — list documents.
+- `POST /api/v1/documents/upload` — multipart: `client_id`, `document_type`, `file`, `tax_year?`.
+- `GET /api/v1/documents/client/{id}` — list documents; optional `tax_year` filter.
 - `GET /api/v1/documents/client/{id}/signals` — missing/required doc indicators.
+- `GET /api/v1/documents/{id}/download-url` — returns `{ url }` (presigned/local path).
+- `PUT /api/v1/documents/{id}/replace` (advisor) — multipart: `file`; replaces stored file.
+- `DELETE /api/v1/documents/{id}` (advisor) — soft-delete; 204.
 
 ---
 
@@ -124,48 +133,76 @@
 - `POST /api/v1/tax-deadlines` — body: `client_id`, `deadline_type`, `due_date`, `payment_amount?`, `description?`; 201.
 - `GET /api/v1/tax-deadlines` — filters: `client_id?`, `deadline_type?`, `status?`; paginated.
 - `GET /api/v1/tax-deadlines/{id}` — 404 if missing.
+- `PUT /api/v1/tax-deadlines/{id}` — update `deadline_type`, `due_date`, `payment_amount?`, `description?`.
 - `POST /api/v1/tax-deadlines/{id}/complete` — 400 on invalid state.
+- `DELETE /api/v1/tax-deadlines/{id}` — 204.
 - `GET /api/v1/tax-deadlines/dashboard/urgent` — urgent and upcoming sets with client names, urgency level, days remaining.
+- `GET /api/v1/tax-deadlines/timeline` — query: `client_id`; returns timeline entries with `days_remaining` and `milestone_label`.
 
 ---
 
 ## Annual Reports (advisor + secretary)
 
-- `POST /api/v1/annual-reports` — create (`client_id`, `tax_year`, `client_type`, `deadline_type`, `assigned_to?`, `notes?`, income flags); 409 on duplicate (client, tax_year).
-- `GET /api/v1/annual-reports` — optional `tax_year`; paginated (default 20, max 200).
+- `POST /api/v1/annual-reports` — create (`client_id`, `tax_year`, `client_type`, `deadline_type`, `assigned_to?`, `notes?`, income flags); 201; 409 on duplicate (client, tax_year); returns `AnnualReportDetailResponse`.
+- `GET /api/v1/annual-reports` — filters: `tax_year?`; sort: `sort_by` (tax_year|status|filing_deadline|created_at|client_id), `order` (asc|desc); paginated (default 20, max 200).
 - `GET /api/v1/annual-reports/{id}` — full detail with schedules + status history; 404 if missing.
+- `DELETE /api/v1/annual-reports/{id}` (advisor) — soft-delete; 204.
 - `GET /api/v1/annual-reports/kanban/view` — stage-grouped view.
 - `GET /api/v1/annual-reports/overdue` — filing_deadline passed & open statuses.
 - `GET /api/v1/annual-reports/{id}/details` — financial detail record; empty shell if none.
 - `PATCH /api/v1/annual-reports/{id}/details` — upsert `tax_refund_amount`, `tax_due_amount`, `client_approved_at`, `internal_notes`.
-- `GET /api/v1/annual-reports/{id}/schedules`
 - `POST /api/v1/annual-reports/{id}/schedules` — add schedule entry.
 - `POST /api/v1/annual-reports/{id}/schedules/complete` — mark complete; 400 if absent.
 - `POST /api/v1/annual-reports/{id}/status` — transition with `VALID_TRANSITIONS` enforcement; optional `assessment_amount`, `refund_due`, `tax_due`, `note`, `ita_reference`.
-- `POST /api/v1/annual-reports/{id}/submit` — convenience shortcut to `submitted`; optional `submitted_at`, `ita_reference`, `note`.
+- `POST /api/v1/annual-reports/{id}/amend` (advisor) — transition to `amended`; requires `reason`.
 - `POST /api/v1/annual-reports/{id}/deadline` — change deadline type (`standard|extended|custom`); optional `custom_deadline_note`.
-- `POST /api/v1/annual-reports/{id}/transition` — UI stage shortcut; auto-inserts `collecting_docs` step when jumping from `not_started`.
-- `GET /api/v1/annual-reports/{id}/history` — status history list; 404 if report missing.
 - `GET /api/v1/tax-year/{tax_year}/reports` — paginated season list (default 50, max 200).
 - `GET /api/v1/tax-year/{tax_year}/summary` — counts per status, completion %, overdue count.
+
+### Annual Report Annex
+
+- `GET /api/v1/annual-reports/{id}/annex/{schedule}` — list annex data lines for schedule.
+- `POST /api/v1/annual-reports/{id}/annex/{schedule}` — add annex line; 201.
+- `PATCH /api/v1/annual-reports/{id}/annex/{schedule}/{line_id}` — update annex line.
+- `DELETE /api/v1/annual-reports/{id}/annex/{schedule}/{line_id}` (advisor) — 204.
+
+### Annual Report Income / Expenses
+
+- `POST /api/v1/annual-reports/{id}/income` — add income line; 201.
+- `PATCH /api/v1/annual-reports/{id}/income/{line_id}` — update income line.
+- `DELETE /api/v1/annual-reports/{id}/income/{line_id}` (advisor) — 204.
+- `POST /api/v1/annual-reports/{id}/expenses` — add expense line; 201.
+- `PATCH /api/v1/annual-reports/{id}/expenses/{line_id}` — update expense line.
+- `DELETE /api/v1/annual-reports/{id}/expenses/{line_id}` (advisor) — 204.
+
+### Annual Report Financials
+
+- `GET /api/v1/annual-reports/{id}/financials` — financial summary.
+- `GET /api/v1/annual-reports/{id}/tax-calculation` — tax calculation.
+- `GET /api/v1/annual-reports/{id}/advances-summary` — advances summary.
+- `GET /api/v1/annual-reports/{id}/readiness` — readiness check.
 
 ---
 
 ## Reminders (advisor + secretary)
 
-- `GET /api/v1/reminders` — optional `status` filter; paginated.
+- `GET /api/v1/reminders` — filters: `status?`, `client_id?`; paginated.
 - `GET /api/v1/reminders/{id}` — 404 if missing.
 - `POST /api/v1/reminders` — type: `tax_deadline_approaching|binder_idle|unpaid_charge|custom`; required FKs per type (`tax_deadline_id`, `binder_id`, `charge_id`); `client_id`, `target_date`, `days_before` ≥0, `message?`.
 - `POST /api/v1/reminders/{id}/cancel` — pending only.
-- `POST /api/v1/reminders/{id}/mark-sent` — pending only; stamps `sent_at`.
 
 ---
 
 ## Advance Payments (advisor + secretary)
 
-- `GET /api/v1/advance-payments` — requires `client_id`; optional `year` (defaults current UTC year); paginated.
-- `POST /api/v1/advance-payments` — create (`client_id`, `year`, `month`, `due_date`, `expected_amount?`, `paid_amount?`, `tax_deadline_id?`).
-- `PATCH /api/v1/advance-payments/{id}` — update `paid_amount`, `status`; 404 if not found.
+- `GET /api/v1/advance-payments` — requires `client_id`; optional `year` (defaults current UTC year), `status`; paginated.
+- `POST /api/v1/advance-payments` (advisor) — create (`client_id`, `year`, `month`, `due_date`, `expected_amount?`, `paid_amount?`, `tax_deadline_id?`).
+- `PATCH /api/v1/advance-payments/{id}` (advisor) — update `paid_amount`, `status`, `expected_amount?`, `notes?`; 404 if not found.
+- `DELETE /api/v1/advance-payments/{id}` (advisor) — 204.
+- `GET /api/v1/advance-payments/suggest` — query: `client_id`, `year`; returns suggested expected amount.
+- `GET /api/v1/advance-payments/overview` — cross-client overview with KPIs; requires `year`.
+- `GET /api/v1/advance-payments/chart` — chart data; query: `client_id`, `year`.
+- `GET /api/v1/advance-payments/kpi` — annual KPIs; query: `client_id`, `year`.
 
 ---
 
@@ -178,11 +215,13 @@
 - `DELETE /vat/work-items/{id}/invoices/{invoice_id}` — not allowed after filing.
 - `POST /vat/work-items/{id}/ready-for-review` — `data_entry_in_progress → ready_for_review`.
 - `POST /vat/work-items/{id}/send-back` (advisor) — `ready_for_review → data_entry_in_progress`; requires `correction_note`.
-- `POST /vat/work-items/{id}/file` (advisor) — finalize filing (`filing_method` manual|online, `override_amount?`); locks period.
+- `POST /vat/work-items/{id}/file` (advisor) — finalize filing (`filing_method` manual|online, `override_amount?`, `override_justification?`); locks period.
 - `GET /vat/work-items/{id}` — enriched with `client_name`.
 - `GET /vat/clients/{client_id}/work-items` — all work items for client.
-- `GET /vat/work-items` — optional `status` filter; paginated (default 50).
+- `GET /vat/work-items` — optional `status` filter; paginated (default 50, max 200).
 - `GET /vat/work-items/{id}/audit` — audit trail.
+- `GET /vat/client/{client_id}/summary` — VAT client summary.
+- `GET /vat/client/{client_id}/export` (advisor) — export as excel or pdf; requires `year`.
 
 ---
 
@@ -197,9 +236,18 @@
 
 ### Public signing (no JWT)
 
-- `GET /sign/{token}` — record view; returns `{ title, signer_name, status, content_hash, expires_at }` or 400 on invalid/expired.
-- `POST /sign/{token}/approve` — records signature; returns updated signer payload.
+- `GET /sign/{token}` — record view; returns `{ request_id, title, description, signer_name, status, content_hash, expires_at }` or 400 on invalid/expired.
+- `POST /sign/{token}/approve` — records signature; returns `SignerViewResponse`.
 - `POST /sign/{token}/decline` — optional `reason`; records decline.
+
+---
+
+## Notifications (advisor + secretary)
+
+- `GET /api/v1/notifications` — filters: `client_id?`, `limit?`; returns list of notifications.
+- `GET /api/v1/notifications/unread-count` — optional `client_id`; returns `{ count }`.
+- `POST /api/v1/notifications/mark-read` — body: `notification_ids: [int]`; marks specified notifications as read.
+- `POST /api/v1/notifications/mark-all-read` — query: `client_id`; marks all unread for client as read.
 
 ---
 
@@ -212,26 +260,28 @@
 
 ## Key Enums
 
-| Domain                 | Enum                 | Values                                                                                                                                                           |
-| ---------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Roles                  | —                    | `advisor`, `secretary`                                                                                                                                           |
-| Binder status          | `BinderStatus`       | `in_office`, `ready_for_pickup`, `returned`                                                                                                                      |
-| Binder type            | `BinderType`         | `vat`, `income_tax`, `national_insurance`, `capital_declaration`, `annual_report`, `salary`, `bookkeeping`, `other`                                              |
-| Charge type            | `ChargeType`         | `retainer`, `one_time`                                                                                                                                           |
-| Charge status          | `ChargeStatus`       | `draft`, `issued`, `paid`, `canceled`                                                                                                                            |
-| Tax deadline type      | `DeadlineType`       | `vat`, `advance_payment`, `national_insurance`, `annual_report`, `other`                                                                                         |
-| Tax deadline status    | —                    | `pending`, `completed`                                                                                                                                           |
-| Reminder type          | `ReminderType`       | `tax_deadline_approaching`, `binder_idle`, `unpaid_charge`, `custom`                                                                                             |
-| Reminder status        | `ReminderStatus`     | `pending`, `sent`, `canceled`                                                                                                                                    |
-| Annual report status   | `AnnualReportStatus` | `not_started`, `collecting_docs`, `docs_complete`, `in_preparation`, `pending_client`, `submitted`, `accepted`, `assessment_issued`, `objection_filed`, `closed` |
-| Annual report deadline | `DeadlineType`       | `standard`, `extended`, `custom`                                                                                                                                 |
-| VAT work item status   | —                    | `pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`                                                                  |
-| VAT invoice type       | —                    | `income`, `expense`                                                                                                                                              |
-| VAT filing method      | —                    | `manual`, `online`                                                                                                                                               |
-| Advance payment status | —                    | `pending`, `paid`, `partial`, `overdue`                                                                                                                          |
-| Document type          | `DocumentType`       | `id_copy`, `power_of_attorney`, `engagement_agreement`                                                                                                           |
-| WorkState              | —                    | `WAITING_FOR_WORK`, `IN_PROGRESS`, `COMPLETED`                                                                                                                   |
-| Signals                | —                    | `MISSING_DOCS`, `OVERDUE`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`                                                                                   |
+| Domain                 | Enum                 | Values                                                                                                                                                                     |
+| ---------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                  | —                    | `advisor`, `secretary`                                                                                                                                                     |
+| Client type            | `ClientType`         | `osek_patur`, `osek_murshe`, `company`, `employee`                                                                                                                         |
+| Client status          | `ClientStatus`       | `active`, `frozen`, `closed`                                                                                                                                               |
+| Binder status          | `BinderStatus`       | `in_office`, `ready_for_pickup`, `returned`                                                                                                                                |
+| Binder type            | `BinderType`         | `vat`, `income_tax`, `national_insurance`, `capital_declaration`, `annual_report`, `salary`, `bookkeeping`, `other`                                                        |
+| Charge type            | `ChargeType`         | `retainer`, `one_time`                                                                                                                                                     |
+| Charge status          | `ChargeStatus`       | `draft`, `issued`, `paid`, `canceled`                                                                                                                                      |
+| Tax deadline type      | `DeadlineType`       | `vat`, `advance_payment`, `national_insurance`, `annual_report`, `other`                                                                                                   |
+| Tax deadline status    | —                    | `pending`, `completed`                                                                                                                                                     |
+| Reminder type          | `ReminderType`       | `tax_deadline_approaching`, `binder_idle`, `unpaid_charge`, `custom`                                                                                                       |
+| Reminder status        | `ReminderStatus`     | `pending`, `sent`, `canceled`                                                                                                                                              |
+| Annual report status   | `AnnualReportStatus` | `not_started`, `collecting_docs`, `docs_complete`, `in_preparation`, `pending_client`, `submitted`, `amended`, `accepted`, `assessment_issued`, `objection_filed`, `closed` |
+| Annual report deadline | `DeadlineType`       | `standard`, `extended`, `custom`                                                                                                                                           |
+| VAT work item status   | —                    | `pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`                                                                            |
+| VAT invoice type       | —                    | `income`, `expense`                                                                                                                                                        |
+| VAT filing method      | —                    | `manual`, `online`                                                                                                                                                         |
+| Advance payment status | —                    | `pending`, `paid`, `partial`, `overdue`                                                                                                                                    |
+| Document type          | `DocumentType`       | `id_copy`, `power_of_attorney`, `engagement_agreement`                                                                                                                     |
+| WorkState              | —                    | `WAITING_FOR_WORK`, `IN_PROGRESS`, `COMPLETED`                                                                                                                             |
+| Signals                | `SignalType`         | `MISSING_DOCUMENTS`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`                                                                                                  |
 
 ---
 
