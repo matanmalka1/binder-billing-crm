@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.annual_reports.schemas import (
     AnnualReportResponse,
-    StatusTransitionRequest,
     DeadlineUpdateRequest,
+    StatusHistoryResponse,
+    StatusTransitionRequest,
 )
 from app.annual_reports.services import AnnualReportService
 
@@ -67,3 +68,9 @@ def update_deadline(
         custom_deadline_note=body.custom_deadline_note,
     )
     return report
+
+
+@router.get("/{report_id}/history", response_model=list[StatusHistoryResponse])
+def get_status_history(report_id: int, db: DBSession, user: CurrentUser):
+    service = AnnualReportService(db)
+    return service.get_status_history(report_id)
