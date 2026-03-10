@@ -3,9 +3,11 @@
 Full audit + fix plan for all sync gaps between backend and frontend.
 Each task is self-contained with the exact files to touch and what to change.
 
+**Status: ALL 11 TASKS COMPLETE** ✓
+
 ---
 
-## TASK 1 — Add `GET /annual-reports/{id}/history` endpoint
+## TASK 1 — Add `GET /annual-reports/{id}/history` endpoint ✅
 **Severity**: Critical | **Domain**: Annual Reports | **Side**: Backend
 
 ### Problem
@@ -35,7 +37,7 @@ Backend has the service method (`get_status_history()`) and schema (`StatusHisto
 
 ---
 
-## TASK 2 — Add `POST /annual-reports/{id}/submit` endpoint + wire frontend button
+## TASK 2 — Add `POST /annual-reports/{id}/submit` endpoint + wire frontend button ✅
 **Severity**: Critical | **Domain**: Annual Reports | **Side**: Backend + Frontend
 
 ### Problem
@@ -83,7 +85,7 @@ Frontend `annualReportStatusApi.submitReport()` posts to `POST /annual-reports/{
 
 ---
 
-## TASK 3 — Add `POST /annual-reports/{id}/transition` endpoint (fixes Kanban drag-drop)
+## TASK 3 — Add `POST /annual-reports/{id}/transition` endpoint (fixes Kanban drag-drop) ✅
 **Severity**: Critical | **Domain**: Annual Reports | **Side**: Backend
 
 ### Problem
@@ -155,7 +157,7 @@ def transition_stage(report_id: int, body: StageTransitionRequest, db: DBSession
 
 ---
 
-## TASK 4 — Add `GET /annual-reports/{id}/schedules` endpoint
+## TASK 4 — Add `GET /annual-reports/{id}/schedules` endpoint ✅
 **Severity**: Critical | **Domain**: Annual Reports | **Side**: Backend
 
 ### Problem
@@ -184,7 +186,7 @@ Frontend calls `GET /annual-reports/{id}/schedules` explicitly. Backend `annual_
 
 ---
 
-## TASK 5 — Wire `is_active` filter in users list
+## TASK 5 — Wire `is_active` filter in users list ✅
 **Severity**: Critical | **Domain**: Users | **Side**: Backend
 
 ### Problem
@@ -212,7 +214,7 @@ Frontend filter dropdown (כל המשתמשים / פעילים בלבד / לא �
 
 ---
 
-## TASK 6 — Fix `available_actions` TypeScript type
+## TASK 6 — Fix `available_actions` TypeScript type ✅
 **Severity**: Medium | **Domain**: Annual Reports | **Side**: Frontend
 
 ### Problem
@@ -249,7 +251,7 @@ Fields `id`, `method`, `endpoint`, `payload`, `confirm` are invisible to TypeScr
 
 ---
 
-## TASK 7 — Add `token` field to `LoginResponse` type
+## TASK 7 — Add `token` field to `LoginResponse` type ✅
 **Severity**: Low | **Domain**: Auth | **Side**: Frontend
 
 ### Problem
@@ -269,7 +271,7 @@ Cookie-based auth works fine, but the type is incorrect.
 
 ---
 
-## TASK 8 — Wire charge cancel reason (API + UI)
+## TASK 8 — Wire charge cancel reason (API + UI) ✅
 **Severity**: Low | **Domain**: Charges | **Side**: Frontend
 
 ### Problem
@@ -303,7 +305,7 @@ No UI input field exists for the user to enter a reason.
 
 ---
 
-## TASK 9 — Add `token_version` to `UserResponse` type
+## TASK 9 — Add `token_version` to `UserResponse` type ✅
 **Severity**: Low | **Domain**: Users | **Side**: Frontend
 
 ### Problem
@@ -322,7 +324,7 @@ Frontend `UserResponse` interface omits it — the field is present in every API
 
 ---
 
-## TASK 10 — Add binder history section to BinderDrawer
+## TASK 10 — Add binder history section to BinderDrawer ✅
 **Severity**: Low | **Domain**: Binders | **Side**: Frontend
 
 ### Problem
@@ -364,7 +366,7 @@ Frontend `UserResponse` interface omits it — the field is present in every API
 
 ---
 
-## TASK 11 — Embed annual report status history timeline
+## TASK 11 — Embed annual report status history timeline ✅
 **Severity**: Low | **Domain**: Annual Reports | **Side**: Frontend
 **Prerequisite**: Task 1 must be completed first (backend `/history` endpoint)
 
