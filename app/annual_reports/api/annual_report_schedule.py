@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -23,6 +23,14 @@ def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: 
     service = AnnualReportService(db)
     entry = service.add_schedule(report_id, body.schedule, notes=body.notes)
     return ScheduleEntryResponse.model_validate(entry)
+
+
+@router.get("/{report_id}/schedules", response_model=list[ScheduleEntryResponse])
+def list_schedules(report_id: int, db: DBSession, user: CurrentUser):
+    """List all schedules for a specific annual report."""
+    service = AnnualReportService(db)
+    schedules = service.get_schedules(report_id)
+    return [ScheduleEntryResponse.model_validate(entry) for entry in schedules]
 
 
 @router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse)
