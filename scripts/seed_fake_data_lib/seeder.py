@@ -1,35 +1,13 @@
 from __future__ import annotations
 
+import importlib
 import random
+from pathlib import Path
 from typing import Dict
 
-from app.advance_payments.models.advance_payment import AdvancePayment
-from app.annual_reports.models.annual_report_detail import AnnualReportDetail
-from app.annual_reports.models.annual_report_expense_line import AnnualReportExpenseLine
-from app.annual_reports.models.annual_report_income_line import AnnualReportIncomeLine
-from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
-from app.annual_reports.models.annual_report_model import AnnualReport
-from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
-from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
-from app.authority_contact.models.authority_contact import AuthorityContact
-from app.binders.models.binder import Binder
-from app.binders.models.binder_status_log import BinderStatusLog
-from app.charge.models.charge import Charge
-from app.clients.models.client import Client
-from app.clients.models.client_tax_profile import ClientTaxProfile
-from app.correspondence.models.correspondence import Correspondence
+from sqlalchemy import func, select
+
 from app.database import Base, SessionLocal, engine
-from app.invoice.models.invoice import Invoice
-from app.notification.models.notification import Notification
-from app.permanent_documents.models.permanent_document import PermanentDocument
-from app.reminders.models.reminder import Reminder
-from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
-from app.tax_deadline.models.tax_deadline import TaxDeadline
-from app.users.models.user import User
-from app.users.models.user_audit_log import UserAuditLog
-from app.vat_reports.models.vat_audit_log import VatAuditLog
-from app.vat_reports.models.vat_invoice import VatInvoice
-from app.vat_reports.models.vat_work_item import VatWorkItem
 
 from .config import SeedConfig
 from .domains import (
@@ -47,6 +25,18 @@ from .domains import (
     vat,
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+APP_DIR = PROJECT_ROOT / "app"
+
+
+def _import_all_model_modules() -> None:
+    """Import all model modules so Base.metadata includes every table."""
+    for model_file in APP_DIR.glob("*/models/*.py"):
+        if model_file.name.startswith("__"):
+            continue
+        module = ".".join(model_file.relative_to(PROJECT_ROOT).with_suffix("").parts)
+        importlib.import_module(module)
+
 
 class Seeder:
     def __init__(self, cfg: SeedConfig):
@@ -54,6 +44,7 @@ class Seeder:
         self.rng = random.Random(cfg.seed)
 
     def run(self) -> None:
+        _import_all_model_modules()
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
         try:
@@ -97,7 +88,9 @@ class Seeder:
             signature_requests.create_signature_audit_events(db, self.rng, signature_requests_seeded)
 
             db.commit()
-            self._print_counts(db)
+            counts = self._collect_counts(db)
+            self._assert_full_seed(counts)
+            self._print_counts(counts)
         except Exception:
             db.rollback()
             raise
@@ -105,68 +98,25 @@ class Seeder:
             db.close()
 
     def _reset(self, db) -> None:
-        for model in [
-            VatAuditLog,
-            VatInvoice,
-            VatWorkItem,
-            SignatureAuditEvent,
-            SignatureRequest,
-            UserAuditLog,
-            BinderStatusLog,
-            Notification,
-            Reminder,
-            AdvancePayment,
-            PermanentDocument,
-            Invoice,
-            TaxDeadline,
-            AnnualReportStatusHistory,
-            AnnualReportScheduleEntry,
-            AnnualReportAnnexData,
-            AnnualReportExpenseLine,
-            AnnualReportIncomeLine,
-            AnnualReportDetail,
-            AuthorityContact,
-            Correspondence,
-            AnnualReport,
-            ClientTaxProfile,
-            Charge,
-            Binder,
-            Client,
-            User,
-        ]:
-            db.query(model).delete()
+        for table in reversed(Base.metadata.sorted_tables):
+            db.execute(table.delete())
         db.commit()
 
-    def _print_counts(self, db) -> None:
-        counts: Dict[str, int] = {
-            "users": db.query(User).count(),
-            "clients": db.query(Client).count(),
-            "binders": db.query(Binder).count(),
-            "charges": db.query(Charge).count(),
-            "invoices": db.query(Invoice).count(),
-            "tax_deadlines": db.query(TaxDeadline).count(),
-            "annual_reports": db.query(AnnualReport).count(),
-            "annual_report_details": db.query(AnnualReportDetail).count(),
-            "annual_report_income_lines": db.query(AnnualReportIncomeLine).count(),
-            "annual_report_expense_lines": db.query(AnnualReportExpenseLine).count(),
-            "annual_report_annex_data": db.query(AnnualReportAnnexData).count(),
-            "annual_report_status_history": db.query(AnnualReportStatusHistory).count(),
-            "annual_report_schedules": db.query(AnnualReportScheduleEntry).count(),
-            "authority_contacts": db.query(AuthorityContact).count(),
-            "client_tax_profiles": db.query(ClientTaxProfile).count(),
-            "correspondence_entries": db.query(Correspondence).count(),
-            "notifications": db.query(Notification).count(),
-            "permanent_documents": db.query(PermanentDocument).count(),
-            "binder_status_logs": db.query(BinderStatusLog).count(),
-            "advance_payments": db.query(AdvancePayment).count(),
-            "user_audit_logs": db.query(UserAuditLog).count(),
-            "reminders": db.query(Reminder).count(),
-            "vat_work_items": db.query(VatWorkItem).count(),
-            "vat_invoices": db.query(VatInvoice).count(),
-            "vat_audit_logs": db.query(VatAuditLog).count(),
-            "signature_requests": db.query(SignatureRequest).count(),
-            "signature_audit_events": db.query(SignatureAuditEvent).count(),
-        }
+    def _collect_counts(self, db) -> Dict[str, int]:
+        counts: Dict[str, int] = {}
+        for table in Base.metadata.sorted_tables:
+            counts[table.name] = int(db.execute(select(func.count()).select_from(table)).scalar_one())
+        return counts
+
+    def _assert_full_seed(self, counts: Dict[str, int]) -> None:
+        empty_tables = [table for table, count in counts.items() if count == 0]
+        if empty_tables:
+            raise RuntimeError(
+                "Full-seed validation failed. Empty tables after seeding: "
+                + ", ".join(empty_tables)
+            )
+
+    def _print_counts(self, counts: Dict[str, int]) -> None:
         print("Seeding completed. Current row counts:")
         for key, value in counts.items():
             print(f"- {key}: {value}")
