@@ -11,6 +11,7 @@ class AdvancePaymentRow(BaseModel):
     id: int
     client_id: int
     tax_deadline_id: Optional[int] = None
+    annual_report_id: Optional[int] = None
     month: int
     year: int
     expected_amount: Optional[float] = None

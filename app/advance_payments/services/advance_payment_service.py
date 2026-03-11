@@ -20,17 +20,25 @@ class AdvancePaymentService:
         self.db = db
         self.repo = AdvancePaymentRepository(db)
         self.analytics_repo = AdvancePaymentAnalyticsRepository(db)
-        self.client_repo = ClientRepository(db)
-        self.tax_profile_repo = ClientTaxProfileRepository(db)
+
+    @property
+    def _client_repo(self) -> ClientRepository:
+        return ClientRepository(self.db)
+
+    @property
+    def _tax_profile_repo(self) -> ClientTaxProfileRepository:
+        return ClientTaxProfileRepository(self.db)
 
     def list_payments(
         self,
         client_id: int,
         year: int,
-        status: Optional[AdvancePaymentStatus] = None,
+        status: Optional[list[AdvancePaymentStatus]] = None,
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
+        if not self._client_repo.get_by_id(client_id):
+            raise NotFoundError("Client not found", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
         return self.repo.list_by_client_year(client_id, year, status=status, page=page, page_size=page_size)
 
     def create_payment(
@@ -45,11 +53,10 @@ class AdvancePaymentService:
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         # Validate client exists
-        if not self.client_repo.get_by_id(client_id):
+        if not self._client_repo.get_by_id(client_id):
             raise NotFoundError("Client not found", "ADVANCE_PAYMENT.NOT_FOUND")
 
-        existing, _ = self.repo.list_by_client_year(client_id, year, page=1, page_size=12)
-        if any(p.month == month for p in existing):
+        if self.repo.exists_for_month(client_id, year, month):
             raise ConflictError("תשלום מקדמה לחודש זה כבר קיים", "ADVANCE_PAYMENT.CONFLICT")
 
         return self.repo.create(
@@ -92,11 +99,12 @@ class AdvancePaymentService:
                 AdvancePaymentStatus.PENDING,
                 AdvancePaymentStatus.OVERDUE,
                 AdvancePaymentStatus.PARTIAL,
+                AdvancePaymentStatus.PAID,
             ]
         return self.repo.list_overview(year, month, statuses, page=page, page_size=page_size)
 
     def get_annual_kpis(self, client_id: int, year: int) -> dict:
-        if not self.client_repo.get_by_id(client_id):
+        if not self._client_repo.get_by_id(client_id):
             raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
         data = self.analytics_repo.get_annual_kpis(client_id, year)
         total_expected = data["total_expected"]
@@ -110,6 +118,7 @@ class AdvancePaymentService:
                 AdvancePaymentStatus.PENDING,
                 AdvancePaymentStatus.OVERDUE,
                 AdvancePaymentStatus.PARTIAL,
+                AdvancePaymentStatus.PAID,
             ]
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
         total_expected = data["total_expected"]
@@ -118,7 +127,7 @@ class AdvancePaymentService:
         return {**data, "collection_rate": round(collection_rate, 2)}
 
     def get_chart_data(self, client_id: int, year: int) -> dict:
-        if not self.client_repo.get_by_id(client_id):
+        if not self._client_repo.get_by_id(client_id):
             raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
         months = self.analytics_repo.monthly_chart_data(client_id, year)
         return {"client_id": client_id, "year": year, "months": months}
@@ -130,7 +139,7 @@ class AdvancePaymentService:
         Return a monthly advance suggestion based on prior year VAT output and
         the client's advance_rate. Returns None if either is missing.
         """
-        profile = self.tax_profile_repo.get_by_client_id(client_id)
+        profile = self._tax_profile_repo.get_by_client_id(client_id)
         if profile is None or profile.advance_rate is None:
             return None
 

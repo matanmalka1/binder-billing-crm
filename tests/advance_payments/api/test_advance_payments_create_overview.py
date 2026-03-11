@@ -65,8 +65,11 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert first.json()["month"] == 3
 
     conflict = client.post("/api/v1/advance-payments", headers=advisor_headers, json=payload)
+    data = conflict.json()
     assert conflict.status_code == 409
-    assert conflict.json()["error"] == "ADVANCE_PAYMENT.CONFLICT"
+    assert data["error"]["type"] == "ADVANCE_PAYMENT.CONFLICT"
+    assert data["error"]["status_code"] == 409
+    assert isinstance(data["error"]["detail"], str)
 
 
 def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advisor_headers, test_user):

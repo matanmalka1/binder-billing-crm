@@ -17,7 +17,7 @@ class AdvancePaymentRepository(BaseRepository):
         self,
         client_id: int,
         year: int,
-        status: Optional[AdvancePaymentStatus] = None,
+        status: Optional[list[AdvancePaymentStatus]] = None,
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
@@ -30,13 +30,24 @@ class AdvancePaymentRepository(BaseRepository):
             .order_by(AdvancePayment.month.asc())
         )
         if status is not None:
-            query = query.filter(AdvancePayment.status == status)
+            query = query.filter(AdvancePayment.status.in_(status))
         total = query.count()
         items = self._paginate(query, page, page_size)
         return items, total
 
     def get_by_id(self, id: int) -> Optional[AdvancePayment]:
         return self.db.query(AdvancePayment).filter(AdvancePayment.id == id).first()
+
+    def exists_for_month(self, client_id: int, year: int, month: int) -> bool:
+        return self.db.query(
+            self.db.query(AdvancePayment)
+            .filter(
+                AdvancePayment.client_id == client_id,
+                AdvancePayment.year == year,
+                AdvancePayment.month == month,
+            )
+            .exists()
+        ).scalar()
 
     def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)

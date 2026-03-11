@@ -63,7 +63,7 @@ def test_list_by_client_year_filters_and_orders(test_db):
     pending_items, pending_total = repo.list_by_client_year(
         client_id=client.id,
         year=2025,
-        status=AdvancePaymentStatus.PENDING,
+        status=[AdvancePaymentStatus.PENDING],
     )
     assert pending_total == 1
     assert pending_items[0].id == january.id

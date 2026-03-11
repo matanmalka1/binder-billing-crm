@@ -139,13 +139,8 @@ class ForbiddenError(AppError):
         super().__init__(message, code, status_code=403)
 
 
-async def app_error_handler(request, exc: AppError):
-    from fastapi.responses import JSONResponse
-
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.code, "message": exc.message},
-    )
+async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    return _error_json(exc.status_code, exc.message, exc.code)
 
 
 async def value_error_handler(request, exc: ValueError):
