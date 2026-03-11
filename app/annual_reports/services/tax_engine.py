@@ -2,48 +2,17 @@
 
 from dataclasses import dataclass
 
-# 2024 National Insurance constants
-_NI_MONTHLY_CEILING = 7_522.0
-_NI_ANNUAL_CEILING = _NI_MONTHLY_CEILING * 12   # ₪90,264
-_NI_RATE_BASE = 0.0597
-_NI_RATE_HIGH = 0.1783
-
-
-@dataclass
-class NationalInsuranceResult:
-    base_amount: float    # NI on income up to ceiling
-    high_amount: float    # NI on income above ceiling
-    total: float
-
-
-def calculate_national_insurance(income: float) -> NationalInsuranceResult:
-    """Calculate Israeli National Insurance (ביטוח לאומי) for 2024.
-
-    5.97% up to ₪90,264 annual ceiling, 17.83% above.
-    """
-    income = max(income, 0.0)
-    base = min(income, _NI_ANNUAL_CEILING)
-    above = max(income - _NI_ANNUAL_CEILING, 0.0)
-    base_amount = round(base * _NI_RATE_BASE, 2)
-    high_amount = round(above * _NI_RATE_HIGH, 2)
-    return NationalInsuranceResult(
-        base_amount=base_amount,
-        high_amount=high_amount,
-        total=round(base_amount + high_amount, 2),
-    )
-
-# 2024 tax brackets: (upper_bound, rate)  — last bracket has no upper bound
 _BRACKETS = [
-    (81_480,   0.10),
-    (116_760,  0.14),
-    (187_440,  0.20),
-    (260_520,  0.31),
-    (557_640,  0.35),
-    (None,     0.47),
+    (81_480, 0.10),
+    (116_760, 0.14),
+    (187_440, 0.20),
+    (260_520, 0.31),
+    (557_640, 0.35),
+    (None, 0.47),
 ]
 
-_CREDIT_POINT_VALUE = 2_904.0  # ₪ per credit point, 2024
-_DONATION_CREDIT_RATE = 0.35   # סעיף 46 — 35% of donation amount
+_CREDIT_POINT_VALUE = 2_904.0
+_DONATION_CREDIT_RATE = 0.35
 
 
 @dataclass
@@ -75,11 +44,7 @@ def calculate_tax(
     donation_amount: float = 0.0,
     other_credits: float = 0.0,
 ) -> TaxCalculationResult:
-    """Calculate Israeli income tax for 2024 brackets.
-
-    pension_deduction is subtracted from taxable_income before applying brackets,
-    capped at taxable_income so the adjusted base never goes negative.
-    """
+    """Calculate Israeli income tax for 2024 brackets."""
     deduction = min(max(pension_deduction, 0.0), max(taxable_income, 0.0))
     adjusted_income = taxable_income - deduction
 
@@ -109,32 +74,20 @@ def calculate_tax(
             tax_in_bracket = taxable_in_bracket * rate
             tax += tax_in_bracket
             if taxable_in_bracket > 0:
-                brackets.append(BracketBreakdownItem(
-                    rate=rate, from_amount=prev, to_amount=None,
-                    taxable_in_bracket=round(taxable_in_bracket, 2),
-                    tax_in_bracket=round(tax_in_bracket, 2),
-                ))
+                brackets.append(BracketBreakdownItem(rate, prev, None, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
             break
         if adjusted_income <= upper:
             taxable_in_bracket = adjusted_income - prev
             tax_in_bracket = taxable_in_bracket * rate
             tax += tax_in_bracket
             if taxable_in_bracket > 0:
-                brackets.append(BracketBreakdownItem(
-                    rate=rate, from_amount=prev, to_amount=upper,
-                    taxable_in_bracket=round(taxable_in_bracket, 2),
-                    tax_in_bracket=round(tax_in_bracket, 2),
-                ))
+                brackets.append(BracketBreakdownItem(rate, prev, upper, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
             break
         taxable_in_bracket = upper - prev
         tax_in_bracket = taxable_in_bracket * rate
         tax += tax_in_bracket
         if taxable_in_bracket > 0:
-            brackets.append(BracketBreakdownItem(
-                rate=rate, from_amount=prev, to_amount=upper,
-                taxable_in_bracket=round(taxable_in_bracket, 2),
-                tax_in_bracket=round(tax_in_bracket, 2),
-            ))
+            brackets.append(BracketBreakdownItem(rate, prev, upper, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
         prev = upper
 
     total_credits = credit_points_value + donation_credit + other_credits_val
@@ -154,4 +107,4 @@ def calculate_tax(
     )
 
 
-__all__ = ["calculate_tax", "TaxCalculationResult", "BracketBreakdownItem", "calculate_national_insurance", "NationalInsuranceResult"]
+__all__ = ["calculate_tax", "TaxCalculationResult", "BracketBreakdownItem"]
