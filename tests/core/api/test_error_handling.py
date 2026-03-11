@@ -10,9 +10,11 @@ def test_http_error_has_consistent_envelope(client):
     assert response.status_code == 401
     data = response.json()
     assert "error" in data
-    assert "type" in data["error"]
-    assert "detail" in data["error"]
-    assert "status_code" in data["error"]
+    assert isinstance(data["error"], str)
+    assert "error_meta" in data
+    assert "type" in data["error_meta"]
+    assert "detail" in data["error_meta"]
+    assert "status_code" in data["error_meta"]
 
 
 def test_validation_error_has_consistent_envelope(client, advisor_headers):

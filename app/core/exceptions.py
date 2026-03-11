@@ -28,14 +28,16 @@ class ErrorResponse:
         detail: Any,
         error_type: str = "error",
     ) -> dict[str, Any]:
-        """Build response with legacy `detail` plus structured `error`."""
+        """Build response with legacy and structured error fields."""
+        structured = {
+            "type": error_type,
+            "detail": detail if isinstance(detail, str) else "נתוני הבקשה אינם תקינים",
+            "status_code": status_code,
+        }
         return {
             "detail": detail,
-            "error": {
-                "type": error_type,
-                "detail": detail if isinstance(detail, str) else "נתוני הבקשה אינם תקינים",
-                "status_code": status_code,
-            },
+            "error": error_type,
+            "error_meta": structured,
         }
 
 

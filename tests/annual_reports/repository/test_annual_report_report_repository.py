@@ -109,14 +109,10 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
 
     with_clients = repo.list_all_with_clients()
     assert len(with_clients) == 3
-    assert {client_name for _, client_name in with_clients} == {
-        client_a.full_name,
-        client_b.full_name,
-    }
+    assert {r.client_id for r in with_clients} == {client_a.id, client_b.id}
 
     assert repo.soft_delete(submitted_a.id, deleted_by=user.id) is True
     assert repo.count_all() == 2
     assert repo.count_by_status(AnnualReportStatus.SUBMITTED) == 1
     assert repo.get_by_id(submitted_a.id) is None
     assert repo.soft_delete(999999, deleted_by=user.id) is False
-

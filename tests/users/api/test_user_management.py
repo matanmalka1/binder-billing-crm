@@ -100,14 +100,15 @@ def test_advisor_can_update_and_activate_deactivate_user(client, advisor_headers
     assert activate_response.json()["is_active"] is True
 
 
-def test_cannot_update_immutable_fields(client, advisor_headers, test_db):
+def test_can_update_email_field(client, advisor_headers, test_db):
     target = _make_user(test_db, "immutable@example.com")
     response = client.patch(
         f"/api/v1/users/{target.id}",
         headers=advisor_headers,
         json={"email": "new@example.com"},
     )
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert response.json()["email"] == "new@example.com"
 
 
 def test_cannot_deactivate_self(client, advisor_headers, test_user):

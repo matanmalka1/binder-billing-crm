@@ -97,9 +97,9 @@ def test_update_advance_payment_not_found_returns_404(client, advisor_headers):
 
     data = response.json()
     assert response.status_code == 404
-    assert data["error"]["type"] == "ADVANCE_PAYMENT.NOT_FOUND"
-    assert data["error"]["status_code"] == 404
-    assert isinstance(data["error"]["detail"], str)
+    assert data["error"] == "ADVANCE_PAYMENT.NOT_FOUND"
+    assert data["error_meta"]["status_code"] == 404
+    assert isinstance(data["error_meta"]["detail"], str)
 
 
 def test_list_advance_payments_missing_client_returns_404(client, advisor_headers):
@@ -110,7 +110,5 @@ def test_list_advance_payments_missing_client_returns_404(client, advisor_header
 
     assert response.status_code == 404
     data = response.json()
-    if "error" in data:
-        assert data["error"].get("detail") == "Client not found"
-    else:
-        assert data.get("detail") == "Client not found"
+    assert data["error"] == "ADVANCE_PAYMENT.CLIENT_NOT_FOUND"
+    assert data["error_meta"]["detail"] == "Client not found"

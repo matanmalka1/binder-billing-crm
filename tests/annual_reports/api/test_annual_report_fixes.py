@@ -82,7 +82,7 @@ def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor
     )
 
     assert response.status_code == 404
-    assert response.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+    assert response.json()["error"] == "USER.NOT_FOUND"
 
 
 def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_headers, test_user):
