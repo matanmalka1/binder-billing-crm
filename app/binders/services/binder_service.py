@@ -82,6 +82,7 @@ class BinderService(BinderListService):
             old_status=old_status,
             new_status=BinderStatus.READY_FOR_PICKUP.value,
             changed_by=user_id,
+            notes="סומן כמוכן לאיסוף",
         )
 
         client = self.client_repo.get_by_id(binder.client_id)
@@ -117,7 +118,7 @@ class BinderService(BinderListService):
             old_status=old_status,
             new_status=BinderStatus.RETURNED.value,
             changed_by=returned_by,
-            notes=f"Picked up by {pickup_person_name}",
+            notes=f"נאסף על ידי {pickup_person_name}",
         )
 
         return updated
