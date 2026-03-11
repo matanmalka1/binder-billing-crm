@@ -1,5 +1,5 @@
 from app.core.exceptions import AppError
-from app.annual_reports.schemas.annual_report import AnnualReportResponse
+from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from .base import AnnualReportBaseService
 
 

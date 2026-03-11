@@ -1,4 +1,4 @@
-from app.annual_reports.schemas.annual_report import SeasonSummaryResponse
+from app.annual_reports.schemas.annual_report_responses import SeasonSummaryResponse
 from .base import AnnualReportBaseService
 
 

@@ -2,7 +2,7 @@ from typing import Any
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models import AnnualReport
-from app.annual_reports.schemas.annual_report import AnnualReportResponse
+from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 
 
 class AnnualReportBaseService:

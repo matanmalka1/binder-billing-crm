@@ -2,10 +2,9 @@ from datetime import date
 from typing import Optional
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
-from app.annual_reports.schemas.annual_report import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
+from app.annual_reports.schemas.annual_report_responses import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
 from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
-
 class AnnualReportQueryService(AnnualReportBaseService):
     def get_report(self, report_id: int) -> Optional[AnnualReportResponse]:
         report = self.repo.get_by_id(report_id)
