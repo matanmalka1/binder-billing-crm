@@ -3,9 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.authority_contact.models.authority_contact import ContactType
+
 
 class AuthorityContactCreateRequest(BaseModel):
-    contact_type: str
+    contact_type: ContactType
     name: str
     office: Optional[str] = None
     phone: Optional[str] = None
@@ -14,7 +16,7 @@ class AuthorityContactCreateRequest(BaseModel):
 
 
 class AuthorityContactUpdateRequest(BaseModel):
-    contact_type: Optional[str] = None
+    contact_type: Optional[ContactType] = None
     name: Optional[str] = None
     office: Optional[str] = None
     phone: Optional[str] = None
@@ -25,7 +27,7 @@ class AuthorityContactUpdateRequest(BaseModel):
 class AuthorityContactResponse(BaseModel):
     id: int
     client_id: int
-    contact_type: str
+    contact_type: ContactType
     name: str
     office: Optional[str] = None
     phone: Optional[str] = None
