@@ -5,6 +5,7 @@ from app.annual_reports.repositories import AnnualReportRepository
 from app.clients.repositories.client_repository import ClientRepository
 from .create_service import AnnualReportCreateService
 from .query_service import AnnualReportQueryService
+from .season_service import AnnualReportSeasonService
 from .schedule_service import AnnualReportScheduleService
 from .status_service import AnnualReportStatusService
 from .kanban_service import AnnualReportKanbanService
@@ -15,6 +16,7 @@ class AnnualReportService(
     AnnualReportCreateService,
     AnnualReportStatusService,
     AnnualReportKanbanService,
+    AnnualReportSeasonService,
     AnnualReportScheduleService,
     AnnualReportQueryService,
     AnnualReportAnnexService,

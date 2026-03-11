@@ -37,37 +37,4 @@ def list_season_reports(
 
 @season_router.get("/{tax_year}/summary", response_model=SeasonSummaryResponse)
 def get_season_summary(tax_year: int, db: DBSession, user: CurrentUser):
-    """
-    Aggregated progress for a tax year.
-
-    Shows how many reports are in each status, the completion rate,
-    and how many are overdue — essential for the season progress dashboard.
-    """
-    service = AnnualReportService(db)
-    summary = service.get_season_summary(tax_year)
-    overdue = len(service.get_overdue(tax_year=tax_year))
-
-    total = summary.get("total", 0)
-    done = (
-        summary.get("submitted", 0)
-        + summary.get("accepted", 0)
-        + summary.get("closed", 0)
-    )
-    rate = round(done / total * 100, 1) if total > 0 else 0.0
-
-    return SeasonSummaryResponse(
-        tax_year=tax_year,
-        total=total,
-        not_started=summary.get("not_started", 0),
-        collecting_docs=summary.get("collecting_docs", 0),
-        docs_complete=summary.get("docs_complete", 0),
-        in_preparation=summary.get("in_preparation", 0),
-        pending_client=summary.get("pending_client", 0),
-        submitted=summary.get("submitted", 0),
-        accepted=summary.get("accepted", 0),
-        assessment_issued=summary.get("assessment_issued", 0),
-        objection_filed=summary.get("objection_filed", 0),
-        closed=summary.get("closed", 0),
-        completion_rate=rate,
-        overdue_count=overdue,
-    )
+    return AnnualReportService(db).get_season_summary_response(tax_year)
