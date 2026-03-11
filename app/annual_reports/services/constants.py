@@ -36,6 +36,10 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
         AnnualReportStatus.ACCEPTED,
         AnnualReportStatus.ASSESSMENT_ISSUED,
     },
+    AnnualReportStatus.AMENDED: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.SUBMITTED,
+    },
     AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
     AnnualReportStatus.ASSESSMENT_ISSUED: {
         AnnualReportStatus.OBJECTION_FILED,
