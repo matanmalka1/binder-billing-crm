@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.annual_reports.models import AnnualReport, AnnualReportStatus
-
+from app.utils.time_utils import utcnow
 
 _SORT_COLUMNS = {
     "tax_year": AnnualReport.tax_year,
@@ -20,7 +20,6 @@ _SORT_COLUMNS = {
 def _sort_col(sort_by: str, order: str):
     col = _SORT_COLUMNS.get(sort_by, AnnualReport.created_at)
     return col.asc() if order == "asc" else col.desc()
-
 
 class AnnualReportReportRepository(BaseRepository):
     def __init__(self, db: Session):
@@ -103,11 +102,9 @@ class AnnualReportReportRepository(BaseRepository):
         return self._paginate(q, page, page_size)
 
     def count_by_tax_year(self, tax_year: int) -> int:
-        return (
-            self.db.query(AnnualReport)
-            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
-            .count()
-        )
+        return self.db.query(AnnualReport).filter(
+            AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
+        ).count()
 
     def list_all(
         self,
@@ -133,12 +130,17 @@ class AnnualReportReportRepository(BaseRepository):
         )
 
     def count_all(self) -> int:
-        return (
-            self.db.query(AnnualReport)
-            .filter(AnnualReport.deleted_at.is_(None))
-            .count()
-        )
+        return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
 
     def update(self, report_id: int, **fields) -> Optional[AnnualReport]:
         report = self.get_by_id(report_id)
         return self._update_entity(report, touch_updated_at=True, **fields)
+
+    def soft_delete(self, report_id: int, deleted_by: int) -> bool:
+        report = self.get_by_id(report_id)
+        if not report:
+            return False
+        report.deleted_at = utcnow()
+        report.deleted_by = deleted_by
+        self.db.commit()
+        return True
