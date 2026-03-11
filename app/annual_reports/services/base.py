@@ -10,6 +10,7 @@ class AnnualReportBaseService:
 
     repo: Any  # set by concrete service
     client_repo: Any  # set by concrete service
+    user_repo: Any  # set by concrete service
 
     def _get_or_raise(self, report_id: int) -> AnnualReport:
         report = self.repo.get_by_id(report_id)

@@ -1,24 +1,20 @@
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models import (
     AnnualReport,
     AnnualReportStatus,
     ClientTypeForReport,
     DeadlineType,
 )
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
-from app.users.repositories.user_repository import UserRepository
-from app.utils.time_utils import utcnow
+from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
 
 
 class AnnualReportCreateService(AnnualReportBaseService):
-    client_repo: ClientRepository
-
     def create_report(
         self,
         client_id: int,
@@ -56,9 +52,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         dt = DeadlineType(deadline_type)
 
         if assigned_to is not None:
-            user_repo = UserRepository(self.db)
-            if not user_repo.get_by_id(assigned_to):
-                raise NotFoundError(f"משתמש מוקצה {assigned_to} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            get_user_or_raise(self.user_repo, assigned_to)
 
         existing = self.repo.get_by_client_year(client_id, tax_year)
         if existing:
