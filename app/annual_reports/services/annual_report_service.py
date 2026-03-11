@@ -7,12 +7,14 @@ from .create_service import AnnualReportCreateService
 from .query_service import AnnualReportQueryService
 from .schedule_service import AnnualReportScheduleService
 from .status_service import AnnualReportStatusService
+from .kanban_service import AnnualReportKanbanService
 from .annex_service import AnnualReportAnnexService
 
 
 class AnnualReportService(
     AnnualReportCreateService,
     AnnualReportStatusService,
+    AnnualReportKanbanService,
     AnnualReportScheduleService,
     AnnualReportQueryService,
     AnnualReportAnnexService,
