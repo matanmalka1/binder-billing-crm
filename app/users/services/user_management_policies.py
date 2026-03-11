@@ -3,7 +3,6 @@ from app.users.models.user import UserRole
 
 IMMUTABLE_UPDATE_FIELDS = {
     "id",
-    "email",
     "token_version",
     "created_at",
     "last_login_at",
