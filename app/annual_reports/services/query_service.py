@@ -6,9 +6,7 @@ from app.annual_reports.schemas.annual_report import AnnualReportDetailResponse,
 from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
 
-
 class AnnualReportQueryService(AnnualReportBaseService):
-
     def get_report(self, report_id: int) -> Optional[AnnualReportResponse]:
         report = self.repo.get_by_id(report_id)
         if not report:
@@ -116,9 +114,12 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""
-        records = self.repo.list_all_with_clients()
+        reports = self.repo.list_all_with_clients()
+        client_ids = {r.client_id for r in reports}
+        clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
+        id_to_name = {c.id: c.full_name for c in clients}
         stages = {stage.value: [] for stage in ReportStage}
-        for report, client_name in records:
+        for report in reports:
             stage_key = getattr(report, "status", None)
             # Map status to stage: simple mapping aligning with frontend STAGE_ORDER
             status_value = report.status.value if hasattr(report.status, "value") else report.status
@@ -137,13 +138,10 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 {
                     "id": report.id,
                     "client_id": report.client_id,
-                    "client_name": client_name,
+                    "client_name": id_to_name.get(report.client_id),
                     "tax_year": report.tax_year,
                     "days_until_due": None if not report.filing_deadline else (report.filing_deadline.date() - date.today()).days,
                 }
             )
 
-        return [
-            {"stage": key, "reports": reports}
-            for key, reports in stages.items()
-        ]
+        return [{"stage": key, "reports": reports} for key, reports in stages.items()]
