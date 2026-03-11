@@ -3,17 +3,18 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.binders.services import binder_helpers
+from app.binders.services.binder_list_service import BinderListService
 from app.notification.services.notification_service import NotificationService
 
 
-class BinderService:
+class BinderService(BinderListService):
     """Binder lifecycle management business logic."""
 
     def __init__(self, db: Session):
