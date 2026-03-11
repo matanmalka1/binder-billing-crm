@@ -42,7 +42,7 @@ class PermanentDocumentService:
             AppError: If client not found or document type invalid
         """
         try:
-            get_client_or_raise(self.client_repo, client_id)
+            get_client_or_raise(self.db, client_id)
         except NotFoundError as exc:
             raise NotFoundError(str(exc), "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
 

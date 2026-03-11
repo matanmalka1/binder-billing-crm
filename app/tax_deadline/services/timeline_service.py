@@ -20,7 +20,7 @@ _MILESTONE_LABELS: dict[str, str] = {
 
 def build_timeline(client_id: int, client_repo, deadline_repo) -> list[dict]:
     """Return deadlines sorted by due_date asc with days_remaining and milestone_label."""
-    get_client_or_raise(client_repo, client_id)
+    get_client_or_raise(client_repo.db, client_id)
     deadlines = deadline_repo.list_by_client(client_id)
     today = date.today()
     result = []

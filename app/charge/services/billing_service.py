@@ -36,7 +36,7 @@ class BillingService:
             AppError: If client doesn't exist or amount is invalid
         """
         # Validate client exists
-        get_client_or_raise(self.client_repo, client_id)
+        get_client_or_raise(self.db, client_id)
 
         # Validate amount
         if amount <= 0:

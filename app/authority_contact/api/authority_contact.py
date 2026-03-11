@@ -3,7 +3,6 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.authority_contact.models.authority_contact import ContactType
 from app.users.models.user import UserRole
 from app.authority_contact.schemas.authority_contact import (
     AuthorityContactCreateRequest,
@@ -34,10 +33,9 @@ def create_authority_contact(
     """Create new authority contact for client."""
     service = AuthorityContactService(db)
 
-    contact_type = ContactType(request.contact_type)
     contact = service.add_contact(
         client_id=client_id,
-        contact_type=contact_type,
+        contact_type=request.contact_type,
         name=request.name,
         office=request.office,
         phone=request.phone,
@@ -59,11 +57,12 @@ def list_authority_contacts(
     """List authority contacts for client with pagination."""
     service = AuthorityContactService(db)
 
-    type_enum = None
-    if contact_type:
-        type_enum = ContactType(contact_type)
-
-    contacts, total = service.list_client_contacts(client_id, type_enum, page=page, page_size=page_size)
+    contacts, total = service.list_client_contacts(
+        client_id,
+        contact_type,
+        page=page,
+        page_size=page_size,
+    )
 
     return AuthorityContactListResponse(
         items=[AuthorityContactResponse.model_validate(c) for c in contacts],
@@ -107,9 +106,6 @@ def update_authority_contact(
     service = AuthorityContactService(db)
 
     update_data = request.model_dump(exclude_unset=True)
-
-    if "contact_type" in update_data:
-        update_data["contact_type"] = ContactType(update_data["contact_type"])
 
     contact = service.update_contact(contact_id, **update_data)
     return AuthorityContactResponse.model_validate(contact)

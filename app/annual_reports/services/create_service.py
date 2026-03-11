@@ -33,7 +33,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        get_client_or_raise(self.client_repo, client_id)
+        get_client_or_raise(self.db, client_id)
 
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:

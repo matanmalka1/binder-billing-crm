@@ -28,7 +28,7 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        get_client_or_raise(self.client_repo, client_id)
+        get_client_or_raise(self.db, client_id)
 
         return self.deadline_repo.create(
             client_id=client_id,

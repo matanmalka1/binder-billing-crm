@@ -33,7 +33,7 @@ class BinderService:
         notes: Optional[str] = None,
     ) -> Binder:
         """Receive new binder (intake flow)."""
-        client = get_client_or_raise(self.client_repo, client_id)
+        client = get_client_or_raise(self.db, client_id)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
         if existing:
