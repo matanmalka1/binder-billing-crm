@@ -49,9 +49,17 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 action_id=_generate_action_id("binder", binder.id, "return"),
                 confirm={
                     "title": "אישור החזרת קלסר",
-                    "message": "האם לאשר החזרת קלסר ללקוח?",
+                    "message": "אנא הזן את שם האדם שאסף את הקלסר.",
                     "confirm_label": "אישור",
                     "cancel_label": "ביטול",
+                    "inputs": [
+                        {
+                            "name": "pickup_person_name",
+                            "label": "שם האוסף",
+                            "type": "text",
+                            "required": True,
+                        }
+                    ],
                 },
             )
         )
