@@ -10,6 +10,7 @@ from app.reports.services.reports_service import AgingReportService
 from app.reports.services.export_service import ExportService
 from app.reports.services.annual_report_status_report import AnnualReportStatusReportService
 from app.reports.services.advance_payment_report import AdvancePaymentReportService
+from app.reports.services.vat_compliance_report import VatComplianceReportService
 
 
 router = APIRouter(
@@ -17,6 +18,16 @@ router = APIRouter(
     tags=["reports"],
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
+
+
+@router.get("/vat-compliance")
+def get_vat_compliance_report(
+    db: DBSession,
+    user: CurrentUser,
+    year: int = Query(...),
+):
+    service = VatComplianceReportService(db)
+    return service.get_vat_compliance_report(year)
 
 
 @router.get("/advance-payments")

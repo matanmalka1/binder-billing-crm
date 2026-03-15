@@ -75,16 +75,16 @@ before any task read claude.md if the task is on backend read claude.md on backe
 #### 3c. דוח VAT Compliance
 
 **Backend**
-- [ ] `app/reports/services/vat_compliance_report.py` (new) — `get_vat_compliance_report(year)`:
+- [x] `app/reports/services/vat_compliance_report.py` (new) — `get_vat_compliance_report(year)`:
   - Per client: periods expected vs. filed, on-time vs. late
   - Flag: clients with PENDING_MATERIALS older than 30 days
-- [ ] `app/reports/api/` — add `GET /api/v1/reports/vat-compliance?year=YYYY`
-- [ ] Read `app/vat_reports/repositories/` for existing queries
+- [x] `app/reports/api/` — add `GET /api/v1/reports/vat-compliance?year=YYYY`
+- [x] Read `app/vat_reports/repositories/` for existing queries
 
 **Frontend**
-- [ ] `src/pages/reports/VatComplianceReport.tsx` (new page)
-- [ ] `src/api/reports.api.ts` — add `getVatComplianceReport(year)`
-- [ ] `src/router/AppRoutes.tsx` — add route `/reports/vat-compliance`
+- [x] `src/pages/reports/VatComplianceReport.tsx` (new page)
+- [x] `src/api/reports.api.ts` — add `getVatComplianceReport(year)`
+- [x] `src/router/AppRoutes.tsx` — add route `/reports/vat-compliance`
 
 ---
 
@@ -145,9 +145,9 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 8. ClientStatusCard drill-down links
 
 **Frontend only**
-- [ ] Read `src/features/clients/components/ClientStatusCard.tsx`
-- [ ] Each tile should navigate: VAT tile → `/clients/:id` (vat tab), charges tile → `/clients/:id` (charges tab), etc.
-- [ ] Use `useNavigate()` + existing tab param pattern from `ClientDetails.tsx`
+- [?] Read `src/features/clients/components/ClientStatusCard.tsx`
+- [?] Each tile should navigate: VAT tile → `/clients/:id` (vat tab), charges tile → `/clients/:id` (charges tab), etc.
+- [?] Use `useNavigate()` + existing tab param pattern from `ClientDetails.tsx`
 
 ---
 

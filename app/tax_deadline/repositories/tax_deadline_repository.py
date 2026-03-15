@@ -86,6 +86,23 @@ class TaxDeadlineRepository:
             .all()
         )
 
+    def list_by_client_ids(
+        self,
+        client_ids: list[int],
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+    ) -> list[TaxDeadline]:
+        """List deadlines for multiple clients with optional filters."""
+        query = self.db.query(TaxDeadline).filter(TaxDeadline.client_id.in_(client_ids))
+
+        if status:
+            query = query.filter(TaxDeadline.status == status)
+
+        if deadline_type:
+            query = query.filter(TaxDeadline.deadline_type == deadline_type)
+
+        return query.order_by(TaxDeadline.due_date.asc()).all()
+
     def list_by_client(
         self,
         client_id: int,

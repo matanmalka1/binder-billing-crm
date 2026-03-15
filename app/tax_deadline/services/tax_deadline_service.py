@@ -153,6 +153,19 @@ class TaxDeadlineService:
         """Get deadlines for client."""
         return self.deadline_repo.list_by_client(client_id, status, deadline_type)
 
+    def get_deadlines_by_client_name(
+        self,
+        client_name: str,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+    ) -> list[TaxDeadline]:
+        """Get deadlines filtered by client name substring."""
+        clients, _ = self.client_repo.search(client_name=client_name, page=1, page_size=500)
+        if not clients:
+            return []
+        client_ids = [c.id for c in clients]
+        return self.deadline_repo.list_by_client_ids(client_ids, status, deadline_type)
+
     def get_timeline(self, client_id: int) -> list:
         """Return deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
         from app.tax_deadline.services.timeline_service import build_timeline

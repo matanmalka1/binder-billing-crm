@@ -62,6 +62,7 @@ def list_tax_deadlines(
     db: DBSession,
     user: CurrentUser,
     client_id: Optional[int] = None,
+    client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     page: int = Query(1, ge=1),
@@ -77,6 +78,8 @@ def list_tax_deadlines(
     if client_id:
         # Client-scoped: naturally bounded, no ceiling needed.
         items = service.get_client_deadlines(client_id, status_filter, type_enum)
+    elif client_name:
+        items = service.get_deadlines_by_client_name(client_name, status_filter, type_enum)
     else:
         items = service.list_all_pending()[:_GLOBAL_DEADLINE_FETCH_LIMIT]
 
