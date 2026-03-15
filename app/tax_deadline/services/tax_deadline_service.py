@@ -9,6 +9,7 @@ from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time_utils import utcnow
+from app.reminders.services.reminder_service import ReminderService
 
 
 class TaxDeadlineService:
@@ -30,13 +31,22 @@ class TaxDeadlineService:
         """Create new tax deadline."""
         get_client_or_raise(self.db, client_id)
 
-        return self.deadline_repo.create(
+        deadline = self.deadline_repo.create(
             client_id=client_id,
             deadline_type=deadline_type,
             due_date=due_date,
             payment_amount=payment_amount,
             description=description,
         )
+
+        ReminderService(self.db).create_tax_deadline_reminder(
+            client_id=client_id,
+            tax_deadline_id=deadline.id,
+            target_date=due_date,
+            days_before=7,
+        )
+
+        return deadline
 
     def mark_completed(self, deadline_id: int) -> TaxDeadline:
         """Mark deadline as completed."""

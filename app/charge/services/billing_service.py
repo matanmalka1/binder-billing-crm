@@ -10,6 +10,7 @@ from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise
 from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow
+from app.reminders.services.reminder_service import ReminderService
 
 
 class BillingService:
@@ -73,12 +74,20 @@ class BillingService:
                 "CHARGE.INVALID_STATUS",
             )
 
-        return self.charge_repo.update_status(
+        issued = self.charge_repo.update_status(
             charge_id,
             ChargeStatus.ISSUED,
             issued_at=utcnow(),
             issued_by=actor_id,
         )
+
+        ReminderService(self.db).create_unpaid_charge_reminder(
+            client_id=charge.client_id,
+            charge_id=charge_id,
+            days_unpaid=30,
+        )
+
+        return issued
 
     def mark_charge_paid(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
         """
