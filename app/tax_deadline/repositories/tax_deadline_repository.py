@@ -130,6 +130,24 @@ class TaxDeadlineRepository:
         self.db.refresh(deadline)
         return deadline
 
+    def exists(
+        self,
+        client_id: int,
+        deadline_type: DeadlineType,
+        due_date: date,
+    ) -> bool:
+        """Return True if a deadline with the same client/type/due_date already exists."""
+        return (
+            self.db.query(TaxDeadline.id)
+            .filter(
+                TaxDeadline.client_id == client_id,
+                TaxDeadline.deadline_type == deadline_type,
+                TaxDeadline.due_date == due_date,
+            )
+            .first()
+            is not None
+        )
+
     def delete(self, deadline_id: int) -> bool:
         """Delete a deadline by ID."""
         deadline = self.get_by_id(deadline_id)

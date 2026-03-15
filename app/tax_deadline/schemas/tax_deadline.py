@@ -59,6 +59,15 @@ class DashboardDeadlinesResponse(BaseModel):
     upcoming: list[TaxDeadlineResponse]
 
 
+class GenerateDeadlinesRequest(BaseModel):
+    client_id: int
+    year: int
+
+
+class GenerateDeadlinesResponse(BaseModel):
+    created_count: int
+
+
 class TimelineEntry(BaseModel):
     id: int
     client_id: int
