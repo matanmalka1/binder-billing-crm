@@ -128,3 +128,13 @@ class ChartDataResponse(BaseModel):
     client_id: int
     year: int
     months: list[MonthlyChartRow]
+
+
+class GenerateScheduleRequest(BaseModel):
+    client_id: int
+    year: int
+
+
+class GenerateScheduleResponse(BaseModel):
+    created: int
+    skipped: int

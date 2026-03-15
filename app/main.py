@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.advance_payments.api import advance_payments, advance_payments_overview  # noqa: F401
+from app.advance_payments.api import advance_payments, advance_payments_overview, advance_payment_generate  # noqa: F401
 from app.annual_reports.api import (
     annual_report_annex,
     annual_report_client,
@@ -139,6 +139,7 @@ app.include_router(notification_advisor_router, prefix="/api/v1")
 app.include_router(client_tax_profile.router, prefix="/api/v1")
 app.include_router(correspondence.router, prefix="/api/v1")
 app.include_router(advance_payments.router, prefix="/api/v1")
+app.include_router(advance_payment_generate.router, prefix="/api/v1")
 app.include_router(signature_requests_routers.router, prefix="/api/v1")
 app.include_router(signature_requests_routers.signer_router)
 app.include_router(vat_reports_router, prefix="/api/v1")
