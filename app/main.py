@@ -31,6 +31,7 @@ from app.health.api import health
 from app.middleware.request_id import RequestIDMiddleware
 from app.permanent_documents.api import permanent_documents, permanent_document_actions
 from app.notification.api import notifications as notification_center
+from app.notification.api.notifications import advisor_router as notification_advisor_router
 from app.reminders.api import routers as reminders
 from app.reports.api import reports
 from app.search.api import search
@@ -38,9 +39,7 @@ from app.tax_deadline.api import tax_deadline
 from app.timeline.api import timeline
 from app.users.api import auth
 from app.vat_reports.api.routers import router as vat_reports_router
-from app.signature_requests.services.admin_actions import expire_overdue_requests
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.database import SessionLocal
+from app.core.background_jobs import daily_expiry_job, daily_reminder_job, run_startup_expiry
 
 EnvValidator.validate()
 
@@ -50,38 +49,16 @@ if config.APP_ENV == "development":
     logger.info("CORS allowed origins: %s", config.CORS_ALLOWED_ORIGINS)
 
 
-_EXPIRY_INTERVAL_SECONDS = 86_400  # 24 hours
-
-
-async def _daily_expiry_job() -> None:
-    """Run signature expiry check once per day in the background."""
-    while True:
-        await asyncio.sleep(_EXPIRY_INTERVAL_SECONDS)
-        db = SessionLocal()
-        try:
-            count = expire_overdue_requests(SignatureRequestRepository(db))
-            if count:
-                logger.info("Daily job: expired %d overdue signature request(s)", count)
-        except Exception:
-            logger.exception("Daily expiry job failed")
-        finally:
-            db.close()
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan with graceful startup and shutdown."""
     logger.info("Application starting")
-    db = SessionLocal()
-    try:
-        count = expire_overdue_requests(SignatureRequestRepository(db))
-        if count:
-            logger.info("Expired %d overdue signature request(s) on startup", count)
-    finally:
-        db.close()
-    task = asyncio.create_task(_daily_expiry_job())
+    run_startup_expiry()
+    expiry_task = asyncio.create_task(daily_expiry_job())
+    reminder_task = asyncio.create_task(daily_reminder_job())
     yield
-    task.cancel()
+    expiry_task.cancel()
+    reminder_task.cancel()
     logger.info("Application shutting down")
 
 
@@ -156,6 +133,7 @@ app.include_router(users_audit.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(reminders.router, prefix="/api/v1")
 app.include_router(notification_center.router, prefix="/api/v1")
+app.include_router(notification_advisor_router, prefix="/api/v1")
 app.include_router(client_tax_profile.router, prefix="/api/v1")
 app.include_router(correspondence.router, prefix="/api/v1")
 app.include_router(advance_payments.router, prefix="/api/v1")

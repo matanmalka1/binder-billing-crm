@@ -1,14 +1,16 @@
 """Notification center HTTP endpoints (8.3 + 8.6)."""
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.notification.repositories.notification_repository import NotificationRepository
-from pydantic import BaseModel
+from app.notification.services.notification_service import NotificationService
+from app.notification.models.notification import NotificationSeverity, NotificationTrigger
+from pydantic import BaseModel, Field
 
 
 router = APIRouter(
@@ -46,6 +48,25 @@ class UnreadCountResponse(BaseModel):
 class MarkReadResponse(BaseModel):
     updated: int
 
+
+class SendNotificationRequest(BaseModel):
+    client_id: int
+    channel: Literal["WHATSAPP", "EMAIL"]
+    message: str = Field(..., min_length=1, max_length=1000)
+    severity: str = "INFO"
+
+
+class SendNotificationResponse(BaseModel):
+    ok: bool
+
+
+# ── Routers ───────────────────────────────────────────────────────────────────
+
+advisor_router = APIRouter(
+    prefix="/notifications",
+    tags=["notifications"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
@@ -91,3 +112,23 @@ def mark_all_read(
     repo = NotificationRepository(db)
     updated = repo.mark_all_read(client_id)
     return MarkReadResponse(updated=updated)
+
+
+@advisor_router.post("/send", response_model=SendNotificationResponse)
+def send_notification(
+    body: SendNotificationRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Send a manual notification to a client (ADVISOR only)."""
+    severity = NotificationSeverity[body.severity.upper()]
+    svc = NotificationService(db)
+    svc.send_notification(
+        client_id=body.client_id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        content=body.message,
+        triggered_by=user.id,
+        preferred_channel=body.channel.lower(),
+        severity=severity,
+    )
+    return SendNotificationResponse(ok=True)
