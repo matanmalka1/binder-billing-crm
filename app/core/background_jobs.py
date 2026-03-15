@@ -1,7 +1,5 @@
 import asyncio
 
-import sys
-
 from app.core import get_logger
 from app.database import SessionLocal
 from app.reminders.services.reminder_service import ReminderService
@@ -12,15 +10,11 @@ _INTERVAL = 86_400
 logger = get_logger(__name__)
 
 
-def _expire(repo):
-    return sys.modules[__name__].expire_overdue_requests(repo)
-
-
 def run_startup_expiry() -> None:
     """Run signature expiry check once at application startup."""
     db = SessionLocal()
     try:
-        count = _expire(SignatureRequestRepository(db))
+        count = expire_overdue_requests(SignatureRequestRepository(db))
         if count:
             logger.info("Expired %d overdue signature request(s) on startup", count)
     finally:
@@ -33,7 +27,7 @@ async def daily_expiry_job() -> None:
         await asyncio.sleep(_INTERVAL)
         db = SessionLocal()
         try:
-            count = _expire(SignatureRequestRepository(db))
+            count = expire_overdue_requests(SignatureRequestRepository(db))
             if count:
                 logger.info("Daily job: expired %d overdue signature request(s)", count)
         except Exception:

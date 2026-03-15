@@ -41,7 +41,6 @@ from app.timeline.api import timeline
 from app.users.api import auth
 from app.vat_reports.api.routers import router as vat_reports_router
 from app.core.background_jobs import daily_expiry_job, daily_reminder_job, run_startup_expiry
-from app.signature_requests.services.admin_actions import expire_overdue_requests  # noqa: F401 — used by tests
 
 EnvValidator.validate()
 
