@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from io import BytesIO
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.permanent_documents.models.permanent_document import DocumentType
 from app.users.models.user import UserRole
 from app.permanent_documents.schemas.permanent_document import (
     OperationalSignalsResponse,
@@ -35,19 +34,23 @@ def upload_permanent_document(
     db: DBSession,
     user: CurrentUser,
     tax_year: Annotated[Optional[int], Form()] = None,
+    annual_report_id: Annotated[Optional[int], Form()] = None,
+    notes: Annotated[Optional[str], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
 
-    doc_type = DocumentType(document_type)
     file_data = BytesIO(file.file.read())
     document = service.upload_document(
         client_id=client_id,
-        document_type=doc_type,
+        document_type=document_type,
         file_data=file_data,
         filename=file.filename or "document",
         uploaded_by=user.id,
         tax_year=tax_year,
+        annual_report_id=annual_report_id,
+        notes=notes,
+        mime_type=file.content_type,
     )
     return PermanentDocumentResponse.model_validate(document)
 

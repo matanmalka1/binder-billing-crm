@@ -80,14 +80,14 @@ def reminder_created_event(reminder) -> dict:
 
 
 def document_uploaded_event(document) -> dict:
-    type_he = DOCUMENT_TYPE_HE.get(document.document_type.value, document.document_type.value)
+    type_he = DOCUMENT_TYPE_HE.get(document.document_type, document.document_type)
     return {
         "event_type": "document_uploaded",
         "timestamp": document.uploaded_at,
         "binder_id": None,
         "charge_id": None,
         "description": f"מסמך הועלה: {type_he}",
-        "metadata": {"document_type": document.document_type.value},
+        "metadata": {"document_type": document.document_type},
         "actions": [],
         "available_actions": [],
     }

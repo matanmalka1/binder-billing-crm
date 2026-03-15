@@ -29,7 +29,7 @@ from app.core.exceptions import AppError, app_error_handler, value_error_handler
 from app.correspondence.api import correspondence
 from app.health.api import health
 from app.middleware.request_id import RequestIDMiddleware
-from app.permanent_documents.api import permanent_documents
+from app.permanent_documents.api import permanent_documents, permanent_document_actions
 from app.notification.api import notifications as notification_center
 from app.reminders.api import routers as reminders
 from app.reports.api import reports
@@ -147,6 +147,7 @@ app.include_router(dashboard_overview.router, prefix="/api/v1")
 app.include_router(binders_history.router, prefix="/api/v1")
 app.include_router(charge.router, prefix="/api/v1")
 app.include_router(permanent_documents.router, prefix="/api/v1")
+app.include_router(permanent_document_actions.router, prefix="/api/v1")
 app.include_router(dashboard_extended.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(timeline.router, prefix="/api/v1")

@@ -11,5 +11,5 @@ def build_client_operational_signals(
 
     return {
         "client_id": client_id,
-        "missing_documents": [dt.value for dt in missing_docs],
+        "missing_documents": list(missing_docs),
     }

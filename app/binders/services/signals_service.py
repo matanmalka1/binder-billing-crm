@@ -102,7 +102,7 @@ class SignalsService:
                 binder_signals[binder.id] = signals
 
         return {
-            "missing_documents": [dt.value for dt in missing_docs],
+            "missing_documents": list(missing_docs),
             "unpaid_charges": unpaid,
             "binder_signals": binder_signals,
         }
