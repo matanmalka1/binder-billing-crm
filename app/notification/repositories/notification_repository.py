@@ -96,14 +96,13 @@ class NotificationRepository:
         self.db.commit()
         return count
 
-    def mark_all_read(self, client_id: int) -> int:
-        """Mark all unread notifications for a client as read. Returns count updated."""
+    def mark_all_read(self, client_id: Optional[int] = None) -> int:
+        """Mark all unread notifications (optionally scoped to client). Returns count updated."""
         now = utcnow()
-        count = (
-            self.db.query(Notification)
-            .filter(Notification.client_id == client_id, Notification.is_read == False)  # noqa: E712
-            .update({"is_read": True, "read_at": now}, synchronize_session=False)
-        )
+        q = self.db.query(Notification).filter(Notification.is_read == False)  # noqa: E712
+        if client_id is not None:
+            q = q.filter(Notification.client_id == client_id)
+        count = q.update({"is_read": True, "read_at": now}, synchronize_session=False)
         self.db.commit()
         return count
 

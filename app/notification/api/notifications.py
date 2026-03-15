@@ -85,9 +85,9 @@ def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
 def mark_all_read(
     db: DBSession,
     user: CurrentUser,
-    client_id: int = Query(...),
+    client_id: Optional[int] = None,
 ):
-    """Mark all unread notifications for a client as read."""
+    """Mark all unread notifications (optionally scoped to client)."""
     repo = NotificationRepository(db)
     updated = repo.mark_all_read(client_id)
     return MarkReadResponse(updated=updated)

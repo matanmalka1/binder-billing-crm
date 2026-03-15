@@ -42,4 +42,6 @@ def test_charge_issued_event_includes_available_charge_actions():
     assert event["metadata"] == {"amount": 320.0}
     assert event["actions"] == event["available_actions"]
     assert {action["key"] for action in event["actions"]} == {"mark_paid", "cancel_charge"}
-
+    mark_paid_action = next(action for action in event["actions"] if action["key"] == "mark_paid")
+    assert mark_paid_action["confirm"] is not None
+    assert mark_paid_action["confirm"]["title"] == "אישור סימון חיוב כשולם"

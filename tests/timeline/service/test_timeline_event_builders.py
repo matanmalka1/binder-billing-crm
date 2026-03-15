@@ -49,7 +49,10 @@ def test_binder_received_event_attaches_ready_action_and_metadata():
     assert event["timestamp"] == datetime(2026, 2, 15)
     assert event["metadata"] == {"binder_number": "C-777"}
     assert event["actions"] == event["available_actions"]
-    assert event["actions"][0]["key"] == "ready"
+    ready_action = event["actions"][0]
+    assert ready_action["key"] == "ready"
+    assert ready_action["confirm"] is not None
+    assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
 
 
 def test_charge_created_event_includes_actions_and_metadata():

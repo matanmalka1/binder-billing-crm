@@ -41,6 +41,8 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert any(action["key"] == "ready" for action in actions)
     ready_action = next(action for action in actions if action["key"] == "ready")
     assert ready_action["id"] == f"binder-{binder_id}-ready"
+    assert ready_action["confirm"] is not None
+    assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
 
     # Verify status log was created
     from app.binders.repositories import BinderStatusLogRepository

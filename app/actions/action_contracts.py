@@ -30,6 +30,12 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/binders/{binder.id}/ready",
                 action_id=_generate_action_id("binder", binder.id, "ready"),
+                confirm={
+                    "title": "אישור סימון כמוכן לאיסוף",
+                    "message": "האם לסמן את הקלסר כמוכן לאיסוף?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
             )
         )
 
@@ -134,6 +140,12 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/charges/{charge.id}/mark-paid",
                 action_id=_generate_action_id("charge", charge.id, "mark_paid"),
+                confirm={
+                    "title": "אישור סימון חיוב כשולם",
+                    "message": "האם לסמן את החיוב כשולם?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
             )
         )
         actions.append(_cancel_charge_action(charge.id))
