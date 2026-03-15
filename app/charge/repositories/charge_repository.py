@@ -49,6 +49,7 @@ class ChargeRepository(BaseRepository):
         self,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
@@ -61,6 +62,9 @@ class ChargeRepository(BaseRepository):
         if status:
             query = query.filter(Charge.status == status)
 
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
+
         query = query.order_by(Charge.created_at.desc())
         return self._paginate(query, page, page_size)
 
@@ -68,6 +72,7 @@ class ChargeRepository(BaseRepository):
         self,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
         query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
@@ -77,6 +82,9 @@ class ChargeRepository(BaseRepository):
 
         if status:
             query = query.filter(Charge.status == status)
+
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
 
         return query.count()
 

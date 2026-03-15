@@ -85,6 +85,7 @@ def list_charges(
     user: CurrentUser,
     client_id: Optional[int] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
+    charge_type: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -94,6 +95,7 @@ def list_charges(
         user_role=user.role,
         client_id=client_id,
         status=status_filter,
+        charge_type=charge_type,
         page=page,
         page_size=page_size,
     )

@@ -168,6 +168,7 @@ class BillingService:
         self,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Charge], int, dict[int, str]]:
@@ -180,10 +181,11 @@ class BillingService:
         items = self.charge_repo.list_charges(
             client_id=client_id,
             status=status,
+            charge_type=charge_type,
             page=page,
             page_size=page_size,
         )
-        total = self.charge_repo.count_charges(client_id=client_id, status=status)
+        total = self.charge_repo.count_charges(client_id=client_id, status=status, charge_type=charge_type)
 
         # Batch-fetch client names for this page (single extra query)
         client_ids = list({c.client_id for c in items})
@@ -197,12 +199,13 @@ class BillingService:
         user_role: UserRole,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> ChargeListResponse:
         """List charges serialized and role-shaped in one call."""
         items, total, client_name_map = self.list_charges(
-            client_id=client_id, status=status, page=page, page_size=page_size
+            client_id=client_id, status=status, charge_type=charge_type, page=page, page_size=page_size
         )
         schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
 
