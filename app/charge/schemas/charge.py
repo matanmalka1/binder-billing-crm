@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -59,3 +59,19 @@ class ChargeListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+
+
+class BulkChargeActionRequest(BaseModel):
+    charge_ids: list[int] = Field(min_length=1)
+    action: Literal["issue", "mark-paid", "cancel"]
+    cancellation_reason: Optional[str] = None
+
+
+class BulkChargeFailedItem(BaseModel):
+    id: int
+    error: str
+
+
+class BulkChargeActionResponse(BaseModel):
+    succeeded: list[int]
+    failed: list[BulkChargeFailedItem]

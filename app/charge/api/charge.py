@@ -4,8 +4,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, st
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.charge.schemas.charge import ChargeCancelRequest, ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
+from app.charge.schemas.charge import BulkChargeActionRequest, BulkChargeActionResponse, ChargeCancelRequest, ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.charge.services.billing_service import BillingService
+from app.charge.services.bulk_billing_service import BulkBillingService
 
 
 router = APIRouter(
@@ -116,6 +117,23 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
         return ChargeResponseSecretary.model_validate(charge)
 
     return ChargeResponse.model_validate(charge)
+
+
+@router.post(
+    "/bulk-action",
+    response_model=BulkChargeActionResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def bulk_charge_action(request: BulkChargeActionRequest, db: DBSession, user: CurrentUser):
+    """Apply action to multiple charges in bulk (ADVISOR only)."""
+    service = BulkBillingService(db)
+    succeeded, failed = service.bulk_action(
+        charge_ids=request.charge_ids,
+        action=request.action,
+        actor_id=user.id,
+        cancellation_reason=request.cancellation_reason,
+    )
+    return BulkChargeActionResponse(succeeded=succeeded, failed=failed)
 
 
 @router.delete(
