@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 import app.main as main_module
+import app.core.background_jobs as background_jobs_module
 
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
@@ -51,14 +52,14 @@ def client(test_db):
             pass
     
     app.dependency_overrides[get_db] = override_get_db
-    original_expire = main_module.expire_overdue_requests
-    main_module.expire_overdue_requests = lambda repo: 0
+    original_expire = background_jobs_module.expire_overdue_requests
+    background_jobs_module.expire_overdue_requests = lambda repo: 0
 
     with TestClient(app) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
-    main_module.expire_overdue_requests = original_expire
+    background_jobs_module.expire_overdue_requests = original_expire
 
 
 @pytest.fixture(scope="function")
