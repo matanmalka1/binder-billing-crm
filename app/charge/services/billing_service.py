@@ -164,6 +164,11 @@ class BillingService:
         """Get charge by ID."""
         return self.charge_repo.get_by_id(charge_id)
 
+    def enrich_client_name(self, charge: Charge) -> str | None:
+        """Return the client full_name for a single charge."""
+        clients = self.client_repo.list_by_ids([charge.client_id])
+        return clients[0].full_name if clients else None
+
     def list_charges(
         self,
         client_id: Optional[int] = None,

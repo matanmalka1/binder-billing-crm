@@ -33,7 +33,9 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         currency=request.currency,
         actor_id=user.id,
     )
-    return ChargeResponse.model_validate(charge)
+    data = ChargeResponse.model_validate(charge).model_dump()
+    data["client_name"] = service.enrich_client_name(charge)
+    return ChargeResponse(**data)
 
 
 @router.post(
@@ -46,7 +48,9 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     service = BillingService(db)
 
     charge = service.issue_charge(charge_id, actor_id=user.id)
-    return ChargeResponse.model_validate(charge)
+    data = ChargeResponse.model_validate(charge).model_dump()
+    data["client_name"] = service.enrich_client_name(charge)
+    return ChargeResponse(**data)
 
 
 @router.post(
@@ -59,7 +63,9 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     service = BillingService(db)
 
     charge = service.mark_charge_paid(charge_id, actor_id=user.id)
-    return ChargeResponse.model_validate(charge)
+    data = ChargeResponse.model_validate(charge).model_dump()
+    data["client_name"] = service.enrich_client_name(charge)
+    return ChargeResponse(**data)
 
 
 @router.post(
@@ -72,7 +78,9 @@ def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: Cha
     service = BillingService(db)
 
     charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
-    return ChargeResponse.model_validate(charge)
+    data = ChargeResponse.model_validate(charge).model_dump()
+    data["client_name"] = service.enrich_client_name(charge)
+    return ChargeResponse(**data)
 
 
 @router.get(
@@ -115,10 +123,16 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
             status_code=status.HTTP_404_NOT_FOUND, detail="החיוב לא נמצא"
         )
 
-    if user.role == UserRole.SECRETARY:
-        return ChargeResponseSecretary.model_validate(charge)
+    client_name = service.enrich_client_name(charge)
 
-    return ChargeResponse.model_validate(charge)
+    if user.role == UserRole.SECRETARY:
+        data = ChargeResponseSecretary.model_validate(charge).model_dump()
+        data["client_name"] = client_name
+        return ChargeResponseSecretary(**data)
+
+    data = ChargeResponse.model_validate(charge).model_dump()
+    data["client_name"] = client_name
+    return ChargeResponse(**data)
 
 
 @router.post(
