@@ -8,6 +8,8 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.reports.services.reports_service import AgingReportService
 from app.reports.services.export_service import ExportService
+from app.reports.services.annual_report_status_report import AnnualReportStatusReportService
+from app.reports.services.advance_payment_report import AdvancePaymentReportService
 
 
 router = APIRouter(
@@ -15,6 +17,27 @@ router = APIRouter(
     tags=["reports"],
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
+
+
+@router.get("/advance-payments")
+def get_advance_payment_report(
+    db: DBSession,
+    user: CurrentUser,
+    year: int = Query(...),
+    month: Optional[int] = Query(None),
+):
+    service = AdvancePaymentReportService(db)
+    return service.get_collections_report(year, month)
+
+
+@router.get("/annual-reports")
+def get_annual_report_status_report(
+    db: DBSession,
+    user: CurrentUser,
+    tax_year: int = Query(...),
+):
+    service = AnnualReportStatusReportService(db)
+    return service.get_report(tax_year)
 
 
 @router.get("/aging")
