@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.search.services.search_filters import matches_signal_type
+from app.search.services.document_search_service import DocumentSearchService
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 
@@ -37,11 +38,15 @@ class SearchService:
         page: int = 1,
         page_size: int = 20,
         reference_date: Optional[date] = None,
-    ) -> tuple[list[dict], int]:
+    ) -> tuple[list[dict], int, list[dict]]:
         if reference_date is None:
             reference_date = date.today()
 
         binder_derived_filter = work_state or signal_type or has_signals is not None
+
+        documents: list[dict] = (
+            DocumentSearchService(self.db).search_documents(query) if query else []
+        )
 
         # --- Client search: DB-level filtering ---
         if query or client_name or id_number:
@@ -64,7 +69,7 @@ class SearchService:
                         "signals": [],
                     }
                     for c in clients
-                ], total
+                ], total, documents
 
         # --- Mixed / binder-filtered search: build full result set then paginate ---
         # Bounded by _MIXED_SEARCH_*_LIMIT. Results beyond ceiling are excluded.
@@ -131,4 +136,4 @@ class SearchService:
 
         total = len(results)
         offset = (page - 1) * page_size
-        return results[offset: offset + page_size], total
+        return results[offset: offset + page_size], total, documents

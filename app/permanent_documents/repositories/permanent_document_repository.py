@@ -80,3 +80,20 @@ class PermanentDocumentRepository:
             )
             .count()
         )
+
+    def search_by_query(self, query: str, limit: int = 50) -> list[PermanentDocument]:
+        term = f"%{query.strip()}%"
+        return (
+            self.db.query(PermanentDocument)
+            .filter(
+                PermanentDocument.is_deleted == False,  # noqa: E712
+                PermanentDocument.superseded_by == None,  # noqa: E711
+                (
+                    PermanentDocument.original_filename.ilike(term)
+                    | PermanentDocument.document_type.ilike(term)
+                ),
+            )
+            .order_by(PermanentDocument.uploaded_at.desc())
+            .limit(limit)
+            .all()
+        )

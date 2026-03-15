@@ -15,10 +15,23 @@ class SearchResult(BaseModel):
     signals: list[str] = Field(default_factory=list)
 
 
+class DocumentSearchResult(BaseModel):
+    """Single document search result."""
+
+    id: int
+    client_id: int
+    client_name: str
+    document_type: str
+    original_filename: Optional[str] = None
+    tax_year: Optional[int] = None
+    status: str
+
+
 class SearchResponse(BaseModel):
     """Search results response."""
 
     results: list[SearchResult]
+    documents: list[DocumentSearchResult] = Field(default_factory=list)
     page: int
     page_size: int
     total: int
