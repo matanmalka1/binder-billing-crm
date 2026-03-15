@@ -93,10 +93,10 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 4. Auto-generate reminders בעת יצירת deadline/charge
 
 **Backend**
-- [ ] `app/tax_deadline/services/tax_deadline_service.py` — after `create_deadline()` succeeds, call `ReminderService.create_tax_deadline_reminder()` (7 days before)
-- [ ] `app/charge/services/billing_service.py` — after `issue_charge()` succeeds, call `ReminderService.create_unpaid_charge_reminder()` (30 days after issue)
-- [ ] Read `app/reminders/services/factory.py` for existing creation signatures
-- [ ] No model changes, no migration
+- [x] `app/tax_deadline/services/tax_deadline_service.py` — after `create_deadline()` succeeds, call `ReminderService.create_tax_deadline_reminder()` (7 days before)
+- [x] `app/charge/services/billing_service.py` — after `issue_charge()` succeeds, call `ReminderService.create_unpaid_charge_reminder()` (30 days after issue)
+- [x] Read `app/reminders/services/factory.py` for existing creation signatures
+- [x] No model changes, no migration
 
 **Frontend** — no changes needed (reminders appear automatically in RemindersTable)
 
@@ -145,9 +145,9 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 8. ClientStatusCard drill-down links
 
 **Frontend only**
-- [?] Read `src/features/clients/components/ClientStatusCard.tsx`
-- [?] Each tile should navigate: VAT tile → `/clients/:id` (vat tab), charges tile → `/clients/:id` (charges tab), etc.
-- [?] Use `useNavigate()` + existing tab param pattern from `ClientDetails.tsx`
+- [x] Read `src/features/clients/components/ClientStatusCard.tsx`
+- [x] Each tile should navigate: VAT tile → `/clients/:id` (vat tabs, charges tile → `/clients/:id` (charges tab), etc.
+- [x] Use `useNavigate()` + existing tab param pattern from `ClientDetails.tsx`
 
 ---
 
