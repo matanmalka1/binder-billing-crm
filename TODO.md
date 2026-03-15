@@ -26,17 +26,17 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 2. יצירת מקדמות אוטומטית (12 payments לשנה)
 
 **Backend**
-- [ ] `app/advance_payments/services/advance_payment_generator.py` (new) — `generate_annual_schedule(client_id, year)`:
+- [x] `app/advance_payments/services/advance_payment_generator.py` (new) — `generate_annual_schedule(client_id, year)`:
   - Call existing `suggest_expected_amount()` for the amount
   - Create 12 `AdvancePayment` records (months 1–12), skip existing (idempotent)
   - Due date: 15th of each month (Israeli standard)
-- [ ] `app/advance_payments/api/` — add `POST /api/v1/advance-payments/generate` endpoint: `{client_id, year}`
-- [ ] Read `app/advance_payments/services/advance_payment_service.py` — reuse `create_payment()`
+- [x] `app/advance_payments/api/` — add `POST /api/v1/advance-payments/generate` endpoint: `{client_id, year}`
+- [x] Read `app/advance_payments/services/advance_payment_service.py` — reuse `create_payment()`
 
 **Frontend**
-- [ ] `src/features/advancedPayments/components/` — add "צור לוח מקדמות לשנה" button in `ClientAdvancePaymentsTab`
-- [ ] `src/api/advancePayments.api.ts` — add `generateSchedule(clientId, year)` call
-- [ ] Invalidate advance payments query on success
+- [x] `src/features/advancedPayments/components/` — add "צור לוח מקדמות לשנה" button in `ClientAdvancePaymentsTab`
+- [x] `src/api/advancePayments.api.ts` — add `generateSchedule(clientId, year)` call
+- [x] Invalidate advance payments query on success
 
 ---
 
@@ -45,32 +45,32 @@ before any task read claude.md if the task is on backend read claude.md on backe
 #### 3a. דוח סטטוס דוחות שנתיים
 
 **Backend**
-- [ ] `app/reports/services/annual_report_status_report.py` (new) — `get_annual_report_status_report(tax_year)`:
+- [x] `app/reports/services/annual_report_status_report.py` (new) — `get_annual_report_status_report(tax_year)`:
   - Group clients by annual report status (NOT_STARTED, COLLECTING_DOCS, IN_PREPARATION, SUBMITTED, CLOSED, etc.)
   - Return: per-status counts + list of clients per status with `client_name`, `form_type`, `filing_deadline`, `days_until_deadline`
-- [ ] `app/reports/api/` — add `GET /api/v1/reports/annual-reports?tax_year=YYYY`
-- [ ] Read `app/annual_reports/repositories/` for existing query patterns to reuse
+- [x] `app/reports/api/` — add `GET /api/v1/reports/annual-reports?tax_year=YYYY`
+- [x] Read `app/annual_reports/repositories/` for existing query patterns to reuse
 
 **Frontend**
-- [ ] `src/pages/reports/AnnualReportStatusReport.tsx` (new page)
-- [ ] `src/features/reports/components/AnnualReportStatusTable.tsx` (new)
-- [ ] `src/api/reports.api.ts` — add `getAnnualReportStatusReport(taxYear)`
-- [ ] `src/router/AppRoutes.tsx` — add route `/reports/annual-reports`
-- [ ] Add link in sidebar/nav
+- [x] `src/pages/reports/AnnualReportStatusReport.tsx` (new page)
+- [x] `src/features/reports/components/AnnualReportStatusTable.tsx` (new)
+- [x] `src/api/reports.api.ts` — add `getAnnualReportStatusReport(taxYear)`
+- [x] `src/router/AppRoutes.tsx` — add route `/reports/annual-reports`
+- [x] Add link in sidebar/nav
 
 #### 3b. דוח גבייה — Advance Payments
 
 **Backend**
-- [ ] `app/reports/services/advance_payment_report.py` (new) — `get_collections_report(year, month?)`:
+- [x] `app/reports/services/advance_payment_report.py` (new) — `get_collections_report(year, month?)`:
   - Per client: expected vs. paid vs. overdue
   - Totals: collection_rate %, total_gap
-- [ ] `app/reports/api/` — add `GET /api/v1/reports/advance-payments?year=YYYY&month=MM`
-- [ ] Read `app/advance_payments/repositories/` for existing analytics queries to reuse
+- [x] `app/reports/api/` — add `GET /api/v1/reports/advance-payments?year=YYYY&month=MM`
+- [x] Read `app/advance_payments/repositories/` for existing analytics queries to reuse
 
 **Frontend**
-- [ ] `src/pages/reports/AdvancePaymentCollectionsReport.tsx` (new page)
-- [ ] `src/api/reports.api.ts` — add `getAdvancePaymentReport(year, month?)`
-- [ ] `src/router/AppRoutes.tsx` — add route `/reports/advance-payments`
+- [x] `src/pages/reports/AdvancePaymentCollectionsReport.tsx` (new page)
+- [x] `src/api/reports.api.ts` — add `getAdvancePaymentReport(year, month?)`
+- [x] `src/router/AppRoutes.tsx` — add route `/reports/advance-payments`
 
 #### 3c. דוח VAT Compliance
 
