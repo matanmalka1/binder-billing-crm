@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from app.authority_contact.models.authority_contact import ContactType
 
@@ -11,7 +11,7 @@ class AuthorityContactCreateRequest(BaseModel):
     name: str
     office: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     notes: Optional[str] = None
 
 
@@ -20,7 +20,7 @@ class AuthorityContactUpdateRequest(BaseModel):
     name: Optional[str] = None
     office: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     notes: Optional[str] = None
 
 

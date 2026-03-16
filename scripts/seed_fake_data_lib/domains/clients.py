@@ -38,7 +38,7 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             status=status,
             primary_binder_number=f"PB-{50000 + i}",
             phone=f"05{rng.randint(10000000, 99999999)}",
-            email=f"לקוח{i + 1}@example.com",
+            email=f"client{i + 1}@example.com",
             notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
             opened_at=opened_at,
             closed_at=closed_at,

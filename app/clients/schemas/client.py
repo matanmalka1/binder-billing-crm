@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal, Optional, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.clients.models.client import ClientStatus, ClientType
 
@@ -11,14 +11,14 @@ class ClientCreateRequest(BaseModel):
     id_number: str
     client_type: ClientType
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     opened_at: date
 
 
 class ClientUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     notes: Optional[str] = None
     status: Optional[ClientStatus] = None
     client_type: Optional[ClientType] = None

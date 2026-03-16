@@ -101,7 +101,7 @@ class SignatureRequestCreateRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     signer_name: str = Field(..., min_length=2, max_length=100)
-    signer_email: Optional[str] = None
+    signer_email: Optional[EmailStr] = None
     signer_phone: Optional[str] = None
 
     # Optional links
