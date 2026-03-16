@@ -40,8 +40,8 @@ class DashboardOverviewResponse(BaseModel):
 
     total_clients: int
     active_binders: int
-    work_state: Optional[str] = None
-    signals: Optional[list[str]] = None
+    open_reminders: int = 0
+    vat_due_this_month: int = 0
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
 

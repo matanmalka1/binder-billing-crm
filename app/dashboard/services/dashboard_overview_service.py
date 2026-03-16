@@ -9,6 +9,8 @@ from app.users.models.user import UserRole
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.actions.action_contracts import get_binder_actions, get_charge_actions, get_client_actions
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 
@@ -21,6 +23,8 @@ class DashboardOverviewService:
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.client_repo = ClientRepository(db)
+        self.reminder_repo = ReminderRepository(db)
+        self.vat_repo = VatWorkItemRepository(db)
         self.extended_service = DashboardExtendedService(db)
 
     def _build_quick_actions(self, user_role: Optional[UserRole]) -> list[dict]:
@@ -101,25 +105,16 @@ class DashboardOverviewService:
         reference_date: Optional[date] = None,
         user_role: Optional[UserRole] = None,
     ) -> dict:
-        """
-        Get dashboard overview metrics.
-
-        Returns:
-            {
-                "total_clients": int,
-                "active_binders": int,
-            }
-        """
         if reference_date is None:
             reference_date = date.today()
 
-        overview = {
+        current_period = reference_date.strftime("%Y-%m")
+        attention_items = self.extended_service.get_attention_items(user_role=user_role)
+        return {
             "total_clients": self.client_repo.count(),
             "active_binders": self.binder_repo.count_active(),
+            "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
+            "vat_due_this_month": self.vat_repo.count_by_period_not_filed(current_period),
+            "quick_actions": self._build_quick_actions(user_role),
+            "attention": {"items": attention_items, "total": len(attention_items)},
         }
-        overview["work_state"] = None
-        overview["signals"] = []
-        overview["quick_actions"] = self._build_quick_actions(user_role)
-        attention_items = self.extended_service.get_attention_items(user_role=user_role)
-        overview["attention"] = {"items": attention_items, "total": len(attention_items)}
-        return overview

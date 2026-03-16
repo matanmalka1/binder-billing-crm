@@ -3,11 +3,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.models.client import Client
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
@@ -46,14 +45,8 @@ class DashboardExtendedService:
             binders = self.binder_repo.list_active(
                 page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
             )
-            client_ids = {binder.client_id for binder in binders}
-            clients = (
-                self.db.query(Client)
-                .filter(Client.id.in_(client_ids))
-                .all()
-                if client_ids
-                else []
-            )
+            client_ids = list({binder.client_id for binder in binders})
+            clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
             client_map = {client.id: client for client in clients}
             self._cached_active_binders_with_clients = [
                 (binder, client_map.get(binder.client_id))
@@ -102,12 +95,8 @@ class DashboardExtendedService:
                 page_size=_UNPAID_CHARGES_FETCH_LIMIT,
             )
             if unpaid_charges:
-                charge_client_ids = {c.client_id for c in unpaid_charges}
-                charge_clients = (
-                    self.db.query(Client)
-                    .filter(Client.id.in_(charge_client_ids))
-                    .all()
-                )
+                charge_client_ids = list({c.client_id for c in unpaid_charges})
+                charge_clients = self.client_repo.list_by_ids(charge_client_ids)
                 charge_client_map = {c.id: c for c in charge_clients}
                 for charge in unpaid_charges:
                     client = charge_client_map.get(charge.client_id)

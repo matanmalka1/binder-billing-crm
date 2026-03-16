@@ -92,6 +92,17 @@ class VatWorkItemRepository:
     def count_all(self) -> int:
         return self.db.query(VatWorkItem).count()
 
+    def count_by_period_not_filed(self, period: str) -> int:
+        """Count VAT work items for a given period that are not yet filed."""
+        return (
+            self.db.query(VatWorkItem)
+            .filter(
+                VatWorkItem.period == period,
+                VatWorkItem.status != VatWorkItemStatus.FILED,
+            )
+            .count()
+        )
+
     def update_status(
         self,
         item_id: int,
