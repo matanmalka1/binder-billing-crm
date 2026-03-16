@@ -2,7 +2,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.binders.schemas.binder import BinderReceiveRequest, BinderResponse, BinderReturnRequest
+from app.binders.schemas.binder import (
+    BinderReceiveRequest,
+    BinderResponse,
+    BinderReturnRequest,
+    BinderIntakeResponse,
+    BinderReceiveResult,
+)
 from app.binders.services.binder_service import BinderService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -15,11 +21,11 @@ router = APIRouter(
 )
 
 
-@router.post("/receive", response_model=BinderResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED)
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
-    """Receive new binder (intake flow)."""
+    """Receive material into existing binder or create new one."""
     service = BinderService(db)
-    binder = service.receive_binder(
+    binder, intake, is_new_binder = service.receive_binder(
         client_id=request.client_id,
         binder_number=request.binder_number,
         binder_type=request.binder_type,
@@ -27,7 +33,12 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
         received_by=request.received_by,
         notes=request.notes,
     )
-    return fetch_client_and_build_response(binder, db)
+    binder_resp = fetch_client_and_build_response(binder, db)
+    return BinderReceiveResult(
+        binder=binder_resp,
+        intake=BinderIntakeResponse.model_validate(intake),
+        is_new_binder=is_new_binder,
+    )
 
 
 @router.post("/{binder_id}/ready", response_model=BinderResponse)

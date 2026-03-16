@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, Any
 
 from pydantic import BaseModel, Field
@@ -43,3 +43,26 @@ class BinderListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+
+
+class BinderIntakeResponse(BaseModel):
+    id: int
+    binder_id: int
+    received_at: date
+    received_by: int
+    received_by_name: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class BinderIntakeListResponse(BaseModel):
+    binder_id: int
+    intakes: list[BinderIntakeResponse]
+
+
+class BinderReceiveResult(BaseModel):
+    binder: BinderResponse
+    intake: BinderIntakeResponse
+    is_new_binder: bool

@@ -3,14 +3,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
+from app.binders.services.binder_intake_service import BinderIntakeService
 from app.notification.services.notification_service import NotificationService
 
 
@@ -23,6 +24,7 @@ class BinderService(BinderListService):
         self.status_log_repo = BinderStatusLogRepository(db)
         self.client_repo = ClientRepository(db)
         self.notification_service = NotificationService(db)
+        self.intake_service = BinderIntakeService(db)
 
     def receive_binder(
         self,
@@ -32,15 +34,9 @@ class BinderService(BinderListService):
         received_at: date,
         received_by: int,
         notes: Optional[str] = None,
-    ) -> Binder:
-        """Receive new binder (intake flow)."""
-        client = get_client_or_raise(self.db, client_id)
-
-        existing = self.binder_repo.get_active_by_number(binder_number)
-        if existing:
-            raise ConflictError(f"כבר קיים קלסר פעיל עם המספר {binder_number}", "BINDER.CONFLICT")
-
-        binder = self.binder_repo.create(
+    ) -> tuple[Binder, BinderIntake, bool]:
+        """Receive material into existing binder or create new one."""
+        return self.intake_service.receive(
             client_id=client_id,
             binder_number=binder_number,
             binder_type=binder_type,
@@ -48,19 +44,6 @@ class BinderService(BinderListService):
             received_by=received_by,
             notes=notes,
         )
-
-        self.status_log_repo.append(
-            binder_id=binder.id,
-            old_status="null",
-            new_status=BinderStatus.IN_OFFICE.value,
-            changed_by=received_by,
-            notes="Binder received",
-        )
-
-        # Send binder received notification
-        self.notification_service.notify_binder_received(binder, client)
-
-        return binder
 
     def mark_ready_for_pickup(self, binder_id: int, user_id: int) -> Binder:
         """Mark binder as ready for pickup."""
