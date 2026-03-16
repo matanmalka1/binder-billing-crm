@@ -91,19 +91,27 @@ def create_signature_requests(db, rng: Random, cfg, clients, users, annual_repor
     reports_by_client = _group_by_client(annual_reports)
     documents_by_client = _group_by_client(documents)
     existing_count = int(db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one())
+    type_cycle = list(SignatureRequestType)
+    status_cycle = list(SignatureRequestStatus)
+    type_cycle_idx = 0
+    status_cycle_idx = 0
 
     for client in clients:
         for _ in range(cfg.signature_requests_per_client):
             report = _pick_related_for_client(rng, reports_by_client, client.id)
             document = _pick_related_for_client(rng, documents_by_client, client.id)
-            status = rng.choice(list(SignatureRequestStatus))
+            if status_cycle_idx < len(status_cycle):
+                status = status_cycle[status_cycle_idx]
+                status_cycle_idx += 1
+            else:
+                status = rng.choice(status_cycle)
             timestamps = _build_timestamps(rng, status)
             serial = existing_count + len(requests) + 1
-            request_type = (
-                SignatureRequestType.ANNUAL_REPORT_APPROVAL
-                if report is not None
-                else rng.choice(list(SignatureRequestType))
-            )
+            if type_cycle_idx < len(type_cycle):
+                request_type = type_cycle[type_cycle_idx]
+                type_cycle_idx += 1
+            else:
+                request_type = rng.choice(type_cycle)
 
             request = SignatureRequest(
                 client_id=client.id,

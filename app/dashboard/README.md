@@ -27,7 +27,7 @@ Implementation references:
 - APIs: `app/dashboard/api/dashboard.py`, `app/dashboard/api/dashboard_overview.py`, `app/dashboard/api/dashboard_extended.py`, `app/dashboard/api/dashboard_tax.py`
 - Schemas: `app/dashboard/schemas/dashboard.py`, `app/dashboard/schemas/dashboard_extended.py`, `app/dashboard/schemas/dashboard_tax.py`
 - Services: `app/dashboard/services/dashboard_service.py`, `app/dashboard/services/dashboard_overview_service.py`, `app/dashboard/services/dashboard_extended_service.py`, `app/dashboard/services/dashboard_tax_service.py`
-- Repository: `app/dashboard/repositories/dashboard_overview_repository.py`
+- Dashboard-specific helpers/builders: `app/dashboard/services/dashboard_extended_builders.py`, `app/dashboard/services/dashboard_quick_actions_builder.py`
 
 ## API
 
@@ -81,6 +81,7 @@ Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
 
 - Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
+- Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
 - Work queue and attention are computed from active binders and derived signals/work-state.
 - Advisor-only attention enrichment includes unpaid issued charges.
 - Tax-submission widget derives progress buckets from annual-report statuses and active client count.

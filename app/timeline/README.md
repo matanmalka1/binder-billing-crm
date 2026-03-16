@@ -24,13 +24,13 @@ It defines timeline response schemas and aggregation logic:
 Implementation references:
 - API: `app/timeline/api/timeline.py`
 - Schemas: `app/timeline/schemas/timeline.py`
-- Repository: `app/timeline/repositories/timeline_repository.py`
 - Services:
   - `app/timeline/services/timeline_service.py`
   - `app/timeline/services/timeline_event_builders.py`
   - `app/timeline/services/timeline_tax_builders.py`
   - `app/timeline/services/timeline_client_aggregator.py`
   - `app/timeline/services/timeline_client_builders.py`
+  - `app/timeline/services` is the orchestration layer; it queries source domains directly (no dedicated `timeline/repositories` package currently exists)
 
 ## API
 

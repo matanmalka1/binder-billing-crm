@@ -34,6 +34,7 @@ SEEDABLE_STATUSES = [
     AnnualReportStatus.DOCS_COMPLETE,
     AnnualReportStatus.IN_PREPARATION,
     AnnualReportStatus.PENDING_CLIENT,
+    AnnualReportStatus.AMENDED,
     AnnualReportStatus.SUBMITTED,
     AnnualReportStatus.ACCEPTED,
     AnnualReportStatus.ASSESSMENT_ISSUED,
@@ -43,6 +44,11 @@ SEEDABLE_STATUSES = [
 
 
 def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
+    if target == AnnualReportStatus.AMENDED:
+        # AMENDED can exist as operational override; no canonical forward path exists
+        # in VALID_TRANSITIONS from NOT_STARTED to AMENDED.
+        return [AnnualReportStatus.AMENDED]
+
     if target == AnnualReportStatus.NOT_STARTED:
         return [AnnualReportStatus.NOT_STARTED]
 
@@ -66,6 +72,8 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
     current_year = datetime.now(UTC).year
     available_years = list(range(current_year - 3, current_year + 1))
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
+    status_cycle = list(SEEDABLE_STATUSES)
+    status_cycle_idx = 0
     for client in clients:
         years = rng.sample(
             available_years,
@@ -82,7 +90,11 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
                 client_type_for_report = ClientTypeForReport.INDIVIDUAL
                 form_type = AnnualReportForm.FORM_1301
 
-            status = rng.choice(SEEDABLE_STATUSES)
+            if status_cycle_idx < len(status_cycle):
+                status = status_cycle[status_cycle_idx]
+                status_cycle_idx += 1
+            else:
+                status = rng.choice(SEEDABLE_STATUSES)
             deadline_type = rng.choice(list(DeadlineType))
             custom_deadline_note = None
             if deadline_type == DeadlineType.STANDARD:
@@ -309,7 +321,7 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
             actor_name = (
                 user_lookup.get(actor_id).full_name
                 if actor_id in user_lookup
-                else "Seeder"
+                else "זורע נתונים"
             )
             occurred_at += timedelta(hours=rng.randint(1, 72))
             entry = AnnualReportStatusHistory(
