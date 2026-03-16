@@ -97,6 +97,7 @@ def test_tax_calculation_includes_pension_and_donations(client, test_db, advisor
 
     expected = calculate_tax(
         taxable_income=80000,
+        tax_year=2026,
         credit_points=2.25,
         pension_deduction=6000,
         donation_amount=1000,
