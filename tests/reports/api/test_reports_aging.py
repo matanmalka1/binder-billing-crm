@@ -74,13 +74,15 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
     assert items[0]["oldest_invoice_days"] >= 120
 
 
-def test_aging_report_respects_cap_flag(client, test_db, advisor_headers):
-    # Create more than limit to trigger capped True
+def test_aging_report_no_cap_with_large_dataset(client, test_db, advisor_headers):
+    # SQL aggregation covers all records — capped is always False
     for _ in range(2001):
         c = _client(test_db)
         _charge(test_db, c.id, Decimal("1"), issued_days_ago=5)
 
     resp = client.get("/api/v1/reports/aging", headers=advisor_headers)
     assert resp.status_code == 200
-    assert resp.json()["capped"] is True
-    assert resp.json()["cap_limit"] == 2000
+    body = resp.json()
+    assert body["capped"] is False
+    assert body["cap_limit"] is None
+    assert body["summary"]["total_clients"] == 2001

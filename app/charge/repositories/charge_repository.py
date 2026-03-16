@@ -1,5 +1,7 @@
+from datetime import date, timedelta
 from typing import Optional
 
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
@@ -97,6 +99,48 @@ class ChargeRepository(BaseRepository):
         """Update charge status and additional fields."""
         charge = self.get_by_id(charge_id)
         return self._update_status(charge, new_status, **additional_fields)
+
+    def get_aging_buckets(self, as_of_date: date) -> list:
+        """Aggregate unpaid (ISSUED) charges per client into aging buckets via SQL."""
+        cut_30 = as_of_date - timedelta(days=30)
+        cut_60 = as_of_date - timedelta(days=60)
+        cut_90 = as_of_date - timedelta(days=90)
+
+        issued_date = func.date(Charge.issued_at)
+
+        rows = (
+            self.db.query(
+                Charge.client_id,
+                func.sum(
+                    case((issued_date >= str(cut_30), Charge.amount), else_=0)
+                ).label("current"),
+                func.sum(
+                    case(
+                        (issued_date.between(str(cut_60), str(cut_30 - timedelta(days=1))), Charge.amount),
+                        else_=0,
+                    )
+                ).label("days_30"),
+                func.sum(
+                    case(
+                        (issued_date.between(str(cut_90), str(cut_60 - timedelta(days=1))), Charge.amount),
+                        else_=0,
+                    )
+                ).label("days_60"),
+                func.sum(
+                    case((issued_date < str(cut_90), Charge.amount), else_=0)
+                ).label("days_90_plus"),
+                func.sum(Charge.amount).label("total"),
+                func.min(Charge.issued_at).label("oldest_issued_at"),
+            )
+            .filter(
+                Charge.status == ChargeStatus.ISSUED.value,
+                Charge.issued_at.isnot(None),
+                Charge.deleted_at.is_(None),
+            )
+            .group_by(Charge.client_id)
+            .all()
+        )
+        return rows
 
     def soft_delete(self, charge_id: int, deleted_by: int) -> bool:
         """Soft-delete a charge by setting deleted_at."""

@@ -70,8 +70,12 @@ def calculate_tax(
     other_credits: float = 0.0,
 ) -> TaxCalculationResult:
     """Calculate Israeli income tax for the given tax year."""
-    year_brackets = _BRACKETS_BY_YEAR.get(tax_year, _BRACKETS_BY_YEAR[2024])
-    credit_point_value = _CREDIT_POINT_VALUE_BY_YEAR.get(tax_year, _CREDIT_POINT_VALUE_BY_YEAR[2024])
+    if tax_year not in _BRACKETS_BY_YEAR:
+        raise ValueError(
+            f"Tax year {tax_year} is not supported. Supported years: {sorted(_BRACKETS_BY_YEAR)}"
+        )
+    year_brackets = _BRACKETS_BY_YEAR[tax_year]
+    credit_point_value = _CREDIT_POINT_VALUE_BY_YEAR[tax_year]
 
     deduction = min(max(pension_deduction, 0.0), max(taxable_income, 0.0))
     adjusted_income = taxable_income - deduction

@@ -3,13 +3,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
-
-# Hard limit for unpaid charge fetch in aging report.
-# Proper fix: streaming/SQL aggregation (Sprint 10+).
-_AGING_CHARGE_FETCH_LIMIT = 2000
 
 
 class AgingReportService:
@@ -32,85 +27,36 @@ class AgingReportService:
         - 30 days: 31-60 days
         - 60 days: 61-90 days
         - 90+ days: 91+ days
-
-        Note: bounded to _AGING_CHARGE_FETCH_LIMIT unpaid charges.
-        Charges beyond the ceiling are silently excluded (known debt).
         """
         if as_of_date is None:
             as_of_date = date.today()
 
-        total_unpaid = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
-        capped = total_unpaid > _AGING_CHARGE_FETCH_LIMIT
-        unpaid_charges = self.charge_repo.list_charges(
-            status=ChargeStatus.ISSUED.value,
-            page=1,
-            page_size=_AGING_CHARGE_FETCH_LIMIT,
-        )
-
-        client_aging = {}
-
-        for charge in unpaid_charges:
-            if not charge.issued_at:
-                continue
-
-            client_id = charge.client_id
-
-            if client_id not in client_aging:
-                client = self.client_repo.get_by_id(client_id)
-                if not client:
-                    continue
-
-                client_aging[client_id] = {
-                    "client_name": client.full_name,
-                    "current": 0.0,
-                    "days_30": 0.0,
-                    "days_60": 0.0,
-                    "days_90_plus": 0.0,
-                    "total": 0.0,
-                    "oldest_date": None,
-                }
-
-            days_old = (as_of_date - charge.issued_at.date()).days
-            amount = float(charge.amount)
-
-            if days_old <= 30:
-                client_aging[client_id]["current"] += amount
-            elif days_old <= 60:
-                client_aging[client_id]["days_30"] += amount
-            elif days_old <= 90:
-                client_aging[client_id]["days_60"] += amount
-            else:
-                client_aging[client_id]["days_90_plus"] += amount
-
-            client_aging[client_id]["total"] += amount
-
-            if (
-                client_aging[client_id]["oldest_date"] is None
-                or charge.issued_at.date() < client_aging[client_id]["oldest_date"]
-            ):
-                client_aging[client_id]["oldest_date"] = charge.issued_at.date()
+        rows = self.charge_repo.get_aging_buckets(as_of_date)
 
         items = []
         total_outstanding = 0.0
 
-        for client_id, data in client_aging.items():
-            oldest_days = None
-            if data["oldest_date"]:
-                oldest_days = (as_of_date - data["oldest_date"]).days
+        for row in rows:
+            client = self.client_repo.get_by_id(row.client_id)
+            if not client:
+                continue
+
+            oldest_date = row.oldest_issued_at.date() if row.oldest_issued_at else None
+            oldest_days = (as_of_date - oldest_date).days if oldest_date else None
 
             items.append({
-                "client_id": client_id,
-                "client_name": data["client_name"],
-                "total_outstanding": round(data["total"], 2),
-                "current": round(data["current"], 2),
-                "days_30": round(data["days_30"], 2),
-                "days_60": round(data["days_60"], 2),
-                "days_90_plus": round(data["days_90_plus"], 2),
-                "oldest_invoice_date": data["oldest_date"],
+                "client_id": row.client_id,
+                "client_name": client.full_name,
+                "total_outstanding": round(float(row.total), 2),
+                "current": round(float(row.current), 2),
+                "days_30": round(float(row.days_30), 2),
+                "days_60": round(float(row.days_60), 2),
+                "days_90_plus": round(float(row.days_90_plus), 2),
+                "oldest_invoice_date": oldest_date,
                 "oldest_invoice_days": oldest_days,
             })
 
-            total_outstanding += data["total"]
+            total_outstanding += float(row.total)
 
         items.sort(key=lambda x: x["total_outstanding"], reverse=True)
 
@@ -127,6 +73,6 @@ class AgingReportService:
             "total_outstanding": round(total_outstanding, 2),
             "items": items,
             "summary": summary,
-            "capped": capped,
-            "cap_limit": _AGING_CHARGE_FETCH_LIMIT,
+            "capped": False,
+            "cap_limit": None,
         }
