@@ -1,9 +1,13 @@
-"""National Insurance (ביטוח לאומי) calculation engine — 2024."""
+"""National Insurance (ביטוח לאומי) calculation engine — multi-year."""
 
 from dataclasses import dataclass
 
-_NI_MONTHLY_CEILING = 7_522.0
-_NI_ANNUAL_CEILING = _NI_MONTHLY_CEILING * 12
+_NI_CEILING_BY_YEAR: dict[int, float] = {
+    2024: 90_264.0,
+    2025: 93_384.0,
+    2026: 93_384.0,
+}
+
 _NI_RATE_BASE = 0.0597
 _NI_RATE_HIGH = 0.1783
 
@@ -15,11 +19,12 @@ class NationalInsuranceResult:
     total: float
 
 
-def calculate_national_insurance(income: float) -> NationalInsuranceResult:
-    """Calculate Israeli National Insurance for annual income in 2024 rates."""
+def calculate_national_insurance(income: float, tax_year: int = 2024) -> NationalInsuranceResult:
+    """Calculate Israeli National Insurance for the given tax year."""
+    ceiling = _NI_CEILING_BY_YEAR.get(tax_year, _NI_CEILING_BY_YEAR[2024])
     income = max(income, 0.0)
-    base = min(income, _NI_ANNUAL_CEILING)
-    above = max(income - _NI_ANNUAL_CEILING, 0.0)
+    base = min(income, ceiling)
+    above = max(income - ceiling, 0.0)
     base_amount = round(base * _NI_RATE_BASE, 2)
     high_amount = round(above * _NI_RATE_HIGH, 2)
     return NationalInsuranceResult(

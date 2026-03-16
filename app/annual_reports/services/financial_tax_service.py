@@ -16,6 +16,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 
 class FinancialTaxMixin:
     def get_tax_calculation(self, report_id: int) -> TaxCalculationResponse:
+        report = self._get_report_or_raise(report_id)
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
         base_cp = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
@@ -27,11 +28,9 @@ class FinancialTaxMixin:
         donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
 
-        tax = calculate_tax(summary.taxable_income, credit_points, pension_deduction, donation_amount, other_credits)
-        ni = calculate_national_insurance(summary.taxable_income)
+        tax = calculate_tax(summary.taxable_income, report.tax_year, credit_points, pension_deduction, donation_amount, other_credits)
+        ni = calculate_national_insurance(summary.taxable_income, report.tax_year)
         net_profit = tax.taxable_income - tax.tax_after_credits
-
-        report = self._get_report_or_raise(report_id)
         vat_row = (
             self.db.query(sa_func.sum(VatWorkItem.net_vat).label("total_vat"))
             .filter(
@@ -81,6 +80,7 @@ class FinancialTaxMixin:
                 for b in tax.brackets
             ],
             total_liability=total_liability,
+            total_credit_points=tax.total_credit_points,
         )
 
     def get_readiness_check(self, report_id: int) -> ReadinessCheckResponse:

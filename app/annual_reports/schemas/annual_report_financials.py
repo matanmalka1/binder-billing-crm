@@ -122,6 +122,7 @@ class TaxCalculationResponse(BaseModel):
     national_insurance: NationalInsuranceResponse
     brackets: list[BracketBreakdownItem]
     total_liability: Optional[float] = None
+    total_credit_points: float = 0.0
 
 
 # ── Advances summary ──────────────────────────────────────────────────────────
