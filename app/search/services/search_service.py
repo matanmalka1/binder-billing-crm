@@ -104,6 +104,7 @@ class SearchService:
                 page=1,
                 page_size=_MIXED_SEARCH_BINDER_LIMIT,
             )
+            matched: list[tuple] = []
             for binder in binders:
                 current_work_state = WorkStateService.derive_work_state(
                     binder, reference_date, self.db
@@ -121,18 +122,23 @@ class SearchService:
                     match = (len(current_signals) > 0) == has_signals
 
                 if match:
-                    client = self.client_repo.get_by_id(binder.client_id)
-                    results.append(
-                        {
-                            "result_type": "binder",
-                            "client_id": binder.client_id,
-                            "client_name": client.full_name if client else "Unknown",
-                            "binder_id": binder.id,
-                            "binder_number": binder.binder_number,
-                            "work_state": current_work_state.value,
-                            "signals": current_signals,
-                        }
-                    )
+                    matched.append((binder, current_work_state, current_signals))
+
+            binder_client_ids = [b.client_id for b, _, _ in matched]
+            binder_client_map = {c.id: c for c in self.client_repo.list_by_ids(binder_client_ids)}
+            for binder, current_work_state, current_signals in matched:
+                client = binder_client_map.get(binder.client_id)
+                results.append(
+                    {
+                        "result_type": "binder",
+                        "client_id": binder.client_id,
+                        "client_name": client.full_name if client else "Unknown",
+                        "binder_id": binder.id,
+                        "binder_number": binder.binder_number,
+                        "work_state": current_work_state.value,
+                        "signals": current_signals,
+                    }
+                )
 
         total = len(results)
         offset = (page - 1) * page_size

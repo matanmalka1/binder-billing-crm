@@ -41,6 +41,12 @@ class InvoiceRepository:
         """Retrieve invoice by charge ID."""
         return self.db.query(Invoice).filter(Invoice.charge_id == charge_id).first()
 
+    def list_by_charge_ids(self, charge_ids: list[int]) -> list["Invoice"]:
+        """Batch-fetch invoices for a list of charge IDs (single query)."""
+        if not charge_ids:
+            return []
+        return self.db.query(Invoice).filter(Invoice.charge_id.in_(charge_ids)).all()
+
     def exists_for_charge(self, charge_id: int) -> bool:
         """Check if invoice exists for charge."""
         return (

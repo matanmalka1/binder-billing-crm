@@ -33,11 +33,14 @@ class AgingReportService:
 
         rows = self.charge_repo.get_aging_buckets(as_of_date)
 
+        client_ids = [row.client_id for row in rows]
+        client_map = {c.id: c for c in self.client_repo.list_by_ids(client_ids)}
+
         items = []
         total_outstanding = 0.0
 
         for row in rows:
-            client = self.client_repo.get_by_id(row.client_id)
+            client = client_map.get(row.client_id)
             if not client:
                 continue
 

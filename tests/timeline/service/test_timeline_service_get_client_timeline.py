@@ -36,6 +36,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
         paid_at=None,
     )
     invoice = SimpleNamespace(
+        charge_id=7,
         created_at=datetime(2026, 1, 8, 9, 0),
         provider="Test",
         external_invoice_id="INV-1",
@@ -54,7 +55,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
     monkeypatch.setattr(service.notification_repo, "list_by_client", lambda client_id, page, page_size: [notification])
     monkeypatch.setattr(service.charge_repo, "list_charges", lambda **kwargs: [charge])
-    monkeypatch.setattr(service.invoice_repo, "get_by_charge_id", lambda charge_id: invoice)
+    monkeypatch.setattr(service.invoice_repo, "list_by_charge_ids", lambda charge_ids: [invoice] if charge_ids else [])
     monkeypatch.setattr(
         service,
         "_build_tax_deadline_events",

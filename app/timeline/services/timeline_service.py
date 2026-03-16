@@ -70,13 +70,17 @@ class TimelineService:
         charges = self.charge_repo.list_charges(
             client_id=client_id, page=1, page_size=_TIMELINE_BULK_LIMIT
         )
+        invoice_map = {
+            inv.charge_id: inv
+            for inv in self.invoice_repo.list_by_charge_ids([c.id for c in charges])
+        }
         for charge in charges:
             events.append(charge_created_event(charge))
             if charge.issued_at:
                 events.append(charge_issued_event(charge))
             if charge.paid_at:
                 events.append(charge_paid_event(charge))
-            invoice = self.invoice_repo.get_by_charge_id(charge.id)
+            invoice = invoice_map.get(charge.id)
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
