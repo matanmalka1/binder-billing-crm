@@ -4,7 +4,6 @@ from itertools import count
 from app.binders.models.binder import BinderType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models import Client, ClientType
-from app.timeline.repositories.timeline_repository import TimelineRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -68,8 +67,6 @@ def test_list_client_binders_returns_only_requested_client_binders(test_db):
         received_by=user.id,
     )
 
-    timeline_repo = TimelineRepository(test_db)
-    result = timeline_repo.list_client_binders(client_a.id)
+    result = binder_repo.list_by_client(client_a.id)
 
     assert {binder.id for binder in result} == {b1.id, b2.id}
-

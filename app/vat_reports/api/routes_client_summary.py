@@ -3,13 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
-from app.clients.repositories.client_repository import ClientRepository
 from app.core.logging_config import get_logger
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
-from app.vat_reports.repositories.vat_client_summary_repository import (
-    VatClientSummaryRepository,
-)
 from app.vat_reports.schemas.vat_client_summary_schema import VatClientSummaryResponse
 from app.vat_reports.services.vat_client_summary_service import get_client_summary
 from app.vat_reports.services.vat_export_service import export_to_excel, export_to_pdf
@@ -31,9 +27,7 @@ def get_vat_client_summary(
     client_id: int,
     db: DBSession,
 ):
-    summary_repo = VatClientSummaryRepository(db)
-    client_repo = ClientRepository(db)
-    return get_client_summary(summary_repo, client_repo, client_id=client_id)
+    return get_client_summary(db, client_id=client_id)
 
 
 @router.get(

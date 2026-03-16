@@ -1,6 +1,7 @@
 """Repository for client-level VAT summary queries."""
 
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
@@ -71,3 +72,18 @@ class VatClientSummaryRepository:
             )
             for r in rows
         ]
+
+    def get_annual_output_vat(self, client_id: int, year: int) -> Optional[Decimal]:
+        """Sum total_output_vat for all VatWorkItems in a given year for a client."""
+        prefix = f"{year}-%"
+        result = (
+            self.db.query(func.sum(VatWorkItem.total_output_vat))
+            .filter(
+                VatWorkItem.client_id == client_id,
+                VatWorkItem.period.like(prefix),
+            )
+            .scalar()
+        )
+        if result is None:
+            return None
+        return Decimal(str(result))

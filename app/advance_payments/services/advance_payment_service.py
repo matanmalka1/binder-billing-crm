@@ -13,6 +13,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
+from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
 class AdvancePaymentService:
@@ -101,7 +102,16 @@ class AdvancePaymentService:
                 AdvancePaymentStatus.PARTIAL,
                 AdvancePaymentStatus.PAID,
             ]
-        return self.repo.list_overview(year, month, statuses, page=page, page_size=page_size)
+        payments = self.repo.list_overview_payments(year, month, statuses)
+        client_ids = list({p.client_id for p in payments})
+        clients = {c.id: c.full_name for c in self._client_repo.list_by_ids(client_ids)}
+        rows = sorted(
+            [(p, clients.get(p.client_id, "")) for p in payments],
+            key=lambda x: (x[1], x[0].month),
+        )
+        total = len(rows)
+        offset = (page - 1) * page_size
+        return rows[offset : offset + page_size], total
 
     def get_annual_kpis(self, client_id: int, year: int) -> dict:
         if not self._client_repo.get_by_id(client_id):
@@ -143,7 +153,7 @@ class AdvancePaymentService:
         if profile is None or profile.advance_rate is None:
             return None
 
-        prior_year_vat = self.repo.get_annual_output_vat(client_id, year - 1)
+        prior_year_vat = VatClientSummaryRepository(self.db).get_annual_output_vat(client_id, year - 1)
         if prior_year_vat is None:
             return None
 

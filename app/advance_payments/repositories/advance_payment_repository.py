@@ -1,8 +1,6 @@
 from datetime import date
-from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
@@ -56,47 +54,22 @@ class AdvancePaymentRepository(BaseRepository):
         self.db.delete(payment)
         self.db.commit()
 
-    def get_annual_output_vat(self, client_id: int, year: int) -> Optional[Decimal]:
-        """Sum total_output_vat for all VatWorkItems in a given year for a client.
-        Returns None if no work items exist for that year."""
-        from app.vat_reports.models.vat_work_item import VatWorkItem
-
-        prefix = f"{year}-%"
-        result = (
-            self.db.query(func.sum(VatWorkItem.total_output_vat))
-            .filter(
-                VatWorkItem.client_id == client_id,
-                VatWorkItem.period.like(prefix),
-            )
-            .scalar()
-        )
-        if result is None:
-            return None
-        return Decimal(str(result))
-
-    def list_overview(
+    def list_overview_payments(
         self,
         year: int,
         month: Optional[int],
         statuses: list[AdvancePaymentStatus],
-        page: int = 1,
-        page_size: int = 50,
-    ):
-        from app.clients.models.client import Client
-
+    ) -> list[AdvancePayment]:
+        """Return all matching AdvancePayment rows (no cross-domain join)."""
         query = (
-            self.db.query(AdvancePayment, Client.full_name)
-            .join(Client, Client.id == AdvancePayment.client_id)
+            self.db.query(AdvancePayment)
             .filter(AdvancePayment.year == year)
         )
         if month is not None:
             query = query.filter(AdvancePayment.month == month)
         if statuses:
             query = query.filter(AdvancePayment.status.in_(statuses))
-        query = query.order_by(Client.full_name.asc(), AdvancePayment.month.asc())
-        total = query.count()
-        rows = self._paginate(query, page, page_size)
-        return rows, total
+        return query.all()
 
     def create(
         self,

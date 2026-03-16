@@ -41,7 +41,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
         external_invoice_id="INV-1",
     )
 
-    monkeypatch.setattr(service.timeline_repo, "list_client_binders", lambda client_id: [binder])
+    monkeypatch.setattr(service.binder_repo, "list_by_client", lambda client_id: [binder])
     monkeypatch.setattr(
         service,
         "_append_status_change_events",

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 _TIMELINE_BULK_LIMIT = 500
 
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.invoice.repositories.invoice_repository import InvoiceRepository
@@ -14,7 +15,6 @@ from app.notification.repositories.notification_repository import NotificationRe
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.tax_deadline.models.tax_deadline import TaxDeadline
-from app.timeline.repositories.timeline_repository import TimelineRepository
 from app.timeline.services.timeline_client_aggregator import build_client_events
 from app.timeline.services.timeline_event_builders import (
     binder_received_event,
@@ -36,7 +36,7 @@ class TimelineService:
     """Unified client timeline aggregation."""
 
     def __init__(self, db: Session):
-        self.timeline_repo = TimelineRepository(db)
+        self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
@@ -52,7 +52,7 @@ class TimelineService:
     ) -> tuple[list[dict], int]:
         events = []
 
-        binders = self.timeline_repo.list_client_binders(client_id)
+        binders = self.binder_repo.list_by_client(client_id)
         for binder in binders:
             events.append(binder_received_event(binder))
             if binder.returned_at:
@@ -84,7 +84,7 @@ class TimelineService:
         events.extend(self._build_annual_report_events(client_id))
         events.extend(
             build_client_events(
-                self.timeline_repo.db, client_id, self.reminder_repo, self.sig_repo
+                self.binder_repo.db, client_id, self.reminder_repo, self.sig_repo
             )
         )
 
@@ -101,7 +101,7 @@ class TimelineService:
     def _build_tax_deadline_events(self, client_id: int) -> list[dict]:
         # Tax deadlines are per-client and naturally bounded (months × years).
         deadlines = (
-            self.timeline_repo.db.query(TaxDeadline)
+            self.binder_repo.db.query(TaxDeadline)
             .filter(TaxDeadline.client_id == client_id)
             .limit(_TIMELINE_BULK_LIMIT)
             .all()
@@ -111,7 +111,7 @@ class TimelineService:
     def _build_annual_report_events(self, client_id: int) -> list[dict]:
         # Annual reports are bounded by tax years — limit is a safety net only.
         reports = (
-            self.timeline_repo.db.query(AnnualReport)
+            self.binder_repo.db.query(AnnualReport)
             .filter(AnnualReport.client_id == client_id)
             .limit(_TIMELINE_BULK_LIMIT)
             .all()

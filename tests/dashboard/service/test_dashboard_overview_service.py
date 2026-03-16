@@ -6,11 +6,8 @@ from app.dashboard.services.dashboard_overview_service import DashboardOverviewS
 
 def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch):
     service = DashboardOverviewService(test_db)
-    monkeypatch.setattr(
-        service.repo,
-        "get_overview_metrics",
-        lambda reference_date: {"total_clients": 5, "active_binders": 2},
-    )
+    monkeypatch.setattr(service.client_repo, "count", lambda **kwargs: 5)
+    monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 2)
     monkeypatch.setattr(
         service,
         "_build_quick_actions",
@@ -36,4 +33,3 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         "items": [{"item_type": "idle_binder"}],
         "total": 1,
     }
-

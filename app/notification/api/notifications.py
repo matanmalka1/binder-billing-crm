@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_service import NotificationService
 from app.notification.models.notification import NotificationSeverity, NotificationTrigger
 from pydantic import BaseModel, Field
@@ -78,8 +77,8 @@ def list_notifications(
     limit: int = Query(20, ge=1, le=100),
 ):
     """Return recent notifications ordered by created_at desc."""
-    repo = NotificationRepository(db)
-    items = repo.list_recent(limit=limit, client_id=client_id)
+    svc = NotificationService(db)
+    items = svc.list_recent(limit=limit, client_id=client_id)
     return [NotificationResponse.model_validate(n) for n in items]
 
 
@@ -90,15 +89,15 @@ def get_unread_count(
     client_id: Optional[int] = None,
 ):
     """Return count of unread notifications."""
-    repo = NotificationRepository(db)
-    return UnreadCountResponse(unread_count=repo.count_unread(client_id=client_id))
+    svc = NotificationService(db)
+    return UnreadCountResponse(unread_count=svc.count_unread(client_id=client_id))
 
 
 @router.post("/mark-read", response_model=MarkReadResponse)
 def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
     """Mark specific notifications as read."""
-    repo = NotificationRepository(db)
-    updated = repo.mark_read(body.notification_ids)
+    svc = NotificationService(db)
+    updated = svc.mark_read(body.notification_ids)
     return MarkReadResponse(updated=updated)
 
 
@@ -109,8 +108,8 @@ def mark_all_read(
     client_id: Optional[int] = None,
 ):
     """Mark all unread notifications (optionally scoped to client)."""
-    repo = NotificationRepository(db)
-    updated = repo.mark_all_read(client_id)
+    svc = NotificationService(db)
+    updated = svc.mark_all_read(client_id)
     return MarkReadResponse(updated=updated)
 
 

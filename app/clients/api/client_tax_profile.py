@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.clients.models.client_tax_profile import VatType
 from app.clients.schemas.client_tax_profile import TaxProfileResponse, TaxProfileUpdateRequest
 from app.clients.services.client_tax_profile_service import ClientTaxProfileService
 
@@ -16,10 +15,6 @@ router = APIRouter(
 @router.get("/{client_id}/tax-profile", response_model=TaxProfileResponse)
 def get_tax_profile(client_id: int, db: DBSession, user: CurrentUser):
     service = ClientTaxProfileService(db)
-    from app.clients.repositories.client_repository import ClientRepository
-    client = ClientRepository(db).get_by_id(client_id)
-    if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Client not found")
     profile = service.get_profile(client_id)
     if profile is None:
         return TaxProfileResponse(client_id=client_id)
@@ -33,14 +28,6 @@ def update_tax_profile(
     db: DBSession,
     user: CurrentUser,
 ):
-    if request.vat_type is not None:
-        try:
-            VatType(request.vat_type)
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid vat_type: {request.vat_type}",
-            )
     service = ClientTaxProfileService(db)
     update_data = request.model_dump(exclude_unset=True)
     profile = service.update_profile(client_id, **update_data)

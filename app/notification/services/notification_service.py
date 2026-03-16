@@ -179,3 +179,15 @@ class NotificationService:
             logger.error("Unexpected error in send_notification | client=%s trigger=%s error=%s", client_id, trigger, exc)
 
         return True
+
+    def list_recent(self, limit: int = 20, client_id: Optional[int] = None):
+        return self.notification_repo.list_recent(limit=limit, client_id=client_id)
+
+    def count_unread(self, client_id: Optional[int] = None) -> int:
+        return self.notification_repo.count_unread(client_id=client_id)
+
+    def mark_read(self, notification_ids: list[int]) -> int:
+        return self.notification_repo.mark_read(notification_ids)
+
+    def mark_all_read(self, client_id: Optional[int] = None) -> int:
+        return self.notification_repo.mark_all_read(client_id)

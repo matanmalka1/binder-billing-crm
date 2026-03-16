@@ -133,6 +133,15 @@ class BinderRepository(BaseRepository):
             .count()
         )
 
+    def list_by_client(self, client_id: int) -> list[Binder]:
+        """Return all non-deleted binders for a client (all statuses)."""
+        return (
+            self.db.query(Binder)
+            .filter(Binder.client_id == client_id, Binder.deleted_at.is_(None))
+            .order_by(Binder.received_at.asc())
+            .all()
+        )
+
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
         """Soft-delete a binder by setting deleted_at."""
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()

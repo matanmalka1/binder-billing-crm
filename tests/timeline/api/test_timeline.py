@@ -10,7 +10,6 @@ from app.notification.models.notification import Notification, NotificationChann
 from app.reminders.models.reminder import Reminder, ReminderType, ReminderStatus
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus, SignatureRequestType
 from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType, TaxDeadlineStatus
-from app.timeline.repositories.timeline_repository import TimelineRepository
 from app.utils.time_utils import utcnow
 
 _client_seq = count(1)
@@ -31,7 +30,6 @@ def _client(db) -> Client:
 
 def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    repo = TimelineRepository(test_db)
 
     binder = Binder(
         client_id=crm_client.id,

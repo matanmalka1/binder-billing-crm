@@ -9,7 +9,6 @@ from app.users.models.user import UserRole
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.dashboard.repositories.dashboard_overview_repository import DashboardOverviewRepository
 from app.actions.action_contracts import get_binder_actions, get_charge_actions, get_client_actions
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 
@@ -19,7 +18,6 @@ class DashboardOverviewService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.repo = DashboardOverviewRepository(db)
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.client_repo = ClientRepository(db)
@@ -115,7 +113,10 @@ class DashboardOverviewService:
         if reference_date is None:
             reference_date = date.today()
 
-        overview = self.repo.get_overview_metrics(reference_date)
+        overview = {
+            "total_clients": self.client_repo.count(),
+            "active_binders": self.binder_repo.count_active(),
+        }
         overview["work_state"] = None
         overview["signals"] = []
         overview["quick_actions"] = self._build_quick_actions(user_role)

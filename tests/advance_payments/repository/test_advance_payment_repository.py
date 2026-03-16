@@ -7,6 +7,7 @@ from app.clients.models.client import Client, ClientType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
 def _create_user(test_db):
@@ -70,7 +71,8 @@ def test_list_by_client_year_filters_and_orders(test_db):
 
 
 def test_get_annual_output_vat_returns_sum_or_none(test_db):
-    repo = AdvancePaymentRepository(test_db)
+    """get_annual_output_vat now lives on VatClientSummaryRepository."""
+    repo = VatClientSummaryRepository(test_db)
     client = _create_client(test_db, "VAT Client", "AP002")
     user = _create_user(test_db)
 
@@ -108,7 +110,8 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
     assert none_total is None
 
 
-def test_list_overview_filters_by_month_and_status_and_orders_by_client_name(test_db):
+def test_list_overview_payments_filters_by_month_and_status(test_db):
+    """list_overview_payments returns AdvancePayment rows without client join."""
     repo = AdvancePaymentRepository(test_db)
     client_a = _create_client(test_db, "Alpha", "AP003")
     client_b = _create_client(test_db, "Beta", "AP004")
@@ -134,14 +137,13 @@ def test_list_overview_filters_by_month_and_status_and_orders_by_client_name(tes
         due_date=date(2025, 2, 10),
     )
 
-    rows, total = repo.list_overview(
+    rows = repo.list_overview_payments(
         year=2025,
         month=1,
         statuses=[AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PAID],
     )
 
-    assert total == 2
-    names = [name for _payment, name in rows]
-    assert names == ["Alpha", "Beta"]
-    statuses = [payment.status for payment, _name in rows]
-    assert statuses == [AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PAID]
+    assert len(rows) == 2
+    ids = {r.id for r in rows}
+    assert payment_a.id in ids
+    assert payment_b.id in ids
