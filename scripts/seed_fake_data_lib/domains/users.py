@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from random import Random
 
+from sqlalchemy import func, select
+
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
@@ -12,11 +14,13 @@ from ..random_utils import full_name
 
 def create_users(db, rng: Random, cfg) -> list[User]:
     users: list[User] = []
+    existing_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())
     for i in range(cfg.users):
+        serial = existing_users + i + 1
         role = UserRole.ADVISOR if i % 3 == 0 else UserRole.SECRETARY
         user = User(
             full_name=full_name(rng),
-            email=f"user{i + 1}@example.com",
+            email=f"user{serial}@example.com",
             phone=f"05{rng.randint(10000000, 99999999)}",
             password_hash=DEFAULT_PASSWORD_HASH,
             role=role,

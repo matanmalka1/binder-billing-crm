@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from random import Random
 
+from sqlalchemy import func, select
+
 from app.clients.models.client import Client, ClientStatus, ClientType
 
 from ..constants import COMPANY_WORDS
@@ -11,7 +13,9 @@ from ..random_utils import full_name
 
 def create_clients(db, rng: Random, cfg) -> list[Client]:
     clients: list[Client] = []
+    existing_clients = int(db.execute(select(func.count()).select_from(Client)).scalar_one())
     for i in range(cfg.clients):
+        serial = existing_clients + i + 1
         open_days_ago = rng.randint(20, 1100)
         opened_at = date.today() - timedelta(days=open_days_ago)
         status = rng.choices(
@@ -33,12 +37,12 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
 
         client = Client(
             full_name=full_name_value,
-            id_number=f"{rng.randint(100000000, 999999999)}",
+            id_number=f"{100000000 + serial}",
             client_type=client_type,
             status=status,
-            primary_binder_number=f"PB-{50000 + i}",
+            primary_binder_number=f"PB-{50000 + serial}",
             phone=f"05{rng.randint(10000000, 99999999)}",
-            email=f"client{i + 1}@example.com",
+            email=f"client{serial}@example.com",
             notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
             opened_at=opened_at,
             closed_at=closed_at,

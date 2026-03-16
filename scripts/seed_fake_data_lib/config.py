@@ -98,6 +98,26 @@ def parse_args() -> SeedConfig:
     parser.add_argument("--reset", action="store_true", help="Delete existing rows before seeding")
 
     args = parser.parse_args()
+    if args.users < 1:
+        raise ValueError("חובה להגדיר לפחות משתמש אחד")
+    if args.clients < 1:
+        raise ValueError("חובה להגדיר לפחות לקוח אחד")
+    if args.annual_reports_per_client < 1:
+        raise ValueError("מספר הדוחות השנתיים ללקוח חייב להיות לפחות 1")
+    if args.signature_requests_per_client < 0:
+        raise ValueError("מספר בקשות החתימה ללקוח לא יכול להיות שלילי")
+    if args.min_binders_per_client < 0 or args.max_binders_per_client < 0:
+        raise ValueError("מספר הקלסרים ללקוח לא יכול להיות שלילי")
+    if args.min_charges_per_client < 0 or args.max_charges_per_client < 0:
+        raise ValueError("מספר החיובים ללקוח לא יכול להיות שלילי")
+    if args.min_tax_deadlines_per_client < 0 or args.max_tax_deadlines_per_client < 0:
+        raise ValueError("מספר מועדי המס ללקוח לא יכול להיות שלילי")
+    if args.min_authority_contacts_per_client < 0 or args.max_authority_contacts_per_client < 0:
+        raise ValueError("מספר אנשי הקשר המוסמכים ללקוח לא יכול להיות שלילי")
+    if args.min_vat_work_items_per_client < 0 or args.max_vat_work_items_per_client < 0:
+        raise ValueError("מספר פריטי העבודה למע\"מ ללקוח לא יכול להיות שלילי")
+    if args.min_vat_invoices_per_work_item < 0 or args.max_vat_invoices_per_work_item < 0:
+        raise ValueError("מספר חשבוניות המע\"מ לא יכול להיות שלילי")
     if args.min_binders_per_client > args.max_binders_per_client:
         raise ValueError("המינימום של קלסרים ללקוח לא יכול להיות גבוה מהמרבי")
     if args.min_charges_per_client > args.max_charges_per_client:

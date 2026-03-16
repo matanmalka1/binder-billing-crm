@@ -5,11 +5,12 @@ import random
 from pathlib import Path
 from typing import Dict
 
-from sqlalchemy import func, select
+from sqlalchemy import func, inspect, select
 
 from app.database import Base, SessionLocal, engine
 
 from .config import SeedConfig
+from .coverage import SeedCoverageValidator
 from .domains import (
     binders,
     charges,
@@ -38,14 +39,34 @@ def _import_all_model_modules() -> None:
         importlib.import_module(module)
 
 
+def _ensure_schema_ready() -> None:
+    """
+    Seeder must run on a migrated schema.
+
+    We do not auto-create tables here; run Alembic before seeding.
+    """
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    expected_tables = {table.name for table in Base.metadata.sorted_tables}
+    missing = sorted(expected_tables - existing_tables)
+    if missing:
+        preview = ", ".join(missing[:8])
+        suffix = "..." if len(missing) > 8 else ""
+        raise RuntimeError(
+            "Database schema is not ready for seeding. Missing tables: "
+            f"{preview}{suffix}. Run `alembic upgrade head` first."
+        )
+
+
 class Seeder:
     def __init__(self, cfg: SeedConfig):
         self.cfg = cfg
         self.rng = random.Random(cfg.seed)
+        self.coverage_validator = SeedCoverageValidator(cfg)
 
     def run(self) -> None:
         _import_all_model_modules()
-        Base.metadata.create_all(bind=engine)
+        _ensure_schema_ready()
         db = SessionLocal()
         try:
             if self.cfg.reset:
@@ -90,6 +111,7 @@ class Seeder:
             db.commit()
             counts = self._collect_counts(db)
             self._assert_full_seed(counts)
+            self.coverage_validator.assert_seed_coverage(db, counts)
             self._print_counts(counts)
         except Exception:
             db.rollback()

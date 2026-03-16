@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
+from app.annual_reports.services.constants import VALID_TRANSITIONS
+from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
@@ -24,6 +26,39 @@ from app.annual_reports.models.annual_report_enums import (
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.models.client import ClientType
 from app.users.models.user import UserRole
+
+
+SEEDABLE_STATUSES = [
+    AnnualReportStatus.NOT_STARTED,
+    AnnualReportStatus.COLLECTING_DOCS,
+    AnnualReportStatus.DOCS_COMPLETE,
+    AnnualReportStatus.IN_PREPARATION,
+    AnnualReportStatus.PENDING_CLIENT,
+    AnnualReportStatus.SUBMITTED,
+    AnnualReportStatus.ACCEPTED,
+    AnnualReportStatus.ASSESSMENT_ISSUED,
+    AnnualReportStatus.OBJECTION_FILED,
+    AnnualReportStatus.CLOSED,
+]
+
+
+def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
+    if target == AnnualReportStatus.NOT_STARTED:
+        return [AnnualReportStatus.NOT_STARTED]
+
+    frontier: list[list[AnnualReportStatus]] = [[AnnualReportStatus.NOT_STARTED]]
+    while frontier:
+        path = frontier.pop(0)
+        current = path[-1]
+        for nxt in VALID_TRANSITIONS.get(current, set()):
+            if nxt in path:
+                continue
+            new_path = [*path, nxt]
+            if nxt == target:
+                return new_path
+            frontier.append(new_path)
+
+    raise RuntimeError(f"Cannot build legal annual-report status path to {target.value}")
 
 
 def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualReport]:
@@ -47,13 +82,16 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
                 client_type_for_report = ClientTypeForReport.INDIVIDUAL
                 form_type = AnnualReportForm.FORM_1301
 
-            status = rng.choice(list(AnnualReportStatus))
-            filing_deadline = datetime(
-                year,
-                rng.randint(5, 12),
-                rng.randint(1, 28),
-                tzinfo=UTC,
-            )
+            status = rng.choice(SEEDABLE_STATUSES)
+            deadline_type = rng.choice(list(DeadlineType))
+            custom_deadline_note = None
+            if deadline_type == DeadlineType.STANDARD:
+                filing_deadline = standard_deadline(year)
+            elif deadline_type == DeadlineType.EXTENDED:
+                filing_deadline = extended_deadline(year)
+            else:
+                filing_deadline = None
+                custom_deadline_note = "מועד מותאם אישית בסביבת דמו"
             submitted_at = (
                 datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
                 if status
@@ -72,9 +110,9 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
                 client_type=client_type_for_report,
                 form_type=form_type,
                 status=status,
-                deadline_type=rng.choice(list(DeadlineType)),
+                deadline_type=deadline_type,
                 filing_deadline=filing_deadline,
-                custom_deadline_note=None,
+                custom_deadline_note=custom_deadline_note,
                 submitted_at=submitted_at,
                 ita_reference=None,
                 assessment_amount=None,
@@ -263,12 +301,9 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
     user_lookup = {u.id: u for u in users}
     fallback_user = users[0] if users else None
     for report in reports:
-        possible_statuses = list(AnnualReportStatus)
-        start_index = 0
-        target_index = possible_statuses.index(report.status)
-        # Build linear history up to current status
-        history_statuses = possible_statuses[start_index : target_index + 1]
+        history_statuses = _status_path_to(report.status)
         previous = None
+        occurred_at = report.created_at
         for status in history_statuses:
             actor_id = report.created_by or report.assigned_to or (fallback_user.id if fallback_user else None)
             actor_name = (
@@ -276,6 +311,7 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
                 if actor_id in user_lookup
                 else "Seeder"
             )
+            occurred_at += timedelta(hours=rng.randint(1, 72))
             entry = AnnualReportStatusHistory(
                 annual_report_id=report.id,
                 from_status=previous,
@@ -283,7 +319,7 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
                 changed_by=actor_id,
                 changed_by_name=actor_name,
                 note="היסטוריית סטטוסים שנוצרה אוטומטית",
-                occurred_at=report.created_at + timedelta(hours=rng.randint(1, 72)),
+                occurred_at=occurred_at,
             )
             db.add(entry)
             previous = status
