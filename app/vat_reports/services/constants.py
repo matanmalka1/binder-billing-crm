@@ -30,6 +30,17 @@ ACTION_INVOICE_DELETED = "invoice_deleted"
 ACTION_OVERRIDE = "vat_override"
 ACTION_FILED = "filed"
 
+CATEGORY_LABELS_SERVER: dict[str, str] = {
+    "office": "משרד",
+    "travel": "נסיעות",
+    "professional_services": "שירותים מקצועיים",
+    "equipment": "ציוד",
+    "rent": "שכירות",
+    "salary": "שכר עבודה",
+    "marketing": "שיווק",
+    "other": "אחר",
+}
+
 __all__ = [
     "ACTION_FILED",
     "ACTION_INVOICE_ADDED",
@@ -37,5 +48,6 @@ __all__ = [
     "ACTION_MATERIAL_RECEIVED",
     "ACTION_OVERRIDE",
     "ACTION_STATUS_CHANGED",
+    "CATEGORY_LABELS_SERVER",
     "VALID_TRANSITIONS",
 ]

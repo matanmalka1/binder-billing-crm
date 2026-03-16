@@ -3,12 +3,18 @@
 import json
 from datetime import datetime
 from typing import Optional
+from uuid import uuid4
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import ACTION_INVOICE_ADDED, ACTION_INVOICE_DELETED, ACTION_STATUS_CHANGED
+from app.vat_reports.services.constants import (
+    ACTION_INVOICE_ADDED,
+    ACTION_INVOICE_DELETED,
+    ACTION_STATUS_CHANGED,
+    CATEGORY_LABELS_SERVER,
+)
 from app.vat_reports.services.data_entry_common import audit_invoice_snapshot, assert_editable, recalculate_totals
 
 
@@ -19,9 +25,9 @@ def add_invoice(
     item_id: int,
     created_by: int,
     invoice_type: InvoiceType,
-    invoice_number: str,
-    invoice_date: datetime,
-    counterparty_name: str,
+    invoice_number: Optional[str],
+    invoice_date: Optional[datetime],
+    counterparty_name: Optional[str],
     net_amount: float,
     vat_amount: float,
     counterparty_id: Optional[str] = None,
@@ -53,6 +59,19 @@ def add_invoice(
             "expense_category: חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
             "VAT.EXPENSE_CATEGORY_REQUIRED",
         )
+
+    # Auto-fill optional fields when not provided by caller
+    if not invoice_number:
+        invoice_number = f"{item.period}-{invoice_type.value}-{uuid4().hex[:8]}"
+    if not invoice_date:
+        invoice_date = datetime.strptime(f"{item.period}-01", "%Y-%m-%d")
+    if not counterparty_name:
+        if invoice_type == InvoiceType.INCOME:
+            counterparty_name = "הכנסות"
+        else:
+            counterparty_name = CATEGORY_LABELS_SERVER.get(
+                expense_category.value if expense_category else "", "לא ידוע"
+            )
 
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)
     if existing:

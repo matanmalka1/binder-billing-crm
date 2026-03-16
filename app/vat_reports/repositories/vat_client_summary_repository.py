@@ -27,6 +27,7 @@ class VatClientSummaryRepository:
         )
         return [
             VatPeriodRow(
+                work_item_id=r.id,
                 period=r.period,
                 status=r.status,
                 total_output_vat=r.total_output_vat,

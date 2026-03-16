@@ -71,9 +71,9 @@ class MarkMaterialsCompleteRequest(BaseModel):
 
 class VatInvoiceCreateRequest(BaseModel):
     invoice_type: InvoiceType
-    invoice_number: str
-    invoice_date: datetime
-    counterparty_name: str
+    invoice_number: Optional[str] = None
+    invoice_date: Optional[datetime] = None
+    counterparty_name: Optional[str] = None
     net_amount: Decimal
     vat_amount: Decimal
     counterparty_id: Optional[str] = None
