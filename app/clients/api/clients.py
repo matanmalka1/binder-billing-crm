@@ -13,6 +13,7 @@ from app.clients.schemas.client import (
     ClientUpdateRequest,
 )
 from app.clients.services.client_service import ClientService
+from app.clients.services.client_lookup import get_client_or_raise
 from app.actions.action_contracts import get_client_actions
 
 router = APIRouter(
@@ -76,12 +77,7 @@ def list_clients(
 @router.get("/{client_id}", response_model=ClientResponse)
 def get_client(client_id: int, db: DBSession, user: CurrentUser):
     """Get client by ID."""
-    service = ClientService(db)
-    client = service.get_client(client_id)
-
-    if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
-
+    client = get_client_or_raise(db, client_id)
     return _to_client_response(client, user.role)
 
 
@@ -121,6 +117,7 @@ def bulk_client_action(request: BulkClientActionRequest, db: DBSession, user: Cu
         client_ids=request.client_ids,
         action=request.action,
         actor_id=user.id,
+        actor_role=user.role,
     )
     return BulkClientActionResponse(succeeded=succeeded, failed=failed)
 

@@ -3,11 +3,13 @@ from typing import Literal, Optional, Any
 
 from pydantic import BaseModel, Field
 
+from app.clients.models.client import ClientStatus, ClientType
+
 
 class ClientCreateRequest(BaseModel):
     full_name: str
     id_number: str
-    client_type: str
+    client_type: ClientType
     phone: Optional[str] = None
     email: Optional[str] = None
     opened_at: date
@@ -18,8 +20,8 @@ class ClientUpdateRequest(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
-    client_type: Optional[str] = None
+    status: Optional[ClientStatus] = None
+    client_type: Optional[ClientType] = None
     primary_binder_number: Optional[str] = None
     # Structured address fields
     address_street: Optional[str] = None

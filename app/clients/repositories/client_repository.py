@@ -105,7 +105,9 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
-        """DB-level search returning (items, total)."""
+        """Cross-domain search interface used by the search and tax_deadline domains.
+        Returns (items, total) in a single query. Do not use inside the clients domain —
+        use list() + count() there instead."""
         q = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if query:
             term = f"%{query.strip()}%"
@@ -122,7 +124,11 @@ class ClientRepository(BaseRepository):
         """Batch fetch clients by a list of IDs (single query)."""
         if not client_ids:
             return []
-        return self.db.query(Client).filter(Client.id.in_(client_ids)).all()
+        return (
+            self.db.query(Client)
+            .filter(Client.id.in_(client_ids), Client.deleted_at.is_(None))
+            .all()
+        )
 
     def list_all(self, status: Optional[str] = None) -> list[Client]:
         """List all clients (optionally filtered by status)."""

@@ -15,9 +15,9 @@ router = APIRouter(
 )
 
 
-def _build_response(items, service: BinderOperationsService, db, page: int, page_size: int, total: int):
+def _build_response(items, service: BinderOperationsService, page: int, page_size: int, total: int):
     enriched = [
-        BinderDetailResponse(**service.enrich_binder(b, db))
+        BinderDetailResponse(**service.enrich_binder(b))
         for b in items
     ]
     return BinderListResponseExtended(
@@ -38,4 +38,4 @@ def list_open_binders(
     """List open binders (status != RETURNED)."""
     service = BinderOperationsService(db)
     items, total = service.get_open_binders(page=page, page_size=page_size)
-    return _build_response(items, service, db, page, page_size, total)
+    return _build_response(items, service, page, page_size, total)

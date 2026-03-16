@@ -92,7 +92,7 @@ class ClientService:
             raise AppError(
                 f"מספר הלקוחות ({total_count}) חורג מהמגבלה לסינון לפי איתותים ({_HAS_SIGNALS_FETCH_LIMIT}). "
                 "יש להשתמש בפילטרים נוספים.",
-                "CLIENT.INVALID_STATUS",
+                "CLIENT.SIGNAL_FILTER_LIMIT",
             )
         base_clients = self.client_repo.list(
             status=status, page=1, page_size=_HAS_SIGNALS_FETCH_LIMIT, search=search
@@ -129,7 +129,7 @@ class ClientService:
         if not client:
             return None
 
-        if "status" in fields and fields["status"] in ["frozen", "closed"]:
+        if "status" in fields and fields["status"] in (ClientStatus.FROZEN, ClientStatus.CLOSED):
             if user_role != UserRole.ADVISOR:
                 raise ForbiddenError("רק יועצים יכולים להקפיא או לסגור לקוחות", "CLIENT.FORBIDDEN")
 
@@ -144,9 +144,14 @@ class ClientService:
         client_ids: list[int],
         action: str,
         actor_id: int,
+        actor_role: UserRole = UserRole.ADVISOR,
     ) -> tuple[list[int], list[BulkClientFailedItem]]:
         """Apply freeze/close/activate to multiple clients. Never raises on partial failure."""
-        action_to_status = {"freeze": "frozen", "close": "closed", "activate": "active"}
+        action_to_status = {
+            "freeze": ClientStatus.FROZEN,
+            "close": ClientStatus.CLOSED,
+            "activate": ClientStatus.ACTIVE,
+        }
         status = action_to_status[action]
 
         succeeded: list[int] = []
@@ -156,7 +161,7 @@ class ClientService:
             try:
                 result = self.update_client(
                     client_id=client_id,
-                    user_role=UserRole.ADVISOR,
+                    user_role=actor_role,
                     status=status,
                 )
                 if result is None:

@@ -1,5 +1,4 @@
 import io
-from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
@@ -60,7 +59,7 @@ def download_client_template(db: DBSession):
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-@router.post("/import")
+@router.post("/import", dependencies=[Depends(require_role(UserRole.ADVISOR))])
 async def import_clients_from_excel(
     file: UploadFile,
     request: Request,
@@ -97,47 +96,9 @@ async def import_clients_from_excel(
             detail=f"לא ניתן לקרוא את קובץ האקסל: {exc}",
         )
 
-    worksheet = workbook.active
-    total_rows = max(worksheet.max_row - 1, 0)
-
+    total_rows = max(workbook.active.max_row - 1, 0)
     client_service = ClientService(db)
-    created = 0
-    errors = []
-
-    for row_index, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
-        if not any(cell is not None and str(cell).strip() for cell in row):
-            continue
-
-        full_name = str(row[0]).strip() if len(row) > 0 and row[0] is not None else ""
-        id_number = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
-        client_type = (
-            str(row[2]).strip().lower() if len(row) > 2 and row[2] is not None else ""
-        )
-        phone = str(row[3]).strip() if len(row) > 3 and row[3] is not None else None
-        email = str(row[4]).strip() if len(row) > 4 and row[4] is not None else None
-        notes = str(row[5]).strip() if len(row) > 5 and row[5] is not None else None
-
-        if not (full_name and id_number and client_type):
-            errors.append(
-                {
-                    "row": row_index,
-                    "error": "שם מלא, מספר מזהה וסוג לקוח הם שדות חובה",
-                }
-            )
-            continue
-
-        try:
-            client_service.create_client(
-                full_name=full_name,
-                id_number=id_number,
-                client_type=client_type,
-                opened_at=date.today(),
-                phone=phone,
-                email=email,
-                notes=notes,
-            )
-            created += 1
-        except Exception as exc:
-            errors.append({"row": row_index, "error": str(exc)})
+    excel_service = ClientExcelService(db)
+    created, errors = excel_service.import_clients_from_excel(workbook, client_service, actor_id=user.id)
 
     return {"created": created, "total_rows": total_rows, "errors": errors}

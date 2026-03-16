@@ -31,9 +31,7 @@ class Client(Base):
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
-    # Legacy free-text address — kept for backward compatibility, do not use for new data
-    address = Column(String, nullable=True)
-    # Structured address fields (replaces `address`)
+    # Structured address fields
     address_street = Column(String, nullable=True)
     address_building_number = Column(String, nullable=True)
     address_apartment = Column(String, nullable=True)
