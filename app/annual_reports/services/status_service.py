@@ -78,7 +78,24 @@ class AnnualReportStatusService(AnnualReportBaseService):
             note=note,
         )
 
+        if ns == AnnualReportStatus.PENDING_CLIENT:
+            self._trigger_signature_request(updated, changed_by, changed_by_name)
+
         return self._to_responses([updated])[0]
+
+    def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
+        from app.signature_requests.services.signature_request_service import SignatureRequestService
+        client = self.client_repo.get_by_id(report.client_id)
+        svc = SignatureRequestService(self.db)
+        svc.create_request(
+            client_id=report.client_id,
+            created_by=created_by,
+            created_by_name=created_by_name,
+            request_type="ANNUAL_REPORT_APPROVAL",
+            title=f"אישור דוח שנתי {report.tax_year}",
+            signer_name=client.full_name if client else str(report.client_id),
+            annual_report_id=report.id,
+        )
 
     def update_deadline(
         self,
