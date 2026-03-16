@@ -119,24 +119,24 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 6. Bulk client operations (freeze / close)
 
 **Backend**
-- [ ] `app/clients/api/` — add `POST /api/v1/clients/bulk-action`: `{client_ids: [], action: "freeze"|"close"|"activate"}`
-- [ ] `app/clients/services/client_service.py` — add `bulk_update_status(client_ids, status)` — reuse existing `update_client()`
-- [ ] ADVISOR only. Return per-item success/failure (same pattern as `POST /api/v1/charges/bulk-action`)
+- [x] `app/clients/api/` — add `POST /api/v1/clients/bulk-action`: `{client_ids: [], action: "freeze"|"close"|"activate"}`
+- [x] `app/clients/services/client_service.py` — add `bulk_update_status(client_ids, status)` — reuse existing `update_client()`
+- [x] ADVISOR only. Return per-item success/failure (same pattern as `POST /api/v1/charges/bulk-action`)
 
 **Frontend**
-- [ ] `src/features/clients/components/` — add checkbox column + bulk toolbar to clients table (same pattern as charges bulk toolbar)
-- [ ] `src/api/clients.api.ts` — add `bulkAction(clientIds, action)`
+- [x] `src/features/clients/components/` — add checkbox column + bulk toolbar to clients table (same pattern as charges bulk toolbar)
+- [x] `src/api/clients.api.ts` — add `bulkAction(clientIds, action)`
 
 ---
 
 ### 7. Client notes — verify & expose
 
 **Backend**
-- [ ] Read `app/clients/schemas/client.py` — confirm `notes` is in `ClientResponse`
-- [ ] Read `app/clients/api/clients.py` — confirm PATCH exposes `notes` field
+- [x] Read `app/clients/schemas/client.py` — confirm `notes` is in `ClientResponse`
+- [x] Read `app/clients/api/clients.py` — confirm PATCH exposes `notes` field
 
 **Frontend**
-- [ ] Read `src/features/clients/components/ClientInfoSection.tsx` — if `notes` not shown, add textarea field (edit mode) + display (read mode)
+- [x] Read `src/features/clients/components/ClientInfoSection.tsx` — if `notes` not shown, add textarea field (edit mode) + display (read mode)
 
 ---
 
@@ -154,9 +154,9 @@ before any task read claude.md if the task is on backend read claude.md on backe
 ### 9. Signature request auto-trigger from PENDING_CLIENT
 
 **Backend**
-- [ ] `app/annual_reports/services/status_service.py` — on transition to `PENDING_CLIENT`, call `SignatureRequestService.create_request()` with type `ANNUAL_REPORT_APPROVAL`
-- [ ] Read `app/signature_requests/services/` for `create_request()` signature
-- [ ] No model changes
+- [x] `app/annual_reports/services/status_service.py` — on transition to `PENDING_CLIENT`, call `SignatureRequestService.create_request()` with type `ANNUAL_REPORT_APPROVAL`
+- [x] Read `app/signature_requests/services/` for `create_request()` signature
+- [x] No model changes
 
 **Frontend** — no changes (signature request appears automatically in SignatureRequestsPage)
 

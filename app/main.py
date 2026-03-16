@@ -15,6 +15,7 @@ from app.annual_reports.api import (
     annual_report_season,
     annual_report_kanban,
     annual_report_status,
+    routes_export as annual_report_export,
 )
 from app.binders.api import binders, binders_history, binders_operations
 from app.clients.api import client_status_card, client_tax_profile, clients, clients_binders, clients_excel
@@ -110,6 +111,7 @@ app.include_router(annual_report_kanban.router, prefix="/api/v1")
 app.include_router(annual_report_status.router, prefix="/api/v1")
 app.include_router(annual_report_client.clients_router, prefix="/api/v1")
 app.include_router(annual_report_season.season_router, prefix="/api/v1")
+app.include_router(annual_report_export.router, prefix="/api/v1")
 app.include_router(tax_deadline.router, prefix="/api/v1")
 app.include_router(deadline_generate.router, prefix="/api/v1")
 app.include_router(authority_contact.router, prefix="/api/v1")
