@@ -20,6 +20,8 @@ class DashboardQuickAction(BaseModel):
     confirm: Optional[ConfirmDetails] = None
     client_name: Optional[str] = None
     binder_number: Optional[str] = None
+    category: Optional[str] = None  # "binders" | "vat" | "annual_reports" | "charges" | "clients"
+    due_label: Optional[str] = None  # e.g. "פג תוקף לפני 3 ימים"
 
 
 class AttentionItem(BaseModel):

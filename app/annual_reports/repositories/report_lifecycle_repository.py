@@ -1,5 +1,7 @@
 """Lifecycle/season operations for AnnualReport entities."""
 
+import datetime as _dt
+from datetime import timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -54,6 +56,24 @@ class AnnualReportLifecycleRepository:
             "total_refund_due": Decimal(str(row.total_refund_due)),
             "total_tax_due": Decimal(str(row.total_tax_due)),
         }
+
+    def list_stuck_reports(self, stale_days: int = 7, limit: int = 3) -> list[AnnualReport]:
+        """Return reports stuck in PENDING_CLIENT or COLLECTING_DOCS for >= stale_days."""
+        cutoff = _dt.datetime.now(timezone.utc) - _dt.timedelta(days=stale_days)
+        return (
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.status.in_([
+                    AnnualReportStatus.PENDING_CLIENT,
+                    AnnualReportStatus.COLLECTING_DOCS,
+                ]),
+                AnnualReport.deleted_at.is_(None),
+                AnnualReport.updated_at <= cutoff,
+            )
+            .order_by(AnnualReport.updated_at.asc())
+            .limit(limit)
+            .all()
+        )
 
     def get_season_summary(self, tax_year: int) -> dict:
         all_reports = (

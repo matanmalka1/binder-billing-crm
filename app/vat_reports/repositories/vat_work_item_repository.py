@@ -103,6 +103,19 @@ class VatWorkItemRepository:
             .count()
         )
 
+    def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
+        """Return unfiled VAT work items for a period, ordered by creation date."""
+        return (
+            self.db.query(VatWorkItem)
+            .filter(
+                VatWorkItem.period == period,
+                VatWorkItem.status != VatWorkItemStatus.FILED,
+            )
+            .order_by(VatWorkItem.created_at.asc())
+            .limit(limit)
+            .all()
+        )
+
     def update_status(
         self,
         item_id: int,
