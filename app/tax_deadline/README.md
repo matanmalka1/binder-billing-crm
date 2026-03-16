@@ -106,8 +106,10 @@ Router prefix is `/api/v1/tax-deadlines` (mounted in `app/main.py`).
 - Returns `204 No Content`
 
 ### Timeline by client
-- `GET /api/v1/tax-deadlines/timeline?client_id={id}`
+- `GET /api/v1/tax-deadlines/timeline`
 - Roles: `ADVISOR`, `SECRETARY`
+- Query params:
+  - `client_id` (required)
 - Returns due-date ordered entries with:
   - `days_remaining`
   - `milestone_label`

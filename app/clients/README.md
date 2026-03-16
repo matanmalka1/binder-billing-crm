@@ -93,6 +93,15 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 - Roles: `ADVISOR`, `SECRETARY`
 - Partial update supported.
 
+### Bulk client status action
+- `POST /api/v1/clients/bulk-action`
+- Role: `ADVISOR` only
+- Applies one action to multiple clients in a single request.
+- Supported actions:
+  - `freeze`
+  - `close`
+  - `activate`
+
 ### Delete client (soft delete)
 - `DELETE /api/v1/clients/{client_id}`
 - Role: `ADVISOR` only
@@ -125,6 +134,7 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 
 - Creating a client validates required fields and uniqueness constraints (for example `id_number`).
 - `available_actions` is attached to client responses based on client status and user role (via `app/actions/action_contracts.py`).
+- Bulk action endpoint applies advisor-only lifecycle transitions to multiple clients and returns per-id success/failure buckets.
 - List and get operations exclude soft-deleted clients.
 - Client delete does not remove rows; it sets `deleted_at` + `deleted_by`.
 - `/clients/{client_id}/binders` returns `404` when the client does not exist.
