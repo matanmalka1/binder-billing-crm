@@ -59,7 +59,7 @@ Wave 7 — Export & UX (P3)
 5.6 — Savings opportunities engine
 5.7 / 5.8 — Pension top-up + training fund (part of 5.6)
 6.3 — Additional document categories
-3.2 — Turnover-based advance suggestion
+3.2 — Turnover-based advance suggestion - done
 3.3 — FUTURE payment status
 3.13 — Bulk reminder send
 2.8 — Live calculation SSE endpoint
