@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, Any
+from typing import Literal, Optional, Any
 
 from pydantic import BaseModel, Field
 
@@ -57,3 +57,18 @@ class ClientListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+
+
+class BulkClientActionRequest(BaseModel):
+    client_ids: list[int] = Field(min_length=1)
+    action: Literal["freeze", "close", "activate"]
+
+
+class BulkClientFailedItem(BaseModel):
+    id: int
+    error: str
+
+
+class BulkClientActionResponse(BaseModel):
+    succeeded: list[int]
+    failed: list[BulkClientFailedItem]

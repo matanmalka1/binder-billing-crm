@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.schemas.client import (
+    BulkClientActionRequest,
+    BulkClientActionResponse,
     ClientCreateRequest,
     ClientListResponse,
     ClientResponse,
@@ -105,6 +107,22 @@ def update_client(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
 
     return _to_client_response(client, user.role)
+
+
+@router.post(
+    "/bulk-action",
+    response_model=BulkClientActionResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def bulk_client_action(request: BulkClientActionRequest, db: DBSession, user: CurrentUser):
+    """Apply freeze/close/activate to multiple clients (ADVISOR only)."""
+    service = ClientService(db)
+    succeeded, failed = service.bulk_update_status(
+        client_ids=request.client_ids,
+        action=request.action,
+        actor_id=user.id,
+    )
+    return BulkClientActionResponse(succeeded=succeeded, failed=failed)
 
 
 @router.delete(

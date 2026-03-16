@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.clients.schemas.client import BulkClientFailedItem
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.models.client import Client, ClientStatus
 from app.users.models.user import UserRole
@@ -137,3 +138,31 @@ class ClientService:
                 fields["closed_at"] = date.today()
 
         return self.client_repo.update(client_id, **fields)
+
+    def bulk_update_status(
+        self,
+        client_ids: list[int],
+        action: str,
+        actor_id: int,
+    ) -> tuple[list[int], list[BulkClientFailedItem]]:
+        """Apply freeze/close/activate to multiple clients. Never raises on partial failure."""
+        action_to_status = {"freeze": "frozen", "close": "closed", "activate": "active"}
+        status = action_to_status[action]
+
+        succeeded: list[int] = []
+        failed: list[BulkClientFailedItem] = []
+
+        for client_id in client_ids:
+            try:
+                result = self.update_client(
+                    client_id=client_id,
+                    user_role=UserRole.ADVISOR,
+                    status=status,
+                )
+                if result is None:
+                    raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+                succeeded.append(client_id)
+            except Exception as exc:
+                failed.append(BulkClientFailedItem(id=client_id, error=str(exc)))
+
+        return succeeded, failed
