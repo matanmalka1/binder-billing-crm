@@ -10,6 +10,28 @@ from app.clients.models.client import Client, ClientStatus, ClientType
 from ..constants import COMPANY_WORDS
 from ..random_utils import full_name
 
+STREET_NAMES = [
+    "הרצל",
+    "בן יהודה",
+    "ויצמן",
+    "הנביאים",
+    "אבן גבירול",
+    "העצמאות",
+    "ביאליק",
+    "רוטשילד",
+]
+
+CITY_NAMES = [
+    "תל אביב",
+    "ירושלים",
+    "חיפה",
+    "באר שבע",
+    "פתח תקווה",
+    "ראשון לציון",
+    "נתניה",
+    "אשדוד",
+]
+
 
 def create_clients(db, rng: Random, cfg) -> list[Client]:
     clients: list[Client] = []
@@ -35,6 +57,12 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
         else:
             full_name_value = full_name(rng)
 
+        address_street = rng.choice(STREET_NAMES)
+        address_building_number = str(rng.randint(1, 220))
+        address_apartment = str(rng.randint(1, 30)) if rng.random() < 0.75 else None
+        address_city = rng.choice(CITY_NAMES)
+        address_zip_code = f"{rng.randint(1000000, 9999999)}"
+
         client = Client(
             full_name=full_name_value,
             id_number=f"{100000000 + serial}",
@@ -44,6 +72,11 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             phone=f"05{rng.randint(10000000, 99999999)}",
             email=f"client{serial}@example.com",
             notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
             opened_at=opened_at,
             closed_at=closed_at,
         )

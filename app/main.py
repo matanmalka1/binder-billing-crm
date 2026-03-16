@@ -47,6 +47,12 @@ app.add_middleware(
 
 register_routers(app)
 
+if config.APP_ENV in ("development", "test"):
+    from fastapi.staticfiles import StaticFiles
+    import os
+    os.makedirs("./storage", exist_ok=True)
+    app.mount("/local-storage", StaticFiles(directory="./storage"), name="local-storage")
+
 if __name__ == "__main__":
     import uvicorn
 

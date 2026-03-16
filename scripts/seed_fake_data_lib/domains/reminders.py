@@ -8,6 +8,8 @@ from app.charge.models.charge import ChargeStatus
 from app.tax_deadline.models.tax_deadline import TaxDeadlineStatus
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 
+from .taxes import DEADLINE_LABELS
+
 
 def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
     reminders = []
@@ -32,6 +34,7 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
             deadline = rng.choice(pending_deadlines)
             days_before = 7
             send_on = max(today, deadline.due_date - timedelta(days=days_before))
+            deadline_label = DEADLINE_LABELS.get(deadline.deadline_type, "מועד מס")
             reminder = Reminder(
                 client_id=client.id,
                 reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
@@ -40,7 +43,7 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
                 days_before=days_before,
                 send_on=send_on,
                 tax_deadline_id=deadline.id,
-                message=f"תזכורת: מועדי מס מתקרבים ({deadline.deadline_type.name})",
+                message=f"תזכורת: מועדי מס מתקרבים ({deadline_label})",
             )
             db.add(reminder)
             reminders.append(reminder)

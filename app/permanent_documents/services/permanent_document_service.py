@@ -2,7 +2,9 @@ from typing import BinaryIO, Optional
 
 from sqlalchemy.orm import Session
 
+from fastapi import HTTPException
 from app.core.exceptions import NotFoundError
+from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TYPES, _MAX_FILE_SIZE
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import DocumentStatus, DocumentType, PermanentDocument
 from app.clients.repositories.client_repository import ClientRepository
@@ -51,6 +53,13 @@ class PermanentDocumentService:
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
+
+        if file_size > _MAX_FILE_SIZE:
+            raise HTTPException(status_code=422, detail="גודל הקובץ חורג מהמותר (מקסימום 10MB)")
+        resolved_mime = mime_type or "application/octet-stream"
+        if resolved_mime not in _ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=422, detail="סוג הקובץ אינו נתמך. מותר: PDF, Word, Excel, תמונות")
+
         import io
         file_data = io.BytesIO(file_bytes)
 
