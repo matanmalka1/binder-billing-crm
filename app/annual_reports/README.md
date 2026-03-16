@@ -11,6 +11,7 @@ This module provides:
 - Schedule management and annex data lines
 - Report detail section (credits, approvals, internal notes)
 - Income/expense line CRUD, financial summary, readiness check, tax calculation
+- Working-draft PDF export for annual reports
 - Client-level and tax-year (season) reporting views
 - Kanban view and overdue reports
 
@@ -139,6 +140,12 @@ Routers are mounted in `app/main.py` under `/api/v1`.
 - `POST /api/v1/annual-reports/{report_id}/amend`
 - Role: `ADVISOR` only
 
+#### Export PDF (working draft)
+- `GET /api/v1/annual-reports/{report_id}/export/pdf`
+- Roles: `ADVISOR`, `SECRETARY`
+- Returns `application/pdf` stream with attachment filename:
+  - `annual_report_{report_id}_{tax_year}.pdf`
+
 ### Status/deadline/history endpoints
 
 #### Transition status
@@ -222,6 +229,7 @@ Routers are mounted in `app/main.py` under `/api/v1`.
 - Deadline updates recompute filing deadline for `standard`/`extended`; `custom` uses note/manual handling.
 - Report delete is soft-delete (`deleted_at`, `deleted_by`).
 - Tax calculation uses income/expenses + detail credits, and includes NI and VAT/advance-payment integration.
+- PDF export produces a Hebrew working draft (`טיוטה לעיון`) built from report metadata, financial summary, tax calculation, and detail data.
 - Annex and line-level endpoints return not-found for missing report/line resources.
 
 ## Error Envelope
@@ -259,6 +267,7 @@ Annual reports test suites:
 - `tests/annual_reports/api/test_annual_report_detail.py`
 - `tests/annual_reports/api/test_annual_report_financials.py`
 - `tests/annual_reports/api/test_annual_report_fixes.py`
+- `tests/annual_reports/api/test_annual_report_overdue_amend_and_summary.py`
 - `tests/annual_reports/api/test_annual_report_readiness.py`
 - `tests/annual_reports/api/test_annual_report_schedule.py`
 - `tests/annual_reports/api/test_annual_report_status.py`
