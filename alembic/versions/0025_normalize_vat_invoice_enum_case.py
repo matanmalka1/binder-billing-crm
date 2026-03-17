@@ -19,13 +19,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute("UPDATE vat_invoices SET invoice_type = upper(invoice_type)")
+    op.execute("UPDATE vat_invoices SET invoice_type = upper(invoice_type::text)::invoicetype")
     op.execute(
-        "UPDATE vat_invoices SET expense_category = upper(expense_category) "
+        "UPDATE vat_invoices SET expense_category = upper(expense_category::text)::expensecategory "
         "WHERE expense_category IS NOT NULL"
     )
     op.execute(
-        "UPDATE vat_invoices SET rate_type = upper(rate_type) "
+        "UPDATE vat_invoices SET rate_type = upper(rate_type::text)::vatratetype "
         "WHERE rate_type IS NOT NULL"
     )
 
