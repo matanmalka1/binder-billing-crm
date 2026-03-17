@@ -7,7 +7,7 @@ from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
 from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
@@ -36,8 +36,9 @@ class BillingService:
         Raises:
             AppError: If client doesn't exist or amount is invalid
         """
-        # Validate client exists
-        get_client_or_raise(self.db, client_id)
+        # Validate client exists and allows new work
+        client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         # Validate amount
         if amount <= 0:

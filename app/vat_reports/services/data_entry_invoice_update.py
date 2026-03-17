@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional
 
 from app.core.exceptions import ConflictError, NotFoundError
+from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import assert_client_not_closed
 from app.vat_reports.models.vat_enums import ExpenseCategory
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -31,6 +33,10 @@ def update_invoice(
         raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_editable(item)
+
+    client = ClientRepository(work_item_repo.db).get_by_id(item.client_id)
+    if client:
+        assert_client_not_closed(client)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:

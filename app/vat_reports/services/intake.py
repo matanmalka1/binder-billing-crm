@@ -7,6 +7,7 @@ from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoun
 from app.clients.models.client_tax_profile import VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
+from app.clients.services.client_lookup import assert_client_allows_create
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -54,6 +55,8 @@ def create_work_item(
     client = client_repo.get_by_id(client_id)
     if not client:
         raise NotFoundError(f"Client not found: לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+
+    assert_client_allows_create(client)
 
     if tax_profile_repo is not None:
         profile = tax_profile_repo.get_by_client_id(client_id)

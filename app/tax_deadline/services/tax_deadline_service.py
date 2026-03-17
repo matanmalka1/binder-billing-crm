@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
@@ -29,7 +29,8 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        get_client_or_raise(self.db, client_id)
+        client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         deadline = self.deadline_repo.create(
             client_id=client_id,

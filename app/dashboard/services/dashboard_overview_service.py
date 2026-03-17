@@ -37,20 +37,30 @@ class DashboardOverviewService:
 
         current_period = reference_date.strftime("%Y-%m")
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
-        quick_actions = build_quick_actions(
+        self._overview_current_period = current_period
+        quick_actions = self._build_quick_actions(user_role)
+        return {
+            "total_clients": self.client_repo.count(),
+            "active_binders": self.binder_repo.count_active(),
+            "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
+            "vat_due_this_month": self.vat_repo.count_by_period_not_filed(current_period),
+            "work_state": None,
+            "signals": [],
+            "quick_actions": quick_actions,
+            "attention": {"items": attention_items, "total": len(attention_items)},
+        }
+
+    def _build_quick_actions(
+        self,
+        user_role: Optional[UserRole],
+    ) -> list[dict]:
+        effective_period = getattr(self, "_overview_current_period", date.today().strftime("%Y-%m"))
+        return build_quick_actions(
             binder_repo=self.binder_repo,
             charge_repo=self.charge_repo,
             client_repo=self.client_repo,
             vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
             user_role=user_role,
-            current_period=current_period,
+            current_period=effective_period,
         )
-        return {
-            "total_clients": self.client_repo.count(),
-            "active_binders": self.binder_repo.count_active(),
-            "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
-            "vat_due_this_month": self.vat_repo.count_by_period_not_filed(current_period),
-            "quick_actions": quick_actions,
-            "attention": {"items": attention_items, "total": len(attention_items)},
-        }

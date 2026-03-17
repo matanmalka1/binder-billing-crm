@@ -44,9 +44,10 @@ class BinderOperationsService:
         """Check client existence for client-binders route."""
         return self.client_repo.get_by_id(client_id) is not None
 
-    def enrich_binder(self, binder: Binder) -> dict:
+    def enrich_binder(self, binder: Binder, db: Session | None = None) -> dict:
         """Enrich binder with operational state."""
-        signals_service = SignalsService(self.db)
+        effective_db = db or self.db
+        signals_service = SignalsService(effective_db)
         return {
             "id": binder.id,
             "client_id": binder.client_id,
@@ -55,6 +56,6 @@ class BinderOperationsService:
             "received_at": binder.received_at,
             "returned_at": binder.returned_at,
             "pickup_person_name": binder.pickup_person_name,
-            "work_state": WorkStateService.derive_work_state(binder, db=self.db).value,
+            "work_state": WorkStateService.derive_work_state(binder, db=effective_db).value,
             "signals": signals_service.compute_binder_signals(binder),
         }

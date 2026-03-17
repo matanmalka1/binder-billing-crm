@@ -63,6 +63,22 @@ class BinderIntakeListResponse(BaseModel):
 
 
 class BinderReceiveResult(BaseModel):
+    # Backward-compatible flat binder fields
+    id: int
+    client_id: int
+    client_name: Optional[str] = None
+    binder_number: str
+    binder_type: BinderType
+    status: str
+    received_at: date
+    returned_at: Optional[date] = None
+    pickup_person_name: Optional[str] = None
+    days_in_office: Optional[int] = None
+    work_state: Optional[str] = None
+    signals: Optional[list[str]] = None
+    available_actions: list[dict[str, Any]] = Field(default_factory=list)
+
+    # New structured payload fields
     binder: BinderResponse
     intake: BinderIntakeResponse
     is_new_binder: bool

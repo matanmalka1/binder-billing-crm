@@ -9,7 +9,7 @@ from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
 from app.notification.services.notification_service import NotificationService
 
 
@@ -37,6 +37,7 @@ class BinderIntakeService:
         Returns (binder, intake, is_new_binder).
         """
         client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
 

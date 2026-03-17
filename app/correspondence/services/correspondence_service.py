@@ -8,7 +8,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
 
 
 class CorrespondenceService:
@@ -28,7 +28,8 @@ class CorrespondenceService:
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
-        get_client_or_raise(self.db, client_id)
+        client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         if contact_id is not None:
             contact = self.contact_repo.get_by_id(contact_id)

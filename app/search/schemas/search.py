@@ -9,6 +9,7 @@ class SearchResult(BaseModel):
     result_type: str  # "client" | "binder"
     client_id: int
     client_name: str
+    client_status: Optional[str] = None  # "active" | "frozen" | "closed"
     binder_id: Optional[int] = None
     binder_number: Optional[str] = None
     work_state: Optional[str] = None

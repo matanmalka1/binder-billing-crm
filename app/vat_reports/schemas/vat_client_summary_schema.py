@@ -10,14 +10,14 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 
 class VatPeriodRow(BaseModel):
-    work_item_id: int
+    work_item_id: int = 0
     period: str
     status: VatWorkItemStatus
     total_output_vat: Decimal
     total_input_vat: Decimal
     net_vat: Decimal
-    total_output_net: Decimal
-    total_input_net: Decimal
+    total_output_net: Decimal = Decimal("0")
+    total_input_net: Decimal = Decimal("0")
     final_vat_amount: Optional[Decimal]
     filed_at: Optional[datetime]
 

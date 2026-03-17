@@ -35,6 +35,19 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     )
     binder_resp = fetch_client_and_build_response(binder, db)
     return BinderReceiveResult(
+        id=binder_resp.id,
+        client_id=binder_resp.client_id,
+        client_name=binder_resp.client_name,
+        binder_number=binder_resp.binder_number,
+        binder_type=binder_resp.binder_type,
+        status=binder_resp.status,
+        received_at=binder_resp.received_at,
+        returned_at=binder_resp.returned_at,
+        pickup_person_name=binder_resp.pickup_person_name,
+        days_in_office=binder_resp.days_in_office,
+        work_state=binder_resp.work_state,
+        signals=binder_resp.signals,
+        available_actions=binder_resp.available_actions,
         binder=binder_resp,
         intake=BinderIntakeResponse.model_validate(intake),
         is_new_binder=is_new_binder,

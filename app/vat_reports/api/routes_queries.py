@@ -18,10 +18,12 @@ from app.vat_reports.services.vat_report_service import VatReportService
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 
-def _serialize_with_name(item, name_map: dict) -> VatWorkItemResponse:
-    """Build a VatWorkItemResponse enriched with the client's full name."""
+def _serialize_with_name(item, name_map: dict, status_map: dict | None = None) -> VatWorkItemResponse:
+    """Build a VatWorkItemResponse enriched with the client's full name and status."""
     data = VatWorkItemResponse.model_validate(item)
     data.client_name = name_map.get(item.client_id)
+    if status_map is not None:
+        data.client_status = status_map.get(item.client_id)
     return data
 
 
@@ -50,7 +52,9 @@ def get_work_item(
     service = VatReportService(db)
     item = service.get_work_item(item_id)
     client = service.client_repo.get_by_id(item.client_id)
-    result = _serialize_with_name(item, {item.client_id: client.full_name if client else None})
+    name_map = {item.client_id: client.full_name if client else None}
+    status_map = {item.client_id: client.status.value if client else None}
+    result = _serialize_with_name(item, name_map, status_map)
     user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid is not None]
     user_map = _build_user_map(db, user_ids)
     result.assigned_to_name = user_map.get(item.assigned_to)
@@ -68,9 +72,9 @@ def list_client_work_items(
     service = VatReportService(db)
     items = service.list_client_work_items(client_id)
     client = service.client_repo.get_by_id(client_id)
-    client_name = client.full_name if client else None
-    name_map = {client_id: client_name}
-    serialized = [_serialize_with_name(item, name_map) for item in items]
+    name_map = {client_id: client.full_name if client else None}
+    status_map = {client_id: client.status.value if client else None}
+    serialized = [_serialize_with_name(item, name_map, status_map) for item in items]
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     _enrich_user_names(serialized, _build_user_map(db, user_ids))
     return VatWorkItemListResponse(items=serialized, total=len(serialized))
@@ -101,7 +105,8 @@ def list_work_items(
     client_ids = list({item.client_id for item in items})
     clients = service.client_repo.list_by_ids(client_ids)
     name_map = {c.id: c.full_name for c in clients}
-    serialized = [_serialize_with_name(item, name_map) for item in items]
+    status_map = {c.id: c.status.value for c in clients}
+    serialized = [_serialize_with_name(item, name_map, status_map) for item in items]
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     _enrich_user_names(serialized, _build_user_map(db, user_ids))
     return VatWorkItemListResponse(items=serialized, total=total)

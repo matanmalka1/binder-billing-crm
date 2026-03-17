@@ -1,4 +1,5 @@
 from typing import BinaryIO, Optional
+import mimetypes
 
 from sqlalchemy.orm import Session
 
@@ -56,7 +57,7 @@ class PermanentDocumentService:
 
         if file_size > _MAX_FILE_SIZE:
             raise HTTPException(status_code=422, detail="גודל הקובץ חורג מהמותר (מקסימום 10MB)")
-        resolved_mime = mime_type or "application/octet-stream"
+        resolved_mime = mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
         if resolved_mime not in _ALLOWED_MIME_TYPES:
             raise HTTPException(status_code=422, detail="סוג הקובץ אינו נתמך. מותר: PDF, Word, Excel, תמונות")
 
@@ -64,7 +65,7 @@ class PermanentDocumentService:
         file_data = io.BytesIO(file_bytes)
 
         storage_key = f"clients/{client_id}/{document_type}/{tax_year_str}/v{next_version}_{filename}"
-        self.storage.upload(storage_key, file_data, mime_type or "application/octet-stream")
+        self.storage.upload(storage_key, file_data, resolved_mime)
 
         if existing:
             existing.superseded_by = None  # will be set after new doc created
@@ -80,7 +81,7 @@ class PermanentDocumentService:
             annual_report_id=annual_report_id,
             original_filename=filename,
             file_size_bytes=file_size,
-            mime_type=mime_type or "application/octet-stream",
+            mime_type=resolved_mime,
             notes=notes,
         )
 

@@ -13,6 +13,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
+from app.clients.services.client_lookup import assert_client_allows_create
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
@@ -54,8 +55,10 @@ class AdvancePaymentService:
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         # Validate client exists
-        if not self._client_repo.get_by_id(client_id):
+        client = self._client_repo.get_by_id(client_id)
+        if not client:
             raise NotFoundError("Client not found", "ADVANCE_PAYMENT.NOT_FOUND")
+        assert_client_allows_create(client)
 
         if self.repo.exists_for_month(client_id, year, month):
             raise ConflictError("תשלום מקדמה לחודש זה כבר קיים", "ADVANCE_PAYMENT.CONFLICT")

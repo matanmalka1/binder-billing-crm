@@ -52,6 +52,7 @@ class VatWorkItemResponse(BaseModel):
     created_by: int
     assigned_to: Optional[int]
     assigned_to_name: Optional[str] = None
+    client_status: Optional[str] = None  # "active" | "frozen" | "closed"
     created_at: datetime
     updated_at: datetime
 

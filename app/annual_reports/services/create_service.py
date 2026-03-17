@@ -7,7 +7,7 @@ from app.annual_reports.models import (
     ClientTypeForReport,
     DeadlineType,
 )
-from app.clients.services.client_lookup import get_client_or_raise
+from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -33,7 +33,8 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        get_client_or_raise(self.db, client_id)
+        client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:
