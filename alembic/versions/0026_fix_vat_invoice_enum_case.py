@@ -8,6 +8,7 @@ Migration 0025 used ::invoicetype / ::expensecategory PostgreSQL casts that
 don't exist, so those UPDATE statements failed on prod and left the values
 lowercase. This migration re-runs the correct upper() without any type cast.
 Also covers document_type which was added in 0024 with lowercase defaults.
+All vat_invoice enum columns are plain VARCHAR — no native PG enum types exist.
 """
 
 from alembic import op
@@ -23,19 +24,17 @@ def upgrade() -> None:
     if bind.dialect.name != "postgresql":
         return
 
+    op.execute("UPDATE vat_invoices SET invoice_type = upper(invoice_type)")
     op.execute(
-        "UPDATE vat_invoices SET invoice_type = upper(invoice_type::text)::invoicetype"
-    )
-    op.execute(
-        "UPDATE vat_invoices SET expense_category = upper(expense_category::text)::expensecategory "
+        "UPDATE vat_invoices SET expense_category = upper(expense_category) "
         "WHERE expense_category IS NOT NULL"
     )
     op.execute(
-        "UPDATE vat_invoices SET rate_type = upper(rate_type::text)::vatratetype "
+        "UPDATE vat_invoices SET rate_type = upper(rate_type) "
         "WHERE rate_type IS NOT NULL"
     )
     op.execute(
-        "UPDATE vat_invoices SET document_type = upper(document_type::text)::documenttype "
+        "UPDATE vat_invoices SET document_type = upper(document_type) "
         "WHERE document_type IS NOT NULL"
     )
 
