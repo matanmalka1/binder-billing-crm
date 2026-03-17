@@ -70,11 +70,16 @@ def run_migrations_online() -> None:
         # for descriptive revision IDs like "0006_annual_report_income_expense_and_fks")
         dialect = connectable.dialect.name
         if dialect == "postgresql":
-            connection.execute(text(
-                "ALTER TABLE alembic_version "
-                "ALTER COLUMN version_num TYPE VARCHAR(255)"
-            ))
-            connection.commit()
+            exists = connection.execute(text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                "WHERE table_name = 'alembic_version')"
+            )).scalar()
+            if exists:
+                connection.execute(text(
+                    "ALTER TABLE alembic_version "
+                    "ALTER COLUMN version_num TYPE VARCHAR(255)"
+                ))
+                connection.commit()
 
         context.configure(
             connection=connection,
