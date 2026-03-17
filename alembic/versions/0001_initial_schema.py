@@ -31,7 +31,7 @@ def upgrade() -> None:
         sa.Column("password_hash", sa.String, nullable=False),
         sa.Column(
             "role",
-            sa.Enum("advisor", "secretary", name="userrole"),
+            sa.Enum("ADVISOR", "SECRETARY", name="userrole"),
             nullable=False,
         ),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.true()),
@@ -50,9 +50,9 @@ def upgrade() -> None:
         sa.Column(
             "action",
             sa.Enum(
-                "login_success", "login_failure", "logout",
-                "user_created", "user_updated", "user_activated",
-                "user_deactivated", "password_reset",
+                "LOGIN_SUCCESS", "LOGIN_FAILURE", "LOGOUT",
+                "USER_CREATED", "USER_UPDATED", "USER_ACTIVATED",
+                "USER_DEACTIVATED", "PASSWORD_RESET",
                 name="auditaction",
             ),
             nullable=False,
@@ -62,7 +62,7 @@ def upgrade() -> None:
         sa.Column("email", sa.String, nullable=True),
         sa.Column(
             "status",
-            sa.Enum("success", "failure", name="auditstatus"),
+            sa.Enum("SUCCESS", "FAILURE", name="auditstatus"),
             nullable=False,
         ),
         sa.Column("reason", sa.String, nullable=True),
@@ -86,14 +86,14 @@ def upgrade() -> None:
         sa.Column("id_number", sa.String, nullable=False),
         sa.Column(
             "client_type",
-            sa.Enum("osek_patur", "osek_murshe", "company", "employee", name="clienttype"),
+            sa.Enum("OSEK_PATUR", "OSEK_MURSHE", "COMPANY", "EMPLOYEE", name="clienttype"),
             nullable=False,
         ),
         sa.Column(
             "status",
-            sa.Enum("active", "frozen", "closed", name="clientstatus"),
+            sa.Enum("ACTIVE", "FROZEN", "CLOSED", name="clientstatus"),
             nullable=False,
-            server_default="active",
+            server_default="ACTIVE",
         ),
         sa.Column("primary_binder_number", sa.String, nullable=True),
         sa.Column("phone", sa.String, nullable=True),
@@ -136,7 +136,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "vat_type",
-            sa.Enum("monthly", "bimonthly", "exempt", name="vattype"),
+            sa.Enum("MONTHLY", "BIMONTHLY", "EXEMPT", name="vattype"),
             nullable=True,
         ),
         sa.Column("business_type", sa.String, nullable=True),
@@ -158,7 +158,7 @@ def upgrade() -> None:
         sa.Column(
             "contact_type",
             sa.Enum(
-                "assessing_officer", "vat_branch", "national_insurance", "other",
+                "ASSESSING_OFFICER", "VAT_BRANCH", "NATIONAL_INSURANCE", "OTHER",
                 name="contacttype",
             ),
             nullable=False,
@@ -189,32 +189,32 @@ def upgrade() -> None:
         sa.Column(
             "client_type",
             sa.Enum(
-                "individual", "self_employed", "corporation", "partnership",
+                "INDIVIDUAL", "SELF_EMPLOYED", "CORPORATION", "PARTNERSHIP",
                 name="clienttypeforreport",
             ),
             nullable=False,
         ),
         sa.Column(
             "form_type",
-            sa.Enum("1301", "1215", "6111", name="annualreportform"),
+            sa.Enum("FORM_1301", "FORM_1215", "FORM_6111", name="annualreportform"),
             nullable=False,
         ),
         sa.Column(
             "status",
             sa.Enum(
-                "not_started", "collecting_docs", "docs_complete", "in_preparation",
-                "pending_client", "submitted", "amended", "accepted",
-                "assessment_issued", "objection_filed", "closed",
+                "NOT_STARTED", "COLLECTING_DOCS", "DOCS_COMPLETE", "IN_PREPARATION",
+                "PENDING_CLIENT", "SUBMITTED", "AMENDED", "ACCEPTED",
+                "ASSESSMENT_ISSUED", "OBJECTION_FILED", "CLOSED",
                 name="annualreportstatus",
             ),
             nullable=False,
-            server_default="not_started",
+            server_default="NOT_STARTED",
         ),
         sa.Column(
             "deadline_type",
-            sa.Enum("standard", "extended", "custom", name="deadlinetype"),
+            sa.Enum("VAT", "ADVANCE_PAYMENT", "NATIONAL_INSURANCE", "ANNUAL_REPORT", "OTHER", name="deadlinetype"),
             nullable=False,
-            server_default="standard",
+            server_default="VAT",
         ),
         sa.Column("filing_deadline", sa.DateTime, nullable=True),
         sa.Column("custom_deadline_note", sa.String, nullable=True),
@@ -253,8 +253,8 @@ def upgrade() -> None:
         sa.Column(
             "binder_type",
             sa.Enum(
-                "vat", "income_tax", "national_insurance", "capital_declaration",
-                "annual_report", "salary", "bookkeeping", "other",
+                "VAT", "INCOME_TAX", "NATIONAL_INSURANCE", "CAPITAL_DECLARATION",
+                "ANNUAL_REPORT", "SALARY", "BOOKKEEPING", "OTHER",
                 name="bindertype",
             ),
             nullable=False,
@@ -263,9 +263,9 @@ def upgrade() -> None:
         sa.Column("returned_at", sa.Date, nullable=True),
         sa.Column(
             "status",
-            sa.Enum("in_office", "ready_for_pickup", "returned", name="binderstatus"),
+            sa.Enum("IN_OFFICE", "READY_FOR_PICKUP", "RETURNED", name="binderstatus"),
             nullable=False,
-            server_default="in_office",
+            server_default="IN_OFFICE",
         ),
         sa.Column("received_by", sa.Integer, sa.ForeignKey("users.id"), nullable=False),
         sa.Column("returned_by", sa.Integer, sa.ForeignKey("users.id"), nullable=True),
@@ -331,7 +331,7 @@ def upgrade() -> None:
         sa.Column(
             "deadline_type",
             sa.Enum(
-                "vat", "advance_payment", "national_insurance", "annual_report", "other",
+                "VAT", "ADVANCE_PAYMENT", "NATIONAL_INSURANCE", "ANNUAL_REPORT", "OTHER",
                 name="taxdeadlinetype",
             ),
             nullable=False,
@@ -339,9 +339,9 @@ def upgrade() -> None:
         sa.Column("due_date", sa.Date, nullable=False),
         sa.Column(
             "status",
-            sa.Enum("pending", "completed", name="taxdeadlinestatus"),
+            sa.Enum("PENDING", "COMPLETED", name="taxdeadlinestatus"),
             nullable=False,
-            server_default="pending",
+            server_default="PENDING",
         ),
         sa.Column("payment_amount", sa.Numeric(10, 2), nullable=True),
         sa.Column("currency", sa.String(3), nullable=False, server_default="ILS"),
@@ -365,15 +365,15 @@ def upgrade() -> None:
         sa.Column("currency", sa.String(3), nullable=False, server_default="ILS"),
         sa.Column(
             "charge_type",
-            sa.Enum("retainer", "one_time", name="chargetype"),
+            sa.Enum("RETAINER", "ONE_TIME", name="chargetype"),
             nullable=False,
         ),
         sa.Column("period", sa.String(7), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("draft", "issued", "paid", "canceled", name="chargestatus"),
+            sa.Enum("DRAFT", "ISSUED", "PAID", "CANCELED", name="chargestatus"),
             nullable=False,
-            server_default="draft",
+            server_default="DRAFT",
         ),
         sa.Column("created_at", sa.DateTime, nullable=False),
         sa.Column("issued_at", sa.DateTime, nullable=True),
@@ -405,9 +405,9 @@ def upgrade() -> None:
         sa.Column("paid_amount", sa.Numeric(10, 2), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("pending", "paid", "partial", "overdue", name="advancepaymentstatus"),
+            sa.Enum("PENDING", "PAID", "PARTIAL", "OVERDUE", name="advancepaymentstatus"),
             nullable=False,
-            server_default="pending",
+            server_default="PENDING",
         ),
         sa.Column("annual_report_id", sa.Integer, sa.ForeignKey("annual_reports.id"), nullable=True),
         sa.Column("due_date", sa.Date, nullable=False),
@@ -435,16 +435,16 @@ def upgrade() -> None:
         sa.Column(
             "reminder_type",
             sa.Enum(
-                "tax_deadline_approaching", "binder_idle", "unpaid_charge", "custom",
+                "TAX_DEADLINE_APPROACHING", "BINDER_IDLE", "UNPAID_CHARGE", "CUSTOM",
                 name="remindertype",
             ),
             nullable=False,
         ),
         sa.Column(
             "status",
-            sa.Enum("pending", "sent", "canceled", name="reminderstatus"),
+            sa.Enum("PENDING", "SENT", "CANCELED", name="reminderstatus"),
             nullable=False,
-            server_default="pending",
+            server_default="PENDING",
         ),
         sa.Column("target_date", sa.Date, nullable=False),
         sa.Column("days_before", sa.Integer, nullable=False),
@@ -483,7 +483,7 @@ def upgrade() -> None:
         ),
         sa.Column(
             "correspondence_type",
-            sa.Enum("call", "letter", "email", "meeting", name="correspondencetype"),
+            sa.Enum("CALL", "LETTER", "EMAIL", "MEETING", name="correspondencetype"),
             nullable=False,
         ),
         sa.Column("subject", sa.String, nullable=False),
@@ -570,8 +570,8 @@ def upgrade() -> None:
         sa.Column(
             "source_type",
             sa.Enum(
-                "business", "salary", "interest", "dividends", "capital_gains",
-                "rental", "foreign", "pension", "other",
+                "BUSINESS", "SALARY", "INTEREST", "DIVIDENDS", "CAPITAL_GAINS",
+                "RENTAL", "FOREIGN", "PENSION", "OTHER",
                 name="incomesourcetype",
             ),
             nullable=False,
@@ -597,9 +597,9 @@ def upgrade() -> None:
         sa.Column(
             "category",
             sa.Enum(
-                "office_rent", "professional_services", "salaries", "depreciation",
-                "vehicle", "marketing", "insurance", "communication",
-                "travel", "training", "bank_fees", "other",
+                "OFFICE_RENT", "PROFESSIONAL_SERVICES", "SALARIES", "DEPRECIATION",
+                "VEHICLE", "MARKETING", "INSURANCE", "COMMUNICATION",
+                "TRAVEL", "TRAINING", "BANK_FEES", "OTHER",
                 name="expensecategorytype",
             ),
             nullable=False,
@@ -638,8 +638,8 @@ def upgrade() -> None:
         sa.Column(
             "schedule",
             sa.Enum(
-                "schedule_b", "schedule_bet", "schedule_gimmel",
-                "schedule_dalet", "schedule_heh",
+                "SCHEDULE_B", "SCHEDULE_BET", "SCHEDULE_GIMMEL",
+                "SCHEDULE_DALET", "SCHEDULE_HEH",
                 name="annualreportschedule",
             ),
             nullable=False,
@@ -666,8 +666,8 @@ def upgrade() -> None:
         sa.Column(
             "schedule",
             sa.Enum(
-                "schedule_b", "schedule_bet", "schedule_gimmel",
-                "schedule_dalet", "schedule_heh",
+                "SCHEDULE_B", "SCHEDULE_BET", "SCHEDULE_GIMMEL",
+                "SCHEDULE_DALET", "SCHEDULE_HEH",
                 name="annualreportschedule",
             ),
             nullable=False,
@@ -694,9 +694,9 @@ def upgrade() -> None:
         sa.Column(
             "from_status",
             sa.Enum(
-                "not_started", "collecting_docs", "docs_complete", "in_preparation",
-                "pending_client", "submitted", "amended", "accepted",
-                "assessment_issued", "objection_filed", "closed",
+                "NOT_STARTED", "COLLECTING_DOCS", "DOCS_COMPLETE", "IN_PREPARATION",
+                "PENDING_CLIENT", "SUBMITTED", "AMENDED", "ACCEPTED",
+                "ASSESSMENT_ISSUED", "OBJECTION_FILED", "CLOSED",
                 name="annualreportstatus",
             ),
             nullable=True,
@@ -704,9 +704,9 @@ def upgrade() -> None:
         sa.Column(
             "to_status",
             sa.Enum(
-                "not_started", "collecting_docs", "docs_complete", "in_preparation",
-                "pending_client", "submitted", "amended", "accepted",
-                "assessment_issued", "objection_filed", "closed",
+                "NOT_STARTED", "COLLECTING_DOCS", "DOCS_COMPLETE", "IN_PREPARATION",
+                "PENDING_CLIENT", "SUBMITTED", "AMENDED", "ACCEPTED",
+                "ASSESSMENT_ISSUED", "OBJECTION_FILED", "CLOSED",
                 name="annualreportstatus",
             ),
             nullable=False,
@@ -735,8 +735,8 @@ def upgrade() -> None:
         sa.Column(
             "request_type",
             sa.Enum(
-                "engagement_agreement", "annual_report_approval",
-                "power_of_attorney", "vat_return_approval", "custom",
+                "ENGAGEMENT_AGREEMENT", "ANNUAL_REPORT_APPROVAL",
+                "POWER_OF_ATTORNEY", "VAT_RETURN_APPROVAL", "CUSTOM",
                 name="signaturerequesttype",
             ),
             nullable=False,
@@ -751,11 +751,11 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "draft", "pending_signature", "signed", "declined", "expired", "canceled",
+                "DRAFT", "PENDING_SIGNATURE", "SIGNED", "DECLINED", "EXPIRED", "CANCELED",
                 name="signaturerequeststatus",
             ),
             nullable=False,
-            server_default="draft",
+            server_default="DRAFT",
         ),
         sa.Column("signing_token", sa.String, nullable=True),
         sa.Column("created_at", sa.DateTime, nullable=False),
@@ -814,27 +814,27 @@ def upgrade() -> None:
         sa.Column(
             "trigger",
             sa.Enum(
-                "binder_received", "binder_ready_for_pickup", "manual_payment_reminder",
+                "BINDER_RECEIVED", "BINDER_READY_FOR_PICKUP", "MANUAL_PAYMENT_REMINDER",
                 name="notificationtrigger",
             ),
             nullable=False,
         ),
         sa.Column(
             "channel",
-            sa.Enum("whatsapp", "email", name="notificationchannel"),
+            sa.Enum("WHATSAPP", "EMAIL", name="notificationchannel"),
             nullable=False,
         ),
         sa.Column(
             "status",
-            sa.Enum("pending", "sent", "failed", name="notificationstatus"),
+            sa.Enum("PENDING", "SENT", "FAILED", name="notificationstatus"),
             nullable=False,
-            server_default="pending",
+            server_default="PENDING",
         ),
         sa.Column(
             "severity",
-            sa.Enum("info", "warning", "urgent", "critical", name="notificationseverity"),
+            sa.Enum("INFO", "WARNING", "URGENT", "CRITICAL", name="notificationseverity"),
             nullable=False,
-            server_default="info",
+            server_default="INFO",
         ),
         sa.Column("recipient", sa.String, nullable=False),
         sa.Column("content_snapshot", sa.Text, nullable=False),
@@ -877,12 +877,12 @@ def upgrade() -> None:
         sa.Column(
             "status",
             sa.Enum(
-                "pending_materials", "material_received", "data_entry_in_progress",
-                "ready_for_review", "filed",
+                "PENDING_MATERIALS", "MATERIAL_RECEIVED", "DATA_ENTRY_IN_PROGRESS",
+                "READY_FOR_REVIEW", "FILED",
                 name="vatworkitemstatus",
             ),
             nullable=False,
-            server_default="material_received",
+            server_default="MATERIAL_RECEIVED",
         ),
         sa.Column("pending_materials_note", sa.Text, nullable=True),
         sa.Column("total_output_vat", sa.Numeric(12, 2), nullable=False, server_default="0"),
@@ -893,7 +893,7 @@ def upgrade() -> None:
         sa.Column("override_justification", sa.Text, nullable=True),
         sa.Column(
             "filing_method",
-            sa.Enum("manual", "online", name="filingmethod"),
+            sa.Enum("MANUAL", "ONLINE", name="filingmethod"),
             nullable=True,
         ),
         sa.Column("filed_at", sa.DateTime, nullable=True),
@@ -918,7 +918,7 @@ def upgrade() -> None:
         sa.Column("created_by", sa.Integer, sa.ForeignKey("users.id"), nullable=False),
         sa.Column(
             "invoice_type",
-            sa.Enum("income", "expense", name="invoicetype"),
+            sa.Enum("INCOME", "EXPENSE", name="invoicetype"),
             nullable=False,
         ),
         sa.Column("invoice_number", sa.String, nullable=False),
@@ -930,25 +930,25 @@ def upgrade() -> None:
         sa.Column(
             "expense_category",
             sa.Enum(
-                "office", "travel", "professional_services", "equipment",
-                "rent", "salary", "marketing", "vehicle", "entertainment",
-                "gifts", "other",
+                "OFFICE", "TRAVEL", "PROFESSIONAL_SERVICES", "EQUIPMENT",
+                "RENT", "SALARY", "MARKETING", "VEHICLE", "ENTERTAINMENT",
+                "GIFTS", "OTHER",
                 name="expensecategory",
             ),
             nullable=True,
         ),
         sa.Column(
             "rate_type",
-            sa.Enum("standard", "exempt", "zero_rate", name="vatratetype"),
+            sa.Enum("STANDARD", "EXEMPT", "ZERO_RATE", name="vatratetype"),
             nullable=False,
-            server_default="standard",
+            server_default="STANDARD",
         ),
         sa.Column("deduction_rate", sa.Numeric(5, 4), nullable=False, server_default="1.0000"),
         sa.Column(
             "document_type",
             sa.Enum(
-                "tax_invoice", "transaction_invoice", "receipt",
-                "consolidated", "self_invoice",
+                "TAX_INVOICE", "TRANSACTION_INVOICE", "RECEIPT",
+                "CONSOLIDATED", "SELF_INVOICE",
                 name="vatdocumenttype",
             ),
             nullable=True,
