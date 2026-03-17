@@ -5,7 +5,7 @@ from app.clients.models import Client, ClientType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 
@@ -95,3 +95,35 @@ def test_status_listing_totals_and_audit_trail(test_db):
     trail = repo.get_audit_trail(oldest.id)
     assert [event.action for event in trail] == ["early", "late"]
 
+
+def test_mark_filed_persists_amendment_and_reference_fields(test_db):
+    repo = VatWorkItemRepository(test_db)
+    user = _user(test_db)
+    client = _client(test_db)
+    item = repo.create(client_id=client.id, period="2026-11", created_by=user.id)
+
+    filed = repo.mark_filed(
+        item_id=item.id,
+        final_vat_amount=321.5,
+        filing_method=FilingMethod.ONLINE,
+        filed_by=user.id,
+        is_overridden=True,
+        override_justification="manual override",
+        submission_reference="REF-321",
+        is_amendment=True,
+        amends_item_id=999,
+    )
+
+    assert filed is not None
+    assert filed.status == VatWorkItemStatus.FILED
+    assert float(filed.final_vat_amount) == 321.5
+    assert filed.submission_reference == "REF-321"
+    assert filed.is_amendment is True
+    assert filed.amends_item_id == 999
+
+    assert repo.mark_filed(
+        item_id=999999,
+        final_vat_amount=1.0,
+        filing_method=FilingMethod.MANUAL,
+        filed_by=user.id,
+    ) is None

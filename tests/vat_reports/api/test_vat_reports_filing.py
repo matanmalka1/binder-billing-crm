@@ -1,4 +1,4 @@
-from tests.vat_reports.api.test_vat_reports_utils import setup_ready_item
+from tests.vat_reports.api.test_vat_reports_utils import create_work_item, setup_ready_item
 
 
 class TestFiling:
@@ -68,3 +68,24 @@ class TestFiling:
             json={"filing_method": "online", "override_amount": "999.00"},
         )
         assert response.status_code == 400
+
+    def test_filing_with_submission_reference_and_amendment_fields(self, client, advisor_headers, vat_client):
+        amended_item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-04")
+        original_item_id = create_work_item(client, advisor_headers, vat_client, "2025-01")
+
+        response = client.post(
+            f"/api/v1/vat/work-items/{amended_item_id}/file",
+            headers=advisor_headers,
+            json={
+                "filing_method": "online",
+                "submission_reference": "REF-2025-0001",
+                "is_amendment": True,
+                "amends_item_id": original_item_id,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["submission_reference"] == "REF-2025-0001"
+        assert data["is_amendment"] is True
+        assert data["amends_item_id"] == original_item_id

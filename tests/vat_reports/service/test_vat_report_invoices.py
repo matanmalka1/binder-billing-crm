@@ -4,7 +4,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.core.exceptions import AppError, ConflictError
-from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
+from app.vat_reports.models.vat_enums import (
+    DocumentType,
+    ExpenseCategory,
+    InvoiceType,
+    VatWorkItemStatus,
+)
 from app.vat_reports.services import data_entry
 from tests.vat_reports.service.test_vat_report_test_utils import make_item, make_invoice
 
@@ -96,6 +101,28 @@ class TestAddInvoice:
                 vat_amount=85.0,
             )
         assert exc_info.value.code == "VAT.EXPENSE_CATEGORY_REQUIRED"
+
+    def test_expense_tax_invoice_without_counterparty_id_raises(self):
+        work_item_repo = MagicMock()
+        invoice_repo = MagicMock()
+        work_item_repo.get_by_id.return_value = make_item()
+
+        with pytest.raises(AppError) as exc_info:
+            data_entry.add_invoice(
+                work_item_repo,
+                invoice_repo,
+                item_id=1,
+                created_by=1,
+                invoice_type=InvoiceType.EXPENSE,
+                invoice_number="EXP-TAX-001",
+                invoice_date=datetime(2026, 1, 15),
+                counterparty_name="Supplier B",
+                net_amount=500.0,
+                vat_amount=85.0,
+                expense_category=ExpenseCategory.OFFICE,
+                document_type=DocumentType.TAX_INVOICE,
+            )
+        assert exc_info.value.code == "VAT.COUNTERPARTY_ID_REQUIRED"
 
     def test_duplicate_invoice_number_raises(self):
         work_item_repo = MagicMock()

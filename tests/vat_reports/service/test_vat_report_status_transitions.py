@@ -72,6 +72,9 @@ class TestFileVatReturn:
             filed_by=2,
             is_overridden=False,
             override_justification=None,
+            submission_reference=None,
+            is_amendment=False,
+            amends_item_id=None,
         )
         assert result.status == VatWorkItemStatus.FILED
 
@@ -97,6 +100,9 @@ class TestFileVatReturn:
             filed_by=2,
             is_overridden=True,
             override_justification="Client provided corrected invoice post-review",
+            submission_reference=None,
+            is_amendment=False,
+            amends_item_id=None,
         )
         assert work_item_repo.append_audit.call_count == 2
 
