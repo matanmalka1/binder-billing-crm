@@ -2,7 +2,8 @@
 
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.clients.repositories.client_repository import ClientRepository
+from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -19,24 +20,50 @@ def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int
     return work_item_repo.list_by_client(client_id)
 
 
+def _resolve_client_ids(
+    client_repo: ClientRepository,
+    client_name: Optional[str],
+) -> Optional[list[int]]:
+    if not client_name:
+        return None
+    clients, _ = client_repo.search(client_name=client_name, page=1, page_size=10000)
+    return [c.id for c in clients]
+
+
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
+    client_repo: ClientRepository,
     status: VatWorkItemStatus,
     page: int = 1,
     page_size: int = 50,
+    period: Optional[str] = None,
+    client_name: Optional[str] = None,
 ):
-    items = work_item_repo.list_by_status(status, page=page, page_size=page_size)
-    total = work_item_repo.count_by_status(status)
+    client_ids = _resolve_client_ids(client_repo, client_name)
+    if client_name and not client_ids:
+        return [], 0
+    items = work_item_repo.list_by_status(
+        status, page=page, page_size=page_size, period=period, client_ids=client_ids
+    )
+    total = work_item_repo.count_by_status(status, period=period, client_ids=client_ids)
     return items, total
 
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
+    client_repo: ClientRepository,
     page: int = 1,
     page_size: int = 50,
+    period: Optional[str] = None,
+    client_name: Optional[str] = None,
 ):
-    items = work_item_repo.list_all(page=page, page_size=page_size)
-    total = work_item_repo.count_all()
+    client_ids = _resolve_client_ids(client_repo, client_name)
+    if client_name and not client_ids:
+        return [], 0
+    items = work_item_repo.list_all(
+        page=page, page_size=page_size, period=period, client_ids=client_ids
+    )
+    total = work_item_repo.count_all(period=period, client_ids=client_ids)
     return items, total
 
 

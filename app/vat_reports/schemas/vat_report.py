@@ -48,8 +48,10 @@ class VatWorkItemResponse(BaseModel):
     filing_method: Optional[FilingMethod]
     filed_at: Optional[datetime]
     filed_by: Optional[int]
+    filed_by_name: Optional[str] = None
     created_by: int
     assigned_to: Optional[int]
+    assigned_to_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -129,20 +131,3 @@ class FileVatReturnRequest(BaseModel):
     override_justification: Optional[str] = None
 
 
-# ── Audit ─────────────────────────────────────────────────────────────────────
-
-class VatAuditLogResponse(BaseModel):
-    id: int
-    work_item_id: int
-    performed_by: int
-    action: str
-    old_value: Optional[str]
-    new_value: Optional[str]
-    note: Optional[str]
-    performed_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class VatAuditTrailResponse(BaseModel):
-    items: list[VatAuditLogResponse]

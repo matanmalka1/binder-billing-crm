@@ -27,6 +27,7 @@ ACTION_MATERIAL_RECEIVED = "material_received"
 ACTION_STATUS_CHANGED = "status_changed"
 ACTION_INVOICE_ADDED = "invoice_added"
 ACTION_INVOICE_DELETED = "invoice_deleted"
+ACTION_INVOICE_UPDATED = "invoice_updated"
 ACTION_OVERRIDE = "vat_override"
 ACTION_FILED = "filed"
 
@@ -45,6 +46,7 @@ __all__ = [
     "ACTION_FILED",
     "ACTION_INVOICE_ADDED",
     "ACTION_INVOICE_DELETED",
+    "ACTION_INVOICE_UPDATED",
     "ACTION_MATERIAL_RECEIVED",
     "ACTION_OVERRIDE",
     "ACTION_STATUS_CHANGED",

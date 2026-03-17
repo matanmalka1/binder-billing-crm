@@ -82,6 +82,17 @@ class VatInvoiceRepository:
         totals = {row[0]: float(row[1]) for row in rows}
         return totals.get(InvoiceType.INCOME, 0.0), totals.get(InvoiceType.EXPENSE, 0.0)
 
+    def update(self, invoice_id: int, **fields) -> Optional[VatInvoice]:
+        invoice = self.get_by_id(invoice_id)
+        if not invoice:
+            return None
+        for key, value in fields.items():
+            if value is not None:
+                setattr(invoice, key, value)
+        self.db.commit()
+        self.db.refresh(invoice)
+        return invoice
+
     def delete(self, invoice_id: int) -> bool:
         invoice = self.get_by_id(invoice_id)
         if not invoice:

@@ -55,6 +55,11 @@ class VatReportService:
             self.work_item_repo, self.invoice_repo, **kwargs
         )
 
+    def update_invoice(self, **kwargs):
+        return data_entry.update_invoice(
+            self.work_item_repo, self.invoice_repo, **kwargs
+        )
+
     def mark_ready_for_review(self, **kwargs):
         return data_entry.mark_ready_for_review(self.work_item_repo, **kwargs)
 
@@ -75,10 +80,14 @@ class VatReportService:
         return vat_report_queries.list_client_work_items(self.work_item_repo, client_id)
 
     def list_work_items_by_status(self, **kwargs):
-        return vat_report_queries.list_work_items_by_status(self.work_item_repo, **kwargs)
+        return vat_report_queries.list_work_items_by_status(
+            self.work_item_repo, self.client_repo, **kwargs
+        )
 
     def list_all_work_items(self, **kwargs):
-        return vat_report_queries.list_all_work_items(self.work_item_repo, **kwargs)
+        return vat_report_queries.list_all_work_items(
+            self.work_item_repo, self.client_repo, **kwargs
+        )
 
     def list_invoices(self, **kwargs):
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)

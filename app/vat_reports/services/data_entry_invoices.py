@@ -1,17 +1,16 @@
-"""Invoice add/delete flows for VAT work items."""
+"""Invoice add flow for VAT work items."""
 
 import json
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import (
     ACTION_INVOICE_ADDED,
-    ACTION_INVOICE_DELETED,
     ACTION_STATUS_CHANGED,
     CATEGORY_LABELS_SERVER,
 )
@@ -126,46 +125,3 @@ def add_invoice(
     )
 
     return invoice
-
-
-def delete_invoice(
-    work_item_repo: VatWorkItemRepository,
-    invoice_repo: VatInvoiceRepository,
-    *,
-    item_id: int,
-    invoice_id: int,
-    performed_by: int,
-):
-    """
-    Delete an invoice from a work item.
-
-    Rules:
-    - Work item must not be FILED.
-    - Invoice must belong to this work item.
-    """
-    item = work_item_repo.get_by_id(item_id)
-    if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
-
-    assert_editable(item)
-
-    invoice = invoice_repo.get_by_id(invoice_id)
-    if not invoice or invoice.work_item_id != item_id:
-        raise NotFoundError(
-            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}",
-            "VAT.NOT_FOUND",
-        )
-
-    snapshot = audit_invoice_snapshot(invoice)
-
-    deleted = invoice_repo.delete(invoice_id)
-    if deleted:
-        recalculate_totals(work_item_repo, invoice_repo, item_id)
-        work_item_repo.append_audit(
-            work_item_id=item_id,
-            performed_by=performed_by,
-            action=ACTION_INVOICE_DELETED,
-            old_value=snapshot,
-        )
-
-    return deleted

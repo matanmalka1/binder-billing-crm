@@ -1,18 +1,16 @@
-"""Routes: invoice data entry (add / delete / list)."""
+"""Routes: invoice data entry (add / update / delete / list)."""
 
-from typing import Optional, Annotated
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import User, UserRole
+from app.users.api.deps import CurrentUser, DBSession
 from app.vat_reports.models.vat_enums import InvoiceType
 from app.vat_reports.schemas import (
-    SendBackForCorrectionRequest,
     VatInvoiceCreateRequest,
     VatInvoiceListResponse,
     VatInvoiceResponse,
-    VatWorkItemResponse,
+    VatInvoiceUpdateRequest,
 )
 from app.vat_reports.services.vat_report_service import VatReportService
 
@@ -30,11 +28,7 @@ def add_invoice(
     db: DBSession,
     current_user: CurrentUser,
 ):
-    """
-    Add an income or expense invoice to a work item.
-
-    Accessible by: secretary, advisor.
-    """
+    """Add an income or expense invoice to a work item."""
     service = VatReportService(db)
     invoice = service.add_invoice(
         item_id=item_id,
@@ -67,6 +61,35 @@ def list_invoices(
     return VatInvoiceListResponse(items=items)
 
 
+@router.patch(
+    "/work-items/{item_id}/invoices/{invoice_id}",
+    response_model=VatInvoiceResponse,
+)
+def update_invoice(
+    item_id: int,
+    invoice_id: int,
+    request: VatInvoiceUpdateRequest,
+    db: DBSession,
+    current_user: CurrentUser,
+):
+    """Update an existing invoice. Not allowed after filing."""
+    service = VatReportService(db)
+    invoice = service.update_invoice(
+        item_id=item_id,
+        invoice_id=invoice_id,
+        performed_by=current_user.id,
+        net_amount=float(request.net_amount) if request.net_amount is not None else None,
+        vat_amount=float(request.vat_amount) if request.vat_amount is not None else None,
+        invoice_number=request.invoice_number,
+        invoice_date=request.invoice_date,
+        counterparty_name=request.counterparty_name,
+        expense_category=request.expense_category,
+    )
+    if not invoice:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
+    return invoice
+
+
 @router.delete(
     "/work-items/{item_id}/invoices/{invoice_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -77,11 +100,7 @@ def delete_invoice(
     db: DBSession,
     current_user: CurrentUser,
 ):
-    """
-    Delete an invoice from a work item.
-
-    Not allowed after filing.
-    """
+    """Delete an invoice from a work item. Not allowed after filing."""
     service = VatReportService(db)
     deleted = service.delete_invoice(
         item_id=item_id,
@@ -91,48 +110,3 @@ def delete_invoice(
 
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
-
-
-@router.post(
-    "/work-items/{item_id}/ready-for-review",
-    response_model=VatWorkItemResponse,
-)
-def mark_ready_for_review(
-    item_id: int,
-    db: DBSession,
-    current_user: CurrentUser,
-):
-    """
-    Mark data entry complete: DATA_ENTRY_IN_PROGRESS → READY_FOR_REVIEW.
-
-    Accessible by: secretary, advisor.
-    """
-    service = VatReportService(db)
-    item = service.mark_ready_for_review(
-        item_id=item_id,
-        performed_by=current_user.id,
-    )
-    return item
-
-
-@router.post(
-    "/work-items/{item_id}/send-back",
-    response_model=VatWorkItemResponse,
-)
-def send_back_for_correction(
-    item_id: int,
-    request: SendBackForCorrectionRequest,
-    db: DBSession,
-    current_user: Annotated[User, Depends(require_role(UserRole.ADVISOR))],
-):
-    """
-    Advisor sends work item back for correction.
-    READY_FOR_REVIEW → DATA_ENTRY_IN_PROGRESS.
-    """
-    service = VatReportService(db)
-    item = service.send_back_for_correction(
-        item_id=item_id,
-        performed_by=current_user.id,
-        correction_note=request.correction_note,
-    )
-    return item

@@ -61,36 +61,56 @@ class VatWorkItemRepository:
         status: VatWorkItemStatus,
         page: int = 1,
         page_size: int = 50,
+        period: Optional[str] = None,
+        client_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
-        return (
-            self.db.query(VatWorkItem)
-            .filter(VatWorkItem.status == status)
-            .order_by(VatWorkItem.period.desc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        q = self.db.query(VatWorkItem).filter(VatWorkItem.status == status)
+        if period:
+            q = q.filter(VatWorkItem.period == period)
+        if client_ids is not None:
+            q = q.filter(VatWorkItem.client_id.in_(client_ids))
+        return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
 
-    def count_by_status(self, status: VatWorkItemStatus) -> int:
-        return self.db.query(VatWorkItem).filter(VatWorkItem.status == status).count()
+    def count_by_status(
+        self,
+        status: VatWorkItemStatus,
+        period: Optional[str] = None,
+        client_ids: Optional[list[int]] = None,
+    ) -> int:
+        q = self.db.query(VatWorkItem).filter(VatWorkItem.status == status)
+        if period:
+            q = q.filter(VatWorkItem.period == period)
+        if client_ids is not None:
+            q = q.filter(VatWorkItem.client_id.in_(client_ids))
+        return q.count()
 
     def list_all(
         self,
         page: int = 1,
         page_size: int = 50,
+        period: Optional[str] = None,
+        client_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
-        return (
-            self.db.query(VatWorkItem)
-            .order_by(VatWorkItem.period.desc())
-            .offset(offset)
-            .limit(page_size)
-            .all()
-        )
+        q = self.db.query(VatWorkItem)
+        if period:
+            q = q.filter(VatWorkItem.period == period)
+        if client_ids is not None:
+            q = q.filter(VatWorkItem.client_id.in_(client_ids))
+        return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
 
-    def count_all(self) -> int:
-        return self.db.query(VatWorkItem).count()
+    def count_all(
+        self,
+        period: Optional[str] = None,
+        client_ids: Optional[list[int]] = None,
+    ) -> int:
+        q = self.db.query(VatWorkItem)
+        if period:
+            q = q.filter(VatWorkItem.period == period)
+        if client_ids is not None:
+            q = q.filter(VatWorkItem.client_id.in_(client_ids))
+        return q.count()
 
     def count_by_period_not_filed(self, period: str) -> int:
         """Count VAT work items for a given period that are not yet filed."""
