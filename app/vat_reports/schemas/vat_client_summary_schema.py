@@ -16,6 +16,8 @@ class VatPeriodRow(BaseModel):
     total_output_vat: Decimal
     total_input_vat: Decimal
     net_vat: Decimal
+    total_output_net: Decimal
+    total_input_net: Decimal
     final_vat_amount: Optional[Decimal]
     filed_at: Optional[datetime]
 

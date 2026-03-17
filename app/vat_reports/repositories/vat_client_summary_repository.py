@@ -6,7 +6,8 @@ from typing import Optional
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
+from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.schemas.vat_client_summary_schema import (
     VatAnnualSummary,
@@ -19,8 +20,30 @@ class VatClientSummaryRepository:
         self.db = db
 
     def get_periods_for_client(self, client_id: int) -> list[VatPeriodRow]:
+        # Subquery: sum net_amount per work_item_id per invoice_type
+        net_sq = (
+            self.db.query(
+                VatInvoice.work_item_id,
+                func.sum(
+                    case(
+                        (VatInvoice.invoice_type == InvoiceType.INCOME, VatInvoice.net_amount),
+                        else_=0,
+                    )
+                ).label("output_net"),
+                func.sum(
+                    case(
+                        (VatInvoice.invoice_type == InvoiceType.EXPENSE, VatInvoice.net_amount),
+                        else_=0,
+                    )
+                ).label("input_net"),
+            )
+            .group_by(VatInvoice.work_item_id)
+            .subquery()
+        )
+
         rows = (
-            self.db.query(VatWorkItem)
+            self.db.query(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
+            .outerjoin(net_sq, VatWorkItem.id == net_sq.c.work_item_id)
             .filter(VatWorkItem.client_id == client_id)
             .order_by(VatWorkItem.period.desc())
             .all()
@@ -33,10 +56,12 @@ class VatClientSummaryRepository:
                 total_output_vat=r.total_output_vat,
                 total_input_vat=r.total_input_vat,
                 net_vat=r.net_vat,
+                total_output_net=Decimal(str(output_net or 0)),
+                total_input_net=Decimal(str(input_net or 0)),
                 final_vat_amount=r.final_vat_amount,
                 filed_at=r.filed_at,
             )
-            for r in rows
+            for r, output_net, input_net in rows
         ]
 
     def get_annual_aggregates(self, client_id: int) -> list[VatAnnualSummary]:
