@@ -60,6 +60,7 @@ class ReportStage(str, PyEnum):
     FINAL_REVIEW = "final_review"
     CLIENT_SIGNATURE = "client_signature"
     TRANSMITTED = "transmitted"
+    POST_SUBMISSION = "post_submission"  # assessment_issued, objection_filed
 
 
 __all__ = [

@@ -96,7 +96,7 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
 def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete an annual report (ADVISOR only)."""
     service = AnnualReportService(db)
-    deleted = service.delete_report(report_id, actor_id=user.id)
+    deleted = service.delete_report(report_id, actor_id=user.id, actor_name=user.full_name)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -71,6 +71,19 @@ class AdvancePaymentRepository(BaseRepository):
             query = query.filter(AdvancePayment.status.in_(statuses))
         return query.all()
 
+    def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
+        """Sum paid_amount for all PAID advance payments for a client/year."""
+        rows = (
+            self.db.query(AdvancePayment)
+            .filter(
+                AdvancePayment.client_id == client_id,
+                AdvancePayment.year == year,
+                AdvancePayment.status == AdvancePaymentStatus.PAID,
+            )
+            .all()
+        )
+        return sum(float(p.paid_amount) for p in rows if p.paid_amount is not None)
+
     def create(
         self,
         client_id: int,
