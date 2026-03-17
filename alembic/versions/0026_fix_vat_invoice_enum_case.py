@@ -31,7 +31,7 @@ def upgrade() -> None:
         "WHERE expense_category IS NOT NULL"
     )
     op.execute(
-        "UPDATE vat_invoices SET rate_type = upper(rate_type::text)::vatratedtype "
+        "UPDATE vat_invoices SET rate_type = upper(rate_type::text)::vatratetype "
         "WHERE rate_type IS NOT NULL"
     )
     op.execute(

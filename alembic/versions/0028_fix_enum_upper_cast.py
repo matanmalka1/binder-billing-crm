@@ -34,7 +34,7 @@ def upgrade() -> None:
     )
     op.execute(
         "UPDATE vat_invoices "
-        "SET rate_type = upper(rate_type::text)::vatratedtype "
+        "SET rate_type = upper(rate_type::text)::vatratetype "
         "WHERE rate_type IS NOT NULL"
     )
     op.execute(
