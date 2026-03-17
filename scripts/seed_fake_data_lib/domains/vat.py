@@ -85,7 +85,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
         for _ in range(num_invoices):
             invoice_type = rng.choice(list(InvoiceType))
             base_amount = Decimal(str(round(rng.uniform(250, 12000), 2)))
-            vat_amount = (base_amount * Decimal("0.17")).quantize(Decimal("0.01"))
+            vat_amount = (base_amount * Decimal("0.18")).quantize(Decimal("0.01"))
 
             invoice_counters[work_item.id] += 1
             invoice_number = f"{work_item.period.replace('-', '')}-{invoice_counters[work_item.id]:03d}"

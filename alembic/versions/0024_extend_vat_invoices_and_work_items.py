@@ -28,77 +28,22 @@ document_type_enum = sa.Enum(
 
 def upgrade() -> None:
     # ── vat_invoices ─────────────────────────────────────────────────────────
-    with op.batch_alter_table("vat_invoices") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "rate_type",
-                sa.Enum("standard", "exempt", "zero_rate", name="vatratedtype"),
-                nullable=False,
-                server_default="standard",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "deduction_rate",
-                sa.Numeric(5, 4),
-                nullable=False,
-                server_default="1.0000",
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "document_type",
-                sa.Enum(
-                    "tax_invoice",
-                    "transaction_invoice",
-                    "receipt",
-                    "consolidated",
-                    "self_invoice",
-                    name="documenttype",
-                ),
-                nullable=True,
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "is_exceptional",
-                sa.Boolean(),
-                nullable=False,
-                server_default=sa.false(),
-            )
-        )
+    op.add_column("vat_invoices", sa.Column("rate_type", sa.String(9), nullable=False, server_default="standard"))
+    op.add_column("vat_invoices", sa.Column("deduction_rate", sa.Numeric(5, 4), nullable=False, server_default="1.0000"))
+    op.add_column("vat_invoices", sa.Column("document_type", sa.String(19), nullable=True))
+    op.add_column("vat_invoices", sa.Column("is_exceptional", sa.Boolean(), nullable=False, server_default=sa.false()))
 
     # ── vat_work_items ───────────────────────────────────────────────────────
-    with op.batch_alter_table("vat_work_items") as batch_op:
-        batch_op.add_column(
-            sa.Column("submission_reference", sa.String(100), nullable=True)
-        )
-        batch_op.add_column(
-            sa.Column(
-                "is_amendment",
-                sa.Boolean(),
-                nullable=False,
-                server_default=sa.false(),
-            )
-        )
-        batch_op.add_column(
-            sa.Column(
-                "amends_item_id",
-                sa.Integer(),
-                sa.ForeignKey("vat_work_items.id"),
-                nullable=True,
-            )
-        )
+    op.add_column("vat_work_items", sa.Column("submission_reference", sa.String(100), nullable=True))
+    op.add_column("vat_work_items", sa.Column("is_amendment", sa.Boolean(), nullable=False, server_default=sa.false()))
+    op.add_column("vat_work_items", sa.Column("amends_item_id", sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("vat_work_items") as batch_op:
-        batch_op.drop_column("amends_item_id")
-        batch_op.drop_column("is_amendment")
-        batch_op.drop_column("submission_reference")
-
-    with op.batch_alter_table("vat_invoices") as batch_op:
-        batch_op.drop_column("is_exceptional")
-        batch_op.drop_column("document_type")
-        batch_op.drop_column("deduction_rate")
-        batch_op.drop_column("rate_type")
+    op.drop_column("vat_work_items", "amends_item_id")
+    op.drop_column("vat_work_items", "is_amendment")
+    op.drop_column("vat_work_items", "submission_reference")
+    op.drop_column("vat_invoices", "is_exceptional")
+    op.drop_column("vat_invoices", "document_type")
+    op.drop_column("vat_invoices", "deduction_rate")
+    op.drop_column("vat_invoices", "rate_type")
