@@ -1,15 +1,17 @@
 """Pydantic request / response schemas for the VAT Reports module."""
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
 from app.vat_reports.models.vat_enums import (
+    DocumentType,
     ExpenseCategory,
     FilingMethod,
     InvoiceType,
+    VatRateType,
     VatWorkItemStatus,
 )
 
@@ -55,6 +57,14 @@ class VatWorkItemResponse(BaseModel):
     client_status: Optional[str] = None  # "active" | "frozen" | "closed"
     created_at: datetime
     updated_at: datetime
+    # Submission reference + amendment
+    submission_reference: Optional[str] = None
+    is_amendment: bool = False
+    amends_item_id: Optional[int] = None
+    # Derived — not stored
+    submission_deadline: Optional[date] = None
+    days_until_deadline: Optional[int] = None
+    is_overdue: Optional[bool] = None
 
     model_config = {"from_attributes": True}
 
@@ -81,6 +91,8 @@ class VatInvoiceCreateRequest(BaseModel):
     vat_amount: Decimal
     counterparty_id: Optional[str] = None
     expense_category: Optional[ExpenseCategory] = None
+    rate_type: VatRateType = VatRateType.STANDARD
+    document_type: Optional[DocumentType] = None
 
     @field_validator("net_amount")
     @classmethod
@@ -96,6 +108,15 @@ class VatInvoiceCreateRequest(BaseModel):
             raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
         return v
 
+    @field_validator("counterparty_id")
+    @classmethod
+    def validate_counterparty_id(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not v.isdigit():
+            raise ValueError("מספר עוסק חייב להכיל ספרות בלבד")
+        if v is not None and len(v) != 9:
+            raise ValueError("מספר עוסק חייב להיות בן 9 ספרות")
+        return v
+
 
 class VatInvoiceResponse(BaseModel):
     id: int
@@ -108,6 +129,10 @@ class VatInvoiceResponse(BaseModel):
     net_amount: Decimal
     vat_amount: Decimal
     expense_category: Optional[ExpenseCategory]
+    rate_type: VatRateType = VatRateType.STANDARD
+    deduction_rate: Decimal = Decimal("1.0000")
+    document_type: Optional[DocumentType] = None
+    is_exceptional: bool = False
     created_by: int
     created_at: datetime
 
@@ -130,5 +155,8 @@ class FileVatReturnRequest(BaseModel):
     filing_method: FilingMethod
     override_amount: Optional[Decimal] = None
     override_justification: Optional[str] = None
+    submission_reference: Optional[str] = None
+    is_amendment: bool = False
+    amends_item_id: Optional[int] = None
 
 

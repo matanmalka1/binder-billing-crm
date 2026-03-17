@@ -6,7 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
-from app.vat_reports.models.vat_enums import ExpenseCategory
+from app.vat_reports.models.vat_enums import DocumentType, ExpenseCategory, VatRateType
 
 
 class VatInvoiceUpdateRequest(BaseModel):
@@ -16,6 +16,8 @@ class VatInvoiceUpdateRequest(BaseModel):
     invoice_date: Optional[datetime] = None
     counterparty_name: Optional[str] = None
     expense_category: Optional[ExpenseCategory] = None
+    rate_type: Optional[VatRateType] = None
+    document_type: Optional[DocumentType] = None
 
     @field_validator("net_amount")
     @classmethod

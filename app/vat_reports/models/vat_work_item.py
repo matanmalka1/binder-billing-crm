@@ -73,6 +73,15 @@ class VatWorkItem(Base):
     filed_at = Column(DateTime, nullable=True)
     filed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    # Submission reference from tax authority (מספר אסמכתא)
+    submission_reference = Column(String(100), nullable=True)
+
+    # Amendment tracking — links to the original work item being corrected
+    is_amendment = Column(Boolean, nullable=False, default=False)
+    amends_item_id = Column(
+        Integer, ForeignKey("vat_work_items.id"), nullable=True
+    )
+
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=utcnow)
     updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)

@@ -1,6 +1,7 @@
 """VAT Invoice line-item ORM model."""
 
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     Enum,
@@ -14,7 +15,12 @@ from sqlalchemy import (
 
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType
+from app.vat_reports.models.vat_enums import (
+    DocumentType,
+    ExpenseCategory,
+    InvoiceType,
+    VatRateType,
+)
 
 
 class VatInvoice(Base):
@@ -49,6 +55,20 @@ class VatInvoice(Base):
 
     # Expense-only classification
     expense_category = Column(Enum(ExpenseCategory), nullable=True)
+
+    # VAT rate category (חייב / פטור / אפס)
+    rate_type = Column(
+        Enum(VatRateType), nullable=False, default=VatRateType.STANDARD
+    )
+
+    # Deduction rate for input VAT (0.0–1.0); auto-set from expense_category
+    deduction_rate = Column(Numeric(5, 4), nullable=False, default=1.0000)
+
+    # Document type (חשבונית מס / עסקה / קבלה / מרוכזת / עצמית)
+    document_type = Column(Enum(DocumentType), nullable=True)
+
+    # Exceptional invoice flag: net_amount > 25,000 ₪ requires special handling
+    is_exceptional = Column(Boolean, nullable=False, default=False)
 
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=utcnow)

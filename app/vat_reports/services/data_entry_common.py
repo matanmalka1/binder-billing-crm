@@ -1,13 +1,14 @@
 """Shared helpers for VAT work item data-entry flows."""
 
 import json
-from typing import Tuple
+from decimal import Decimal
+from typing import Optional, Tuple
 
 from app.core.exceptions import AppError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import VALID_TRANSITIONS
+from app.vat_reports.services.constants import OSEK_PATUR_CEILING_ILS, VALID_TRANSITIONS
 
 
 def assert_editable(item) -> None:
@@ -46,3 +47,74 @@ def audit_invoice_snapshot(invoice) -> str:
             "vat_amount": str(invoice.vat_amount),
         }
     )
+
+
+def resolve_invoice_derived_fields(
+    invoice_type,
+    expense_category,
+    document_type,
+    counterparty_id: Optional[str],
+    net_amount: float,
+    vat_amount: float,
+) -> dict:
+    """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional.
+
+    Raises AppError on rule violations.
+    """
+    from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
+    from app.vat_reports.services.constants import (
+        CATEGORY_DEDUCTION_RATES,
+        EXCEPTIONAL_INVOICE_THRESHOLD,
+    )
+
+    if vat_amount < 0:
+        raise AppError("negative: הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
+    if net_amount <= 0:
+        raise AppError("positive: הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
+    if invoice_type == InvoiceType.EXPENSE and not expense_category:
+        raise AppError(
+            "expense_category: חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
+            "VAT.EXPENSE_CATEGORY_REQUIRED",
+        )
+    if (
+        invoice_type == InvoiceType.EXPENSE
+        and document_type == DocumentType.TAX_INVOICE
+        and not counterparty_id
+    ):
+        raise AppError(
+            "counterparty_id: חשבונית מס לתשומות חייבת לכלול מספר עוסק של הספק",
+            "VAT.COUNTERPARTY_ID_REQUIRED",
+        )
+
+    deduction_rate = Decimal("1.0000")
+    if invoice_type == InvoiceType.EXPENSE and expense_category:
+        deduction_rate = CATEGORY_DEDUCTION_RATES.get(
+            expense_category.value, Decimal("0.0000")
+        )
+    is_exceptional = Decimal(str(net_amount)) > EXCEPTIONAL_INVOICE_THRESHOLD
+    return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
+
+
+def check_osek_patur_ceiling(
+    client,
+    invoice_repo: VatInvoiceRepository,
+    client_id: int,
+    period: str,
+    new_net_amount: float,
+) -> None:
+    """Raise AppError if adding this income invoice would exceed the OSEK PATUR ceiling.
+
+    Only enforced for OSEK_PATUR clients (ClientType.OSEK_PATUR).
+    """
+    from app.clients.models.client import ClientType
+
+    if not hasattr(client, "client_type") or client.client_type != ClientType.OSEK_PATUR:
+        return
+    year = int(period[:4])
+    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_id, year)))
+    if current_total + Decimal(str(new_net_amount)) > OSEK_PATUR_CEILING_ILS:
+        raise AppError(
+            f"תקרת עוסק פטור חרגה: סך מחזור {float(current_total + Decimal(str(new_net_amount))):.2f} ₪ "
+            f"עולה על תקרה של {float(OSEK_PATUR_CEILING_ILS):.2f} ₪",
+            "VAT.OSEK_PATUR_CEILING_EXCEEDED",
+        )

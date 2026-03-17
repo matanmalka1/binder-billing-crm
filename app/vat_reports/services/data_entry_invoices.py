@@ -2,13 +2,20 @@
 
 import json
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
 
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import assert_client_not_closed
-from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatWorkItemStatus
+from app.vat_reports.models.vat_enums import (
+    DocumentType,
+    ExpenseCategory,
+    InvoiceType,
+    VatRateType,
+    VatWorkItemStatus,
+)
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import (
@@ -16,7 +23,13 @@ from app.vat_reports.services.constants import (
     ACTION_STATUS_CHANGED,
     CATEGORY_LABELS_SERVER,
 )
-from app.vat_reports.services.data_entry_common import audit_invoice_snapshot, assert_editable, recalculate_totals
+from app.vat_reports.services.data_entry_common import (
+    audit_invoice_snapshot,
+    assert_editable,
+    check_osek_patur_ceiling,
+    recalculate_totals,
+    resolve_invoice_derived_fields,
+)
 
 
 def add_invoice(
@@ -33,18 +46,10 @@ def add_invoice(
     vat_amount: float,
     counterparty_id: Optional[str] = None,
     expense_category: Optional[ExpenseCategory] = None,
+    rate_type: VatRateType = VatRateType.STANDARD,
+    document_type: Optional[DocumentType] = None,
 ):
-    """
-    Add an invoice to a work item.
-
-    Rules:
-    - Work item must exist and not be FILED.
-    - Work item must be in DATA_ENTRY_IN_PROGRESS (auto-transitions from MATERIAL_RECEIVED on first invoice).
-    - VAT amount must be >= 0.
-    - Net amount must be > 0.
-    - Invoice number must be unique per (work_item, type).
-    - EXPENSE invoices require expense_category.
-    """
+    """Add an invoice to a work item. Validation delegated to resolve_invoice_derived_fields."""
     item = work_item_repo.get_by_id(item_id)
     if not item:
         raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
@@ -55,15 +60,14 @@ def add_invoice(
     if client:
         assert_client_not_closed(client)
 
-    if vat_amount < 0:
-        raise AppError("negative: הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
-    if net_amount <= 0:
-        raise AppError("positive: הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
-    if invoice_type == InvoiceType.EXPENSE and not expense_category:
-        raise AppError(
-            "expense_category: חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
-            "VAT.EXPENSE_CATEGORY_REQUIRED",
-        )
+    derived = resolve_invoice_derived_fields(
+        invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount
+    )
+    deduction_rate = derived["deduction_rate"]
+    is_exceptional = derived["is_exceptional"]
+
+    if invoice_type == InvoiceType.INCOME and client:
+        check_osek_patur_ceiling(client, invoice_repo, item.client_id, item.period, net_amount)
 
     # Auto-fill optional fields when not provided by caller
     if not invoice_number:
@@ -117,6 +121,10 @@ def add_invoice(
         net_amount=net_amount,
         vat_amount=vat_amount,
         expense_category=expense_category,
+        rate_type=rate_type,
+        deduction_rate=float(deduction_rate),
+        document_type=document_type,
+        is_exceptional=is_exceptional,
     )
 
     recalculate_totals(work_item_repo, invoice_repo, item_id)

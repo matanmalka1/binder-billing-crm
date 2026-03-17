@@ -42,5 +42,8 @@ def file_vat_return(
         filing_method=request.filing_method,
         override_amount=float(request.override_amount) if request.override_amount is not None else None,
         override_justification=request.override_justification,
+        submission_reference=request.submission_reference,
+        is_amendment=request.is_amendment,
+        amends_item_id=request.amends_item_id,
     )
     return item

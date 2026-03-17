@@ -17,6 +17,9 @@ def file_vat_return(
     filing_method: FilingMethod,
     override_amount: Optional[float] = None,
     override_justification: Optional[str] = None,
+    submission_reference: Optional[str] = None,
+    is_amendment: bool = False,
+    amends_item_id: Optional[int] = None,
 ):
     """
     Advisor confirms and files the VAT return.
@@ -68,6 +71,9 @@ def file_vat_return(
         filed_by=filed_by,
         is_overridden=is_overridden,
         override_justification=override_justification if is_overridden else None,
+        submission_reference=submission_reference,
+        is_amendment=is_amendment,
+        amends_item_id=amends_item_id,
     )
 
     work_item_repo.append_audit(

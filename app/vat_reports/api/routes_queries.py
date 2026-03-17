@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from app.users.api.deps import CurrentUser, DBSession
 from app.users.models.user import User
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.services.vat_report_queries import _compute_deadline_fields
 from app.vat_reports.schemas import (
     VatAuditLogResponse,
     VatAuditTrailResponse,
@@ -19,11 +20,15 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 
 def _serialize_with_name(item, name_map: dict, status_map: dict | None = None) -> VatWorkItemResponse:
-    """Build a VatWorkItemResponse enriched with the client's full name and status."""
+    """Build a VatWorkItemResponse enriched with client name, status, and deadline."""
     data = VatWorkItemResponse.model_validate(item)
     data.client_name = name_map.get(item.client_id)
     if status_map is not None:
         data.client_status = status_map.get(item.client_id)
+    deadline = _compute_deadline_fields(item)
+    data.submission_deadline = deadline["submission_deadline"]
+    data.days_until_deadline = deadline["days_until_deadline"]
+    data.is_overdue = deadline["is_overdue"]
     return data
 
 

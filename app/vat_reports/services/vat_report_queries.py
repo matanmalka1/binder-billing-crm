@@ -1,5 +1,6 @@
 """Query helpers for VAT work items and invoices."""
 
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from app.clients.repositories.client_repository import ClientRepository
@@ -7,6 +8,22 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+
+
+def _compute_deadline_fields(item) -> dict:
+    """Derive submission_deadline, days_until_deadline, is_overdue from period."""
+    try:
+        year, month = int(item.period[:4]), int(item.period[5:7])
+        # Next month
+        if month == 12:
+            dl = date(year + 1, 1, 15)
+        else:
+            dl = date(year, month + 1, 15)
+        today = datetime.now(timezone.utc).date()
+        days = (dl - today).days
+        return {"submission_deadline": dl, "days_until_deadline": days, "is_overdue": days < 0}
+    except Exception:
+        return {"submission_deadline": None, "days_until_deadline": None, "is_overdue": None}
 
 
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):

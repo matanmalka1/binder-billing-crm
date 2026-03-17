@@ -194,6 +194,9 @@ class VatWorkItemRepository:
         filed_by: int,
         is_overridden: bool = False,
         override_justification: Optional[str] = None,
+        submission_reference: Optional[str] = None,
+        is_amendment: bool = False,
+        amends_item_id: Optional[int] = None,
     ) -> Optional[VatWorkItem]:
         item = self.get_by_id(item_id)
         if not item:
@@ -205,6 +208,9 @@ class VatWorkItemRepository:
         item.filed_by = filed_by
         item.is_overridden = is_overridden
         item.override_justification = override_justification
+        item.submission_reference = submission_reference
+        item.is_amendment = is_amendment
+        item.amends_item_id = amends_item_id
         item.updated_at = utcnow()
         self.db.commit()
         self.db.refresh(item)

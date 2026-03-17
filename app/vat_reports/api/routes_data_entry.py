@@ -41,6 +41,8 @@ def add_invoice(
         vat_amount=float(request.vat_amount),
         counterparty_id=request.counterparty_id,
         expense_category=request.expense_category,
+        rate_type=request.rate_type,
+        document_type=request.document_type,
     )
     return invoice
 
@@ -84,6 +86,8 @@ def update_invoice(
         invoice_date=request.invoice_date,
         counterparty_name=request.counterparty_name,
         expense_category=request.expense_category,
+        rate_type=request.rate_type,
+        document_type=request.document_type,
     )
     if not invoice:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
