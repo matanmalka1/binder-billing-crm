@@ -28,7 +28,7 @@ document_type_enum = sa.Enum(
 
 def upgrade() -> None:
     # ── vat_invoices ─────────────────────────────────────────────────────────
-    op.add_column("vat_invoices", sa.Column("rate_type", sa.String(9), nullable=False, server_default="standard"))
+    op.add_column("vat_invoices", sa.Column("rate_type", sa.String(9), nullable=False, server_default="STANDARD"))
     op.add_column("vat_invoices", sa.Column("deduction_rate", sa.Numeric(5, 4), nullable=False, server_default="1.0000"))
     op.add_column("vat_invoices", sa.Column("document_type", sa.String(19), nullable=True))
     op.add_column("vat_invoices", sa.Column("is_exceptional", sa.Boolean(), nullable=False, server_default=sa.false()))
