@@ -24,7 +24,7 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(String, nullable=False)
-    id_number = Column(String, unique=True, nullable=False, index=True)
+    id_number = Column(String, nullable=False, index=True)
     client_type = Column(Enum(ClientType), nullable=False)
     status = Column(Enum(ClientStatus), default=ClientStatus.ACTIVE, nullable=False)
     primary_binder_number = Column(String, unique=True, nullable=True)

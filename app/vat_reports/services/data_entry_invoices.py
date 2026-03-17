@@ -6,7 +6,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import assert_client_not_closed
 from app.vat_reports.models.vat_enums import (
