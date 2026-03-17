@@ -58,6 +58,25 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+def _widen_alembic_version_if_needed(connectable) -> None:
+    """Widen version_num on existing alembic_version table (PostgreSQL only).
+
+    Uses a separate connection so the commit does not interfere with
+    Alembic's own migration transaction.
+    """
+    with connectable.connect() as conn:
+        exists = conn.execute(text(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+            "WHERE table_name = 'alembic_version')"
+        )).scalar()
+        if exists:
+            conn.execute(text(
+                "ALTER TABLE alembic_version "
+                "ALTER COLUMN version_num TYPE VARCHAR(255)"
+            ))
+            conn.commit()
+
+
 def run_migrations_online() -> None:
     connectable = engine_from_config(
         alembic_config.get_section(alembic_config.config_ini_section, {}),
@@ -65,22 +84,10 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
 
-    with connectable.connect() as connection:
-        # Widen alembic_version.version_num if needed (default VARCHAR(32) is too short
-        # for descriptive revision IDs like "0006_annual_report_income_expense_and_fks")
-        dialect = connectable.dialect.name
-        if dialect == "postgresql":
-            exists = connection.execute(text(
-                "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
-                "WHERE table_name = 'alembic_version')"
-            )).scalar()
-            if exists:
-                connection.execute(text(
-                    "ALTER TABLE alembic_version "
-                    "ALTER COLUMN version_num TYPE VARCHAR(255)"
-                ))
-                connection.commit()
+    if connectable.dialect.name == "postgresql":
+        _widen_alembic_version_if_needed(connectable)
 
+    with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
