@@ -1,7 +1,5 @@
 """Tax and readiness operations for annual report financial service."""
 
-from sqlalchemy import func as sa_func
-
 from app.annual_reports.schemas.annual_report_financials import (
     BracketBreakdownItem,
     NationalInsuranceResponse,
@@ -10,8 +8,6 @@ from app.annual_reports.schemas.annual_report_financials import (
 )
 from app.annual_reports.services.ni_engine import calculate_national_insurance
 from app.annual_reports.services.tax_engine import calculate_tax
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
 class FinancialTaxMixin:
@@ -31,27 +27,8 @@ class FinancialTaxMixin:
         tax = calculate_tax(summary.taxable_income, report.tax_year, credit_points, pension_deduction, donation_amount, other_credits)
         ni = calculate_national_insurance(summary.taxable_income, report.tax_year)
         net_profit = tax.taxable_income - tax.tax_after_credits
-        vat_row = (
-            self.db.query(sa_func.sum(VatWorkItem.net_vat).label("total_vat"))
-            .filter(
-                VatWorkItem.client_id == report.client_id,
-                sa_func.substr(VatWorkItem.period, 1, 4) == str(report.tax_year),
-            )
-            .one_or_none()
-        )
-        vat_balance = float(vat_row[0] or 0) if vat_row and vat_row[0] is not None else None
-
-        advances_paid = sum(
-            float(p.paid_amount)
-            for p in self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.client_id == report.client_id,
-                AdvancePayment.year == report.tax_year,
-                AdvancePayment.status == AdvancePaymentStatus.PAID,
-            )
-            .all()
-            if p.paid_amount is not None
-        )
+        vat_balance = self.vat_repo.sum_net_vat_by_client_year(report.client_id, report.tax_year)  # type: ignore[attr-defined]
+        advances_paid = self.advance_repo.sum_paid_by_client_year(report.client_id, report.tax_year)  # type: ignore[attr-defined]
 
         total_liability = round(tax.tax_after_credits + ni.total + (vat_balance or 0) - advances_paid, 2)
         return TaxCalculationResponse(

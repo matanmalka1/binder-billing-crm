@@ -109,6 +109,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
             note=reason,
         )
         AnnualReportDetailRepository(self.db).upsert(report_id, amendment_reason=reason)
+        # Cancel any pending signature requests created before submission (item 14)
+        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "תיקון דוח — ביטול בקשת חתימה")
         return self.get_detail_report(report_id)
 
     def kanban_view(self) -> list[dict]:
@@ -126,11 +128,13 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 stage_key = ReportStage.MATERIAL_COLLECTION
             elif status_value == "docs_complete":
                 stage_key = ReportStage.IN_PROGRESS
-            elif status_value == "in_preparation":
+            elif status_value in ("in_preparation", "amended"):
                 stage_key = ReportStage.FINAL_REVIEW
             elif status_value == "pending_client":
                 stage_key = ReportStage.CLIENT_SIGNATURE
-            else:  # submitted, accepted, assessment_issued, objection_filed, closed
+            elif status_value in ("assessment_issued", "objection_filed"):
+                stage_key = ReportStage.POST_SUBMISSION
+            else:  # submitted, accepted, closed
                 stage_key = ReportStage.TRANSMITTED
 
             stages[stage_key.value].append(

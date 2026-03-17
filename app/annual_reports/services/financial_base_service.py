@@ -3,10 +3,12 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
+from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
 from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
+from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 
 class FinancialBaseService:
@@ -24,6 +26,8 @@ class FinancialBaseService:
         self.expense_repo = AnnualReportExpenseRepository(db)
         self.report_repo = AnnualReportRepository(db)
         self.detail_repo = AnnualReportDetailRepository(db)
+        self.vat_repo = VatWorkItemRepository(db)
+        self.advance_repo = AdvancePaymentRepository(db)
 
     def _get_report_or_raise(self, report_id: int):
         report = self.report_repo.get_by_id(report_id)

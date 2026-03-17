@@ -78,10 +78,29 @@ class AnnualReportStatusService(AnnualReportBaseService):
             note=note,
         )
 
+        # Cancel stale PENDING_SIGNATURE requests when leaving PENDING_CLIENT (item 15)
+        if old_status == AnnualReportStatus.PENDING_CLIENT and ns != AnnualReportStatus.PENDING_CLIENT:
+            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "מעבר סטטוס — ביטול בקשת חתימה")
+
         if ns == AnnualReportStatus.PENDING_CLIENT:
+            # Cancel any existing requests before creating a new one (item 13)
+            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "כניסה חוזרת ל-PENDING_CLIENT")
             self._trigger_signature_request(updated, changed_by, changed_by_name)
 
         return self._to_responses([updated])[0]
+
+    def _cancel_pending_signature_requests(
+        self, report_id: int, actor_id: int, actor_name: str, reason: str
+    ) -> None:
+        from app.signature_requests.services.signature_request_service import SignatureRequestService
+        from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+        sig_repo = SignatureRequestRepository(self.db)  # type: ignore[attr-defined]
+        pending = sig_repo.list_pending_by_annual_report(report_id)
+        if not pending:
+            return
+        svc = SignatureRequestService(self.db)
+        for req in pending:
+            svc.cancel_request(request_id=req.id, canceled_by=actor_id, canceled_by_name=actor_name, reason=reason)
 
     def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
         from app.signature_requests.services.signature_request_service import SignatureRequestService
