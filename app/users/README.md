@@ -1,5 +1,8 @@
 # Users Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages authentication, user lifecycle administration, role-based access checks, and user audit logs.
 
 ## Scope
@@ -49,7 +52,8 @@ Audit action enum values:
 
 Implementation references:
 - Models: `app/users/models/user.py`, `app/users/models/user_audit_log.py`
-- Schemas: `app/users/schemas/auth.py`, `app/users/models/user_management.py`
+- Auth schemas: `app/users/schemas/auth.py`
+- Request/response models: `app/users/models/user_management.py`
 - Repositories: `app/users/repositories/user_repository.py`, `app/users/repositories/user_audit_log_repository.py`
 - Services: `app/users/services/auth_service.py`, `app/users/services/user_management_service.py`, `app/users/services/audit_log_service.py`
 - API: `app/users/api/auth.py`, `app/users/api/users.py`, `app/users/api/users_audit.py`, `app/users/api/deps.py`

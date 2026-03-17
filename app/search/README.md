@@ -1,5 +1,8 @@
 # Search Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Provides unified search across clients, binders, and matching permanent documents, with optional operational filters (work state/signals).
 
 ## Scope

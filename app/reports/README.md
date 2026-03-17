@@ -1,5 +1,8 @@
 # Reports Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages management/operational reports and exports (aging, VAT compliance, advance-payments collections, annual-report status).
 
 ## Scope

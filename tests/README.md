@@ -1,5 +1,8 @@
 # Tests Layout
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 - Domain-first tree mirrors `app/<domain>` names (e.g., `charge`, not `charges`) so navigation is 1:1.
 - Each domain has its own folder: `tests/<domain>/`.
   - API/route tests live in `tests/<domain>/api/` with any API helpers alongside.

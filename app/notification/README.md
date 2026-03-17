@@ -1,5 +1,8 @@
 # Notification Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages notification records and delivery orchestration (email/WhatsApp) for binder lifecycle updates and manual reminders.
 
 ## Scope

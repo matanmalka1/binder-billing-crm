@@ -1,5 +1,8 @@
 # Dashboard Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages dashboard widgets and operational summaries (overview metrics, work queue, attention items, and tax submission statistics) used by the CRM home/dashboard screens.
 
 ## Scope

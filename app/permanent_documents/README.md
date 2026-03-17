@@ -1,5 +1,8 @@
 # Permanent Documents Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages client permanent documents (upload, versioning, status actions, retrieval, and advisory missing-doc signals) used across operational and annual-report workflows.
 
 ## Scope

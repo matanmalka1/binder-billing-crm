@@ -1,5 +1,8 @@
 # Invoice Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages external invoice references attached to charges (provider metadata, external invoice id, issue timestamp, and optional document URL).
 
 ## Scope

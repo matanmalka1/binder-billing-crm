@@ -1,5 +1,8 @@
 # Signature Requests Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages digital signature request lifecycle for client documents and approvals, including advisor workflows, public signer token flows, and immutable audit trail events.
 
 ## Scope
@@ -69,7 +72,7 @@ Implementation references:
 - Model: `app/signature_requests/models/signature_request.py`
 - Schemas: `app/signature_requests/schemas/signature_request.py`
 - Repository: `app/signature_requests/repositories/signature_request_repository.py` (+ CRUD/Audit mixins)
-- Services: `app/signature_requests/services/*.py`
+- Services: `app/signature_requests/services/` (advisor, signer, and expiry flows)
 - APIs: `app/signature_requests/api/routes_advisor.py`, `app/signature_requests/api/routes_client.py`, `app/signature_requests/api/routes_signer.py`
 
 ## API

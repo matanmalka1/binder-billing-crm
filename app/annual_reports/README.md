@@ -1,5 +1,8 @@
 # Annual Reports Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages annual income-tax report lifecycle for clients, including creation, status workflow, schedules/annexes, financial lines, tax calculations, and season dashboards.
 
 ## Scope

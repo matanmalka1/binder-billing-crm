@@ -1,5 +1,8 @@
 # Correspondence Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages per-client correspondence entries (calls, letters, emails, meetings) used by the CRM timeline/context and linked to optional authority contacts.
 
 ## Scope

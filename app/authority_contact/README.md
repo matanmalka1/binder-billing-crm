@@ -1,5 +1,8 @@
 # Authority Contact Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages per-client authority contacts (tax office, VAT branch, national insurance, etc.) used by the CRM and referenced by other domains (for example correspondence entries).
 
 ## Scope

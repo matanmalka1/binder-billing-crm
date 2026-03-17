@@ -1,5 +1,8 @@
 # Clients Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages CRM clients (identity, lifecycle status, contact details, address, and related client-level views) and exposes core client APIs consumed by other domains.
 
 ## Scope

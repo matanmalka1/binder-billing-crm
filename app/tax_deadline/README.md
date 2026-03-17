@@ -1,5 +1,8 @@
 # Tax Deadline Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages client tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and automatic yearly deadline generation.
 
 ## Scope

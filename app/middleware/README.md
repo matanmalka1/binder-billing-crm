@@ -1,5 +1,8 @@
 # Middleware Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Provides application middleware components for request lifecycle concerns, currently focused on request correlation/tracing.
 
 ## Scope
@@ -56,7 +59,7 @@ For every HTTP request:
 
 ## Tests
 
-There is currently no dedicated `tests/middleware` suite.
+There is currently no dedicated middleware-only test suite.
 
 Middleware behavior is validated indirectly through API/integration tests where requests traverse the full FastAPI stack.
 

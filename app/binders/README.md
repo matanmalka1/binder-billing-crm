@@ -1,5 +1,8 @@
 # Binders Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages physical binder lifecycle in the CRM: intake, operational tracking, ready-for-pickup, return, audit history, and list views enriched with derived operational metadata.
 
 ## Scope
@@ -148,6 +151,11 @@ Base prefix: `/api/v1/binders`
 #### Binder audit history
 - `GET /api/v1/binders/{binder_id}/history`
 - Response model: `BinderHistoryResponse`
+
+#### Binder intake history
+- `GET /api/v1/binders/{binder_id}/intakes`
+- Response model: `BinderIntakeListResponse`
+- Returns intake rows with `received_by_name` enrichment
 
 ### Client-scoped binders (cross-domain route)
 

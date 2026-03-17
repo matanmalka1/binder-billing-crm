@@ -1,5 +1,8 @@
 # Actions Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Defines executable UI action contracts shared across domains (clients, binders, charges, tax deadlines, annual reports).
 
 ## Scope
@@ -80,7 +83,7 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 
 ## Tests
 
-No dedicated `tests/actions` package currently exists.
+No dedicated actions-only test package currently exists.
 
 Actions behavior is covered indirectly by domain tests, including:
 - `tests/clients/api/test_clients.py`

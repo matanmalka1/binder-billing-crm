@@ -1,5 +1,8 @@
 # Infrastructure Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Provides infrastructure adapters used by domain services for external integrations (storage and outbound notifications).
 
 ## Scope
@@ -79,7 +82,7 @@ Infrastructure-specific runtime failures may include:
 
 ## Tests
 
-There is no dedicated `tests/infrastructure` suite currently.
+There is no dedicated infrastructure-only test suite currently.
 
 Infrastructure behavior is covered indirectly through domain tests, including:
 - Notification domain tests:

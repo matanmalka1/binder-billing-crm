@@ -1,5 +1,8 @@
 # Timeline Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Provides unified per-client timeline aggregation across operational domains (binders, charges, notifications, tax deadlines, annual reports, reminders, documents, and signature requests).
 
 ## Scope

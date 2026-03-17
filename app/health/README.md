@@ -1,5 +1,8 @@
 # Health Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Provides application health/readiness checks for runtime monitoring and deployment verification.
 
 ## Scope

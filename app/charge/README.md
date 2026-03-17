@@ -1,5 +1,8 @@
 # Charges Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages client billing charges (draft, issue, payment, cancellation) used by the CRM and referenced by related operational domains.
 
 ## Scope

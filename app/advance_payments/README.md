@@ -1,5 +1,8 @@
 # Advance Payments Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages client advance tax-payment records (monthly prepayments), schedule generation, overview analytics, and KPI/chart endpoints.
 
 ## Scope

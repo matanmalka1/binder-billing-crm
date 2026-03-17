@@ -1,5 +1,8 @@
 # Reminders Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages proactive reminder scheduling and lifecycle (pending/sent/canceled) for client-related events such as tax deadlines, idle binders, unpaid charges, and custom reminders.
 
 ## Scope

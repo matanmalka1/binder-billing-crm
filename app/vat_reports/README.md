@@ -1,5 +1,8 @@
 # VAT Reports Module
 
+> Last audited: 2026-03-17 (domain-by-domain backend sync).
+
+
 Manages VAT work-item lifecycle (intake, data entry, review, filing), invoice capture, audit trail, and client-level summary/export.
 
 ## Scope
@@ -123,6 +126,11 @@ Router prefix is `/api/v1/vat` (mounted in `app/main.py` via `vat_reports_router
 - Requires authenticated user
 - Query params:
   - `invoice_type` (optional: `income` or `expense`)
+
+### Update invoice
+- `PATCH /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}`
+- Requires authenticated user
+- Supports partial update for invoice data-entry fields.
 
 ### Delete invoice
 - `DELETE /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}`
