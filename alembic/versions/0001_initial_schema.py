@@ -19,6 +19,24 @@ def upgrade() -> None:
     bind = op.get_bind()
     is_sqlite = bind.dialect.name == "sqlite"
 
+    # Drop any pre-existing enum types so this migration is idempotent
+    # (handles cases where a previous partial run created types but not tables)
+    if not is_sqlite:
+        for type_name in [
+            "userrole", "auditaction", "auditstatus", "clienttype", "clientstatus",
+            "vattype", "contacttype", "clienttypeforreport", "annualreportform",
+            "annualreportstatus", "annualreportschedule", "reportstage", "deadlinetype",
+            "bindertype", "binderstatus", "taxdeadlinetype", "taxdeadlinestatus",
+            "urgencylevel", "chargetype", "chargestatus", "advancepaymentstatus",
+            "remindertype", "reminderstatus", "correspondencetype", "incomesourcetype",
+            "expensecategorytype", "signaturerequesttype", "signaturerequeststatus",
+            "notificationtrigger", "notificationchannel", "notificationstatus",
+            "notificationseverity", "vatworkitemstatus", "filingmethod", "invoicetype",
+            "expensecategory", "vatratetype", "vatdocumenttype", "documenttype",
+            "documentstatus",
+        ]:
+            bind.execute(sa.text(f"DROP TYPE IF EXISTS {type_name} CASCADE"))
+
     # ------------------------------------------------------------------ #
     # users                                                                #
     # ------------------------------------------------------------------ #
