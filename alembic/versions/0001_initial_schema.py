@@ -19,6 +19,11 @@ def upgrade() -> None:
     bind = op.get_bind()
     is_sqlite = bind.dialect.name == "sqlite"
 
+    # If tables already exist, this DB was initialized outside Alembic — skip.
+    from sqlalchemy import inspect as sa_inspect
+    if "users" in sa_inspect(bind).get_table_names():
+        return
+
     # Drop any pre-existing enum types so this migration is idempotent
     # (handles cases where a previous partial run created types but not tables)
     if not is_sqlite:
