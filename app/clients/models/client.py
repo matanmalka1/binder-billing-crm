@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -43,6 +43,17 @@ class Client(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    __table_args__ = (
+        # Partial unique index: only one active (non-deleted) client per id_number.
+        # PostgreSQL supports WHERE clauses; SQLite falls back to a plain index.
+        Index(
+            "ix_clients_id_number_active",
+            "id_number",
+            unique=True,
+            postgresql_where=Column("deleted_at").is_(None),
+        ),
+    )
 
     def __repr__(self):
         return f"<Client(id={self.id}, name='{self.full_name}', status='{self.status}')>"
