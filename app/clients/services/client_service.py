@@ -4,6 +4,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.schemas.client import BulkClientFailedItem
+from sqlalchemy.exc import IntegrityError
+
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.clients.models.client import Client, ClientStatus
 from app.users.models.user import UserRole
@@ -40,16 +42,19 @@ class ClientService:
         if existing:
             raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
 
-        return self.client_repo.create(
-            full_name=full_name,
-            id_number=id_number,
-            client_type=client_type,
-            opened_at=opened_at,
-            phone=phone,
-            email=email,
-            notes=notes,
-            created_by=actor_id,
-        )
+        try:
+            return self.client_repo.create(
+                full_name=full_name,
+                id_number=id_number,
+                client_type=client_type,
+                opened_at=opened_at,
+                phone=phone,
+                email=email,
+                notes=notes,
+                created_by=actor_id,
+            )
+        except IntegrityError:
+            raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
 
     def get_client(self, client_id: int) -> Optional[Client]:
         """Get client by ID."""
