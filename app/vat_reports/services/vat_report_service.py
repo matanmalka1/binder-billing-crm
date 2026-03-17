@@ -10,6 +10,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services import data_entry, filing, intake, vat_report_queries
@@ -29,12 +30,14 @@ class VatReportService:
         self.work_item_repo = VatWorkItemRepository(db)
         self.invoice_repo = VatInvoiceRepository(db)
         self.client_repo = ClientRepository(db)
+        self.tax_profile_repo = ClientTaxProfileRepository(db)
 
     # ── Intake ───────────────────────────────────────────────────────────────
 
     def create_work_item(self, **kwargs):
         return intake.create_work_item(
-            self.work_item_repo, self.client_repo, **kwargs
+            self.work_item_repo, self.client_repo,
+            tax_profile_repo=self.tax_profile_repo, **kwargs
         )
 
     def mark_materials_complete(self, **kwargs):

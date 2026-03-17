@@ -4,11 +4,29 @@ import json
 from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.clients.models.client_tax_profile import VatType
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED
+
+
+def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
+    """Raise AppError if period doesn't match the client's reporting frequency."""
+    if vat_type == VatType.EXEMPT:
+        raise AppError(
+            "לקוח זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
+            "VAT.CLIENT_EXEMPT",
+        )
+    if vat_type == VatType.BIMONTHLY:
+        month = int(period.split("-")[1])
+        if month % 2 == 0:
+            raise AppError(
+                f"לקוח זה מדווח דו-חודשי — התקופה {period} אינה תקפה (חודשים זוגיים אסורים)",
+                "VAT.INVALID_PERIOD_FOR_FREQUENCY",
+            )
 
 
 def create_work_item(
@@ -18,6 +36,7 @@ def create_work_item(
     client_id: int,
     period: str,
     created_by: int,
+    tax_profile_repo: Optional[ClientTaxProfileRepository] = None,
     assigned_to: Optional[int] = None,
     mark_pending: bool = False,
     pending_materials_note: Optional[str] = None,
@@ -28,12 +47,18 @@ def create_work_item(
     Rules:
     - Client must exist.
     - Only one work item per (client_id, period) — duplicate raises AppError.
+    - If client has a vat_type, the period must match the reporting frequency.
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
     client = client_repo.get_by_id(client_id)
     if not client:
         raise NotFoundError(f"Client not found: לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+
+    if tax_profile_repo is not None:
+        profile = tax_profile_repo.get_by_client_id(client_id)
+        if profile and profile.vat_type:
+            _validate_period_for_vat_type(period, profile.vat_type)
 
     existing = work_item_repo.get_by_client_period(client_id, period)
     if existing:
