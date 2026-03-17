@@ -107,6 +107,17 @@ class SignatureRequestCrudMixin:
         self.db.refresh(req)
         return req
 
+    def list_pending_by_annual_report(self, annual_report_id: int) -> list[SignatureRequest]:
+        """Return all PENDING_SIGNATURE requests linked to the given annual report."""
+        return (
+            self.db.query(SignatureRequest)
+            .filter(
+                SignatureRequest.annual_report_id == annual_report_id,
+                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+            )
+            .all()
+        )
+
     def list_expired_pending(self) -> list[SignatureRequest]:
         """Find PENDING_SIGNATURE requests whose expires_at has passed."""
         now = utcnow()

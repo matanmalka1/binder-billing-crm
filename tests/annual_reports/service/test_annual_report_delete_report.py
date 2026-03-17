@@ -28,7 +28,7 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_
         created_by_name="Test User",
     )
 
-    assert service.delete_report(report.id, actor_id=test_user.id) is True
+    assert service.delete_report(report.id, actor_id=test_user.id, actor_name="Test User") is True
     assert service.repo.get_by_id(report.id) is None
-    assert service.delete_report(999999, actor_id=test_user.id) is False
+    assert service.delete_report(999999, actor_id=test_user.id, actor_name="Test User") is False
 

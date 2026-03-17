@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
@@ -122,6 +123,20 @@ class VatWorkItemRepository:
             )
             .count()
         )
+
+    def sum_net_vat_by_client_year(self, client_id: int, tax_year: int) -> Optional[float]:
+        """Sum net_vat for all periods of a given tax year for a client."""
+        row = (
+            self.db.query(sa_func.sum(VatWorkItem.net_vat).label("total_vat"))
+            .filter(
+                VatWorkItem.client_id == client_id,
+                sa_func.substr(VatWorkItem.period, 1, 4) == str(tax_year),
+            )
+            .one_or_none()
+        )
+        if row and row[0] is not None:
+            return float(row[0])
+        return None
 
     def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
         """Return unfiled VAT work items for a period, ordered by creation date."""
