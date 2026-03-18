@@ -4,6 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.clients.models import Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.reminders.api import routes_create
 from app.reminders.models.reminder import ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -104,3 +106,66 @@ def test_create_reminder_unsupported_type_branch_direct(monkeypatch):
     with pytest.raises(Exception) as exc:
         routes_create.create_reminder(request=request, db=object(), user=user)
     assert getattr(exc.value, "status_code", None) == 400
+
+
+def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db, advisor_headers, test_user):
+    crm_client = _client(test_db)
+    binder = Binder(
+        client_id=crm_client.id,
+        binder_number="RMA-B",
+        binder_type=BinderType.OTHER,
+        received_at=date.today(),
+        status=BinderStatus.IN_OFFICE,
+        received_by=test_user.id,
+    )
+    charge = Charge(
+        client_id=crm_client.id,
+        amount=10,
+        charge_type=ChargeType.ONE_TIME,
+        status=ChargeStatus.ISSUED,
+    )
+    test_db.add_all([binder, charge])
+    test_db.commit()
+    test_db.refresh(binder)
+    test_db.refresh(charge)
+
+    idle = client.post(
+        "/api/v1/reminders",
+        headers=advisor_headers,
+        json={
+            "client_id": crm_client.id,
+            "reminder_type": "binder_idle",
+            "target_date": date.today().isoformat(),
+            "days_before": 2,
+            "binder_id": binder.id,
+            "message": "idle",
+        },
+    )
+    assert idle.status_code == 201
+
+    unpaid = client.post(
+        "/api/v1/reminders",
+        headers=advisor_headers,
+        json={
+            "client_id": crm_client.id,
+            "reminder_type": "unpaid_charge",
+            "target_date": date.today().isoformat(),
+            "days_before": 3,
+            "charge_id": charge.id,
+            "message": "unpaid",
+        },
+    )
+    assert unpaid.status_code == 201
+
+    custom = client.post(
+        "/api/v1/reminders",
+        headers=advisor_headers,
+        json={
+            "client_id": crm_client.id,
+            "reminder_type": "custom",
+            "target_date": date.today().isoformat(),
+            "days_before": 0,
+            "message": "custom-ok",
+        },
+    )
+    assert custom.status_code == 201

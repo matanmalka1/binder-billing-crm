@@ -3,6 +3,7 @@ import io
 import pytest
 
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
+from app.infrastructure.notifications import _to_html
 from app.infrastructure import storage as storage_mod
 
 
@@ -135,3 +136,24 @@ def test_s3_provider_upload_delete_and_presigned(monkeypatch):
     assert provider._client.uploaded[0:2] == ("bucket", "a/b.txt")
     assert provider._client.deleted == ("bucket", "a/b.txt")
     assert "exp=120" in url
+
+
+def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
+    html = _to_html("line1\n\nline2")
+    assert "<p>line1</p>" in html
+    assert "<br>" in html
+
+    def _raise_urlopen(req, timeout=10):
+        raise RuntimeError("net-down")
+
+    monkeypatch.setattr("urllib.request.urlopen", _raise_urlopen)
+
+    email = EmailChannel(enabled=True, api_key="k", from_address="from@x.com")
+    ok, msg = email.send("to@x.com", "hello")
+    assert ok is False
+    assert "SendGrid error" in msg
+
+    wa = WhatsAppChannel(api_key="k", api_url="https://wa", from_number="123")
+    ok, msg = wa.send("050", "hello")
+    assert ok is False
+    assert "WhatsApp error" in msg

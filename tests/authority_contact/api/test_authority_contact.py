@@ -136,3 +136,15 @@ def test_secretary_cannot_delete_authority_contact(client, test_db, secretary_he
     )
 
     assert response.status_code == 403
+
+
+def test_get_authority_contact_by_id_and_not_found(client, test_db, advisor_headers):
+    crm_client = _create_client(test_db)
+    contact = _create_contact(test_db, crm_client.id)
+
+    ok = client.get(f"/api/v1/clients/authority-contacts/{contact.id}", headers=advisor_headers)
+    assert ok.status_code == 200
+    assert ok.json()["id"] == contact.id
+
+    missing = client.get("/api/v1/clients/authority-contacts/999999", headers=advisor_headers)
+    assert missing.status_code == 404

@@ -136,3 +136,27 @@ def test_submit_not_found_returns_404(client, advisor_headers):
     )
     assert resp.status_code == 404
     assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+
+
+def test_submit_returns_404_when_detail_missing_branch(client, test_db, advisor_headers, monkeypatch):
+    report_id = _create_report(test_db)
+
+    import app.annual_reports.api.annual_report_status as status_api
+
+    class _Svc:
+        def __init__(self, db):
+            self.db = db
+
+        def transition_status(self, **kwargs):
+            return None
+
+        def get_detail_report(self, report_id):
+            return None
+
+    monkeypatch.setattr(status_api, "AnnualReportService", _Svc)
+    resp = client.post(
+        f"/api/v1/annual-reports/{report_id}/submit",
+        headers=advisor_headers,
+        json={},
+    )
+    assert resp.status_code == 404

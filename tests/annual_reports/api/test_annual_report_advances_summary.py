@@ -54,3 +54,18 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
     assert body["advances_count"] == 1
     assert body["balance_type"] == "refund"
     assert body["final_balance"] == -100.0
+
+
+def test_advances_summary_zero_balance_without_paid_advances(client, test_db, advisor_headers):
+    report = _create_report(test_db)
+    resp = client.get(
+        f"/api/v1/annual-reports/{report.id}/advances-summary",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["balance_type"] == "zero"
+
+
+def test_advances_summary_not_found(client, advisor_headers):
+    resp = client.get("/api/v1/annual-reports/999999/advances-summary", headers=advisor_headers)
+    assert resp.status_code == 404

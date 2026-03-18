@@ -52,3 +52,32 @@ def test_client_repository_lookup_and_soft_delete(test_db):
 
     active_only = repo.list_all(status=ClientStatus.ACTIVE)
     assert [c.id for c in active_only] == [zeta.id]
+
+
+def test_client_repository_list_count_search_and_soft_delete_missing(test_db):
+    repo = ClientRepository(test_db)
+    a = repo.create(
+        full_name="Searchable One",
+        id_number="S001",
+        client_type=ClientType.COMPANY,
+        opened_at=date(2024, 3, 1),
+    )
+    repo.create(
+        full_name="Searchable Two",
+        id_number="S002",
+        client_type=ClientType.COMPANY,
+        opened_at=date(2024, 4, 1),
+    )
+
+    listed = repo.list(status=ClientStatus.ACTIVE.value, search="Searchable", page=1, page_size=10)
+    assert len(listed) >= 2
+    assert repo.count(search="S00") >= 2
+
+    by_name, total = repo.search(client_name="One", page=1, page_size=10)
+    assert total >= 1
+    assert any(c.id == a.id for c in by_name)
+
+    by_idnum, _ = repo.search(id_number="S001", page=1, page_size=10)
+    assert any(c.id == a.id for c in by_idnum)
+
+    assert repo.soft_delete(999999, deleted_by=1) is False

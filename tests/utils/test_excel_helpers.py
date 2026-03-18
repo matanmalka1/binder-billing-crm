@@ -1,4 +1,6 @@
 from pathlib import Path
+import builtins
+import tempfile
 
 from openpyxl import Workbook
 
@@ -33,3 +35,30 @@ def test_save_workbook_to_temp_returns_metadata(tmp_path):
     assert payload["format"] == "excel"
     assert payload["filename"].startswith("unit_excel_")
     assert Path(payload["filepath"]).exists()
+
+
+def test_adjust_and_header_helpers_tolerate_missing_openpyxl(monkeypatch):
+    original_import = builtins.__import__
+
+    def _import(name, *args, **kwargs):
+        if name.startswith("openpyxl"):
+            raise ImportError("missing")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _import)
+
+    class _WS:
+        def iter_cols(self):
+            return []
+
+    ws = _WS()
+    adjust_column_widths(ws)  # no raise
+    make_header_row(ws, ["A"])  # no raise
+
+
+def test_save_workbook_to_temp_uses_default_subdir():
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["x"])
+    payload = save_workbook_to_temp(wb, prefix="default_subdir_case")
+    assert payload["filepath"].startswith(str(Path(tempfile.gettempdir()) / "exports"))

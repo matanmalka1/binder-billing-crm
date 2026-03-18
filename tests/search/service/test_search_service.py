@@ -1,0 +1,48 @@
+from datetime import date
+from types import SimpleNamespace
+
+from app.search.services.search_service import SearchService
+
+
+def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
+    svc = SearchService(test_db)
+    svc.client_repo = SimpleNamespace(
+        search=lambda **kwargs: ([SimpleNamespace(id=1, full_name="Alpha", status=SimpleNamespace(value="active"))], 1),
+        list_by_ids=lambda ids: [SimpleNamespace(id=1, full_name="Alpha", status=SimpleNamespace(value="active"))],
+    )
+    binder = SimpleNamespace(id=2, client_id=1, binder_number="B-1")
+    svc.binder_repo = SimpleNamespace(list_active=lambda **kwargs: [binder])
+    svc.signals_service = SimpleNamespace(compute_binder_signals=lambda *_args, **_kwargs: ["idle_binder"])
+    monkeypatch.setattr(
+        "app.search.services.search_service.WorkStateService.derive_work_state",
+        lambda *_args, **_kwargs: SimpleNamespace(value="stuck"),
+    )
+    monkeypatch.setattr(
+        "app.search.services.search_service.DocumentSearchService",
+        lambda db: SimpleNamespace(search_documents=lambda query: [{"id": 10}]),
+    )
+
+    items, total, docs = svc.search(
+        query="alpha",
+        work_state="stuck",
+        has_signals=True,
+        signal_type=["idle_binder"],
+        page=1,
+        page_size=10,
+        reference_date=date.today(),
+    )
+    assert docs == [{"id": 10}]
+    assert total >= 1
+    assert any(i["result_type"] == "binder" for i in items)
+
+
+def test_search_service_client_only_short_circuit(test_db):
+    svc = SearchService(test_db)
+    svc.client_repo = SimpleNamespace(
+        search=lambda **kwargs: ([SimpleNamespace(id=1, full_name="Alpha", status=SimpleNamespace(value="active"))], 1),
+    )
+
+    items, total, docs = svc.search(query="alpha", page=1, page_size=10)
+    assert total == 1
+    assert docs == []
+    assert items[0]["result_type"] == "client"

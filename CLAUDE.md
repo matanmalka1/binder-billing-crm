@@ -1,4 +1,5 @@
-# CLAUDE.md — Binder & Billing CRM (Backend)
+# CLAUDE.md 
+# Binder & Billing CRM (Backend)
 
 > Single source of truth for assistant behavior and project rules.
 > Also read `BACKEND_SPEC.md` for per-domain service/repo/ORM detail before touching any domain.

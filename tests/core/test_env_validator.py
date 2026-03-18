@@ -31,3 +31,17 @@ def test_validation_still_handles_future_required_vars():
         with pytest.raises(SystemExit) as exc_info:
             EnvValidator.validate()
         assert exc_info.value.code == 1
+
+
+def test_validation_reports_missing_and_empty_to_stderr(capsys):
+    with patch.object(EnvValidator, "REQUIRED_VARS", ["MISSING_VAR", "EMPTY_VAR"]), patch.dict(
+        os.environ, {"EMPTY_VAR": "   "}, clear=True
+    ):
+        with pytest.raises(SystemExit):
+            EnvValidator.validate()
+
+    err = capsys.readouterr().err
+    assert "Missing required variables" in err
+    assert "MISSING_VAR" in err
+    assert "Empty required variables" in err
+    assert "EMPTY_VAR" in err
