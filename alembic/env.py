@@ -13,9 +13,14 @@ import app.annual_reports.models.annual_report_detail  # noqa: F401
 import app.annual_reports.models.annual_report_model  # noqa: F401
 import app.annual_reports.models.annual_report_schedule_entry  # noqa: F401
 import app.annual_reports.models.annual_report_status_history  # noqa: F401
+import app.annual_reports.models.annual_report_status_history  # noqa: F401
+import app.annual_reports.models.annual_report_annex_data      # noqa: F401  
+import app.annual_reports.models.annual_report_expense_line    # noqa: F401  
+import app.annual_reports.models.annual_report_income_line     # noqa: F401  
 import app.authority_contact.models.authority_contact  # noqa: F401
 import app.binders.models.binder  # noqa: F401
 import app.binders.models.binder_status_log  # noqa: F401
+import app.binders.models.binder_intake  # noqa: F401
 import app.charge.models.charge  # noqa: F401
 import app.clients.models.client  # noqa: F401
 import app.clients.models.client_tax_profile  # noqa: F401
