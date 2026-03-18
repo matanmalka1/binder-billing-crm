@@ -68,7 +68,7 @@ def submit_report(
     )
     detail = service.get_detail_report(report_id)
     if detail is None:
-        raise NotFoundError("Annual report not found", "ANNUAL_REPORT.NOT_FOUND")
+        raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
     return detail
 
 

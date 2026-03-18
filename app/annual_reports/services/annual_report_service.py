@@ -41,7 +41,7 @@ class AnnualReportService(
     def assert_report_exists(self, report_id: int) -> None:
         """Raise NotFoundError if the report does not exist."""
         if not self.repo.get_by_id(report_id):
-            raise NotFoundError("Annual report not found", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
 
     def delete_report(self, report_id: int, actor_id: int, actor_name: str) -> bool:
         """Soft-delete an annual report. Returns False if not found."""
