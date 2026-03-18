@@ -119,11 +119,16 @@
 
 ## Permanent Documents
 
-- `POST /api/v1/documents/upload` — multipart: `client_id`, `document_type`, `file`, `tax_year?`.
+- `POST /api/v1/documents/upload` — multipart: `client_id`, `document_type`, `file`, `tax_year?`, `annual_report_id?`, `notes?`; 201.
 - `GET /api/v1/documents/client/{id}` — list documents; optional `tax_year` filter.
 - `GET /api/v1/documents/client/{id}/signals` — missing/required doc indicators.
+- `GET /api/v1/documents/client/{id}/versions` — version history; required `document_type`, optional `tax_year`.
 - `GET /api/v1/documents/{id}/download-url` — returns `{ url }` (presigned/local path).
-- `PUT /api/v1/documents/{id}/replace` (advisor) — multipart: `file`; replaces stored file.
+- `PUT /api/v1/documents/{id}/replace` (advisor) — multipart: `file`; replaces stored file, increments version.
+- `POST /api/v1/documents/{id}/approve` (advisor) — marks document approved.
+- `POST /api/v1/documents/{id}/reject` (advisor) — body: `notes`; marks document rejected.
+- `PATCH /api/v1/documents/{id}/notes` — body: `notes`; update notes on non-deleted document.
+- `GET /api/v1/documents/annual-report/{report_id}` — list documents linked to an annual report.
 - `DELETE /api/v1/documents/{id}` (advisor) — soft-delete; 204.
 
 ---
@@ -148,14 +153,26 @@
 - `GET /api/v1/annual-reports/{id}` — full detail with schedules + status history; 404 if missing.
 - `DELETE /api/v1/annual-reports/{id}` (advisor) — soft-delete; 204.
 - `GET /api/v1/annual-reports/kanban/view` — stage-grouped view.
-- `GET /api/v1/annual-reports/overdue` — filing_deadline passed & open statuses.
+- `GET /api/v1/annual-reports/overdue` — filing_deadline passed & open statuses; optional `tax_year`.
+- `GET /api/v1/annual-reports/{id}/export/pdf` — PDF download of working draft.
+
+### Status & Lifecycle
+
+- `POST /api/v1/annual-reports/{id}/status` — transition with `VALID_TRANSITIONS` enforcement; optional `assessment_amount`, `refund_due`, `tax_due`, `note`, `ita_reference`.
+- `POST /api/v1/annual-reports/{id}/submit` — shorthand submit transition; 400 on invalid source status.
+- `POST /api/v1/annual-reports/{id}/amend` (advisor) — transition to `amended`; requires `reason`.
+- `POST /api/v1/annual-reports/{id}/deadline` — change deadline type (`standard|extended|custom`); optional `custom_deadline_note`.
+- `GET /api/v1/annual-reports/{id}/history` — status transition log; 404 if missing.
+
+### Details & Schedules
+
 - `GET /api/v1/annual-reports/{id}/details` — financial detail record; empty shell if none.
 - `PATCH /api/v1/annual-reports/{id}/details` — upsert `tax_refund_amount`, `tax_due_amount`, `client_approved_at`, `internal_notes`.
 - `POST /api/v1/annual-reports/{id}/schedules` — add schedule entry.
 - `POST /api/v1/annual-reports/{id}/schedules/complete` — mark complete; 400 if absent.
-- `POST /api/v1/annual-reports/{id}/status` — transition with `VALID_TRANSITIONS` enforcement; optional `assessment_amount`, `refund_due`, `tax_due`, `note`, `ita_reference`.
-- `POST /api/v1/annual-reports/{id}/amend` (advisor) — transition to `amended`; requires `reason`.
-- `POST /api/v1/annual-reports/{id}/deadline` — change deadline type (`standard|extended|custom`); optional `custom_deadline_note`.
+
+### Tax Year Views
+
 - `GET /api/v1/tax-year/{tax_year}/reports` — paginated season list (default 50, max 200).
 - `GET /api/v1/tax-year/{tax_year}/summary` — counts per status, completion %, overdue count.
 
@@ -217,9 +234,9 @@
 - `POST /vat/work-items/{id}/send-back` (advisor) — `ready_for_review → data_entry_in_progress`; requires `correction_note`.
 - `POST /vat/work-items/{id}/file` (advisor) — finalize filing (`filing_method` manual|online, `override_amount?`, `override_justification?`); locks period.
 - `GET /vat/work-items/{id}` — enriched with `client_name`.
+- `GET /vat/work-items/{id}/audit` — audit trail.
 - `GET /vat/clients/{client_id}/work-items` — all work items for client.
 - `GET /vat/work-items` — optional `status` filter; paginated (default 50, max 200).
-- `GET /vat/work-items/{id}/audit` — audit trail.
 - `GET /vat/client/{client_id}/summary` — VAT client summary.
 - `GET /vat/client/{client_id}/export` (advisor) — export as excel or pdf; requires `year`.
 
@@ -260,28 +277,29 @@
 
 ## Key Enums
 
-| Domain                 | Enum                 | Values                                                                                                                                                                     |
-| ---------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Roles                  | —                    | `advisor`, `secretary`                                                                                                                                                     |
-| Client type            | `ClientType`         | `osek_patur`, `osek_murshe`, `company`, `employee`                                                                                                                         |
-| Client status          | `ClientStatus`       | `active`, `frozen`, `closed`                                                                                                                                               |
-| Binder status          | `BinderStatus`       | `in_office`, `ready_for_pickup`, `returned`                                                                                                                                |
-| Binder type            | `BinderType`         | `vat`, `income_tax`, `national_insurance`, `capital_declaration`, `annual_report`, `salary`, `bookkeeping`, `other`                                                        |
-| Charge type            | `ChargeType`         | `retainer`, `one_time`                                                                                                                                                     |
-| Charge status          | `ChargeStatus`       | `draft`, `issued`, `paid`, `canceled`                                                                                                                                      |
-| Tax deadline type      | `DeadlineType`       | `vat`, `advance_payment`, `national_insurance`, `annual_report`, `other`                                                                                                   |
-| Tax deadline status    | —                    | `pending`, `completed`                                                                                                                                                     |
-| Reminder type          | `ReminderType`       | `tax_deadline_approaching`, `binder_idle`, `unpaid_charge`, `custom`                                                                                                       |
-| Reminder status        | `ReminderStatus`     | `pending`, `sent`, `canceled`                                                                                                                                              |
+| Domain                 | Enum                 | Values                                                                                                                                                                      |
+| ---------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Roles                  | —                    | `advisor`, `secretary`                                                                                                                                                      |
+| Client type            | `ClientType`         | `osek_patur`, `osek_murshe`, `company`, `employee`                                                                                                                          |
+| Client status          | `ClientStatus`       | `active`, `frozen`, `closed`                                                                                                                                                |
+| Binder status          | `BinderStatus`       | `in_office`, `ready_for_pickup`, `returned`                                                                                                                                 |
+| Binder type            | `BinderType`         | `vat`, `income_tax`, `national_insurance`, `capital_declaration`, `annual_report`, `salary`, `bookkeeping`, `other`                                                         |
+| Charge type            | `ChargeType`         | `retainer`, `one_time`                                                                                                                                                      |
+| Charge status          | `ChargeStatus`       | `draft`, `issued`, `paid`, `canceled`                                                                                                                                       |
+| Tax deadline type      | `DeadlineType`       | `vat`, `advance_payment`, `national_insurance`, `annual_report`, `other`                                                                                                    |
+| Tax deadline status    | —                    | `pending`, `completed`                                                                                                                                                      |
+| Reminder type          | `ReminderType`       | `tax_deadline_approaching`, `binder_idle`, `unpaid_charge`, `custom`                                                                                                        |
+| Reminder status        | `ReminderStatus`     | `pending`, `sent`, `canceled`                                                                                                                                               |
 | Annual report status   | `AnnualReportStatus` | `not_started`, `collecting_docs`, `docs_complete`, `in_preparation`, `pending_client`, `submitted`, `amended`, `accepted`, `assessment_issued`, `objection_filed`, `closed` |
-| Annual report deadline | `DeadlineType`       | `standard`, `extended`, `custom`                                                                                                                                           |
-| VAT work item status   | —                    | `pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`                                                                            |
-| VAT invoice type       | —                    | `income`, `expense`                                                                                                                                                        |
-| VAT filing method      | —                    | `manual`, `online`                                                                                                                                                         |
-| Advance payment status | —                    | `pending`, `paid`, `partial`, `overdue`                                                                                                                                    |
-| Document type          | `DocumentType`       | `id_copy`, `power_of_attorney`, `engagement_agreement`                                                                                                                     |
-| WorkState              | —                    | `WAITING_FOR_WORK`, `IN_PROGRESS`, `COMPLETED`                                                                                                                             |
-| Signals                | `SignalType`         | `MISSING_DOCUMENTS`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`                                                                                                  |
+| Annual report deadline | `DeadlineType`       | `standard`, `extended`, `custom`                                                                                                                                            |
+| VAT work item status   | —                    | `pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`                                                                             |
+| VAT invoice type       | —                    | `income`, `expense`                                                                                                                                                         |
+| VAT filing method      | —                    | `manual`, `online`                                                                                                                                                          |
+| Advance payment status | —                    | `pending`, `paid`, `partial`, `overdue`                                                                                                                                     |
+| Document type          | `DocumentType`       | `id_copy`, `power_of_attorney`, `engagement_agreement`, `tax_form`, `receipt`, `invoice_doc`, `bank_approval`, `withholding_certificate`, `nii_approval`, `other`           |
+| Document status        | —                    | `pending`, `received`, `approved`, `rejected`                                                                                                                               |
+| WorkState              | —                    | `WAITING_FOR_WORK`, `IN_PROGRESS`, `COMPLETED`                                                                                                                              |
+| Signals                | `SignalType`         | `MISSING_DOCUMENTS`, `READY_FOR_PICKUP`, `UNPAID_CHARGES`, `IDLE_BINDER`                                                                                                    |
 
 ---
 

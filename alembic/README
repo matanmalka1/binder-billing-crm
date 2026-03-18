@@ -1,5 +1,17 @@
 # Alembic Migrations README
 
+## Policy (must match project rules)
+
+- All schema changes must go through Alembic. Never modify DB schema manually and never use `Base.metadata.create_all()`.
+- Migration files live in `alembic/versions/`.
+- New migration filename convention: `NNNN_<description>.py` (sequential numeric prefix).
+- After any SQLAlchemy model change:
+  1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
+  2. Review the generated migration.
+  3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
+- Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
+
 ## Required: top instructions in every migration file
 For every new file in `alembic/versions/`, include operator instructions in the top docstring so the migration is self-explanatory.
 
@@ -63,6 +75,7 @@ Notes:
 3. Edit the generated file:
 - Add the required top instructions docstring section.
 - Review enum/index/constraint operations carefully (especially PostgreSQL-specific parts).
+- Ensure `down_revision` points to the latest previous migration.
 4. Apply migration:
    `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 5. Optional safety check for reversible migrations:
