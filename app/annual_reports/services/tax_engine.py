@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from app.core.exceptions import AppError
+
 _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
     2024: [
         (81_480, 0.10),
@@ -71,9 +73,9 @@ def calculate_tax(
 ) -> TaxCalculationResult:
     """Calculate Israeli income tax for the given tax year."""
     if tax_year not in _BRACKETS_BY_YEAR:
-        raise ValueError(
+       raise AppError(
             f"Tax year {tax_year} is not supported. Supported years: {sorted(_BRACKETS_BY_YEAR)}"
-        )
+        "TAX_ENGINE.INVALID_INPUT", status_code=400)
     year_brackets = _BRACKETS_BY_YEAR[tax_year]
     credit_point_value = _CREDIT_POINT_VALUE_BY_YEAR[tax_year]
 
