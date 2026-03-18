@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Index
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -31,9 +32,9 @@ class TaxDeadline(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    deadline_type = Column(Enum(DeadlineType), nullable=False)
+    deadline_type = Column(pg_enum(DeadlineType), nullable=False)
     due_date = Column(Date, nullable=False, index=True)
-    status = Column(Enum(TaxDeadlineStatus), default=TaxDeadlineStatus.PENDING, nullable=False)
+    status = Column(pg_enum(TaxDeadlineStatus), default=TaxDeadlineStatus.PENDING, nullable=False)
 
     # Financial
     payment_amount = Column(Numeric(10, 2), nullable=True)

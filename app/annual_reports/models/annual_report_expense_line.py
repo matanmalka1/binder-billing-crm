@@ -5,6 +5,7 @@ from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -49,7 +50,7 @@ class AnnualReportExpenseLine(Base):
     annual_report_id = Column(
         Integer, ForeignKey("annual_reports.id"), nullable=False, index=True
     )
-    category = Column(Enum(ExpenseCategoryType), nullable=False)
+    category = Column(pg_enum(ExpenseCategoryType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)
     recognition_rate = Column(Numeric(5, 2), nullable=False, default=Decimal("1.00"))
     supporting_document_ref = Column(String(255), nullable=True)

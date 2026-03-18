@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, Text, Index
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -29,10 +30,10 @@ class Binder(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     binder_number = Column(String, nullable=False)
-    binder_type = Column(Enum(BinderType), nullable=False)
+    binder_type = Column(pg_enum(BinderType), nullable=False)
     received_at = Column(Date, nullable=False)
     returned_at = Column(Date, nullable=True)
-    status = Column(Enum(BinderStatus), default=BinderStatus.IN_OFFICE, nullable=False)
+    status = Column(pg_enum(BinderStatus), default=BinderStatus.IN_OFFICE, nullable=False)
     received_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     returned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     pickup_person_name = Column(String, nullable=True)

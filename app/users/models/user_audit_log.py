@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -26,11 +27,11 @@ class UserAuditLog(Base):
     __tablename__ = "user_audit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    action = Column(Enum(AuditAction), nullable=False, index=True)
+    action = Column(pg_enum(AuditAction), nullable=False, index=True)
     actor_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     email = Column(String, nullable=True, index=True)
-    status = Column(Enum(AuditStatus), nullable=False, index=True)
+    status = Column(pg_enum(AuditStatus), nullable=False, index=True)
     reason = Column(String, nullable=True)
     metadata_json = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False, index=True)

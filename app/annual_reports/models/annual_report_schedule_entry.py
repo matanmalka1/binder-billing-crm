@@ -1,6 +1,7 @@
 """Annual report schedule entries (annex tracking)."""
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, Text
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
@@ -17,7 +18,7 @@ class AnnualReportScheduleEntry(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
 
-    schedule = Column(Enum(AnnualReportSchedule, create_type=False), nullable=False)
+    schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
     is_required = Column(Boolean, default=True, nullable=False)
     is_complete = Column(Boolean, default=False, nullable=False)
     notes = Column(Text, nullable=True)

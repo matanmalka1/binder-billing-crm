@@ -28,6 +28,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -65,7 +66,7 @@ class SignatureRequest(Base):
     document_id = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
 
     # Request metadata
-    request_type = Column(Enum(SignatureRequestType), nullable=False)
+    request_type = Column(pg_enum(SignatureRequestType), nullable=False)
     title = Column(String, nullable=False)          # Human-readable subject
     description = Column(Text, nullable=True)       # What is being signed & why
     content_hash = Column(String, nullable=True)    # SHA-256 of document content (tamper evidence)
@@ -78,7 +79,7 @@ class SignatureRequest(Base):
 
     # Lifecycle
     status = Column(
-        Enum(SignatureRequestStatus),
+        pg_enum(SignatureRequestStatus),
         default=SignatureRequestStatus.DRAFT,
         nullable=False,
     )

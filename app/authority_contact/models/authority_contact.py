@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, Index
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -18,7 +19,7 @@ class AuthorityContact(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    contact_type = Column(Enum(ContactType), nullable=False)
+    contact_type = Column(pg_enum(ContactType), nullable=False)
 
     # Contact details
     name = Column(String, nullable=False)

@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -36,10 +37,10 @@ class Notification(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     binder_id = Column(Integer, ForeignKey("binders.id"), nullable=True, index=True)
-    trigger = Column(Enum(NotificationTrigger), nullable=False)
-    channel = Column(Enum(NotificationChannel), nullable=False)
-    status = Column(Enum(NotificationStatus), default=NotificationStatus.PENDING, nullable=False)
-    severity = Column(Enum(NotificationSeverity), default=NotificationSeverity.INFO, nullable=False)
+    trigger = Column(pg_enum(NotificationTrigger), nullable=False)
+    channel = Column(pg_enum(NotificationChannel), nullable=False)
+    status = Column(pg_enum(NotificationStatus), default=NotificationStatus.PENDING, nullable=False)
+    severity = Column(pg_enum(NotificationSeverity), default=NotificationSeverity.INFO, nullable=False)
     recipient = Column(String, nullable=False)
     content_snapshot = Column(Text, nullable=False)
     sent_at = Column(DateTime, nullable=True)

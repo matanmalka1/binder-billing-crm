@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -25,8 +26,8 @@ class Client(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     full_name = Column(String, nullable=False)
     id_number = Column(String, nullable=False, index=True)
-    client_type = Column(Enum(ClientType), nullable=False)
-    status = Column(Enum(ClientStatus), default=ClientStatus.ACTIVE, nullable=False)
+    client_type = Column(pg_enum(ClientType), nullable=False)
+    status = Column(pg_enum(ClientStatus), default=ClientStatus.ACTIVE, nullable=False)
     primary_binder_number = Column(String, unique=True, nullable=True)
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)

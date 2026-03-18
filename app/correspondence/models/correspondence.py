@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, String, Text
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -21,7 +22,7 @@ class Correspondence(Base):
     contact_id = Column(
         Integer, ForeignKey("authority_contacts.id"), nullable=True, index=True
     )
-    correspondence_type = Column(Enum(CorrespondenceType), nullable=False)
+    correspondence_type = Column(pg_enum(CorrespondenceType), nullable=False)
     subject = Column(String, nullable=False)
     notes = Column(Text, nullable=True)
     occurred_at = Column(DateTime, nullable=False)

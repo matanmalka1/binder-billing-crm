@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     Text,
 )
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.annual_reports.models.annual_report_enums import (
@@ -39,18 +40,18 @@ class AnnualReport(Base):
 
     # Core identity
     tax_year = Column(Integer, nullable=False)  # e.g. 2023
-    client_type = Column(Enum(ClientTypeForReport), nullable=False)
-    form_type = Column(Enum(AnnualReportForm), nullable=False)
+    client_type = Column(pg_enum(ClientTypeForReport), nullable=False)
+    form_type = Column(pg_enum(AnnualReportForm), nullable=False)
 
     # Status
     status = Column(
-        Enum(AnnualReportStatus),
+        pg_enum(AnnualReportStatus),
         default=AnnualReportStatus.NOT_STARTED,
         nullable=False,
     )
 
     # Deadlines
-    deadline_type = Column(Enum(DeadlineType), default=DeadlineType.STANDARD, nullable=False)
+    deadline_type = Column(pg_enum(DeadlineType), default=DeadlineType.STANDARD, nullable=False)
     filing_deadline = Column(DateTime, nullable=True)  # computed at creation; may be overridden
     custom_deadline_note = Column(String, nullable=True)
 

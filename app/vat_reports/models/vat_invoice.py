@@ -12,6 +12,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -41,7 +42,7 @@ class VatInvoice(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Invoice identity
-    invoice_type = Column(Enum(InvoiceType), nullable=False)
+    invoice_type = Column(pg_enum(InvoiceType), nullable=False)
     invoice_number = Column(String, nullable=False)
     invoice_date = Column(DateTime, nullable=False)
 
@@ -54,18 +55,18 @@ class VatInvoice(Base):
     vat_amount = Column(Numeric(12, 2), nullable=False)
 
     # Expense-only classification
-    expense_category = Column(Enum(ExpenseCategory), nullable=True)
+    expense_category = Column(pg_enum(ExpenseCategory), nullable=True)
 
     # VAT rate category (חייב / פטור / אפס)
     rate_type = Column(
-        Enum(VatRateType), nullable=False, default=VatRateType.STANDARD
+        pg_enum(VatRateType), nullable=False, default=VatRateType.STANDARD
     )
 
     # Deduction rate for input VAT (0.0–1.0); auto-set from expense_category
     deduction_rate = Column(Numeric(5, 4), nullable=False, default=1.0000)
 
     # Document type (חשבונית מס / עסקה / קבלה / מרוכזת / עצמית)
-    document_type = Column(Enum(DocumentType), nullable=True)
+    document_type = Column(pg_enum(DocumentType), nullable=True)
 
     # Exceptional invoice flag: net_amount > 25,000 ₪ requires special handling
     is_exceptional = Column(Boolean, nullable=False, default=False)

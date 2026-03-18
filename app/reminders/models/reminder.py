@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text, Boolean
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -32,8 +33,8 @@ class Reminder(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    reminder_type = Column(Enum(ReminderType), nullable=False)
-    status = Column(Enum(ReminderStatus), default=ReminderStatus.PENDING, nullable=False)
+    reminder_type = Column(pg_enum(ReminderType), nullable=False)
+    status = Column(pg_enum(ReminderStatus), default=ReminderStatus.PENDING, nullable=False)
     
     # Target date (when the actual event occurs)
     target_date = Column(Date, nullable=False, index=True)

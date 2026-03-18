@@ -25,6 +25,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -52,7 +53,7 @@ class VatWorkItem(Base):
 
     # Status lifecycle
     status = Column(
-        Enum(VatWorkItemStatus),
+        pg_enum(VatWorkItemStatus),
         nullable=False,
         default=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
@@ -69,7 +70,7 @@ class VatWorkItem(Base):
     final_vat_amount = Column(Numeric(12, 2), nullable=True)
     is_overridden = Column(Boolean, nullable=False, default=False)
     override_justification = Column(Text, nullable=True)
-    filing_method = Column(Enum(FilingMethod), nullable=True)
+    filing_method = Column(pg_enum(FilingMethod), nullable=True)
     filed_at = Column(DateTime, nullable=True)
     filed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 

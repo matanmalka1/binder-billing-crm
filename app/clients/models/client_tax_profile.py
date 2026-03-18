@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String
+from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -19,7 +20,7 @@ class ClientTaxProfile(Base):
     client_id = Column(
         Integer, ForeignKey("clients.id"), nullable=False, unique=True, index=True
     )
-    vat_type = Column(Enum(VatType), nullable=True)
+    vat_type = Column(pg_enum(VatType), nullable=True)
     business_type = Column(String, nullable=True)
     tax_year_start = Column(Integer, nullable=True)
     accountant_name = Column(String, nullable=True)
