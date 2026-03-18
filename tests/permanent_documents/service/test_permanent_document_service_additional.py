@@ -2,10 +2,9 @@ from datetime import date
 from io import BytesIO
 
 import pytest
-from fastapi import HTTPException
 
 from app.clients.models.client import Client, ClientType
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 
@@ -42,7 +41,7 @@ def test_permanent_document_size_mime_and_download_not_found(test_db, test_user)
     c = _client(test_db)
     service = PermanentDocumentService(test_db, storage=_Storage())
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(AppError) as size_exc:
         service.upload_document(
             client_id=c.id,
             document_type=DocumentType.ID_COPY,
@@ -51,8 +50,10 @@ def test_permanent_document_size_mime_and_download_not_found(test_db, test_user)
             uploaded_by=test_user.id,
             mime_type="application/pdf",
         )
+    assert size_exc.value.code == "DOCUMENT.FILE_TOO_LARGE"
+    assert size_exc.value.status_code == 422
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(AppError) as mime_exc:
         service.upload_document(
             client_id=c.id,
             document_type=DocumentType.ID_COPY,
@@ -61,6 +62,8 @@ def test_permanent_document_size_mime_and_download_not_found(test_db, test_user)
             uploaded_by=test_user.id,
             mime_type="application/octet-stream",
         )
+    assert mime_exc.value.code == "DOCUMENT.INVALID_FILE_TYPE"
+    assert mime_exc.value.status_code == 422
 
     with pytest.raises(NotFoundError):
         service.get_download_url(999999)

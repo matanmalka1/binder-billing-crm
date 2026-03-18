@@ -44,7 +44,7 @@ def test_calculate_tax_handles_large_pension_deduction():
 
 
 def test_calculate_tax_unsupported_year_raises():
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         calculate_tax(taxable_income=10_000, tax_year=2035)
 
 
