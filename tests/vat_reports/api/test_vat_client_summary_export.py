@@ -46,8 +46,18 @@ def _seed_work_items(db, client_id: int, created_by: int):
 def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_headers, vat_client, test_user):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
-    with pytest.raises(TypeError):
-        client.get(f"/api/v1/vat/client/{vat_client.id}/summary", headers=advisor_headers)
+    resp = client.get(f"/api/v1/vat/client/{vat_client.id}/summary", headers=advisor_headers)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["client_id"] == vat_client.id
+    assert [row["period"] for row in payload["periods"]] == ["2026-02", "2026-01"]
+    assert len(payload["annual"]) == 1
+    assert payload["annual"][0]["year"] == 2026
+    assert float(payload["annual"][0]["total_output_vat"]) == 2300.0
+    assert float(payload["annual"][0]["total_input_vat"]) == 700.0
+    assert float(payload["annual"][0]["net_vat"]) == 1600.0
+    assert payload["annual"][0]["periods_count"] == 2
+    assert payload["annual"][0]["filed_count"] == 1
 
 
 def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_client, test_user):

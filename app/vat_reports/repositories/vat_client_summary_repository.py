@@ -1,8 +1,6 @@
 """Repository for client-level VAT summary queries."""
 
-from decimal import Decimal
-
-from sqlalchemy import case, func
+from sqlalchemy import case, func, Integer, cast
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -37,10 +35,33 @@ class VatClientSummaryRepository:
             .all()
         )
 
-    def get_annual_aggregates(self, client_id: int) -> list[tuple]:
-        # מחזיר rows גולמיים — הסרוויס אחראי על המיפוי לschema
-        year_expr = func.substr(VatWorkItem.period, 1, 4).label("year")
-        filed_case = func.sum(
-            case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
+    def get_annual_aggregates(self, client_id: int) -> list[dict[str, object]]:
+        year_expr = cast(func.substr(VatWorkItem.period, 1, 4), Integer).label("year")
+        rows = (
+            self.db.query(
+                year_expr,
+                func.sum(VatWorkItem.total_output_vat).label("total_output_vat"),
+                func.sum(VatWorkItem.total_input_vat).label("total_input_vat"),
+                func.sum(VatWorkItem.net_vat).label("net_vat"),
+                func.count(VatWorkItem.id).label("periods_count"),
+                func.sum(
+                    case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
+                ).label("filed_count"),
+            )
+            .filter(VatWorkItem.client_id == client_id)
+            .group_by(year_expr)
+            .order_by(year_expr.desc())
+            .all()
         )
-        # ... שאר השאילתה ללא שינוי, רק ללא .all() עם schema building
+
+        return [
+            {
+                "year": row.year,
+                "total_output_vat": row.total_output_vat,
+                "total_input_vat": row.total_input_vat,
+                "net_vat": row.net_vat,
+                "periods_count": row.periods_count,
+                "filed_count": row.filed_count,
+            }
+            for row in rows
+        ]

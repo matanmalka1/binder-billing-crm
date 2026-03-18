@@ -52,7 +52,13 @@ def test_vat_client_summary_repository_periods_and_annual_aggregates(test_db):
     assert [work_item.period for work_item, _output_net, _input_net in periods] == ["2026-02", "2026-01"]
 
     annual = summary_repo.get_annual_aggregates(client.id)
-    assert annual is None
+    assert len(annual) == 1
+    assert annual[0]["year"] == 2026
+    assert float(annual[0]["total_output_vat"]) == 255.0
+    assert float(annual[0]["total_input_vat"]) == 30.0
+    assert float(annual[0]["net_vat"]) == 225.0
+    assert annual[0]["periods_count"] == 2
+    assert annual[0]["filed_count"] == 1
 
 
 def test_vat_work_item_repository_list_by_client(test_db):
