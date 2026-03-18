@@ -41,6 +41,12 @@ class UserRepository(BaseRepository):
             query = query.filter(User.is_active == is_active)
         return query.count()
 
+    def list_by_ids(self, user_ids: list[int]) -> list[User]:
+        """Batch fetch users by a list of IDs (single query)."""
+        if not user_ids:
+            return []
+        return self.db.query(User).filter(User.id.in_(user_ids)).all()
+
     def create(
         self,
         full_name: str,
