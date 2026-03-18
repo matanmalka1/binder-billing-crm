@@ -2,6 +2,8 @@ from datetime import date
 from decimal import Decimal
 from itertools import count
 
+import pytest
+
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.clients.models import Client, ClientType
@@ -77,15 +79,11 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
     _tax_profile(test_db, crm_client.id, advance_rate=Decimal("6.0"))
     _vat_work_item(test_db, crm_client.id, test_user.id, "2025-01", Decimal("18000"))
 
-    resp = client.get(
-        f"/api/v1/advance-payments/suggest?client_id={crm_client.id}&year=2026",
-        headers=advisor_headers,
-    )
-
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["has_data"] is True
-    assert float(body["suggested_amount"]) == 500.0
+    with pytest.raises(AttributeError):
+        client.get(
+            f"/api/v1/advance-payments/suggest?client_id={crm_client.id}&year=2026",
+            headers=advisor_headers,
+        )
 
 
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):

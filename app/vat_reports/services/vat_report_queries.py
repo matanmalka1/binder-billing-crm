@@ -8,6 +8,9 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.clients.repositories.client_repository import ClientRepository
+from app.users.repositories.user_repository import UserRepository
+
 
 
 def _compute_deadline_fields(item) -> dict:
@@ -94,3 +97,89 @@ def list_invoices(
 
 def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
     return work_item_repo.get_audit_trail(item_id)
+
+def get_work_item_enriched(
+    work_item_repo: VatWorkItemRepository,
+    client_repo: ClientRepository,
+    user_repo: UserRepository,
+    item_id: int,
+) -> dict:
+    """Return work item + client/user enrichment data."""
+    item = get_work_item(work_item_repo, item_id)
+    client = client_repo.get_by_id(item.client_id)
+    user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid]
+    users = user_repo.list_by_ids(user_ids) if user_ids else []
+    user_map = {u.id: u.full_name for u in users}
+    return {
+        "item": item,
+        "name_map": {item.client_id: client.full_name if client else None},
+        "status_map": {item.client_id: client.status.value if client else None},
+        "user_map": user_map,
+    }
+
+
+def get_client_items_enriched(
+    work_item_repo: VatWorkItemRepository,
+    client_repo: ClientRepository,
+    user_repo: UserRepository,
+    client_id: int,
+) -> dict:
+    """Return client work items + enrichment data."""
+    items = list_client_work_items(work_item_repo, client_id)
+    client = client_repo.get_by_id(client_id)
+    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    users = user_repo.list_by_ids(user_ids) if user_ids else []
+    return {
+        "items": items,
+        "name_map": {client_id: client.full_name if client else None},
+        "status_map": {client_id: client.status.value if client else None},
+        "user_map": {u.id: u.full_name for u in users},
+    }
+
+
+def get_list_enriched(
+    work_item_repo: VatWorkItemRepository,
+    client_repo: ClientRepository,
+    user_repo: UserRepository,
+    *,
+    status_filter,
+    page: int,
+    page_size: int,
+    period: Optional[str],
+    client_name: Optional[str],
+) -> dict:
+    """Return paginated work items + enrichment data."""
+    if status_filter:
+        items, total = list_work_items_by_status(
+            work_item_repo, client_repo,
+            status=status_filter, page=page, page_size=page_size,
+            period=period, client_name=client_name,
+        )
+    else:
+        items, total = list_all_work_items(
+            work_item_repo, client_repo,
+            page=page, page_size=page_size,
+            period=period, client_name=client_name,
+        )
+    client_ids = list({item.client_id for item in items})
+    clients = client_repo.list_by_ids(client_ids)
+    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    users = user_repo.list_by_ids(user_ids) if user_ids else []
+    return {
+        "items": items,
+        "total": total,
+        "name_map": {c.id: c.full_name for c in clients},
+        "status_map": {c.id: c.status.value for c in clients},
+        "user_map": {u.id: u.full_name for u in users},
+    }
+
+
+def get_audit_trail_enriched(
+    work_item_repo: VatWorkItemRepository,
+    user_repo: UserRepository,
+    item_id: int,
+) -> dict:
+    entries = get_audit_trail(work_item_repo, item_id)
+    user_ids = list({e.performed_by for e in entries})
+    users = user_repo.list_by_ids(user_ids) if user_ids else []
+    return {"entries": entries, "user_map": {u.id: u.full_name for u in users}}

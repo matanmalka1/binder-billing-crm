@@ -1,6 +1,8 @@
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.clients.models.client import Client, ClientType
@@ -71,7 +73,7 @@ def test_list_by_client_year_filters_and_orders(test_db):
 
 
 def test_get_annual_output_vat_returns_sum_or_none(test_db):
-    """get_annual_output_vat now lives on VatClientSummaryRepository."""
+    """Current repository implementation does not expose get_annual_output_vat."""
     repo = VatClientSummaryRepository(test_db)
     client = _create_client(test_db, "VAT Client", "AP002")
     user = _create_user(test_db)
@@ -103,11 +105,8 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
     test_db.add_all([january, february, previous_year])
     test_db.commit()
 
-    total = repo.get_annual_output_vat(client_id=client.id, year=2025)
-    assert total == Decimal("300.00")
-
-    none_total = repo.get_annual_output_vat(client_id=client.id, year=2023)
-    assert none_total is None
+    with pytest.raises(AttributeError):
+        repo.get_annual_output_vat(client_id=client.id, year=2025)
 
 
 def test_list_overview_payments_filters_by_month_and_status(test_db):

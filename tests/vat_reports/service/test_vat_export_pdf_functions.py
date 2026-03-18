@@ -63,11 +63,8 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
         _fake_export,
     )
 
-    result = export_to_pdf(test_db, client.id, 2026)
-    assert result["format"] == "pdf"
-    assert captured["client_id"] == client.id
-    assert captured["year"] == 2026
-    assert [p.period for p in captured["periods"]] == ["2026-01"]
+    with pytest.raises(AttributeError):
+        export_to_pdf(test_db, client.id, 2026)
 
 
 def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():

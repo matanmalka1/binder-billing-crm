@@ -14,7 +14,7 @@ from app.clients.repositories.client_tax_profile_repository import ClientTaxProf
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services import data_entry, filing, intake, vat_report_queries
-
+from app.users.repositories.user_repository import UserRepository
 
 class VatReportService:
     """Orchestrates the VAT reporting lifecycle.
@@ -31,6 +31,7 @@ class VatReportService:
         self.invoice_repo = VatInvoiceRepository(db)
         self.client_repo = ClientRepository(db)
         self.tax_profile_repo = ClientTaxProfileRepository(db)
+        self.user_repo = UserRepository(db)
 
     # ── Intake ───────────────────────────────────────────────────────────────
 
@@ -94,3 +95,24 @@ class VatReportService:
 
     def get_audit_trail(self, item_id: int):
         return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)
+
+    # מתודות חדשות:
+    def get_work_item_enriched(self, item_id: int) -> dict:
+        return vat_report_queries.get_work_item_enriched(
+            self.work_item_repo, self.client_repo, self.user_repo, item_id
+        )
+
+    def get_client_items_enriched(self, client_id: int) -> dict:
+        return vat_report_queries.get_client_items_enriched(
+            self.work_item_repo, self.client_repo, self.user_repo, client_id
+        )
+
+    def get_list_enriched(self, **kwargs) -> dict:
+        return vat_report_queries.get_list_enriched(
+            self.work_item_repo, self.client_repo, self.user_repo, **kwargs
+        )
+
+    def get_audit_trail_enriched(self, item_id: int) -> dict:
+        return vat_report_queries.get_audit_trail_enriched(
+            self.work_item_repo, self.user_repo, item_id
+        )

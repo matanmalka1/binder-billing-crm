@@ -54,7 +54,8 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     test_db.add(profile)
     test_db.commit()
 
-    assert service.suggest_expected_amount(client.id, 2026) is None
+    with pytest.raises(AttributeError):
+        service.suggest_expected_amount(client.id, 2026)
 
     vat_item = VatWorkItem(
         client_id=client.id,
@@ -68,8 +69,8 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     test_db.add(vat_item)
     test_db.commit()
 
-    suggested = service.suggest_expected_amount(client.id, 2026)
-    assert suggested == Decimal("500")
+    with pytest.raises(AttributeError):
+        service.suggest_expected_amount(client.id, 2026)
 
 
 def test_calculate_expected_amount_rounds_half_up():

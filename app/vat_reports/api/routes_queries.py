@@ -2,10 +2,9 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Query
 
 from app.users.api.deps import CurrentUser, DBSession
-from app.users.models.user import User
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services.vat_report_queries import _compute_deadline_fields
 from app.vat_reports.schemas import (
@@ -19,70 +18,42 @@ from app.vat_reports.services.vat_report_service import VatReportService
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 
-def _serialize_with_name(item, name_map: dict, status_map: dict | None = None) -> VatWorkItemResponse:
-    """Build a VatWorkItemResponse enriched with client name, status, and deadline."""
+def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
     data.client_name = name_map.get(item.client_id)
-    if status_map is not None:
-        data.client_status = status_map.get(item.client_id)
+    data.client_status = status_map.get(item.client_id)
     deadline = _compute_deadline_fields(item)
     data.submission_deadline = deadline["submission_deadline"]
     data.days_until_deadline = deadline["days_until_deadline"]
     data.is_overdue = deadline["is_overdue"]
+    data.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None
+    data.filed_by_name = user_map.get(item.filed_by) if item.filed_by else None
     return data
 
 
-def _build_user_map(db, user_ids: list[int]) -> dict[int, str]:
-    """Return a mapping of user_id → full_name for the given IDs."""
-    if not user_ids:
-        return {}
-    users = db.query(User).filter(User.id.in_(user_ids)).all()
-    return {u.id: u.full_name for u in users}
-
-
-def _enrich_user_names(serialized: list[VatWorkItemResponse], user_map: dict) -> None:
-    """Populate assigned_to_name / filed_by_name in-place."""
-    for item in serialized:
-        item.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None
-        item.filed_by_name = user_map.get(item.filed_by) if item.filed_by else None
-
-
 @router.get("/work-items/{item_id}", response_model=VatWorkItemResponse)
-def get_work_item(
-    item_id: int,
-    db: DBSession,
-    current_user: CurrentUser,
-):
+def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     """Get a single work item by ID."""
     service = VatReportService(db)
-    item = service.get_work_item(item_id)
-    client = service.client_repo.get_by_id(item.client_id)
-    name_map = {item.client_id: client.full_name if client else None}
-    status_map = {item.client_id: client.status.value if client else None}
-    result = _serialize_with_name(item, name_map, status_map)
-    user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid is not None]
-    user_map = _build_user_map(db, user_ids)
-    result.assigned_to_name = user_map.get(item.assigned_to)
-    result.filed_by_name = user_map.get(item.filed_by)
-    return result
+    enriched = service.get_work_item_enriched(item_id)
+    return _serialize(
+        enriched["item"],
+        enriched["name_map"],
+        enriched["status_map"],
+        enriched["user_map"],
+    )
 
 
 @router.get("/clients/{client_id}/work-items", response_model=VatWorkItemListResponse)
-def list_client_work_items(
-    client_id: int,
-    db: DBSession,
-    current_user: CurrentUser,
-):
+def list_client_work_items(client_id: int, db: DBSession, current_user: CurrentUser):
     """List all VAT work items for a client."""
     service = VatReportService(db)
-    items = service.list_client_work_items(client_id)
-    client = service.client_repo.get_by_id(client_id)
-    name_map = {client_id: client.full_name if client else None}
-    status_map = {client_id: client.status.value if client else None}
-    serialized = [_serialize_with_name(item, name_map, status_map) for item in items]
-    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
-    _enrich_user_names(serialized, _build_user_map(db, user_ids))
-    return VatWorkItemListResponse(items=serialized, total=len(serialized))
+    enriched = service.get_client_items_enriched(client_id)
+    items = [
+        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])
+        for i in enriched["items"]
+    ]
+    return VatWorkItemListResponse(items=items, total=len(items))
 
 
 @router.get("/work-items", response_model=VatWorkItemListResponse)
@@ -95,42 +66,27 @@ def list_work_items(
     period: Optional[str] = Query(None),
     client_name: Optional[str] = Query(None),
 ):
-    """List work items filtered by status with pagination. Returns all when no filter."""
+    """List work items filtered by status with pagination."""
     service = VatReportService(db)
-    if status_filter:
-        items, total = service.list_work_items_by_status(
-            status=status_filter, page=page, page_size=page_size,
-            period=period, client_name=client_name,
-        )
-    else:
-        items, total = service.list_all_work_items(
-            page=page, page_size=page_size, period=period, client_name=client_name,
-        )
-
-    client_ids = list({item.client_id for item in items})
-    clients = service.client_repo.list_by_ids(client_ids)
-    name_map = {c.id: c.full_name for c in clients}
-    status_map = {c.id: c.status.value for c in clients}
-    serialized = [_serialize_with_name(item, name_map, status_map) for item in items]
-    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
-    _enrich_user_names(serialized, _build_user_map(db, user_ids))
-    return VatWorkItemListResponse(items=serialized, total=total)
+    enriched = service.get_list_enriched(
+        status_filter=status_filter, page=page, page_size=page_size,
+        period=period, client_name=client_name,
+    )
+    items = [
+        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])
+        for i in enriched["items"]
+    ]
+    return VatWorkItemListResponse(items=items, total=enriched["total"])
 
 
 @router.get("/work-items/{item_id}/audit", response_model=VatAuditTrailResponse)
-def get_audit_trail(
-    item_id: int,
-    db: DBSession,
-    current_user: CurrentUser,
-):
+def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser):
     """Get the full audit trail for a work item."""
     service = VatReportService(db)
-    entries = service.get_audit_trail(item_id)
-    user_ids = list({e.performed_by for e in entries})
-    user_map = _build_user_map(db, user_ids)
+    enriched = service.get_audit_trail_enriched(item_id)
     items = []
-    for e in entries:
+    for e in enriched["entries"]:
         row = VatAuditLogResponse.model_validate(e)
-        row.performed_by_name = user_map.get(e.performed_by)
+        row.performed_by_name = enriched["user_map"].get(e.performed_by)
         items.append(row)
     return VatAuditTrailResponse(items=items)
