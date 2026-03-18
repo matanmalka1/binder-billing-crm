@@ -145,3 +145,107 @@ def test_factory_validation_errors(test_db):
             binder_id=999999,
             days_idle=1,
         )
+
+
+def test_tax_deadline_factory_not_found_and_negative_days(test_db):
+    crm_client = _client(test_db)
+    reminder_repo = ReminderRepository(test_db)
+    client_repo = ClientRepository(test_db)
+    tax_repo = TaxDeadlineRepository(test_db)
+
+    with pytest.raises(NotFoundError):
+        create_tax_deadline_reminder(
+            reminder_repo,
+            client_repo,
+            tax_repo,
+            client_id=crm_client.id,
+            tax_deadline_id=999999,
+            target_date=date.today() + timedelta(days=3),
+            days_before=1,
+        )
+
+    existing = tax_repo.create(
+        client_id=crm_client.id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date.today() + timedelta(days=10),
+    )
+    with pytest.raises(AppError) as exc_info:
+        create_tax_deadline_reminder(
+            reminder_repo,
+            client_repo,
+            tax_repo,
+            client_id=crm_client.id,
+            tax_deadline_id=existing.id,
+            target_date=existing.due_date,
+            days_before=-1,
+        )
+    assert exc_info.value.code == "REMINDER.NEGATIVE_DAYS"
+
+
+def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
+    crm_client = _client(test_db)
+    reminder_repo = ReminderRepository(test_db)
+    client_repo = ClientRepository(test_db)
+
+    binder = Binder(
+        client_id=crm_client.id,
+        binder_number="BF-NEG",
+        binder_type=BinderType.OTHER,
+        received_at=date.today(),
+        received_by=test_user.id,
+        status=BinderStatus.IN_OFFICE,
+    )
+    test_db.add(binder)
+    test_db.commit()
+    test_db.refresh(binder)
+
+    with pytest.raises(AppError) as exc_info:
+        create_idle_binder_reminder(
+            reminder_repo,
+            client_repo,
+            BinderRepository(test_db),
+            client_id=crm_client.id,
+            binder_id=binder.id,
+            days_idle=-1,
+        )
+
+    assert exc_info.value.code == "REMINDER.NEGATIVE_DAYS"
+
+
+def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
+    crm_client = _client(test_db)
+    reminder_repo = ReminderRepository(test_db)
+    client_repo = ClientRepository(test_db)
+    charge_repo = ChargeRepository(test_db)
+
+    with pytest.raises(NotFoundError):
+        create_unpaid_charge_reminder(
+            reminder_repo,
+            client_repo,
+            charge_repo,
+            client_id=crm_client.id,
+            charge_id=999999,
+            days_unpaid=1,
+        )
+
+    charge = Charge(
+        client_id=crm_client.id,
+        amount=55,
+        charge_type=ChargeType.ONE_TIME,
+        status=ChargeStatus.ISSUED,
+    )
+    test_db.add(charge)
+    test_db.commit()
+    test_db.refresh(charge)
+
+    with pytest.raises(AppError) as exc_info:
+        create_unpaid_charge_reminder(
+            reminder_repo,
+            client_repo,
+            charge_repo,
+            client_id=crm_client.id,
+            charge_id=charge.id,
+            days_unpaid=-2,
+        )
+
+    assert exc_info.value.code == "REMINDER.NEGATIVE_DAYS"

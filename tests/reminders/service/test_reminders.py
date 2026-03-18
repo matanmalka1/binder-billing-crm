@@ -112,3 +112,19 @@ def test_get_pending_respects_reference_date(test_db):
 def test_cancel_missing_reminder_raises_not_found(test_db):
     with pytest.raises(NotFoundError):
         ReminderService(test_db).cancel_reminder(999)
+
+
+def test_mark_sent_missing_reminder_raises_not_found(test_db):
+    with pytest.raises(NotFoundError):
+        ReminderService(test_db).mark_sent(999999)
+
+
+def test_cancel_enforces_pending_status(test_db):
+    client = _client(test_db)
+    repo = ReminderRepository(test_db)
+    reminder = _reminder(repo, client.id, status=ReminderStatus.SENT)
+
+    with pytest.raises(AppError) as exc_info:
+        ReminderService(test_db).cancel_reminder(reminder.id)
+
+    assert exc_info.value.code == "REMINDER.INVALID_STATUS"

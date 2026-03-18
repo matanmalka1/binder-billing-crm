@@ -88,3 +88,68 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     income_only = invoice_repo.list_by_work_item(item.id, invoice_type=InvoiceType.INCOME)
     assert [inv.id for inv in income_only] == [income.id]
 
+
+
+def test_sum_income_net_by_client_year_filters_by_client_year_and_income_only(test_db):
+    user = _user(test_db)
+    client = _client(test_db)
+    other_client = _client(test_db)
+
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    target_item = work_item_repo.create(client_id=client.id, period="2026-01", created_by=user.id)
+    previous_year_item = work_item_repo.create(client_id=client.id, period="2025-12", created_by=user.id)
+    other_client_item = work_item_repo.create(client_id=other_client.id, period="2026-02", created_by=user.id)
+
+    invoice_repo.create(
+        work_item_id=target_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-YEAR-1",
+        invoice_date=datetime(2026, 1, 5),
+        counterparty_name="Customer A",
+        net_amount=1000.0,
+        vat_amount=170.0,
+    )
+    invoice_repo.create(
+        work_item_id=target_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-YEAR-IGNORED",
+        invoice_date=datetime(2026, 1, 8),
+        counterparty_name="Vendor A",
+        net_amount=400.0,
+        vat_amount=68.0,
+        expense_category=ExpenseCategory.OFFICE,
+    )
+    invoice_repo.create(
+        work_item_id=previous_year_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-OTHER-YEAR",
+        invoice_date=datetime(2025, 12, 25),
+        counterparty_name="Customer B",
+        net_amount=300.0,
+        vat_amount=51.0,
+    )
+    invoice_repo.create(
+        work_item_id=other_client_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-OTHER-CLIENT",
+        invoice_date=datetime(2026, 2, 3),
+        counterparty_name="Customer C",
+        net_amount=700.0,
+        vat_amount=119.0,
+    )
+
+    assert invoice_repo.sum_income_net_by_client_year(client.id, 2026) == 1000.0
+    assert invoice_repo.sum_income_net_by_client_year(client.id, 2024) == 0.0
+
+
+def test_update_and_delete_return_falsy_for_missing_invoice(test_db):
+    repo = VatInvoiceRepository(test_db)
+
+    assert repo.update(999999, invoice_number="NOPE") is None
+    assert repo.delete(999999) is False
