@@ -67,7 +67,7 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
+            raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.DRAFT:
             raise AppError(
@@ -103,7 +103,7 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
+            raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.ISSUED:
             raise AppError(
@@ -132,10 +132,10 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
+            raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
         if charge.status == ChargeStatus.PAID:
-            raise AppError("Cannot cancel charge in status paid", "CHARGE.INVALID_STATUS")
+            raise AppError("לא ניתן לבטל חיוב במצב שולם", "CHARGE.INVALID_STATUS")
 
         if charge.status == ChargeStatus.CANCELED:
             raise ConflictError("החיוב כבר בוטל", "CHARGE.CONFLICT")
@@ -160,7 +160,7 @@ class BillingService:
         """
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(f"Charge {charge_id} not found", "CHARGE.NOT_FOUND")
+            raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
         if charge.status != ChargeStatus.DRAFT:
             raise AppError(
