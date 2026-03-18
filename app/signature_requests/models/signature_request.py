@@ -21,7 +21,6 @@ from enum import Enum as PyEnum
 from sqlalchemy import (
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,

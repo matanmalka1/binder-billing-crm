@@ -4,7 +4,6 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -79,7 +78,15 @@ class AnnualReport(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_annual_report_client_year", "client_id", "tax_year", unique=True),
+        # Partial unique index: allows re-creating a report for the same year
+        # after soft-delete (deleted_at IS NOT NULL means the slot is free again).
+        Index(
+            "idx_annual_report_client_year",
+            "client_id",
+            "tax_year",
+            unique=True,
+            postgresql_where=Column("deleted_at").is_(None),
+        ),
         Index("idx_annual_report_status", "status"),
         Index("idx_annual_report_deadline", "filing_deadline"),
         Index("idx_annual_report_assigned", "assigned_to"),

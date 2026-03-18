@@ -1,6 +1,6 @@
 """Append-only status history for annual reports."""
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base

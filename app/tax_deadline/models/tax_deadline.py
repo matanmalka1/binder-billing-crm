@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text, Index
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, Index
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base

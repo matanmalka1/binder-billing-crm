@@ -2,6 +2,7 @@ from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Boolean, SmallInteger, BigInteger
 
+from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 
@@ -31,7 +32,7 @@ class PermanentDocument(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    document_type = Column(String, nullable=False)
+    document_type = Column(pg_enum(DocumentType), nullable=False)
     storage_key = Column(String, nullable=False)
     tax_year = Column(SmallInteger, nullable=True, index=True)
     is_present = Column(Boolean, default=True, nullable=False)
@@ -42,7 +43,7 @@ class PermanentDocument(Base):
     # Extended fields
     version = Column(Integer, default=1, nullable=False, server_default="1")
     superseded_by = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
-    status = Column(String, default=DocumentStatus.PENDING, nullable=False, server_default="pending")
+    status = Column(pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
     original_filename = Column(String, nullable=True)
     file_size_bytes = Column(BigInteger, nullable=True)
