@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Populate the local database with fake but coherent demo data."""
+"""Populate the local database with fake but coherent demo data.
+
+Local quick start:
+1) Run migrations:
+   APP_ENV=development ENV_FILE=.env.development alembic upgrade head
+2) Run seed:
+   APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
+3) Run backend:
+   APP_ENV=development ENV_FILE=.env.development python -m app.main
+"""
 
 from __future__ import annotations
 
