@@ -53,11 +53,18 @@ def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_
 def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_client, test_user):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
-    with pytest.raises(AttributeError):
-        client.get(
-            f"/api/v1/vat/clients/{vat_client.id}/work-items",
-            headers=advisor_headers,
-        )
+    resp = client.get(
+        f"/api/v1/vat/clients/{vat_client.id}/work-items",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["total"] == 2
+    assert len(payload["items"]) == 2
+    assert payload["items"][0]["period"] == "2026-02"
+    assert payload["items"][1]["period"] == "2026-01"
+    assert payload["items"][0]["client_name"] == vat_client.full_name
+    assert payload["items"][1]["filed_by_name"] == test_user.full_name
 
 
 def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, test_user):
