@@ -75,6 +75,7 @@ class Seeder:
             seeded_users = users.create_users(db, self.rng, self.cfg)
             seeded_clients = clients.create_clients(db, self.rng, self.cfg)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_clients, seeded_users)
+            binders.create_binder_intakes(db, seeded_binders)
             seeded_charges = charges.create_charges(db, self.rng, self.cfg, seeded_clients)
             charges.create_invoices(db, seeded_charges)
             seeded_deadlines = taxes.create_tax_deadlines(db, self.rng, self.cfg, seeded_clients)

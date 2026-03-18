@@ -17,7 +17,7 @@ DEADLINE_LABELS = {
     TaxDeadlineType.ADVANCE_PAYMENT: "מקדמה",
     TaxDeadlineType.ANNUAL_REPORT: "דוח שנתי",
     TaxDeadlineType.NATIONAL_INSURANCE: "ביטוח לאומי",
-    TaxDeadlineType.VAT: "מע""מ",
+    TaxDeadlineType.VAT: 'מע"מ',
     TaxDeadlineType.OTHER: "אחר",
 }
 

@@ -53,7 +53,7 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
 
         client_type = rng.choice(list(ClientType))
         if client_type == ClientType.COMPANY:
-            full_name_value = f"{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע""מ"
+            full_name_value = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
         else:
             full_name_value = full_name(rng)
 

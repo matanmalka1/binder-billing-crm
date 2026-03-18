@@ -1,10 +1,11 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, Enum, ForeignKey, Index, Integer, Numeric, String,
+    Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String,
     UniqueConstraint,
 )
 
+from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 
@@ -29,7 +30,7 @@ class AdvancePayment(Base):
     expected_amount = Column(Numeric(10, 2), nullable=True)
     paid_amount = Column(Numeric(10, 2), nullable=True)
     status = Column(
-        Enum(AdvancePaymentStatus),
+        pg_enum(AdvancePaymentStatus),
         default=AdvancePaymentStatus.PENDING,
         nullable=False,
     )

@@ -173,7 +173,7 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
                     None,
                     "ממתין לאישור לקוח",
                     "לעדכן נתוני שכר מתוקנים",
-                    "לבדוק שוב את קלטי המע""מ",
+                    'לבדוק שוב את קלטי המע"מ',
                 ]
             ),
         )

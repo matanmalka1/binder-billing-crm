@@ -4,6 +4,7 @@ from datetime import date, timedelta, UTC, datetime
 from random import Random
 
 from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_status_log import BinderStatusLog
 
 from ..random_utils import full_name
@@ -70,4 +71,17 @@ def create_binder_logs(db, rng: Random, binders, users) -> None:
                 notes=note,
             )
             db.add(log)
+    db.flush()
+
+
+def create_binder_intakes(db, binders) -> None:
+    for binder in binders:
+        db.add(
+            BinderIntake(
+                binder_id=binder.id,
+                received_at=binder.received_at,
+                received_by=binder.received_by,
+                notes=binder.notes,
+            )
+        )
     db.flush()
