@@ -1,1 +1,76 @@
-Generic single-database configuration.
+# Alembic Migrations README
+
+## Required: top instructions in every migration file
+For every new file in `alembic/versions/`, include operator instructions in the top docstring so the migration is self-explanatory.
+
+Use this pattern:
+
+```python
+"""<short title>
+
+Revision ID: <revision_id>
+Revises: <down_revision>
+Create Date: <YYYY-MM-DD HH:MM:SS>
+
+Run:
+- Upgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade <revision_id>
+- Downgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic downgrade <down_revision>
+
+Notes:
+- What schema/data changes this migration makes
+- PostgreSQL/SQLite differences (if any)
+- Any pre/post manual steps
+"""
+```
+
+## Run instructions for each existing migration
+
+1. `0001_initial_schema`
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0001_initial_schema`
+- What it does:
+  Creates the initial schema from ORM models.
+- Important note:
+  If tables already exist (for example `users`), this migration exits early by design.
+
+2. `a7529d8677dc` (`head`)
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade a7529d8677dc`
+- What it does:
+  Fixes `permanent_documents` enum typing on PostgreSQL and adjusts several indexes/uniqueness constraints.
+- Important note:
+  PostgreSQL-only enum conversions run conditionally; SQLite applies only the index changes.
+
+## Daily commands
+
+- Show current revision:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic current`
+
+- Show revision history:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic history --verbose`
+
+- Upgrade to latest:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+
+- Downgrade one step:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic downgrade -1`
+
+## Creating a new migration
+
+1. Update SQLAlchemy models.
+2. Generate migration:
+   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<short_description>"`
+3. Edit the generated file:
+- Add the required top instructions docstring section.
+- Review enum/index/constraint operations carefully (especially PostgreSQL-specific parts).
+4. Apply migration:
+   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+5. Optional safety check for reversible migrations:
+- `... downgrade -1`
+- `... upgrade head`
+
+## Environment notes
+
+- `alembic/env.py` reads `DATABASE_URL` from app config.
+- Set `APP_ENV` and `ENV_FILE` so required settings (for example `JWT_SECRET`) are loaded.
+- Production startup already runs migrations first (`alembic upgrade head && ...` in `render.yaml`).
