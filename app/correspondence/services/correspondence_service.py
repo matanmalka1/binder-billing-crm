@@ -35,7 +35,7 @@ class CorrespondenceService:
             contact = self.contact_repo.get_by_id(contact_id)
             if not contact or contact.client_id != client_id:
                 raise ForbiddenError(
-                    f"Contact {contact_id} does not belong to client {client_id}",
+                    f"איש קשר {contact_id} אינו שייך ללקוח {client_id}",
                     "CORRESPONDENCE.FORBIDDEN_CONTACT",
                 )
 
@@ -63,7 +63,7 @@ class CorrespondenceService:
         entry = self.repo.get_by_id(entry_id)
         if not entry or entry.client_id != client_id:
             raise NotFoundError(
-                f"Correspondence {entry_id} not found for client {client_id}",
+                f"התכתבות {entry_id} לא נמצאה עבור לקוח {client_id}",
                 "CORRESPONDENCE.NOT_FOUND",
             )
 
@@ -72,14 +72,14 @@ class CorrespondenceService:
             contact = self.contact_repo.get_by_id(contact_id)
             if not contact or contact.client_id != client_id:
                 raise ForbiddenError(
-                    f"Contact {contact_id} does not belong to client {client_id}",
+                    f"איש קשר {contact_id} אינו שייך ללקוח {client_id}",
                     "CORRESPONDENCE.FORBIDDEN_CONTACT",
                 )
 
         updated = self.repo.update(entry_id, **fields)
         if not updated:
             raise NotFoundError(
-                f"Correspondence {entry_id} not found for client {client_id}",
+                f"התכתבות {entry_id} לא נמצאה עבור לקוח {client_id}",
                 "CORRESPONDENCE.NOT_FOUND",
             )
         return updated
@@ -88,7 +88,7 @@ class CorrespondenceService:
         entry = self.repo.get_by_id(entry_id)
         if not entry or entry.client_id != client_id:
             raise NotFoundError(
-                f"Correspondence {entry_id} not found for client {client_id}",
+                f"התכתבות {entry_id} לא נמצאה עבור לקוח {client_id}",
                 "CORRESPONDENCE.NOT_FOUND",
             )
         self.repo.soft_delete(entry_id, deleted_by=actor_id)

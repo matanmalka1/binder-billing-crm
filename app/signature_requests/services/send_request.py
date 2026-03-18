@@ -29,7 +29,7 @@ def send_request(
 
     if req.status != SignatureRequestStatus.DRAFT:
         raise AppError(
-            f"Cannot send a request in '{req.status.value}' status. Only DRAFT requests can be sent.",
+            f"לא ניתן לשלוח בקשה בסטטוס '{req.status.value}'. ניתן לשלוח רק בקשות במצב טיוטה.",
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
 
