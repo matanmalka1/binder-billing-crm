@@ -57,3 +57,21 @@ def test_get_schedules_returns_404_for_missing_report(client, advisor_headers):
     )
     assert resp.status_code == 404
     assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+
+
+def test_schedule_invalid_type_and_complete_missing_schedule(client, test_db, advisor_headers):
+    report_id = _create_report(test_db)
+
+    invalid = client.post(
+        f"/api/v1/annual-reports/{report_id}/schedules",
+        headers=advisor_headers,
+        json={"schedule": "invalid_schedule"},
+    )
+    assert invalid.status_code == 400
+
+    missing = client.post(
+        f"/api/v1/annual-reports/{report_id}/schedules/complete",
+        headers=advisor_headers,
+        json={"schedule": "schedule_b"},
+    )
+    assert missing.status_code == 404

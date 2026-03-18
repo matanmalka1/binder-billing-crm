@@ -1,4 +1,5 @@
 from datetime import date
+from types import SimpleNamespace
 
 from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.clients.models.client import Client, ClientType
@@ -98,3 +99,81 @@ def test_notification_fallback_to_email(test_db):
 
     # Should have both WhatsApp and Email attempts
     assert len(notifications) >= 1
+
+
+def test_notify_payment_reminder_delegates_trigger(monkeypatch, test_db):
+    service = NotificationService(test_db)
+    client = SimpleNamespace(id=7)
+    seen = {"trigger": None}
+
+    def _fake_send_notification(**kwargs):
+        seen["trigger"] = kwargs["trigger"]
+        return True
+
+    monkeypatch.setattr(service, "send_notification", _fake_send_notification)
+    assert service.notify_payment_reminder(client, "x", triggered_by=1) is True
+    assert seen["trigger"] == NotificationTrigger.MANUAL_PAYMENT_REMINDER
+
+
+def test_send_notification_whatsapp_success_marks_sent(monkeypatch, test_db):
+    service = NotificationService(test_db)
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _id: SimpleNamespace(id=1, phone="050", email="a@a.com", full_name="C")
+    )
+    created = {"id": 55}
+    marks = {"sent": 0}
+    service.notification_repo = SimpleNamespace(
+        create=lambda **kwargs: SimpleNamespace(id=created["id"]),
+        mark_sent=lambda _id: marks.__setitem__("sent", marks["sent"] + 1),
+        mark_failed=lambda *_args, **_kwargs: None,
+    )
+    service.whatsapp = SimpleNamespace(enabled=True, send=lambda phone, content: (True, None))
+
+    assert service.send_notification(
+        client_id=1,
+        trigger=NotificationTrigger.BINDER_RECEIVED,
+        content="hello",
+        preferred_channel="whatsapp",
+    ) is True
+    assert marks["sent"] == 1
+
+
+def test_send_notification_email_failure_marks_failed(test_db):
+    service = NotificationService(test_db)
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _id: SimpleNamespace(id=1, phone=None, email="a@a.com", full_name="C")
+    )
+    marks = {"failed": 0}
+    service.notification_repo = SimpleNamespace(
+        create=lambda **kwargs: SimpleNamespace(id=777),
+        mark_sent=lambda *_args, **_kwargs: None,
+        mark_failed=lambda _id, _err: marks.__setitem__("failed", marks["failed"] + 1),
+    )
+    service.email = SimpleNamespace(send=lambda *_args, **_kwargs: (False, "smtp-failed"))
+    service.whatsapp = SimpleNamespace(enabled=False, send=lambda *_args, **_kwargs: (False, "no"))
+
+    assert service.send_notification(
+        client_id=1,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        content="x",
+    ) is True
+    assert marks["failed"] == 1
+
+
+def test_send_notification_client_missing_or_email_missing_returns_true(test_db):
+    service = NotificationService(test_db)
+    service.client_repo = SimpleNamespace(get_by_id=lambda _id: None)
+    assert service.send_notification(
+        client_id=999,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        content="x",
+    ) is True
+
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _id: SimpleNamespace(id=1, phone=None, email=None, full_name="C")
+    )
+    assert service.send_notification(
+        client_id=1,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        content="x",
+    ) is True

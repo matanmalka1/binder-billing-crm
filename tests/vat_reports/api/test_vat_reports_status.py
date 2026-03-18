@@ -23,3 +23,19 @@ class TestStatusTransitions:
             json={"correction_note": "Please fix invoice 2"},
         )
         assert response.status_code == 403
+
+    def test_send_back_success_as_advisor(self, client, advisor_headers, vat_client):
+        item_id = self._setup_item_with_invoice(client, advisor_headers, vat_client, "2026-10")
+        ready = client.post(
+            f"/api/v1/vat/work-items/{item_id}/ready-for-review",
+            headers=advisor_headers,
+        )
+        assert ready.status_code == 200
+
+        response = client.post(
+            f"/api/v1/vat/work-items/{item_id}/send-back",
+            headers=advisor_headers,
+            json={"correction_note": "Missing receipt"},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "data_entry_in_progress"

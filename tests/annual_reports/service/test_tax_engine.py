@@ -1,4 +1,5 @@
 from app.annual_reports.services.tax_engine import calculate_tax
+import pytest
 
 
 def test_calculate_tax_applies_pension_and_donation_credits():
@@ -40,3 +41,23 @@ def test_calculate_tax_handles_large_pension_deduction():
     assert result.tax_before_credits == 0
     assert result.tax_after_credits == 0
     assert result.effective_rate == 0
+
+
+def test_calculate_tax_unsupported_year_raises():
+    with pytest.raises(ValueError):
+        calculate_tax(taxable_income=10_000, tax_year=2035)
+
+
+def test_calculate_tax_hits_top_bracket_and_normalizes_negative_credits():
+    result = calculate_tax(
+        taxable_income=1_000_000,
+        tax_year=2026,
+        credit_points=0,
+        pension_deduction=0,
+        donation_amount=-50,  # normalized to 0
+        other_credits=-20,  # normalized to 0
+    )
+    assert result.tax_before_credits > 0
+    assert result.donation_credit == 0
+    assert result.other_credits == 0
+    assert any(b.to_amount is None for b in result.brackets)

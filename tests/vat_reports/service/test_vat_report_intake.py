@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.clients.models.client_tax_profile import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
@@ -87,6 +88,44 @@ class TestCreateWorkItem:
             pending_materials_note="Missing Q4 invoices",
         )
         assert result.status == VatWorkItemStatus.PENDING_MATERIALS
+
+    def test_exempt_vat_type_rejected(self):
+        work_item_repo = MagicMock()
+        client_repo = MagicMock()
+        tax_profile_repo = MagicMock()
+        client_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_client_period.return_value = None
+        tax_profile_repo.get_by_client_id.return_value = MagicMock(vat_type=VatType.EXEMPT)
+
+        with pytest.raises(AppError) as exc_info:
+            intake.create_work_item(
+                work_item_repo,
+                client_repo,
+                client_id=10,
+                period="2026-01",
+                created_by=1,
+                tax_profile_repo=tax_profile_repo,
+            )
+        assert exc_info.value.code == "VAT.CLIENT_EXEMPT"
+
+    def test_bimonthly_rejects_even_month(self):
+        work_item_repo = MagicMock()
+        client_repo = MagicMock()
+        tax_profile_repo = MagicMock()
+        client_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_client_period.return_value = None
+        tax_profile_repo.get_by_client_id.return_value = MagicMock(vat_type=VatType.BIMONTHLY)
+
+        with pytest.raises(AppError) as exc_info:
+            intake.create_work_item(
+                work_item_repo,
+                client_repo,
+                client_id=10,
+                period="2026-02",
+                created_by=1,
+                tax_profile_repo=tax_profile_repo,
+            )
+        assert exc_info.value.code == "VAT.INVALID_PERIOD_FOR_FREQUENCY"
 
 
 class TestMarkMaterialsComplete:

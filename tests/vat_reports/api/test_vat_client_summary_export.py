@@ -92,3 +92,31 @@ def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, t
     # Header row contains column titles, data starts at row 4
     data_periods = {ws.cell(row=row, column=1).value for row in range(4, 6)}
     assert {"2026-02", "2026-01"} == data_periods
+
+
+def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers, vat_client, monkeypatch):
+    monkeypatch.setattr(
+        "app.vat_reports.api.routes_client_summary.export_to_pdf",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("fail")),
+    )
+
+    resp = client.get(
+        f"/api/v1/vat/client/{vat_client.id}/export?format=pdf&year=2026",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 500
+    assert "הייצוא נכשל" in resp.json()["detail"]
+
+
+def test_vat_client_export_import_error_returns_detail(client, advisor_headers, vat_client, monkeypatch):
+    monkeypatch.setattr(
+        "app.vat_reports.api.routes_client_summary.export_to_excel",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("openpyxl missing")),
+    )
+
+    resp = client.get(
+        f"/api/v1/vat/client/{vat_client.id}/export?format=excel&year=2026",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 500
+    assert "openpyxl missing" in resp.json()["detail"]

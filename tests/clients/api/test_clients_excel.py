@@ -1,5 +1,6 @@
 from datetime import date
 import io
+import builtins
 
 import openpyxl
 
@@ -82,3 +83,58 @@ def test_clients_import_creates_clients(client, test_db, advisor_headers):
 
     repo = ClientRepository(test_db)
     assert repo.count() >= 2
+
+
+def test_clients_import_rejects_oversized_content_length(client, advisor_headers):
+    resp = client.post(
+        "/api/v1/clients/import",
+        headers={**advisor_headers, "Content-Length": str(11 * 1024 * 1024)},
+        files={"file": ("clients.xlsx", b"x", EXCEL_MEDIA_TYPE)},
+    )
+    assert resp.status_code == 413
+
+
+def test_clients_import_invalid_excel_returns_400(client, advisor_headers):
+    resp = client.post(
+        "/api/v1/clients/import",
+        headers=advisor_headers,
+        files={"file": ("clients.xlsx", b"not-an-xlsx", EXCEL_MEDIA_TYPE)},
+    )
+    assert resp.status_code == 400
+    assert "לא ניתן לקרוא את קובץ האקסל" in resp.json()["detail"]
+
+
+def test_clients_import_openpyxl_missing_returns_500(client, advisor_headers, monkeypatch):
+    original_import = builtins.__import__
+
+    def _import(name, *args, **kwargs):
+        if name == "openpyxl":
+            raise ImportError("missing openpyxl")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", _import)
+    resp = client.post(
+        "/api/v1/clients/import",
+        headers=advisor_headers,
+        files={"file": ("clients.xlsx", b"x", EXCEL_MEDIA_TYPE)},
+    )
+    assert resp.status_code == 500
+    assert "openpyxl" in resp.json()["detail"]
+
+
+def test_clients_export_and_template_importerror_branches(client, advisor_headers, monkeypatch):
+    monkeypatch.setattr(
+        "app.clients.api.clients_excel.ClientExcelService.export_clients",
+        lambda self, clients: (_ for _ in ()).throw(ImportError("excel export missing")),
+    )
+    export_resp = client.get("/api/v1/clients/export", headers=advisor_headers)
+    assert export_resp.status_code == 500
+    assert "excel export missing" in export_resp.json()["detail"]
+
+    monkeypatch.setattr(
+        "app.clients.api.clients_excel.ClientExcelService.generate_template",
+        lambda self: (_ for _ in ()).throw(ImportError("template missing")),
+    )
+    tpl_resp = client.get("/api/v1/clients/template", headers=advisor_headers)
+    assert tpl_resp.status_code == 500
+    assert "template missing" in tpl_resp.json()["detail"]
