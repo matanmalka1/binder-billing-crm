@@ -50,8 +50,8 @@ class Binder(Base):
             "idx_active_binder_unique",
             "binder_number",
             unique=True,
-            postgresql_where=(status != BinderStatus.RETURNED),
-            sqlite_where=(status != BinderStatus.RETURNED),
+            postgresql_where=(status != BinderStatus.RETURNED) & (Column("deleted_at").is_(None)),
+            sqlite_where=(status != BinderStatus.RETURNED) & (Column("deleted_at").is_(None)),
         ),
     )
 

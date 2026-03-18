@@ -147,6 +147,10 @@ class BinderRepository(BaseRepository):
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()
         if not binder:
             return False
+        # Release active-number uniqueness slot after soft delete.
+        binder.status = BinderStatus.RETURNED
+        if binder.returned_at is None:
+            binder.returned_at = date.today()
         binder.deleted_at = utcnow()
         binder.deleted_by = deleted_by
         self.db.commit()

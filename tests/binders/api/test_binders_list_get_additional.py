@@ -48,3 +48,25 @@ def test_get_and_delete_binder_paths(client, test_db, advisor_headers, test_user
 
     del_missing = client.delete("/api/v1/binders/999999", headers=advisor_headers)
     assert del_missing.status_code == 404
+
+
+def test_receive_allows_reusing_number_after_soft_delete(client, test_db, advisor_headers, test_user):
+    crm_client = _create_client(test_db, "2")
+
+    first_id = _create_binder_via_api(client, advisor_headers, crm_client.id, test_user.id)
+    del_ok = client.delete(f"/api/v1/binders/{first_id}", headers=advisor_headers)
+    assert del_ok.status_code == 204
+
+    second = client.post(
+        "/api/v1/binders/receive",
+        headers=advisor_headers,
+        json={
+            "client_id": crm_client.id,
+            "binder_number": "BDL-001",
+            "binder_type": "other",
+            "received_at": date.today().isoformat(),
+            "received_by": test_user.id,
+        },
+    )
+    assert second.status_code == 201
+    assert second.json()["id"] != first_id
