@@ -40,7 +40,7 @@ class AdvancePaymentService:
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
         if not self._client_repo.get_by_id(client_id):
-            raise NotFoundError("Client not found", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
         return self.repo.list_by_client_year(client_id, year, status=status, page=page, page_size=page_size)
 
     def create_payment(
@@ -57,7 +57,7 @@ class AdvancePaymentService:
         # Validate client exists
         client = self._client_repo.get_by_id(client_id)
         if not client:
-            raise NotFoundError("Client not found", "ADVANCE_PAYMENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.NOT_FOUND")
         assert_client_allows_create(client)
 
         if self.repo.exists_for_month(client_id, year, month):
@@ -77,7 +77,7 @@ class AdvancePaymentService:
     def delete_payment(self, payment_id: int) -> None:
         payment = self.repo.get_by_id(payment_id)
         if not payment:
-            raise NotFoundError(f"Advance payment {payment_id} not found", "ADVANCE_PAYMENT.NOT_FOUND")
+            raise NotFoundError(f"תשלום מקדמה {payment_id} לא נמצא", "ADVANCE_PAYMENT.NOT_FOUND")
         self.repo.delete(payment)
 
     _ALLOWED_UPDATE_FIELDS = {"paid_amount", "expected_amount", "status", "notes"}
@@ -85,7 +85,7 @@ class AdvancePaymentService:
     def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
         payment = self.repo.get_by_id(payment_id)
         if not payment:
-            raise NotFoundError(f"Advance payment {payment_id} not found", "ADVANCE_PAYMENT.NOT_FOUND")
+            raise NotFoundError(f"תשלום מקדמה {payment_id} לא נמצא", "ADVANCE_PAYMENT.NOT_FOUND")
 
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
         return self.repo.update(payment, **filtered)
@@ -118,7 +118,7 @@ class AdvancePaymentService:
 
     def get_annual_kpis(self, client_id: int, year: int) -> dict:
         if not self._client_repo.get_by_id(client_id):
-            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         data = self.analytics_repo.get_annual_kpis(client_id, year)
         total_expected = data["total_expected"]
         total_paid = data["total_paid"]
@@ -141,7 +141,7 @@ class AdvancePaymentService:
 
     def get_chart_data(self, client_id: int, year: int) -> dict:
         if not self._client_repo.get_by_id(client_id):
-            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         months = self.analytics_repo.monthly_chart_data(client_id, year)
         return {"client_id": client_id, "year": year, "months": months}
 

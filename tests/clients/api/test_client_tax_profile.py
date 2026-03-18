@@ -77,7 +77,7 @@ def test_update_tax_profile_invalid_vat_type_returns_400(client, test_db, adviso
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid vat_type: weekly"
+    assert response.json()["detail"] == "סוג מע\"מ לא חוקי: weekly"
 
 
 def test_tax_profile_unknown_client_returns_404(client, advisor_headers):
@@ -87,4 +87,4 @@ def test_tax_profile_unknown_client_returns_404(client, advisor_headers):
     )
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Client not found"
+    assert response.json()["detail"] == "לקוח 999 לא נמצא"

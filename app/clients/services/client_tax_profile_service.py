@@ -16,15 +16,19 @@ class ClientTaxProfileService:
 
     def get_profile(self, client_id: int) -> Optional[ClientTaxProfile]:
         if not self.client_repo.get_by_id(client_id):
-            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         return self.repo.get_by_client_id(client_id)
 
     def update_profile(self, client_id: int, **fields) -> ClientTaxProfile:
         if not self.client_repo.get_by_id(client_id):
-            raise NotFoundError("Client not found", "CLIENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         if "vat_type" in fields and fields["vat_type"] is not None:
             try:
                 VatType(fields["vat_type"])
             except ValueError:
-                raise AppError(f"Invalid vat_type: {fields['vat_type']}", "CLIENT.INVALID_VAT_TYPE", status_code=400)
+                raise AppError(
+                    f"סוג מע\"מ לא חוקי: {fields['vat_type']}",
+                    "CLIENT.INVALID_VAT_TYPE",
+                    status_code=400,
+                )
         return self.repo.upsert(client_id, **fields)

@@ -23,7 +23,7 @@ def generate_annual_schedule(
     Returns (created_records, skipped_count).
     """
     if not ClientRepository(db).get_by_id(client_id):
-        raise NotFoundError("Client not found", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
 
     service = AdvancePaymentService(db)
     repo = AdvancePaymentRepository(db)

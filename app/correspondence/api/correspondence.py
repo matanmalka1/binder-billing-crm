@@ -52,7 +52,7 @@ def create_correspondence(
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid correspondence_type: {request.correspondence_type}",
+            detail=f"סוג התכתבות לא חוקי: {request.correspondence_type}",
         )
     service = CorrespondenceService(db)
     entry = service.add_entry(
@@ -87,7 +87,7 @@ def update_correspondence(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid correspondence_type: {update_data['correspondence_type']}",
+                detail=f"סוג התכתבות לא חוקי: {update_data['correspondence_type']}",
             )
     service = CorrespondenceService(db)
     entry = service.update_entry(correspondence_id, client_id, **update_data)

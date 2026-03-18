@@ -71,7 +71,7 @@ def test_create_correspondence_invalid_type_returns_400(client, test_db, advisor
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid correspondence_type: fax"
+    assert response.json()["detail"] == "סוג התכתבות לא חוקי: fax"
 
 
 def test_create_correspondence_contact_mismatch_returns_400(client, test_db, advisor_headers):

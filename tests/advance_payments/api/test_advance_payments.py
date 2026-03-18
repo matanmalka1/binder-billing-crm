@@ -111,4 +111,4 @@ def test_list_advance_payments_missing_client_returns_404(client, advisor_header
     assert response.status_code == 404
     data = response.json()
     assert data["error"] == "ADVANCE_PAYMENT.CLIENT_NOT_FOUND"
-    assert data["error_meta"]["detail"] == "Client not found"
+    assert data["error_meta"]["detail"] == "לקוח 999 לא נמצא"
