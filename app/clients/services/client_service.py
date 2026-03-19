@@ -37,10 +37,18 @@ class ClientService:
         notes: Optional[str] = None,
         actor_id: Optional[int] = None,
     ) -> Client:
-        """Create new client. Raises ValueError if ID number exists."""
+        """Create new client. Raises ConflictError if ID number exists or was soft-deleted."""
         existing = self.client_repo.get_by_id_number(id_number)
         if existing:
             raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
+
+        deleted = self.client_repo.get_deleted_by_id_number(id_number)
+        if deleted:
+            raise ConflictError(
+                f"לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק בתאריך "
+                f"{deleted.deleted_at.date()}",
+                "CLIENT.DELETED_EXISTS",
+            )
 
         try:
             return self.client_repo.create(

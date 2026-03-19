@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -36,19 +37,19 @@ class StatusCardService:
         self._binder_repo = BinderRepository(db)
         self._doc_repo = PermanentDocumentRepository(db)
 
-    def get_status_card(self, client_id: int) -> ClientStatusCardResponse:
+    def get_status_card(self, client_id: int, year: Optional[int] = None) -> ClientStatusCardResponse:
         client = self._client_repo.get_by_id(client_id)
         if not client:
             raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
 
-        year = utcnow().year
+        resolved_year = year or utcnow().year
         return ClientStatusCardResponse(
             client_id=client_id,
-            year=year,
-            vat=self._vat_card(client_id, year),
-            annual_report=self._annual_report_card(client_id, year),
+            year=resolved_year,
+            vat=self._vat_card(client_id, resolved_year),
+            annual_report=self._annual_report_card(client_id, resolved_year),
             charges=self._charges_card(client_id),
-            advance_payments=self._advance_payments_card(client_id, year),
+            advance_payments=self._advance_payments_card(client_id, resolved_year),
             binders=self._binders_card(client_id),
             documents=self._documents_card(client_id),
         )

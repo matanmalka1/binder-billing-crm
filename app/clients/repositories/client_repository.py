@@ -59,6 +59,14 @@ class ClientRepository(BaseRepository):
             .first()
         )
 
+    def get_deleted_by_id_number(self, id_number: str) -> Optional[Client]:
+        """Retrieve a soft-deleted client by ID number."""
+        return (
+            self.db.query(Client)
+            .filter(Client.id_number == id_number, Client.deleted_at.isnot(None))
+            .first()
+        )
+
     def list(
         self,
         status: Optional[str] = None,
@@ -151,4 +159,3 @@ class ClientRepository(BaseRepository):
         """Update client fields."""
         client = self.get_by_id(client_id)
         return self._update_entity(client, **fields)
-

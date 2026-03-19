@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -13,7 +15,12 @@ router = APIRouter(
 
 
 @router.get("/{client_id}/status-card", response_model=ClientStatusCardResponse)
-def get_client_status_card(client_id: int, db: DBSession, user: CurrentUser):
+def get_client_status_card(
+    client_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    year: Optional[int] = Query(None, ge=2000, le=2100),
+):
     """Comprehensive status card for a client — VAT, annual report, charges, advances, binders, documents."""
     service = StatusCardService(db)
-    return service.get_status_card(client_id)
+    return service.get_status_card(client_id, year=year)

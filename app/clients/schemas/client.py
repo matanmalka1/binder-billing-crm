@@ -1,8 +1,8 @@
 from datetime import date
 from typing import Literal, Optional, Any
 
-from pydantic import BaseModel, EmailStr, Field
-
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from app.utils.id_validation import validate_israeli_id_checksum
 from app.clients.models.client import ClientStatus, ClientType
 
 
@@ -14,7 +14,23 @@ class ClientCreateRequest(BaseModel):
     email: Optional[EmailStr] = None
     opened_at: date
 
+    @field_validator("id_number")
+    @classmethod
+    def validate_id_number_format(cls, v: str) -> str:
+        v = v.strip()
+        if not v.isdigit():
+            raise ValueError("מספר זהות/ח.פ חייב להכיל ספרות בלבד")
+        if len(v) != 9:
+            raise ValueError("מספר זהות/ח.פ חייב להכיל בדיוק 9 ספרות")
+        return v
 
+    @model_validator(mode="after")
+    def validate_id_checksum(self) -> "ClientCreateRequest":
+        if not validate_israeli_id_checksum(self.id_number):
+            raise ValueError("מספר זהות/ח.פ אינו תקין")
+        return self
+    
+    
 class ClientUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None

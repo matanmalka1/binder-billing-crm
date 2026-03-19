@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, Iterable
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import Client
+from app.clients.models.client import Client, ClientType
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 if TYPE_CHECKING:
     from app.clients.services.client_service import ClientService
+
+_VALID_CLIENT_TYPES = {ct.value for ct in ClientType}
 
 
 class ClientExcelService:
@@ -106,6 +108,16 @@ class ClientExcelService:
 
             if not (full_name and id_number and client_type):
                 errors.append({"row": row_index, "error": "שם מלא, מספר מזהה וסוג לקוח הם שדות חובה"})
+                continue
+
+            if client_type not in _VALID_CLIENT_TYPES:
+                errors.append({
+                    "row": row_index,
+                    "error": (
+                        f"סוג לקוח לא חוקי: '{client_type}'. "
+                        f"ערכים מותרים: {', '.join(sorted(_VALID_CLIENT_TYPES))}"
+                    ),
+                })
                 continue
 
             try:
