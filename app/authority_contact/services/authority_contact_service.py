@@ -25,7 +25,7 @@ class AuthorityContactService:
         email: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> AuthorityContact:
-        """Add new authority contact for client."""
+        """Add new authority contact for business."""
         get_business_or_raise(self.db, business_id)
         contact_type_enum = ContactType(contact_type)
 
@@ -60,7 +60,7 @@ class AuthorityContactService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
-        """List contacts for client with pagination."""
+        """List contacts for business with pagination."""
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
 
         items = self.contact_repo.list_by_business(

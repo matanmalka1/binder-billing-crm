@@ -5,6 +5,12 @@ from app.utils.time_utils import utcnow
 
 
 class BinderStatusLog(Base):
+    """
+    Binder status change log.
+
+    Every status transition is recorded: IN_OFFICE -> READY_FOR_PICKUP -> RETURNED.
+    Used for auditing and tracking binders that were not collected for a long time.
+    """
     __tablename__ = "binder_status_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

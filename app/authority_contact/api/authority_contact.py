@@ -30,7 +30,7 @@ def create_authority_contact(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Create new authority contact for client."""
+    """Create new authority contact for business."""
     service = AuthorityContactService(db)
 
     contact = service.add_contact(
@@ -54,7 +54,7 @@ def list_authority_contacts(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List authority contacts for client with pagination."""
+    """List authority contacts for business with pagination."""
     service = AuthorityContactService(db)
 
     contacts, total = service.list_business_contacts(

@@ -33,9 +33,9 @@ from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
 
 class VatWorkItem(Base):
     """
-    One VAT reporting period for a single client.
+    One VAT reporting period for a single business.
 
-    Uniqueness: one work item per (client_id, period) — e.g. ("2026-01").
+    Uniqueness: one work item per (business_id, period) — e.g. ("2026-01").
     """
 
     __tablename__ = "vat_work_items"
@@ -43,7 +43,7 @@ class VatWorkItem(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # Relationships
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -87,12 +87,12 @@ class VatWorkItem(Base):
     updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)
 
     __table_args__ = (
-        UniqueConstraint("client_id", "period", name="uq_vat_work_item_client_period"),
+        UniqueConstraint("business_id", "period", name="uq_vat_work_item_business_period"),
         Index("ix_vat_work_items_status", "status"),
     )
 
     def __repr__(self) -> str:  # pragma: no cover
         return (
-            f"<VatWorkItem(id={self.id}, client_id={self.client_id}, "
+            f"<VatWorkItem(id={self.id}, business_id={self.business_id}, "
             f"period={self.period}, status={self.status})>"
         )

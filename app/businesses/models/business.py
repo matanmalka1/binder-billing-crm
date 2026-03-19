@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -8,10 +9,10 @@ from app.utils.time_utils import utcnow
 
 
 class BusinessType(str, PyEnum):
-    OSEK_PATUR = "osek_patur"
-    OSEK_MURSHE = "osek_murshe"
-    COMPANY = "company"
-    EMPLOYEE = "employee"
+    OSEK_PATUR = "osek_patur"      # Exempt dealer
+    OSEK_MURSHE = "osek_murshe"    # Authorized dealer
+    COMPANY = "company"            # Limited company
+    EMPLOYEE = "employee"          # Employee
 
 
 class BusinessStatus(str, PyEnum):
@@ -22,30 +23,44 @@ class BusinessStatus(str, PyEnum):
 
 class Business(Base):
     """
-    עסק ספציפי תחת לקוח.
-    לקוח יכול להחזיק מספר עסקים (למשל עוסק מורשה + חברה בע"מ).
-    כל הפעילות העסקית (דוחות, חיובים, מע"מ) משויכת לעסק, לא ללקוח.
+    A specific business under a client.
+
+    A client can hold multiple businesses (for example: authorized dealer + limited company).
+    All business activity (reports, charges, VAT, binders) is associated with the business.
+
+    Contact details (email, phone):
+    - official_email / official_phone = business-specific contact details (DB columns)
+    - email / phone = properties with fallback to client details
     """
     __tablename__ = "businesses"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # קשר ללקוח
+    # Link to client.
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
 
-    # פרטי העסק
-    business_name = Column(String, nullable=True)  # אופציונלי — אם ריק, מציגים שם הלקוח
+    # Relationship: lazy="select"; use explicit joinedload when needed.
+    client = relationship("Client", foreign_keys=[client_id], lazy="select")
+
+    # Business details.
+    business_name = Column(String, nullable=True)   # null = sole proprietor under personal name
     business_type = Column(pg_enum(BusinessType), nullable=False)
-    status = Column(pg_enum(BusinessStatus), default=BusinessStatus.ACTIVE, nullable=False)
+    status = Column(
+        pg_enum(BusinessStatus),
+        default=BusinessStatus.ACTIVE,
+        nullable=False,
+    )
 
-    # מספר קלסר ראשי
-    primary_binder_number = Column(String, unique=True, nullable=True)
+    # Business-specific contact details.
+    # DB column names use official_* to avoid collision with Python properties.
+    official_phone = Column(String, nullable=True)
+    official_email = Column(String, nullable=True)
 
-    # תאריכים
+    # Dates.
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
 
-    # מטא
+    # Metadata.
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
@@ -58,21 +73,46 @@ class Business(Base):
     restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        # שם עסק ייחודי לאותו לקוח (רק אם יש שם)
+        Index("ix_business_client_id", "client_id"),
+        Index("ix_business_status", "status"),
         Index(
             "ix_business_client_name_active",
             "client_id",
             "business_name",
             unique=True,
-            postgresql_where=Column("business_name").isnot(None) & Column("deleted_at").is_(None),
-            sqlite_where=Column("business_name").isnot(None) & Column("deleted_at").is_(None),
+            postgresql_where="business_name IS NOT NULL AND deleted_at IS NULL",
+            sqlite_where="business_name IS NOT NULL AND deleted_at IS NULL",
         ),
-        Index("ix_business_status", "status"),
-        Index("ix_business_client_id", "client_id"),
     )
+
+    # ── Computed properties ───────────────────────────────────────────────────
+
+    @property
+    def full_name(self) -> str:
+        """
+        Display name of the business.
+        If business_name exists, return it.
+        Otherwise, return the client name.
+        """
+        if self.business_name:
+            return self.business_name
+        if self.client:
+            return self.client.full_name
+        return f"עסק #{self.id}"
+
+    @property
+    def phone(self) -> str | None:
+        """Business phone, with fallback to client phone."""
+        return self.official_phone or (self.client.phone if self.client else None)
+
+    @property
+    def email(self) -> str | None:
+        """Business email, with fallback to client email."""
+        return self.official_email or (self.client.email if self.client else None)
 
     def __repr__(self):
         return (
             f"<Business(id={self.id}, client_id={self.client_id}, "
-            f"name='{self.business_name}', type='{self.business_type}', status='{self.status}')>"
+            f"name='{self.business_name}', type='{self.business_type}', "
+            f"status='{self.status}')>"
         )

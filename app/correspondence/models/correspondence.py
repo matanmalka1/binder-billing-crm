@@ -19,7 +19,7 @@ class Correspondence(Base):
     __tablename__ = "correspondence_entries"
  
     id = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False)
     contact_id = Column(Integer, ForeignKey("authority_contacts.id"), nullable=True, index=True)
     correspondence_type = Column(pg_enum(CorrespondenceType), nullable=False)
     subject = Column(String, nullable=False)

@@ -1,61 +1,86 @@
 from enum import Enum as PyEnum
+
 from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey,
-    Index, Integer, Numeric, String, Text, UniqueConstraint,
+    Column, Date, DateTime, ForeignKey,
+    Index, Integer, String, Text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
- 
- 
+
+
 class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
- 
- 
-class BinderType(str, PyEnum):
-    VAT = "vat"
-    INCOME_TAX = "income_tax"
-    NATIONAL_INSURANCE = "national_insurance"
-    CAPITAL_DECLARATION = "capital_declaration"
-    ANNUAL_REPORT = "annual_report"
-    SALARY = "salary"
-    BOOKKEEPING = "bookkeeping"
-    OTHER = "other"
- 
- 
+
+
 class Binder(Base):
+    """
+    Physical binder belonging to a client.
+
+    A binder is identified by a globally unique number (binder_number)
+    assigned to the client and kept constant throughout the binder's lifecycle.
+    When a binder is full, a new binder is opened with the same number
+    and a new period.
+
+    All materials from all of the client's businesses are stored in the same binder.
+    The material type is defined at the BinderIntakeMaterial level, not at binder level.
+    """
     __tablename__ = "binders"
- 
+
     id = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+
+    # The binder belongs to the client, not to a specific business.
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+
+    # Globally unique number (the label number on the physical binder).
     binder_number = Column(String, nullable=False)
-    binder_type = Column(pg_enum(BinderType), nullable=False)
-    received_at = Column(Date, nullable=False)
+
+    # Binder period: when it starts and when it ends.
+    period_start = Column(Date, nullable=False)
+    period_end = Column(Date, nullable=True)  # null = active binder
+
+    # Binder status.
+    status = Column(
+        pg_enum(BinderStatus),
+        default=BinderStatus.IN_OFFICE,
+        nullable=False,
+    )
+
+    # When the client actually picked up the binder.
     returned_at = Column(Date, nullable=True)
-    status = Column(pg_enum(BinderStatus), default=BinderStatus.IN_OFFICE, nullable=False)
-    received_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    returned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Who picked up the binder (client / courier / employee / family member).
     pickup_person_name = Column(String, nullable=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
+
+    # Physical logistics info: shelf location, binder color, material condition.
     notes = Column(Text, nullable=True)
+
+    # Metadata.
     created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Soft delete
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
- 
+
     __table_args__ = (
         Index("idx_binder_status", "status"),
-        Index("idx_binder_received_at", "received_at"),
+        Index("idx_binder_period_start", "period_start"),
+        Index("idx_binder_client", "client_id"),
+        # Globally unique binder_number to prevent duplicates among active binders.
         Index(
             "idx_active_binder_unique",
             "binder_number",
             unique=True,
-            postgresql_where=Column("status") != BinderStatus.RETURNED and Column("deleted_at").is_(None),
-            sqlite_where=Column("status") != BinderStatus.RETURNED and Column("deleted_at").is_(None),
+            postgresql_where="status != 'returned' AND deleted_at IS NULL",
+            sqlite_where="status != 'returned' AND deleted_at IS NULL",
         ),
     )
- 
+
     def __repr__(self):
-        return f"<Binder(id={self.id}, number='{self.binder_number}', status='{self.status}')>"
- 
+        return (
+            f"<Binder(id={self.id}, number='{self.binder_number}', "
+            f"client_id={self.client_id}, status='{self.status}')>"
+        )

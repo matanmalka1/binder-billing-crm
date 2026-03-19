@@ -14,9 +14,9 @@ from sqlalchemy.orm import Session
 from app.config import config
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.binders.models.binder import Binder
+from app.businesses.models.business import Business
 from app.clients.models.client import Client
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
-from app.clients.repositories.client_repository import ClientRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.core import get_logger
 
@@ -35,7 +35,6 @@ class NotificationService:
     def __init__(self, db: Session):
         self.db = db
         self.notification_repo = NotificationRepository(db)
-        self.client_repo = ClientRepository(db)
         self.email = EmailChannel(
             enabled=config.NOTIFICATIONS_ENABLED,
             api_key=config.SENDGRID_API_KEY,
@@ -48,35 +47,74 @@ class NotificationService:
             from_number=config.WHATSAPP_FROM_NUMBER,
         )
 
-    def notify_binder_received(self, binder: Binder, client: Client) -> bool:
+    def _get_business_and_client(self, business_id: int) -> tuple[Business, Client] | None:
+        """Load business + owner client contact details in a single query."""
+        row = (
+            self.db.query(Business, Client)
+            .join(Client, Client.id == Business.client_id)
+            .filter(
+                Business.id == business_id,
+                Business.deleted_at.is_(None),
+                Client.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if not row:
+            return None
+        return row
+
+    def _resolve_recipient_name(self, business: Business) -> str:
+        """Prefer business display name, fallback to owner's full name."""
+        if business.business_name:
+            return business.business_name
+
+        client = getattr(business, "client", None)
+        if client and getattr(client, "full_name", None):
+            return client.full_name
+
+        business_and_client = self._get_business_and_client(business.id)
+        if business_and_client:
+            _business, owner_client = business_and_client
+            if owner_client.full_name:
+                return owner_client.full_name
+        return "לקוח"
+
+    def notify_binder_received(self, binder: Binder, business: Business) -> bool:
+        recipient_name = self._resolve_recipient_name(business)
         content = (
-            f"שלום {client.full_name},\n\n"
+            f"שלום {recipient_name},\n\n"
             f"תיק מספר {binder.binder_number} התקבל במשרד בתאריך {binder.received_at}.\n\n"
             f"בברכה"
         )
         return self.send_notification(
-            client_id=client.id,
+            business_id=business.id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
             content=content,
             binder_id=binder.id,
         )
 
-    def notify_ready_for_pickup(self, binder: Binder, client: Client) -> bool:
+    def notify_ready_for_pickup(self, binder: Binder, business: Business) -> bool:
+        recipient_name = self._resolve_recipient_name(business)
         content = (
-            f"שלום {client.full_name},\n\n"
+            f"שלום {recipient_name},\n\n"
             f"תיק מספר {binder.binder_number} מוכן לאיסוף מהמשרד.\n\n"
             f"בברכה"
         )
         return self.send_notification(
-            client_id=client.id,
+            business_id=business.id,
             trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
             content=content,
             binder_id=binder.id,
         )
 
-    def notify_payment_reminder(self, client: Client, reminder_text: str, triggered_by: Optional[int] = None) -> bool:
+    def notify_payment_reminder(
+        self,
+        business_id: int,
+        reminder_text: str,
+        triggered_by: Optional[int] = None,
+    ) -> bool:
         return self.send_notification(
-            client_id=client.id,
+            business_id=business_id,
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             content=reminder_text,
             triggered_by=triggered_by,
@@ -84,19 +122,19 @@ class NotificationService:
 
     def bulk_notify(
         self,
-        client_ids: list[int],
+        business_ids: list[int],
         template: str,
         channel: str = "email",
         trigger: NotificationTrigger = NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> dict:
-        """Send a notification to a list of clients. Returns {sent, failed} counts."""
+        """Send a notification to a list of businesses. Returns {sent, failed} counts."""
         sent = 0
         failed = 0
-        for client_id in client_ids:
+        for business_id in business_ids:
             ok = self.send_notification(
-                client_id=client_id,
+                business_id=business_id,
                 trigger=trigger,
                 content=template,
                 triggered_by=triggered_by,
@@ -111,7 +149,7 @@ class NotificationService:
 
     def send_notification(
         self,
-        client_id: int,
+        business_id: int,
         trigger: NotificationTrigger,
         content: str,
         binder_id: Optional[int] = None,
@@ -125,10 +163,11 @@ class NotificationService:
         Never raises — always returns True so callers are not interrupted.
         """
         try:
-            client = self.client_repo.get_by_id(client_id)
-            if not client:
-                logger.warning("send_notification: client %s not found", client_id)
+            business_and_client = self._get_business_and_client(business_id)
+            if not business_and_client:
+                logger.warning("send_notification: business %s not found", business_id)
                 return True
+            _business, client = business_and_client
 
             subject = _SUBJECTS.get(trigger, "הודעה ממערכת ניהול התיקים")
 
@@ -137,7 +176,7 @@ class NotificationService:
                 success, error = self.whatsapp.send(client.phone, content)
                 if success:
                     notification = self.notification_repo.create(
-                        client_id=client_id,
+                        business_id=business_id,
                         binder_id=binder_id,
                         trigger=trigger,
                         channel=NotificationChannel.WHATSAPP,
@@ -147,17 +186,21 @@ class NotificationService:
                         severity=severity,
                     )
                     self.notification_repo.mark_sent(notification.id)
-                    logger.info("WhatsApp sent | client=%s trigger=%s", client_id, trigger.value)
+                    logger.info("WhatsApp sent | business=%s trigger=%s", business_id, trigger.value)
                     return True
-                logger.warning("WhatsApp failed for client=%s, falling back to email: %s", client_id, error)
+                logger.warning("WhatsApp failed for business=%s, falling back to email: %s", business_id, error)
 
             # Email fallback
             if not client.email:
-                logger.info("send_notification: client %s has no email, skipping trigger=%s", client_id, trigger.value)
+                logger.info(
+                    "send_notification: business %s has no email on related client, skipping trigger=%s",
+                    business_id,
+                    trigger.value,
+                )
                 return True
 
             notification = self.notification_repo.create(
-                client_id=client_id,
+                business_id=business_id,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
@@ -170,24 +213,34 @@ class NotificationService:
             success, error = self.email.send(client.email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(notification.id)
-                logger.info("Notification sent | client=%s trigger=%s email=%s", client_id, trigger.value, client.email)
+                logger.info(
+                    "Notification sent | business=%s trigger=%s email=%s",
+                    business_id,
+                    trigger.value,
+                    client.email,
+                )
             else:
                 self.notification_repo.mark_failed(notification.id, error or "unknown error")
-                logger.error("Notification failed | client=%s trigger=%s error=%s", client_id, trigger.value, error)
+                logger.error("Notification failed | business=%s trigger=%s error=%s", business_id, trigger.value, error)
 
         except Exception as exc:  # noqa: BLE001
-            logger.error("Unexpected error in send_notification | client=%s trigger=%s error=%s", client_id, trigger, exc)
+            logger.error(
+                "Unexpected error in send_notification | business=%s trigger=%s error=%s",
+                business_id,
+                trigger,
+                exc,
+            )
 
         return True
 
-    def list_recent(self, limit: int = 20, client_id: Optional[int] = None):
-        return self.notification_repo.list_recent(limit=limit, client_id=client_id)
+    def list_recent(self, limit: int = 20, business_id: Optional[int] = None):
+        return self.notification_repo.list_recent(limit=limit, business_id=business_id)
 
-    def count_unread(self, client_id: Optional[int] = None) -> int:
-        return self.notification_repo.count_unread(client_id=client_id)
+    def count_unread(self, business_id: Optional[int] = None) -> int:
+        return self.notification_repo.count_unread(business_id=business_id)
 
     def mark_read(self, notification_ids: list[int]) -> int:
         return self.notification_repo.mark_read(notification_ids)
 
-    def mark_all_read(self, client_id: Optional[int] = None) -> int:
-        return self.notification_repo.mark_all_read(client_id)
+    def mark_all_read(self, business_id: Optional[int] = None) -> int:
+        return self.notification_repo.mark_all_read(business_id)

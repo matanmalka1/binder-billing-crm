@@ -1,7 +1,6 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.schema import CheckConstraint
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -17,12 +16,14 @@ class ContactType(str, PyEnum):
 
 class AuthorityContact(Base):
     """
-    איש קשר ברשות המסים — ישות עצמאית.
-    יכול להיות מקושר למספר לקוחות / עסקים דרך AuthorityContactLink.
+    איש קשר ברשות המסים המשויך לעסק ספציפי.
     """
     __tablename__ = "authority_contacts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    business_id = Column(
+        Integer, ForeignKey("businesses.id"), nullable=False, index=True
+    )
     contact_type = Column(pg_enum(ContactType), nullable=False)
 
     # פרטי איש הקשר
@@ -42,11 +43,12 @@ class AuthorityContact(Base):
 
     __table_args__ = (
         Index("idx_authority_contact_type", "contact_type"),
+        Index("idx_authority_contact_business", "business_id"),
     )
 
     def __repr__(self):
         return (
-            f"<AuthorityContact(id={self.id}, type='{self.contact_type}', "
+            f"<AuthorityContact(id={self.id}, business_id={self.business_id}, type='{self.contact_type}', "
             f"name='{self.name}')>"
         )
 
