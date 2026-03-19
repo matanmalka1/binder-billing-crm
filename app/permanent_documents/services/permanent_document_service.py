@@ -9,8 +9,8 @@ from app.core.exceptions import NotFoundError
 from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TYPES, _MAX_FILE_SIZE
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import DocumentStatus, DocumentType, PermanentDocument
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_service import get_business_or_raise
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
 from app.utils.time_utils import utcnow
@@ -30,12 +30,12 @@ class PermanentDocumentService:
         self.db = db
         self.document_repo = PermanentDocumentRepository(db)
         self.query_repo = PermanentDocumentQueryRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.storage = storage or get_storage_provider()
 
     def upload_document(
         self,
-        client_id: int,
+        business_id: int,
         document_type: str,
         file_data: BinaryIO,
         filename: str,
@@ -46,12 +46,12 @@ class PermanentDocumentService:
         mime_type: Optional[str] = None,
     ) -> PermanentDocument:
         try:
-            get_client_or_raise(self.db, client_id)
+            get_business_or_raise(self.db, business_id)
         except NotFoundError as exc:
             raise NotFoundError(str(exc), "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
 
         tax_year_str = str(tax_year) if tax_year else "permanent"
-        existing = self.query_repo.get_latest_version(client_id, document_type, tax_year)
+        existing = self.query_repo.get_latest_version(business_id, document_type, tax_year)
         next_version = (existing.version + 1) if existing else 1
 
         file_bytes = file_data.read()
@@ -65,7 +65,7 @@ class PermanentDocumentService:
         
         file_data = io.BytesIO(file_bytes)
 
-        storage_key = f"clients/{client_id}/{document_type}/{tax_year_str}/v{next_version}_{filename}"
+        storage_key = f"businesses/{business_id}/{document_type}/{tax_year_str}/v{next_version}_{filename}"
         self.storage.upload(storage_key, file_data, resolved_mime)
 
         if existing:
@@ -73,7 +73,7 @@ class PermanentDocumentService:
             self.db.flush()
 
         document = self.document_repo.create(
-            client_id=client_id,
+            business_id=business_id,
             document_type=document_type,
             storage_key=storage_key,
             uploaded_by=uploaded_by,
@@ -98,25 +98,25 @@ class PermanentDocumentService:
             raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
         return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
 
-    def list_client_documents(
+    def list_business_documents(
         self,
-        client_id: int,
+        business_id: int,
         tax_year: Optional[int] = None,
         document_type: Optional[str] = None,
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
-        return self.document_repo.list_by_client(
-            client_id,
+        return self.document_repo.list_by_business(
+            business_id,
             tax_year=tax_year,
             document_type=document_type,
             status=status,
         )
 
     def get_missing_document_types(
-        self, client_id: int, required: Optional[list[str]] = None
+        self, business_id: int, required: Optional[list[str]] = None
     ) -> list[str]:
         required_types = required if required is not None else _DEFAULT_REQUIRED_TYPES
-        return self.query_repo.missing_by_type(client_id, required_types)
+        return self.query_repo.missing_by_type(business_id, required_types)
 
     def delete_document(self, document_id: int) -> None:
         doc = self.document_repo.get_by_id(document_id)
@@ -137,7 +137,7 @@ class PermanentDocumentService:
             raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
         tax_year_str = str(doc.tax_year) if doc.tax_year else "permanent"
         next_version = doc.version + 1
-        storage_key = f"clients/{doc.client_id}/{doc.document_type}/{tax_year_str}/v{next_version}_{filename}"
+        storage_key = f"businesses/{doc.business_id}/{doc.document_type}/{tax_year_str}/v{next_version}_{filename}"
         self.storage.upload(storage_key, file_data, doc.mime_type or "application/octet-stream")
         doc.storage_key = storage_key
         doc.uploaded_at = utcnow()

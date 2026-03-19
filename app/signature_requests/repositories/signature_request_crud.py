@@ -15,7 +15,7 @@ class SignatureRequestCrudMixin:
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         created_by: int,
         request_type: SignatureRequestType,
         title: str,
@@ -29,7 +29,7 @@ class SignatureRequestCrudMixin:
         content_hash: Optional[str] = None,
     ) -> SignatureRequest:
         req = SignatureRequest(
-            client_id=client_id,
+            business_id=business_id,
             created_by=created_by,
             request_type=request_type,
             title=title,
@@ -54,14 +54,14 @@ class SignatureRequestCrudMixin:
     def get_by_token(self, token: str) -> Optional[SignatureRequest]:
         return self.db.query(SignatureRequest).filter(SignatureRequest.signing_token == token).first()
 
-    def list_by_client(
+    def list_by_business(
         self,
-        client_id: int,
+        business_id: int,
         status: Optional[SignatureRequestStatus] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
-        query = self.db.query(SignatureRequest).filter(SignatureRequest.client_id == client_id)
+        query = self.db.query(SignatureRequest).filter(SignatureRequest.business_id == business_id)
         if status:
             query = query.filter(SignatureRequest.status == status)
         offset = (page - 1) * page_size
@@ -72,8 +72,8 @@ class SignatureRequestCrudMixin:
             .all()
         )
 
-    def count_by_client(self, client_id: int, status: Optional[SignatureRequestStatus] = None) -> int:
-        query = self.db.query(SignatureRequest).filter(SignatureRequest.client_id == client_id)
+    def count_by_business(self, business_id: int, status: Optional[SignatureRequestStatus] = None) -> int:
+        query = self.db.query(SignatureRequest).filter(SignatureRequest.business_id == business_id)
         if status:
             query = query.filter(SignatureRequest.status == status)
         return query.count()

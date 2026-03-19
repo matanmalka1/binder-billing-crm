@@ -38,7 +38,7 @@ def list_advance_payments_overview(
     items = [
         AdvancePaymentOverviewRow(
             id=payment.id,
-            client_id=payment.client_id,
+            business_id=payment.business_id,
             client_name=client_name,
             month=payment.month,
             year=payment.year,
@@ -64,11 +64,11 @@ def list_advance_payments_overview(
 def get_chart_data(
     db: DBSession,
     user: CurrentUser,
-    client_id: int = Query(...),
+    business_id: int = Query(...),
     year: int = Query(...),
 ):
     service = AdvancePaymentService(db)
-    data = service.get_chart_data(client_id=client_id, year=year)
+    data = service.get_chart_data(business_id=business_id, year=year)
     return ChartDataResponse(**data)
 
 
@@ -76,9 +76,9 @@ def get_chart_data(
 def get_annual_kpis(
     db: DBSession,
     user: CurrentUser,
-    client_id: int = Query(...),
+    business_id: int = Query(...),
     year: int = Query(...),
 ):
     service = AdvancePaymentService(db)
-    data = service.get_annual_kpis(client_id=client_id, year=year)
+    data = service.get_annual_kpis(business_id=business_id, year=year)
     return AnnualKPIResponse(**data)

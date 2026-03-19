@@ -7,7 +7,8 @@ from app.annual_reports.models import (
     ClientTypeForReport,
     DeadlineType,
 )
-from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
+from app.businesses.services.business_service import get_business_or_raise
+from app.clients.services.client_lookup import assert_business_allows_create
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -17,7 +18,7 @@ from .base import AnnualReportBaseService
 class AnnualReportCreateService(AnnualReportBaseService):
     def create_report(
         self,
-        client_id: int,
+        business_id: int,
         tax_year: int,
         client_type: str,
         created_by: int,
@@ -33,8 +34,8 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        client = get_client_or_raise(self.db, client_id)
-        assert_client_allows_create(client)
+        business = get_business_or_raise(self.db, business_id)
+        assert_business_allows_create(business)
 
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:
@@ -55,10 +56,10 @@ class AnnualReportCreateService(AnnualReportBaseService):
         if assigned_to is not None:
             get_user_or_raise(self.user_repo, assigned_to)
 
-        existing = self.repo.get_by_business_year(client_id, tax_year)
+        existing = self.repo.get_by_business_year(business_id, tax_year)
         if existing:
             raise ConflictError(
-                f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} כבר קיים "
+                f"דוח שנתי ללקוח {business_id} לשנת מס {tax_year} כבר קיים "
                 f"(id={existing.id}, status={existing.status.value})",
                 "ANNUAL_REPORT.CONFLICT",
             )
@@ -72,7 +73,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             filing_deadline = None  # custom — caller can set note
 
         report = self.repo.create(
-            client_id=client_id,
+            business_id=business_id,
             tax_year=tax_year,
             client_type=ct,
             form_type=form_type,

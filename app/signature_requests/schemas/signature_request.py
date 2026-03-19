@@ -39,7 +39,7 @@ class SignatureAuditEventResponse(BaseModel):
 
 class SignatureRequestResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     created_by: int
     request_type: str
     title: str
@@ -90,7 +90,7 @@ class SignatureRequestWithAuditResponse(SignatureRequestResponse):
 
 
 class SignatureRequestCreateRequest(BaseModel):
-    client_id: int = Field(..., gt=0)
+    business_id: int = Field(..., gt=0)
     request_type: str = Field(
         ...,
         description=(

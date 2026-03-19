@@ -7,7 +7,7 @@ class SearchResult(BaseModel):
     """Single search result."""
 
     result_type: str  # "client" | "binder"
-    client_id: int
+    business_id: int
     client_name: str
     client_status: Optional[str] = None  # "active" | "frozen" | "closed"
     binder_id: Optional[int] = None
@@ -20,7 +20,7 @@ class DocumentSearchResult(BaseModel):
     """Single document search result."""
 
     id: int
-    client_id: int
+    business_id: int
     client_name: str
     document_type: str
     original_filename: Optional[str] = None

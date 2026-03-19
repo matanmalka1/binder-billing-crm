@@ -23,7 +23,7 @@ class AnnualReportAdvancesSummaryService:
         payments = (
             self.db.query(AdvancePayment)
             .filter(
-                AdvancePayment.client_id == report.client_id,
+                AdvancePayment.business_id == report.business_id,
                 AdvancePayment.year == report.tax_year,
                 func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
             )

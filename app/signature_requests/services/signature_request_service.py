@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services import (
     admin_actions,
@@ -22,11 +22,11 @@ class SignatureRequestService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = SignatureRequestRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
 
     # Create
     def create_request(self, **kwargs):
-        return create_request.create_request(self.repo, self.client_repo, **kwargs)
+        return create_request.create_request(self.repo, self.business_repo, **kwargs)
 
     # Send
     def send_request(self, **kwargs):
@@ -56,8 +56,8 @@ class SignatureRequestService:
     def get_by_token(self, token: str):
         return signature_request_queries.get_by_token(self.repo, token)
 
-    def list_client_requests(self, **kwargs):
-        return signature_request_queries.list_client_requests(self.repo, **kwargs)
+    def list_business_requests(self, **kwargs):
+        return signature_request_queries.list_business_requests(self.repo, **kwargs)
 
     def list_pending_requests(self, **kwargs):
         return signature_request_queries.list_pending_requests(self.repo, **kwargs)

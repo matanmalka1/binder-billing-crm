@@ -7,7 +7,7 @@ from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services.signals_service import SignalsService
 from app.binders.services.work_state_service import WorkStateService
 from app.users.models.user import UserRole
@@ -30,30 +30,30 @@ class DashboardExtendedService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.signals_service = SignalsService(db)
-        self._cached_active_binders_with_clients: Optional[list[tuple]] = None
+        self._cached_active_binders_with_businesses: Optional[list[tuple]] = None
 
-    def _active_binders_with_clients(self) -> list[tuple]:
+    def _active_binders_with_businesses(self) -> list[tuple]:
         """Fetch active binders once and attach client objects to avoid N+1.
 
         Bounded to _ACTIVE_BINDERS_FETCH_LIMIT. Binders beyond the ceiling
         are excluded from dashboard calculations (known debt).
         """
-        if self._cached_active_binders_with_clients is None:
+        if self._cached_active_binders_with_businesses is None:
             binders = self.binder_repo.list_active(
                 page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
             )
-            client_ids = list({binder.client_id for binder in binders})
-            clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
-            client_map = {client.id: client for client in clients}
-            self._cached_active_binders_with_clients = [
-                (binder, client_map.get(binder.client_id))
+            business_ids = list({binder.business_id for binder in binders})
+            businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
+            business_map = {business.id: business for business in businesses}
+            self._cached_active_binders_with_businesses = [
+                (binder, business_map.get(binder.business_id))
                 for binder in binders
-                if client_map.get(binder.client_id)
+                if business_map.get(binder.business_id)
             ]
-        return self._cached_active_binders_with_clients
+        return self._cached_active_binders_with_businesses
 
     def get_work_queue(
         self,
@@ -65,10 +65,10 @@ class DashboardExtendedService:
             reference_date = date.today()
 
         items = []
-        for binder, client in self._active_binders_with_clients():
+        for binder, business in self._active_binders_with_businesses():
             work_state = WorkStateService.derive_work_state(binder, reference_date, self.db)
             signals = self.signals_service.compute_binder_signals(binder, reference_date)
-            items.append(work_queue_item(binder, client, work_state, signals, reference_date))
+            items.append(work_queue_item(binder, business, work_state, signals, reference_date))
         total = len(items)
         offset = (page - 1) * page_size
         return items[offset : offset + page_size], total
@@ -82,11 +82,11 @@ class DashboardExtendedService:
             reference_date = date.today()
 
         items = []
-        for binder, client in self._active_binders_with_clients():
+        for binder, business in self._active_binders_with_businesses():
             if WorkStateService.is_idle(binder, reference_date, self.db):
-                items.append(idle_attention_item(binder, client, reference_date))
+                items.append(idle_attention_item(binder, business, reference_date))
             if binder.status == BinderStatus.READY_FOR_PICKUP:
-                items.append(ready_attention_item(binder, client))
+                items.append(ready_attention_item(binder, business))
 
         if user_role == UserRole.ADVISOR:
             unpaid_charges = self.charge_repo.list_charges(
@@ -95,13 +95,13 @@ class DashboardExtendedService:
                 page_size=_UNPAID_CHARGES_FETCH_LIMIT,
             )
             if unpaid_charges:
-                charge_client_ids = list({c.client_id for c in unpaid_charges})
-                charge_clients = self.client_repo.list_by_ids(charge_client_ids)
-                charge_client_map = {c.id: c for c in charge_clients}
+                charge_business_ids = list({c.business_id for c in unpaid_charges})
+                charge_businesses = self.business_repo.list_by_ids(charge_business_ids)
+                charge_business_map = {c.id: c for c in charge_businesses}
                 for charge in unpaid_charges:
-                    client = charge_client_map.get(charge.client_id)
-                    if not client:
+                    business = charge_business_map.get(charge.business_id)
+                    if not business:
                         continue
-                    items.append(unpaid_charge_attention_item(charge, client))
+                    items.append(unpaid_charge_attention_item(charge, business))
 
         return items

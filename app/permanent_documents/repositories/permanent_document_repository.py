@@ -13,7 +13,7 @@ class PermanentDocumentRepository:
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         document_type: str,
         storage_key: str,
         uploaded_by: int,
@@ -27,7 +27,7 @@ class PermanentDocumentRepository:
         notes: Optional[str] = None,
     ) -> PermanentDocument:
         document = PermanentDocument(
-            client_id=client_id,
+            business_id=business_id,
             document_type=document_type,
             storage_key=storage_key,
             uploaded_by=uploaded_by,
@@ -49,16 +49,16 @@ class PermanentDocumentRepository:
     def get_by_id(self, document_id: int) -> Optional[PermanentDocument]:
         return self.db.query(PermanentDocument).filter(PermanentDocument.id == document_id).first()
 
-    def list_by_client(
+    def list_by_business(
         self,
-        client_id: int,
+        business_id: int,
         tax_year: Optional[int] = None,
         document_type: Optional[str] = None,
         status: Optional[DocumentStatus] = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
         q = self.db.query(PermanentDocument).filter(
-            PermanentDocument.client_id == client_id,
+            PermanentDocument.business_id == business_id,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if not include_superseded:
@@ -71,11 +71,11 @@ class PermanentDocumentRepository:
             q = q.filter(PermanentDocument.status == status)
         return q.order_by(PermanentDocument.uploaded_at.desc()).all()
 
-    def count_by_client(self, client_id: int) -> int:
+    def count_by_business(self, business_id: int) -> int:
         return (
             self.db.query(PermanentDocument)
             .filter(
-                PermanentDocument.client_id == client_id,
+                PermanentDocument.business_id == business_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
             .count()

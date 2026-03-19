@@ -6,8 +6,9 @@ from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoun
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_service import get_business_or_raise
+from app.clients.services.client_lookup import assert_business_allows_create
 from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
@@ -19,11 +20,11 @@ class BillingService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
 
     def create_charge(
         self,
-        client_id: int,
+        business_id: int,
         amount: float,
         charge_type: str,
         actor_id: Optional[int] = None,
@@ -37,8 +38,8 @@ class BillingService:
             AppError: If client doesn't exist or amount is invalid
         """
         # Validate client exists and allows new work
-        client = get_client_or_raise(self.db, client_id)
-        assert_client_allows_create(client)
+        business = get_business_or_raise(self.db, business_id)
+        assert_business_allows_create(business)
 
         # Validate amount
         if amount <= 0:
@@ -46,7 +47,7 @@ class BillingService:
 
         # Create charge in draft status
         return self.charge_repo.create(
-            client_id=client_id,
+            business_id=business_id,
             amount=amount,
             charge_type=charge_type,
             period=period,
@@ -83,7 +84,7 @@ class BillingService:
         )
 
         ReminderService(self.db).create_unpaid_charge_reminder(
-            client_id=charge.client_id,
+            business_id=charge.business_id,
             charge_id=charge_id,
             days_unpaid=30,
         )
@@ -174,14 +175,14 @@ class BillingService:
         """Get charge by ID."""
         return self.charge_repo.get_by_id(charge_id)
 
-    def enrich_client_name(self, charge: Charge) -> str | None:
-        """Return the client full_name for a single charge."""
-        clients = self.client_repo.list_by_ids([charge.client_id])
-        return clients[0].full_name if clients else None
+    def enrich_business_name(self, charge: Charge) -> str | None:
+        """Return the business full_name for a single charge."""
+        businesses = self.business_repo.list_by_ids([charge.business_id])
+        return businesses[0].full_name if businesses else None
 
     def list_charges(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
@@ -190,43 +191,43 @@ class BillingService:
         """
         List charges with pagination.
 
-        Returns (items, total, client_name_map) where client_name_map maps
-        client_id → full_name for all charges in the page.
+        Returns (items, total, business_name_map) where business_name_map maps
+        business_id → full_name for all charges in the page.
         """
         items = self.charge_repo.list_charges(
-            client_id=client_id,
+            business_id=business_id,
             status=status,
             charge_type=charge_type,
             page=page,
             page_size=page_size,
         )
-        total = self.charge_repo.count_charges(client_id=client_id, status=status, charge_type=charge_type)
+        total = self.charge_repo.count_charges(business_id=business_id, status=status, charge_type=charge_type)
 
         # Batch-fetch client names for this page (single extra query)
-        client_ids = list({c.client_id for c in items})
-        clients = self.client_repo.list_by_ids(client_ids)
-        client_name_map: dict[int, str] = {c.id: c.full_name for c in clients}
+        business_ids = list({c.business_id for c in items})
+        businesses = self.business_repo.list_by_ids(business_ids)
+        business_name_map: dict[int, str] = {c.id: c.full_name for c in businesses}
 
-        return items, total, client_name_map
+        return items, total, business_name_map
 
     def list_charges_for_role(
         self,
         user_role: UserRole,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> ChargeListResponse:
         """List charges serialized and role-shaped in one call."""
-        items, total, client_name_map = self.list_charges(
-            client_id=client_id, status=status, charge_type=charge_type, page=page, page_size=page_size
+        items, total, business_name_map = self.list_charges(
+            business_id=business_id, status=status, charge_type=charge_type, page=page, page_size=page_size
         )
         schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
 
         def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
             data = schema.model_validate(charge).model_dump()
-            data["client_name"] = client_name_map.get(charge.client_id)
+            data["client_name"] = business_name_map.get(charge.business_id)
             return schema(**data)
 
         return ChargeListResponse(

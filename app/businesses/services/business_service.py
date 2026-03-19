@@ -250,3 +250,11 @@ class BusinessService:
             or signals.get("unpaid_charges")
             or signals.get("binder_signals")
         )
+
+
+def get_business_or_raise(db: Session, business_id: int) -> Business:
+    """Fetch a business or raise NotFoundError."""
+    business = BusinessRepository(db).get_by_id(business_id)
+    if not business:
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    return business

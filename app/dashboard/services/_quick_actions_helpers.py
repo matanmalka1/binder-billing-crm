@@ -11,7 +11,7 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _MONTH_HE = {
@@ -48,7 +48,7 @@ def days_since(d: date) -> int:
     return (date.today() - d).days
 
 
-def build_binder_actions(binder_repo: BinderRepository, client_repo: ClientRepository) -> list[dict]:
+def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessRepository) -> list[dict]:
     """Return urgency-ordered binder quick actions (overdue first)."""
     binders = binder_repo.list_active()
     ready_candidate = overdue_ready = return_candidate = overdue_return = None
@@ -82,7 +82,7 @@ def build_binder_actions(binder_repo: BinderRepository, client_repo: ClientRepos
         if candidate is None:
             continue
         binder, action, d = candidate
-        client = client_repo.get_by_id(binder.client_id)
+        client = business_repo.get_by_id(binder.business_id)
         action["client_name"] = client.full_name if client else None
         action["binder_number"] = binder.binder_number
         label = f"פג תוקף לפני {d - 90} ימים" if d > 90 else f"{d} ימים במשרד"
@@ -93,19 +93,19 @@ def build_binder_actions(binder_repo: BinderRepository, client_repo: ClientRepos
 
 def build_vat_actions(
     vat_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     current_period: str,
 ) -> list[dict]:
     items = vat_repo.list_not_filed_for_period(current_period, limit=3)
     plabel = period_label(current_period)
     result: list[dict] = []
     for item in items:
-        client = client_repo.get_by_id(item.client_id)
+        client = business_repo.get_by_id(item.business_id)
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
             method="get",
-            endpoint=f"/clients/{item.client_id}/vat",
+            endpoint=f"/businesses/{item.business_id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
         action["client_name"] = client.full_name if client else None
@@ -116,12 +116,12 @@ def build_vat_actions(
 
 def build_annual_report_actions(
     annual_report_repo: AnnualReportRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
 ) -> list[dict]:
     stuck = annual_report_repo.list_stuck_reports(stale_days=7, limit=3)
     result: list[dict] = []
     for report in stuck:
-        client = client_repo.get_by_id(report.client_id)
+        client = business_repo.get_by_id(report.business_id)
         status_label = _STATUS_LABEL_HE.get(report.status, str(report.status))
         updated = report.updated_at.replace(tzinfo=timezone.utc)
         stale_days = (_dt.datetime.now(timezone.utc) - updated).days
@@ -129,7 +129,7 @@ def build_annual_report_actions(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
             method="get",
-            endpoint=f"/clients/{report.client_id}/annual-reports",
+            endpoint=f"/businesses/{report.business_id}/annual-reports",
             action_id=f"annual-{report.id}-navigate",
         )
         action["client_name"] = client.full_name if client else None

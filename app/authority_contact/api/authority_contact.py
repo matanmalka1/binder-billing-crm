@@ -13,19 +13,19 @@ from app.authority_contact.schemas.authority_contact import (
 from app.authority_contact.services.authority_contact_service import AuthorityContactService
 
 router = APIRouter(
-    prefix="/clients",
+    prefix="/businesses",
     tags=["authority-contacts"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
 
 @router.post(
-    "/{client_id}/authority-contacts",
+    "/{business_id}/authority-contacts",
     response_model=AuthorityContactResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_authority_contact(
-    client_id: int,
+    business_id: int,
     request: AuthorityContactCreateRequest,
     db: DBSession,
     user: CurrentUser,
@@ -34,7 +34,7 @@ def create_authority_contact(
     service = AuthorityContactService(db)
 
     contact = service.add_contact(
-        client_id=client_id,
+        business_id=business_id,
         contact_type=request.contact_type,
         name=request.name,
         office=request.office,
@@ -45,9 +45,9 @@ def create_authority_contact(
     return AuthorityContactResponse.model_validate(contact)
 
 
-@router.get("/{client_id}/authority-contacts", response_model=AuthorityContactListResponse)
+@router.get("/{business_id}/authority-contacts", response_model=AuthorityContactListResponse)
 def list_authority_contacts(
-    client_id: int,
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
     contact_type: Optional[str] = None,
@@ -57,8 +57,8 @@ def list_authority_contacts(
     """List authority contacts for client with pagination."""
     service = AuthorityContactService(db)
 
-    contacts, total = service.list_client_contacts(
-        client_id,
+    contacts, total = service.list_business_contacts(
+        business_id,
         contact_type,
         page=page,
         page_size=page_size,

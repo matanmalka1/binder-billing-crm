@@ -17,7 +17,7 @@ class ChargeRepository(BaseRepository):
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         amount: float,
         charge_type: str,
         currency: str = "ILS",
@@ -26,7 +26,7 @@ class ChargeRepository(BaseRepository):
     ) -> Charge:
         """Create new charge in draft status."""
         charge = Charge(
-            client_id=client_id,
+            business_id=business_id,
             amount=amount,
             currency=currency,
             charge_type=charge_type,
@@ -49,7 +49,7 @@ class ChargeRepository(BaseRepository):
 
     def list_charges(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
@@ -58,8 +58,8 @@ class ChargeRepository(BaseRepository):
         """List charges with optional filters and pagination."""
         query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
 
-        if client_id:
-            query = query.filter(Charge.client_id == client_id)
+        if business_id:
+            query = query.filter(Charge.business_id == business_id)
 
         if status:
             query = query.filter(Charge.status == status)
@@ -72,15 +72,15 @@ class ChargeRepository(BaseRepository):
 
     def count_charges(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
         query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
 
-        if client_id:
-            query = query.filter(Charge.client_id == client_id)
+        if business_id:
+            query = query.filter(Charge.business_id == business_id)
 
         if status:
             query = query.filter(Charge.status == status)
@@ -110,7 +110,7 @@ class ChargeRepository(BaseRepository):
 
         rows = (
             self.db.query(
-                Charge.client_id,
+                Charge.business_id,
                 func.sum(
                     case((issued_date >= str(cut_30), Charge.amount), else_=0)
                 ).label("current"),
@@ -137,7 +137,7 @@ class ChargeRepository(BaseRepository):
                 Charge.issued_at.isnot(None),
                 Charge.deleted_at.is_(None),
             )
-            .group_by(Charge.client_id)
+            .group_by(Charge.business_id)
             .all()
         )
         return rows

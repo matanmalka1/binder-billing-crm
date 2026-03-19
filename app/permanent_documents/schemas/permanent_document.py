@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class PermanentDocumentResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     document_type: str
     storage_key: str
     tax_year: Optional[int] = None
@@ -33,7 +33,7 @@ class PermanentDocumentListResponse(BaseModel):
 
 
 class OperationalSignalsResponse(BaseModel):
-    client_id: int
+    business_id: int
     missing_documents: list[str]
 
 

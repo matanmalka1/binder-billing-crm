@@ -14,7 +14,7 @@ class CorrespondenceRepository:
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         correspondence_type: CorrespondenceType,
         subject: str,
         occurred_at: datetime,
@@ -23,7 +23,7 @@ class CorrespondenceRepository:
         notes: Optional[str] = None,
     ) -> Correspondence:
         entry = Correspondence(
-            client_id=client_id,
+            business_id=business_id,
             contact_id=contact_id,
             correspondence_type=correspondence_type,
             subject=subject,
@@ -36,11 +36,11 @@ class CorrespondenceRepository:
         self.db.refresh(entry)
         return entry
 
-    def list_by_client_paginated(
-        self, client_id: int, *, page: int, page_size: int
+    def list_by_business_paginated(
+        self, business_id: int, *, page: int, page_size: int
     ) -> tuple[list[Correspondence], int]:
         base = self.db.query(Correspondence).filter(
-            Correspondence.client_id == client_id,
+            Correspondence.business_id == business_id,
             Correspondence.deleted_at.is_(None),
         )
 

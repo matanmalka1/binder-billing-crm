@@ -9,7 +9,7 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 
 class AdvancePaymentRow(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     tax_deadline_id: Optional[int] = None
     annual_report_id: Optional[int] = None
     month: int
@@ -58,7 +58,7 @@ class AdvancePaymentUpdateRequest(BaseModel):
 
 
 class AdvancePaymentCreateRequest(BaseModel):
-    client_id: int
+    business_id: int
     year: int
     month: int = Field(..., ge=1, le=12)
     due_date: date
@@ -68,7 +68,7 @@ class AdvancePaymentCreateRequest(BaseModel):
     notes: Optional[str] = Field(None, max_length=500)
 
     model_config = {"json_schema_extra": {"example": {
-        "client_id": 123,
+        "business_id": 123,
         "year": 2026,
         "month": 3,
         "due_date": "2026-03-15",
@@ -77,7 +77,7 @@ class AdvancePaymentCreateRequest(BaseModel):
 
 
 class AdvancePaymentSuggestionResponse(BaseModel):
-    client_id: int
+    business_id: int
     year: int
     suggested_amount: Optional[Decimal] = None
     has_data: bool
@@ -85,7 +85,7 @@ class AdvancePaymentSuggestionResponse(BaseModel):
 
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     client_name: str
     month: int
     year: int
@@ -108,7 +108,7 @@ class AdvancePaymentOverviewResponse(BaseModel):
 
 
 class AnnualKPIResponse(BaseModel):
-    client_id: int
+    business_id: int
     year: int
     total_expected: float
     total_paid: float
@@ -125,13 +125,13 @@ class MonthlyChartRow(BaseModel):
 
 
 class ChartDataResponse(BaseModel):
-    client_id: int
+    business_id: int
     year: int
     months: list[MonthlyChartRow]
 
 
 class GenerateScheduleRequest(BaseModel):
-    client_id: int
+    business_id: int
     year: int
 
 

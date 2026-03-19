@@ -19,10 +19,10 @@ def get_by_token(repo: SignatureRequestRepository, token: str) -> Optional[Signa
     return repo.get_by_token(token)
 
 
-def list_client_requests(
+def list_business_requests(
     repo: SignatureRequestRepository,
     *,
-    client_id: int,
+    business_id: int,
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
@@ -37,8 +37,8 @@ def list_client_requests(
             )
         status_enum = SignatureRequestStatus(status)
 
-    items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
-    total = repo.count_by_client(client_id, status=status_enum)
+    items = repo.list_by_business(business_id, status=status_enum, page=page, page_size=page_size)
+    total = repo.count_by_business(business_id, status=status_enum)
     return items, total
 
 

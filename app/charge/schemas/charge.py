@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class ChargeCreateRequest(BaseModel):
-    client_id: int
+    business_id: int
     amount: float = Field(gt=0)
     charge_type: str
     period: Optional[str] = None
@@ -14,7 +14,7 @@ class ChargeCreateRequest(BaseModel):
 
 class ChargeResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     amount: float
     currency: str
@@ -38,7 +38,7 @@ class ChargeResponseSecretary(BaseModel):
     """Charge response for secretary (no financial data)."""
 
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     charge_type: str
     period: Optional[str] = None

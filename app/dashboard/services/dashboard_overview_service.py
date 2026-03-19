@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -21,7 +21,7 @@ class DashboardOverviewService:
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
@@ -40,7 +40,7 @@ class DashboardOverviewService:
         self._overview_current_period = current_period
         quick_actions = self._build_quick_actions(user_role)
         return {
-            "total_clients": self.client_repo.count(),
+            "total_clients": self.business_repo.count(),
             "active_binders": self.binder_repo.count_active(),
             "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
             "vat_due_this_month": self.vat_repo.count_by_period_not_filed(current_period),
@@ -58,7 +58,7 @@ class DashboardOverviewService:
         return build_quick_actions(
             binder_repo=self.binder_repo,
             charge_repo=self.charge_repo,
-            client_repo=self.client_repo,
+            business_repo=self.business_repo,
             vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
             user_role=user_role,

@@ -31,7 +31,7 @@ def create_signature_request(
 ):
     service = SignatureRequestService(db)
     req = service.create_request(
-        client_id=request.client_id,
+        business_id=request.business_id,
         created_by=user.id,
         created_by_name=user.full_name,
         request_type=request.request_type,

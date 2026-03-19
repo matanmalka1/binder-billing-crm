@@ -9,7 +9,7 @@ from app.annual_reports.repositories.annual_report_repository import AnnualRepor
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services._quick_actions_helpers import (
@@ -24,7 +24,7 @@ from app.dashboard.services._quick_actions_helpers import (
 def build_quick_actions(
     binder_repo: BinderRepository,
     charge_repo: ChargeRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     vat_repo: VatWorkItemRepository,
     annual_report_repo: AnnualReportRepository,
     user_role: Optional[UserRole],
@@ -32,9 +32,9 @@ def build_quick_actions(
 ) -> list[dict]:
     actions: list[dict] = []
 
-    actions.extend(build_binder_actions(binder_repo, client_repo))
-    actions.extend(build_vat_actions(vat_repo, client_repo, current_period))
-    actions.extend(build_annual_report_actions(annual_report_repo, client_repo))
+    actions.extend(build_binder_actions(binder_repo, business_repo))
+    actions.extend(build_vat_actions(vat_repo, business_repo, current_period))
+    actions.extend(build_annual_report_actions(annual_report_repo, business_repo))
 
     if user_role == UserRole.ADVISOR:
         issued = charge_repo.list_charges(status=ChargeStatus.ISSUED.value, page=1, page_size=1)
@@ -43,7 +43,7 @@ def build_quick_actions(
             charge_acts = get_charge_actions(charge)
             mark_paid = next((a for a in charge_acts if a["key"] == "mark_paid"), None)
             if mark_paid:
-                c = client_repo.get_by_id(charge.client_id) if charge.client_id else None
+                c = business_repo.get_by_id(charge.business_id) if charge.business_id else None
                 mark_paid["client_name"] = c.full_name if c else None
                 enrich(mark_paid, "charges")
                 actions.append(mark_paid)

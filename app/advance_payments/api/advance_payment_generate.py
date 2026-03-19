@@ -25,5 +25,5 @@ def generate_advance_payment_schedule(
     db: DBSession,
     user: CurrentUser,
 ):
-    created, skipped = generate_annual_schedule(request.client_id, request.year, db)
+    created, skipped = generate_annual_schedule(request.business_id, request.year, db)
     return GenerateScheduleResponse(created=len(created), skipped=skipped)

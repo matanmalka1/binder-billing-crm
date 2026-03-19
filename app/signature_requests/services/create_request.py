@@ -4,7 +4,7 @@ import hashlib
 from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestType,
@@ -14,9 +14,9 @@ from app.signature_requests.repositories.signature_request_repository import Sig
 
 def create_request(
     repo: SignatureRequestRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     *,
-    client_id: int,
+    business_id: int,
     created_by: int,
     created_by_name: str,
     request_type: str,
@@ -31,9 +31,9 @@ def create_request(
     content_to_hash: Optional[str] = None,
 ) -> SignatureRequest:
     """Create a new signature request in DRAFT status."""
-    client = client_repo.get_by_id(client_id)
-    if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "SIGNATURE_REQUEST.NOT_FOUND")
+    business = business_repo.get_by_id(business_id)
+    if not business:
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "SIGNATURE_REQUEST.NOT_FOUND")
 
     valid_types = {e.value for e in SignatureRequestType}
     if request_type not in valid_types:
@@ -47,13 +47,13 @@ def create_request(
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
 
-    if not signer_email and client.email:
-        signer_email = client.email
-    if not signer_phone and client.phone:
-        signer_phone = client.phone
+    if not signer_email and business.email:
+        signer_email = business.email
+    if not signer_phone and business.phone:
+        signer_phone = business.phone
 
     req = repo.create(
-        client_id=client_id,
+        business_id=business_id,
         created_by=created_by,
         request_type=req_type,
         title=title,

@@ -28,7 +28,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def upload_permanent_document(
-    client_id: Annotated[int, Form(...)],
+    business_id: Annotated[int, Form(...)],
     document_type: Annotated[str, Form(...)],
     file: Annotated[UploadFile, File(...)],
     db: DBSession,
@@ -42,7 +42,7 @@ def upload_permanent_document(
 
     file_data = BytesIO(file.file.read())
     document = service.upload_document(
-        client_id=client_id,
+        business_id=business_id,
         document_type=document_type,
         file_data=file_data,
         filename=file.filename or "document",
@@ -56,19 +56,19 @@ def upload_permanent_document(
 
 
 @router.get(
-    "/client/{client_id}",
+    "/business/{business_id}",
     response_model=PermanentDocumentListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_client_documents(
-    client_id: int,
+def list_business_documents(
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
     tax_year: Optional[int] = Query(default=None),
 ):
     """List permanent documents for a client."""
     service = PermanentDocumentService(db)
-    documents = service.list_client_documents(client_id, tax_year=tax_year)
+    documents = service.list_business_documents(business_id, tax_year=tax_year)
 
     return PermanentDocumentListResponse(
         items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]
@@ -76,18 +76,18 @@ def list_client_documents(
 
 
 @router.get(
-    "/client/{client_id}/signals",
+    "/business/{business_id}/signals",
     response_model=OperationalSignalsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_operational_signals(
-    client_id: int,
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
     service = SignalsService(db)
-    signals = service.compute_client_operational_signals(client_id)
+    signals = service.compute_business_operational_signals(business_id)
 
     return OperationalSignalsResponse(**signals)
 

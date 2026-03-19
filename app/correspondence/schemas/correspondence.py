@@ -22,7 +22,7 @@ class CorrespondenceUpdateRequest(BaseModel):
 
 class CorrespondenceResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     contact_id: Optional[int] = None
     correspondence_type: str
     subject: str

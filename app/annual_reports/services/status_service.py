@@ -104,15 +104,15 @@ class AnnualReportStatusService(AnnualReportBaseService):
 
     def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
         from app.signature_requests.services.signature_request_service import SignatureRequestService
-        client = self.client_repo.get_by_id(report.client_id)
+        business = self.business_repo.get_by_id(report.business_id)
         svc = SignatureRequestService(self.db)
         svc.create_request(
-            client_id=report.client_id,
+            business_id=report.business_id,
             created_by=created_by,
             created_by_name=created_by_name,
             request_type="ANNUAL_REPORT_APPROVAL",
             title=f"אישור דוח שנתי {report.tax_year}",
-            signer_name=client.full_name if client else str(report.client_id),
+            signer_name=business.full_name if business else str(report.business_id),
             annual_report_id=report.id,
         )
 

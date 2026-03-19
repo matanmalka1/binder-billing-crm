@@ -12,22 +12,22 @@ from app.correspondence.schemas.correspondence import (
 from app.correspondence.services.correspondence_service import CorrespondenceService
 
 router = APIRouter(
-    prefix="/clients",
+    prefix="/businesses",
     tags=["correspondence"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
 
-@router.get("/{client_id}/correspondence", response_model=CorrespondenceListResponse)
+@router.get("/{business_id}/correspondence", response_model=CorrespondenceListResponse)
 def list_correspondence(
-    client_id: int,
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     service = CorrespondenceService(db)
-    entries, total = service.list_client_entries(client_id, page=page, page_size=page_size)
+    entries, total = service.list_business_entries(business_id, page=page, page_size=page_size)
     return CorrespondenceListResponse(
         items=[CorrespondenceResponse.model_validate(e) for e in entries],
         page=page,
@@ -37,12 +37,12 @@ def list_correspondence(
 
 
 @router.post(
-    "/{client_id}/correspondence",
+    "/{business_id}/correspondence",
     response_model=CorrespondenceResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_correspondence(
-    client_id: int,
+    business_id: int,
     request: CorrespondenceCreateRequest,
     db: DBSession,
     user: CurrentUser,
@@ -56,7 +56,7 @@ def create_correspondence(
         )
     service = CorrespondenceService(db)
     entry = service.add_entry(
-        client_id=client_id,
+        business_id=business_id,
         correspondence_type=corr_type,
         subject=request.subject,
         occurred_at=request.occurred_at,
@@ -68,11 +68,11 @@ def create_correspondence(
 
 
 @router.patch(
-    "/{client_id}/correspondence/{correspondence_id}",
+    "/{business_id}/correspondence/{correspondence_id}",
     response_model=CorrespondenceResponse,
 )
 def update_correspondence(
-    client_id: int,
+    business_id: int,
     correspondence_id: int,
     request: CorrespondenceUpdateRequest,
     db: DBSession,
@@ -90,20 +90,20 @@ def update_correspondence(
                 detail=f"סוג התכתבות לא חוקי: {update_data['correspondence_type']}",
             )
     service = CorrespondenceService(db)
-    entry = service.update_entry(correspondence_id, client_id, **update_data)
+    entry = service.update_entry(correspondence_id, business_id, **update_data)
     return CorrespondenceResponse.model_validate(entry)
 
 
 @router.delete(
-    "/{client_id}/correspondence/{correspondence_id}",
+    "/{business_id}/correspondence/{correspondence_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def delete_correspondence(
-    client_id: int,
+    business_id: int,
     correspondence_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     service = CorrespondenceService(db)
-    service.delete_entry(correspondence_id, client_id, actor_id=user.id)
+    service.delete_entry(correspondence_id, business_id, actor_id=user.id)

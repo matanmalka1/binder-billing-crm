@@ -27,7 +27,7 @@ class DashboardQuickAction(BaseModel):
 class AttentionItem(BaseModel):
     item_type: str
     binder_id: Optional[int] = None
-    client_id: Optional[int] = None
+    business_id: Optional[int] = None
     client_name: Optional[str] = None
     description: str
 
@@ -50,7 +50,7 @@ class DashboardOverviewResponse(BaseModel):
 
 class WorkQueueItem(BaseModel):
     binder_id: int
-    client_id: int
+    business_id: int
     client_name: str
     binder_number: str
     work_state: str

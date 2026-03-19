@@ -26,7 +26,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
     service = BillingService(db)
 
     charge = service.create_charge(
-        client_id=request.client_id,
+        business_id=request.business_id,
         amount=request.amount,
         charge_type=request.charge_type,
         period=request.period,
@@ -34,7 +34,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         actor_id=user.id,
     )
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_client_name(charge)
+    data["client_name"] = service.enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -49,7 +49,7 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
 
     charge = service.issue_charge(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_client_name(charge)
+    data["client_name"] = service.enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -64,7 +64,7 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
 
     charge = service.mark_charge_paid(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_client_name(charge)
+    data["client_name"] = service.enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -79,7 +79,7 @@ def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: Cha
 
     charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_client_name(charge)
+    data["client_name"] = service.enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -91,7 +91,7 @@ def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: Cha
 def list_charges(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     charge_type: Optional[str] = None,
     page: int = Query(1, ge=1),
@@ -101,7 +101,7 @@ def list_charges(
     service = BillingService(db)
     return service.list_charges_for_role(
         user_role=user.role,
-        client_id=client_id,
+        business_id=business_id,
         status=status_filter,
         charge_type=charge_type,
         page=page,
@@ -123,7 +123,7 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
             status_code=status.HTTP_404_NOT_FOUND, detail="החיוב לא נמצא"
         )
 
-    client_name = service.enrich_client_name(charge)
+    client_name = service.enrich_business_name(charge)
 
     if user.role == UserRole.SECRETARY:
         data = ChargeResponseSecretary.model_validate(charge).model_dump()

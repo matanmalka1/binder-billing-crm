@@ -18,7 +18,7 @@ def _fmt(amount: Decimal | None) -> str:
 
 def export_vat_to_pdf(
     client_name: str,
-    client_id: int,
+    business_id: int,
     year: int,
     periods: list[VatPeriodRow],
     export_dir: str,
@@ -32,7 +32,7 @@ def export_vat_to_pdf(
     except ImportError:
         raise ImportError("הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab")
 
-    filename = f"vat_{client_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = f"vat_{business_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))

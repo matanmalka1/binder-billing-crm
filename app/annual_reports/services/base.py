@@ -9,7 +9,7 @@ class AnnualReportBaseService:
     """Shared helpers for annual report service mixins."""
 
     repo: Any  # set by concrete service
-    client_repo: Any  # set by concrete service
+    business_repo: Any  # set by concrete service
     user_repo: Any  # set by concrete service
 
     def _get_or_raise(self, report_id: int) -> AnnualReport:
@@ -25,14 +25,14 @@ class AnnualReportBaseService:
         """
         if not reports:
             return []
-        client_ids = {r.client_id for r in reports}
-        clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
-        id_to_name = {c.id: c.full_name for c in clients}
+        business_ids = {r.business_id for r in reports}
+        businesses = self.business_repo.list_by_ids(list(business_ids)) if business_ids else []
+        id_to_name = {b.id: b.full_name for b in businesses}
         from app.actions.report_deadline_actions import get_annual_report_actions
         result = []
         for r in reports:
             obj = AnnualReportResponse.model_validate(r)
-            obj.client_name = id_to_name.get(r.client_id)
+            obj.client_name = id_to_name.get(r.business_id)
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
             result.append(obj)
         return result

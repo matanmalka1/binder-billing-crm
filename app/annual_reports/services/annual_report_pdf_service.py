@@ -14,7 +14,7 @@ from app.core.exceptions import NotFoundError
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.detail_service import AnnualReportDetailService
 from app.annual_reports.repositories import AnnualReportRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 
 _INCOME_LABELS: dict[str, str] = {
     "business": "הכנסות עסק",
@@ -120,8 +120,8 @@ class AnnualReportPdfService:
         if not report:
             raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
 
-        client = ClientRepository(self.db).get_by_id(report.client_id)
-        client_name = client.full_name if client else f"לקוח #{report.client_id}"
+        business = BusinessRepository(self.db).get_by_id(report.business_id)
+        client_name = business.full_name if business else f"עסק #{report.business_id}"
 
         fin_svc = AnnualReportFinancialService(self.db)
         summary = fin_svc.get_financial_summary(report_id)
