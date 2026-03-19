@@ -10,10 +10,10 @@ from app.binders.models.binder_status_log import BinderStatusLog
 from ..random_utils import full_name
 
 
-def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
+def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
     binders: list[Binder] = []
     binder_serial = 10000
-    for client in clients:
+    for business in businesses:
         num = rng.randint(
             cfg.min_binders_per_client,
             cfg.max_binders_per_client,
@@ -33,7 +33,7 @@ def create_binders(db, rng: Random, cfg, clients, users) -> list[Binder]:
                 returned_at = None
 
             binder = Binder(
-                client_id=client.id,
+                business_id=business.id,
                 binder_number=f"B-{binder_serial}",
                 binder_type=rng.choice(list(BinderType)),
                 received_at=received_at,

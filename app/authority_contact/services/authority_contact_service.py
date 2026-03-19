@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 
 
 class AuthorityContactService:

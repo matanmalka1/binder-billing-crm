@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.business.repositories.business_repository import BusinessRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.schemas.client_status_card import (
     AdvancePaymentsCard,
     AnnualReportCard,

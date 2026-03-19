@@ -99,3 +99,30 @@ class SignatureRequest(Base):
             f"<SignatureRequest(id={self.id}, business_id={self.business_id}, "
             f"type='{self.request_type}', status='{self.status}')>"
         )
+
+# ─── SignatureAuditEvent ──────────────────────────────────────────────────────
+
+class SignatureAuditEvent(Base):
+    __tablename__ = "signature_audit_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    signature_request_id = Column(Integer, ForeignKey("signature_requests.id"), nullable=False, index=True)
+
+    event_type = Column(String, nullable=False)
+    actor_type = Column(String, nullable=False)
+    actor_id = Column(Integer, nullable=True)
+    actor_name = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    occurred_at = Column(DateTime, nullable=False, default=utcnow)
+
+    __table_args__ = (
+        Index("idx_sig_audit_request", "signature_request_id"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<SignatureAuditEvent(id={self.id}, request_id={self.signature_request_id}, "
+            f"type='{self.event_type}', actor='{self.actor_type}')>"
+        )

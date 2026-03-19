@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING, Iterable
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
+from app.businesses.models.business import BusinessType
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 if TYPE_CHECKING:
     from app.clients.services.client_service import ClientService
 
-_VALID_CLIENT_TYPES = {ct.value for ct in ClientType}
+_VALID_CLIENT_TYPES = {ct.value for ct in BusinessType}
 
 
 class ClientExcelService:

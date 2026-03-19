@@ -22,10 +22,10 @@ DEADLINE_LABELS = {
 }
 
 
-def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
+def create_tax_deadlines(db, rng: Random, cfg, businesses) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     today = date.today()
-    for client in clients:
+    for business in businesses:
         num = rng.randint(
             cfg.min_tax_deadlines_per_client,
             cfg.max_tax_deadlines_per_client,
@@ -47,7 +47,7 @@ def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
             deadline_type = rng.choice(list(TaxDeadlineType))
             description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(
-                client_id=client.id,
+                business_id=business.id,
                 deadline_type=deadline_type,
                 due_date=due_date,
                 status=status,
@@ -63,19 +63,19 @@ def create_tax_deadlines(db, rng: Random, cfg, clients) -> list[TaxDeadline]:
     return deadlines
 
 
-def create_advance_payments(db, rng: Random, clients, deadlines) -> list[AdvancePayment]:
+def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
     payments: list[AdvancePayment] = []
-    deadlines_by_client_month = {}
+    deadlines_by_business_month = {}
     for dl in deadlines:
-        key = (dl.client_id, dl.due_date.year, dl.due_date.month)
-        deadlines_by_client_month[key] = dl
+        key = (dl.business_id, dl.due_date.year, dl.due_date.month)
+        deadlines_by_business_month[key] = dl
 
-    for client in clients:
+    for business in businesses:
         year = date.today().year
         months = rng.sample(range(1, 13), k=rng.randint(3, 7))
         for month in months:
             due_date = date(year, month, rng.randint(10, 28))
-            deadline = deadlines_by_client_month.get((client.id, year, month))
+            deadline = deadlines_by_business_month.get((business.id, year, month))
             status = rng.choice(list(AdvancePaymentStatus))
             expected_amount = Decimal(str(round(rng.uniform(500, 6000), 2)))
             paid_amount = None
@@ -83,7 +83,7 @@ def create_advance_payments(db, rng: Random, clients, deadlines) -> list[Advance
                 paid_amount = Decimal(str(round(rng.uniform(200, float(expected_amount)), 2)))
 
             payment = AdvancePayment(
-                client_id=client.id,
+                business_id=business.id,
                 tax_deadline_id=deadline.id if deadline else None,
                 month=month,
                 year=year,

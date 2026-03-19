@@ -9,12 +9,12 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.schemas.vat_client_summary_schema import (
     VatAnnualSummary,
-    VatClientSummaryResponse,
+    VatBusinessSummaryResponse,
     VatPeriodRow,
 )
 
 
-def get_business_summary(db: Session, *, business_id: int) -> VatClientSummaryResponse:
+def get_business_summary(db: Session, *, business_id: int) -> VatBusinessSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
     business_repo = BusinessRepository(db)
 
@@ -42,4 +42,4 @@ def get_business_summary(db: Session, *, business_id: int) -> VatClientSummaryRe
     raw_annual = summary_repo.get_annual_aggregates(business_id)
     annual = [VatAnnualSummary.model_validate(row) for row in raw_annual]
 
-    return VatClientSummaryResponse(business_id=business_id, periods=periods, annual=annual)
+    return VatBusinessSummaryResponse(business_id=business_id, periods=periods, annual=annual)

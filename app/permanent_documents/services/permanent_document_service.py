@@ -10,7 +10,7 @@ from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TY
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import DocumentStatus, DocumentType, PermanentDocument
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
 from app.utils.time_utils import utcnow

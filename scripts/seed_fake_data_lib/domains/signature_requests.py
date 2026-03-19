@@ -19,10 +19,13 @@ def _pick_related_for_client(rng: Random, rows_by_client: dict[int, list], clien
     return rng.choice(rows) if rows else None
 
 
-def _group_by_client(rows) -> dict[int, list]:
+def _group_by_attr(rows, attr_name: str) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for row in rows:
-        grouped.setdefault(row.client_id, []).append(row)
+        key = getattr(row, attr_name, None)
+        if key is None:
+            continue
+        grouped.setdefault(key, []).append(row)
     return grouped
 
 
@@ -86,19 +89,23 @@ def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict[str, 
     }
 
 
-def create_signature_requests(db, rng: Random, cfg, clients, users, annual_reports, documents):
+def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, annual_reports, documents):
     requests: list[SignatureRequest] = []
-    reports_by_client = _group_by_client(annual_reports)
-    documents_by_client = _group_by_client(documents)
+    clients_by_id = {client.id: client for client in clients}
+    reports_by_business = _group_by_attr(annual_reports, "business_id")
+    documents_by_client = _group_by_attr(documents, "client_id")
     existing_count = int(db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one())
     type_cycle = list(SignatureRequestType)
     status_cycle = list(SignatureRequestStatus)
     type_cycle_idx = 0
     status_cycle_idx = 0
 
-    for client in clients:
+    for business in businesses:
+        client = clients_by_id.get(business.client_id)
+        if not client:
+            continue
         for _ in range(cfg.signature_requests_per_client):
-            report = _pick_related_for_client(rng, reports_by_client, client.id)
+            report = _pick_related_for_client(rng, reports_by_business, business.id)
             document = _pick_related_for_client(rng, documents_by_client, client.id)
             if status_cycle_idx < len(status_cycle):
                 status = status_cycle[status_cycle_idx]
@@ -114,7 +121,7 @@ def create_signature_requests(db, rng: Random, cfg, clients, users, annual_repor
                 request_type = rng.choice(type_cycle)
 
             request = SignatureRequest(
-                client_id=client.id,
+                business_id=business.id,
                 created_by=rng.choice(users).id,
                 annual_report_id=report.id if report else None,
                 document_id=document.id if document else None,

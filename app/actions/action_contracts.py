@@ -4,7 +4,8 @@ from typing import Any, Optional
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.charge.models.charge import Charge, ChargeStatus
-from app.clients.models.client import Client, ClientStatus
+from app.clients.models.client import Client
+from app.businesses.models.business import BusinessStatus
 from app.users.models.user import UserRole
 
 
@@ -73,7 +74,7 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
     status = _value(client.status)
     actions: list[dict[str, Any]] = []
 
-    if status == ClientStatus.ACTIVE.value and (user_role == UserRole.ADVISOR or user_role is None):
+    if status == BusinessStatus.ACTIVE.value and (user_role == UserRole.ADVISOR or user_role is None):
         actions.append(
             build_action(
                 key="freeze",
@@ -91,7 +92,7 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
             )
         )
 
-    if status == ClientStatus.FROZEN.value:
+    if status == BusinessStatus.FROZEN.value:
         actions.append(
             build_action(
                 key="activate",

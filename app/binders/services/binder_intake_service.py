@@ -10,7 +10,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 from app.clients.services.client_lookup import assert_business_allows_create
 from app.notification.services.notification_service import NotificationService
 

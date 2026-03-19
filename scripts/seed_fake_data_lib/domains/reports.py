@@ -24,7 +24,7 @@ from app.annual_reports.models.annual_report_enums import (
     DeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.clients.models.client import ClientType
+from app.businesses.models.business import BusinessType
 from app.users.models.user import UserRole
 
 
@@ -67,23 +67,24 @@ def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
     raise RuntimeError(f"Cannot build legal annual-report status path to {target.value}")
 
 
-def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualReport]:
+def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[AnnualReport]:
     reports: list[AnnualReport] = []
     current_year = datetime.now(UTC).year
     available_years = list(range(current_year - 3, current_year + 1))
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
+    fallback_user_id = users[0].id if users else None
     status_cycle = list(SEEDABLE_STATUSES)
     status_cycle_idx = 0
-    for client in clients:
+    for business in businesses:
         years = rng.sample(
             available_years,
             k=min(cfg.annual_reports_per_client, len(available_years)),
         )
         for year in years:
-            if client.client_type == ClientType.COMPANY:
+            if business.business_type == BusinessType.COMPANY:
                 client_type_for_report = ClientTypeForReport.CORPORATION
                 form_type = AnnualReportForm.FORM_6111
-            elif client.client_type in (ClientType.OSEK_PATUR, ClientType.OSEK_MURSHE):
+            elif business.business_type in (BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE):
                 client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
                 form_type = AnnualReportForm.FORM_1215
             else:
@@ -117,7 +118,7 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
             )
 
             report = AnnualReport(
-                client_id=client.id,
+                business_id=business.id,
                 tax_year=year,
                 client_type=client_type_for_report,
                 form_type=form_type,
@@ -138,7 +139,7 @@ def create_annual_reports(db, rng: Random, cfg, clients, users) -> list[AnnualRe
                 notes=rng.choice(["", "דורש בדיקה", "ממתין לחתימת לקוח"]),
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 400)),
                 updated_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
-                created_by=rng.choice(advisors) if advisors else None,
+                created_by=rng.choice(advisors) if advisors else fallback_user_id,
                 assigned_to=rng.choice(advisors) if advisors else None,
             )
             db.add(report)

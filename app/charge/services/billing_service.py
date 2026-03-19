@@ -7,7 +7,7 @@ from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 from app.clients.services.client_lookup import assert_business_allows_create
 from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow

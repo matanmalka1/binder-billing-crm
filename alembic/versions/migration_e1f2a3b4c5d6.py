@@ -61,7 +61,8 @@ def upgrade() -> None:
     conn = op.get_bind()
 
     # ─── שלב 1: יצירת טבלת businesses ────────────────────────────────────────
-    op.create_table(
+    if not inspect(conn).has_table("businesses"):
+     op.create_table(
         "businesses",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("client_id", sa.Integer(), sa.ForeignKey("clients.id"), nullable=False),
@@ -92,8 +93,10 @@ def upgrade() -> None:
         sa.Column("restored_at", sa.DateTime(), nullable=True),
         sa.Column("restored_by", sa.Integer(), sa.ForeignKey("users.id"), nullable=True),
     )
-    op.create_index("ix_business_client_id", "businesses", ["client_id"])
-    op.create_index("ix_business_status", "businesses", ["status"])
+    if not _index_exists(conn, "businesses", "ix_business_client_id"):
+        op.create_index("ix_business_client_id", "businesses", ["client_id"])
+    if not _index_exists(conn, "businesses", "ix_business_status"):
+        op.create_index("ix_business_status", "businesses", ["status"])
 
     # ─── שלב 2: העתקת נתונים מ-clients ל-businesses ──────────────────────────
     # כל לקוח קיים (כולל מחוקים) הופך לעסק אחד
@@ -123,7 +126,8 @@ def upgrade() -> None:
     """))
 
     # ─── שלב 3: יצירת טבלת business_tax_profiles ──────────────────────────────
-    op.create_table(
+    if not inspect(conn).has_table("business_tax_profiles"):
+     op.create_table(
         "business_tax_profiles",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column(
@@ -173,7 +177,8 @@ def upgrade() -> None:
     """))
 
     # ─── שלב 4: יצירת טבלת authority_contact_links ────────────────────────────
-    op.create_table(
+    if not inspect(conn).has_table("authority_contact_links"):
+     op.create_table(
         "authority_contact_links",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column(
@@ -229,15 +234,14 @@ def upgrade() -> None:
 
     for table in tables_to_migrate:
         if not _column_exists(conn, table, "business_id"):
-            op.add_column(
-                table,
-                sa.Column(
-                    "business_id",
-                    sa.Integer(),
-                    sa.ForeignKey("businesses.id"),
-                    nullable=True,
-                ),
-            )
+            with op.batch_alter_table(table) as batch_op:
+                batch_op.add_column(
+                    sa.Column(
+                        "business_id",
+                        sa.Integer(),
+                        nullable=True,
+                    )
+                )
 
     # מילוי business_id לפי client_id
     for table in tables_to_migrate:
@@ -279,49 +283,45 @@ def upgrade() -> None:
         WHERE document_type IN ('id_copy', 'power_of_attorney', 'engagement_agreement')
     """))
 
-    # ─── שלב 8: עדכון Unique Constraints ──────────────────────────────────────
+    # ─── שלב 8: עדכון Unique Constraints (PostgreSQL בלבד) ──────────────────
+    if is_postgresql():
+        if _index_exists(conn, "annual_reports", "idx_annual_report_client_year"):
+            op.drop_index("idx_annual_report_client_year", table_name="annual_reports")
 
-    # annual_reports — החלפת idx_annual_report_client_year
-    if _index_exists(conn, "annual_reports", "idx_annual_report_client_year"):
-        op.drop_index("idx_annual_report_client_year", table_name="annual_reports")
+        if not _index_exists(conn, "annual_reports", "idx_annual_report_business_year"):
+            op.create_index(
+                "idx_annual_report_business_year",
+                "annual_reports",
+                ["business_id", "tax_year"],
+                unique=True,
+                postgresql_where=sa.text("deleted_at IS NULL"),
+            )
 
-    if not _index_exists(conn, "annual_reports", "idx_annual_report_business_year"):
-        op.create_index(
-            "idx_annual_report_business_year",
-            "annual_reports",
-            ["business_id", "tax_year"],
-            unique=True,
-            postgresql_where=sa.text("deleted_at IS NULL"),
-            sqlite_where=sa.text("deleted_at IS NULL"),
-        )
+        if _constraint_exists(conn, "vat_work_items", "uq_vat_work_item_client_period"):
+            op.drop_constraint(
+                "uq_vat_work_item_client_period",
+                "vat_work_items",
+                type_="unique",
+            )
+        if not _constraint_exists(conn, "vat_work_items", "uq_vat_work_item_business_period"):
+            op.create_unique_constraint(
+                "uq_vat_work_item_business_period",
+                "vat_work_items",
+                ["business_id", "period"],
+            )
 
-    # vat_work_items — החלפת uq_vat_work_item_client_period
-    if _constraint_exists(conn, "vat_work_items", "uq_vat_work_item_client_period"):
-        op.drop_constraint(
-            "uq_vat_work_item_client_period",
-            "vat_work_items",
-            type_="unique",
-        )
-    if not _constraint_exists(conn, "vat_work_items", "uq_vat_work_item_business_period"):
-        op.create_unique_constraint(
-            "uq_vat_work_item_business_period",
-            "vat_work_items",
-            ["business_id", "period"],
-        )
-
-    # advance_payments — החלפת uq_advance_payment_client_year_month
-    if _constraint_exists(conn, "advance_payments", "uq_advance_payment_client_year_month"):
-        op.drop_constraint(
-            "uq_advance_payment_client_year_month",
-            "advance_payments",
-            type_="unique",
-        )
-    if not _constraint_exists(conn, "advance_payments", "uq_advance_payment_business_year_month"):
-        op.create_unique_constraint(
-            "uq_advance_payment_business_year_month",
-            "advance_payments",
-            ["business_id", "year", "month"],
-        )
+        if _constraint_exists(conn, "advance_payments", "uq_advance_payment_client_year_month"):
+            op.drop_constraint(
+                "uq_advance_payment_client_year_month",
+                "advance_payments",
+                type_="unique",
+            )
+        if not _constraint_exists(conn, "advance_payments", "uq_advance_payment_business_year_month"):
+            op.create_unique_constraint(
+                "uq_advance_payment_business_year_month",
+                "advance_payments",
+                ["business_id", "year", "month"],
+            )
 
     # ─── שלב 9: הוספת deleted_at/deleted_by לטבלאות חסרות ───────────────────
     tables_missing_soft_delete = [
@@ -336,15 +336,10 @@ def upgrade() -> None:
         if not _column_exists(conn, table, "deleted_at"):
             op.add_column(table, sa.Column("deleted_at", sa.DateTime(), nullable=True))
         if not _column_exists(conn, table, "deleted_by"):
-            op.add_column(
-                table,
-                sa.Column(
-                    "deleted_by",
-                    sa.Integer(),
-                    sa.ForeignKey("users.id"),
-                    nullable=True,
-                ),
-            )
+            with op.batch_alter_table(table) as batch_op:
+                batch_op.add_column(
+                    sa.Column("deleted_by", sa.Integer(), nullable=True)
+                )
 
     # ─── שלב 10: הסרת שדות עסקיים מ-clients (PostgreSQL בלבד) ───────────────
     # SQLite לא תומך ב-DROP COLUMN — שדות נשארים אך אינם בשימוש

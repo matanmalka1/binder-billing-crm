@@ -8,7 +8,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 from app.clients.services.client_lookup import assert_business_allows_create
 
 

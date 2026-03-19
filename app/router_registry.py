@@ -45,7 +45,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(annual_report_schedule.router, prefix="/api/v1")
     app.include_router(annual_report_kanban.router, prefix="/api/v1")
     app.include_router(annual_report_status.router, prefix="/api/v1")
-    app.include_router(annual_report_business.clients_router, prefix="/api/v1")
+    app.include_router(annual_report_business.businesses_router, prefix="/api/v1")
     app.include_router(annual_report_season.season_router, prefix="/api/v1")
     app.include_router(annual_report_export.router, prefix="/api/v1")
     app.include_router(tax_deadline.router, prefix="/api/v1")

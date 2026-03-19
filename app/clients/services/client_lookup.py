@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.models.client import Client
-from app.business.models.business import Business, BusinessStatus
+from app.clients.models.client import Client, ClientStatus
+from app.businesses.models.business import Business, BusinessStatus
 
 
 def get_client_or_raise(db: Session, client_id: int) -> Client:
@@ -34,4 +34,33 @@ def assert_business_not_closed(business: Business) -> None:
         raise ForbiddenError(
             "עסק סגור — לא ניתן לבצע פעולות כתיבה",
             "BUSINESS.CLOSED",
+        )
+
+
+def assert_client_allows_create(client: Client) -> None:
+    """
+    Backward-compatible wrapper for legacy tests/modules.
+    New code should call assert_business_allows_create.
+    """
+    if client.status == ClientStatus.CLOSED:
+        raise ForbiddenError(
+            "לקוח סגור — לא ניתן ליצור עבודה חדשה",
+            "CLIENT.CLOSED",
+        )
+    if client.status == ClientStatus.FROZEN:
+        raise ForbiddenError(
+            "לקוח מוקפא — לא ניתן ליצור עבודה חדשה",
+            "CLIENT.FROZEN",
+        )
+
+
+def assert_client_not_closed(client: Client) -> None:
+    """
+    Backward-compatible wrapper for legacy tests/modules.
+    New code should call assert_business_not_closed.
+    """
+    if client.status == ClientStatus.CLOSED:
+        raise ForbiddenError(
+            "לקוח סגור — לא ניתן לבצע פעולות כתיבה",
+            "CLIENT.CLOSED",
         )

@@ -12,12 +12,16 @@ from app.notification.models.notification import (
 )
 
 
-def create_notifications(db, rng: Random, clients, binders) -> None:
+def create_notifications(db, rng: Random, clients, businesses, binders) -> None:
     clients_by_id = {c.id: c for c in clients}
+    businesses_by_id = {b.id: b for b in businesses}
     for binder in binders:
         if rng.random() > 0.65:
             continue
-        client = clients_by_id.get(binder.client_id)
+        business = businesses_by_id.get(binder.business_id)
+        if not business:
+            continue
+        client = clients_by_id.get(business.client_id)
         if not client:
             continue
         is_email = rng.random() < 0.35
@@ -43,7 +47,7 @@ def create_notifications(db, rng: Random, clients, binders) -> None:
         failed_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 50)) if status == NotificationStatus.FAILED else None
 
         notification = Notification(
-            client_id=client.id,
+            business_id=business.id,
             binder_id=binder.id,
             trigger=trigger,
             channel=channel,

@@ -11,32 +11,32 @@ from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from .taxes import DEADLINE_LABELS
 
 
-def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
+def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
     reminders = []
     today = date.today()
-    binders_by_client = {}
+    binders_by_business = {}
     for binder in binders:
-        binders_by_client.setdefault(binder.client_id, []).append(binder)
-    charges_by_client = {}
+        binders_by_business.setdefault(binder.business_id, []).append(binder)
+    charges_by_business = {}
     for charge in charges:
-        charges_by_client.setdefault(charge.client_id, []).append(charge)
-    deadlines_by_client = {}
+        charges_by_business.setdefault(charge.business_id, []).append(charge)
+    deadlines_by_business = {}
     for deadline in deadlines:
-        deadlines_by_client.setdefault(deadline.client_id, []).append(deadline)
+        deadlines_by_business.setdefault(deadline.business_id, []).append(deadline)
 
-    for client in clients:
-        client_binders = binders_by_client.get(client.id, [])
-        client_charges = charges_by_client.get(client.id, [])
-        client_deadlines = deadlines_by_client.get(client.id, [])
+    for business in businesses:
+        business_binders = binders_by_business.get(business.id, [])
+        business_charges = charges_by_business.get(business.id, [])
+        business_deadlines = deadlines_by_business.get(business.id, [])
 
-        pending_deadlines = [dl for dl in client_deadlines if dl.status == TaxDeadlineStatus.PENDING]
+        pending_deadlines = [dl for dl in business_deadlines if dl.status == TaxDeadlineStatus.PENDING]
         if pending_deadlines:
             deadline = rng.choice(pending_deadlines)
             days_before = 7
             send_on = max(today, deadline.due_date - timedelta(days=days_before))
             deadline_label = DEADLINE_LABELS.get(deadline.deadline_type, "מועד מס")
             reminder = Reminder(
-                client_id=client.id,
+                business_id=business.id,
                 reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
                 status=ReminderStatus.PENDING,
                 target_date=deadline.due_date,
@@ -48,12 +48,12 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
             db.add(reminder)
             reminders.append(reminder)
 
-        idle_binders = [b for b in client_binders if b.status != BinderStatus.RETURNED]
+        idle_binders = [b for b in business_binders if b.status != BinderStatus.RETURNED]
         if idle_binders:
             binder = rng.choice(idle_binders)
             days_idle = max(14, (today - binder.received_at).days)
             reminder = Reminder(
-                client_id=client.id,
+                business_id=business.id,
                 reminder_type=ReminderType.BINDER_IDLE,
                 status=ReminderStatus.PENDING,
                 target_date=today,
@@ -67,7 +67,7 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
 
         unpaid_charges = [
             c
-            for c in client_charges
+            for c in business_charges
             if c.status == ChargeStatus.ISSUED
             and c.issued_at
             and (today - c.issued_at.date()).days >= 30
@@ -76,7 +76,7 @@ def create_reminders(db, rng: Random, clients, binders, charges, deadlines):
             charge = rng.choice(unpaid_charges)
             days_unpaid = (today - charge.issued_at.date()).days
             reminder = Reminder(
-                client_id=client.id,
+                business_id=business.id,
                 reminder_type=ReminderType.UNPAID_CHARGE,
                 status=ReminderStatus.PENDING,
                 target_date=today,

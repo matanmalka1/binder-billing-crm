@@ -3,13 +3,17 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from random import Random
 
-from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.authority_contact.models.authority_contact import AuthorityContact, AuthorityContactLink, ContactType
 from app.clients.models.client_tax_profile import ClientTaxProfile, VatType
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
 
 
-def create_authority_contacts(db, rng: Random, cfg, clients):
+def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     contacts = []
+    businesses_by_client_id: dict[int, list] = {}
+    for business in businesses:
+        businesses_by_client_id.setdefault(business.client_id, []).append(business)
+
     for client in clients:
         num = rng.randint(
             cfg.min_authority_contacts_per_client,
@@ -17,7 +21,6 @@ def create_authority_contacts(db, rng: Random, cfg, clients):
         )
         for idx in range(num):
             contact = AuthorityContact(
-                client_id=client.id,
                 contact_type=rng.choice(list(ContactType)),
                 name=rng.choice([
                     "אילה בן דוד",
@@ -33,6 +36,17 @@ def create_authority_contacts(db, rng: Random, cfg, clients):
                 updated_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 90)),
             )
             db.add(contact)
+            db.flush()
+
+            links = businesses_by_client_id.get(client.id, [])
+            linked_business = rng.choice(links) if links and rng.random() < 0.5 else None
+            db.add(
+                AuthorityContactLink(
+                    contact_id=contact.id,
+                    client_id=client.id,
+                    business_id=linked_business.id if linked_business else None,
+                )
+            )
             contacts.append(contact)
     db.flush()
     return contacts
@@ -66,8 +80,8 @@ def create_client_tax_profiles(db, rng: Random, clients):
     db.flush()
 
 
-def create_correspondence(db, rng: Random, clients, users):
-    for client in clients:
+def create_correspondence(db, rng: Random, businesses, users):
+    for business in businesses:
         if rng.random() > 0.5:
             continue
 
@@ -75,7 +89,7 @@ def create_correspondence(db, rng: Random, clients, users):
         for _ in range(num_entries):
             occurred_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 120))
             entry = Correspondence(
-                client_id=client.id,
+                business_id=business.id,
                 contact_id=None,
                 correspondence_type=rng.choice(list(CorrespondenceType)),
                 subject=rng.choice([

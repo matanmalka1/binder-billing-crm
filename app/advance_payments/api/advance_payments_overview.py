@@ -64,7 +64,7 @@ def list_advance_payments_overview(
 def get_chart_data(
     db: DBSession,
     user: CurrentUser,
-    business_id: int = Query(...),
+    business_id: int,
     year: int = Query(...),
 ):
     service = AdvancePaymentService(db)
@@ -76,7 +76,7 @@ def get_chart_data(
 def get_annual_kpis(
     db: DBSession,
     user: CurrentUser,
-    business_id: int = Query(...),
+    business_id: int,
     year: int = Query(...),
 ):
     service = AdvancePaymentService(db)

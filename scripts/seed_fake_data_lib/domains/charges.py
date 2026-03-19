@@ -8,9 +8,9 @@ from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
 
 
-def create_charges(db, rng: Random, cfg, clients) -> list[Charge]:
+def create_charges(db, rng: Random, cfg, businesses) -> list[Charge]:
     charges: list[Charge] = []
-    for client in clients:
+    for business in businesses:
         num = rng.randint(
             cfg.min_charges_per_client,
             cfg.max_charges_per_client,
@@ -38,7 +38,7 @@ def create_charges(db, rng: Random, cfg, clients) -> list[Charge]:
 
             amount = Decimal(str(round(rng.uniform(250, 7500), 2)))
             charge = Charge(
-                client_id=client.id,
+                business_id=business.id,
                 amount=amount,
                 currency="ILS",
                 charge_type=charge_type,

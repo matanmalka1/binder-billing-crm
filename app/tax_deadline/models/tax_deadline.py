@@ -8,6 +8,11 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 
+class UrgencyLevel(str, PyEnum):
+    OVERDUE = "overdue"
+    RED = "red"
+    YELLOW = "yellow"
+    GREEN = "green"
  
 class DeadlineType(str, PyEnum):
     VAT = "vat"

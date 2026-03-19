@@ -5,6 +5,12 @@ from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.businesses.models.business import BusinessStatus, BusinessType
+
+
+# Backward-compatible aliases for legacy imports in tests/modules.
+ClientType = BusinessType
+ClientStatus = BusinessStatus
 
 
 class Client(Base):
@@ -36,6 +42,18 @@ class Client(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    # Legacy business fields kept nullable for backward compatibility.
+    # New code should use app.businesses.models.Business.
+    client_type = Column(pg_enum(BusinessType), nullable=True)
+    status = Column(
+        pg_enum(BusinessStatus),
+        default=BusinessStatus.ACTIVE,
+        nullable=True,
+    )
+    primary_binder_number = Column(String, unique=True, nullable=True)
+    opened_at = Column(Date, nullable=True)
+    closed_at = Column(Date, nullable=True)
 
     # Soft delete
     deleted_at = Column(DateTime, nullable=True)

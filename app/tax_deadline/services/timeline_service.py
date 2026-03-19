@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from app.businesses.services.business_service import get_business_or_raise
+from app.businesses.services.business_lookup import get_business_or_raise
 
 
 _MILESTONE_LABELS: dict[str, str] = {
