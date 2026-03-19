@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 class AnnualReportResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
+    client_id: Optional[int] = None  # תאימות לאחור
     client_name: Optional[str] = None
     tax_year: int
     client_type: str

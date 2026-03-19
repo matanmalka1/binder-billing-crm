@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 
 class TaxDeadlineCreateRequest(BaseModel):
-    client_id: int
+    business_id: int
     deadline_type: str
     due_date: date
     payment_amount: Optional[float] = None
@@ -14,7 +14,7 @@ class TaxDeadlineCreateRequest(BaseModel):
 
 class TaxDeadlineResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     deadline_type: str
     due_date: date
@@ -45,7 +45,7 @@ class TaxDeadlineListResponse(BaseModel):
 
 class DeadlineUrgentItem(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     client_name: str
     deadline_type: str
     due_date: date
@@ -60,7 +60,7 @@ class DashboardDeadlinesResponse(BaseModel):
 
 
 class GenerateDeadlinesRequest(BaseModel):
-    client_id: int
+    business_id: int
     year: int
 
 
@@ -70,7 +70,7 @@ class GenerateDeadlinesResponse(BaseModel):
 
 class TimelineEntry(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     deadline_type: str
     due_date: date
     status: str

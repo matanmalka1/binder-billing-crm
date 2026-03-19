@@ -5,17 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.schemas.client import (
-    BulkClientActionRequest,
-    BulkClientActionResponse,
+    ClientConflictInfo,
     ClientCreateRequest,
     ClientListResponse,
     ClientResponse,
     ClientUpdateRequest,
-    DeletedClientInfo,
+    ActiveClientSummary,
+    DeletedClientSummary,
 )
 from app.clients.services.client_service import ClientService
-from app.clients.services.client_lookup import get_client_or_raise
-from app.actions.action_contracts import get_client_actions
+from app.core.exceptions import ConflictError
 
 router = APIRouter(
     prefix="/clients",
@@ -24,27 +23,153 @@ router = APIRouter(
 )
 
 
-def _to_client_response(client, user_role: UserRole) -> ClientResponse:
-    response = ClientResponse.model_validate(client)
-    response.available_actions = get_client_actions(client, user_role=user_role)
-    return response
-
+# ─── Create ───────────────────────────────────────────────────────────────────
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser):
-    """Create new client. Pass force=true to create even if a deleted record exists."""
+    """
+    יצירת לקוח חדש (רשומת זהות בלבד).
+
+    מקרי קונפליקט אפשריים:
+    - CLIENT.CONFLICT (409): לקוח פעיל עם אותו ת.ז. כבר קיים.
+      התגובה כוללת active_clients עם רשימת הלקוחות הפעילים.
+    - CLIENT.DELETED_EXISTS (409): לקוח עם אותו ת.ז. קיים אך נמחק.
+      התגובה כוללת deleted_clients עם רשימת הלקוחות המחוקים.
+
+    לאחר יצירת לקוח, יש ליצור עסק דרך POST /businesses.
+    """
     service = ClientService(db)
-    client = service.create_client(
-        full_name=request.full_name,
-        id_number=request.id_number,
-        client_type=request.client_type,
-        opened_at=request.opened_at,
-        phone=request.phone,
-        email=request.email,
-        actor_id=user.id,
-        force=request.force,
+    try:
+        client = service.create_client(
+            full_name=request.full_name,
+            id_number=request.id_number,
+            phone=request.phone,
+            email=str(request.email) if request.email else None,
+            address_street=request.address_street,
+            address_building_number=request.address_building_number,
+            address_apartment=request.address_apartment,
+            address_city=request.address_city,
+            address_zip_code=request.address_zip_code,
+            actor_id=user.id,
+        )
+        return ClientResponse.model_validate(client)
+    except ConflictError as e:
+        conflict_info = service.get_conflict_info(request.id_number)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "error": e.error_code,
+                "detail": str(e),
+                "conflict": ClientConflictInfo(
+                    id_number=request.id_number,
+                    active_clients=[
+                        ActiveClientSummary.model_validate(c)
+                        for c in conflict_info["active_clients"]
+                    ],
+                    deleted_clients=[
+                        DeletedClientSummary.model_validate(c)
+                        for c in conflict_info["deleted_clients"]
+                    ],
+                ).model_dump(),
+            },
+        )
+
+
+# ─── Read ─────────────────────────────────────────────────────────────────────
+
+@router.get("", response_model=ClientListResponse)
+def list_clients(
+    db: DBSession,
+    user: CurrentUser,
+    search: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
+    """List clients with optional search by name or ID number."""
+    service = ClientService(db)
+    items, total = service.list_clients(
+        search=search or None,
+        page=page,
+        page_size=page_size,
     )
-    return _to_client_response(client, user.role)
+    return ClientListResponse(
+        items=[ClientResponse.model_validate(c) for c in items],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
+
+
+@router.get("/{client_id}", response_model=ClientResponse)
+def get_client(client_id: int, db: DBSession, user: CurrentUser):
+    """Get client by ID."""
+    service = ClientService(db)
+    client = service.get_client_or_raise(client_id)
+    return ClientResponse.model_validate(client)
+
+
+@router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
+def get_conflict_info(
+    id_number: str,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """
+    מחזיר מידע על קונפליקטים לת.ז. נתונה.
+    משמש את הקליינט לבניית דיאלוג הקונפליקט.
+    """
+    service = ClientService(db)
+    info = service.get_conflict_info(id_number)
+    return ClientConflictInfo(
+        id_number=id_number,
+        active_clients=[ActiveClientSummary.model_validate(c) for c in info["active_clients"]],
+        deleted_clients=[DeletedClientSummary.model_validate(c) for c in info["deleted_clients"]],
+    )
+
+
+# ─── Update ───────────────────────────────────────────────────────────────────
+
+@router.patch("/{client_id}", response_model=ClientResponse)
+def update_client(
+    client_id: int,
+    request: ClientUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Update client identity fields (name, phone, email, address)."""
+    service = ClientService(db)
+    client = service.update_client(
+        client_id,
+        **request.model_dump(exclude_unset=True),
+    )
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="הלקוח לא נמצא",
+        )
+    return ClientResponse.model_validate(client)
+
+
+# ─── Delete / Restore ─────────────────────────────────────────────────────────
+
+@router.delete(
+    "/{client_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def delete_client(client_id: int, db: DBSession, user: CurrentUser):
+    """
+    Soft-delete a client (ADVISOR only).
+    שים לב: אינו מוחק את העסקים של הלקוח — יש למחוק אותם בנפרד.
+    """
+    service = ClientService(db)
+    deleted = service.delete_client(client_id, actor_id=user.id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="הלקוח לא נמצא",
+        )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(
@@ -55,105 +180,5 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
 def restore_client(client_id: int, db: DBSession, user: CurrentUser):
     """Restore a soft-deleted client (ADVISOR only)."""
     service = ClientService(db)
-    client = service.restore_client(
-        client_id=client_id,
-        actor_id=user.id,
-        actor_role=user.role,
-    )
-    return _to_client_response(client, user.role)
-
-
-@router.get("/deleted/{id_number}", response_model=Optional[DeletedClientInfo])
-def get_deleted_client_by_id_number(
-    id_number: str,
-    db: DBSession,
-    user: CurrentUser,
-):
-    """Return the most recently deleted client for a given ID number, or null if none."""
-    service = ClientService(db)
-    deleted = service.client_repo.get_deleted_by_id_number(id_number)
-    if not deleted:
-        return None
-    return DeletedClientInfo.model_validate(deleted)
-
-
-@router.get("", response_model=ClientListResponse)
-def list_clients(
-    db: DBSession,
-    user: CurrentUser,
-    status_filter: Optional[str] = Query(None, alias="status"),
-    has_signals: Optional[bool] = Query(None),
-    search: Optional[str] = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-):
-    """List clients with pagination."""
-    service = ClientService(db)
-    items, total = service.list_clients(
-        status=status_filter,
-        has_signals=has_signals,
-        search=search or None,
-        page=page,
-        page_size=page_size,
-    )
-
-    return ClientListResponse(
-        items=[_to_client_response(c, user.role) for c in items],
-        page=page,
-        page_size=page_size,
-        total=total,
-    )
-
-
-@router.get("/{client_id}", response_model=ClientResponse)
-def get_client(client_id: int, db: DBSession, user: CurrentUser):
-    """Get client by ID."""
-    client = get_client_or_raise(db, client_id)
-    return _to_client_response(client, user.role)
-
-
-@router.patch("/{client_id}", response_model=ClientResponse)
-def update_client(
-    client_id: int,
-    request: ClientUpdateRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    """Update client. Authorization enforced in service layer."""
-    service = ClientService(db)
-    update_data = request.model_dump(exclude_unset=True)
-    client = service.update_client(client_id, user.role, **update_data)
-    if not client:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
-    return _to_client_response(client, user.role)
-
-
-@router.post(
-    "/bulk-action",
-    response_model=BulkClientActionResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-def bulk_client_action(request: BulkClientActionRequest, db: DBSession, user: CurrentUser):
-    """Apply freeze/close/activate to multiple clients (ADVISOR only)."""
-    service = ClientService(db)
-    succeeded, failed = service.bulk_update_status(
-        client_ids=request.client_ids,
-        action=request.action,
-        actor_id=user.id,
-        actor_role=user.role,
-    )
-    return BulkClientActionResponse(succeeded=succeeded, failed=failed)
-
-
-@router.delete(
-    "/{client_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-def delete_client(client_id: int, db: DBSession, user: CurrentUser):
-    """Soft-delete a client (ADVISOR only)."""
-    service = ClientService(db)
-    deleted = service.delete_client(client_id, actor_id=user.id)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    client = service.restore_client(client_id, actor_id=user.id)
+    return ClientResponse.model_validate(client)

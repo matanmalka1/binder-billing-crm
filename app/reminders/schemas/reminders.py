@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 class ReminderCreateRequest(BaseModel):
     """Request schema for creating a reminder."""
     
-    client_id: int = Field(..., gt=0, description="Client ID")
+    business_id: int = Field(..., gt=0, description="Business ID")
     reminder_type: str = Field(
         ...,
         description="Type of reminder",
@@ -27,7 +27,7 @@ class ReminderResponse(BaseModel):
     """Response schema for a reminder."""
     
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     reminder_type: str
     status: str

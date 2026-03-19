@@ -1,5 +1,5 @@
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -41,6 +41,7 @@ class DocumentsCard(BaseModel):
 
 class ClientStatusCardResponse(BaseModel):
     client_id: int
+    business_id: int
     year: int
     vat: VatSummaryCard
     annual_report: AnnualReportCard

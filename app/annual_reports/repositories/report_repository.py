@@ -13,7 +13,7 @@ _SORT_COLUMNS = {
     "status": AnnualReport.status,
     "filing_deadline": AnnualReport.filing_deadline,
     "created_at": AnnualReport.created_at,
-    "client_id": AnnualReport.client_id,
+    "business_id": AnnualReport.business_id,
 }
 
 
@@ -41,21 +41,21 @@ class AnnualReportReportRepository(BaseRepository):
             .first()
         )
 
-    def get_by_client_year(self, client_id: int, tax_year: int) -> Optional[AnnualReport]:
+    def get_by_business_year(self, business_id: int, tax_year: int) -> Optional[AnnualReport]:
         return (
             self.db.query(AnnualReport)
             .filter(
-                AnnualReport.client_id == client_id,
+                AnnualReport.business_id == business_id,
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
             )
             .first()
         )
 
-    def list_by_client(self, client_id: int) -> list[AnnualReport]:
+    def list_by_business(self, business_id: int) -> list[AnnualReport]:
         return (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
+            .filter(AnnualReport.business_id == business_id, AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.tax_year.desc())
             .all()
         )
@@ -120,7 +120,7 @@ class AnnualReportReportRepository(BaseRepository):
         )
         return self._paginate(q, page, page_size)
 
-    def list_all_with_clients(self) -> list[AnnualReport]:
+    def list_all_with_businesses(self) -> list[AnnualReport]:
         """Return all non-deleted reports ordered for Kanban view."""
         return (
             self.db.query(AnnualReport)

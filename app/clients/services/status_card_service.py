@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
+from app.business.repositories.business_repository import BusinessRepository
 from app.clients.schemas.client_status_card import (
     AdvancePaymentsCard,
     AnnualReportCard,
@@ -27,9 +27,14 @@ from app.permanent_documents.repositories.permanent_document_repository import P
 
 
 class StatusCardService:
+    """
+    Status card לעסק ספציפי.
+    endpoint: GET /businesses/{business_id}/status-card
+    """
+
     def __init__(self, db: Session):
         self._db = db
-        self._client_repo = ClientRepository(db)
+        self._business_repo = BusinessRepository(db)
         self._vat_repo = VatWorkItemRepository(db)
         self._annual_repo = AnnualReportRepository(db)
         self._charge_repo = ChargeRepository(db)
@@ -37,27 +42,32 @@ class StatusCardService:
         self._binder_repo = BinderRepository(db)
         self._doc_repo = PermanentDocumentRepository(db)
 
-    def get_status_card(self, client_id: int, year: Optional[int] = None) -> ClientStatusCardResponse:
-        client = self._client_repo.get_by_id(client_id)
-        if not client:
-            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
+    def get_status_card(
+        self,
+        business_id: int,
+        year: Optional[int] = None,
+    ) -> ClientStatusCardResponse:
+        business = self._business_repo.get_by_id(business_id)
+        if not business:
+            raise NotFoundError("העסק לא נמצא", "BUSINESS.NOT_FOUND")
 
         resolved_year = year or utcnow().year
         return ClientStatusCardResponse(
-            client_id=client_id,
+            client_id=business.client_id,  # נשמר לתאימות לאחור
+            business_id=business_id,
             year=resolved_year,
-            vat=self._vat_card(client_id, resolved_year),
-            annual_report=self._annual_report_card(client_id, resolved_year),
-            charges=self._charges_card(client_id),
-            advance_payments=self._advance_payments_card(client_id, resolved_year),
-            binders=self._binders_card(client_id),
-            documents=self._documents_card(client_id),
+            vat=self._vat_card(business_id, resolved_year),
+            annual_report=self._annual_report_card(business_id, resolved_year),
+            charges=self._charges_card(business_id),
+            advance_payments=self._advance_payments_card(business_id, resolved_year),
+            binders=self._binders_card(business_id),
+            documents=self._documents_card(business_id),
         )
 
-    def _vat_card(self, client_id: int, year: int) -> VatSummaryCard:
+    def _vat_card(self, business_id: int, year: int) -> VatSummaryCard:
         prefix = f"{year}-"
         rows = [
-            r for r in self._vat_repo.list_by_client(client_id)
+            r for r in self._vat_repo.list_by_business(business_id)
             if r.period and r.period.startswith(prefix)
         ]
         net_total = sum((r.net_vat or Decimal(0)) for r in rows)
@@ -70,8 +80,8 @@ class StatusCardService:
             latest_period=latest,
         )
 
-    def _annual_report_card(self, client_id: int, year: int) -> AnnualReportCard:
-        report = self._annual_repo.get_by_client_year(client_id, year)
+    def _annual_report_card(self, business_id: int, year: int) -> AnnualReportCard:
+        report = self._annual_repo.get_by_business_year(business_id, year)
         if not report:
             return AnnualReportCard()
         deadline_str = (
@@ -85,27 +95,33 @@ class StatusCardService:
             tax_due=report.tax_due,
         )
 
-    def _charges_card(self, client_id: int) -> ChargesCard:
+    def _charges_card(self, business_id: int) -> ChargesCard:
         rows = self._charge_repo.list_charges(
-            client_id=client_id, status=ChargeStatus.ISSUED, page=1, page_size=10_000
+            business_id=business_id,
+            status=ChargeStatus.ISSUED,
+            page=1,
+            page_size=10_000,
         )
         total = sum((r.amount or Decimal(0)) for r in rows)
         return ChargesCard(total_outstanding=total, unpaid_count=len(rows))
 
-    def _advance_payments_card(self, client_id: int, year: int) -> AdvancePaymentsCard:
-        rows, _ = self._advance_repo.list_by_client_year(
-            client_id=client_id, year=year, page=1, page_size=10_000
+    def _advance_payments_card(self, business_id: int, year: int) -> AdvancePaymentsCard:
+        rows, _ = self._advance_repo.list_by_business_year(
+            business_id=business_id,
+            year=year,
+            page=1,
+            page_size=10_000,
         )
         total = sum((r.paid_amount or Decimal(0)) for r in rows)
         return AdvancePaymentsCard(total_paid=total, count=len(rows))
 
-    def _binders_card(self, client_id: int) -> BindersCard:
-        rows = self._binder_repo.list_by_client(client_id)
+    def _binders_card(self, business_id: int) -> BindersCard:
+        rows = self._binder_repo.list_by_business(business_id)
         active = [r for r in rows if r.status != BinderStatus.RETURNED]
         in_office = sum(1 for r in active if r.status == BinderStatus.IN_OFFICE)
         return BindersCard(active_count=len(active), in_office_count=in_office)
 
-    def _documents_card(self, client_id: int) -> DocumentsCard:
-        rows = self._doc_repo.list_by_client(client_id)
+    def _documents_card(self, business_id: int) -> DocumentsCard:
+        rows = self._doc_repo.list_by_business(business_id)
         present = sum(1 for r in rows if r.is_present)
         return DocumentsCard(total_count=len(rows), present_count=present)

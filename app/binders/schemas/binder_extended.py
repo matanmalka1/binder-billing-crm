@@ -8,7 +8,7 @@ class BinderDetailResponse(BaseModel):
     """Binder response with derived operational fields."""
 
     id: int
-    client_id: int
+    business_id: int
     binder_number: str
     status: str
     received_at: date

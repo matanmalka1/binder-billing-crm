@@ -1,15 +1,20 @@
 """Invoice update flow for VAT work items."""
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import ConflictError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import assert_client_not_closed
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.services.client_lookup import assert_business_not_closed
 from app.vat_reports.models.vat_enums import DocumentType, ExpenseCategory, VatRateType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import ACTION_INVOICE_UPDATED, EXCEPTIONAL_INVOICE_THRESHOLD
+from app.vat_reports.services.constants import (
+    ACTION_INVOICE_UPDATED,
+    CATEGORY_DEDUCTION_RATES,
+    EXCEPTIONAL_INVOICE_THRESHOLD,
+)
 from app.vat_reports.services.data_entry_common import (
     audit_invoice_snapshot,
     assert_editable,
@@ -40,9 +45,9 @@ def update_invoice(
 
     assert_editable(item)
 
-    client = ClientRepository(work_item_repo.db).get_by_id(item.client_id)
-    if client:
-        assert_client_not_closed(client)
+    business = BusinessRepository(work_item_repo.db).get_by_id(item.business_id)
+    if business:
+        assert_business_not_closed(business)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
@@ -61,9 +66,6 @@ def update_invoice(
 
     snapshot_before = audit_invoice_snapshot(invoice)
 
-    # Recompute deduction_rate if expense_category changed
-    from decimal import Decimal
-    from app.vat_reports.services.constants import CATEGORY_DEDUCTION_RATES
     update_fields: dict = {
         "net_amount": net_amount,
         "vat_amount": vat_amount,
@@ -81,7 +83,10 @@ def update_invoice(
     effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
     update_fields["is_exceptional"] = Decimal(str(effective_net)) > EXCEPTIONAL_INVOICE_THRESHOLD
 
-    updated = invoice_repo.update(invoice_id, **{k: v for k, v in update_fields.items() if v is not None or k in ("is_exceptional",)})
+    updated = invoice_repo.update(
+        invoice_id,
+        **{k: v for k, v in update_fields.items() if v is not None or k == "is_exceptional"},
+    )
 
     recalculate_totals(work_item_repo, invoice_repo, item_id)
 

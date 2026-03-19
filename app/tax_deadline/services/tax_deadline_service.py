@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_service import get_business_or_raise
+from app.clients.services.client_lookup import assert_business_allows_create
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
@@ -18,22 +19,22 @@ class TaxDeadlineService:
     def __init__(self, db: Session):
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
 
     def create_deadline(
         self,
-        client_id: int,
+        business_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        client = get_client_or_raise(self.db, client_id)
-        assert_client_allows_create(client)
+        business = get_business_or_raise(self.db, business_id)
+        assert_business_allows_create(business)
 
         deadline = self.deadline_repo.create(
-            client_id=client_id,
+            business_id=business_id,
             deadline_type=deadline_type,
             due_date=due_date,
             payment_amount=payment_amount,
@@ -41,7 +42,7 @@ class TaxDeadlineService:
         )
 
         ReminderService(self.db).create_tax_deadline_reminder(
-            client_id=client_id,
+            business_id=business_id,
             tax_deadline_id=deadline.id,
             target_date=due_date,
             days_before=7,
@@ -155,14 +156,14 @@ class TaxDeadlineService:
         else:
             return UrgencyLevel.GREEN
 
-    def get_client_deadlines(
+    def get_business_deadlines(
         self,
-        client_id: int,
+        business_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """Get deadlines for client."""
-        return self.deadline_repo.list_by_client(client_id, status, deadline_type)
+        return self.deadline_repo.list_by_business(business_id, status, deadline_type)
 
     def get_deadlines_by_client_name(
         self,
@@ -171,22 +172,22 @@ class TaxDeadlineService:
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """Get deadlines filtered by client name substring."""
-        clients, _ = self.client_repo.search(client_name=client_name, page=1, page_size=500)
-        if not clients:
+        businesses, _ = self.business_repo.search(business_name=client_name, page=1, page_size=500)
+        if not businesses:
             return []
-        client_ids = [c.id for c in clients]
-        return self.deadline_repo.list_by_client_ids(client_ids, status, deadline_type)
+        business_ids = [b.id for b in businesses]
+        return self.deadline_repo.list_by_business_ids(business_ids, status, deadline_type)
 
-    def get_timeline(self, client_id: int) -> list:
+    def get_timeline(self, business_id: int) -> list:
         """Return deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
         from app.tax_deadline.services.timeline_service import build_timeline
-        return build_timeline(client_id, self.client_repo, self.deadline_repo)
+        return build_timeline(business_id, self.business_repo, self.deadline_repo)
 
-    def build_client_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
-        """Return {client_id: full_name} for the given deadlines."""
-        client_ids = list({d.client_id for d in deadlines})
-        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
-        return {c.id: c.full_name for c in clients}
+    def build_business_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
+        """Return {business_id: business_name} for the given deadlines."""
+        business_ids = list({d.business_id for d in deadlines})
+        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
+        return {b.id: b.business_name for b in businesses}
 
     def get_urgent_deadlines_summary(
         self,

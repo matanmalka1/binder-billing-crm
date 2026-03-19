@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from app.clients.services.client_lookup import get_client_or_raise
+from app.businesses.services.business_service import get_business_or_raise
 
 
 _MILESTONE_LABELS: dict[str, str] = {
@@ -18,10 +18,10 @@ _MILESTONE_LABELS: dict[str, str] = {
 }
 
 
-def build_timeline(client_id: int, client_repo, deadline_repo) -> list[dict]:
+def build_timeline(business_id: int, business_repo, deadline_repo) -> list[dict]:
     """Return deadlines sorted by due_date asc with days_remaining and milestone_label."""
-    get_client_or_raise(client_repo.db, client_id)
-    deadlines = deadline_repo.list_by_client(client_id)
+    get_business_or_raise(business_repo.db, business_id)
+    deadlines = deadline_repo.list_by_business(business_id)
     today = date.today()
     result = []
     for d in sorted(deadlines, key=lambda x: x.due_date):
@@ -30,7 +30,7 @@ def build_timeline(client_id: int, client_repo, deadline_repo) -> list[dict]:
         label = _MILESTONE_LABELS.get(deadline_type_val, deadline_type_val)
         result.append({
             "id": d.id,
-            "client_id": d.client_id,
+            "business_id": d.business_id,
             "deadline_type": deadline_type_val,
             "due_date": d.due_date,
             "status": d.status.value if hasattr(d.status, "value") else str(d.status),

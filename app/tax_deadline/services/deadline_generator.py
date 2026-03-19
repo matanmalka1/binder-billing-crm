@@ -2,10 +2,10 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client_tax_profile import VatType
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.repositories.client_tax_profile_repository import ClientTaxProfileRepository
-from app.clients.services.client_lookup import get_client_or_raise
+from app.businesses.models.business_tax_profile import VatType
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
+from app.businesses.services.business_service import get_business_or_raise
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -25,12 +25,12 @@ class DeadlineGeneratorService:
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
         self.deadline_service = TaxDeadlineService(db)
-        self.profile_repo = ClientTaxProfileRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.profile_repo = BusinessTaxProfileRepository(db)
+        self.business_repo = BusinessRepository(db)
 
-    def generate_vat_deadlines(self, client_id: int, year: int) -> list:
-        get_client_or_raise(self.db, client_id)
-        profile = self.profile_repo.get_by_client_id(client_id)
+    def generate_vat_deadlines(self, business_id: int, year: int) -> list:
+        get_business_or_raise(self.db, business_id)
+        profile = self.profile_repo.get_by_business_id(business_id)
         vat_type = profile.vat_type if profile else None
 
         if vat_type == VatType.EXEMPT or vat_type is None:
@@ -51,9 +51,9 @@ class DeadlineGeneratorService:
 
         created = []
         for due_date in due_dates:
-            if not self.deadline_repo.exists(client_id, DeadlineType.VAT, due_date):
+            if not self.deadline_repo.exists(business_id, DeadlineType.VAT, due_date):
                 deadline = self.deadline_service.create_deadline(
-                    client_id=client_id,
+                    business_id=business_id,
                     deadline_type=DeadlineType.VAT,
                     due_date=due_date,
                     description=f"דוח מע\"מ {year}",
@@ -61,14 +61,14 @@ class DeadlineGeneratorService:
                 created.append(deadline)
         return created
 
-    def generate_advance_payment_deadlines(self, client_id: int, year: int) -> list:
-        get_client_or_raise(self.db, client_id)
+    def generate_advance_payment_deadlines(self, business_id: int, year: int) -> list:
+        get_business_or_raise(self.db, business_id)
         created = []
         for month in range(1, 13):
             due_date = date(year, month, _ADVANCE_PAYMENT_DUE_DAY)
-            if not self.deadline_repo.exists(client_id, DeadlineType.ADVANCE_PAYMENT, due_date):
+            if not self.deadline_repo.exists(business_id, DeadlineType.ADVANCE_PAYMENT, due_date):
                 deadline = self.deadline_service.create_deadline(
-                    client_id=client_id,
+                    business_id=business_id,
                     deadline_type=DeadlineType.ADVANCE_PAYMENT,
                     due_date=due_date,
                     description=f"מקדמה חודש {month}/{year}",
@@ -76,22 +76,22 @@ class DeadlineGeneratorService:
                 created.append(deadline)
         return created
 
-    def generate_annual_report_deadline(self, client_id: int, year: int) -> list:
-        get_client_or_raise(self.db, client_id)
+    def generate_annual_report_deadline(self, business_id: int, year: int) -> list:
+        get_business_or_raise(self.db, business_id)
         due_date = date(year + 1, _ANNUAL_REPORT_DUE_MONTH, _ANNUAL_REPORT_DUE_DAY)
-        if self.deadline_repo.exists(client_id, DeadlineType.ANNUAL_REPORT, due_date):
+        if self.deadline_repo.exists(business_id, DeadlineType.ANNUAL_REPORT, due_date):
             return []
         deadline = self.deadline_service.create_deadline(
-            client_id=client_id,
+            business_id=business_id,
             deadline_type=DeadlineType.ANNUAL_REPORT,
             due_date=due_date,
             description=f"דוח שנתי שנת {year}",
         )
         return [deadline]
 
-    def generate_all(self, client_id: int, year: int) -> int:
+    def generate_all(self, business_id: int, year: int) -> int:
         created = []
-        created += self.generate_vat_deadlines(client_id, year)
-        created += self.generate_advance_payment_deadlines(client_id, year)
-        created += self.generate_annual_report_deadline(client_id, year)
+        created += self.generate_vat_deadlines(business_id, year)
+        created += self.generate_advance_payment_deadlines(business_id, year)
+        created += self.generate_annual_report_deadline(business_id, year)
         return len(created)

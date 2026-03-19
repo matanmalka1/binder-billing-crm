@@ -9,7 +9,9 @@ from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.clients.services.client_lookup import assert_client_allows_create, get_client_or_raise
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_service import get_business_or_raise
+from app.clients.services.client_lookup import assert_business_allows_create
 from app.notification.services.notification_service import NotificationService
 
 
@@ -25,7 +27,7 @@ class BinderIntakeService:
 
     def receive(
         self,
-        client_id: int,
+        business_id: int,
         binder_number: str,
         binder_type: BinderType,
         received_at: date,
@@ -36,22 +38,22 @@ class BinderIntakeService:
         Find active binder or create new one, then record the intake.
         Returns (binder, intake, is_new_binder).
         """
-        client = get_client_or_raise(self.db, client_id)
-        assert_client_allows_create(client)
+        business = get_business_or_raise(self.db, business_id)
+        assert_business_allows_create(business)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
 
         if existing:
-            if existing.client_id != client_id:
+            if existing.business_id != business_id:
                 raise ConflictError(
-                    f"הקלסר {binder_number} שייך ללקוח אחר",
-                    "BINDER.CLIENT_MISMATCH",
+                    f"הקלסר {binder_number} שייך לעסק אחר",
+                    "BINDER.BUSINESS_MISMATCH",
                 )
             binder = existing
             is_new_binder = False
         else:
             binder = self.binder_repo.create(
-                client_id=client_id,
+                business_id=business_id,
                 binder_number=binder_number,
                 binder_type=binder_type,
                 received_at=received_at,
@@ -75,6 +77,6 @@ class BinderIntakeService:
         )
 
         if is_new_binder:
-            self.notification_service.notify_binder_received(binder, client)
+            self.notification_service.notify_binder_received(binder, business)
 
         return binder, intake, is_new_binder

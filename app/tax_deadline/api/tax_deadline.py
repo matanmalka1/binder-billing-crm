@@ -24,8 +24,8 @@ router = APIRouter(
 )
 
 # Safety ceiling for global (non-client-scoped) deadline list.
-# Without client_id, all pending deadlines are fetched in memory.
-# Known architectural debt — a proper fix requires DB-level pagination.
+# Without business_id, all pending deadlines are fetched in memory.
+# # Known architectural debt — a proper fix requires DB-level pagination.
 _GLOBAL_DEADLINE_FETCH_LIMIT = 500
 
 
@@ -48,7 +48,7 @@ def create_tax_deadline(
 
     deadline_type = DeadlineType(request.deadline_type)
     deadline = service.create_deadline(
-        client_id=request.client_id,
+        business_id=request.business_id,
         deadline_type=deadline_type,
         due_date=request.due_date,
         payment_amount=request.payment_amount,
@@ -61,7 +61,7 @@ def create_tax_deadline(
 def list_tax_deadlines(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
     client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -75,9 +75,9 @@ def list_tax_deadlines(
     if deadline_type:
         type_enum = DeadlineType(deadline_type)
 
-    if client_id:
-        # Client-scoped: naturally bounded, no ceiling needed.
-        items = service.get_client_deadlines(client_id, status_filter, type_enum)
+    if business_id:
+        # Business-scoped: naturally bounded, no ceiling needed.
+        items = service.get_business_deadlines(business_id, status_filter, type_enum)
     elif client_name:
         items = service.get_deadlines_by_client_name(client_name, status_filter, type_enum)
     else:
@@ -87,10 +87,10 @@ def list_tax_deadlines(
     offset = (page - 1) * page_size
     paginated = items[offset : offset + page_size]
 
-    client_name_map = service.build_client_name_map(paginated)
+    business_name_map = service.build_business_name_map(paginated)
 
     def to_response(d) -> TaxDeadlineResponse:
-        return _build_response(d, client_name=client_name_map.get(d.client_id))
+        return _build_response(d, client_name=business_name_map.get(d.business_id))
 
     return TaxDeadlineListResponse(
         items=[to_response(d) for d in paginated],
@@ -102,13 +102,13 @@ def list_tax_deadlines(
 
 @router.get("/timeline", response_model=list[TimelineEntry])
 def get_timeline(
-    client_id: int,
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Return all deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
     service = TaxDeadlineService(db)
-    entries = service.get_timeline(client_id)
+    entries = service.get_timeline(business_id)
     return [TimelineEntry(**e) for e in entries]
 
 
@@ -168,7 +168,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     summary = service.get_urgent_deadlines_summary()
 
     urgent_deadlines = [item["deadline"] for item in summary["urgent"]]
-    client_name_map = service.build_client_name_map(urgent_deadlines)
+    business_name_map = service.build_business_name_map(urgent_deadlines)
 
     urgent_items = []
     for item in summary["urgent"]:
@@ -176,8 +176,8 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
         urgent_items.append(
             DeadlineUrgentItem(
                 id=deadline.id,
-                client_id=deadline.client_id,
-                client_name=client_name_map.get(deadline.client_id) or "לא ידוע",
+                business_id=deadline.business_id,
+                client_name=business_name_map.get(deadline.business_id) or "לא ידוע",
                 deadline_type=deadline.deadline_type.value,
                 due_date=deadline.due_date,
                 urgency=item["urgency"].value,

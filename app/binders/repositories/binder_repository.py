@@ -16,7 +16,7 @@ class BinderRepository(BaseRepository):
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         binder_number: str,
         binder_type: BinderType,
         received_at: date,
@@ -25,7 +25,7 @@ class BinderRepository(BaseRepository):
     ) -> Binder:
         """Create new binder (intake flow)."""
         binder = Binder(
-            client_id=client_id,
+            business_id=business_id,
             binder_number=binder_number,
             binder_type=binder_type,
             received_at=received_at,
@@ -60,7 +60,7 @@ class BinderRepository(BaseRepository):
 
     def list_active(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         binder_number: Optional[str] = None,
         sort_by: str = "received_at",
@@ -73,8 +73,8 @@ class BinderRepository(BaseRepository):
 
         query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
 
-        if client_id:
-            query = query.filter(Binder.client_id == client_id)
+        if business_id:
+            query = query.filter(Binder.business_id == business_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -100,14 +100,14 @@ class BinderRepository(BaseRepository):
 
     def count_active(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
     ) -> int:
         """Count active binders with optional filters."""
         query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
 
-        if client_id:
-            query = query.filter(Binder.client_id == client_id)
+        if business_id:
+            query = query.filter(Binder.business_id == business_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -133,11 +133,11 @@ class BinderRepository(BaseRepository):
             .count()
         )
 
-    def list_by_client(self, client_id: int) -> list[Binder]:
-        """Return all non-deleted binders for a client (all statuses)."""
+    def list_by_business(self, business_id: int) -> list[Binder]:
+        """Return all non-deleted binders for a business (all statuses)."""
         return (
             self.db.query(Binder)
-            .filter(Binder.client_id == client_id, Binder.deleted_at.is_(None))
+            .filter(Binder.business_id == business_id, Binder.deleted_at.is_(None))
             .order_by(Binder.received_at.asc())
             .all()
         )

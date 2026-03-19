@@ -1,19 +1,27 @@
-from datetime import date, datetime
-from typing import Literal, Optional, Any
+from datetime import datetime
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
-from app.utils.id_validation import validate_israeli_id_checksum
-from app.clients.models.client import ClientStatus, ClientType
 
+from app.utils.id_validation import validate_israeli_id_checksum
+
+
+# ─── Requests ────────────────────────────────────────────────────────────────
 
 class ClientCreateRequest(BaseModel):
+    """
+    יצירת לקוח חדש — פרטי זהות בלבד.
+    שדות עסקיים (client_type, opened_at וכו') נמצאים ב-BusinessCreateRequest.
+    """
     full_name: str
     id_number: str
-    client_type: ClientType
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
-    opened_at: date
-    force: bool = False
+    address_street: Optional[str] = None
+    address_building_number: Optional[str] = None
+    address_apartment: Optional[str] = None
+    address_city: Optional[str] = None
+    address_zip_code: Optional[str] = None
 
     @field_validator("id_number")
     @classmethod
@@ -33,14 +41,10 @@ class ClientCreateRequest(BaseModel):
 
 
 class ClientUpdateRequest(BaseModel):
+    """עדכון פרטי זהות בלבד."""
     full_name: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
-    notes: Optional[str] = None
-    status: Optional[ClientStatus] = None
-    client_type: Optional[ClientType] = None
-    primary_binder_number: Optional[str] = None
-    # Structured address fields
     address_street: Optional[str] = None
     address_building_number: Optional[str] = None
     address_apartment: Optional[str] = None
@@ -48,25 +52,21 @@ class ClientUpdateRequest(BaseModel):
     address_zip_code: Optional[str] = None
 
 
+# ─── Responses ────────────────────────────────────────────────────────────────
+
 class ClientResponse(BaseModel):
+    """תגובת לקוח — פרטי זהות בלבד."""
     id: int
     full_name: str
     id_number: str
-    client_type: str
-    status: str
-    primary_binder_number: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
-    notes: Optional[str] = None
-    # Structured address fields
     address_street: Optional[str] = None
     address_building_number: Optional[str] = None
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
-    opened_at: date
-    closed_at: Optional[date] = None
-    available_actions: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -77,6 +77,39 @@ class ClientListResponse(BaseModel):
     page_size: int
     total: int
 
+
+# ─── Conflict info ────────────────────────────────────────────────────────────
+
+class ActiveClientSummary(BaseModel):
+    """סיכום לקוח פעיל — מוחזר בתגובת CLIENT.CONFLICT."""
+    id: int
+    full_name: str
+    id_number: str
+
+    model_config = {"from_attributes": True}
+
+
+class DeletedClientSummary(BaseModel):
+    """סיכום לקוח מחוק — מוחזר בתגובת CLIENT.DELETED_EXISTS."""
+    id: int
+    full_name: str
+    id_number: str
+    deleted_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ClientConflictInfo(BaseModel):
+    """
+    מידע מלא על קונפליקטים לת.ז. נתונה.
+    מוחזר כחלק מתגובת 409.
+    """
+    id_number: str
+    active_clients: list[ActiveClientSummary]
+    deleted_clients: list[DeletedClientSummary]
+
+
+# ─── Bulk actions ─────────────────────────────────────────────────────────────
 
 class BulkClientActionRequest(BaseModel):
     client_ids: list[int] = Field(min_length=1)
@@ -91,13 +124,3 @@ class BulkClientFailedItem(BaseModel):
 class BulkClientActionResponse(BaseModel):
     succeeded: list[int]
     failed: list[BulkClientFailedItem]
-
-
-class DeletedClientInfo(BaseModel):
-    """Summary of a deleted client — returned in CLIENT.DELETED_EXISTS responses."""
-    id: int
-    full_name: str
-    client_type: str
-    deleted_at: datetime
-
-    model_config = {"from_attributes": True}

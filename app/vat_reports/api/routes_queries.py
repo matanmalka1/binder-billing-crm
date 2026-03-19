@@ -20,8 +20,8 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
-    data.client_name = name_map.get(item.client_id)
-    data.client_status = status_map.get(item.client_id)
+    data.business_name = name_map.get(item.business_id)
+    data.business_status = status_map.get(item.business_id)
     deadline = _compute_deadline_fields(item)
     data.submission_deadline = deadline["submission_deadline"]
     data.days_until_deadline = deadline["days_until_deadline"]
@@ -44,11 +44,11 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     )
 
 
-@router.get("/clients/{client_id}/work-items", response_model=VatWorkItemListResponse)
-def list_client_work_items(client_id: int, db: DBSession, current_user: CurrentUser):
-    """List all VAT work items for a client."""
+@router.get("/businesses/{business_id}/work-items", response_model=VatWorkItemListResponse)
+def list_business_work_items(business_id: int, db: DBSession, current_user: CurrentUser):
+    """List all VAT work items for a business."""
     service = VatReportService(db)
-    enriched = service.get_client_items_enriched(client_id)
+    enriched = service.get_business_items_enriched(business_id)
     items = [
         _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])
         for i in enriched["items"]
@@ -64,13 +64,13 @@ def list_work_items(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
     period: Optional[str] = Query(None),
-    client_name: Optional[str] = Query(None),
+    business_name: Optional[str] = Query(None),
 ):
     """List work items filtered by status with pagination."""
     service = VatReportService(db)
     enriched = service.get_list_enriched(
         status_filter=status_filter, page=page, page_size=page_size,
-        period=period, client_name=client_name,
+        period=period, business_name=business_name,
     )
     items = [
         _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])

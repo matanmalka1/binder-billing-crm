@@ -57,10 +57,7 @@ def resolve_invoice_derived_fields(
     net_amount: float,
     vat_amount: float,
 ) -> dict:
-    """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional.
-
-    Raises AppError on rule violations.
-    """
+    """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional."""
     from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
     from app.vat_reports.services.constants import (
         CATEGORY_DEDUCTION_RATES,
@@ -96,22 +93,22 @@ def resolve_invoice_derived_fields(
 
 
 def check_osek_patur_ceiling(
-    client,
+    business,
     invoice_repo: VatInvoiceRepository,
-    client_id: int,
+    business_id: int,
     period: str,
     new_net_amount: float,
 ) -> None:
     """Raise AppError if adding this income invoice would exceed the OSEK PATUR ceiling.
 
-    Only enforced for OSEK_PATUR clients (ClientType.OSEK_PATUR).
+    Only enforced for OSEK_PATUR businesses (BusinessType.OSEK_PATUR).
     """
-    from app.clients.models.client import ClientType
+    from app.businesses.models.business import BusinessType
 
-    if not hasattr(client, "client_type") or client.client_type != ClientType.OSEK_PATUR:
+    if not hasattr(business, "business_type") or business.business_type != BusinessType.OSEK_PATUR:
         return
     year = int(period[:4])
-    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_id, year)))
+    current_total = Decimal(str(invoice_repo.sum_income_net_by_business_year(business_id, year)))
     if current_total + Decimal(str(new_net_amount)) > OSEK_PATUR_CEILING_ILS:
         raise AppError(
             f"תקרת עוסק פטור חרגה: סך מחזור {float(current_total + Decimal(str(new_net_amount))):.2f} ₪ "

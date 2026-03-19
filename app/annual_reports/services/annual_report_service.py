@@ -4,7 +4,7 @@ from app.core.exceptions import NotFoundError
 from app.annual_reports.repositories import AnnualReportRepository
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from .create_service import AnnualReportCreateService
@@ -33,7 +33,7 @@ class AnnualReportService(
         self.annex_repo = AnnexDataRepository(db)
         # Cross-domain repositories are wired only at facade level (service boundary).
         # Lower annual_reports service mixins must consume these via self.<repo_name> only.
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.user_repo = UserRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.advance_repo = AdvancePaymentRepository(db)

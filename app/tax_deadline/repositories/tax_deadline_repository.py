@@ -14,7 +14,7 @@ class TaxDeadlineRepository:
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         payment_amount: Optional[float] = None,
@@ -22,7 +22,7 @@ class TaxDeadlineRepository:
     ) -> TaxDeadline:
         """Create a new tax deadline."""
         deadline = TaxDeadline(
-            client_id=client_id,
+            business_id=business_id,
             deadline_type=deadline_type,
             due_date=due_date,
             payment_amount=payment_amount,
@@ -86,14 +86,14 @@ class TaxDeadlineRepository:
             .all()
         )
 
-    def list_by_client_ids(
+    def list_by_business_ids(
         self,
-        client_ids: list[int],
+        business_ids: list[int],
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """List deadlines for multiple clients with optional filters."""
-        query = self.db.query(TaxDeadline).filter(TaxDeadline.client_id.in_(client_ids))
+        query = self.db.query(TaxDeadline).filter(TaxDeadline.business_id.in_(business_ids))
 
         if status:
             query = query.filter(TaxDeadline.status == status)
@@ -103,14 +103,14 @@ class TaxDeadlineRepository:
 
         return query.order_by(TaxDeadline.due_date.asc()).all()
 
-    def list_by_client(
+    def list_by_business(
         self,
-        client_id: int,
+        business_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """List deadlines for a client with optional filters."""
-        query = self.db.query(TaxDeadline).filter(TaxDeadline.client_id == client_id)
+        query = self.db.query(TaxDeadline).filter(TaxDeadline.business_id == business_id)
 
         if status:
             query = query.filter(TaxDeadline.status == status)
@@ -149,7 +149,7 @@ class TaxDeadlineRepository:
 
     def exists(
         self,
-        client_id: int,
+        business_id: int,
         deadline_type: DeadlineType,
         due_date: date,
     ) -> bool:
@@ -157,7 +157,7 @@ class TaxDeadlineRepository:
         return (
             self.db.query(TaxDeadline.id)
             .filter(
-                TaxDeadline.client_id == client_id,
+                TaxDeadline.business_id == business_id,
                 TaxDeadline.deadline_type == deadline_type,
                 TaxDeadline.due_date == due_date,
             )

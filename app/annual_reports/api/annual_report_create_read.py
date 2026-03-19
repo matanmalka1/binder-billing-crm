@@ -21,10 +21,10 @@ router = APIRouter(
 
 @router.post("", response_model=AnnualReportDetailResponse, status_code=status.HTTP_201_CREATED)
 def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: CurrentUser):
-    """Create a new annual income tax report for a client."""
+    """Create a new annual income tax report for a business."""
     service = AnnualReportService(db)
     orm_report = service.create_report(
-        client_id=body.client_id,
+        business_id=body.business_id,
         tax_year=body.tax_year,
         client_type=body.client_type,
         created_by=user.id,
@@ -38,7 +38,6 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
         has_depreciation=body.has_depreciation,
         has_exempt_rental=body.has_exempt_rental,
     )
-
     return service.get_detail_report(orm_report.id)
 
 
@@ -49,12 +48,18 @@ def list_annual_reports(
     tax_year: int | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
-    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|client_id)$"),
+    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|business_id)$"),
     order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
     """List annual reports (optionally filter by tax_year)."""
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order)
+    items, total = service.list_reports(
+        tax_year=tax_year,
+        page=page,
+        page_size=page_size,
+        sort_by=sort_by,
+        order=order,
+    )
     return AnnualReportListResponse(
         items=items,
         page=page,
@@ -110,4 +115,9 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
 def amend_annual_report(report_id: int, body: AmendRequest, db: DBSession, user: CurrentUser):
     """Transition a SUBMITTED report to AMENDED and record the amendment reason (ADVISOR only)."""
     service = AnnualReportService(db)
-    return service.amend_report(report_id, reason=body.reason, actor_id=user.id, actor_name=user.full_name)
+    return service.amend_report(
+        report_id,
+        reason=body.reason,
+        actor_id=user.id,
+        actor_name=user.full_name,
+    )

@@ -1,6 +1,6 @@
 from app.annual_reports.api import (
     annual_report_annex,
-    annual_report_client,
+    annual_report_business,
     annual_report_create_read,
     annual_report_detail,
     annual_report_financials,
@@ -13,7 +13,7 @@ from app.annual_reports.api import (
 
 __all__ = [
     "annual_report_annex",
-    "annual_report_client",
+    "annual_report_business",
     "annual_report_create_read",
     "annual_report_detail",
     "annual_report_financials",

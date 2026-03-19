@@ -86,9 +86,9 @@ class WorkStateService:
         
         # Get all notifications for this binder
         # Note: list_by_binder doesn't exist in NotificationRepository
-        # We need to check by client_id instead
-        notifications = notification_repo.list_by_client(
-            binder.client_id, page=1, page_size=100
+        # We need to check by business_id instead
+        notifications = notification_repo.list_by_business(
+            binder.business_id, page=1, page_size=100
         )
         
         # Filter to this specific binder

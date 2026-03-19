@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 from app.binders.services.work_state_service import WorkStateService
@@ -36,7 +36,7 @@ class SignalsService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.document_service = PermanentDocumentService(db)
@@ -66,9 +66,9 @@ class SignalsService:
 
         return signals
 
-    def compute_client_signals(
+    def compute_business_signals(
         self,
-        client_id: int,
+        business_id: int,
         reference_date: Optional[date] = None,
     ) -> dict:
         """
@@ -85,16 +85,16 @@ class SignalsService:
             reference_date = date.today()
 
         # Missing documents signal
-        missing_docs = self.document_service.get_missing_document_types(client_id)
+        missing_docs = self.document_service.get_missing_document_types(business_id)
 
         # Unpaid charges signal
         unpaid = self.charge_repo.count_charges(
-            client_id=client_id,
+            business_id=business_id,
             status=ChargeStatus.ISSUED.value,
         ) > 0
 
         # Binder signals
-        binders = self.binder_repo.list_active(client_id=client_id)
+        binders = self.binder_repo.list_active(business_id=business_id)
         binder_signals = {}
         for binder in binders:
             signals = self.compute_binder_signals(binder, reference_date)
@@ -107,9 +107,9 @@ class SignalsService:
             "binder_signals": binder_signals,
         }
 
-    def compute_client_operational_signals(
+    def compute_business_operational_signals(
         self,
-        client_id: int,
+        business_id: int,
         reference_date: Optional[date] = None,
     ) -> dict:
         if reference_date is None:
@@ -117,6 +117,6 @@ class SignalsService:
         return build_client_operational_signals(
             self.document_service,
             self.binder_repo,
-            client_id=client_id,
+            business_id=business_id,
             reference_date=reference_date,
         )

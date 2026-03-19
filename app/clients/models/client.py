@@ -7,47 +7,44 @@ from app.database import Base
 from app.utils.time_utils import utcnow
 
 
-class ClientType(str, PyEnum):
-    OSEK_PATUR = "osek_patur"
-    OSEK_MURSHE = "osek_murshe"
-    COMPANY = "company"
-    EMPLOYEE = "employee"
-
-
-class ClientStatus(str, PyEnum):
-    ACTIVE = "active"
-    FROZEN = "frozen"
-    CLOSED = "closed"
-
-
 class Client(Base):
+    """
+    מייצג אדם / ישות משפטית ברמת הזהות בלבד.
+    פרטים עסקיים (סוג עוסק, סטטוס, דוחות) נמצאים ב-Business.
+    """
     __tablename__ = "clients"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # פרטי זהות
     full_name = Column(String, nullable=False)
-    id_number = Column(String, nullable=False, index=True)
-    client_type = Column(pg_enum(ClientType), nullable=False)
-    status = Column(pg_enum(ClientStatus), default=ClientStatus.ACTIVE, nullable=False)
-    primary_binder_number = Column(String, unique=True, nullable=True)
+    id_number = Column(String, nullable=False, index=True)  # ת.ז. / ח.פ
+
+    # פרטי התקשרות
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    notes = Column(Text, nullable=True)
-    # Structured address fields
+
+    # כתובת
     address_street = Column(String, nullable=True)
     address_building_number = Column(String, nullable=True)
     address_apartment = Column(String, nullable=True)
     address_city = Column(String, nullable=True)
     address_zip_code = Column(String, nullable=True)
-    opened_at = Column(Date, nullable=False)
-    closed_at = Column(Date, nullable=True)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    # מטא
+    notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    # Soft delete
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     restored_at = Column(DateTime, nullable=True)
     restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
+        # ת.ז. ייחודית בין לקוחות פעילים בלבד
         Index(
             "ix_clients_id_number_active",
             "id_number",
@@ -57,4 +54,4 @@ class Client(Base):
     )
 
     def __repr__(self):
-        return f"<Client(id={self.id}, name='{self.full_name}', status='{self.status}')>"
+        return f"<Client(id={self.id}, name='{self.full_name}', id_number='{self.id_number}')>"

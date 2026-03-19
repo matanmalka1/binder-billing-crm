@@ -24,7 +24,7 @@ def create_reminder(
                 detail="נדרש tax_deadline_id עבור תזכורות מסוג tax_deadline_approaching",
             )
         reminder = service.create_tax_deadline_reminder(
-            client_id=request.client_id,
+            business_id=request.business_id,
             tax_deadline_id=request.tax_deadline_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -39,7 +39,7 @@ def create_reminder(
                 detail="נדרש binder_id עבור תזכורות מסוג binder_idle",
             )
         reminder = service.create_idle_binder_reminder(
-            client_id=request.client_id,
+            business_id=request.business_id,
             binder_id=request.binder_id,
             days_idle=request.days_before,
             message=request.message,
@@ -53,7 +53,7 @@ def create_reminder(
                 detail="נדרש charge_id עבור תזכורות מסוג unpaid_charge",
             )
         reminder = service.create_unpaid_charge_reminder(
-            client_id=request.client_id,
+            business_id=request.business_id,
             charge_id=request.charge_id,
             days_unpaid=request.days_before,
             message=request.message,
@@ -67,7 +67,7 @@ def create_reminder(
                 detail="נדרש message עבור תזכורות מותאמות אישית",
             )
         reminder = service.create_custom_reminder(
-            client_id=request.client_id,
+            business_id=request.business_id,
             target_date=request.target_date,
             days_before=request.days_before,
             message=request.message,

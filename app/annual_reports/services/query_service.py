@@ -4,9 +4,16 @@ from typing import Optional
 from sqlalchemy import func
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
-from app.annual_reports.schemas.annual_report_responses import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
+from app.annual_reports.schemas.annual_report_responses import (
+    AnnualReportDetailResponse,
+    AnnualReportResponse,
+    ScheduleEntryResponse,
+    StatusHistoryResponse,
+)
 from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
+
+
 class AnnualReportQueryService(AnnualReportBaseService):
     def get_report(self, report_id: int) -> Optional[AnnualReportResponse]:
         report = self.repo.get_by_id(report_id)
@@ -14,8 +21,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
             return None
         return self._to_responses([report])[0]
 
-    def get_client_reports(self, client_id: int) -> list[AnnualReportResponse]:
-        reports = self.repo.list_by_client(client_id)
+    def get_business_reports(self, business_id: int) -> list[AnnualReportResponse]:
+        reports = self.repo.list_by_business(business_id)
         return self._to_responses(reports)
 
     def list_reports(
@@ -50,9 +57,11 @@ class AnnualReportQueryService(AnnualReportBaseService):
         from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
         from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
         from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
+
         report = self.get_report(report_id)
         if report is None:
             return None
+
         schedules = self.repo.get_schedules(report_id)
         history = self.repo.get_status_history(report_id)
         income_repo = AnnualReportIncomeRepository(self.db)
@@ -60,28 +69,32 @@ class AnnualReportQueryService(AnnualReportBaseService):
         total_income = income_repo.total_income(report_id)
         total_expenses = expense_repo.total_expenses(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
+
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
         response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
         response.total_income = float(total_income)
         response.total_expenses = float(total_expenses)
         response.taxable_income = float(total_income - total_expenses)
+
         if detail:
             response.tax_refund_amount = float(detail.tax_refund_amount) if detail.tax_refund_amount is not None else None
             response.tax_due_amount = float(detail.tax_due_amount) if detail.tax_due_amount is not None else None
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes
             response.amendment_reason = detail.amendment_reason
+
         try:
             from app.annual_reports.services.financial_service import AnnualReportFinancialService
             from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+
             orm_report = self.repo.get_by_id(report_id)
             tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
             response.profit = tax.net_profit
             advances_paid = sum(
                 float(p.paid_amount)
                 for p in self.db.query(AdvancePayment).filter(
-                    AdvancePayment.client_id == orm_report.client_id,
+                    AdvancePayment.business_id == orm_report.business_id,
                     AdvancePayment.year == orm_report.tax_year,
                     func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
                 ).all()
@@ -90,11 +103,13 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.final_balance = round(tax.tax_after_credits - advances_paid, 2)
         except Exception:
             pass
+
         return response
 
     def amend_report(self, report_id: int, reason: str, actor_id: int, actor_name: str) -> AnnualReportDetailResponse:
         """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
         from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
+
         report = self._get_or_raise(report_id)
         if report.status != AnnualReportStatus.SUBMITTED:
             raise ConflictError(
@@ -111,20 +126,18 @@ class AnnualReportQueryService(AnnualReportBaseService):
             note=reason,
         )
         AnnualReportDetailRepository(self.db).upsert(report_id, amendment_reason=reason)
-        # Cancel any pending signature requests created before submission (item 14)
         self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "תיקון דוח — ביטול בקשת חתימה")
         return self.get_detail_report(report_id)
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""
-        reports = self.repo.list_all_with_clients()
-        client_ids = {r.client_id for r in reports}
-        clients = self.client_repo.list_by_ids(list(client_ids)) if client_ids else []
-        id_to_name = {c.id: c.full_name for c in clients}
+        reports = self.repo.list_all_with_businesses()
+        business_ids = {r.business_id for r in reports}
+        businesses = self.business_repo.list_by_ids(list(business_ids)) if business_ids else []
+        id_to_name = {b.id: b.business_name or b.client.full_name for b in businesses}
+
         stages = {stage.value: [] for stage in ReportStage}
         for report in reports:
-            stage_key = getattr(report, "status", None)
-            # Map status to stage: simple mapping aligning with frontend STAGE_ORDER
             status_value = report.status.value if hasattr(report.status, "value") else report.status
             if status_value in ("not_started", "collecting_docs"):
                 stage_key = ReportStage.MATERIAL_COLLECTION
@@ -142,11 +155,14 @@ class AnnualReportQueryService(AnnualReportBaseService):
             stages[stage_key.value].append(
                 {
                     "id": report.id,
-                    "client_id": report.client_id,
-                    "client_name": id_to_name.get(report.client_id),
+                    "business_id": report.business_id,
+                    "business_name": id_to_name.get(report.business_id),
                     "tax_year": report.tax_year,
-                    "days_until_due": None if not report.filing_deadline else (report.filing_deadline.date() - date.today()).days,
+                    "days_until_due": (
+                        None if not report.filing_deadline
+                        else (report.filing_deadline.date() - date.today()).days
+                    ),
                 }
             )
 
-        return [{"stage": key, "reports": reports} for key, reports in stages.items()]
+        return [{"stage": key, "reports": items} for key, items in stages.items()]

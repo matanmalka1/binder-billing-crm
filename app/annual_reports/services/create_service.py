@@ -55,7 +55,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         if assigned_to is not None:
             get_user_or_raise(self.user_repo, assigned_to)
 
-        existing = self.repo.get_by_client_year(client_id, tax_year)
+        existing = self.repo.get_by_business_year(client_id, tax_year)
         if existing:
             raise ConflictError(
                 f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} כבר קיים "

@@ -7,7 +7,7 @@ from app.binders.models.binder import BinderType
 
 
 class BinderReceiveRequest(BaseModel):
-    client_id: int
+    business_id: int
     binder_number: str
     binder_type: BinderType
     received_at: date
@@ -22,7 +22,7 @@ class BinderReturnRequest(BaseModel):
 
 class BinderResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     binder_number: str
     binder_type: BinderType
@@ -65,7 +65,7 @@ class BinderIntakeListResponse(BaseModel):
 class BinderReceiveResult(BaseModel):
     # Backward-compatible flat binder fields
     id: int
-    client_id: int
+    business_id: int
     client_name: Optional[str] = None
     binder_number: str
     binder_type: BinderType

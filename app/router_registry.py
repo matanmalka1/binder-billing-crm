@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.advance_payments.api import advance_payments, advance_payments_overview, advance_payment_generate  # noqa: F401
 from app.annual_reports.api import (
     annual_report_annex,
-    annual_report_client,
+    annual_report_business,
     annual_report_create_read,
     annual_report_detail,
     annual_report_financials,
@@ -14,7 +14,8 @@ from app.annual_reports.api import (
     routes_export as annual_report_export,
 )
 from app.binders.api import binders, binders_history, binders_operations
-from app.clients.api import client_status_card, client_tax_profile, clients, clients_binders, clients_excel
+from app.clients.api import clients, clients_excel
+from app.businesses.api import business_binders_router, business_status_card_router, business_tax_profile_router
 from app.dashboard.api import dashboard, dashboard_extended, dashboard_overview, dashboard_tax
 from app.users.api import users, users_audit
 from app.signature_requests.api import routers as signature_requests_routers
@@ -44,7 +45,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(annual_report_schedule.router, prefix="/api/v1")
     app.include_router(annual_report_kanban.router, prefix="/api/v1")
     app.include_router(annual_report_status.router, prefix="/api/v1")
-    app.include_router(annual_report_client.clients_router, prefix="/api/v1")
+    app.include_router(annual_report_business.clients_router, prefix="/api/v1")
     app.include_router(annual_report_season.season_router, prefix="/api/v1")
     app.include_router(annual_report_export.router, prefix="/api/v1")
     app.include_router(tax_deadline.router, prefix="/api/v1")
@@ -54,11 +55,12 @@ def register_routers(app: FastAPI) -> None:
     # Place Excel routes before parameterized /clients/{id} to avoid path conflicts
     app.include_router(clients_excel.router, prefix="/api/v1")
     app.include_router(clients.router, prefix="/api/v1")
-    app.include_router(client_status_card.router, prefix="/api/v1")
+    app.include_router(business_status_card_router.router, prefix="/api/v1")
+    app.include_router(business_binders_router.router, prefix="/api/v1")
+    app.include_router(business_tax_profile_router.router, prefix="/api/v1")
     app.include_router(binders_operations.router, prefix="/api/v1")
     app.include_router(binders.router, prefix="/api/v1")
     app.include_router(dashboard.router, prefix="/api/v1")
-    app.include_router(clients_binders.router, prefix="/api/v1")
     app.include_router(dashboard_overview.router, prefix="/api/v1")
     app.include_router(binders_history.router, prefix="/api/v1")
     app.include_router(charge.router, prefix="/api/v1")
@@ -73,7 +75,6 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(reminders.router, prefix="/api/v1")
     app.include_router(notification_center.router, prefix="/api/v1")
     app.include_router(notification_advisor_router, prefix="/api/v1")
-    app.include_router(client_tax_profile.router, prefix="/api/v1")
     app.include_router(correspondence.router, prefix="/api/v1")
     app.include_router(advance_payments.router, prefix="/api/v1")
     app.include_router(advance_payment_generate.router, prefix="/api/v1")

@@ -8,7 +8,7 @@ from app.binders.models.binder import Binder, BinderStatus, BinderType
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
@@ -22,13 +22,13 @@ class BinderService(BinderListService):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
 
     def receive_binder(
         self,
-        client_id: int,
+        business_id: int,
         binder_number: str,
         binder_type: BinderType,
         received_at: date,
@@ -37,7 +37,7 @@ class BinderService(BinderListService):
     ) -> tuple[Binder, BinderIntake, bool]:
         """Receive material into existing binder or create new one."""
         return self.intake_service.receive(
-            client_id=client_id,
+            business_id=business_id,
             binder_number=binder_number,
             binder_type=binder_type,
             received_at=received_at,
@@ -68,9 +68,9 @@ class BinderService(BinderListService):
             notes="סומן כמוכן לאיסוף",
         )
 
-        client = self.client_repo.get_by_id(binder.client_id)
-        if client:
-            self.notification_service.notify_ready_for_pickup(updated, client)
+        business = self.business_repo.get_by_id(binder.business_id)
+        if business:
+            self.notification_service.notify_ready_for_pickup(updated, business)
 
         return updated
 
@@ -119,14 +119,14 @@ class BinderService(BinderListService):
 
     def list_active_binders(
         self,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         sort_by: str = "received_at",
         sort_dir: str = "desc",
     ) -> list[Binder]:
         """List active binders with optional filters."""
         return self.binder_repo.list_active(
-            client_id=client_id,
+            business_id=business_id,
             status=status,
             sort_by=sort_by,
             sort_dir=sort_dir,

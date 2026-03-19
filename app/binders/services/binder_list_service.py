@@ -41,21 +41,21 @@ class BinderListService:
         response.client_name = client_name
         return response
 
-    def get_binder_with_client_name(self, binder_id: int) -> Optional[BinderResponse]:
+    def get_binder_with_business_name(self, binder_id: int) -> Optional[BinderResponse]:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None
-        client = self.client_repo.get_by_id(binder.client_id)
+        business = self.business_repo.get_by_id(binder.business_id)
         return self.build_binder_response(
             binder,
             reference_date=date.today(),
-            client_name=client.full_name if client else None,
+            client_name=business.business_name if business else None,
         )
 
     def list_binders_enriched(
         self,
         *,
-        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
         work_state: Optional[str] = None,
         query: Optional[str] = None,
@@ -76,15 +76,15 @@ class BinderListService:
         ref_date = reference_date or date.today()
         signals_service = SignalsService(self.db)
         binders = self.binder_repo.list_active(
-            client_id=client_id,
+            business_id=business_id,
             status=status,
             sort_by=db_sort_by,
             sort_dir=sort_dir,
         )
 
-        client_ids = list({binder.client_id for binder in binders})
-        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
-        client_name_map = {client.id: client.full_name for client in clients}
+        business_ids = list({binder.business_id for binder in binders})
+        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
+        client_name_map = {b.id: b.business_name for b in businesses}
 
         items: list[BinderResponse] = []
         for binder in binders:
@@ -98,7 +98,7 @@ class BinderListService:
             if work_state and current_work_state != work_state:
                 continue
 
-            current_client_name = client_name_map.get(binder.client_id)
+            current_client_name = client_name_map.get(binder.business_id)
 
             if query:
                 query_text = query.lower()

@@ -18,20 +18,20 @@ def list_reminders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
-    client_id: Optional[int] = Query(None),
+    business_id: Optional[int] = Query(None),
 ):
     service = ReminderService(db)
 
-    if client_id is not None:
-        items, total, name_map = service.get_reminders_by_client(
-            client_id=client_id, page=page, page_size=page_size
+    if business_id is not None:
+        items, total, name_map = service.get_reminders_by_business(
+            business_id=business_id, page=page, page_size=page_size
         )
     else:
         items, total, name_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)
-        resp.client_name = name_map.get(r.client_id)
+        resp.client_name = name_map.get(r.business_id)
         return resp
 
     return ReminderListResponse(

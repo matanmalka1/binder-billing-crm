@@ -15,7 +15,7 @@ class ReminderRepository(BaseRepository):
 
     def create(
         self,
-        client_id: int,
+        business_id: int,
         reminder_type: ReminderType,
         target_date: date,
         days_before: int,
@@ -28,7 +28,7 @@ class ReminderRepository(BaseRepository):
     ) -> Reminder:
         """Create new reminder."""
         reminder = Reminder(
-            client_id=client_id,
+            business_id=business_id,
             reminder_type=reminder_type,
             target_date=target_date,
             days_before=days_before,
@@ -97,20 +97,20 @@ class ReminderRepository(BaseRepository):
         """Count reminders by status."""
         return self.db.query(Reminder).filter(Reminder.status == status).count()
 
-    def count_by_client(self, client_id: int) -> int:
-        """Count all reminders for a client."""
-        return self.db.query(Reminder).filter(Reminder.client_id == client_id).count()
+    def count_by_business(self, business_id: int) -> int:
+        """Count all reminders for a business."""
+        return self.db.query(Reminder).filter(Reminder.business_id == business_id).count()
 
-    def list_by_client(
+    def list_by_business(
         self,
-        client_id: int,
+        business_id: int,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Reminder]:
-        """List all reminders for a specific client."""
+        """List all reminders for a specific business."""
         query = (
             self.db.query(Reminder)
-            .filter(Reminder.client_id == client_id)
+            .filter(Reminder.business_id == business_id)
             .order_by(Reminder.created_at.desc())
         )
         return self._paginate(query, page, page_size)

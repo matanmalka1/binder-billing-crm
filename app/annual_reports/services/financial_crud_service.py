@@ -4,8 +4,8 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import assert_client_not_closed
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.services.client_lookup import assert_business_not_closed
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.schemas.annual_report_financials import (
@@ -24,9 +24,9 @@ class FinancialCrudMixin:
         description: Optional[str] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
-        client = ClientRepository(self.db).get_by_id(report.client_id)
-        if client:
-            assert_client_not_closed(client)
+        business = BusinessRepository(self.db).get_by_id(report.business_id)
+        if business:
+            assert_business_not_closed(business)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(
@@ -64,9 +64,9 @@ class FinancialCrudMixin:
         supporting_document_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
-        client = ClientRepository(self.db).get_by_id(report.client_id)
-        if client:
-            assert_client_not_closed(client)
+        business = BusinessRepository(self.db).get_by_id(report.business_id)
+        if business:
+            assert_business_not_closed(business)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(

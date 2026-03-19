@@ -11,7 +11,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def get_annual_kpis(self, client_id: int, year: int) -> dict:
+    def get_annual_kpis(self, business_id: int, year: int) -> dict:
         rows = (
             self.db.query(
                 AdvancePayment.status,
@@ -19,7 +19,11 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                 func.count(AdvancePayment.id).label("count"),
             )
-            .filter(AdvancePayment.client_id == client_id, AdvancePayment.year == year)
+            .filter(
+                AdvancePayment.business_id == business_id,
+                AdvancePayment.year == year,
+                AdvancePayment.deleted_at.is_(None),
+            )
             .group_by(AdvancePayment.status)
             .all()
         )
@@ -39,16 +43,22 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         query = self.db.query(
             func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
             func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
-        ).filter(AdvancePayment.year == year)
+        ).filter(
+            AdvancePayment.year == year,
+            AdvancePayment.deleted_at.is_(None),
+        )
         if month is not None:
             query = query.filter(AdvancePayment.month == month)
         if statuses:
-            normalized_statuses = [s.value.lower() for s in statuses]
-            query = query.filter(func.lower(AdvancePayment.status).in_(normalized_statuses))
+            normalized = [s.value.lower() for s in statuses]
+            query = query.filter(func.lower(AdvancePayment.status).in_(normalized))
         total_expected, total_paid = query.one()
-        return {"total_expected": float(total_expected), "total_paid": float(total_paid)}
+        return {
+            "total_expected": float(total_expected),
+            "total_paid": float(total_paid),
+        }
 
-    def monthly_chart_data(self, client_id: int, year: int) -> list[dict]:
+    def monthly_chart_data(self, business_id: int, year: int) -> list[dict]:
         rows = (
             self.db.query(
                 AdvancePayment.month,
@@ -57,14 +67,21 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 func.coalesce(
                     func.sum(
                         case(
-                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, AdvancePayment.expected_amount),
+                            (
+                                func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value,
+                                AdvancePayment.expected_amount,
+                            ),
                             else_=0,
                         )
                     ),
                     0,
                 ).label("overdue_amount"),
             )
-            .filter(AdvancePayment.client_id == client_id, AdvancePayment.year == year)
+            .filter(
+                AdvancePayment.business_id == business_id,
+                AdvancePayment.year == year,
+                AdvancePayment.deleted_at.is_(None),
+            )
             .group_by(AdvancePayment.month)
             .all()
         )

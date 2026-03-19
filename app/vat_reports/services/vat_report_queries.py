@@ -3,25 +3,19 @@
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.users.repositories.user_repository import UserRepository
-
 
 
 def _compute_deadline_fields(item) -> dict:
     """Derive submission_deadline, days_until_deadline, is_overdue from period."""
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
-        # Next month
-        if month == 12:
-            dl = date(year + 1, 1, 15)
-        else:
-            dl = date(year, month + 1, 15)
+        dl = date(year + 1, 1, 15) if month == 12 else date(year, month + 1, 15)
         today = datetime.now(timezone.utc).date()
         days = (dl - today).days
         return {"submission_deadline": dl, "days_until_deadline": days, "is_overdue": days < 0}
@@ -36,54 +30,54 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     return item
 
 
-def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int):
-    return work_item_repo.list_by_client(client_id)
+def list_business_work_items(work_item_repo: VatWorkItemRepository, business_id: int):
+    return work_item_repo.list_by_business(business_id)
 
 
-def _resolve_client_ids(
-    client_repo: ClientRepository,
-    client_name: Optional[str],
+def _resolve_business_ids(
+    business_repo: BusinessRepository,
+    business_name: Optional[str],
 ) -> Optional[list[int]]:
-    if not client_name:
+    if not business_name:
         return None
-    clients, _ = client_repo.search(client_name=client_name, page=1, page_size=10000)
-    return [c.id for c in clients]
+    businesses, _ = business_repo.list(search=business_name, page=1, page_size=10000)
+    return [b.id for b in businesses]
 
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     status: VatWorkItemStatus,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
-    client_name: Optional[str] = None,
+    business_name: Optional[str] = None,
 ):
-    client_ids = _resolve_client_ids(client_repo, client_name)
-    if client_name and not client_ids:
+    business_ids = _resolve_business_ids(business_repo, business_name)
+    if business_name and not business_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, client_ids=client_ids
+        status, page=page, page_size=page_size, period=period, business_ids=business_ids
     )
-    total = work_item_repo.count_by_status(status, period=period, client_ids=client_ids)
+    total = work_item_repo.count_by_status(status, period=period, business_ids=business_ids)
     return items, total
 
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
-    client_name: Optional[str] = None,
+    business_name: Optional[str] = None,
 ):
-    client_ids = _resolve_client_ids(client_repo, client_name)
-    if client_name and not client_ids:
+    business_ids = _resolve_business_ids(business_repo, business_name)
+    if business_name and not business_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, client_ids=client_ids
+        page=page, page_size=page_size, period=period, business_ids=business_ids
     )
-    total = work_item_repo.count_all(period=period, client_ids=client_ids)
+    total = work_item_repo.count_all(period=period, business_ids=business_ids)
     return items, total
 
 
@@ -98,78 +92,83 @@ def list_invoices(
 def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
     return work_item_repo.get_audit_trail(item_id)
 
+
 def get_work_item_enriched(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     user_repo: UserRepository,
     item_id: int,
 ) -> dict:
-    """Return work item + client/user enrichment data."""
+    """Return work item + business/user enrichment data."""
     item = get_work_item(work_item_repo, item_id)
-    client = client_repo.get_by_id(item.client_id)
+    business = business_repo.get_by_id(item.business_id)
     user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid]
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     user_map = {u.id: u.full_name for u in users}
+    display_name = (business.business_name or business.client.full_name) if business else None
     return {
         "item": item,
-        "name_map": {item.client_id: client.full_name if client else None},
-        "status_map": {item.client_id: client.status.value if client else None},
+        "name_map": {item.business_id: display_name},
+        "status_map": {item.business_id: business.status.value if business else None},
         "user_map": user_map,
     }
 
 
-def get_client_items_enriched(
+def get_business_items_enriched(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     user_repo: UserRepository,
-    client_id: int,
+    business_id: int,
 ) -> dict:
-    """Return client work items + enrichment data."""
-    items = list_client_work_items(work_item_repo, client_id)
-    client = client_repo.get_by_id(client_id)
+    """Return business work items + enrichment data."""
+    items = list_business_work_items(work_item_repo, business_id)
+    business = business_repo.get_by_id(business_id)
+    display_name = (business.business_name or business.client.full_name) if business else None
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
-        "name_map": {client_id: client.full_name if client else None},
-        "status_map": {client_id: client.status.value if client else None},
+        "name_map": {business_id: display_name},
+        "status_map": {business_id: business.status.value if business else None},
         "user_map": {u.id: u.full_name for u in users},
     }
 
 
 def get_list_enriched(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    business_repo: BusinessRepository,
     user_repo: UserRepository,
     *,
     status_filter,
     page: int,
     page_size: int,
     period: Optional[str],
-    client_name: Optional[str],
+    business_name: Optional[str] = None,
 ) -> dict:
     """Return paginated work items + enrichment data."""
     if status_filter:
         items, total = list_work_items_by_status(
-            work_item_repo, client_repo,
+            work_item_repo, business_repo,
             status=status_filter, page=page, page_size=page_size,
-            period=period, client_name=client_name,
+            period=period, business_name=business_name,
         )
     else:
         items, total = list_all_work_items(
-            work_item_repo, client_repo,
+            work_item_repo, business_repo,
             page=page, page_size=page_size,
-            period=period, client_name=client_name,
+            period=period, business_name=business_name,
         )
-    client_ids = list({item.client_id for item in items})
-    clients = client_repo.list_by_ids(client_ids)
+    business_ids = list({item.business_id for item in items})
+    businesses = business_repo.list_by_ids(business_ids)
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
         "total": total,
-        "name_map": {c.id: c.full_name for c in clients},
-        "status_map": {c.id: c.status.value for c in clients},
+        "name_map": {
+            b.id: (b.business_name or b.client.full_name) for b in businesses
+        },
+        "status_map": {b.id: b.status.value for b in businesses},
         "user_map": {u.id: u.full_name for u in users},
     }
 

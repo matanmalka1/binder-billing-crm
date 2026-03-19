@@ -26,7 +26,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     """Receive material into existing binder or create new one."""
     service = BinderService(db)
     binder, intake, is_new_binder = service.receive_binder(
-        client_id=request.client_id,
+        business_id=request.business_id,
         binder_number=request.binder_number,
         binder_type=request.binder_type,
         received_at=request.received_at,
@@ -36,7 +36,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     binder_resp = fetch_client_and_build_response(binder, db)
     return BinderReceiveResult(
         id=binder_resp.id,
-        client_id=binder_resp.client_id,
+        business_id=binder_resp.business_id,
         client_name=binder_resp.client_name,
         binder_number=binder_resp.binder_number,
         binder_type=binder_resp.binder_type,

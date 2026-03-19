@@ -7,8 +7,8 @@ from typing import Optional
 from uuid import uuid4
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import assert_client_not_closed
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.services.client_lookup import assert_business_not_closed
 from app.vat_reports.models.vat_enums import (
     DocumentType,
     ExpenseCategory,
@@ -56,9 +56,9 @@ def add_invoice(
 
     assert_editable(item)
 
-    client = ClientRepository(work_item_repo.db).get_by_id(item.client_id)
-    if client:
-        assert_client_not_closed(client)
+    business = BusinessRepository(work_item_repo.db).get_by_id(item.business_id)
+    if business:
+        assert_business_not_closed(business)
 
     derived = resolve_invoice_derived_fields(
         invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount
@@ -66,8 +66,8 @@ def add_invoice(
     deduction_rate = derived["deduction_rate"]
     is_exceptional = derived["is_exceptional"]
 
-    if invoice_type == InvoiceType.INCOME and client:
-        check_osek_patur_ceiling(client, invoice_repo, item.client_id, item.period, net_amount)
+    if invoice_type == InvoiceType.INCOME and business:
+        check_osek_patur_ceiling(business, invoice_repo, item.business_id, item.period, net_amount)
 
     # Auto-fill optional fields when not provided by caller
     if not invoice_number:
@@ -134,7 +134,12 @@ def add_invoice(
         performed_by=created_by,
         action=ACTION_INVOICE_ADDED,
         new_value=json.dumps(
-            {"invoice_id": invoice.id, "type": invoice_type.value, "number": invoice_number, "vat_amount": str(vat_amount)}
+            {
+                "invoice_id": invoice.id,
+                "type": invoice_type.value,
+                "number": invoice_number,
+                "vat_amount": str(vat_amount),
+            }
         ),
     )
 

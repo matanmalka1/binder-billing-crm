@@ -19,7 +19,7 @@ def list_binders(
     db: DBSession,
     user: CurrentUser,
     status_filter: Optional[str] = Query(None, alias="status"),
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
     work_state: Optional[str] = None,
     query: Optional[str] = None,
     client_name: Optional[str] = None,
@@ -33,7 +33,7 @@ def list_binders(
     """List active binders with optional filters, sorting, and pagination."""
     service = BinderService(db)
     items, total = service.list_binders_enriched(
-        client_id=client_id,
+        business_id=business_id,
         status=status_filter,
         work_state=work_state,
         query=query,
@@ -52,7 +52,7 @@ def list_binders(
 def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     """Get binder by ID."""
     service = BinderService(db)
-    binder_response = service.get_binder_with_client_name(binder_id)
+    binder_response = service.get_binder_with_business_name(binder_id)
     if not binder_response:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הקלסר לא נמצא")
     return binder_response

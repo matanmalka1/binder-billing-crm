@@ -14,7 +14,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import (
 )
 
 
-def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryResponse:
+def get_business_summary(db: Session, *, client_id: int) -> VatClientSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
     client_repo = ClientRepository(db)
 

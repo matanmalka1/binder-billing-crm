@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
-from app.clients.models.client import Client, ClientStatus
+from app.clients.models.client import Client
 from app.utils.time_utils import utcnow
 
 
 class ClientRepository(BaseRepository):
-    """Data access layer for Client entities."""
+    """Data access layer for Client entities — identity only, no business logic."""
 
     def __init__(self, db: Session):
         super().__init__(db)
@@ -20,22 +19,26 @@ class ClientRepository(BaseRepository):
         self,
         full_name: str,
         id_number: str,
-        client_type: str,
-        opened_at: date,
         phone: Optional[str] = None,
         email: Optional[str] = None,
-        notes: Optional[str] = None,
+        address_street: Optional[str] = None,
+        address_building_number: Optional[str] = None,
+        address_apartment: Optional[str] = None,
+        address_city: Optional[str] = None,
+        address_zip_code: Optional[str] = None,
         created_by: Optional[int] = None,
     ) -> Client:
-        """Create new client."""
+        """Create a new client (identity record only)."""
         client = Client(
             full_name=full_name,
             id_number=id_number,
-            client_type=client_type,
-            opened_at=opened_at,
             phone=phone,
             email=email,
-            notes=notes,
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
             created_by=created_by,
         )
         self.db.add(client)
@@ -60,20 +63,39 @@ class ClientRepository(BaseRepository):
         )
 
     def get_by_id_number(self, id_number: str) -> Optional[Client]:
-        """Retrieve client by ID number (excludes soft-deleted)."""
+        """Retrieve active client by ID number (excludes soft-deleted)."""
         return (
             self.db.query(Client)
             .filter(Client.id_number == id_number, Client.deleted_at.is_(None))
             .first()
         )
 
-    def get_deleted_by_id_number(self, id_number: str) -> Optional[Client]:
-        """Retrieve the most recently soft-deleted client by ID number."""
+    def get_all_by_id_number(self, id_number: str) -> list[Client]:
+        """Retrieve ALL clients (active and deleted) by ID number.
+        Used when checking conflicts before creating a new client or business.
+        """
+        return (
+            self.db.query(Client)
+            .filter(Client.id_number == id_number)
+            .order_by(Client.deleted_at.asc().nullsfirst())
+            .all()
+        )
+
+    def get_active_by_id_number(self, id_number: str) -> list[Client]:
+        """Retrieve all active (non-deleted) clients with a given ID number."""
+        return (
+            self.db.query(Client)
+            .filter(Client.id_number == id_number, Client.deleted_at.is_(None))
+            .all()
+        )
+
+    def get_deleted_by_id_number(self, id_number: str) -> list[Client]:
+        """Retrieve all soft-deleted clients by ID number, most recently deleted first."""
         return (
             self.db.query(Client)
             .filter(Client.id_number == id_number, Client.deleted_at.isnot(None))
             .order_by(Client.deleted_at.desc())
-            .first()
+            .all()
         )
 
     def restore(self, client_id: int, restored_by: int) -> Optional[Client]:
@@ -85,42 +107,39 @@ class ClientRepository(BaseRepository):
         client.deleted_by = None
         client.restored_at = utcnow()
         client.restored_by = restored_by
-        client.status = ClientStatus.ACTIVE
         self.db.commit()
         self.db.refresh(client)
         return client
 
+    def soft_delete(self, client_id: int, deleted_by: int) -> bool:
+        """Soft-delete a client by setting deleted_at."""
+        client = self.db.query(Client).filter(Client.id == client_id).first()
+        if not client:
+            return False
+        client.deleted_at = utcnow()
+        client.deleted_by = deleted_by
+        self.db.commit()
+        return True
+
     def list(
         self,
-        status: Optional[str] = None,
+        search: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-        search: Optional[str] = None,
     ) -> list[Client]:
-        """List clients with optional filters. search matches full_name or id_number."""
+        """List active clients with optional search. search matches full_name or id_number."""
         query = self.db.query(Client).filter(Client.deleted_at.is_(None))
-
-        if status:
-            query = query.filter(Client.status == status)
-
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
                 Client.full_name.ilike(term) | Client.id_number.ilike(term)
             )
-
-        query = query.order_by(Client.opened_at.desc())
+        query = query.order_by(Client.full_name.asc())
         return self._paginate(query, page, page_size)
 
-    def count(
-        self,
-        status: Optional[str] = None,
-        search: Optional[str] = None,
-    ) -> int:
-        """Count clients with optional filters."""
+    def count(self, search: Optional[str] = None) -> int:
+        """Count active clients with optional search."""
         query = self.db.query(Client).filter(Client.deleted_at.is_(None))
-        if status:
-            query = query.filter(Client.status == status)
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
@@ -136,7 +155,7 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
-        """Cross-domain search interface used by the search and tax_deadline domains."""
+        """Cross-domain search — used by search and tax_deadline domains."""
         q = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if query:
             term = f"%{query.strip()}%"
@@ -146,11 +165,11 @@ class ClientRepository(BaseRepository):
         if id_number:
             q = q.filter(Client.id_number.ilike(f"%{id_number.strip()}%"))
         total = q.count()
-        items = self._paginate(q.order_by(Client.opened_at.desc()), page, page_size)
+        items = self._paginate(q.order_by(Client.full_name.asc()), page, page_size)
         return items, total
 
     def list_by_ids(self, client_ids: list[int]) -> list[Client]:
-        """Batch fetch clients by a list of IDs (single query)."""
+        """Batch fetch clients by a list of IDs."""
         if not client_ids:
             return []
         return (
@@ -159,24 +178,16 @@ class ClientRepository(BaseRepository):
             .all()
         )
 
-    def list_all(self, status: Optional[str] = None) -> list[Client]:
-        """List all clients (optionally filtered by status)."""
-        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
-        if status:
-            query = query.filter(Client.status == status)
-        return query.order_by(Client.full_name).all()
-
-    def soft_delete(self, client_id: int, deleted_by: int) -> bool:
-        """Soft-delete a client by setting deleted_at."""
-        client = self.db.query(Client).filter(Client.id == client_id).first()
-        if not client:
-            return False
-        client.deleted_at = utcnow()
-        client.deleted_by = deleted_by
-        self.db.commit()
-        return True
+    def list_all(self) -> list[Client]:
+        """List all active clients ordered by name."""
+        return (
+            self.db.query(Client)
+            .filter(Client.deleted_at.is_(None))
+            .order_by(Client.full_name.asc())
+            .all()
+        )
 
     def update(self, client_id: int, **fields) -> Optional[Client]:
-        """Update client fields."""
+        """Update client identity fields."""
         client = self.get_by_id(client_id)
         return self._update_entity(client, **fields)

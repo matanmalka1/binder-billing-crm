@@ -2,9 +2,7 @@
 
 from fastapi import APIRouter, status
 
-
 from app.users.api.deps import CurrentUser, DBSession
-from app.users.models.user import UserRole
 from app.vat_reports.schemas import (
     VatWorkItemCreateRequest,
     VatWorkItemResponse,
@@ -21,13 +19,13 @@ def create_work_item(
     current_user: CurrentUser,
 ):
     """
-    Create a VAT work item for a client / period.
+    Create a VAT work item for a business / period.
 
     Accessible by: receptionist, secretary, advisor.
     """
     service = VatReportService(db)
     item = service.create_work_item(
-        client_id=request.client_id,
+        business_id=request.business_id,
         period=request.period,
         created_by=current_user.id,
         assigned_to=request.assigned_to,

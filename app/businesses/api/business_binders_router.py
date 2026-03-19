@@ -9,40 +9,40 @@ from app.binders.schemas.binder_extended import (
 from app.binders.services.binder_operations_service import BinderOperationsService
 
 router = APIRouter(
-    prefix="/clients",
-    tags=["clients-binders"],
+    prefix="/businesses",
+    tags=["businesses-binders"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
 
-@router.get("/{client_id}/binders", response_model=BinderListResponseExtended)
-def list_client_binders(
-    client_id: int,
+@router.get("/{business_id}/binders", response_model=BinderListResponseExtended)
+def list_business_binders(
+    business_id: int,
     db: DBSession,
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List all binders for a specific client."""
+    """List all binders for a specific business."""
     service = BinderOperationsService(db)
 
-    if not service.client_exists(client_id):
+    if not service.business_exists(business_id):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="הלקוח לא נמצא",
+            detail="העסק לא נמצא",
         )
 
-    items, total = service.get_client_binders(
-        client_id=client_id,
+    items, total = service.get_business_binders(
+        business_id=business_id,
         page=page,
         page_size=page_size,
     )
-    
+
     enriched = [
         BinderDetailResponse(**service.enrich_binder(b))
         for b in items
     ]
-    
+
     return BinderListResponseExtended(
         items=enriched,
         page=page,

@@ -19,7 +19,7 @@ from app.vat_reports.models.vat_enums import (
 # ── Work Item ────────────────────────────────────────────────────────────────
 
 class VatWorkItemCreateRequest(BaseModel):
-    client_id: int
+    business_id: int
     period: str                        # "YYYY-MM"
     assigned_to: Optional[int] = None
     mark_pending: bool = False
@@ -36,8 +36,8 @@ class VatWorkItemCreateRequest(BaseModel):
 
 class VatWorkItemResponse(BaseModel):
     id: int
-    client_id: int
-    client_name: Optional[str] = None
+    business_id: int
+    business_name: Optional[str] = None
     period: str
     status: VatWorkItemStatus
     pending_materials_note: Optional[str]
@@ -54,10 +54,9 @@ class VatWorkItemResponse(BaseModel):
     created_by: int
     assigned_to: Optional[int]
     assigned_to_name: Optional[str] = None
-    client_status: Optional[str] = None  # "active" | "frozen" | "closed"
+    business_status: Optional[str] = None  # "active" | "frozen" | "closed"
     created_at: datetime
     updated_at: datetime
-    # Submission reference + amendment
     submission_reference: Optional[str] = None
     is_amendment: bool = False
     amends_item_id: Optional[int] = None
@@ -158,5 +157,3 @@ class FileVatReturnRequest(BaseModel):
     submission_reference: Optional[str] = None
     is_amendment: bool = False
     amends_item_id: Optional[int] = None
-
-

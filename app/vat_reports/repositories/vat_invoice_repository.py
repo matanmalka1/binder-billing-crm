@@ -2,8 +2,10 @@
 
 from datetime import datetime
 from typing import Optional
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.vat_reports.models.vat_enums import (
     DocumentType,
@@ -12,7 +14,8 @@ from app.vat_reports.models.vat_enums import (
     VatRateType,
 )
 from app.vat_reports.models.vat_invoice import VatInvoice
-
+from app.vat_reports.models.vat_enums import VatRateType
+from app.vat_reports.models.vat_work_item import VatWorkItem
 
 class VatInvoiceRepository:
     def __init__(self, db: Session):
@@ -89,12 +92,7 @@ class VatInvoiceRepository:
           (EXEMPT and ZERO_RATE contribute 0 to output VAT)
         - Input VAT: sum of vat_amount * deduction_rate for EXPENSE invoices
         """
-        from decimal import Decimal
-
-        from sqlalchemy import func
-
-        from app.vat_reports.models.vat_enums import VatRateType
-
+        
         # Output VAT: only STANDARD-rate INCOME invoices
         output_row = (
             self.db.query(func.sum(VatInvoice.vat_amount))
@@ -124,20 +122,18 @@ class VatInvoiceRepository:
         )
         return output_vat, input_vat
 
-    def sum_income_net_by_client_year(self, client_id: int, year: int) -> float:
-        """Sum net_amount of INCOME invoices for a client across a tax year.
+    def sum_income_net_by_business_year(self, business_id: int, year: int) -> float:
+        """Sum net_amount of INCOME invoices for a business across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.
         """
-        from sqlalchemy import func
 
-        from app.vat_reports.models.vat_work_item import VatWorkItem
 
         result = (
             self.db.query(func.sum(VatInvoice.net_amount))
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
-                VatWorkItem.client_id == client_id,
+                VatWorkItem.business_id == business_id,
                 VatInvoice.invoice_type == InvoiceType.INCOME,
                 VatWorkItem.period.like(f"{year}-%"),
             )

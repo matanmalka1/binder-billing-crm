@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class AnnualReportCreateRequest(BaseModel):
-    client_id: int
+    business_id: int
     tax_year: int
     client_type: str
     deadline_type: str = "standard"

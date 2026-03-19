@@ -23,7 +23,7 @@ router = APIRouter(
 
 class NotificationResponse(BaseModel):
     id: int
-    client_id: int
+    business_id: int
     trigger: str
     channel: str
     status: str
@@ -49,7 +49,7 @@ class MarkReadResponse(BaseModel):
 
 
 class SendNotificationRequest(BaseModel):
-    client_id: int
+    business_id: int
     channel: Literal["WHATSAPP", "EMAIL"]
     message: str = Field(..., min_length=1, max_length=1000)
     severity: str = "INFO"
@@ -73,12 +73,12 @@ advisor_router = APIRouter(
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
     limit: int = Query(20, ge=1, le=100),
 ):
     """Return recent notifications ordered by created_at desc."""
     svc = NotificationService(db)
-    items = svc.list_recent(limit=limit, client_id=client_id)
+    items = svc.list_recent(limit=limit, business_id=business_id)
     return [NotificationResponse.model_validate(n) for n in items]
 
 
@@ -86,11 +86,11 @@ def list_notifications(
 def get_unread_count(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
 ):
     """Return count of unread notifications."""
     svc = NotificationService(db)
-    return UnreadCountResponse(unread_count=svc.count_unread(client_id=client_id))
+    return UnreadCountResponse(unread_count=svc.count_unread(business_id=business_id))
 
 
 @router.post("/mark-read", response_model=MarkReadResponse)
@@ -105,11 +105,11 @@ def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
 def mark_all_read(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
 ):
     """Mark all unread notifications (optionally scoped to client)."""
     svc = NotificationService(db)
-    updated = svc.mark_all_read(client_id)
+    updated = svc.mark_all_read(business_id)
     return MarkReadResponse(updated=updated)
 
 
@@ -123,7 +123,7 @@ def send_notification(
     severity = NotificationSeverity[body.severity.upper()]
     svc = NotificationService(db)
     svc.send_notification(
-        client_id=body.client_id,
+        business_id=body.business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         content=body.message,
         triggered_by=user.id,
