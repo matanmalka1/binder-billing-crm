@@ -11,6 +11,7 @@ from app.clients.schemas.client import (
     ClientListResponse,
     ClientResponse,
     ClientUpdateRequest,
+    DeletedClientInfo,
 )
 from app.clients.services.client_service import ClientService
 from app.clients.services.client_lookup import get_client_or_raise
@@ -31,9 +32,8 @@ def _to_client_response(client, user_role: UserRole) -> ClientResponse:
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser):
-    """Create new client."""
+    """Create new client. Pass force=true to create even if a deleted record exists."""
     service = ClientService(db)
-
     client = service.create_client(
         full_name=request.full_name,
         id_number=request.id_number,
@@ -42,8 +42,39 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
         phone=request.phone,
         email=request.email,
         actor_id=user.id,
+        force=request.force,
     )
     return _to_client_response(client, user.role)
+
+
+@router.post(
+    "/{client_id}/restore",
+    response_model=ClientResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def restore_client(client_id: int, db: DBSession, user: CurrentUser):
+    """Restore a soft-deleted client (ADVISOR only)."""
+    service = ClientService(db)
+    client = service.restore_client(
+        client_id=client_id,
+        actor_id=user.id,
+        actor_role=user.role,
+    )
+    return _to_client_response(client, user.role)
+
+
+@router.get("/deleted/{id_number}", response_model=Optional[DeletedClientInfo])
+def get_deleted_client_by_id_number(
+    id_number: str,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Return the most recently deleted client for a given ID number, or null if none."""
+    service = ClientService(db)
+    deleted = service.client_repo.get_deleted_by_id_number(id_number)
+    if not deleted:
+        return None
+    return DeletedClientInfo.model_validate(deleted)
 
 
 @router.get("", response_model=ClientListResponse)
@@ -88,20 +119,12 @@ def update_client(
     db: DBSession,
     user: CurrentUser,
 ):
-    """
-    Update client.
-
-    Authorization moved to service layer.
-    """
+    """Update client. Authorization enforced in service layer."""
     service = ClientService(db)
-
     update_data = request.model_dump(exclude_unset=True)
-
     client = service.update_client(client_id, user.role, **update_data)
-
     if not client:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הלקוח לא נמצא")
-
     return _to_client_response(client, user.role)
 
 

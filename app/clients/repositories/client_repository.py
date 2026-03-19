@@ -51,6 +51,14 @@ class ClientRepository(BaseRepository):
             .first()
         )
 
+    def get_by_id_including_deleted(self, client_id: int) -> Optional[Client]:
+        """Retrieve client by ID regardless of deletion status."""
+        return (
+            self.db.query(Client)
+            .filter(Client.id == client_id)
+            .first()
+        )
+
     def get_by_id_number(self, id_number: str) -> Optional[Client]:
         """Retrieve client by ID number (excludes soft-deleted)."""
         return (
@@ -60,12 +68,27 @@ class ClientRepository(BaseRepository):
         )
 
     def get_deleted_by_id_number(self, id_number: str) -> Optional[Client]:
-        """Retrieve a soft-deleted client by ID number."""
+        """Retrieve the most recently soft-deleted client by ID number."""
         return (
             self.db.query(Client)
             .filter(Client.id_number == id_number, Client.deleted_at.isnot(None))
+            .order_by(Client.deleted_at.desc())
             .first()
         )
+
+    def restore(self, client_id: int, restored_by: int) -> Optional[Client]:
+        """Restore a soft-deleted client."""
+        client = self.db.query(Client).filter(Client.id == client_id).first()
+        if not client or client.deleted_at is None:
+            return None
+        client.deleted_at = None
+        client.deleted_by = None
+        client.restored_at = utcnow()
+        client.restored_by = restored_by
+        client.status = ClientStatus.ACTIVE
+        self.db.commit()
+        self.db.refresh(client)
+        return client
 
     def list(
         self,
@@ -113,9 +136,7 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
-        """Cross-domain search interface used by the search and tax_deadline domains.
-        Returns (items, total) in a single query. Do not use inside the clients domain —
-        use list() + count() there instead."""
+        """Cross-domain search interface used by the search and tax_deadline domains."""
         q = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if query:
             term = f"%{query.strip()}%"

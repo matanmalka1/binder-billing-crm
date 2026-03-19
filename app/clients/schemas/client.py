@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Literal, Optional, Any
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
@@ -13,6 +13,7 @@ class ClientCreateRequest(BaseModel):
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     opened_at: date
+    force: bool = False
 
     @field_validator("id_number")
     @classmethod
@@ -29,8 +30,8 @@ class ClientCreateRequest(BaseModel):
         if not validate_israeli_id_checksum(self.id_number):
             raise ValueError("מספר זהות/ח.פ אינו תקין")
         return self
-    
-    
+
+
 class ClientUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
@@ -90,3 +91,13 @@ class BulkClientFailedItem(BaseModel):
 class BulkClientActionResponse(BaseModel):
     succeeded: list[int]
     failed: list[BulkClientFailedItem]
+
+
+class DeletedClientInfo(BaseModel):
+    """Summary of a deleted client — returned in CLIENT.DELETED_EXISTS responses."""
+    id: int
+    full_name: str
+    client_type: str
+    deleted_at: datetime
+
+    model_config = {"from_attributes": True}

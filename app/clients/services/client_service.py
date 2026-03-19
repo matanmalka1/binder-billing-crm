@@ -36,19 +36,26 @@ class ClientService:
         email: Optional[str] = None,
         notes: Optional[str] = None,
         actor_id: Optional[int] = None,
+        force: bool = False,
     ) -> Client:
-        """Create new client. Raises ConflictError if ID number exists or was soft-deleted."""
+        """Create new client.
+
+        If force=True, creation proceeds even if a deleted record exists for the same
+        id_number (used when the user explicitly chooses to create a new record instead
+        of restoring the old one).
+        """
         existing = self.client_repo.get_by_id_number(id_number)
         if existing:
             raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
 
-        deleted = self.client_repo.get_deleted_by_id_number(id_number)
-        if deleted:
-            raise ConflictError(
-                f"לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק בתאריך "
-                f"{deleted.deleted_at.date()}",
-                "CLIENT.DELETED_EXISTS",
-            )
+        if not force:
+            deleted = self.client_repo.get_deleted_by_id_number(id_number)
+            if deleted:
+                raise ConflictError(
+                    f"לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק בתאריך "
+                    f"{deleted.deleted_at.date()}",
+                    "CLIENT.DELETED_EXISTS",
+                )
 
         try:
             return self.client_repo.create(
@@ -63,6 +70,29 @@ class ClientService:
             )
         except IntegrityError:
             raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
+
+    def restore_client(self, client_id: int, actor_id: int, actor_role: UserRole) -> Client:
+        """Restore a soft-deleted client. ADVISOR only."""
+        if actor_role != UserRole.ADVISOR:
+            raise ForbiddenError("רק יועצים יכולים לשחזר לקוחות", "CLIENT.FORBIDDEN")
+
+        client = self.client_repo.get_by_id_including_deleted(client_id)
+        if not client:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+        if client.deleted_at is None:
+            raise ConflictError("לקוח זה אינו מחוק", "CLIENT.NOT_DELETED")
+
+        active_conflict = self.client_repo.get_by_id_number(client.id_number)
+        if active_conflict:
+            raise ConflictError(
+                f"לא ניתן לשחזר — קיים לקוח פעיל עם מספר ת.ז. {client.id_number}",
+                "CLIENT.CONFLICT",
+            )
+
+        restored = self.client_repo.restore(client_id, restored_by=actor_id)
+        if not restored:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+        return restored
 
     def get_client(self, client_id: int) -> Optional[Client]:
         """Get client by ID."""

@@ -44,10 +44,10 @@ class Client(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    restored_at = Column(DateTime, nullable=True)
+    restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        # Partial unique index: only one active (non-deleted) client per id_number.
-        # PostgreSQL supports WHERE clauses; SQLite falls back to a plain index.
         Index(
             "ix_clients_id_number_active",
             "id_number",
