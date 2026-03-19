@@ -43,7 +43,8 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         if month is not None:
             query = query.filter(AdvancePayment.month == month)
         if statuses:
-            query = query.filter(AdvancePayment.status.in_(statuses))
+            normalized_statuses = [s.value.lower() for s in statuses]
+            query = query.filter(func.lower(AdvancePayment.status).in_(normalized_statuses))
         total_expected, total_paid = query.one()
         return {"total_expected": float(total_expected), "total_paid": float(total_paid)}
 
@@ -56,7 +57,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 func.coalesce(
                     func.sum(
                         case(
-                            (AdvancePayment.status == AdvancePaymentStatus.OVERDUE, AdvancePayment.expected_amount),
+                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, AdvancePayment.expected_amount),
                             else_=0,
                         )
                     ),

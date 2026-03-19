@@ -1,6 +1,18 @@
 from sqlalchemy import Enum as SAEnum
 
 
+class _NormalizedEnum(SAEnum):
+    """SAEnum that tolerates legacy uppercase strings on DB read."""
+
+    def _object_value_for_elem(self, elem):
+        try:
+            return super()._object_value_for_elem(elem)
+        except LookupError:
+            if isinstance(elem, str):
+                return super()._object_value_for_elem(elem.lower())
+            raise
+
+
 def pg_enum(enum_class, **kwargs):
     """
     Drop-in replacement for Column(Enum(MyEnum)) that forces SQLAlchemy
@@ -26,7 +38,7 @@ def pg_enum(enum_class, **kwargs):
     from app.utils.enum_utils import pg_enum
     status = Column(pg_enum(SignatureRequestStatus), nullable=False)
     """
-    return SAEnum(
+    return _NormalizedEnum(
         enum_class,
         values_callable=lambda x: [e.value for e in x],
         **kwargs,

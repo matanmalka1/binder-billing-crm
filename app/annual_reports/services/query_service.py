@@ -1,6 +1,8 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import func
+
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
 from app.annual_reports.schemas.annual_report_responses import AnnualReportDetailResponse, AnnualReportResponse, ScheduleEntryResponse, StatusHistoryResponse
 from app.core.exceptions import ConflictError
@@ -81,7 +83,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 for p in self.db.query(AdvancePayment).filter(
                     AdvancePayment.client_id == orm_report.client_id,
                     AdvancePayment.year == orm_report.tax_year,
-                    AdvancePayment.status == AdvancePaymentStatus.PAID,
+                    func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
                 ).all()
                 if p.paid_amount is not None
             )

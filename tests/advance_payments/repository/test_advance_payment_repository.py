@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import text
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
@@ -146,3 +147,35 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     ids = {r.id for r in rows}
     assert payment_a.id in ids
     assert payment_b.id in ids
+
+
+def test_list_by_client_year_handles_legacy_uppercase_status_values(test_db):
+    repo = AdvancePaymentRepository(test_db)
+    client = _create_client(test_db, "Legacy Client", "AP005")
+
+    payment = repo.create(
+        client_id=client.id,
+        year=2026,
+        month=3,
+        due_date=date(2026, 3, 15),
+        expected_amount=Decimal("300.00"),
+        paid_amount=Decimal("100.00"),
+    )
+
+    test_db.execute(
+        text("UPDATE advance_payments SET status = 'PARTIAL' WHERE id = :payment_id"),
+        {"payment_id": payment.id},
+    )
+    test_db.commit()
+
+    items, total = repo.list_by_client_year(client_id=client.id, year=2026, status=None)
+    assert total == 1
+    assert items[0].status == AdvancePaymentStatus.PARTIAL
+
+    filtered, filtered_total = repo.list_by_client_year(
+        client_id=client.id,
+        year=2026,
+        status=[AdvancePaymentStatus.PARTIAL],
+    )
+    assert filtered_total == 1
+    assert filtered[0].id == payment.id

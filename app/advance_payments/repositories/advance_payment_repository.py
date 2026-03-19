@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
@@ -28,7 +29,8 @@ class AdvancePaymentRepository(BaseRepository):
             .order_by(AdvancePayment.month.asc())
         )
         if status is not None:
-            query = query.filter(AdvancePayment.status.in_(status))
+            normalized_statuses = [s.value.lower() for s in status]
+            query = query.filter(func.lower(AdvancePayment.status).in_(normalized_statuses))
         total = query.count()
         items = self._paginate(query, page, page_size)
         return items, total
@@ -68,7 +70,8 @@ class AdvancePaymentRepository(BaseRepository):
         if month is not None:
             query = query.filter(AdvancePayment.month == month)
         if statuses:
-            query = query.filter(AdvancePayment.status.in_(statuses))
+            normalized_statuses = [s.value.lower() for s in statuses]
+            query = query.filter(func.lower(AdvancePayment.status).in_(normalized_statuses))
         return query.all()
 
     def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
@@ -78,7 +81,7 @@ class AdvancePaymentRepository(BaseRepository):
             .filter(
                 AdvancePayment.client_id == client_id,
                 AdvancePayment.year == year,
-                AdvancePayment.status == AdvancePaymentStatus.PAID,
+                func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
             )
             .all()
         )

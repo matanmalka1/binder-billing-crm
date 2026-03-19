@@ -1,5 +1,6 @@
 """Advances summary — links advance payments to an annual report."""
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
@@ -24,7 +25,7 @@ class AnnualReportAdvancesSummaryService:
             .filter(
                 AdvancePayment.client_id == report.client_id,
                 AdvancePayment.year == report.tax_year,
-                AdvancePayment.status == AdvancePaymentStatus.PAID,
+                func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
             )
             .all()
         )

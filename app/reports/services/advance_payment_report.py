@@ -21,7 +21,7 @@ class AdvancePaymentReportService:
                 func.coalesce(
                     func.sum(
                         case(
-                            (AdvancePayment.status == AdvancePaymentStatus.OVERDUE, 1),
+                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, 1),
                             else_=0,
                         )
                     ),
