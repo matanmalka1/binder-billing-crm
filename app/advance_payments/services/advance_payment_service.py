@@ -52,12 +52,13 @@ class AdvancePaymentService:
     def create_payment(
         self,
         business_id: int,
-        year: int,
-        month: int,
+        period: str,
+        period_months_count: int,
         due_date,
         expected_amount=None,
         paid_amount=None,
-        tax_deadline_id: Optional[int] = None,
+        payment_method=None,
+        annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         business = self._business_repo.get_by_id(business_id)
@@ -65,32 +66,36 @@ class AdvancePaymentService:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
         assert_business_allows_create(business)
 
-        if self.repo.exists_for_month(business_id, year, month):
+        if self.repo.exists_for_period(business_id, period):
             raise ConflictError(
-                "תשלום מקדמה לחודש זה כבר קיים",
+                f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
 
         return self.repo.create(
             business_id=business_id,
-            year=year,
-            month=month,
+            period=period,
+            period_months_count=period_months_count,
             due_date=due_date,
             expected_amount=expected_amount,
             paid_amount=paid_amount,
-            tax_deadline_id=tax_deadline_id,
+            payment_method=payment_method,
+            annual_report_id=annual_report_id,
             notes=notes,
         )
 
     # ─── Update ───────────────────────────────────────────────────────────────
 
-    _ALLOWED_UPDATE_FIELDS = {"paid_amount", "expected_amount", "status", "notes"}
+    _ALLOWED_UPDATE_FIELDS = {
+        "paid_amount", "expected_amount", "status",
+        "paid_at", "payment_method", "notes",
+    }
 
-    def update_payment(self, payment_id: int, **fields) -> AdvancePayment:
-        payment = self.repo.get_by_id(payment_id)
+    def update_payment(self, business_id: int, payment_id: int, **fields) -> AdvancePayment:
+        payment = self.repo.get_by_id_for_business(payment_id, business_id)
         if not payment:
             raise NotFoundError(
-                f"תשלום מקדמה {payment_id} לא נמצא",
+                f"תשלום מקדמה {payment_id} לא נמצא עבור עסק {business_id}",
                 "ADVANCE_PAYMENT.NOT_FOUND",
             )
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
@@ -98,11 +103,11 @@ class AdvancePaymentService:
 
     # ─── Delete ───────────────────────────────────────────────────────────────
 
-    def delete_payment(self, payment_id: int, actor_id: int) -> None:
-        payment = self.repo.get_by_id(payment_id)
+    def delete_payment(self, business_id: int, payment_id: int, actor_id: int) -> None:
+        payment = self.repo.get_by_id_for_business(payment_id, business_id)
         if not payment:
             raise NotFoundError(
-                f"תשלום מקדמה {payment_id} לא נמצא",
+                f"תשלום מקדמה {payment_id} לא נמצא עבור עסק {business_id}",
                 "ADVANCE_PAYMENT.NOT_FOUND",
             )
         self.repo.soft_delete(payment_id, deleted_by=actor_id)
@@ -112,8 +117,8 @@ class AdvancePaymentService:
     def list_overview(
         self,
         year: int,
-        month=None,
-        statuses=None,
+        month: Optional[int] = None,
+        statuses: Optional[list[AdvancePaymentStatus]] = None,
         page: int = 1,
         page_size: int = 50,
     ):
@@ -122,7 +127,6 @@ class AdvancePaymentService:
 
         payments = self.repo.list_overview_payments(year, month, statuses)
 
-        # שליפת שמות עסקים + לקוחות
         business_ids = list({p.business_id for p in payments})
         businesses = {b.id: b for b in self._business_repo.list_by_ids(business_ids)}
 
@@ -130,13 +134,12 @@ class AdvancePaymentService:
             [
                 (
                     p,
-                    businesses[p.business_id].business_name
-                    or businesses[p.business_id].client.full_name
+                    (businesses[p.business_id].business_name or businesses[p.business_id].client.full_name)
                     if p.business_id in businesses else "",
                 )
                 for p in payments
             ],
-            key=lambda x: (x[1], x[0].month),
+            key=lambda x: (x[1], x[0].period),
         )
 
         total = len(rows)
@@ -159,7 +162,12 @@ class AdvancePaymentService:
             "collection_rate": round(collection_rate, 2),
         }
 
-    def get_overview_kpis(self, year: int, month=None, statuses=None) -> dict:
+    def get_overview_kpis(
+        self,
+        year: int,
+        month: Optional[int] = None,
+        statuses: Optional[list[AdvancePaymentStatus]] = None,
+    ) -> dict:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
@@ -180,7 +188,7 @@ class AdvancePaymentService:
         self, business_id: int, year: int
     ) -> Optional[Decimal]:
         """
-        מחשב הצעה למקדמה חודשית לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה.
+        מחשב הצעה למקדמה לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה.
         מחזיר None אם חסר מידע.
         """
         profile = self._tax_profile_repo.get_by_business_id(business_id)

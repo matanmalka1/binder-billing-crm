@@ -77,6 +77,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(notification_advisor_router, prefix="/api/v1")
     app.include_router(correspondence.router, prefix="/api/v1")
     app.include_router(advance_payments.router, prefix="/api/v1")
+    app.include_router(advance_payments_overview.overview_router, prefix="/api/v1")
     app.include_router(advance_payment_generate.router, prefix="/api/v1")
     app.include_router(signature_requests_routers.router, prefix="/api/v1")
     app.include_router(signature_requests_routers.signer_router)

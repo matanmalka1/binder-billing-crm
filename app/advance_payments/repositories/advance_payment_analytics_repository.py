@@ -21,7 +21,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             )
             .filter(
                 AdvancePayment.business_id == business_id,
-                AdvancePayment.year == year,
+                AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
             .group_by(AdvancePayment.status)
@@ -44,11 +44,11 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
             func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
         ).filter(
-            AdvancePayment.year == year,
+            AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
-            query = query.filter(AdvancePayment.month == month)
+            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
         if statuses:
             normalized = [s.value.lower() for s in statuses]
             query = query.filter(func.lower(AdvancePayment.status).in_(normalized))
@@ -61,7 +61,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
     def monthly_chart_data(self, business_id: int, year: int) -> list[dict]:
         rows = (
             self.db.query(
-                AdvancePayment.month,
+                AdvancePayment.period,
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("expected_amount"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("paid_amount"),
                 func.coalesce(
@@ -79,19 +79,19 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             )
             .filter(
                 AdvancePayment.business_id == business_id,
-                AdvancePayment.year == year,
+                AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
-            .group_by(AdvancePayment.month)
+            .group_by(AdvancePayment.period)
             .all()
         )
-        by_month = {r.month: r for r in rows}
+        by_period = {r.period: r for r in rows}
         return [
             {
-                "month": m,
-                "expected_amount": float(by_month[m].expected_amount) if m in by_month else 0.0,
-                "paid_amount": float(by_month[m].paid_amount) if m in by_month else 0.0,
-                "overdue_amount": float(by_month[m].overdue_amount) if m in by_month else 0.0,
+                "period": f"{year}-{m:02d}",
+                "expected_amount": float(by_period[f"{year}-{m:02d}"].expected_amount) if f"{year}-{m:02d}" in by_period else 0.0,
+                "paid_amount": float(by_period[f"{year}-{m:02d}"].paid_amount) if f"{year}-{m:02d}" in by_period else 0.0,
+                "overdue_amount": float(by_period[f"{year}-{m:02d}"].overdue_amount) if f"{year}-{m:02d}" in by_period else 0.0,
             }
             for m in range(1, 13)
         ]

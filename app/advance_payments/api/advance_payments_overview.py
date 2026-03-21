@@ -1,18 +1,22 @@
-from fastapi import Query
+from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
+from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.schemas.advance_payment import (
-    AnnualKPIResponse,
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
-    ChartDataResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.api.advance_payments import router
+
+overview_router = APIRouter(
+    prefix="/advance-payments",
+    tags=["advance-payments"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 
 
-@router.get("/overview", response_model=AdvancePaymentOverviewResponse)
+@overview_router.get("/overview", response_model=AdvancePaymentOverviewResponse)
 def list_advance_payments_overview(
     db: DBSession,
     user: CurrentUser,
@@ -22,9 +26,7 @@ def list_advance_payments_overview(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
 ):
-    resolved_statuses = None
-    if status:
-        resolved_statuses = [AdvancePaymentStatus(s) for s in status]
+    resolved_statuses = [AdvancePaymentStatus(s) for s in status] if status else None
 
     service = AdvancePaymentService(db)
     rows, total = service.list_overview(
@@ -35,19 +37,20 @@ def list_advance_payments_overview(
         page_size=page_size,
     )
     kpis = service.get_overview_kpis(year=year, month=month, statuses=resolved_statuses)
+
     items = [
         AdvancePaymentOverviewRow(
             id=payment.id,
             business_id=payment.business_id,
-            client_name=client_name,
-            month=payment.month,
-            year=payment.year,
-            expected_amount=float(payment.expected_amount) if payment.expected_amount is not None else None,
-            paid_amount=float(payment.paid_amount) if payment.paid_amount is not None else None,
-            status=payment.status,
+            business_name=business_name,
+            period=payment.period,
+            period_months_count=payment.period_months_count,
             due_date=payment.due_date,
+            expected_amount=payment.expected_amount,
+            paid_amount=payment.paid_amount,
+            status=payment.status,
         )
-        for payment, client_name in rows
+        for payment, business_name in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,
@@ -58,27 +61,3 @@ def list_advance_payments_overview(
         total_paid=kpis["total_paid"],
         collection_rate=kpis["collection_rate"],
     )
-
-
-@router.get("/chart", response_model=ChartDataResponse)
-def get_chart_data(
-    db: DBSession,
-    user: CurrentUser,
-    business_id: int,
-    year: int = Query(...),
-):
-    service = AdvancePaymentService(db)
-    data = service.get_chart_data(business_id=business_id, year=year)
-    return ChartDataResponse(**data)
-
-
-@router.get("/kpi", response_model=AnnualKPIResponse)
-def get_annual_kpis(
-    db: DBSession,
-    user: CurrentUser,
-    business_id: int,
-    year: int = Query(...),
-):
-    service = AdvancePaymentService(db)
-    data = service.get_annual_kpis(business_id=business_id, year=year)
-    return AnnualKPIResponse(**data)
