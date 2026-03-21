@@ -1,16 +1,15 @@
 # Actions Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-21 (domain-by-domain backend sync).
 
-
-Defines executable UI action contracts shared across domains (clients, binders, charges, tax deadlines, annual reports).
+Defines executable UI action contracts shared across domains (businesses, binders, charges, tax deadlines, annual reports).
 
 ## Scope
 
 This module provides:
 - Canonical action-contract builder (`build_action`)
 - Stable action-id generation convention (`{resource}-{id}-{key}`)
-- Domain action factories for binders, clients, and charges
+- Domain action factories for binders, businesses, and charges
 - Domain action factories for tax deadlines and annual reports
 - Role-aware action filtering (for example advisor-only actions)
 - Confirm-dialog metadata and optional payload contracts for frontend executors
@@ -30,7 +29,7 @@ Primary output model is a plain action contract object:
 
 Common action producers:
 - `get_binder_actions(binder)`
-- `get_client_actions(client, user_role=None)`
+- `get_business_actions(business, user_role=None)`
 - `get_charge_actions(charge)`
 - `get_tax_deadline_actions(deadline)`
 - `get_annual_report_actions(report_id, status)`
@@ -52,7 +51,7 @@ It is consumed internally by other modules that attach `available_actions` (and 
 - Binder actions:
   - `in_office` => `ready`
   - `ready_for_pickup` => `return` (requires `pickup_person_name` input in confirm metadata)
-- Client actions:
+- Business actions:
   - `active` => `freeze` (advisor only; or when role context is absent)
   - `frozen` => `activate`
 - Charge actions:
@@ -74,7 +73,7 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 
 ## Cross-Domain Integration
 
-- `clients` APIs attach `available_actions` via `get_client_actions`.
+- `businesses` APIs attach `available_actions` via `get_business_actions`.
 - `binders` list/event services attach binder actions via `get_binder_actions`.
 - `charge` and dashboard quick-actions use `get_charge_actions`.
 - `tax_deadline` responses attach actions via `get_tax_deadline_actions`.
@@ -86,7 +85,7 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 No dedicated actions-only test package currently exists.
 
 Actions behavior is covered indirectly by domain tests, including:
-- `tests/clients/api/test_clients.py`
+- `tests/businesses/api/test_businesses.py`
 - `tests/binders/api/test_binders.py`
 - `tests/timeline/service/test_timeline_event_builders.py`
 - `tests/timeline/service/test_timeline_event_builders_additional.py`
@@ -95,5 +94,5 @@ Actions behavior is covered indirectly by domain tests, including:
 Run related suites:
 
 ```bash
-pytest tests/clients tests/binders tests/timeline -q
+pytest tests/businesses tests/binders tests/timeline -q
 ```

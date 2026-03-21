@@ -4,8 +4,7 @@ from typing import Any, Optional
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.charge.models.charge import Charge, ChargeStatus
-from app.clients.models.client import Client
-from app.businesses.models.business import BusinessStatus
+from app.businesses.models.business import Business, BusinessStatus
 from app.users.models.user import UserRole
 
 
@@ -68,24 +67,24 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
     return actions
 
 
-def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> list[dict[str, Any]]:
-    """Return executable actions for a client (role-aware)."""
+def get_business_actions(business: Business, user_role: Optional[UserRole] = None) -> list[dict[str, Any]]:
+    """Return executable actions for a business (role-aware)."""
 
-    status = _value(client.status)
+    status = _value(business.status)
     actions: list[dict[str, Any]] = []
 
     if status == BusinessStatus.ACTIVE.value and (user_role == UserRole.ADVISOR or user_role is None):
         actions.append(
             build_action(
                 key="freeze",
-                label="הקפאת לקוח",
+                label="הקפאת עסק",
                 method="patch",
-                endpoint=f"/clients/{client.id}",
+                endpoint=f"/businesses/{business.id}",
                 payload={"status": "frozen"},
-                action_id=_generate_action_id("client", client.id, "freeze"),
+                action_id=_generate_action_id("business", business.id, "freeze"),
                 confirm={
-                    "title": "אישור הקפאת לקוח",
-                    "message": "האם להקפיא את הלקוח?",
+                    "title": "אישור הקפאת עסק",
+                    "message": "האם להקפיא את העסק?",
                     "confirm_label": "הקפאה",
                     "cancel_label": "ביטול",
                 },
@@ -96,11 +95,11 @@ def get_client_actions(client: Client, user_role: Optional[UserRole] = None) -> 
         actions.append(
             build_action(
                 key="activate",
-                label="הפעלת לקוח",
+                label="הפעלת עסק",
                 method="patch",
-                endpoint=f"/clients/{client.id}",
+                endpoint=f"/businesses/{business.id}",
                 payload={"status": "active"},
-                action_id=_generate_action_id("client", client.id, "activate"),
+                action_id=_generate_action_id("business", business.id, "activate"),
             )
         )
 
