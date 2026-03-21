@@ -5,34 +5,43 @@ import pytest
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.authority_contact.services.authority_contact_service import AuthorityContactService
-from app.clients.models import Client, ClientType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
     client = Client(
         full_name="AC Service Client",
         id_number="888888888",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(client)
     db.commit()
     db.refresh(client)
-    return client
+
+    business = Business(
+        client_id=client.id,
+        business_name="AC Service Business",
+        business_type=BusinessType.COMPANY,
+        opened_at=date.today(),
+    )
+    db.add(business)
+    db.commit()
+    db.refresh(business)
+    return business
 
 
-def test_add_contact_missing_client_raises_not_found(test_db):
+def test_add_contact_missing_business_raises_not_found(test_db):
     service = AuthorityContactService(test_db)
 
     with pytest.raises(NotFoundError) as exc_info:
         service.add_contact(
-            client_id=999,
+            business_id=999,
             contact_type=ContactType.VAT_BRANCH,
-            name="Missing Client",
+            name="Missing Business",
         )
 
-    assert exc_info.value.code == "CLIENT.NOT_FOUND"
+    assert exc_info.value.code == "BUSINESS.NOT_FOUND"
 
 
 def test_update_contact_missing_raises_not_found(test_db):
@@ -54,15 +63,15 @@ def test_delete_contact_missing_raises_not_found(test_db):
 
 
 def test_list_contacts_filters_and_paginates(test_db):
-    client = _client(test_db)
+    business = _business(test_db)
     repo = AuthorityContactRepository(test_db)
-    repo.create(client_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 1")
-    repo.create(client_id=client.id, contact_type=ContactType.ASSESSING_OFFICER, name="AO 1")
-    repo.create(client_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 2")
+    repo.create(business_id=business.id, contact_type=ContactType.VAT_BRANCH, name="VAT 1")
+    repo.create(business_id=business.id, contact_type=ContactType.ASSESSING_OFFICER, name="AO 1")
+    repo.create(business_id=business.id, contact_type=ContactType.VAT_BRANCH, name="VAT 2")
 
     service = AuthorityContactService(test_db)
-    items, total = service.list_client_contacts(
-        client.id, ContactType.VAT_BRANCH, page=1, page_size=1
+    items, total = service.list_business_contacts(
+        business.id, ContactType.VAT_BRANCH, page=1, page_size=1
     )
 
     assert total == 2
@@ -71,9 +80,9 @@ def test_list_contacts_filters_and_paginates(test_db):
 
 
 def test_repository_soft_delete_marks_deleted_metadata(test_db):
-    client = _client(test_db)
+    business = _business(test_db)
     repo = AuthorityContactRepository(test_db)
-    contact = repo.create(client_id=client.id, contact_type=ContactType.VAT_BRANCH, name="To Delete")
+    contact = repo.create(business_id=business.id, contact_type=ContactType.VAT_BRANCH, name="To Delete")
 
     deleted = repo.delete(contact.id, deleted_by=42)
 

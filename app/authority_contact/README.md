@@ -1,15 +1,14 @@
 # Authority Contact Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-21 (domain-by-domain backend sync).
 
-
-Manages per-client authority contacts (tax office, VAT branch, national insurance, etc.) used by the CRM and referenced by other domains (for example correspondence entries).
+Manages per-business authority contacts (tax office, VAT branch, national insurance, etc.) used by the CRM and referenced by other domains (for example correspondence entries).
 
 ## Scope
 
 This module provides:
 - CRUD for `authority_contacts`
-- Filtering + pagination by client and contact type
+- Filtering + pagination by business and contact type
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
 - Role-based API access
 
@@ -17,7 +16,7 @@ This module provides:
 
 `AuthorityContact` fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `business_id` (FK -> `businesses.id`, required)
 - `contact_type` (enum, required)
 - `name` (required)
 - `office`, `phone`, `email`, `notes` (optional)
@@ -39,10 +38,10 @@ Implementation references:
 
 ## API
 
-Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
+Router prefix is `/api/v1/businesses` (mounted in `app/main.py`).
 
 ### Create contact
-- `POST /api/v1/clients/{client_id}/authority-contacts`
+- `POST /api/v1/businesses/{business_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Body:
 
@@ -57,8 +56,8 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 }
 ```
 
-### List contacts by client
-- `GET /api/v1/clients/{client_id}/authority-contacts`
+### List contacts by business
+- `GET /api/v1/businesses/{business_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `contact_type` (optional enum)
@@ -66,22 +65,22 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
   - `page_size` (default `20`, min `1`, max `100`)
 
 ### Get contact
-- `GET /api/v1/clients/authority-contacts/{contact_id}`
+- `GET /api/v1/businesses/authority-contacts/{contact_id}`
 - Roles: `ADVISOR`, `SECRETARY`
 
 ### Update contact
-- `PATCH /api/v1/clients/authority-contacts/{contact_id}`
+- `PATCH /api/v1/businesses/authority-contacts/{contact_id}`
 - Roles: `ADVISOR`, `SECRETARY`
 - Partial update supported.
 
 ### Delete contact (soft delete)
-- `DELETE /api/v1/clients/authority-contacts/{contact_id}`
+- `DELETE /api/v1/businesses/authority-contacts/{contact_id}`
 - Role: `ADVISOR` only
 - Returns `204 No Content`
 
 ## Behavior Notes
 
-- Creating a contact validates that the client exists (`CLIENT.NOT_FOUND` on missing client).
+- Creating a contact validates that the business exists (`BUSINESS.NOT_FOUND` on missing business).
 - `contact_type` is validated against the enum; invalid values return a validation error.
 - Update/delete for unknown contacts return `AUTHORITY_CONTACT.NOT_FOUND`.
 - Repository reads (`get_by_id`, list/count) exclude soft-deleted records.
@@ -95,13 +94,13 @@ Errors follow the global app format from `app/core/exceptions.py`, including:
 - `error_meta`
 
 Domain errors use stable codes such as:
-- `CLIENT.NOT_FOUND`
+- `BUSINESS.NOT_FOUND`
 - `AUTHORITY_CONTACT.NOT_FOUND`
 
 ## Cross-Domain Integration
 
 `correspondence` can reference an authority contact via `contact_id` (`authority_contacts.id`).
-When used, correspondence service enforces that the contact belongs to the same client.
+When used, correspondence service enforces that the contact belongs to the same business.
 
 ## Tests
 
