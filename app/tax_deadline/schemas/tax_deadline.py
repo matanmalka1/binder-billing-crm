@@ -1,38 +1,49 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.tax_deadline.models.tax_deadline import (
+    DeadlineType,
+    TaxDeadlineStatus,
+    UrgencyLevel,
+)
 
 
 class TaxDeadlineCreateRequest(BaseModel):
     business_id: int
-    deadline_type: str
+    deadline_type: DeadlineType             # enum
     due_date: date
-    payment_amount: Optional[float] = None
+    period: Optional[str] = None            # "YYYY-MM" — קיים במודל
+    payment_amount: Optional[Decimal] = Field(None, ge=0)
     description: Optional[str] = None
 
 
 class TaxDeadlineResponse(BaseModel):
     id: int
     business_id: int
-    client_name: Optional[str] = None
-    deadline_type: str
+    business_name: Optional[str] = None     # enriched by service
+    deadline_type: DeadlineType
+    period: Optional[str] = None
     due_date: date
-    status: str
-    payment_amount: Optional[float] = None
-    currency: str
+    status: TaxDeadlineStatus
+    payment_amount: Optional[Decimal] = None
     description: Optional[str] = None
-    created_at: datetime
     completed_at: Optional[datetime] = None
+    completed_by: Optional[int] = None      
+    advance_payment_id: Optional[int] = None  
+    created_at: datetime
     available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 
 
 class TaxDeadlineUpdateRequest(BaseModel):
-    deadline_type: Optional[str] = None
+    deadline_type: Optional[DeadlineType] = None
     due_date: Optional[date] = None
-    payment_amount: Optional[float] = None
+    period: Optional[str] = None
+    payment_amount: Optional[Decimal] = Field(None, ge=0)
     description: Optional[str] = None
 
 
@@ -46,12 +57,12 @@ class TaxDeadlineListResponse(BaseModel):
 class DeadlineUrgentItem(BaseModel):
     id: int
     business_id: int
-    client_name: str
-    deadline_type: str
+    business_name: str
+    deadline_type: DeadlineType
     due_date: date
-    urgency: str
+    urgency: UrgencyLevel              
     days_remaining: int
-    payment_amount: Optional[float] = None
+    payment_amount: Optional[Decimal] = None
 
 
 class DashboardDeadlinesResponse(BaseModel):
@@ -71,9 +82,10 @@ class GenerateDeadlinesResponse(BaseModel):
 class TimelineEntry(BaseModel):
     id: int
     business_id: int
-    deadline_type: str
+    deadline_type: DeadlineType
+    period: Optional[str] = None
     due_date: date
-    status: str
+    status: TaxDeadlineStatus
     days_remaining: int
     milestone_label: str
-    payment_amount: Optional[float] = None
+    payment_amount: Optional[Decimal] = None

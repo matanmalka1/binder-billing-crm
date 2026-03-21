@@ -1,3 +1,3 @@
-from app.clients.models.client import Client, ClientStatus, ClientType
+from app.clients.models.client import Client
 
-__all__ = ["Client", "ClientType", "ClientStatus"]
+__all__ = ["Client"]

@@ -8,36 +8,36 @@ from alembic import context
 from app.config import config as app_config
 
 # Import all models so Alembic can detect them for autogenerate
-import app.advance_payments.models.advance_payment  # noqa: F401
-import app.annual_reports.models.annual_report_detail  # noqa: F401
-import app.annual_reports.models.annual_report_model  # noqa: F401
-import app.annual_reports.models.annual_report_schedule_entry  # noqa: F401
-import app.annual_reports.models.annual_report_status_history  # noqa: F401
-import app.annual_reports.models.annual_report_status_history  # noqa: F401
-import app.annual_reports.models.annual_report_annex_data      # noqa: F401  
-import app.annual_reports.models.annual_report_expense_line    # noqa: F401  
-import app.annual_reports.models.annual_report_income_line     # noqa: F401  
-import app.authority_contact.models.authority_contact  # noqa: F401
-import app.binders.models.binder  # noqa: F401
-import app.binders.models.binder_status_log  # noqa: F401
-import app.binders.models.binder_intake  # noqa: F401
-import app.charge.models.charge  # noqa: F401
-import app.clients.models.client  # noqa: F401
-import app.clients.models.client_tax_profile  # noqa: F401
-import app.correspondence.models.correspondence  # noqa: F401
-import app.invoice.models.invoice  # noqa: F401
-import app.notification.models.notification  # noqa: F401
-import app.permanent_documents.models.permanent_document  # noqa: F401
-import app.reminders.models.reminder  # noqa: F401
-import app.signature_requests.models.signature_request  # noqa: F401
-import app.tax_deadline.models.tax_deadline  # noqa: F401
-import app.users.models.user  # noqa: F401
-import app.users.models.user_audit_log  # noqa: F401
-import app.users.models.user_management  # noqa: F401
-import app.vat_reports.models.vat_audit_log  # noqa: F401
-import app.vat_reports.models.vat_invoice  # noqa: F401
-import app.vat_reports.models.vat_work_item  # noqa: F401
-
+import app.businesses.models.business          # noqa
+import app.businesses.models.business_tax_profile  # noqa
+import app.clients.models.client               # noqa
+import app.users.models.user                   # noqa
+import app.users.models.user_audit_log         # noqa
+import app.binders.models.binder               # noqa
+import app.binders.models.binder_intake        # noqa
+import app.binders.models.binder_intake_material  # noqa
+import app.binders.models.binder_status_log    # noqa
+import app.annual_reports.models.annual_report_model   # noqa
+import app.annual_reports.models.annual_report_detail  # noqa
+import app.annual_reports.models.annual_report_status_history  # noqa
+import app.annual_reports.models.annual_report_schedule_entry  # noqa
+import app.annual_reports.models.annual_report_annex_data      # noqa
+import app.annual_reports.models.annual_report_income_line     # noqa
+import app.annual_reports.models.annual_report_expense_line    # noqa
+import app.annual_reports.models.annual_report_credit_point_reason    # noqa
+import app.vat_reports.models.vat_work_item    # noqa
+import app.vat_reports.models.vat_invoice      # noqa
+import app.vat_reports.models.vat_audit_log    # noqa
+import app.charge.models.charge                # noqa
+import app.invoice.models.invoice              # noqa
+import app.advance_payments.models.advance_payment  # noqa
+import app.tax_deadline.models.tax_deadline    # noqa
+import app.reminders.models.reminder           # noqa
+import app.notification.models.notification    # noqa
+import app.permanent_documents.models.permanent_document  # noqa
+import app.signature_requests.models.signature_request    # noqa
+import app.correspondence.models.correspondence  # noqa
+import app.authority_contact.models.authority_contact  # noqa
 from app.database import Base
 
 alembic_config = context.config

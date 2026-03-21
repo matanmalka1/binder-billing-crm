@@ -6,6 +6,7 @@ from random import Random
 from sqlalchemy import func, select
 
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
 from app.clients.models.client import Client
 
 from ..constants import COMPANY_WORDS
@@ -98,13 +99,42 @@ def create_businesses(db, rng: Random, clients: list[Client]) -> list[Business]:
             client_id=client.id,
             business_name=business_name,
             business_type=business_type,
+            tax_id_number=f"{500000000 + serial}",
             status=status,
-            primary_binder_number=f"PB-{50000 + serial}",
             opened_at=opened_at,
             closed_at=closed_at,
+            phone=client.phone,
+            email=client.email,
             notes=rng.choice(["", "עסק ותיק", "מעקב חודשי", "לקוח חשוב"]),
         )
         db.add(business)
         businesses.append(business)
     db.flush()
     return businesses
+
+
+def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) -> list[BusinessTaxProfile]:
+    profiles: list[BusinessTaxProfile] = []
+    for business in businesses:
+        vat_type = rng.choice(list(VatType))
+        profile = BusinessTaxProfile(
+            business_id=business.id,
+            vat_type=vat_type,
+            vat_start_date=business.opened_at,
+            accountant_name=rng.choice(
+                [
+                    None,
+                    "כהן ושות׳ רואי חשבון",
+                    "חשבית פלוס",
+                    "לוי הנהלת חשבונות",
+                ]
+            ),
+            vat_exempt_ceiling=rng.choice([None, None, 120000, 132000]) if vat_type == VatType.EXEMPT else None,
+            advance_rate=rng.choice([None, 2.5, 3.0, 4.0, 5.5, 7.0]),
+            advance_rate_updated_at=rng.choice([None, date.today() - timedelta(days=rng.randint(10, 220))]),
+            fiscal_year_start_month=rng.choice([1, 1, 1, 4, 7, 10]),
+        )
+        db.add(profile)
+        profiles.append(profile)
+    db.flush()
+    return profiles

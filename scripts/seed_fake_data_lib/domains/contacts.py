@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 from random import Random
 
 from app.authority_contact.models.authority_contact import AuthorityContact, AuthorityContactLink, ContactType
-from app.clients.models.client_tax_profile import ClientTaxProfile, VatType
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
 
 
@@ -20,7 +19,11 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
             cfg.max_authority_contacts_per_client,
         )
         for idx in range(num):
+            if not businesses_by_client_id.get(client.id):
+                continue
+            selected_business = rng.choice(businesses_by_client_id[client.id])
             contact = AuthorityContact(
+                business_id=selected_business.id,
                 contact_type=rng.choice(list(ContactType)),
                 name=rng.choice([
                     "אילה בן דוד",
@@ -39,7 +42,7 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
             db.flush()
 
             links = businesses_by_client_id.get(client.id, [])
-            linked_business = rng.choice(links) if links and rng.random() < 0.5 else None
+            linked_business = rng.choice(links) if links and rng.random() < 0.5 else selected_business
             db.add(
                 AuthorityContactLink(
                     contact_id=contact.id,
@@ -52,45 +55,20 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     return contacts
 
 
-def create_client_tax_profiles(db, rng: Random, clients):
-    for client in clients:
-        if rng.random() > 0.7:
-            continue
+def create_correspondence(db, rng: Random, businesses, users, authority_contacts):
+    contacts_by_business_id: dict[int, list] = {}
+    for contact in authority_contacts:
+        contacts_by_business_id.setdefault(contact.business_id, []).append(contact)
 
-        profile = ClientTaxProfile(
-            client_id=client.id,
-            vat_type=rng.choice(list(VatType)),
-            business_type=rng.choice([
-                None,
-                "עצמאי",
-                "חברה",
-                "עמותה",
-            ]),
-            tax_year_start=rng.choice([1, 4, 7, 10, None]),
-            accountant_name=rng.choice([
-                None,
-                "כהן ושות׳ רואי חשבון",
-                "חשבית פלוס",
-                "לוי הנהלת חשבונות",
-            ]),
-            advance_rate=rng.choice([None, None, 2.5, 3.0, 4.0, 5.5, 7.0]),
-            created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 200)),
-        )
-        db.add(profile)
-    db.flush()
-
-
-def create_correspondence(db, rng: Random, businesses, users):
     for business in businesses:
-        if rng.random() > 0.5:
-            continue
-
         num_entries = rng.randint(1, 5)
         for _ in range(num_entries):
             occurred_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 120))
+            candidate_contacts = contacts_by_business_id.get(business.id, [])
+            contact = rng.choice(candidate_contacts) if candidate_contacts and rng.random() < 0.65 else None
             entry = Correspondence(
                 business_id=business.id,
-                contact_id=None,
+                contact_id=contact.id if contact else None,
                 correspondence_type=rng.choice(list(CorrespondenceType)),
                 subject=rng.choice([
                     "דיון בתוכנית תשלום מס",

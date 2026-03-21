@@ -1,53 +1,68 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.reminders.models.reminder import ReminderType, ReminderStatus
 
 
 class ReminderCreateRequest(BaseModel):
-    """Request schema for creating a reminder."""
-    
-    business_id: int = Field(..., gt=0, description="Business ID")
-    reminder_type: str = Field(
-        ...,
-        description="Type of reminder",
-        pattern="^(tax_deadline_approaching|binder_idle|unpaid_charge|custom)$",
-    )
-    target_date: date = Field(..., description="Target date for the event")
-    days_before: int = Field(..., ge=0, description="Days before target to send reminder")
-    message: Optional[str] = Field(None, min_length=1, description="Reminder message")
-    
-    # Optional foreign keys
-    binder_id: Optional[int] = Field(None, gt=0, description="Related binder ID")
-    charge_id: Optional[int] = Field(None, gt=0, description="Related charge ID")
-    tax_deadline_id: Optional[int] = Field(None, gt=0, description="Related tax deadline ID")
+    business_id: int = Field(gt=0)
+    reminder_type: ReminderType                         # enum — לא str חופשי
+    target_date: date
+    days_before: int = Field(ge=0)
+    message: Optional[str] = Field(None, min_length=1)
+
+    # Domain links — לכל סוג רק אחד ימולא
+    binder_id: Optional[int] = Field(None, gt=0)
+    charge_id: Optional[int] = Field(None, gt=0)
+    tax_deadline_id: Optional[int] = Field(None, gt=0)
+    annual_report_id: Optional[int] = Field(None, gt=0)    # קיים במודל
+    advance_payment_id: Optional[int] = Field(None, gt=0)  # קיים במודל
+
+    @model_validator(mode="after")
+    def validate_by_type(self) -> "ReminderCreateRequest":
+        t = self.reminder_type
+        if t == ReminderType.BINDER_IDLE and not self.binder_id:
+            raise ValueError("binder_id נדרש עבור binder_idle")
+        if t == ReminderType.UNPAID_CHARGE and not self.charge_id:
+            raise ValueError("charge_id נדרש עבור unpaid_charge")
+        if t in (ReminderType.TAX_DEADLINE_APPROACHING, ReminderType.VAT_FILING) and not self.tax_deadline_id:
+            raise ValueError("tax_deadline_id נדרש עבור סוג זה")
+        if t == ReminderType.ANNUAL_REPORT_DEADLINE and not self.annual_report_id:
+            raise ValueError("annual_report_id נדרש עבור annual_report_deadline")
+        if t == ReminderType.ADVANCE_PAYMENT_DUE and not self.advance_payment_id:
+            raise ValueError("advance_payment_id נדרש עבור advance_payment_due")
+        if t == ReminderType.CUSTOM and not self.message:
+            raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
+        return self
 
 
 class ReminderResponse(BaseModel):
-    """Response schema for a reminder."""
-    
     id: int
     business_id: int
-    client_name: Optional[str] = None
-    reminder_type: str
-    status: str
+    business_name: Optional[str] = None        # enriched by service
+    reminder_type: ReminderType
+    status: ReminderStatus
     target_date: date
     days_before: int
     send_on: date
     message: str
-    created_at: datetime
-    sent_at: Optional[datetime] = None
-    canceled_at: Optional[datetime] = None
     binder_id: Optional[int] = None
     charge_id: Optional[int] = None
     tax_deadline_id: Optional[int] = None
-    
+    annual_report_id: Optional[int] = None     # קיים במודל
+    advance_payment_id: Optional[int] = None   # קיים במודל
+    created_at: datetime
+    created_by: Optional[int] = None
+    sent_at: Optional[datetime] = None
+    canceled_at: Optional[datetime] = None
+    canceled_by: Optional[int] = None          # קיים במודל
+
     model_config = {"from_attributes": True}
 
 
 class ReminderListResponse(BaseModel):
-    """Response schema for list of reminders."""
-    
     items: list[ReminderResponse]
     page: int
     page_size: int

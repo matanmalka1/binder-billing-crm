@@ -39,7 +39,7 @@ def file_vat_return(
     item = service.file_vat_return(
         item_id=item_id,
         filed_by=current_user.id,
-        filing_method=request.filing_method,
+        submission_method=request.submission_method,
         override_amount=float(request.override_amount) if request.override_amount is not None else None,
         override_justification=request.override_justification,
         submission_reference=request.submission_reference,

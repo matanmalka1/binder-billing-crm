@@ -13,10 +13,15 @@ from app.annual_reports.models.annual_report_detail import AnnualReportDetail
 from app.annual_reports.models.annual_report_income_line import AnnualReportIncomeLine, IncomeSourceType
 from app.annual_reports.models.annual_report_expense_line import AnnualReportExpenseLine, ExpenseCategoryType
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
+from app.annual_reports.models.annual_report_credit_point_reason import (
+    AnnualReportCreditPoint,
+    CreditPointReason,
+)
 
 __all__ = [
     "AnnualReport",
     "AnnualReportAnnexData",
+    "AnnualReportCreditPoint",
     "AnnualReportDetail",
     "AnnualReportExpenseLine",
     "AnnualReportForm",
@@ -26,6 +31,7 @@ __all__ = [
     "AnnualReportStatus",
     "AnnualReportStatusHistory",
     "ClientTypeForReport",
+    "CreditPointReason",
     "DeadlineType",
     "ExpenseCategoryType",
     "IncomeSourceType",

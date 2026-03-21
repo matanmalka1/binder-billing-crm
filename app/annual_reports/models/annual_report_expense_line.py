@@ -10,7 +10,6 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 
-
 class ExpenseCategoryType(str, PyEnum):
     OFFICE_RENT = "office_rent"               # שכירות משרד
     PROFESSIONAL_SERVICES = "professional_services"  # שירותים מקצועיים

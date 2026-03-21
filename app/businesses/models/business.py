@@ -45,20 +45,23 @@ class Business(Base):
     # Business details.
     business_name = Column(String, nullable=True)   # null = sole proprietor under personal name
     business_type = Column(pg_enum(BusinessType), nullable=False)
+    tax_id_number   = Column(String(9), nullable=True)
+    
     status = Column(
         pg_enum(BusinessStatus),
         default=BusinessStatus.ACTIVE,
         nullable=False,
     )
-
-    # Business-specific contact details.
-    # DB column names use official_* to avoid collision with Python properties.
-    official_phone = Column(String, nullable=True)
-    official_email = Column(String, nullable=True)
-
     # Dates.
     opened_at = Column(Date, nullable=False)
     closed_at = Column(Date, nullable=True)
+
+    # Business-specific contact details.
+    # ── פרטי קשר (של העסק, עם fallback ללקוח ב-property) ─────────────────
+    phone = Column(String(20),  nullable=True)   
+    email = Column(String(254), nullable=True)
+
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Metadata.
     notes = Column(Text, nullable=True)
@@ -72,18 +75,6 @@ class Business(Base):
     restored_at = Column(DateTime, nullable=True)
     restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    __table_args__ = (
-        Index("ix_business_client_id", "client_id"),
-        Index("ix_business_status", "status"),
-        Index(
-            "ix_business_client_name_active",
-            "client_id",
-            "business_name",
-            unique=True,
-            postgresql_where="business_name IS NOT NULL AND deleted_at IS NULL",
-            sqlite_where="business_name IS NOT NULL AND deleted_at IS NULL",
-        ),
-    )
 
     # ── Computed properties ───────────────────────────────────────────────────
 
@@ -94,21 +85,17 @@ class Business(Base):
         If business_name exists, return it.
         Otherwise, return the client name.
         """
-        if self.business_name:
-            return self.business_name
-        if self.client:
-            return self.client.full_name
-        return f"עסק #{self.id}"
+        return self.business_name or (self.client.full_name if self.client else f"עסק #{self.id}")
 
     @property
-    def phone(self) -> str | None:
+    def contact_phone(self) -> str | None:
         """Business phone, with fallback to client phone."""
-        return self.official_phone or (self.client.phone if self.client else None)
+        return self.phone or (self.client.phone if self.client else None)
 
     @property
-    def email(self) -> str | None:
+    def contact_email(self) -> str | None:
         """Business email, with fallback to client email."""
-        return self.official_email or (self.client.email if self.client else None)
+        return self.email or (self.client.email if self.client else None)
 
     def __repr__(self):
         return (
@@ -116,3 +103,24 @@ class Business(Base):
             f"name='{self.business_name}', type='{self.business_type}', "
             f"status='{self.status}')>"
         )
+
+    __table_args__ = (
+        Index("ix_business_client_id", "client_id"),
+        Index("ix_business_status", "status"),
+        Index("ix_business_assigned",  "assigned_to"),
+        Index(
+            "ix_business_tax_id",
+            "tax_id_number",
+            unique=True,
+            postgresql_where="tax_id_number IS NOT NULL AND deleted_at IS NULL",
+            sqlite_where="tax_id_number IS NOT NULL AND deleted_at IS NULL",
+        ),
+        Index(
+            "ix_business_client_name_active",
+            "client_id",
+            "business_name",
+            unique=True,
+            postgresql_where="business_name IS NOT NULL AND deleted_at IS NULL",
+            sqlite_where="business_name IS NOT NULL AND deleted_at IS NULL",
+        ),
+    )

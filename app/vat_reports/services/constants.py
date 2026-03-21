@@ -50,17 +50,37 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
 # Deduction rates per expense category (0.0 = prohibited, 1.0 = fully deductible)
 # Source: Israeli VAT Law §41
 CATEGORY_DEDUCTION_RATES: dict[str, Decimal] = {
-    "office": Decimal("1.0000"),
-    "travel": Decimal("0.6667"),          # 2/3 deductible
+    # 100% קיזוז
+    "office":                Decimal("1.0000"),
     "professional_services": Decimal("1.0000"),
-    "equipment": Decimal("1.0000"),
-    "rent": Decimal("1.0000"),
-    "salary": Decimal("0.0000"),          # payroll is not a VAT input
-    "marketing": Decimal("1.0000"),
-    "vehicle": Decimal("0.0000"),         # private vehicle — prohibited
-    "entertainment": Decimal("0.0000"),   # hospitality — prohibited
-    "gifts": Decimal("0.0000"),           # gifts — prohibited
-    "other": Decimal("0.0000"),           # unknown — conservative default
+    "equipment":             Decimal("1.0000"),
+    "rent":                  Decimal("1.0000"),
+    "marketing":             Decimal("1.0000"),
+    "maintenance":           Decimal("1.0000"),
+    "utilities":             Decimal("1.0000"),
+    "postage_and_shipping":  Decimal("1.0000"),
+    "bank_fees":             Decimal("1.0000"),
+
+    # 2/3 קיזוז — הוצאות מעורבות
+    "travel":                Decimal("0.6667"),
+    "fuel":                  Decimal("0.6667"),
+    "vehicle":               Decimal("0.6667"),
+    "vehicle_maintenance":   Decimal("0.6667"),
+    "vehicle_leasing":       Decimal("0.6667"),
+    "tolls_and_parking":     Decimal("0.6667"),
+    "communication":         Decimal("0.6667"),
+    "mixed_expense":         Decimal("0.6667"),  # ברירת מחדל שמרנית
+
+    # 0% — ללא מע"מ או ניכוי אסור
+    "salary":                Decimal("0.0000"),  # שכר — לא תשומת מע"מ
+    "entertainment":         Decimal("0.0000"),  # אירוח — אסור
+    "gifts":                 Decimal("0.0000"),  # מתנות — אסור
+    "vehicle_insurance":     Decimal("0.0000"),  # ביטוח — ללא מע"מ
+    "insurance":             Decimal("0.0000"),  # ביטוח — ללא מע"מ
+    "municipal_tax":         Decimal("0.0000"),  # ארנונה — ללא מע"מ
+
+    # שמרני — לא ידוע
+    "other":                 Decimal("0.0000"),
 }
 
 # OSEK PATUR annual turnover ceiling (updated annually per tax authority)

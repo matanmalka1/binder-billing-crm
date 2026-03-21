@@ -3,10 +3,12 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.correspondence.models.correspondence import CorrespondenceType
+
 
 class CorrespondenceCreateRequest(BaseModel):
     contact_id: Optional[int] = None
-    correspondence_type: str
+    correspondence_type: CorrespondenceType
     subject: str
     notes: Optional[str] = None
     occurred_at: datetime
@@ -14,7 +16,7 @@ class CorrespondenceCreateRequest(BaseModel):
 
 class CorrespondenceUpdateRequest(BaseModel):
     contact_id: Optional[int] = None
-    correspondence_type: Optional[str] = None
+    correspondence_type: Optional[CorrespondenceType] = None
     subject: Optional[str] = None
     notes: Optional[str] = None
     occurred_at: Optional[datetime] = None
@@ -24,12 +26,12 @@ class CorrespondenceResponse(BaseModel):
     id: int
     business_id: int
     contact_id: Optional[int] = None
-    correspondence_type: str
+    correspondence_type: CorrespondenceType
     subject: str
     notes: Optional[str] = None
     occurred_at: datetime
     created_by: int
-    created_at: Optional[datetime] = None  # nullable — older seeded rows may lack this
+    created_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

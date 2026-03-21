@@ -1,7 +1,10 @@
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
+
+from app.businesses.models.business import BusinessType, BusinessStatus
 
 
 # ─── Requests ────────────────────────────────────────────────────────────────
@@ -11,7 +14,7 @@ class BusinessCreateRequest(BaseModel):
     יצירת עסק חדש תחת לקוח קיים.
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
-    business_type: str  # osek_patur, osek_murshe, company, employee
+    business_type: BusinessType             # enum — לא str חופשי
     opened_at: date
     business_name: Optional[str] = None
     notes: Optional[str] = None
@@ -20,9 +23,8 @@ class BusinessCreateRequest(BaseModel):
 class BusinessUpdateRequest(BaseModel):
     """עדכון פרטי עסק."""
     business_name: Optional[str] = None
-    business_type: Optional[str] = None
-    status: Optional[str] = None
-    primary_binder_number: Optional[str] = None
+    business_type: Optional[BusinessType] = None    # enum
+    status: Optional[BusinessStatus] = None         # enum
     notes: Optional[str] = None
     closed_at: Optional[date] = None
 
@@ -35,13 +37,12 @@ class BulkBusinessActionRequest(BaseModel):
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 class BusinessResponse(BaseModel):
-    """תגובת עסק — כולל פרטי לקוח מצורפים."""
+    """תגובת עסק."""
     id: int
     client_id: int
     business_name: Optional[str] = None
-    business_type: str
-    status: str
-    primary_binder_number: Optional[str] = None
+    business_type: BusinessType
+    status: BusinessStatus
     opened_at: date
     closed_at: Optional[date] = None
     notes: Optional[str] = None
@@ -52,7 +53,7 @@ class BusinessResponse(BaseModel):
 
 
 class BusinessWithClientResponse(BusinessResponse):
-    """תגובת עסק עם פרטי לקוח מצורפים — לרשימת עסקים כללית."""
+    """תגובת עסק עם פרטי לקוח — לרשימת עסקים כללית."""
     client_full_name: str
     client_id_number: str
 

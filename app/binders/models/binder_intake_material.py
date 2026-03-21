@@ -26,7 +26,6 @@ class MaterialType(str, PyEnum):
 class BinderIntakeMaterial(Base):
     """
     A single item within a material intake event.
-
     Each item represents a specific material type for a specific business.
     For example: VAT invoices for the gardening business from January 2026.
 

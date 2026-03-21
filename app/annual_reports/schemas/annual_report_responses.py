@@ -3,17 +3,25 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.annual_reports.models.annual_report_enums import (
+    AnnualReportForm,
+    AnnualReportStatus,
+    AnnualReportSchedule,
+    ClientTypeForReport,
+    DeadlineType,
+    ExtensionReason,
+    SubmissionMethod,
+)
+
 
 class AnnualReportResponse(BaseModel):
     id: int
     business_id: int
-    client_id: Optional[int] = None  # תאימות לאחור
-    client_name: Optional[str] = None
     tax_year: int
-    client_type: str
-    form_type: str
-    status: str
-    deadline_type: str
+    client_type: ClientTypeForReport
+    form_type: AnnualReportForm
+    status: AnnualReportStatus
+    deadline_type: DeadlineType
     filing_deadline: Optional[datetime] = None
     custom_deadline_note: Optional[str] = None
     submitted_at: Optional[datetime] = None
@@ -26,6 +34,8 @@ class AnnualReportResponse(BaseModel):
     has_foreign_income: bool = False
     has_depreciation: bool = False
     has_exempt_rental: bool = False
+    submission_method: Optional[SubmissionMethod] = None
+    extension_reason: Optional[ExtensionReason] = None
     notes: Optional[str] = None
     created_at: datetime
     updated_at: datetime
@@ -46,12 +56,13 @@ class AnnualReportListResponse(BaseModel):
 class ScheduleEntryResponse(BaseModel):
     id: int
     annual_report_id: int
-    schedule: str
+    schedule: AnnualReportSchedule
     is_required: bool
     is_complete: bool
     notes: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+    completed_by: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -59,10 +70,9 @@ class ScheduleEntryResponse(BaseModel):
 class StatusHistoryResponse(BaseModel):
     id: int
     annual_report_id: int
-    from_status: Optional[str] = None
-    to_status: str
+    from_status: Optional[AnnualReportStatus] = None
+    to_status: AnnualReportStatus
     changed_by: int
-    changed_by_name: str
     note: Optional[str] = None
     occurred_at: datetime
 
@@ -72,11 +82,14 @@ class StatusHistoryResponse(BaseModel):
 class AnnualReportDetailResponse(AnnualReportResponse):
     schedules: list[ScheduleEntryResponse] = []
     status_history: list[StatusHistoryResponse] = []
-    tax_refund_amount: Optional[float] = None
-    tax_due_amount: Optional[float] = None
+    # פרטי מס — מ-AnnualReportDetail
+    pension_contribution: Optional[float] = None
+    donation_amount: Optional[float] = None
+    other_credits: Optional[float] = None
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
     amendment_reason: Optional[str] = None
+    # סיכום פיננסי — מחושב בשירות
     total_income: float = 0.0
     total_expenses: float = 0.0
     taxable_income: float = 0.0

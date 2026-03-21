@@ -16,12 +16,11 @@ class AnnualReportAnnexData(Base):
     __tablename__ = "annual_report_annex_data"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id"), nullable=False, index=True
-    )
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
     schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
     line_number = Column(Integer, nullable=False)
     data = Column(JSON, nullable=False)
+    data_version = Column(Integer, nullable=False, default=1)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

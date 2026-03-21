@@ -1,15 +1,19 @@
-"""VAT Invoice line-item ORM model."""
+"""
+VAT Invoice line-item ORM model.
+
+Represents a single tax document (invoice, receipt, credit note, etc.)
+attached to a VatWorkItem.
+
+Design decisions:
+- Amounts are always positive; credit notes are identified by document_type.
+- invoice_date is Date (not DateTime) — VAT reporting is calendar-date based.
+- No line-item breakdown — header-level totals sufficient for tax advisory work.
+- counterparty_id_type enables validation routing (IL checksum vs. foreign).
+"""
 
 from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    Numeric,
-    String,
-    UniqueConstraint,
+    Boolean, Column, Date, ForeignKey,
+    Index, Integer, Numeric, String, UniqueConstraint,
 )
 from app.utils.enum_utils import pg_enum
 
@@ -20,70 +24,61 @@ from app.vat_reports.models.vat_enums import (
     ExpenseCategory,
     InvoiceType,
     VatRateType,
+    CounterpartyIdType
 )
 
 
+
 class VatInvoice(Base):
-    """
-    A single income or expense invoice line attached to a VatWorkItem.
-
-    Invoice numbers must be unique per client per period per type to prevent
-    duplicate entry.
-    """
-
     __tablename__ = "vat_invoices"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    work_item_id = Column(Integer, ForeignKey("vat_work_items.id"),
+                          nullable=False, index=True)
+    created_by   = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    work_item_id = Column(
-        Integer, ForeignKey("vat_work_items.id"), nullable=False, index=True
-    )
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Document classification
+    invoice_type  = Column(pg_enum(InvoiceType), nullable=False)
+    document_type = Column(pg_enum(DocumentType), nullable=True)
+    # CREDIT_NOTE reversal is applied in service layer — amounts always positive here
 
     # Invoice identity
-    invoice_type = Column(pg_enum(InvoiceType), nullable=False)
     invoice_number = Column(String, nullable=False)
-    invoice_date = Column(DateTime, nullable=False)
+    invoice_date   = Column(Date, nullable=False)  # Date only — no timezone issues
 
     # Counterparty
-    counterparty_name = Column(String, nullable=False)
-    counterparty_id = Column(String, nullable=True)  # business ID / VAT number
+    counterparty_name    = Column(String, nullable=False)
+    counterparty_id      = Column(String, nullable=True)   # מספר עוסק / ת"ז / דרכון
+    counterparty_id_type = Column(pg_enum(CounterpartyIdType), nullable=True)
+    # Validation routing: IL_BUSINESS/IL_PERSONAL → checksum; FOREIGN → free text
 
-    # Amounts (ILS, no negatives allowed)
+    # Amounts — always positive; credit notes identified via document_type
     net_amount = Column(Numeric(12, 2), nullable=False)
     vat_amount = Column(Numeric(12, 2), nullable=False)
 
-    # Expense-only classification
+    # VAT classification
     expense_category = Column(pg_enum(ExpenseCategory), nullable=True)
+    rate_type        = Column(pg_enum(VatRateType), nullable=False,
+                              default=VatRateType.STANDARD)
+    deduction_rate   = Column(Numeric(5, 4), nullable=False, default=1.0000)
+    # Auto-populated from CATEGORY_DEDUCTION_RATES on create/update
 
-    # VAT rate category (חייב / פטור / אפס)
-    rate_type = Column(
-        pg_enum(VatRateType), nullable=False, default=VatRateType.STANDARD
-    )
-
-    # Deduction rate for input VAT (0.0–1.0); auto-set from expense_category
-    deduction_rate = Column(Numeric(5, 4), nullable=False, default=1.0000)
-
-    # Document type (חשבונית מס / עסקה / קבלה / מרוכזת / עצמית)
-    document_type = Column(pg_enum(DocumentType), nullable=True)
-
-    # Exceptional invoice flag: net_amount > 25,000 ₪ requires special handling
+    # Exceptional invoice flag (> 25,000 ₪ net — requires special handling)
     is_exceptional = Column(Boolean, nullable=False, default=False)
 
-    # Timestamps
-    created_at = Column(DateTime, nullable=False, default=utcnow)
+    # Timestamp
+    created_at = Column(Date, nullable=False, default=utcnow)
 
     __table_args__ = (
         UniqueConstraint(
-            "work_item_id",
-            "invoice_type",
-            "invoice_number",
+            "work_item_id", "invoice_type", "invoice_number",
             name="uq_vat_invoice_item_type_number",
         ),
         Index("ix_vat_invoices_work_item_type", "work_item_id", "invoice_type"),
+        Index("ix_vat_invoices_date", "invoice_date"),
     )
 
-    def __repr__(self) -> str:  # pragma: no cover
+    def __repr__(self) -> str:
         return (
             f"<VatInvoice(id={self.id}, work_item_id={self.work_item_id}, "
             f"type={self.invoice_type}, number={self.invoice_number})>"

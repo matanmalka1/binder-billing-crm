@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.users.models.user_audit_log import AuditAction
-from app.users.models.user_management import UserAuditLogListResponse, UserAuditLogResponse
+from app.users.schemas.user_management import UserAuditLogListResponse, UserAuditLogResponse
 from app.users.services.audit_log_service import AuditLogService
 
 router = APIRouter(

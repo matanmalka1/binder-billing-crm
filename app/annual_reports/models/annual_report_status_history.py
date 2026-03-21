@@ -15,13 +15,10 @@ class AnnualReportStatusHistory(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
-
-    from_status = Column(pg_enum(AnnualReportStatus), nullable=True)  # null on first entry
+    from_status = Column(pg_enum(AnnualReportStatus), nullable=True)
     to_status = Column(pg_enum(AnnualReportStatus), nullable=False)
     changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    changed_by_name = Column(String, nullable=False)
     note = Column(Text, nullable=True)
-    occurred_at = Column(DateTime, default=utcnow, nullable=False)
-
+    occurred_at = Column(DateTime, nullable=False, default=utcnow)
 
 __all__ = ["AnnualReportStatusHistory"]

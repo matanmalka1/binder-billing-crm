@@ -1,9 +1,7 @@
-"""Schemas for annex (schedule) data lines."""
-
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 
@@ -14,9 +12,10 @@ class AnnexDataLineResponse(BaseModel):
     schedule: AnnualReportSchedule
     line_number: int
     data: dict[str, Any]
-    notes: Optional[str]
+    data_version: int  # נוסף — קיים במודל
+    notes: Optional[str] = None
     created_at: datetime
-    updated_at: Optional[datetime]
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -29,6 +28,3 @@ class AnnexDataAddRequest(BaseModel):
 class AnnexDataUpdateRequest(BaseModel):
     data: dict[str, Any]
     notes: Optional[str] = None
-
-
-__all__ = ["AnnexDataLineResponse", "AnnexDataAddRequest", "AnnexDataUpdateRequest"]

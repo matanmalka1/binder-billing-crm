@@ -3,17 +3,21 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.binders.models.binder import BinderStatus
+
 
 class BinderDetailResponse(BaseModel):
-    """Binder response with derived operational fields."""
-
+    """תצוגה מורחבת עם שדות תפעוליים — לתור העבודה ולוח המחוונים."""
     id: int
-    business_id: int
+    client_id: int
+    client_name: Optional[str] = None
     binder_number: str
-    status: str
-    received_at: date
+    period_start: date
+    period_end: Optional[date] = None
+    status: BinderStatus
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
+    days_active: Optional[int] = None
     work_state: Optional[str] = None
     signals: list[str] = []
 
@@ -21,28 +25,7 @@ class BinderDetailResponse(BaseModel):
 
 
 class BinderListResponseExtended(BaseModel):
-    """Paginated binder list response."""
-    
     items: list[BinderDetailResponse]
     page: int
     page_size: int
     total: int
-
-
-class BinderHistoryEntry(BaseModel):
-    """Single binder status log entry."""
-    
-    old_status: str
-    new_status: str
-    changed_by: int
-    changed_at: str
-    notes: Optional[str] = None
-
-    model_config = {"from_attributes": True}
-
-
-class BinderHistoryResponse(BaseModel):
-    """Binder audit history response."""
-    
-    binder_id: int
-    history: list[BinderHistoryEntry]

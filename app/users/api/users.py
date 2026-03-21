@@ -3,7 +3,7 @@ from typing import Optional
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.users.models.user_management import (
+from app.users.schemas.user_management import (
     PasswordResetRequest,
     UserCreateRequest,
     UserManagementListResponse,

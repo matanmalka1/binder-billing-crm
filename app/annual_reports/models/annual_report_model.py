@@ -11,6 +11,8 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     ClientTypeForReport,
     DeadlineType,
+    SubmissionMethod,
+    ExtensionReason
 )
  
  
@@ -44,7 +46,10 @@ class AnnualReport(Base):
     has_foreign_income = Column(Boolean, default=False, nullable=False)
     has_depreciation = Column(Boolean, default=False, nullable=False)
     has_exempt_rental = Column(Boolean, default=False, nullable=False)
- 
+  
+    submission_method = Column(pg_enum(SubmissionMethod), nullable=True)
+    extension_reason  = Column(pg_enum(ExtensionReason),  nullable=True)
+
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)

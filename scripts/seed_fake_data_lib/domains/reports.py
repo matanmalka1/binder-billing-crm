@@ -4,9 +4,11 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
-from app.annual_reports.services.constants import VALID_TRANSITIONS
-from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
+from app.annual_reports.models.annual_report_credit_point_reason import (
+    AnnualReportCreditPoint,
+    CreditPointReason,
+)
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
     ExpenseCategoryType,
@@ -22,10 +24,62 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     ClientTypeForReport,
     DeadlineType,
+    ExtensionReason,
+    SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.models.business import BusinessType
 from app.users.models.user import UserRole
+
+
+def standard_deadline(tax_year: int) -> datetime:
+    return datetime(tax_year + 1, 4, 30, 23, 59, 59)
+
+
+def extended_deadline(tax_year: int) -> datetime:
+    return datetime(tax_year + 2, 1, 31, 23, 59, 59)
+
+
+VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
+    AnnualReportStatus.NOT_STARTED: {AnnualReportStatus.COLLECTING_DOCS},
+    AnnualReportStatus.COLLECTING_DOCS: {
+        AnnualReportStatus.DOCS_COMPLETE,
+        AnnualReportStatus.NOT_STARTED,
+    },
+    AnnualReportStatus.DOCS_COMPLETE: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.COLLECTING_DOCS,
+    },
+    AnnualReportStatus.IN_PREPARATION: {
+        AnnualReportStatus.PENDING_CLIENT,
+        AnnualReportStatus.DOCS_COMPLETE,
+    },
+    AnnualReportStatus.PENDING_CLIENT: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.SUBMITTED,
+    },
+    AnnualReportStatus.SUBMITTED: {
+        AnnualReportStatus.ACCEPTED,
+        AnnualReportStatus.ASSESSMENT_ISSUED,
+    },
+    AnnualReportStatus.AMENDED: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.SUBMITTED,
+    },
+    AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
+    AnnualReportStatus.ASSESSMENT_ISSUED: {
+        AnnualReportStatus.OBJECTION_FILED,
+        AnnualReportStatus.CLOSED,
+        AnnualReportStatus.PENDING_CLIENT,
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.DOCS_COMPLETE,
+    },
+    AnnualReportStatus.OBJECTION_FILED: {
+        AnnualReportStatus.CLOSED,
+        AnnualReportStatus.DOCS_COMPLETE,
+    },
+    AnnualReportStatus.CLOSED: set(),
+}
 
 
 SEEDABLE_STATUSES = [
@@ -105,6 +159,16 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             else:
                 filing_deadline = None
                 custom_deadline_note = "מועד מותאם אישית בסביבת דמו"
+            submission_method = (
+                rng.choice(list(SubmissionMethod))
+                if status in (AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED, AnnualReportStatus.CLOSED)
+                else None
+            )
+            extension_reason = (
+                rng.choice(list(ExtensionReason))
+                if deadline_type == DeadlineType.CUSTOM
+                else None
+            )
             submitted_at = (
                 datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
                 if status
@@ -136,6 +200,8 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 has_foreign_income=rng.random() < 0.2,
                 has_depreciation=rng.random() < 0.2,
                 has_exempt_rental=rng.random() < 0.15,
+                submission_method=submission_method,
+                extension_reason=extension_reason,
                 notes=rng.choice(["", "דורש בדיקה", "ממתין לחתימת לקוח"]),
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 400)),
                 updated_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
@@ -150,20 +216,11 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
 
 def create_annual_report_details(db, rng: Random, reports) -> None:
     for report in reports:
-        if rng.random() > 0.6:
-            continue
-
-        tax_refund_amount = None
-        tax_due_amount = None
-        if rng.random() < 0.5:
-            tax_refund_amount = Decimal(str(round(rng.uniform(500, 5000), 2)))
-        else:
-            tax_due_amount = Decimal(str(round(rng.uniform(500, 7500), 2)))
-
         detail = AnnualReportDetail(
             report_id=report.id,
-            tax_refund_amount=tax_refund_amount,
-            tax_due_amount=tax_due_amount,
+            pension_contribution=Decimal(str(round(rng.uniform(0, 15000), 2))),
+            donation_amount=Decimal(str(round(rng.uniform(0, 6000), 2))),
+            other_credits=Decimal(str(round(rng.uniform(0, 3500), 2))),
             client_approved_at=(
                 datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
                 if rng.random() < 0.5
@@ -177,6 +234,8 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
                     'לבדוק שוב את קלטי המע"מ',
                 ]
             ),
+            amendment_reason=rng.choice([None, "תיקון לפי מסמכים מעודכנים"]),
+            created_at=report.created_at,
         )
         db.add(detail)
     db.flush()
@@ -311,7 +370,6 @@ def create_annual_report_annex_data(db, rng: Random, reports) -> None:
 
 
 def create_annual_report_status_history(db, rng: Random, reports, users) -> None:
-    user_lookup = {u.id: u for u in users}
     fallback_user = users[0] if users else None
     for report in reports:
         history_statuses = _status_path_to(report.status)
@@ -319,21 +377,35 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
         occurred_at = report.created_at
         for status in history_statuses:
             actor_id = report.created_by or report.assigned_to or (fallback_user.id if fallback_user else None)
-            actor_name = (
-                user_lookup.get(actor_id).full_name
-                if actor_id in user_lookup
-                else "זורע נתונים"
-            )
+            if actor_id is None and fallback_user:
+                actor_id = fallback_user.id
             occurred_at += timedelta(hours=rng.randint(1, 72))
             entry = AnnualReportStatusHistory(
                 annual_report_id=report.id,
                 from_status=previous,
                 to_status=status,
                 changed_by=actor_id,
-                changed_by_name=actor_name,
                 note="היסטוריית סטטוסים שנוצרה אוטומטית",
                 occurred_at=occurred_at,
             )
             db.add(entry)
             previous = status
+    db.flush()
+
+
+def create_annual_report_credit_points(db, rng: Random, reports) -> None:
+    for report in reports:
+        reason_candidates = list(CreditPointReason)
+        rng.shuffle(reason_candidates)
+        selected = reason_candidates[: rng.randint(1, min(3, len(reason_candidates)))]
+        for reason in selected:
+            points = Decimal("2.25") if reason == CreditPointReason.RESIDENT else Decimal(str(rng.choice([0.5, 1.0, 1.5, 2.0])))
+            db.add(
+                AnnualReportCreditPoint(
+                    annual_report_id=report.id,
+                    reason=reason,
+                    points=points,
+                    notes=rng.choice([None, "נקודת זיכוי לפי נתוני לקוח"]),
+                )
+            )
     db.flush()

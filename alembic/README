@@ -7,15 +7,33 @@
 - New migration filename convention: `NNNN_<description>.py` (sequential numeric prefix).
 - After any SQLAlchemy model change:
   1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
-  2. Review the generated migration.
+  2. Review the generated migration — fix any `sqlite_where`/`postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
-## Required: top instructions in every migration file
-For every new file in `alembic/versions/`, include operator instructions in the top docstring so the migration is self-explanatory.
+## Known autogenerate quirk — partial index `where` clauses
 
-Use this pattern:
+Alembic autogenerate writes `sqlite_where='...'` as a plain string.
+SQLAlchemy 2.x requires a `ClauseElement`, so you must wrap it manually:
+
+```python
+# Generated (broken):
+op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
+    unique=True,
+    sqlite_where='deleted_at IS NULL',
+    postgresql_where='deleted_at IS NULL')
+
+# Fixed:
+op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
+    unique=True,
+    sqlite_where=sa.text('deleted_at IS NULL'),
+    postgresql_where=sa.text('deleted_at IS NULL'))
+```
+
+Always check every `create_index` call with a `where` argument after autogenerate.
+
+## Required: top instructions in every migration file
 
 ```python
 """<short title>
@@ -25,7 +43,7 @@ Revises: <down_revision>
 Create Date: <YYYY-MM-DD HH:MM:SS>
 
 Run:
-- Upgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade <revision_id>
+- Upgrade:   APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade <revision_id>
 - Downgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic downgrade <down_revision>
 
 Notes:
@@ -38,108 +56,58 @@ Notes:
 ## Migration chain
 
 ```
-0001_initial_schema
-    └── a7529d8677dc
-            └── c3f9b0a1d2e4
-                    └── d1e2f3a4b5c6
-                            └── e1f2a3b4c5d6  ← HEAD
+f90ff6e80bcf  ← HEAD (initial_schema — fresh start 2026-03-21)
 ```
 
-## Run instructions for each existing migration
+## Run instructions
 
-### 1. `0001_initial_schema`
+### `f90ff6e80bcf` ← HEAD
 - Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0001_initial_schema`
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
-  Creates the initial schema from ORM models.
-- Important note:
-  If tables already exist (for example `users`), this migration exits early by design.
-
-### 2. `a7529d8677dc`
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade a7529d8677dc`
-- What it does:
-  Fixes `permanent_documents` enum typing on PostgreSQL and adjusts several indexes/uniqueness constraints.
-- Important note:
-  PostgreSQL-only enum conversions run conditionally; SQLite applies only the index changes.
-
-### 3. `c3f9b0a1d2e4`
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade c3f9b0a1d2e4`
-- What it does:
-  Fixes the `idx_active_binder_unique` index on `binders` to exclude soft-deleted rows (`deleted_at IS NULL`).
-- Important note:
-  Safe to run on both PostgreSQL and SQLite.
-
-### 4. `d1e2f3a4b5c6`
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade d1e2f3a4b5c6`
-- What it does:
-  Adds `restored_at` and `restored_by` columns to the `clients` table to track client restore operations.
-- Important note:
-  If the columns already exist (DB was modified manually), run `alembic stamp d1e2f3a4b5c6` instead.
-
-### 5. `e1f2a3b4c5d6` ← HEAD
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade e1f2a3b4c5d6`
-- What it does:
-  Major architectural migration — introduces `businesses` as a separate entity from `clients`:
-  1. Creates `businesses` table — every existing client becomes one business automatically.
-  2. Creates `business_tax_profiles` — replaces `client_tax_profiles`.
-  3. Creates `authority_contact_links` — many-to-many between contacts, clients, and businesses.
-  4. Adds `business_id` to all business-level tables (`annual_reports`, `vat_work_items`, `charges`, `advance_payments`, `tax_deadlines`, `binders`, `correspondence_entries`, `signature_requests`, `notifications`, `reminders`, `permanent_documents`).
-  5. Migrates data from `client_id` to `business_id` in all affected tables.
-  6. Adds `scope` column to `permanent_documents` (`client` / `business`).
-  7. Adds `deleted_at` / `deleted_by` to tables that were missing them (`vat_work_items`, `advance_payments`, `tax_deadlines`, `signature_requests`, `reminders`).
-  8. Updates unique constraints to use `business_id` instead of `client_id`.
-  9. PostgreSQL only: removes business-specific columns from `clients` (`client_type`, `status`, `primary_binder_number`, `opened_at`, `closed_at`, `notes`).
+  Full initial schema — all tables, indexes, constraints, and enums from scratch.
+  Covers: users, clients, businesses, business_tax_profiles, binders, annual_reports,
+  vat_work_items, vat_invoices, vat_audit_logs, charges, invoices, advance_payments,
+  tax_deadlines, reminders, notifications, permanent_documents, signature_requests,
+  signature_audit_events, correspondence_entries, authority_contacts, authority_contact_links,
+  binder_intakes, binder_intake_materials, binder_status_logs, annual_report_* sub-tables.
 - Important notes:
-  - **downgrade is not supported** — restore from backup if rollback is needed.
-  - SQLite: business-specific columns remain on `clients` (unused) because SQLite does not support `DROP COLUMN`.
-  - Always take a full DB backup before running this migration in production.
-  - The migration is idempotent — safe to re-run if interrupted midway.
+  - After autogenerate, manually wrap all partial-index `where` args with `sa.text(...)`.
+  - SQLite and PostgreSQL both supported via dual `sqlite_where` / `postgresql_where` args.
 
 ## Daily commands
 
-- Show current revision:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic current`
+```bash
+# Show current revision
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic current
 
-- Show revision history:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic history --verbose`
+# Show full history
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic history --verbose
 
-- Upgrade to latest:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+# Upgrade to latest
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
 
-- Downgrade one step:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic downgrade -1`
+# Downgrade one step
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic downgrade -1
 
-- Stamp without running (mark revision as done):
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision_id>`
+# Stamp without running (mark revision as applied)
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision_id>
+```
 
 ## Creating a new migration
 
 1. Update SQLAlchemy models.
-2. Generate migration:
-   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<short_description>"`
+2. Generate:
+   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
 3. Edit the generated file:
-   - Add the required top instructions docstring section.
-   - Review enum/index/constraint operations carefully (especially PostgreSQL-specific parts).
-   - Ensure `down_revision` points to the latest previous migration (`e1f2a3b4c5d6`).
-   - Use `_column_exists` / `_index_exists` guards for idempotent operations.
-4. Apply migration:
+   - Add the required top docstring.
+   - Wrap all partial-index `where` strings with `sa.text(...)`.
+   - Ensure `down_revision` points to `f90ff6e80bcf` (or the current HEAD).
+4. Apply:
    `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-5. Optional safety check for reversible migrations:
-   - `... downgrade -1`
-   - `... upgrade head`
 
 ## Environment notes
 
 - `alembic/env.py` reads `DATABASE_URL` from app config.
-- Set `APP_ENV` and `ENV_FILE` so required settings (for example `JWT_SECRET`) are loaded.
-- Production startup already runs migrations first (`alembic upgrade head && ...` in `render.yaml`).
-
-## Known limitations
-
-- `e1f2a3b4c5d6` downgrade is intentionally not implemented — the data migration is irreversible.
-- SQLite does not support `DROP COLUMN` or `ALTER COLUMN NOT NULL` — some steps are PostgreSQL-only.
-- The `client_tax_profiles` table is kept intact after migration (not dropped) for safety — can be dropped manually after verifying `business_tax_profiles` is complete.
+- Always set `APP_ENV` and `ENV_FILE` so `JWT_SECRET` and other required settings are loaded.
+- Production startup runs migrations first: `alembic upgrade head && gunicorn ...`

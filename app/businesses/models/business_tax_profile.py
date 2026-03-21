@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Column,Date, DateTime, ForeignKey, Integer, Numeric, String
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -27,10 +27,13 @@ class BusinessTaxProfile(Base):
     )
 
     vat_type = Column(pg_enum(VatType), nullable=True)
-    business_type = Column(String, nullable=True)
-    tax_year_start = Column(Integer, nullable=True)
-    accountant_name = Column(String, nullable=True)
+    vat_start_date = Column(Date, nullable=True)
+    accountant_name = Column(String(100), nullable=True)
+    vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
+    advance_rate_updated_at = Column(Date, nullable=True)
+
+    fiscal_year_start_month = Column(Integer, nullable=False, default=1)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

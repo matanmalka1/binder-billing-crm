@@ -14,9 +14,9 @@ from .taxes import DEADLINE_LABELS
 def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
     reminders = []
     today = date.today()
-    binders_by_business = {}
+    binders_by_client = {}
     for binder in binders:
-        binders_by_business.setdefault(binder.business_id, []).append(binder)
+        binders_by_client.setdefault(binder.client_id, []).append(binder)
     charges_by_business = {}
     for charge in charges:
         charges_by_business.setdefault(charge.business_id, []).append(charge)
@@ -25,7 +25,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
         deadlines_by_business.setdefault(deadline.business_id, []).append(deadline)
 
     for business in businesses:
-        business_binders = binders_by_business.get(business.id, [])
+        business_binders = binders_by_client.get(business.client_id, [])
         business_charges = charges_by_business.get(business.id, [])
         business_deadlines = deadlines_by_business.get(business.id, [])
 
@@ -51,7 +51,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
         idle_binders = [b for b in business_binders if b.status != BinderStatus.RETURNED]
         if idle_binders:
             binder = rng.choice(idle_binders)
-            days_idle = max(14, (today - binder.received_at).days)
+            days_idle = max(14, (today - binder.period_start).days)
             reminder = Reminder(
                 business_id=business.id,
                 reminder_type=ReminderType.BINDER_IDLE,

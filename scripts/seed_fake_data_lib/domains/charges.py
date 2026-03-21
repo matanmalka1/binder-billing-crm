@@ -31,22 +31,40 @@ def create_charges(db, rng: Random, cfg, businesses) -> list[Charge]:
 
             charge_type = rng.choice(list(ChargeType))
             period = None
-            if charge_type == ChargeType.RETAINER:
+            months_covered = 1
+            if charge_type == ChargeType.MONTHLY_RETAINER:
                 month = rng.randint(1, 12)
                 year = date.today().year - rng.randint(0, 1)
                 period = f"{year}-{month:02d}"
+            elif charge_type in (ChargeType.VAT_FILING_FEE, ChargeType.OTHER) and rng.random() < 0.4:
+                month = rng.randint(1, 12)
+                year = date.today().year - rng.randint(0, 1)
+                period = f"{year}-{month:02d}"
+                months_covered = rng.choice([1, 2])
 
             amount = Decimal(str(round(rng.uniform(250, 7500), 2)))
             charge = Charge(
                 business_id=business.id,
                 amount=amount,
-                currency="ILS",
                 charge_type=charge_type,
                 period=period,
+                months_covered=months_covered,
                 status=status,
+                description=rng.choice(
+                    [
+                        None,
+                        "חיוב שירות חודשי",
+                        "חיוב עבודה נקודתית",
+                        "התחשבנות תקופתית",
+                    ]
+                ),
                 created_at=created_at,
                 issued_at=issued_at,
                 paid_at=paid_at,
+                issued_by=None,
+                paid_by=None,
+                canceled_at=(created_at + timedelta(days=rng.randint(1, 8))) if status == ChargeStatus.CANCELED else None,
+                canceled_by=None,
             )
             db.add(charge)
             charges.append(charge)

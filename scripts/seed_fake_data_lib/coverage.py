@@ -13,6 +13,7 @@ class SeedCoverageValidator:
         # Imported lazily to keep module import light and avoid mapper ordering issues.
         from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
         from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
+        from app.annual_reports.models.annual_report_credit_point_reason import AnnualReportCreditPoint
         from app.annual_reports.models.annual_report_enums import AnnualReportSchedule, AnnualReportStatus
         from app.annual_reports.models.annual_report_expense_line import AnnualReportExpenseLine
         from app.annual_reports.models.annual_report_income_line import AnnualReportIncomeLine
@@ -21,6 +22,10 @@ class SeedCoverageValidator:
         from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
         from app.authority_contact.models.authority_contact import AuthorityContact
         from app.binders.models.binder import Binder, BinderStatus
+        from app.binders.models.binder_intake import BinderIntake
+        from app.binders.models.binder_intake_material import BinderIntakeMaterial
+        from app.businesses.models.business import Business
+        from app.businesses.models.business_tax_profile import BusinessTaxProfile
         from app.charge.models.charge import Charge, ChargeStatus
         from app.clients.models.client import Client
         from app.notification.models.notification import Notification, NotificationChannel, NotificationStatus
@@ -59,12 +64,22 @@ class SeedCoverageValidator:
         self._expect_min_count(errors, counts, "annual_report_expense_lines", expected_reports)
         self._expect_min_count(errors, counts, "annual_report_annex_data", expected_reports)
         self._expect_min_count(errors, counts, "annual_report_status_history", expected_reports)
+        self._expect_min_count(errors, counts, "annual_report_credit_points", expected_reports)
+        self._expect_min_count(errors, counts, "business_tax_profiles", self.cfg.clients)
+        self._expect_min_count(errors, counts, "binder_intake_materials", self.cfg.clients)
 
         client_ids = [client_id for (client_id,) in db.execute(select(Client.id)).all()]
         if len(client_ids) != self.cfg.clients:
             errors.append(
                 f"expected {self.cfg.clients} clients for coverage checks, found {len(client_ids)}"
             )
+        business_rows = db.execute(select(Business.id, Business.client_id)).all()
+        business_client_map = {int(business_id): int(client_id) for business_id, client_id in business_rows}
+        if len(business_client_map) < len(client_ids):
+            errors.append(
+                f"business coverage mismatch: expected at least {len(client_ids)} businesses, got {len(business_client_map)}"
+            )
+        business_ids = list(business_client_map.keys())
 
         self._assert_per_client_bounds(
             errors,
@@ -78,7 +93,7 @@ class SeedCoverageValidator:
             errors,
             label="charges/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, Charge, Charge.client_id),
+            per_client_counts=self._count_by_business_fk(db, Charge.business_id, business_client_map),
             minimum=self.cfg.min_charges_per_client,
             maximum=self.cfg.max_charges_per_client,
         )
@@ -86,7 +101,7 @@ class SeedCoverageValidator:
             errors,
             label="tax_deadlines/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, TaxDeadline, TaxDeadline.client_id),
+            per_client_counts=self._count_by_business_fk(db, TaxDeadline.business_id, business_client_map),
             minimum=self.cfg.min_tax_deadlines_per_client,
             maximum=self.cfg.max_tax_deadlines_per_client,
         )
@@ -94,7 +109,7 @@ class SeedCoverageValidator:
             errors,
             label="authority_contacts/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, AuthorityContact, AuthorityContact.client_id),
+            per_client_counts=self._count_by_business_fk(db, AuthorityContact.business_id, business_client_map),
             minimum=self.cfg.min_authority_contacts_per_client,
             maximum=self.cfg.max_authority_contacts_per_client,
         )
@@ -102,7 +117,7 @@ class SeedCoverageValidator:
             errors,
             label="vat_work_items/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, VatWorkItem, VatWorkItem.client_id),
+            per_client_counts=self._count_by_business_fk(db, VatWorkItem.business_id, business_client_map),
             minimum=self.cfg.min_vat_work_items_per_client,
             maximum=self.cfg.max_vat_work_items_per_client,
         )
@@ -110,7 +125,7 @@ class SeedCoverageValidator:
             errors,
             label="annual_reports/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, AnnualReport, AnnualReport.client_id),
+            per_client_counts=self._count_by_business_fk(db, AnnualReport.business_id, business_client_map),
             minimum=expected_reports_per_client,
             maximum=expected_reports_per_client,
         )
@@ -118,7 +133,7 @@ class SeedCoverageValidator:
             errors,
             label="signature_requests/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, SignatureRequest, SignatureRequest.client_id),
+            per_client_counts=self._count_by_business_fk(db, SignatureRequest.business_id, business_client_map),
             minimum=self.cfg.signature_requests_per_client,
             maximum=self.cfg.signature_requests_per_client,
         )
@@ -134,7 +149,7 @@ class SeedCoverageValidator:
             errors,
             label="advance_payments/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, AdvancePayment, AdvancePayment.client_id),
+            per_client_counts=self._count_by_business_fk(db, AdvancePayment.business_id, business_client_map),
             minimum=3,
             maximum=7,
         )
@@ -191,6 +206,29 @@ class SeedCoverageValidator:
             fk_counts=self._count_by_fk(db, AnnualReportStatusHistory, AnnualReportStatusHistory.annual_report_id),
             minimum=1,
         )
+        self._assert_fk_presence(
+            errors,
+            label="annual_report_credit_points/report",
+            parent_ids=report_ids,
+            fk_counts=self._count_by_fk(db, AnnualReportCreditPoint, AnnualReportCreditPoint.annual_report_id),
+            minimum=1,
+        )
+        self._assert_fk_presence(
+            errors,
+            label="business_tax_profiles/business",
+            parent_ids=business_ids,
+            fk_counts=self._count_by_fk(db, BusinessTaxProfile, BusinessTaxProfile.business_id),
+            minimum=1,
+            maximum=1,
+        )
+        intake_ids = [intake_id for (intake_id,) in db.execute(select(BinderIntake.id)).all()]
+        self._assert_fk_presence(
+            errors,
+            label="binder_intake_materials/intake",
+            parent_ids=intake_ids,
+            fk_counts=self._count_by_fk(db, BinderIntakeMaterial, BinderIntakeMaterial.intake_id),
+            minimum=1,
+        )
 
         signature_request_ids = [
             request_id for (request_id,) in db.execute(select(SignatureRequest.id)).all()
@@ -206,7 +244,6 @@ class SeedCoverageValidator:
             ),
             minimum=1,
         )
-
         sent_without_sent_at = int(
             db.execute(
                 select(func.count())
@@ -396,6 +433,22 @@ class SeedCoverageValidator:
             .group_by(fk_column)
         ).all()
         return {int(fk_id): int(count) for fk_id, count in rows if fk_id is not None}
+
+    @staticmethod
+    def _count_by_business_fk(db, business_fk_column, business_client_map: Dict[int, int]) -> Dict[int, int]:
+        per_business_rows = db.execute(
+            select(business_fk_column, func.count())
+            .group_by(business_fk_column)
+        ).all()
+        per_client: Dict[int, int] = {}
+        for business_id, count in per_business_rows:
+            if business_id is None:
+                continue
+            client_id = business_client_map.get(int(business_id))
+            if client_id is None:
+                continue
+            per_client[client_id] = per_client.get(client_id, 0) + int(count)
+        return per_client
 
     @staticmethod
     def _assert_per_client_bounds(

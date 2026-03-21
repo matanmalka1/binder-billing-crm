@@ -8,13 +8,17 @@ from random import Random
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import (
+    CounterpartyIdType,
+    DocumentType,
     ExpenseCategory,
-    FilingMethod,
     InvoiceType,
+    VatRateType,
     VatWorkItemStatus,
 )
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.businesses.models.business_tax_profile import VatType
+from app.annual_reports.models.annual_report_enums import SubmissionMethod
 
 
 def _choose_periods(rng: Random, count: int) -> list[str]:
@@ -30,12 +34,12 @@ def _choose_periods(rng: Random, count: int) -> list[str]:
     return periods[:count]
 
 
-def create_vat_work_items(db, rng: Random, cfg, clients, users) -> list[VatWorkItem]:
+def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWorkItem]:
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
     work_items: list[VatWorkItem] = []
 
-    for client in clients:
+    for business in businesses:
         num_items = rng.randint(cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client)
         periods = _choose_periods(rng, num_items)
         for period in periods:
@@ -53,10 +57,11 @@ def create_vat_work_items(db, rng: Random, cfg, clients, users) -> list[VatWorkI
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
             work_item = VatWorkItem(
-                client_id=client.id,
+                business_id=business.id,
                 created_by=created_by,
                 assigned_to=rng.choice(advisors) if advisors and rng.random() < 0.7 else None,
                 period=period,
+                period_type=rng.choice([VatType.MONTHLY, VatType.BIMONTHLY]),
                 status=status,
                 pending_materials_note="ממתינים לחשבוניות מהלקוח"
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
@@ -64,9 +69,10 @@ def create_vat_work_items(db, rng: Random, cfg, clients, users) -> list[VatWorkI
             )
 
             if status == VatWorkItemStatus.FILED:
-                work_item.filing_method = rng.choice(list(FilingMethod))
+                work_item.submission_method = rng.choice(list(SubmissionMethod))
                 work_item.filed_at = datetime.now(UTC) - timedelta(days=rng.randint(1, 90))
                 work_item.filed_by = work_item.assigned_to or work_item.created_by
+                work_item.submission_reference = f"VAT-{work_item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
 
             db.add(work_item)
             work_items.append(work_item)
@@ -94,13 +100,18 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 work_item_id=work_item.id,
                 created_by=work_item.created_by or rng.choice(users).id,
                 invoice_type=invoice_type,
+                document_type=rng.choice(list(DocumentType)),
                 invoice_number=invoice_number,
-                invoice_date=datetime.now(UTC) - timedelta(days=rng.randint(1, 60)),
+                invoice_date=(datetime.now(UTC) - timedelta(days=rng.randint(1, 60))).date(),
                 counterparty_name=rng.choice(["לקוח", "ספק", "סוכנות"]) + f" {rng.randint(1, 999)}",
                 counterparty_id=str(rng.randint(100000000, 999999999)),
+                counterparty_id_type=rng.choice(list(CounterpartyIdType)),
                 net_amount=base_amount,
                 vat_amount=vat_amount,
                 expense_category=rng.choice(list(ExpenseCategory)) if invoice_type == InvoiceType.EXPENSE else None,
+                rate_type=rng.choice([VatRateType.STANDARD, VatRateType.STANDARD, VatRateType.ZERO_RATE]),
+                deduction_rate=Decimal("1.0000"),
+                is_exceptional=base_amount > Decimal("25000"),
             )
             db.add(invoice)
             invoices.append(invoice)
@@ -119,6 +130,15 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
         work_item.total_output_vat = output_vat
         work_item.total_input_vat = input_vat
         work_item.net_vat = output_vat - input_vat
+        work_item.total_output_net = Decimal("0.00")
+        work_item.total_input_net = Decimal("0.00")
+        for invoice in invoices:
+            if invoice.work_item_id != work_item.id:
+                continue
+            if invoice.invoice_type == InvoiceType.INCOME:
+                work_item.total_output_net += Decimal(invoice.net_amount)
+            else:
+                work_item.total_input_net += Decimal(invoice.net_amount)
 
         if work_item.status == VatWorkItemStatus.FILED:
             work_item.final_vat_amount = work_item.net_vat
@@ -150,6 +170,7 @@ def create_vat_audit_logs(db, rng: Random, work_items, users) -> None:
                 old_value=old,
                 new_value=new,
                 note=None,
+                invoice_id=None,
             )
             db.add(log)
     db.flush()

@@ -19,10 +19,12 @@ class User(Base):
     full_name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False, index=True)
     phone = Column(String, nullable=True)
-    password_hash = Column(String, nullable=False)
+    password_hash = Column(String(60),  nullable=False)
+    
     role = Column(pg_enum(UserRole), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    token_version = Column(Integer, default=0, nullable=False)
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
+    
     created_at = Column(DateTime, default=utcnow, nullable=False)
     last_login_at = Column(DateTime, nullable=True)
 

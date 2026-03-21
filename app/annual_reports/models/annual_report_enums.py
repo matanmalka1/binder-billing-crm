@@ -36,13 +36,15 @@ class AnnualReportStatus(str, PyEnum):
 
 class AnnualReportSchedule(str, PyEnum):
     """Annexes / schedules that may be required alongside the main form."""
-
-    SCHEDULE_B = "schedule_b"          # נספח ב — שכירות
-    SCHEDULE_BET = "schedule_bet"      # נספח בית — רווחי הון
-    SCHEDULE_GIMMEL = "schedule_gimmel" # נספח ג — הכנסות מחו\"ל
-    SCHEDULE_DALET = "schedule_dalet"  # נספח ד — פחת
-    SCHEDULE_HEH = "schedule_heh"      # נספח ה — שכר דירה פטור
-
+    SCHEDULE_B      = "schedule_b"       # שכירות
+    SCHEDULE_BET    = "schedule_bet"     # רווחי הון
+    SCHEDULE_GIMMEL = "schedule_gimmel"  # הכנסות מחו"ל
+    SCHEDULE_DALET  = "schedule_dalet"   # פחת
+    SCHEDULE_HEH    = "schedule_heh"     # שכר דירה פטור
+    SCHEDULE_A      = "schedule_a"       # חישוב הכנסה מעסק
+    SCHEDULE_VAV    = "schedule_vav"     # מכירת ניירות ערך
+    ANNEX_15        = "annex_15"         # הכנסות מחו"ל מפורט
+    ANNEX_867       = "annex_867"        # אישור בנקאי — נתונים כספיים
 
 class DeadlineType(str, PyEnum):
     STANDARD = "standard"   # April 30
@@ -62,6 +64,17 @@ class ReportStage(str, PyEnum):
     TRANSMITTED = "transmitted"
     POST_SUBMISSION = "post_submission"  # assessment_issued, objection_filed
 
+class SubmissionMethod(str, PyEnum):
+    ONLINE         = "online"          # שידור ישיר (מייצגים)
+    MANUAL         = "manual"          # הגשה פיזית לפקיד השומה
+    REPRESENTATIVE = "representative"  # דרך מערכת המייצגים (שע"מ)
+
+
+class ExtensionReason(str, PyEnum):
+    MILITARY_SERVICE       = "military_service"  # מילואים
+    HEALTH_REASON          = "health_reason"     # סיבה רפואית
+    GENERAL_REPRESENTATIVE = "general"           # הארכה כללית של המייצג
+    WAR_SITUATION          = "war_situation"     # מצב ביטחוני
 
 __all__ = [
     "AnnualReportForm",
@@ -69,5 +82,7 @@ __all__ = [
     "AnnualReportStatus",
     "ClientTypeForReport",
     "DeadlineType",
+    "ExtensionReason",    # נוסף
     "ReportStage",
+    "SubmissionMethod",   # נוסף
 ]

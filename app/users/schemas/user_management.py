@@ -1,10 +1,11 @@
+import json
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import UserRole
+from app.users.models.user_audit_log import AuditAction, AuditStatus
 
 
 class UserCreateRequest(BaseModel):
@@ -21,6 +22,12 @@ class UserUpdateRequest(BaseModel):
     role: Optional[UserRole] = None
     email: Optional[EmailStr] = None
 
+    @model_validator(mode="after")
+    def require_at_least_one(self) -> "UserUpdateRequest":
+        if not any([self.full_name, self.phone, self.role, self.email]):
+            raise ValueError("יש לספק לפחות שדה אחד לעדכון")
+        return self
+
 
 class PasswordResetRequest(BaseModel):
     new_password: str = Field(min_length=8)
@@ -30,12 +37,12 @@ class UserManagementResponse(BaseModel):
     id: int
     full_name: str
     email: EmailStr
-    phone: Optional[str]
+    phone: Optional[str] = None
     role: UserRole
     is_active: bool
     token_version: int
     created_at: datetime
-    last_login_at: Optional[datetime]
+    last_login_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -50,13 +57,15 @@ class UserManagementListResponse(BaseModel):
 class UserAuditLogResponse(BaseModel):
     id: int
     action: AuditAction
-    actor_user_id: Optional[int]
-    target_user_id: Optional[int]
-    email: Optional[str]
+    actor_user_id: Optional[int] = None
+    target_user_id: Optional[int] = None
+    email: Optional[str] = None
     status: AuditStatus
-    reason: Optional[str]
-    metadata: Optional[dict]
+    reason: Optional[str] = None
+    metadata: Optional[dict] = None    
     created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class UserAuditLogListResponse(BaseModel):

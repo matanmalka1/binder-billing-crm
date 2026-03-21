@@ -25,6 +25,6 @@ class AnnualReportScheduleEntry(Base):
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
-
+    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
 __all__ = ["AnnualReportScheduleEntry"]

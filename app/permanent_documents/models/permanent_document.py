@@ -1,3 +1,24 @@
+"""
+Permanent Document — a file stored permanently for a client or business.
+
+Israeli context:
+  Tax advisors store identity documents (ת.ז., ייפוי כוח), engagement
+  agreements, tax forms, bank approvals, and withholding certificates.
+  Documents are versioned — uploading a new version supersedes the previous.
+
+Design decisions:
+- scope=CLIENT: belongs to the person (id_copy, power_of_attorney,
+  engagement_agreement) — client_id required, business_id must be NULL.
+- scope=BUSINESS: belongs to a specific business — both client_id and
+  business_id required. client_id is denormalized for fast queries without JOIN.
+- CheckConstraint enforces the scope/business_id invariant at DB level.
+- is_deleted (soft delete) on the row; storage file is NOT deleted —
+  service layer handles storage cleanup separately.
+- superseded_by self-FK chains versions; only the latest has superseded_by=NULL.
+- rejected_by mirrors approved_by for symmetry and audit completeness.
+- annual_report_id links supporting documents to a specific report.
+"""
+
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
@@ -12,28 +33,28 @@ from app.utils.time_utils import utcnow
 
 
 class DocumentType(str, PyEnum):
-    ID_COPY = "id_copy"
-    POWER_OF_ATTORNEY = "power_of_attorney"
-    ENGAGEMENT_AGREEMENT = "engagement_agreement"
-    TAX_FORM = "tax_form"
-    RECEIPT = "receipt"
-    INVOICE_DOC = "invoice_doc"
-    BANK_APPROVAL = "bank_approval"
-    WITHHOLDING_CERTIFICATE = "withholding_certificate"
-    NII_APPROVAL = "nii_approval"
-    OTHER = "other"
+    ID_COPY                  = "id_copy"                   # צילום ת.ז.
+    POWER_OF_ATTORNEY        = "power_of_attorney"          # ייפוי כוח
+    ENGAGEMENT_AGREEMENT     = "engagement_agreement"       # הסכם התקשרות
+    TAX_FORM                 = "tax_form"                   # טופס מס
+    RECEIPT                  = "receipt"                    # קבלה
+    INVOICE_DOC              = "invoice_doc"                # חשבונית
+    BANK_APPROVAL            = "bank_approval"              # אישור בנקאי
+    WITHHOLDING_CERTIFICATE  = "withholding_certificate"    # אישור ניכוי מס במקור
+    NII_APPROVAL             = "nii_approval"               # אישור ביטוח לאומי
+    OTHER                    = "other"
 
 
 class DocumentStatus(str, PyEnum):
-    PENDING = "pending"
-    RECEIVED = "received"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+    PENDING  = "pending"   # הועלה, ממתין לבדיקה
+    RECEIVED = "received"  # התקבל פיזית
+    APPROVED = "approved"  # אושר
+    REJECTED = "rejected"  # נדחה — יש להעלות מחדש
 
 
 class DocumentScope(str, PyEnum):
-    CLIENT = "client"    # מסמך זהות — שייך לאדם (ת.ז., ייפוי כוח, הסכם)
-    BUSINESS = "business"  # מסמך עסקי — שייך לעסק (חשבוניות, דוחות)
+    CLIENT   = "client"    # מסמך זהות — שייך לאדם
+    BUSINESS = "business"  # מסמך עסקי — שייך לעסק
 
 
 # מסמכים שמשויכים תמיד לאדם (לא לעסק ספציפי)
@@ -45,63 +66,54 @@ CLIENT_SCOPE_TYPES = {
 
 
 class PermanentDocument(Base):
-    """
-    מסמך קבוע במערכת.
-    
-    scope=CLIENT: שייך לאדם — client_id חובה, business_id אסור
-    scope=BUSINESS: שייך לעסק — גם client_id וגם business_id חובה
-                   (client_id נשמר לשאילתות מהירות בלי JOIN)
-    """
     __tablename__ = "permanent_documents"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # בעלות
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
-    scope = Column(pg_enum(DocumentScope), nullable=False)
+    # ── Ownership ─────────────────────────────────────────────────────────────
+    client_id   = Column(Integer, ForeignKey("clients.id"),    nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True,  index=True)
+    scope       = Column(pg_enum(DocumentScope), nullable=False)
 
-    # פרטי המסמך
-    document_type = Column(pg_enum(DocumentType), nullable=False)
-    storage_key = Column(String, nullable=False)
-    original_filename = Column(String, nullable=True)
-    file_size_bytes = Column(BigInteger, nullable=True)
-    mime_type = Column(String, nullable=True)
-    tax_year = Column(SmallInteger, nullable=True, index=True)
+    # ── Document identity ─────────────────────────────────────────────────────
+    document_type     = Column(pg_enum(DocumentType), nullable=False)
+    storage_key       = Column(String,     nullable=False)   # מפתח ב-S3/R2
+    original_filename = Column(String,     nullable=True)
+    file_size_bytes   = Column(BigInteger, nullable=True)
+    mime_type         = Column(String,     nullable=True)
+    tax_year          = Column(SmallInteger, nullable=True, index=True)
 
-    # סטטוס
-    is_present = Column(Boolean, default=True, nullable=False)
+    # ── Status ────────────────────────────────────────────────────────────────
+    is_present = Column(Boolean, default=True,  nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    status = Column(pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
+    status     = Column(pg_enum(DocumentStatus),
+                        default=DocumentStatus.PENDING, nullable=False)
 
-    # גרסאות
-    version = Column(Integer, default=1, nullable=False, server_default="1")
+    # ── Versioning ────────────────────────────────────────────────────────────
+    version      = Column(Integer, default=1, nullable=False, server_default="1")
     superseded_by = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
 
-    # קישור לדוח שנתי
+    # ── Cross-domain link ─────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
 
-    # מטא
-    notes = Column(String, nullable=True)
-    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # ── Metadata ──────────────────────────────────────────────────────────────
+    notes       = Column(String,   nullable=True)
+    uploaded_by = Column(Integer,  ForeignKey("users.id"), nullable=False)
     uploaded_at = Column(DateTime, default=utcnow, nullable=False)
-    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer,  ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
+    rejected_by = Column(Integer,  ForeignKey("users.id"), nullable=True)  # מי דחה
+    rejected_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        # מסמך עסקי חייב business_id
         CheckConstraint(
             "(scope = 'client') OR (scope = 'business' AND business_id IS NOT NULL)",
             name="ck_document_business_scope_requires_business_id",
         ),
-        Index(
-            "ix_permanent_documents_client_type_year",
-            "client_id", "document_type", "tax_year",
-        ),
-        Index(
-            "ix_permanent_documents_business",
-            "business_id", "document_type", "tax_year",
-        ),
+        Index("ix_permanent_documents_client_type_year",
+              "client_id", "document_type", "tax_year"),
+        Index("ix_permanent_documents_business",
+              "business_id", "document_type", "tax_year"),
     )
 
     def __repr__(self):

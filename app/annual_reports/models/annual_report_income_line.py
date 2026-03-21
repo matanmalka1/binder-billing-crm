@@ -20,7 +20,6 @@ class IncomeSourceType(str, PyEnum):
     PENSION = "pension"             # פנסיה / קצבה
     OTHER = "other"                 # אחר
 
-
 class AnnualReportIncomeLine(Base):
     """
     Single income line attached to an annual report.

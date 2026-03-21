@@ -66,9 +66,9 @@ class Binder(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
+        Index("idx_binder_client", "client_id"),
         Index("idx_binder_status", "status"),
         Index("idx_binder_period_start", "period_start"),
-        Index("idx_binder_client", "client_id"),
         # Globally unique binder_number to prevent duplicates among active binders.
         Index(
             "idx_active_binder_unique",
@@ -78,7 +78,6 @@ class Binder(Base):
             sqlite_where="status != 'returned' AND deleted_at IS NULL",
         ),
     )
-
     def __repr__(self):
         return (
             f"<Binder(id={self.id}, number='{self.binder_number}', "

@@ -27,7 +27,6 @@ class BinderIntake(Base):
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
-
     def __repr__(self):
         return (
             f"<BinderIntake(id={self.id}, binder_id={self.binder_id}, "
