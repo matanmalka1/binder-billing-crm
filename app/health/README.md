@@ -29,7 +29,7 @@ Implementation references:
 
 ## API
 
-Router path is `/health` (mounted in `app/main.py` without `/api/v1` prefix).
+Router path is `/health` (registered in `app/router_registry.py`, included from `app/main.py`, without `/api/v1` prefix).
 
 ### Health check
 - `GET /health`
@@ -81,6 +81,7 @@ Unhealthy response (`503 Service Unavailable`):
 Health test suites:
 - `tests/health/api/test_health.py`
 - `tests/health/repository/test_health_repository.py`
+- `tests/health/service/test_health_service.py`
 
 Related regression coverage:
 - `tests/regression/test_vat_module_regressions.py` (health endpoint unaffected)

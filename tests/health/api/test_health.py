@@ -1,4 +1,5 @@
 """Tests for health endpoint."""
+from app.health.services.health_service import HealthService
 
 
 def test_health_endpoint_returns_200(client):
@@ -25,3 +26,17 @@ def test_health_endpoint_verifies_database(client):
     
     # If we get 200, database check passed
     assert response.status_code == 200
+
+
+def test_health_endpoint_returns_503_when_unhealthy(client, monkeypatch):
+    """Test that health endpoint returns 503 with unhealthy payload."""
+    monkeypatch.setattr(
+        HealthService,
+        "check",
+        lambda _self: {"status": "unhealthy", "database": "disconnected"},
+    )
+
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "unhealthy", "database": "disconnected"}
