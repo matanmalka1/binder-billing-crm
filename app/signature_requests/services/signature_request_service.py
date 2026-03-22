@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -11,6 +13,11 @@ from app.signature_requests.services import (
     signature_request_queries,
     signer_actions,
 )
+
+_log = logging.getLogger(__name__)
+
+_SYSTEM_USER_ID = 0
+_SYSTEM_USER_NAME = "מערכת"
 
 
 class SignatureRequestService:
@@ -37,10 +44,43 @@ class SignatureRequestService:
         return signer_actions.record_view(self.repo, **kwargs)
 
     def sign_request(self, **kwargs):
-        return signer_actions.sign_request(self.repo, **kwargs)
+        req, annual_report_id, signed_at = signer_actions.sign_request(self.repo, **kwargs)
+        if annual_report_id:
+            self.repo.append_audit_event(
+                signature_request_id=req.id,
+                event_type="annual_report_signed",
+                actor_type="system",
+                notes=f"אישור לקוח נרשם לדוח שנתי מספר {annual_report_id}.",
+            )
+            self._auto_advance_annual_report(annual_report_id, signed_at)
+        return req
 
     def decline_request(self, **kwargs):
         return signer_actions.decline_request(self.repo, **kwargs)
+
+    def _auto_advance_annual_report(self, annual_report_id: int, now) -> None:
+        try:
+            from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+            from app.annual_reports.repositories import AnnualReportDetailRepository
+            from app.annual_reports.services.annual_report_service import AnnualReportService
+
+            svc = AnnualReportService(self.db)
+            report = svc.repo.get_by_id(annual_report_id)
+            if report is None or report.status != AnnualReportStatus.PENDING_CLIENT:
+                return
+
+            svc.transition_status(
+                report_id=annual_report_id,
+                new_status=AnnualReportStatus.SUBMITTED.value,
+                changed_by=_SYSTEM_USER_ID,
+                changed_by_name=_SYSTEM_USER_NAME,
+                note="הדוח הוגש אוטומטית לאחר אישור לקוח",
+            )
+
+            detail_repo = AnnualReportDetailRepository(self.db)
+            detail_repo.upsert(annual_report_id, client_approved_at=now)
+        except Exception:
+            _log.exception("שגיאה בקידום אוטומטי של דוח שנתי %s לאחר חתימה", annual_report_id)
 
     # Advisor/system actions
     def cancel_request(self, **kwargs):

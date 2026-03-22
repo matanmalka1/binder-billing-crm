@@ -49,10 +49,18 @@ class SignatureRequestCrudMixin:
         return req
 
     def get_by_id(self, request_id: int) -> Optional[SignatureRequest]:
-        return self.db.query(SignatureRequest).filter(SignatureRequest.id == request_id).first()
+        return (
+            self.db.query(SignatureRequest)
+            .filter(SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None))
+            .first()
+        )
 
     def get_by_token(self, token: str) -> Optional[SignatureRequest]:
-        return self.db.query(SignatureRequest).filter(SignatureRequest.signing_token == token).first()
+        return (
+            self.db.query(SignatureRequest)
+            .filter(SignatureRequest.signing_token == token, SignatureRequest.deleted_at.is_(None))
+            .first()
+        )
 
     def list_by_business(
         self,
@@ -61,7 +69,10 @@ class SignatureRequestCrudMixin:
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
-        query = self.db.query(SignatureRequest).filter(SignatureRequest.business_id == business_id)
+        query = self.db.query(SignatureRequest).filter(
+            SignatureRequest.business_id == business_id,
+            SignatureRequest.deleted_at.is_(None),
+        )
         if status:
             query = query.filter(SignatureRequest.status == status)
         offset = (page - 1) * page_size
@@ -73,7 +84,10 @@ class SignatureRequestCrudMixin:
         )
 
     def count_by_business(self, business_id: int, status: Optional[SignatureRequestStatus] = None) -> int:
-        query = self.db.query(SignatureRequest).filter(SignatureRequest.business_id == business_id)
+        query = self.db.query(SignatureRequest).filter(
+            SignatureRequest.business_id == business_id,
+            SignatureRequest.deleted_at.is_(None),
+        )
         if status:
             query = query.filter(SignatureRequest.status == status)
         return query.count()
@@ -82,7 +96,10 @@ class SignatureRequestCrudMixin:
         offset = (page - 1) * page_size
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE)
+            .filter(
+                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+                SignatureRequest.deleted_at.is_(None),
+            )
             .order_by(SignatureRequest.sent_at.asc())
             .offset(offset)
             .limit(page_size)
@@ -92,7 +109,10 @@ class SignatureRequestCrudMixin:
     def count_pending(self) -> int:
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE)
+            .filter(
+                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+                SignatureRequest.deleted_at.is_(None),
+            )
             .count()
         )
 
@@ -114,6 +134,7 @@ class SignatureRequestCrudMixin:
             .filter(
                 SignatureRequest.annual_report_id == annual_report_id,
                 SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+                SignatureRequest.deleted_at.is_(None),
             )
             .all()
         )
@@ -127,6 +148,7 @@ class SignatureRequestCrudMixin:
                 SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
                 SignatureRequest.expires_at < now,
                 SignatureRequest.expires_at.isnot(None),
+                SignatureRequest.deleted_at.is_(None),
             )
             .all()
         )

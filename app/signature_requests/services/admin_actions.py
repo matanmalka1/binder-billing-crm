@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.signature_request_validations import get_or_raise
@@ -39,7 +39,7 @@ def cancel_request(
         actor_type="advisor",
         actor_id=canceled_by,
         actor_name=canceled_by_name,
-        notes=reason or "Canceled by advisor.",
+        notes=reason or "בוטל על ידי יועץ.",
     )
 
     return req
@@ -59,7 +59,7 @@ def expire_overdue_requests(repo: SignatureRequestRepository) -> int:
             signature_request_id=req.id,
             event_type="expired",
             actor_type="system",
-            notes=f"Signing deadline passed ({req.expires_at.date().isoformat()}).",
+            notes=f"פג תוקף בקשת החתימה ({req.expires_at.date().isoformat()}).",
         )
         count += 1
     return count

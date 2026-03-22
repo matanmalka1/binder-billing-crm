@@ -3,7 +3,7 @@ from __future__ import annotations
 import secrets
 from datetime import timedelta
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestStatus,
@@ -51,7 +51,7 @@ def send_request(
         actor_type="advisor",
         actor_id=sent_by,
         actor_name=sent_by_name,
-        notes=f"Signing request sent. Expires: {expires_at.date().isoformat()}",
+        notes=f"בקשת חתימה נשלחה. תוקף עד: {expires_at.date().isoformat()}.",
     )
 
     return req

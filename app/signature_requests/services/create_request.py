@@ -33,13 +33,13 @@ def create_request(
     """Create a new signature request in DRAFT status."""
     business = business_repo.get_by_id(business_id)
     if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "SIGNATURE_REQUEST.NOT_FOUND")
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
 
     valid_types = {e.value for e in SignatureRequestType}
     if request_type not in valid_types:
         raise AppError(
             f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {sorted(valid_types)}",
-            "SIGNATURE_REQUEST.INVALID_STATUS",
+            "SIGNATURE_REQUEST.INVALID_TYPE",
         )
     req_type = SignatureRequestType(request_type)
 
@@ -73,7 +73,7 @@ def create_request(
         actor_type="advisor",
         actor_id=created_by,
         actor_name=created_by_name,
-        notes=f"Request created: {title}",
+        notes=f"בקשת חתימה נוצרה: {title}",
     )
 
     return req

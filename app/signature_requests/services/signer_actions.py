@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
@@ -35,7 +36,8 @@ def sign_request(
     token: str,
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
-) -> SignatureRequest:
+) -> tuple[SignatureRequest, Optional[int], Optional[datetime]]:
+    """Returns (req, annual_report_id, signed_at) so the façade can handle cross-domain side-effects."""
     req = get_by_token_or_raise(repo, token)
     assert_signable(repo, req)
 
@@ -56,48 +58,10 @@ def sign_request(
         actor_name=req.signer_name,
         ip_address=ip_address,
         user_agent=user_agent,
-        notes="Document approved and signed by signer.",
+        notes="מסמך אושר ונחתם על ידי החותם.",
     )
 
-    if req.annual_report_id:
-        repo.append_audit_event(
-            signature_request_id=req.id,
-            event_type="annual_report_signed",
-            actor_type="system",
-            notes=f"Annual report ID {req.annual_report_id} client approval recorded.",
-        )
-        _auto_advance_annual_report(repo.db, req.annual_report_id, now)
-
-    return req
-
-
-SYSTEM_USER_ID = 0
-SYSTEM_USER_NAME = "מערכת"
-
-
-def _auto_advance_annual_report(db, annual_report_id: int, now) -> None:
-    try:
-        from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-        from app.annual_reports.repositories import AnnualReportDetailRepository
-        from app.annual_reports.services.annual_report_service import AnnualReportService
-
-        svc = AnnualReportService(db)
-        report = svc.repo.get_by_id(annual_report_id)
-        if report is None or report.status != AnnualReportStatus.PENDING_CLIENT:
-            return
-
-        svc.transition_status(
-            report_id=annual_report_id,
-            new_status=AnnualReportStatus.SUBMITTED.value,
-            changed_by=SYSTEM_USER_ID,
-            changed_by_name=SYSTEM_USER_NAME,
-            note="הדוח הוגש אוטומטית לאחר אישור לקוח",
-        )
-
-        detail_repo = AnnualReportDetailRepository(db)
-        detail_repo.upsert(annual_report_id, client_approved_at=now)
-    except Exception:
-        pass
+    return req, req.annual_report_id, now
 
 
 def decline_request(
@@ -129,7 +93,7 @@ def decline_request(
         actor_name=req.signer_name,
         ip_address=ip_address,
         user_agent=user_agent,
-        notes=reason or "Signer declined without giving a reason.",
+        notes=reason or "החותם דחה את הבקשה ללא הסבר.",
     )
 
     return req
