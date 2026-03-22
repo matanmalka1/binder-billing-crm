@@ -123,6 +123,35 @@ def test_get_pending_respects_reference_date(test_db):
     assert items[0].message == "Today"
 
 
+def test_get_reminders_without_status_defaults_to_pending(test_db):
+    crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id)
+    repo = ReminderRepository(test_db)
+    today = date.today()
+    repo.create(
+        business_id=business.id,
+        reminder_type=ReminderType.CUSTOM,
+        target_date=today,
+        days_before=0,
+        send_on=today,
+        message="Today Pending",
+    )
+    repo.create(
+        business_id=business.id,
+        reminder_type=ReminderType.CUSTOM,
+        target_date=today + timedelta(days=2),
+        days_before=0,
+        send_on=today + timedelta(days=2),
+        message="Future Pending",
+    )
+
+    items, total, _ = ReminderService(test_db).get_reminders(page=1, page_size=10)
+
+    assert total == 1
+    assert len(items) == 1
+    assert items[0].message == "Today Pending"
+
+
 def test_cancel_missing_reminder_raises_not_found(test_db):
     with pytest.raises(NotFoundError):
         ReminderService(test_db).cancel_reminder(999)

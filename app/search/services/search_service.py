@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.search.services.search_filters import matches_signal_type
 from app.search.services.document_search_service import DocumentSearchService
 from app.binders.services.signals_service import SignalsService
@@ -22,7 +22,7 @@ class SearchService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
         self.binder_repo = BinderRepository(db)
         self.signals_service = SignalsService(db)
 
@@ -51,7 +51,7 @@ class SearchService:
         # --- Client search: DB-level filtering ---
         if query or client_name or id_number:
             if not binder_derived_filter and not binder_number:
-                clients, total = self.business_repo.search(
+                clients, total = self.client_repo.search(
                     query=query,
                     client_name=client_name,
                     id_number=id_number,
@@ -61,9 +61,9 @@ class SearchService:
                 return [
                     {
                         "result_type": "client",
-                        "business_id": c.id,
+                        "client_id": c.id,
                         "client_name": c.full_name,
-                        "client_status": c.status.value,
+                        "client_status": None,
                         "binder_id": None,
                         "binder_number": None,
                         "work_state": None,
@@ -77,7 +77,7 @@ class SearchService:
         results: list[dict] = []
 
         if query or client_name or id_number:
-            all_clients, _ = self.business_repo.search(
+            all_clients, _ = self.client_repo.search(
                 query=query,
                 client_name=client_name,
                 id_number=id_number,
@@ -88,9 +88,9 @@ class SearchService:
                 results.append(
                     {
                         "result_type": "client",
-                        "business_id": c.id,
+                        "client_id": c.id,
                         "client_name": c.full_name,
-                        "client_status": c.status.value,
+                        "client_status": None,
                         "binder_id": None,
                         "binder_number": None,
                         "work_state": None,
@@ -126,16 +126,16 @@ class SearchService:
                 if match:
                     matched.append((binder, current_work_state, current_signals))
 
-            binder_business_ids = [b.business_id for b, _, _ in matched]
-            binder_business_map = {c.id: c for c in self.business_repo.list_by_ids(binder_business_ids)}
+            binder_client_ids = [b.client_id for b, _, _ in matched]
+            binder_client_map = {c.id: c for c in self.client_repo.list_by_ids(binder_client_ids)}
             for binder, current_work_state, current_signals in matched:
-                client = binder_business_map.get(binder.business_id)
+                client = binder_client_map.get(binder.client_id)
                 results.append(
                     {
                         "result_type": "binder",
-                        "business_id": binder.business_id,
+                        "client_id": binder.client_id,
                         "client_name": client.full_name if client else "לא ידוע",
-                        "client_status": client.status.value if client else None,
+                        "client_status": None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,
                         "work_state": current_work_state.value,

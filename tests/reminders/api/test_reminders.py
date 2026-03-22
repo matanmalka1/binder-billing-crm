@@ -70,8 +70,7 @@ def _charge(db, business_id: int) -> Charge:
     charge = Charge(
         business_id=business_id,
         amount=Decimal("100.00"),
-        currency="ILS",
-        charge_type=ChargeType.ONE_TIME,
+        charge_type=ChargeType.OTHER,
         status=ChargeStatus.ISSUED,
     )
     db.add(charge)
@@ -105,7 +104,7 @@ def test_create_tax_deadline_reminder_success(client, test_db, advisor_headers, 
     assert data["send_on"] == (target - timedelta(days=3)).isoformat()
 
 
-def test_create_custom_missing_message_returns_400(client, advisor_headers):
+def test_create_custom_missing_message_returns_422(client, advisor_headers):
     resp = client.post(
         "/api/v1/reminders",
         headers=advisor_headers,
@@ -117,8 +116,8 @@ def test_create_custom_missing_message_returns_400(client, advisor_headers):
         },
     )
 
-    assert resp.status_code == 400
-    assert "message" in resp.json()["detail"]
+    assert resp.status_code == 422
+    assert any("message" in err["msg"] for err in resp.json()["detail"])
 
 
 def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_headers, test_user):
@@ -206,3 +205,20 @@ def test_get_reminder_not_found_returns_404(client, advisor_headers):
     resp = client.get("/api/v1/reminders/999", headers=advisor_headers)
     assert resp.status_code == 404
     assert resp.json()["detail"] == "התזכורת לא נמצאה"
+
+
+def test_get_reminder_success_returns_200(client, test_db, advisor_headers, test_user):
+    crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
+    reminder = ReminderRepository(test_db).create(
+        business_id=business.id,
+        reminder_type=ReminderType.CUSTOM,
+        target_date=date.today(),
+        days_before=0,
+        send_on=date.today(),
+        message="hello",
+    )
+
+    resp = client.get(f"/api/v1/reminders/{reminder.id}", headers=advisor_headers)
+    assert resp.status_code == 200
+    assert resp.json()["id"] == reminder.id

@@ -93,7 +93,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     charge = Charge(
         business_id=business.id,
         amount=10,
-        charge_type=ChargeType.ONE_TIME,
+        charge_type=ChargeType.OTHER,
         status=ChargeStatus.ISSUED,
     )
     test_db.add(charge)
@@ -246,7 +246,7 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
     charge = Charge(
         business_id=business.id,
         amount=55,
-        charge_type=ChargeType.ONE_TIME,
+        charge_type=ChargeType.OTHER,
         status=ChargeStatus.ISSUED,
     )
     test_db.add(charge)

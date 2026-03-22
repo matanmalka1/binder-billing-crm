@@ -86,3 +86,14 @@ def test_pending_status_and_business_queries(test_db):
 def test_update_status_returns_none_for_missing_reminder(test_db):
     repo = ReminderRepository(test_db)
     assert repo.update_status(999999, ReminderStatus.CANCELED) is None
+
+
+def test_reminder_repr_includes_key_fields(test_db):
+    repo = ReminderRepository(test_db)
+    client = _client(test_db)
+    business = _business(test_db, client.id)
+    reminder = _create_reminder(repo, business.id, send_on=date.today(), message="repr-check")
+
+    text = repr(reminder)
+    assert f"id={reminder.id}" in text
+    assert f"business_id={business.id}" in text

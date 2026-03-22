@@ -1,15 +1,13 @@
 from datetime import date
 
-from app.clients.models.client import Client, ClientType
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.clients.models.client import Client
+from app.binders.models.binder import Binder, BinderStatus
 
 
 def _make_client(db, full_name: str, id_number: str) -> Client:
     c = Client(
         full_name=full_name,
         id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(c)
     db.commit()
@@ -21,9 +19,8 @@ def _make_binder(db, client_id: int, binder_number: str, user_id: int) -> Binder
     b = Binder(
         client_id=client_id,
         binder_number=binder_number,
-        binder_type=BinderType.ANNUAL_REPORT,
-        received_at=date.today(),
-        received_by=user_id,
+        period_start=date.today(),
+        created_by=user_id,
         status=BinderStatus.IN_OFFICE,
     )
     db.add(b)

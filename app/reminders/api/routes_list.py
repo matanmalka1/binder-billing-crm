@@ -31,7 +31,7 @@ def list_reminders(
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)
-        resp.client_name = name_map.get(r.business_id)
+        resp.business_name = name_map.get(r.business_id)
         return resp
 
     return ReminderListResponse(
