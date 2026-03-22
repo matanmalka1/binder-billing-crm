@@ -1,15 +1,22 @@
 """Notification center HTTP endpoints (8.3 + 8.6)."""
 
-from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.notification.services.notification_service import NotificationService
-from app.notification.models.notification import NotificationSeverity, NotificationTrigger
-from pydantic import BaseModel, Field
+from app.notification.models.notification import NotificationTrigger
+from app.notification.schemas.notification_schemas import (
+    MarkReadRequest,
+    MarkReadResponse,
+    NotificationListResponse,
+    NotificationResponse,
+    SendNotificationRequest,
+    SendNotificationResponse,
+    UnreadCountResponse,
+)
 
 
 router = APIRouter(
@@ -18,68 +25,32 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
-
-# ── Schemas ──────────────────────────────────────────────────────────────────
-
-class NotificationResponse(BaseModel):
-    id: int
-    business_id: int
-    trigger: str
-    channel: str
-    status: str
-    severity: str
-    content_snapshot: str
-    is_read: bool
-    read_at: Optional[datetime] = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class MarkReadRequest(BaseModel):
-    notification_ids: list[int]
-
-
-class UnreadCountResponse(BaseModel):
-    unread_count: int
-
-
-class MarkReadResponse(BaseModel):
-    updated: int
-
-
-class SendNotificationRequest(BaseModel):
-    business_id: int
-    channel: Literal["WHATSAPP", "EMAIL"]
-    message: str = Field(..., min_length=1, max_length=1000)
-    severity: str = "INFO"
-
-
-class SendNotificationResponse(BaseModel):
-    ok: bool
-
-
-# ── Routers ───────────────────────────────────────────────────────────────────
-
 advisor_router = APIRouter(
     prefix="/notifications",
     tags=["notifications"],
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 
+
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
-@router.get("", response_model=list[NotificationResponse])
+@router.get("", response_model=NotificationListResponse)
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
     business_id: Optional[int] = None,
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ):
-    """Return recent notifications ordered by created_at desc."""
+    """Return paginated notifications ordered by created_at desc."""
     svc = NotificationService(db)
-    items = svc.list_recent(limit=limit, business_id=business_id)
-    return [NotificationResponse.model_validate(n) for n in items]
+    items, total = svc.list_paginated(page=page, page_size=page_size, business_id=business_id)
+    return NotificationListResponse(
+        items=[NotificationResponse.model_validate(n) for n in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/unread-count", response_model=UnreadCountResponse)
@@ -107,7 +78,7 @@ def mark_all_read(
     user: CurrentUser,
     business_id: Optional[int] = None,
 ):
-    """Mark all unread notifications (optionally scoped to client)."""
+    """Mark all unread notifications (optionally scoped to business)."""
     svc = NotificationService(db)
     updated = svc.mark_all_read(business_id)
     return MarkReadResponse(updated=updated)
@@ -119,15 +90,14 @@ def send_notification(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Send a manual notification to a client (ADVISOR only)."""
-    severity = NotificationSeverity[body.severity.upper()]
+    """Send a manual notification to a business (ADVISOR only)."""
     svc = NotificationService(db)
     svc.send_notification(
         business_id=body.business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         content=body.message,
         triggered_by=user.id,
-        preferred_channel=body.channel.lower(),
-        severity=severity,
+        preferred_channel=body.channel.value,
+        severity=body.severity,
     )
     return SendNotificationResponse(ok=True)
