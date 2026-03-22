@@ -1,3 +1,4 @@
+from app.core.exceptions import AppError
 from app.charge.services.bulk_billing_service import BulkBillingService
 
 
@@ -5,9 +6,12 @@ class _FakeBilling:
     def __init__(self, failures=None):
         self.failures = failures or set()
         self.calls = []
+        self.app_error_ids = set()
 
     def issue_charge(self, charge_id, actor_id=None):
         self.calls.append(("issue", charge_id, actor_id, None))
+        if charge_id in self.app_error_ids:
+            raise AppError("invalid transition", "CHARGE.INVALID_STATUS")
         if charge_id in self.failures:
             raise RuntimeError("issue failed")
 
@@ -31,7 +35,20 @@ def test_bulk_action_issue_collects_success_and_failures(monkeypatch):
 
     assert succeeded == [1, 3]
     assert [f.id for f in failed] == [2]
-    assert "issue failed" in failed[0].error
+    assert failed[0].error == "אירעה שגיאה פנימית"
+
+
+def test_bulk_action_uses_domain_error_message_for_app_error():
+    fake = _FakeBilling()
+    fake.app_error_ids = {5}
+    service = BulkBillingService(db=None)
+    service.billing = fake
+
+    succeeded, failed = service.bulk_action([5], action="issue", actor_id=12)
+
+    assert succeeded == []
+    assert [f.id for f in failed] == [5]
+    assert failed[0].error == "invalid transition"
 
 
 def test_bulk_action_mark_paid_and_cancel_paths():
