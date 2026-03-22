@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_helpers import validate_ready_transition, validate_return_transition
 
 
@@ -10,9 +10,8 @@ def _binder(status: BinderStatus) -> Binder:
     return Binder(
         client_id=1,
         binder_number="BDR-HELPER-1",
-        binder_type=BinderType.VAT,
-        received_at=date.today(),
-        received_by=1,
+        period_start=date.today(),
+        created_by=1,
         status=status,
     )
 

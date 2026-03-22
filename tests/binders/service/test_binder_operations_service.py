@@ -1,18 +1,16 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_operations_service import BinderOperationsService
 from app.binders.services.work_state_service import WorkState
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 def _create_client(db, name: str, id_number: str) -> Client:
     client = Client(
         full_name=name,
         id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date(2024, 1, 1),
     )
     db.add(client)
     db.commit()
@@ -20,14 +18,13 @@ def _create_client(db, name: str, id_number: str) -> Client:
     return client
 
 
-def _create_binder(db, client_id: int, user_id: int, number: str, received_at: date, status: BinderStatus):
+def _create_binder(db, client_id: int, user_id: int, number: str, period_start: date, status: BinderStatus):
     repo = BinderRepository(db)
     binder = repo.create(
         client_id=client_id,
         binder_number=number,
-        binder_type=BinderType.VAT,
-        received_at=received_at,
-        received_by=user_id,
+        period_start=period_start,
+        created_by=user_id,
     )
     if status != BinderStatus.IN_OFFICE:
         binder.status = status
@@ -92,7 +89,7 @@ def test_enrich_binder_includes_work_state_and_signals(test_db, test_user):
     )
 
     service = BinderOperationsService(test_db)
-    enriched = service.enrich_binder(idle_binder, test_db)
+    enriched = service.enrich_binder(idle_binder, db=test_db)
 
     assert enriched["id"] == idle_binder.id
     assert enriched["work_state"] == WorkState.WAITING_FOR_WORK.value

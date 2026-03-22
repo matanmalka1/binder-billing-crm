@@ -1,16 +1,14 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _seed_binder_with_history(db, user_id: int):
     client = Client(
         full_name="History Client",
         id_number="BND-HIST-1",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(client)
     db.commit()
@@ -19,9 +17,8 @@ def _seed_binder_with_history(db, user_id: int):
     binder = Binder(
         client_id=client.id,
         binder_number="BND-H-001",
-        binder_type=BinderType.OTHER,
-        received_at=date.today(),
-        received_by=user_id,
+        period_start=date.today(),
+        created_by=user_id,
         status=BinderStatus.IN_OFFICE,
     )
     db.add(binder)

@@ -1,14 +1,12 @@
 from datetime import date
 
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_client(test_db, suffix: str) -> Client:
     crm_client = Client(
         full_name=f"Binders List Client {suffix}",
         id_number=f"BDL{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(crm_client)
     test_db.commit()
@@ -23,13 +21,14 @@ def _create_binder_via_api(client, advisor_headers, crm_client_id: int, user_id:
         json={
             "client_id": crm_client_id,
             "binder_number": "BDL-001",
-            "binder_type": "other",
+            "period_start": date.today().isoformat(),
             "received_at": date.today().isoformat(),
             "received_by": user_id,
         },
     )
     assert res.status_code == 201
-    return res.json()["id"]
+    payload = res.json()
+    return payload["binder"]["id"] if "binder" in payload else payload["id"]
 
 
 def test_get_and_delete_binder_paths(client, test_db, advisor_headers, test_user):
@@ -63,10 +62,12 @@ def test_receive_allows_reusing_number_after_soft_delete(client, test_db, adviso
         json={
             "client_id": crm_client.id,
             "binder_number": "BDL-001",
-            "binder_type": "other",
+            "period_start": date.today().isoformat(),
             "received_at": date.today().isoformat(),
             "received_by": test_user.id,
         },
     )
     assert second.status_code == 201
-    assert second.json()["id"] != first_id
+    payload = second.json()
+    second_id = payload["binder"]["id"] if "binder" in payload else payload["id"]
+    assert second_id != first_id

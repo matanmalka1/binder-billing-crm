@@ -1,10 +1,10 @@
 from datetime import date
 from itertools import count
 
-from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -31,8 +31,6 @@ def _client(db) -> Client:
     c = Client(
         full_name=f"Binder Extensions Client {idx}",
         id_number=f"BER{idx:03d}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(c)
     db.commit()
@@ -50,30 +48,26 @@ def test_open_and_client_queries(test_db):
     old = base_repo.create(
         client_id=client_a.id,
         binder_number="BER-001",
-        binder_type=BinderType.VAT,
-        received_at=date(2026, 1, 1),
-        received_by=user.id,
+        period_start=date(2026, 1, 1),
+        created_by=user.id,
     )
     newer = base_repo.create(
         client_id=client_a.id,
         binder_number="BER-002",
-        binder_type=BinderType.ANNUAL_REPORT,
-        received_at=date(2026, 2, 1),
-        received_by=user.id,
+        period_start=date(2026, 2, 1),
+        created_by=user.id,
     )
     returned = base_repo.create(
         client_id=client_a.id,
         binder_number="BER-003",
-        binder_type=BinderType.SALARY,
-        received_at=date(2026, 3, 1),
-        received_by=user.id,
+        period_start=date(2026, 3, 1),
+        created_by=user.id,
     )
     latest_other_client = base_repo.create(
         client_id=client_b.id,
         binder_number="BER-004",
-        binder_type=BinderType.BOOKKEEPING,
-        received_at=date(2026, 4, 1),
-        received_by=user.id,
+        period_start=date(2026, 4, 1),
+        created_by=user.id,
     )
 
     base_repo.update_status(returned.id, BinderStatus.RETURNED)
@@ -85,4 +79,3 @@ def test_open_and_client_queries(test_db):
     by_client = ext_repo.list_by_client(client_a.id, page=1, page_size=20)
     assert [b.id for b in by_client] == [returned.id, newer.id, old.id]
     assert ext_repo.count_by_client(client_a.id) == 3
-

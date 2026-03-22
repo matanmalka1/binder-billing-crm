@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_list_service import BinderListService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -11,14 +11,10 @@ def _seed_binders(db, user_id: int):
     c1 = Client(
         full_name="Alpha Client",
         id_number="BLS001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     c2 = Client(
         full_name="Beta Client",
         id_number="BLS002",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add_all([c1, c2])
     db.commit()
@@ -28,18 +24,16 @@ def _seed_binders(db, user_id: int):
     b1 = Binder(
         client_id=c1.id,
         binder_number="AA-100",
-        binder_type=BinderType.OTHER,
-        received_at=date.today() - timedelta(days=15),
+        period_start=date.today() - timedelta(days=15),
         status=BinderStatus.IN_OFFICE,
-        received_by=user_id,
+        created_by=user_id,
     )
     b2 = Binder(
         client_id=c2.id,
         binder_number="BB-200",
-        binder_type=BinderType.OTHER,
-        received_at=date.today() - timedelta(days=5),
+        period_start=date.today() - timedelta(days=5),
         status=BinderStatus.READY_FOR_PICKUP,
-        received_by=user_id,
+        created_by=user_id,
     )
     db.add_all([b1, b2])
     db.commit()

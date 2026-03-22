@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
-from app.clients.models.client import Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client
 from app.binders.services.signals_service import SignalsService, SignalType
 
 
@@ -10,8 +10,6 @@ def test_idle_signal(test_db):
     client = Client(
         full_name="Signal Test",
         id_number="SIG003",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(client)
     test_db.commit()
@@ -19,10 +17,9 @@ def test_idle_signal(test_db):
     binder = Binder(
         client_id=client.id,
         binder_number="SIG-IDLE",
-        binder_type=BinderType.OTHER,
-        received_at=date.today() - timedelta(days=30),
+        period_start=date.today() - timedelta(days=30),
         status=BinderStatus.IN_OFFICE,
-        received_by=1,
+        created_by=1,
     )
     test_db.add(binder)
     test_db.commit()

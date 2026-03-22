@@ -1,8 +1,8 @@
 from datetime import date
 
-from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -25,8 +25,6 @@ def _client(test_db, name: str, id_number: str):
     client = Client(
         full_name=name,
         id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date(2024, 1, 1),
     )
     test_db.add(client)
     test_db.commit()
@@ -43,25 +41,22 @@ def test_active_queries_and_soft_delete(test_db):
     binder_active = repo.create(
         client_id=client_a.id,
         binder_number="BA-1",
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 3, 1),
-        received_by=user.id,
+        period_start=date(2024, 3, 1),
+        created_by=user.id,
     )
     binder_returned = repo.create(
         client_id=client_a.id,
         binder_number="BA-2",
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 3, 2),
-        received_by=user.id,
+        period_start=date(2024, 3, 2),
+        created_by=user.id,
     )
     repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
 
     binder_other = repo.create(
         client_id=client_b.id,
         binder_number="BB-1",
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 3, 3),
-        received_by=user.id,
+        period_start=date(2024, 3, 3),
+        created_by=user.id,
     )
 
     assert repo.get_active_by_number("BA-1").id == binder_active.id
@@ -89,16 +84,14 @@ def test_list_active_respects_sort_and_filters(test_db):
     older = repo.create(
         client_id=client.id,
         binder_number="BG-1",
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 1, 1),
-        received_by=user.id,
+        period_start=date(2024, 1, 1),
+        created_by=user.id,
     )
     newer = repo.create(
         client_id=client.id,
         binder_number="BG-2",
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 2, 1),
-        received_by=user.id,
+        period_start=date(2024, 2, 1),
+        created_by=user.id,
     )
 
     default_order = repo.list_active()

@@ -1,17 +1,15 @@
 from datetime import date
 
-from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_service import BinderService
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 def _create_client(db) -> Client:
     client = Client(
         full_name="Binder Client",
         id_number="B-100",
-        client_type=ClientType.COMPANY,
-        opened_at=date(2024, 1, 1),
     )
     db.add(client)
     db.commit()
@@ -24,9 +22,8 @@ def _create_binder(db, client_id: int, user_id: int, number: str, status: Binder
     binder = repo.create(
         client_id=client_id,
         binder_number=number,
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 1, 10),
-        received_by=user_id,
+        period_start=date(2024, 1, 10),
+        created_by=user_id,
     )
     if status != BinderStatus.IN_OFFICE:
         binder.status = status

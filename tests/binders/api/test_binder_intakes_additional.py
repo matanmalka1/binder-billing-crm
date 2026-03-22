@@ -1,16 +1,14 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _seed_binder_and_intakes(db, user_id: int):
     crm_client = Client(
         full_name="Binder Intake Client",
         id_number="BINT001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(crm_client)
     db.commit()
@@ -19,9 +17,8 @@ def _seed_binder_and_intakes(db, user_id: int):
     binder = Binder(
         client_id=crm_client.id,
         binder_number="BIN-1",
-        binder_type=BinderType.OTHER,
-        received_at=date.today(),
-        received_by=user_id,
+        period_start=date.today(),
+        created_by=user_id,
         status=BinderStatus.IN_OFFICE,
     )
     db.add(binder)

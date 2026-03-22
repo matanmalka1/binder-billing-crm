@@ -1,19 +1,22 @@
 from datetime import date
 
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _seed_client(test_db, id_number: str) -> Client:
     test_client = Client(
         full_name="Test Client",
         id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
     return test_client
+
+
+def _receive_payload(payload: dict) -> dict:
+    # /binders/receive now returns BinderReceiveResult with nested binder data.
+    return payload["binder"] if "binder" in payload else payload
 
 
 def test_binder_status_change_creates_log(client, auth_token, test_db, test_user):
@@ -27,7 +30,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-001",
-            "binder_type": "other",
+            "period_start": "2026-02-01",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
             "notes": "Test binder",
@@ -35,7 +38,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     )
 
     assert response.status_code == 201
-    binder_data = response.json()
+    binder_data = _receive_payload(response.json())
     binder_id = binder_data["id"]
     actions = binder_data.get("available_actions", [])
     assert any(action["key"] == "ready" for action in actions)
@@ -71,13 +74,13 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-002",
-            "binder_type": "other",
+            "period_start": "2026-02-01",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
         },
     )
     assert receive_response.status_code == 201
-    binder_id = receive_response.json()["id"]
+    binder_id = _receive_payload(receive_response.json())["id"]
 
     ready_response = client.post(
         f"/api/v1/binders/{binder_id}/ready",
@@ -123,7 +126,7 @@ def test_binder_list_includes_available_actions(client, auth_token, test_db, tes
         json={
             "client_id": test_client.id,
             "binder_number": "BND-2026-003",
-            "binder_type": "other",
+            "period_start": "2026-02-01",
             "received_at": "2026-02-08",
             "received_by": test_user.id,
         },
