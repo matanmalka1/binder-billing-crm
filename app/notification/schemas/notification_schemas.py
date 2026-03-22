@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -55,3 +55,10 @@ class SendNotificationRequest(BaseModel):
 
 class SendNotificationResponse(BaseModel):
     ok: bool
+
+
+class NotificationListResponse(BaseModel):
+    items: list[NotificationResponse]
+    total: int
+    page: int
+    page_size: int
