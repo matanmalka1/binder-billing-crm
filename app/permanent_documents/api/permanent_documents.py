@@ -1,7 +1,6 @@
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
-from io import BytesIO
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -10,10 +9,7 @@ from app.permanent_documents.schemas.permanent_document import (
     PermanentDocumentListResponse,
     PermanentDocumentResponse,
 )
-from app.permanent_documents.services.permanent_document_service import (
-    PermanentDocumentService,
-)
-from app.binders.services.signals_service import SignalsService
+from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 
 router = APIRouter(
     prefix="/documents",
@@ -39,12 +35,10 @@ def upload_permanent_document(
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
-
-    file_data = BytesIO(file.file.read())
     document = service.upload_document(
         business_id=business_id,
         document_type=document_type,
-        file_data=file_data,
+        file_data=file.file,
         filename=file.filename or "document",
         uploaded_by=user.id,
         tax_year=tax_year,
@@ -86,9 +80,7 @@ def get_operational_signals(
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    service = SignalsService(db)
-    signals = service.compute_business_operational_signals(business_id)
-
+    signals = PermanentDocumentService(db).get_operational_signals(business_id)
     return OperationalSignalsResponse(**signals)
 
 
@@ -125,11 +117,11 @@ def replace_document(
     user: CurrentUser,
 ):
     """Replace the file for an existing document (ADVISOR only)."""
-    file_data = BytesIO(file.file.read())
     doc = PermanentDocumentService(db).replace_document(
         document_id=document_id,
-        file_data=file_data,
+        file_data=file.file,
         filename=file.filename or "document",
         uploaded_by=user.id,
+        mime_type=file.content_type,
     )
     return PermanentDocumentResponse.model_validate(doc)
