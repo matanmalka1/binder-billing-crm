@@ -1,7 +1,6 @@
 # Notification Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
-
+> Last audited: 2026-03-22 (post-refactor sync).
 
 Manages notification records and delivery orchestration (email/WhatsApp) for binder lifecycle updates and manual reminders.
 
@@ -13,6 +12,7 @@ This module provides:
 - Advisor-only manual send endpoint
 - Channel orchestration (WhatsApp first when requested/configured, email fallback)
 - Non-blocking send behavior (caller flow is not interrupted on delivery failures)
+- `business_name` enrichment on list responses
 
 ## Domain Model
 
@@ -54,8 +54,20 @@ Severity enum values:
 Implementation references:
 - Model: `app/notification/models/notification.py`
 - Repository: `app/notification/repositories/notification_repository.py`
-- Service: `app/notification/services/notification_service.py`
+- Service (facade): `app/notification/services/notification_service.py`
+- Service (delivery): `app/notification/services/notification_send_service.py`
 - API: `app/notification/api/notifications.py`
+
+## Service Architecture
+
+The service layer is split into two classes:
+
+| Class | File | Responsibility |
+|---|---|---|
+| `NotificationService` | `notification_service.py` | Public facade — used by API routers and cross-domain callers |
+| `NotificationSendService` | `notification_send_service.py` | Low-level delivery: channel selection, persistence, WhatsApp/email send |
+
+All domain callers (`BinderService`, `BillingService`, etc.) import and instantiate `NotificationService` only.
 
 ## API
 
@@ -68,6 +80,7 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
   - `business_id` (optional)
   - `page` (default `1`)
   - `page_size` (default `20`, min `1`, max `100`)
+- Response items include `business_name` (enriched from `BusinessRepository`).
 
 ### Get unread count
 - `GET /api/v1/notifications/unread-count`
@@ -115,15 +128,19 @@ Notes:
 - Service sends notifications via infrastructure channels:
   - `WhatsAppChannel` for WhatsApp when requested and configured.
   - `EmailChannel` as fallback/default.
-- If WhatsApp fails, service falls back to email when owner client email exists.
+- If WhatsApp fails, the failure is persisted (`status=failed`) and the service falls through to email.
 - All send paths are non-blocking for callers: `send_notification` returns `True` even on transport failure.
-- Delivery outcome is tracked in repository:
+- Delivery outcome is tracked in repository for **both** channels:
   - Initial record: `pending`
   - On success: `sent` + `sent_at`
   - On failure: `failed` + `failed_at` + `error_message`
+- `bulk_notify` is capped at `_BULK_NOTIFY_LIMIT = 500` businesses per call. Exceeding this raises `NOTIFICATION.BULK_LIMIT_EXCEEDED`.
+- `notify_binder_received` uses `binder.period_start` for the date in the message body.
 - Read-state operations:
   - `mark_read(notification_ids)` updates unread target rows.
   - `mark_all_read(business_id?)` supports global or per-business bulk mark.
+- `business_name` enrichment in list responses uses `Business.full_name` (falls back to `client.full_name` for sole proprietors) via a single batch query.
+- If a trigger has no entry in `_SUBJECTS`, a warning is logged and a generic Hebrew subject is used.
 
 ## Error Envelope
 
@@ -132,19 +149,23 @@ Errors follow the global app format from `app/core/exceptions.py`, including:
 - `error`
 - `error_meta`
 
+Domain errors:
+- `NOTIFICATION.BULK_LIMIT_EXCEEDED` — `bulk_notify` called with more than 500 business IDs.
+
 Role/access failures use the shared authorization handling.
-Notification delivery failures are primarily recorded in persistence/logs rather than surfaced as blocking API failures.
+Notification delivery failures are recorded in persistence/logs rather than surfaced as blocking API failures.
 
 ## Cross-Domain Integration
 
 - `binders` integration:
-  - Binder receive/ready flows call `NotificationService` (`notify_binder_received`, `notify_ready_for_pickup`).
+  - Binder receive/ready flows call `NotificationService.notify_binder_received` / `notify_ready_for_pickup`.
 - `businesses` + `clients` integration:
-  - Business owner client contact data (phone/email) is used for channel routing/fallback.
+  - Business owner client contact data (phone/email) is used for channel routing/fallback inside `NotificationSendService`.
+  - `business_name` is enriched in `NotificationService` via `BusinessRepository.list_by_ids`.
 - `infrastructure` integration:
   - Uses `EmailChannel` and `WhatsAppChannel` from `app/infrastructure/notifications.py`.
 - `dashboard`/timeline integration:
-  - Stored notifications are consumed by other read models (for example recent/unread and activity context).
+  - Stored notifications are consumed by other read models (recent/unread and activity context).
 
 ## Tests
 
