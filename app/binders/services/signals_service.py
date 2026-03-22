@@ -9,7 +9,6 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
-from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 from app.binders.services.work_state_service import WorkStateService
 from app.charge.models.charge import ChargeStatus
 from app.binders.models.binder import BinderStatus
@@ -39,6 +38,9 @@ class SignalsService:
         self.client_repo = ClientRepository(db)
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
+        from app.permanent_documents.services.permanent_document_service import (
+            PermanentDocumentService,
+        )
         self.document_service = PermanentDocumentService(db)
 
     def compute_binder_signals(

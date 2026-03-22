@@ -1,7 +1,8 @@
 from datetime import date
 
-from app.clients.models.client import Client, ClientType
-from app.permanent_documents.models.permanent_document import DocumentType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client, IdNumberType
+from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
 )
@@ -23,41 +24,56 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(test_db, *, name: str, id_number: str) -> Client:
+def _business(test_db, *, suffix: str) -> Business:
     client = Client(
-        full_name=name,
-        id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date(2024, 1, 1),
+        full_name=f"Permanent Client {suffix}",
+        id_number=f"7105000{suffix}",
+        id_number_type=IdNumberType.CORPORATION,
     )
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-    return client
+
+    business = Business(
+        client_id=client.id,
+        business_name=f"Permanent Biz {suffix}",
+        business_type=BusinessType.COMPANY,
+        opened_at=date(2024, 1, 1),
+    )
+    test_db.add(business)
+    test_db.commit()
+    test_db.refresh(business)
+    return business
 
 
-def test_count_by_client_ignores_soft_deleted_documents(test_db):
+def test_count_by_business_ignores_soft_deleted_documents(test_db):
     user = _user(test_db)
     repo = PermanentDocumentRepository(test_db)
-    client_a = _client(test_db, name="Permanent A", id_number="PD001")
-    client_b = _client(test_db, name="Permanent B", id_number="PD002")
+    business_a = _business(test_db, suffix="1")
+    business_b = _business(test_db, suffix="2")
 
     active = repo.create(
-        client_id=client_a.id,
+        client_id=business_a.client_id,
+        business_id=business_a.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
-        storage_key="clients/1/id_copy/a.pdf",
+        storage_key="businesses/1/id_copy/a.pdf",
         uploaded_by=user.id,
     )
     deleted = repo.create(
-        client_id=client_a.id,
+        client_id=business_a.client_id,
+        business_id=business_a.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.POWER_OF_ATTORNEY,
-        storage_key="clients/1/power_of_attorney/b.pdf",
+        storage_key="businesses/1/power_of_attorney/b.pdf",
         uploaded_by=user.id,
     )
     repo.create(
-        client_id=client_b.id,
+        client_id=business_b.client_id,
+        business_id=business_b.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.ENGAGEMENT_AGREEMENT,
-        storage_key="clients/2/engagement_agreement/c.pdf",
+        storage_key="businesses/2/engagement_agreement/c.pdf",
         uploaded_by=user.id,
     )
 
@@ -65,6 +81,5 @@ def test_count_by_client_ignores_soft_deleted_documents(test_db):
     test_db.commit()
 
     assert active.is_deleted is False
-    assert repo.count_by_client(client_a.id) == 1
-    assert repo.count_by_client(client_b.id) == 1
-
+    assert repo.count_by_business(business_a.id) == 1
+    assert repo.count_by_business(business_b.id) == 1

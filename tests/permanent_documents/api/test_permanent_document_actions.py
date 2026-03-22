@@ -1,36 +1,48 @@
 from datetime import date
 
-from app.clients.models import Client, ClientType
-from app.permanent_documents.models.permanent_document import DocumentType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client, IdNumberType
+from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
-def _client(db) -> Client:
-    crm_client = Client(
+def _business(db) -> Business:
+    client = Client(
         full_name="Perm Action API Client",
-        id_number="PDAAPI001",
-        client_type=ClientType.COMPANY,
+        id_number="71070001",
+        id_number_type=IdNumberType.CORPORATION,
+    )
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+
+    business = Business(
+        client_id=client.id,
+        business_name="Perm Action API Biz",
+        business_type=BusinessType.COMPANY,
         opened_at=date.today(),
     )
-    db.add(crm_client)
+    db.add(business)
     db.commit()
-    db.refresh(crm_client)
-    return crm_client
+    db.refresh(business)
+    return business
 
 
-def _doc(db, client_id: int, annual_report_id: int | None = None):
+def _doc(db, business: Business, annual_report_id: int | None = None):
     return PermanentDocumentRepository(db).create(
-        client_id=client_id,
+        client_id=business.client_id,
+        business_id=business.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
-        storage_key="clients/x/id_copy/api.pdf",
+        storage_key="businesses/x/id_copy/api.pdf",
         uploaded_by=1,
         annual_report_id=annual_report_id,
     )
 
 
 def test_actions_endpoints_approve_reject_notes_versions_and_list(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
-    doc = _doc(test_db, crm_client.id, annual_report_id=55)
+    business = _business(test_db)
+    doc = _doc(test_db, business, annual_report_id=55)
 
     approve = client.post(f"/api/v1/documents/{doc.id}/approve", headers=advisor_headers, json={})
     assert approve.status_code == 200
@@ -53,7 +65,7 @@ def test_actions_endpoints_approve_reject_notes_versions_and_list(client, test_d
     assert notes.json()["notes"] == "fixed"
 
     versions = client.get(
-        f"/api/v1/documents/client/{crm_client.id}/versions?document_type=id_copy",
+        f"/api/v1/documents/business/{business.id}/versions?document_type=id_copy",
         headers=advisor_headers,
     )
     assert versions.status_code == 200

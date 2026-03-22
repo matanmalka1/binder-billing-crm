@@ -1,46 +1,58 @@
+from datetime import date
 from io import BytesIO
 from itertools import count
-from datetime import date
 
-from app.clients.models import Client, ClientType
-from app.permanent_documents.models.permanent_document import DocumentType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client, IdNumberType
+from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
 _client_seq = count(1)
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
+    suffix = next(_client_seq)
     c = Client(
-        full_name=f"PermDoc Client {next(_client_seq)}",
-        id_number=f"88888888{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+        full_name=f"PermDoc Client {suffix}",
+        id_number=f"7106000{suffix}",
+        id_number_type=IdNumberType.CORPORATION,
     )
     db.add(c)
     db.commit()
     db.refresh(c)
-    return c
+
+    b = Business(
+        client_id=c.id,
+        business_name=f"PermDoc Biz {suffix}",
+        business_type=BusinessType.COMPANY,
+        opened_at=date.today(),
+    )
+    db.add(b)
+    db.commit()
+    db.refresh(b)
+    return b
 
 
 def test_upload_and_list_documents(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
     file_bytes = BytesIO(b"content")
 
     resp = client.post(
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", file_bytes, "application/pdf")},
-        data={"client_id": crm_client.id, "document_type": "id_copy"},
+        data={"business_id": business.id, "document_type": "id_copy"},
     )
     assert resp.status_code == 201
     doc = resp.json()
-    assert doc["client_id"] == crm_client.id
+    assert doc["client_id"] == business.client_id
+    assert doc["business_id"] == business.id
     assert doc["document_type"] == "id_copy"
     assert doc["is_present"] is True
     doc_id = doc["id"]
 
-    list_resp = client.get(f"/api/v1/documents/client/{crm_client.id}", headers=advisor_headers)
+    list_resp = client.get(f"/api/v1/documents/business/{business.id}", headers=advisor_headers)
     assert list_resp.status_code == 200
     items = list_resp.json()["items"]
     assert len(items) == 1
@@ -48,13 +60,14 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
 
 
 def test_get_download_url_and_replace_document(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
     repo = PermanentDocumentRepository(test_db)
-    # Seed a document directly
     doc = repo.create(
-        client_id=crm_client.id,
+        client_id=business.client_id,
+        business_id=business.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
-        storage_key="clients/x/id_copy/original.pdf",
+        storage_key="businesses/x/id_copy/original.pdf",
         uploaded_by=1,
     )
 
@@ -74,19 +87,20 @@ def test_get_download_url_and_replace_document(client, test_db, advisor_headers)
 
 
 def test_delete_document_marks_deleted(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
     repo = PermanentDocumentRepository(test_db)
     doc = repo.create(
-        client_id=crm_client.id,
+        client_id=business.client_id,
+        business_id=business.id,
+        scope=DocumentScope.CLIENT,
         document_type=DocumentType.POWER_OF_ATTORNEY,
-        storage_key="clients/x/power_of_attorney/doc.pdf",
+        storage_key="businesses/x/power_of_attorney/doc.pdf",
         uploaded_by=1,
     )
 
     del_resp = client.delete(f"/api/v1/documents/{doc.id}", headers=advisor_headers)
     assert del_resp.status_code == 204
 
-    # Soft-deleted doc is hidden from list
-    list_resp = client.get(f"/api/v1/documents/client/{crm_client.id}", headers=advisor_headers)
+    list_resp = client.get(f"/api/v1/documents/business/{business.id}", headers=advisor_headers)
     assert list_resp.status_code == 200
     assert list_resp.json()["items"] == []
