@@ -39,9 +39,8 @@ class NotificationRepository:
             content_snapshot=content_snapshot,
             status=NotificationStatus.PENDING,
             severity=severity,
+            triggered_by=triggered_by,
         )
-        if triggered_by is not None:
-            notification.triggered_by = triggered_by
         self.db.add(notification)
         self.db.commit()
         self.db.refresh(notification)
