@@ -17,7 +17,7 @@ from app.main import app
 from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 @pytest.fixture(scope="function")
@@ -121,9 +121,7 @@ def vat_client(test_db):
     """A client fixture for VAT work item tests."""
     client = Client(
         full_name="VAT Test Client",
-        id_number="VAT999001",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date(2024, 1, 1),
+        id_number="123456789",
     )
     test_db.add(client)
     test_db.commit()

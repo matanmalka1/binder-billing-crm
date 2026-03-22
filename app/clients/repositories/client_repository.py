@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
-from app.clients.models.client import Client
+from app.clients.models.client import Client, IdNumberType
 from app.utils.time_utils import utcnow
 
 
@@ -19,6 +19,7 @@ class ClientRepository(BaseRepository):
         self,
         full_name: str,
         id_number: str,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
         phone: Optional[str] = None,
         email: Optional[str] = None,
         address_street: Optional[str] = None,
@@ -32,6 +33,7 @@ class ClientRepository(BaseRepository):
         client = Client(
             full_name=full_name,
             id_number=id_number,
+            id_number_type=id_number_type,
             phone=phone,
             email=email,
             address_street=address_street,

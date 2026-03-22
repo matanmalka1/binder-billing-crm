@@ -18,7 +18,7 @@ EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.
 
 
 @router.get("/export")
-def export_clients(db: DBSession):
+def export_clients(db: DBSession, user: CurrentUser):
     """Return all clients as an Excel workbook."""
     client_service = ClientService(db)
     excel_service = ClientExcelService(db)
@@ -38,7 +38,7 @@ def export_clients(db: DBSession):
 
 
 @router.get("/template")
-def download_client_template(db: DBSession):
+def download_client_template(db: DBSession, user: CurrentUser):
     """Download a starter Excel template for client imports."""
     excel_service = ClientExcelService(db)
     try:

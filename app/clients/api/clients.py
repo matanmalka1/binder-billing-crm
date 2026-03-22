@@ -43,6 +43,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
         client = service.create_client(
             full_name=request.full_name,
             id_number=request.id_number,
+            id_number_type=request.id_number_type,
             phone=request.phone,
             email=str(request.email) if request.email else None,
             address_street=request.address_street,
@@ -58,7 +59,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
-                "error": e.error_code,
+                "error": e.code,
                 "detail": str(e),
                 "conflict": ClientConflictInfo(
                     id_number=request.id_number,
@@ -142,11 +143,6 @@ def update_client(
         client_id,
         **request.model_dump(exclude_unset=True),
     )
-    if not client:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="הלקוח לא נמצא",
-        )
     return ClientResponse.model_validate(client)
 
 
@@ -163,12 +159,7 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
     שים לב: אינו מוחק את העסקים של הלקוח — יש למחוק אותם בנפרד.
     """
     service = ClientService(db)
-    deleted = service.delete_client(client_id, actor_id=user.id)
-    if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="הלקוח לא נמצא",
-        )
+    service.delete_client(client_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

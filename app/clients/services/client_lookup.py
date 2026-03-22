@@ -1,17 +1,5 @@
-from sqlalchemy.orm import Session
-
-from app.core.exceptions import ForbiddenError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.models.client import Client
+from app.core.exceptions import ForbiddenError
 from app.businesses.models.business import Business, BusinessStatus
-
-
-def get_client_or_raise(db: Session, client_id: int) -> Client:
-    """Fetch a client or raise NotFoundError."""
-    client = ClientRepository(db).get_by_id(client_id)
-    if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-    return client
 
 
 def assert_business_allows_create(business: Business) -> None:
@@ -35,18 +23,3 @@ def assert_business_not_closed(business: Business) -> None:
             "עסק סגור — לא ניתן לבצע פעולות כתיבה",
             "BUSINESS.CLOSED",
         )
-
-
-def assert_client_allows_create(client: Client) -> None:
-    """
-    Backward-compatible wrapper — Client no longer carries status.
-    Callers should use assert_business_allows_create instead.
-    Kept to avoid import errors in legacy test code.
-    """
-
-
-def assert_client_not_closed(client: Client) -> None:
-    """
-    Backward-compatible wrapper — Client no longer carries status.
-    Callers should use assert_business_not_closed instead.
-    """

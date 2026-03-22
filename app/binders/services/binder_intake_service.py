@@ -12,7 +12,7 @@ from app.binders.repositories.binder_intake_repository import BinderIntakeReposi
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_lookup import get_client_or_raise, assert_client_allows_create
+from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 
 
@@ -50,8 +50,7 @@ class BinderIntakeService:
 
         Returns (binder, intake, is_new_binder).
         """
-        client = get_client_or_raise(self.db, client_id)
-        assert_client_allows_create(client)
+        client = ClientService(self.db).get_client_or_raise(client_id)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
 

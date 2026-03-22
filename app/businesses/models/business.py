@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, text as sa_text
 from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
@@ -112,15 +112,15 @@ class Business(Base):
             "ix_business_tax_id",
             "tax_id_number",
             unique=True,
-            postgresql_where="tax_id_number IS NOT NULL AND deleted_at IS NULL",
-            sqlite_where="tax_id_number IS NOT NULL AND deleted_at IS NULL",
+            postgresql_where=sa_text("tax_id_number IS NOT NULL AND deleted_at IS NULL"),
+            sqlite_where=sa_text("tax_id_number IS NOT NULL AND deleted_at IS NULL"),
         ),
         Index(
             "ix_business_client_name_active",
             "client_id",
             "business_name",
             unique=True,
-            postgresql_where="business_name IS NOT NULL AND deleted_at IS NULL",
-            sqlite_where="business_name IS NOT NULL AND deleted_at IS NULL",
+            postgresql_where=sa_text("business_name IS NOT NULL AND deleted_at IS NULL"),
+            sqlite_where=sa_text("business_name IS NOT NULL AND deleted_at IS NULL"),
         ),
     )

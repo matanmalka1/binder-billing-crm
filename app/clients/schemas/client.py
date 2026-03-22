@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
+from app.clients.models.client import IdNumberType
 from app.utils.id_validation import validate_israeli_id_checksum
 
 
@@ -15,6 +16,7 @@ class ClientCreateRequest(BaseModel):
     """
     full_name: str
     id_number: str
+    id_number_type: IdNumberType = IdNumberType.INDIVIDUAL
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     address_street: Optional[str] = None
@@ -35,8 +37,9 @@ class ClientCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_id_checksum(self) -> "ClientCreateRequest":
-        if not validate_israeli_id_checksum(self.id_number):
-            raise ValueError("מספר זהות/ח.פ אינו תקין")
+        if self.id_number_type == IdNumberType.INDIVIDUAL:
+            if not validate_israeli_id_checksum(self.id_number):
+                raise ValueError("מספר זהות אינו תקין")
         return self
 
 
@@ -59,6 +62,7 @@ class ClientResponse(BaseModel):
     id: int
     full_name: str
     id_number: str
+    id_number_type: Optional[IdNumberType] = None
     phone: Optional[str] = None
     email: Optional[str] = None
     address_street: Optional[str] = None
@@ -66,7 +70,9 @@ class ClientResponse(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
+    notes: Optional[str] = None
     created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -107,20 +113,3 @@ class ClientConflictInfo(BaseModel):
     id_number: str
     active_clients: list[ActiveClientSummary]
     deleted_clients: list[DeletedClientSummary]
-
-
-# ─── Bulk actions ─────────────────────────────────────────────────────────────
-
-class BulkClientActionRequest(BaseModel):
-    client_ids: list[int] = Field(min_length=1)
-    action: Literal["freeze", "close", "activate"]
-
-
-class BulkClientFailedItem(BaseModel):
-    id: int
-    error: str
-
-
-class BulkClientActionResponse(BaseModel):
-    succeeded: list[int]
-    failed: list[BulkClientFailedItem]

@@ -4,9 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import ConflictError, NotFoundError
-from app.clients.models.client import Client
+from app.clients.models.client import Client, IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
-from app.utils.time_utils import utcnow
 
 
 class ClientService:
@@ -23,6 +22,7 @@ class ClientService:
         self,
         full_name: str,
         id_number: str,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
         phone: Optional[str] = None,
         email: Optional[str] = None,
         address_street: Optional[str] = None,
@@ -43,7 +43,6 @@ class ClientService:
             raise ConflictError(
                 f"לקוח עם מספר ת.ז. {id_number} כבר קיים במערכת",
                 "CLIENT.CONFLICT",
-                extra={"client_id": active_clients[0].id},
             )
 
         # בדיקת לקוחות מחוקים
@@ -52,13 +51,13 @@ class ClientService:
             raise ConflictError(
                 f"לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק",
                 "CLIENT.DELETED_EXISTS",
-                extra={"deleted_clients": [c.id for c in deleted_clients]},
             )
 
         try:
             return self.client_repo.create(
                 full_name=full_name,
                 id_number=id_number,
+                id_number_type=id_number_type,
                 phone=phone,
                 email=email,
                 address_street=address_street,
@@ -85,25 +84,18 @@ class ClientService:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         return client
 
-    def update_client(self, client_id: int, **fields) -> Optional[Client]:
+    def update_client(self, client_id: int, **fields) -> Client:
         """Update client identity fields (name, phone, email, address)."""
-        # מסיר שדות עסקיים אם הועברו בטעות
-        business_fields = {
-            "client_type", "status", "primary_binder_number",
-            "opened_at", "closed_at",
-        }
-        fields = {k: v for k, v in fields.items() if k not in business_fields}
+        self.get_client_or_raise(client_id)
         return self.client_repo.update(client_id, **fields)
 
-    def delete_client(self, client_id: int, actor_id: int) -> bool:
+    def delete_client(self, client_id: int, actor_id: int) -> None:
         """
         Soft-delete a client.
         שים לב: מחיקת לקוח לא מוחקת את העסקים שלו — יש למחוק אותם בנפרד דרך BusinessService.
         """
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            return False
-        return self.client_repo.soft_delete(client_id, deleted_by=actor_id)
+        self.get_client_or_raise(client_id)
+        self.client_repo.soft_delete(client_id, deleted_by=actor_id)
 
     def restore_client(self, client_id: int, actor_id: int) -> Client:
         """Restore a soft-deleted client."""
@@ -112,6 +104,13 @@ class ClientService:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         if client.deleted_at is None:
             raise ConflictError("לקוח זה אינו מחוק", "CLIENT.NOT_DELETED")
+
+        active = self.client_repo.get_active_by_id_number(client.id_number)
+        if active:
+            raise ConflictError(
+                f"לקוח עם מספר ת.ז. {client.id_number} כבר קיים ופעיל במערכת",
+                "CLIENT.CONFLICT",
+            )
 
         restored = self.client_repo.restore(client_id, restored_by=actor_id)
         if not restored:

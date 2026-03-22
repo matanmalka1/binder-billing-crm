@@ -3,6 +3,7 @@ from enum import Enum as PyEnum
 from sqlalchemy import (
     Column, Date, DateTime, ForeignKey,
     Index, Integer, String, Text,
+    text as sa_text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
@@ -74,8 +75,8 @@ class Binder(Base):
             "idx_active_binder_unique",
             "binder_number",
             unique=True,
-            postgresql_where="status != 'returned' AND deleted_at IS NULL",
-            sqlite_where="status != 'returned' AND deleted_at IS NULL",
+            postgresql_where=sa_text("status != 'returned' AND deleted_at IS NULL"),
+            sqlite_where=sa_text("status != 'returned' AND deleted_at IS NULL"),
         ),
     )
     def __repr__(self):
