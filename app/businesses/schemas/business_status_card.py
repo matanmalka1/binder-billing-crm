@@ -39,7 +39,7 @@ class DocumentsCard(BaseModel):
     present_count: int
 
 
-class ClientStatusCardResponse(BaseModel):
+class BusinessStatusCardResponse(BaseModel):
     client_id: int
     business_id: int
     year: int

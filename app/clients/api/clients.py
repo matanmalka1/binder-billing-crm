@@ -61,19 +61,19 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             detail={
                 "error": e.code,
                 "detail": str(e),
-                "conflict": ClientConflictInfo(
-                    id_number=request.id_number,
-                    active_clients=[
-                        ActiveClientSummary.model_validate(c)
-                        for c in conflict_info["active_clients"]
-                    ],
-                    deleted_clients=[
-                        DeletedClientSummary.model_validate(c)
-                        for c in conflict_info["deleted_clients"]
-                    ],
-                ).model_dump(),
-            },
-        )
+                    "conflict": ClientConflictInfo(
+                        id_number=request.id_number,
+                        active_clients=[
+                            ActiveClientSummary.model_validate(c)
+                            for c in conflict_info["active_clients"]
+                        ],
+                        deleted_clients=[
+                            DeletedClientSummary.model_validate(c)
+                            for c in conflict_info["deleted_clients"]
+                        ],
+                    ).model_dump(mode="json"),
+                },
+            )
 
 
 # ─── Read ─────────────────────────────────────────────────────────────────────

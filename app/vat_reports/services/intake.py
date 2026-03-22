@@ -7,7 +7,7 @@ from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.models.business_tax_profile import VatType
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED

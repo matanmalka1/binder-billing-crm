@@ -8,7 +8,7 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lookup import get_business_or_raise
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.services.client_lookup import assert_business_not_closed
+from app.businesses.services.business_guards import assert_business_not_closed
 from app.vat_reports.models.vat_enums import (
     DocumentType,
     ExpenseCategory,

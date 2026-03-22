@@ -6,7 +6,7 @@ from typing import Optional
 
 from app.core.exceptions import ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.services.client_lookup import assert_business_not_closed
+from app.businesses.services.business_guards import assert_business_not_closed
 from app.vat_reports.models.vat_enums import DocumentType, ExpenseCategory, VatRateType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository

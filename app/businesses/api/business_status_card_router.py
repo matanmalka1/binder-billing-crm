@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.clients.schemas.client_status_card import ClientStatusCardResponse
-from app.clients.services.status_card_service import StatusCardService
+from app.businesses.schemas.business_status_card import BusinessStatusCardResponse
+from app.businesses.services.status_card_service import StatusCardService
 
 router = APIRouter(
     prefix="/businesses",
@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/{business_id}/status-card", response_model=ClientStatusCardResponse)
+@router.get("/{business_id}/status-card", response_model=BusinessStatusCardResponse)
 def get_business_status_card(
     business_id: int,
     db: DBSession,

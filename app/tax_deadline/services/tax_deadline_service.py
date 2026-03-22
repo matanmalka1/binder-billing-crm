@@ -7,7 +7,7 @@ from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoun
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lookup import get_business_or_raise
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService

@@ -5,12 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.schemas.client_status_card import (
+from app.businesses.schemas.business_status_card import (
     AdvancePaymentsCard,
     AnnualReportCard,
     BindersCard,
+    BusinessStatusCardResponse,
     ChargesCard,
-    ClientStatusCardResponse,
     DocumentsCard,
     VatSummaryCard,
 )
@@ -46,13 +46,13 @@ class StatusCardService:
         self,
         business_id: int,
         year: Optional[int] = None,
-    ) -> ClientStatusCardResponse:
+    ) -> BusinessStatusCardResponse:
         business = self._business_repo.get_by_id(business_id)
         if not business:
             raise NotFoundError("העסק לא נמצא", "BUSINESS.NOT_FOUND")
 
         resolved_year = year or utcnow().year
-        return ClientStatusCardResponse(
+        return BusinessStatusCardResponse(
             client_id=business.client_id,
             business_id=business_id,
             year=resolved_year,

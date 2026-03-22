@@ -13,7 +13,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 

@@ -8,7 +8,7 @@ from app.annual_reports.models import (
     DeadlineType,
 )
 from app.businesses.services.business_lookup import get_business_or_raise
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
