@@ -1,6 +1,6 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
@@ -31,8 +31,6 @@ def _client(test_db, *, suffix: str) -> Client:
     client = Client(
         full_name=f"Signature Repo Client {suffix}",
         id_number=f"SIG-R-{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(client)
     test_db.commit()
@@ -48,28 +46,28 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     now = utcnow()
 
     draft = repo.create(
-        client_id=client_a.id,
+        business_id=client_a.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Draft",
         signer_name="Signer A",
     )
     expired_pending = repo.create(
-        client_id=client_a.id,
+        business_id=client_a.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Expired Pending",
         signer_name="Signer B",
     )
     active_pending = repo.create(
-        client_id=client_a.id,
+        business_id=client_a.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Active Pending",
         signer_name="Signer C",
     )
     other_client_pending = repo.create(
-        client_id=client_b.id,
+        business_id=client_b.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Other Client",
@@ -99,8 +97,8 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     )
 
     assert repo.get_by_token("tok-active").id == active_pending.id
-    assert repo.count_by_client(client_a.id) == 3
-    assert repo.count_by_client(client_a.id, status=SignatureRequestStatus.PENDING_SIGNATURE) == 2
+    assert repo.count_by_business(client_a.id) == 3
+    assert repo.count_by_business(client_a.id, status=SignatureRequestStatus.PENDING_SIGNATURE) == 2
 
     pending = repo.list_pending(page=1, page_size=10)
     assert [item.id for item in pending] == [

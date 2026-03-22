@@ -1,6 +1,4 @@
-from datetime import date
-
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.users.models.user import User, UserRole
@@ -25,8 +23,6 @@ def _client(test_db, suffix: str) -> Client:
     client = Client(
         full_name=f"Sig Repo List Client {suffix}",
         id_number=f"SIG-LIST-{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(client)
     test_db.commit()
@@ -34,20 +30,20 @@ def _client(test_db, suffix: str) -> Client:
     return client
 
 
-def test_signature_request_repository_list_by_client_with_status(test_db):
+def test_signature_request_repository_list_by_business_with_status(test_db):
     repo = SignatureRequestRepository(test_db)
     user = _user(test_db)
     client = _client(test_db, "A")
 
     draft = repo.create(
-        client_id=client.id,
+        business_id=client.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Draft",
         signer_name="Signer",
     )
     pending = repo.create(
-        client_id=client.id,
+        business_id=client.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Pending",
@@ -55,10 +51,10 @@ def test_signature_request_repository_list_by_client_with_status(test_db):
     )
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
 
-    all_items = repo.list_by_client(client.id, page=1, page_size=10)
+    all_items = repo.list_by_business(client.id, page=1, page_size=10)
     assert {r.id for r in all_items} == {draft.id, pending.id}
 
-    pending_only = repo.list_by_client(
+    pending_only = repo.list_by_business(
         client.id,
         status=SignatureRequestStatus.PENDING_SIGNATURE,
         page=1,

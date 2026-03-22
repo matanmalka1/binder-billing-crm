@@ -1,14 +1,10 @@
-from datetime import date
-
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _client(db, suffix: str) -> Client:
     client = Client(
         full_name=f"Signature List Client {suffix}",
         id_number=f"SIG-API-{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
         email=f"sig{suffix}@example.com",
     )
     db.add(client)
@@ -22,7 +18,7 @@ def _create_signature_request(api_client, headers, client_id: int, title: str) -
         "/api/v1/signature-requests",
         headers=headers,
         json={
-            "client_id": client_id,
+            "business_id": client_id,
             "request_type": "custom",
             "title": title,
             "signer_name": "Signer",
@@ -66,7 +62,7 @@ def test_list_signature_requests_by_client_with_status_filter(client, test_db, a
     _create_signature_request(client, advisor_headers, client_b.id, "Other client")
 
     all_resp = client.get(
-        f"/api/v1/clients/{client_a.id}/signature-requests?page=1&page_size=10",
+        f"/api/v1/businesses/{client_a.id}/signature-requests?page=1&page_size=10",
         headers=advisor_headers,
     )
     assert all_resp.status_code == 200
@@ -75,7 +71,7 @@ def test_list_signature_requests_by_client_with_status_filter(client, test_db, a
     assert returned_ids == {req_a_pending, req_a_draft}
 
     pending_resp = client.get(
-        f"/api/v1/clients/{client_a.id}/signature-requests?status=pending_signature",
+        f"/api/v1/businesses/{client_a.id}/signature-requests?status=pending_signature",
         headers=advisor_headers,
     )
     assert pending_resp.status_code == 200

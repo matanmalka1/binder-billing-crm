@@ -1,8 +1,8 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services import SignatureRequestService
@@ -15,8 +15,6 @@ def _client(db) -> Client:
     client = Client(
         full_name="Signature Service Client",
         id_number="999999992",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
         email="svc@example.com",
     )
     db.add(client)
@@ -30,7 +28,7 @@ def test_expire_overdue_requests_marks_expired_and_audits(test_db, test_user):
     repo = SignatureRequestRepository(test_db)
 
     req = repo.create(
-        client_id=client.id,
+        business_id=client.id,
         created_by=test_user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Expired",
@@ -60,7 +58,7 @@ def test_record_view_on_expired_request_sets_status_and_raises(test_db, test_use
     client = _client(test_db)
     repo = SignatureRequestRepository(test_db)
     req = repo.create(
-        client_id=client.id,
+        business_id=client.id,
         created_by=test_user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Expired View",
@@ -82,11 +80,11 @@ def test_record_view_on_expired_request_sets_status_and_raises(test_db, test_use
     assert refreshed.status == SignatureRequestStatus.EXPIRED
 
 
-def test_list_client_requests_invalid_status_raises_app_error(test_db, test_user):
+def test_list_business_requests_invalid_status_raises_app_error(test_db, test_user):
     client = _client(test_db)
     service = SignatureRequestService(test_db)
 
     with pytest.raises(AppError) as exc_info:
-        service.list_client_requests(client_id=client.id, status="not_a_status")
+        service.list_business_requests(business_id=client.id, status="not_a_status")
 
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"

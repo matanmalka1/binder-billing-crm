@@ -1,6 +1,4 @@
-from datetime import date
-
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 
 
@@ -8,8 +6,6 @@ def _client(db) -> Client:
     client = Client(
         full_name="Signature Client",
         id_number="999999991",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
         email="client@example.com",
         phone="050-1234567",
     )
@@ -26,7 +22,7 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": crm_client.id,
             "request_type": "custom",
             "title": "Engagement Letter",
             "description": "Please approve",
@@ -74,7 +70,7 @@ def test_signature_request_decline_records_reason(client, test_db, advisor_heade
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": crm_client.id,
             "request_type": "custom",
             "title": "Decline Test",
             "signer_name": "Decliner",
@@ -111,7 +107,7 @@ def test_send_requires_draft_status(client, test_db, advisor_headers):
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": crm_client.id,
             "request_type": "custom",
             "title": "Send Twice",
             "signer_name": "Signer",
@@ -145,7 +141,7 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
             "/api/v1/signature-requests",
             headers=advisor_headers,
             json={
-                "client_id": crm_client.id,
+                "business_id": crm_client.id,
                 "request_type": "custom",
                 "title": f"Pending {i}",
                 "signer_name": "Signer",
@@ -164,7 +160,7 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": crm_client.id,
             "request_type": "custom",
             "title": "Draft",
             "signer_name": "Signer",
@@ -194,7 +190,7 @@ def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_header
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": crm_client.id,
             "request_type": "custom",
             "title": "Audit Trail Endpoint",
             "signer_name": "Signer",
