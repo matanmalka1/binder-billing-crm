@@ -1,15 +1,14 @@
 from datetime import date
 
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _client(db) -> Client:
     client = Client(
         full_name="Annual Delete Client",
         id_number="ADS001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -21,7 +20,7 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_
     service = AnnualReportService(test_db)
     client = _client(test_db)
     report = service.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=test_user.id,

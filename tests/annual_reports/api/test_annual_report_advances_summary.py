@@ -4,15 +4,16 @@ from decimal import Decimal
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.annual_reports.services.ni_engine import calculate_national_insurance as _calculate_ni
+from app.annual_reports.services.tax_engine import calculate_tax as _calculate_tax
+from app.clients.models import Client
 
 
 def _create_report(db):
     client = Client(
         full_name="Advances Client",
         id_number="878787878",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -20,7 +21,7 @@ def _create_report(db):
 
     svc = AnnualReportService(db)
     return svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -29,15 +30,27 @@ def _create_report(db):
     )
 
 
-def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_db, advisor_headers):
+def _patch_decimal_tax_input(monkeypatch):
+    monkeypatch.setattr(
+        "app.annual_reports.services.financial_tax_service.calculate_tax",
+        lambda taxable_income, *args, **kwargs: _calculate_tax(float(taxable_income), *args, **kwargs),
+    )
+    monkeypatch.setattr(
+        "app.annual_reports.services.financial_tax_service.calculate_national_insurance",
+        lambda income, *args, **kwargs: _calculate_ni(float(income), *args, **kwargs),
+    )
+
+
+def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_db, advisor_headers, monkeypatch):
+    _patch_decimal_tax_input(monkeypatch)
     report = _create_report(test_db)
     # No income/expense → tax_after_credits = 0
 
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        client_id=report.client_id,
-        year=2026,
-        month=1,
+        business_id=report.business_id,
+        period="2026-01",
+        period_months_count=1,
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100.00"),
         paid_amount=Decimal("100.00"),
@@ -50,13 +63,14 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["total_advances_paid"] == 100.0
+    assert float(body["total_advances_paid"]) == 100.0
     assert body["advances_count"] == 1
     assert body["balance_type"] == "refund"
-    assert body["final_balance"] == -100.0
+    assert float(body["final_balance"]) == -100.0
 
 
-def test_advances_summary_zero_balance_without_paid_advances(client, test_db, advisor_headers):
+def test_advances_summary_zero_balance_without_paid_advances(client, test_db, advisor_headers, monkeypatch):
+    _patch_decimal_tax_input(monkeypatch)
     report = _create_report(test_db)
     resp = client.get(
         f"/api/v1/annual-reports/{report.id}/advances-summary",

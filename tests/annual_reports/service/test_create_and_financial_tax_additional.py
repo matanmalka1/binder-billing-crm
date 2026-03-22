@@ -6,7 +6,7 @@ import pytest
 from app.annual_reports.models import AnnualReportSchedule
 from app.annual_reports.services import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.core.exceptions import AppError, ConflictError
 
 
@@ -14,8 +14,7 @@ def _client(db, suffix="1"):
     c = Client(
         full_name=f"AR create extra {suffix}",
         id_number=f"ARCE{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(c)
     db.commit()
@@ -41,7 +40,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
     c = _client(test_db, "B")
     service = AnnualReportService(test_db)
     report = service.create_report(
-        client_id=c.id,
+        business_id=c.id,
         tax_year=2025,
         client_type="corporation",
         created_by=1,
@@ -52,7 +51,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
 
     with pytest.raises(Exception):
         service.create_report(
-            client_id=c.id,
+            business_id=c.id,
             tax_year=2024,
             client_type="corporation",
             created_by=1,

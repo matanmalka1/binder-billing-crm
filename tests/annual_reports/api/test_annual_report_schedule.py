@@ -1,15 +1,14 @@
 from datetime import date
 
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_report(db) -> int:
     client = Client(
         full_name="Schedule Client",
         id_number="989898988",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -17,7 +16,7 @@ def _create_report(db) -> int:
 
     svc = AnnualReportService(db)
     report = svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -67,7 +66,7 @@ def test_schedule_invalid_type_and_complete_missing_schedule(client, test_db, ad
         headers=advisor_headers,
         json={"schedule": "invalid_schedule"},
     )
-    assert invalid.status_code == 400
+    assert invalid.status_code == 422
 
     missing = client.post(
         f"/api/v1/annual-reports/{report_id}/schedules/complete",

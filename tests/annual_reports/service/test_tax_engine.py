@@ -1,5 +1,6 @@
-from app.annual_reports.services.tax_engine import calculate_tax
 import pytest
+from app.core.exceptions import AppError
+from app.annual_reports.services.tax_engine import calculate_tax
 
 
 def test_calculate_tax_applies_pension_and_donation_credits():
@@ -44,7 +45,7 @@ def test_calculate_tax_handles_large_pension_deduction():
 
 
 def test_calculate_tax_unsupported_year_raises():
-    with pytest.raises(TypeError):
+    with pytest.raises(AppError):
         calculate_tax(taxable_income=10_000, tax_year=2035)
 
 

@@ -4,15 +4,14 @@ import pytest
 
 from app.annual_reports.models import AnnualReportStatus, DeadlineType
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_report(db) -> int:
     client = Client(
         full_name="Status Client",
         id_number="989898989",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -20,7 +19,7 @@ def _create_report(db) -> int:
 
     svc = AnnualReportService(db)
     report = svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

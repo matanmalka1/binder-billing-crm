@@ -57,7 +57,7 @@ def test_financial_lines_invalid_types_and_not_found(client, test_db, advisor_he
         headers=advisor_headers,
         json={"source_type": "invalid_source"},
     )
-    assert bad_income_update.status_code == 400
+    assert bad_income_update.status_code == 422
 
     missing_income_delete = client.delete(
         f"/api/v1/annual-reports/{report.id}/income/999999",
@@ -70,7 +70,7 @@ def test_financial_lines_invalid_types_and_not_found(client, test_db, advisor_he
         headers=advisor_headers,
         json={"category": "invalid_category"},
     )
-    assert bad_expense_update.status_code == 400
+    assert bad_expense_update.status_code == 422
 
     missing_expense_delete = client.delete(
         f"/api/v1/annual-reports/{report.id}/expenses/999999",

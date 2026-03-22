@@ -3,15 +3,14 @@ from datetime import date, datetime
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
 from app.annual_reports.services import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_report(db):
     client = Client(
         full_name="Readiness Client",
         id_number="565656565",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -19,7 +18,7 @@ def _create_report(db):
 
     svc = AnnualReportService(db)
     return svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

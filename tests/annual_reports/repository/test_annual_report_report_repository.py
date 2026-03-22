@@ -8,7 +8,7 @@ from app.annual_reports.models.annual_report_enums import (
     DeadlineType,
 )
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -35,8 +35,7 @@ def _client(test_db) -> Client:
     client = Client(
         full_name=f"Annual Report Repo Client {idx}",
         id_number=f"ARR{idx:03d}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     test_db.add(client)
     test_db.commit()
@@ -54,7 +53,7 @@ def _report(
     deadline: datetime,
 ):
     return repo.create(
-        client_id=client_id,
+        business_id=client_id,
         created_by=created_by,
         tax_year=tax_year,
         client_type=ClientTypeForReport.CORPORATION,
@@ -75,7 +74,7 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
 
     not_started = _report(
         repo,
-        client_id=client_a.id,
+        business_id=client_a.id,
         created_by=user.id,
         tax_year=2026,
         status=AnnualReportStatus.NOT_STARTED,
@@ -83,7 +82,7 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
     )
     submitted_a = _report(
         repo,
-        client_id=client_b.id,
+        business_id=client_b.id,
         created_by=user.id,
         tax_year=2025,
         status=AnnualReportStatus.SUBMITTED,
@@ -91,7 +90,7 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
     )
     submitted_b = _report(
         repo,
-        client_id=client_a.id,
+        business_id=client_a.id,
         created_by=user.id,
         tax_year=2024,
         status=AnnualReportStatus.SUBMITTED,
@@ -109,7 +108,7 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
 
     with_clients = repo.list_all_with_clients()
     assert len(with_clients) == 3
-    assert {r.client_id for r in with_clients} == {client_a.id, client_b.id}
+    assert {r.business_id for r in with_clients} == {client_a.id, client_b.id}
 
     assert repo.soft_delete(submitted_a.id, deleted_by=user.id) is True
     assert repo.count_all() == 2

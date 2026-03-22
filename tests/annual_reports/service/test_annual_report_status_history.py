@@ -5,8 +5,8 @@ from tests.annual_reports.service.test_annual_report_enums import AnnualReportSt
 from tests.annual_reports.service.test_annual_report import AnnualReportService
 
 
-def _full_pipeline(service, client_id=1):
-    report = service.create_report(client_id, 2023, "individual", 1, "Advisor")
+def _full_pipeline(service, business_id=1):
+    report = service.create_report(business_id, 2023, "individual", 1, "Advisor")
     service.transition_status(report.id, "collecting_docs", 1, "Advisor")
     service.transition_status(report.id, "docs_complete", 1, "Advisor")
     service.transition_status(report.id, "in_preparation", 1, "Advisor")

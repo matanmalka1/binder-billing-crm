@@ -12,22 +12,21 @@ from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _report_id(test_db) -> int:
     crm_client = Client(
         full_name="IncomeExpense Repo Client",
         id_number="AREPO001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     test_db.add(crm_client)
     test_db.commit()
     test_db.refresh(crm_client)
 
     report = AnnualReportReportRepository(test_db).create(
-        client_id=crm_client.id,
+        business_id=crm_client.id,
         created_by=1,
         tax_year=2026,
         client_type=ClientTypeForReport.CORPORATION,

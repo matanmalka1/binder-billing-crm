@@ -6,7 +6,7 @@ import pytest
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 _client_seq = count(1)
@@ -16,8 +16,7 @@ def _create_report(db):
     client = Client(
         full_name="Annex Client",
         id_number=f"45454545{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -25,7 +24,7 @@ def _create_report(db):
 
     svc = AnnualReportService(db)
     return svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

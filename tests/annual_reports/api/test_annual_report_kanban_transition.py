@@ -1,22 +1,21 @@
 from datetime import date
 
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_report(db) -> int:
     crm_client = Client(
         full_name="AR Kanban Transition",
         id_number="ARKAN001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(crm_client)
     db.commit()
     db.refresh(crm_client)
 
     report = AnnualReportService(db).create_report(
-        client_id=crm_client.id,
+        business_id=crm_client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

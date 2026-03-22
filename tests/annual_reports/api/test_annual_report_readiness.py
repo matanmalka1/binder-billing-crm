@@ -3,7 +3,7 @@ from itertools import count
 
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 _client_seq = count(1)
 
@@ -12,8 +12,7 @@ def _create_report(db):
     client = Client(
         full_name=f"Readiness API Client {next(_client_seq)}",
         id_number=f"34343434{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -21,7 +20,7 @@ def _create_report(db):
 
     svc = AnnualReportService(db)
     return svc.create_report(
-        client_id=client.id,
+        business_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -51,9 +50,9 @@ def test_readiness_endpoint_ready_when_data_present(client, test_db, advisor_hea
     AnnualReportFinancialService(test_db).add_income(
         report.id, source_type="salary", amount=5000
     )
+    AnnualReportService(test_db).repo.update(report.id, tax_due=100)
     AnnualReportDetailRepository(test_db).upsert(
         report.id,
-        tax_due_amount=100,
         client_approved_at=date.today(),
     )
 

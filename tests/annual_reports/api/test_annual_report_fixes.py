@@ -2,15 +2,14 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 def _create_client(db, id_number: str = "AR_FIX_001") -> Client:
     c = Client(
         full_name="Annual Fix Client",
         id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(c)
     db.commit()
@@ -29,7 +28,7 @@ def test_kanban_days_until_due_uses_filing_deadline(client, test_db, advisor_hea
         "/api/v1/annual-reports",
         headers=advisor_headers,
         json={
-            "client_id": c.id,
+            "business_id": c.id,
             "tax_year": 2024,
             "client_type": "individual",
             "deadline_type": "custom",
@@ -54,7 +53,7 @@ def test_kanban_days_until_due_uses_filing_deadline(client, test_db, advisor_hea
         for stage in data:
             all_reports.extend(stage.get("reports", []))
 
-    our_reports = [r for r in all_reports if r.get("client_id") == c.id]
+    our_reports = [r for r in all_reports if r.get("business_id") == c.id]
     for r in our_reports:
         # days_until_due must be None (custom deadline) or relative to today (not created_at)
         if r.get("days_until_due") is not None:
@@ -72,8 +71,8 @@ def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor
         "/api/v1/annual-reports",
         headers=advisor_headers,
         json={
-            "client_id": c.id,
-            "tax_year": 2023,
+            "business_id": c.id,
+            "tax_year": 2024,
             "client_type": "individual",
             "deadline_type": "standard",
             "assigned_to": 99999,
@@ -92,8 +91,8 @@ def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_heade
         "/api/v1/annual-reports",
         headers=advisor_headers,
         json={
-            "client_id": c.id,
-            "tax_year": 2022,
+            "business_id": c.id,
+            "tax_year": 2026,
             "client_type": "individual",
             "deadline_type": "standard",
             "assigned_to": test_user.id,
@@ -112,7 +111,7 @@ def _create_report(client, headers, db_client_id: int, tax_year: int):
         "/api/v1/annual-reports",
         headers=headers,
         json={
-            "client_id": db_client_id,
+            "business_id": db_client_id,
             "tax_year": tax_year,
             "client_type": "individual",
             "deadline_type": "standard",
@@ -123,8 +122,8 @@ def _create_report(client, headers, db_client_id: int, tax_year: int):
 def test_list_reports_sort_by_tax_year_desc(client, test_db, advisor_headers):
     """sort_by=tax_year&order=desc must return newer years first."""
     c = _create_client(test_db, "AR_SORT_001")
-    _create_report(client, advisor_headers, c.id, 2021)
-    _create_report(client, advisor_headers, c.id, 2023)
+    _create_report(client, advisor_headers, c.id, 2024)
+    _create_report(client, advisor_headers, c.id, 2026)
 
     resp = client.get(
         "/api/v1/annual-reports?sort_by=tax_year&order=desc",
@@ -138,8 +137,8 @@ def test_list_reports_sort_by_tax_year_desc(client, test_db, advisor_headers):
 def test_list_reports_sort_by_tax_year_asc(client, test_db, advisor_headers):
     """sort_by=tax_year&order=asc must return older years first."""
     c = _create_client(test_db, "AR_SORT_002")
-    _create_report(client, advisor_headers, c.id, 2020)
-    _create_report(client, advisor_headers, c.id, 2022)
+    _create_report(client, advisor_headers, c.id, 2024)
+    _create_report(client, advisor_headers, c.id, 2025)
 
     resp = client.get(
         "/api/v1/annual-reports?sort_by=tax_year&order=asc",
@@ -171,18 +170,17 @@ def test_list_reports_invalid_order_returns_422(client, advisor_headers):
 def test_list_reports_sort_by_tax_year_with_filter(client, test_db, advisor_headers):
     """sort_by respects tax_year filter — reports within same year sorted by filing_deadline asc."""
     c = _create_client(test_db, "AR_SORT_003")
-    # Both reports are for tax_year 2019 but have different filing_deadlines via deadline_type
-    # standard deadline for 2019 is a fixed date; create two clients to get two reports in same year
+    # Both reports are for the same tax year; use two businesses to avoid unique constraints.
     c2 = _create_client(test_db, "AR_SORT_003B")
-    _create_report(client, advisor_headers, c.id, 2019)
-    _create_report(client, advisor_headers, c2.id, 2019)
+    _create_report(client, advisor_headers, c.id, 2025)
+    _create_report(client, advisor_headers, c2.id, 2025)
 
     resp = client.get(
-        "/api/v1/annual-reports?tax_year=2019&sort_by=client_id&order=asc",
+        "/api/v1/annual-reports?tax_year=2025&sort_by=business_id&order=asc",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
     items = resp.json()["items"]
-    assert all(item["tax_year"] == 2019 for item in items)
-    client_ids = [item["client_id"] for item in items]
+    assert all(item["tax_year"] == 2025 for item in items)
+    client_ids = [item["business_id"] for item in items]
     assert client_ids == sorted(client_ids)

@@ -3,7 +3,7 @@ from itertools import count
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 _client_seq = count(1)
@@ -14,8 +14,7 @@ def _client(db) -> Client:
     client = Client(
         full_name=f"Annual Query Client {idx}",
         id_number=f"AQS{idx:03d}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     db.add(client)
     db.commit()
@@ -25,7 +24,7 @@ def _client(db) -> Client:
 
 def _create_report(service: AnnualReportService, client_id: int, tax_year: int, created_by: int):
     return service.create_report(
-        client_id=client_id,
+        business_id=client_id,
         tax_year=tax_year,
         client_type="corporation",
         created_by=created_by,

@@ -9,7 +9,7 @@ from app.annual_reports.models.annual_report_enums import (
 )
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
 from app.annual_reports.repositories.schedule_repository import AnnualReportScheduleRepository
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -32,15 +32,14 @@ def _report_id(test_db, user_id: int) -> int:
     client = Client(
         full_name="Schedule Repo Client",
         id_number="SCHEDULE001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+
     )
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
 
     report = AnnualReportReportRepository(test_db).create(
-        client_id=client.id,
+        business_id=client.id,
         created_by=user_id,
         tax_year=2026,
         client_type=ClientTypeForReport.CORPORATION,
