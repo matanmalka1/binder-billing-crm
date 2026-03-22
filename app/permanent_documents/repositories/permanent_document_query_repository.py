@@ -48,12 +48,15 @@ class PermanentDocumentQueryRepository:
         )
 
     def missing_by_type(
-        self, business_id: int, required_types: list[str]
+        self, business_id: int, client_id: int, required_types: list[str]
     ) -> list[str]:
         existing = (
             self.db.query(PermanentDocument.document_type)
             .filter(
-                PermanentDocument.business_id == business_id,
+                (
+                    (PermanentDocument.business_id == business_id)
+                    | (PermanentDocument.client_id == client_id)
+                ),
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
             )
