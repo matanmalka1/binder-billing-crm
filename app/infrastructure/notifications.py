@@ -7,6 +7,7 @@ Email:    SendGrid — real implementation, gated by NOTIFICATIONS_ENABLED flag.
 """
 from __future__ import annotations
 
+import html
 import logging
 from typing import Optional
 
@@ -104,7 +105,7 @@ class EmailChannel:
                 method="POST",
             )
 
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 status_code = resp.status
                 # SendGrid returns 202 Accepted on success
                 if status_code in (200, 202):
@@ -155,8 +156,8 @@ class WhatsAppChannel:
             import json
             import urllib.request
 
+            # 360dialog API payload — does NOT use messaging_product (that's Meta Graph API)
             payload = {
-                "messaging_product": "whatsapp",
                 "to": recipient_phone,
                 "type": "text",
                 "text": {"body": content},
@@ -171,7 +172,7 @@ class WhatsAppChannel:
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=15) as resp:
                 if resp.status in (200, 201):
                     logger.info("WhatsApp sent to %s", recipient_phone)
                     return (True, None)
@@ -188,9 +189,12 @@ class WhatsAppChannel:
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _to_html(text: str) -> str:
-    """Convert plain-text content to minimal HTML email body."""
+    """Convert plain-text content to minimal HTML email body (XSS-safe)."""
     lines = text.splitlines()
-    paragraphs = "".join(f"<p>{line}</p>" if line.strip() else "<br>" for line in lines)
+    paragraphs = "".join(
+        f"<p>{html.escape(line)}</p>" if line.strip() else "<br>"
+        for line in lines
+    )
     return f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">
 <head><meta charset="UTF-8"></head>

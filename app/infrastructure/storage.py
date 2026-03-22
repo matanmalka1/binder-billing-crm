@@ -51,13 +51,25 @@ class LocalStorageProvider(StorageProvider):
     """Local filesystem storage provider for development/testing."""
 
     def __init__(self, base_path: str = "./storage"):
-        self.base_path = base_path
-        os.makedirs(base_path, exist_ok=True)
+        self.base_path = os.path.realpath(base_path)
+        os.makedirs(self.base_path, exist_ok=True)
+
+    def _safe_path(self, key: str) -> str:
+        """
+        Resolve the absolute path for a storage key and verify it stays
+        within base_path (guards against path-traversal attacks).
+        """
+        resolved = os.path.realpath(os.path.join(self.base_path, key))
+        if not resolved.startswith(self.base_path + os.sep) and resolved != self.base_path:
+            raise ValueError(f"Invalid storage key — path escapes base directory: {key!r}")
+        return resolved
 
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
         """Upload file to local storage."""
-        file_path = os.path.join(self.base_path, key)
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        file_path = self._safe_path(key)
+        parent = os.path.dirname(file_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
 
         with open(file_path, "wb") as f:
             f.write(file_data.read())
@@ -67,7 +79,7 @@ class LocalStorageProvider(StorageProvider):
 
     def delete(self, key: str) -> None:
         """Delete file from local storage."""
-        file_path = os.path.join(self.base_path, key)
+        file_path = self._safe_path(key)
         if os.path.exists(file_path):
             os.remove(file_path)
             logger.info("[LocalStorage] Deleted: %s", key)
@@ -121,7 +133,11 @@ class S3StorageProvider(StorageProvider):
             aws_secret_access_key=secret_access_key,
             endpoint_url=endpoint_url,
             region_name=region,
-            config=Config(signature_version="s3v4"),
+            config=Config(
+                signature_version="s3v4",
+                connect_timeout=5,
+                read_timeout=30,
+            ),
         )
 
         logger.info(
