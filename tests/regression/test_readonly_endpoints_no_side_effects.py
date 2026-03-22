@@ -1,8 +1,8 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_status_log import BinderStatusLog
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, test_db, test_user):
@@ -10,8 +10,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     c = Client(
         full_name="Client D",
         id_number="444444444",
-        client_type=ClientType.OSEK_PATUR,
-        opened_at=today,
     )
     test_db.add(c)
     test_db.commit()
@@ -20,26 +18,23 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     b_open = Binder(
         client_id=c.id,
         binder_number="BND-OPEN",
-        binder_type=BinderType.OTHER,
-        received_at=today,
+        period_start=today,
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     b_overdue = Binder(
         client_id=c.id,
         binder_number="BND-OVERDUE",
-        binder_type=BinderType.OTHER,
-        received_at=today - timedelta(days=100),
+        period_start=today - timedelta(days=100),
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     b_due_today = Binder(
         client_id=c.id,
         binder_number="BND-DUE",
-        binder_type=BinderType.OTHER,
-        received_at=today,
+        period_start=today,
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     test_db.add_all([b_open, b_overdue, b_due_today])
     test_db.commit()
@@ -62,7 +57,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
         "statuses": {b.id: b.status.value for b in test_db.query(Binder).all()},
     }
 
-    r_client_binders = client.get(f"/api/v1/clients/{c.id}/binders", headers=advisor_headers)
+    r_client_binders = client.get(f"/api/v1/binders?client_id={c.id}", headers=advisor_headers)
     assert r_client_binders.status_code == 200
     assert r_client_binders.json()["total"] == 3
 

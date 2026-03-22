@@ -6,7 +6,7 @@ def work_queue_item(binder, client, work_state, signals, reference_date) -> dict
         "binder_number": binder.binder_number,
         "work_state": work_state.value,
         "signals": signals,
-        "days_since_received": (reference_date - binder.received_at).days,
+        "days_since_received": (reference_date - binder.period_start).days,
     }
 
 
@@ -18,7 +18,7 @@ def idle_attention_item(binder, client, reference_date) -> dict:
         "client_name": client.full_name,
         "description": (
             f"Binder {binder.binder_number} idle for "
-            f"{(reference_date - binder.received_at).days} days"
+            f"{(reference_date - binder.period_start).days} days"
         ),
     }
 

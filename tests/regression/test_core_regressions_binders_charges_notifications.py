@@ -1,6 +1,4 @@
-from datetime import date
-
-from app.clients.models.client import Client, ClientType
+from app.clients.models.client import Client
 
 
 def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_db):
@@ -8,8 +6,6 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
     test_client = Client(
         full_name="S5 Regression Client",
         id_number="555555550",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -21,6 +17,7 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
         json={
             "client_id": test_client.id,
             "binder_number": "S5-REG-001",
+            "period_start": "2026-01-01",
             "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
@@ -29,8 +26,8 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder_number"] == "S5-REG-001"
-    assert data["status"] == "in_office"
+    assert data["binder"]["binder_number"] == "S5-REG-001"
+    assert data["binder"]["status"] == "in_office"
 
 
 def test_open_binders_endpoint_returns_items(client, advisor_headers):
@@ -45,8 +42,6 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
     test_client = Client(
         full_name="S5 Billing Client",
         id_number="555555551",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -56,9 +51,9 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "business_id": test_client.id,
             "amount": 100.0,
-            "charge_type": "one_time",
+            "charge_type": "other",
         },
     )
 
@@ -72,15 +67,13 @@ def test_document_signals_endpoint_lists_missing_documents(client, advisor_heade
     test_client = Client(
         full_name="S5 Notification Client",
         id_number="555555552",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
 
     response = client.get(
-        f"/api/v1/documents/client/{test_client.id}/signals",
+        f"/api/v1/documents/business/{test_client.id}/signals",
         headers=secretary_headers,
     )
 

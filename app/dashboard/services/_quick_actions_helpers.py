@@ -55,7 +55,7 @@ def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessR
 
     for binder in binders:
         binder_acts = get_binder_actions(binder)
-        d = days_since(binder.received_at) if binder.received_at else 0
+        d = days_since(binder.period_start) if binder.period_start else 0
         overdue = d > 90
 
         if binder.status in (BinderStatus.IN_OFFICE, BinderStatus.IN_OFFICE.value):
@@ -82,8 +82,9 @@ def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessR
         if candidate is None:
             continue
         binder, action, d = candidate
-        client = business_repo.get_by_id(binder.business_id)
-        action["client_name"] = client.full_name if client else None
+        businesses = business_repo.list_by_client(binder.client_id, page=1, page_size=1)
+        business = businesses[0] if businesses else None
+        action["client_name"] = business.full_name if business else None
         action["binder_number"] = binder.binder_number
         label = f"פג תוקף לפני {d - 90} ימים" if d > 90 else f"{d} ימים במשרד"
         enrich(action, "binders", label)

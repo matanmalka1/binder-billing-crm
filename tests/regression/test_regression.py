@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
-from app.clients.models.client import Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client
 
 
 def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_headers, test_db):
@@ -9,8 +9,6 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
     test_client = Client(
         full_name="Regression Test Client",
         id_number="000000003",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -22,6 +20,7 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
         json={
             "client_id": test_client.id,
             "binder_number": "REG-001",
+            "period_start": "2026-01-01",
             "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
@@ -30,8 +29,8 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder_number"] == "REG-001"
-    assert data["status"] == "in_office"
+    assert data["binder"]["binder_number"] == "REG-001"
+    assert data["binder"]["status"] == "in_office"
 
 
 def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, test_user):
@@ -39,8 +38,6 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, t
     test_client = Client(
         full_name="Regression Client",
         id_number="000000004",
-        client_type=ClientType.OSEK_PATUR,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -49,10 +46,9 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, t
     binder = Binder(
         client_id=test_client.id,
         binder_number="REG-002",
-        binder_type=BinderType.OTHER,
-        received_at=date.today() - timedelta(days=100),
+        period_start=date.today() - timedelta(days=100),
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     test_db.add(binder)
     test_db.commit()
@@ -68,8 +64,6 @@ def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers,
     test_client = Client(
         full_name="Regression Client",
         id_number="000000005",
-        client_type=ClientType.EMPLOYEE,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -80,15 +74,15 @@ def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers,
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "business_id": test_client.id,
             "amount": 100.0,
-            "charge_type": "one_time",
+            "charge_type": "other",
         },
     )
 
     assert response.status_code == 201
     data = response.json()
-    assert data["amount"] == 100.0
+    assert float(data["amount"]) == 100.0
     assert data["status"] == "draft"
 
     # Test charge list

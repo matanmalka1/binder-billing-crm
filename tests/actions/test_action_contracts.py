@@ -3,12 +3,12 @@ from types import SimpleNamespace
 from app.actions.action_contracts import (
     build_action,
     get_binder_actions,
+    get_business_actions,
     get_charge_actions,
-    get_client_actions,
 )
 from app.binders.models.binder import BinderStatus
+from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import ChargeStatus
-from app.clients.models.client import ClientStatus
 from app.users.models.user import UserRole
 
 
@@ -34,34 +34,34 @@ def test_get_binder_actions_ready_for_pickup_returns_return_action_with_input():
     assert actions[0]["confirm"]["inputs"][0]["name"] == "pickup_person_name"
 
 
-def test_get_client_actions_active_advisor_returns_freeze_action():
-    crm_client = SimpleNamespace(id=5, status=ClientStatus.ACTIVE)
+def test_get_business_actions_active_advisor_returns_freeze_action():
+    business = SimpleNamespace(id=5, status=BusinessStatus.ACTIVE)
 
-    actions = get_client_actions(crm_client, user_role=UserRole.ADVISOR)
+    actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
     assert len(actions) == 1
     assert actions[0]["key"] == "freeze"
     assert actions[0]["payload"] == {"status": "frozen"}
-    assert actions[0]["id"] == "client-5-freeze"
+    assert actions[0]["id"] == "business-5-freeze"
 
 
-def test_get_client_actions_active_secretary_returns_no_actions():
-    crm_client = SimpleNamespace(id=6, status=ClientStatus.ACTIVE)
+def test_get_business_actions_active_secretary_returns_no_actions():
+    business = SimpleNamespace(id=6, status=BusinessStatus.ACTIVE)
 
-    actions = get_client_actions(crm_client, user_role=UserRole.SECRETARY)
+    actions = get_business_actions(business, user_role=UserRole.SECRETARY)
 
     assert actions == []
 
 
-def test_get_client_actions_frozen_returns_activate_action():
-    crm_client = SimpleNamespace(id=7, status=ClientStatus.FROZEN)
+def test_get_business_actions_frozen_returns_activate_action():
+    business = SimpleNamespace(id=7, status=BusinessStatus.FROZEN)
 
-    actions = get_client_actions(crm_client, user_role=UserRole.ADVISOR)
+    actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
     assert len(actions) == 1
     assert actions[0]["key"] == "activate"
     assert actions[0]["payload"] == {"status": "active"}
-    assert actions[0]["id"] == "client-7-activate"
+    assert actions[0]["id"] == "business-7-activate"
 
 
 def test_get_charge_actions_draft_returns_issue_and_cancel():
