@@ -112,7 +112,7 @@ Roles: `ADVISOR` (create), `ADVISOR` + `SECRETARY` (list)
 }
 ```
 
-- Behavior: validates client exists; if `business_name` is provided, enforces uniqueness per client (`BUSINESS.NAME_CONFLICT`)
+- Behavior: validates client exists; if `business_name` is provided, enforces case-insensitive uniqueness per client (`BUSINESS.NAME_CONFLICT`)
 
 #### List businesses for client
 - `GET /api/v1/clients/{client_id}/businesses`
@@ -145,6 +145,7 @@ Roles: `ADVISOR`, `SECRETARY` unless noted
 - Roles: `ADVISOR`, `SECRETARY`
 - Partial update. Transitioning to `frozen` or `closed` requires `ADVISOR` role (`BUSINESS.FORBIDDEN` otherwise)
 - Setting `status=closed` auto-sets `closed_at=today` if not supplied
+- Setting `status=active` clears `closed_at`
 
 #### Delete business (soft delete)
 - `DELETE /api/v1/businesses/{business_id}`
@@ -224,7 +225,7 @@ Roles: `ADVISOR`, `SECRETARY`
 ## Behavior Notes
 
 - A client can hold multiple businesses — there is no uniqueness constraint on `(client_id, business_type)`.
-- `business_name` uniqueness is enforced per client among non-deleted businesses.
+- `business_name` uniqueness is enforced per client among non-deleted businesses, case-insensitive at service level.
 - Businesses in `closed` or `frozen` status block new work creation in downstream domains (VAT, annual reports, binders, charges).
 - The `has_signals` filter fetches up to `_HAS_SIGNALS_FETCH_LIMIT = 1000` businesses in memory; exceeding the limit raises `BUSINESS.SIGNAL_FILTER_LIMIT`.
 - Repository reads (`get_by_id`, list/count) exclude soft-deleted records by default; `get_by_id_including_deleted` and `list_by_client_including_deleted` bypass this.

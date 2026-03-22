@@ -38,8 +38,8 @@ class BusinessService:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
         if business_name:
-            for b in self.business_repo.list_by_client(client_id):
-                if b.business_name and b.business_name.strip() == business_name.strip():
+            for b in self.business_repo.list_by_client(client_id, page=1, page_size=10_000):
+                if b.business_name and b.business_name.strip().lower() == business_name.strip().lower():
                     raise ConflictError(
                         f"עסק בשם '{business_name}' כבר קיים ללקוח זה",
                         "BUSINESS.NAME_CONFLICT",
@@ -97,6 +97,9 @@ class BusinessService:
 
         if "status" in fields and fields["status"] == BusinessStatus.CLOSED:
             fields.setdefault("closed_at", date.today())
+
+        if "status" in fields and fields["status"] == BusinessStatus.ACTIVE:
+            fields["closed_at"] = None
 
         return self.business_repo.update(business_id, **fields)
 

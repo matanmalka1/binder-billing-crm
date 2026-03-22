@@ -28,7 +28,7 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
     service = BusinessService(test_db)
     service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: object())
     service.business_repo = SimpleNamespace(
-        list_by_client=lambda _client_id: [],
+        list_by_client=lambda _client_id, **_kwargs: [],
         create=lambda **_kwargs: (_ for _ in ()).throw(IntegrityError("stmt", "params", Exception("db"))),
     )
 

@@ -29,8 +29,8 @@ def _to_business_response(business, user_role: UserRole) -> BusinessResponse:
 def _to_business_with_client_response(business, user_role: UserRole) -> BusinessWithClientResponse:
     response = BusinessWithClientResponse(
         **BusinessResponse.model_validate(business).model_dump(),
-        client_full_name=business.client.full_name if hasattr(business, "client") and business.client else "",
-        client_id_number=business.client.id_number if hasattr(business, "client") and business.client else "",
+        client_full_name=business.client.full_name if business.client else "",
+        client_id_number=business.client.id_number if business.client else "",
     )
     response.available_actions = get_business_actions(business, user_role=user_role)
     return response
