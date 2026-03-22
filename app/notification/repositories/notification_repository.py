@@ -113,9 +113,33 @@ class NotificationRepository:
             q = q.filter(Notification.business_id == business_id)
         return q.count()
 
+    def list_paginated(
+        self, page: int = 1, page_size: int = 20, business_id: Optional[int] = None
+    ) -> tuple[list[Notification], int]:
+        """Return paginated notifications and total count."""
+        q = self.db.query(Notification)
+        if business_id is not None:
+            q = q.filter(Notification.business_id == business_id)
+        total = q.count()
+        items = (
+            q.order_by(Notification.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        return items, total
+
     def list_recent(self, limit: int = 20, business_id: Optional[int] = None) -> list[Notification]:
         """Return recent notifications ordered by created_at desc."""
         q = self.db.query(Notification)
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)
         return q.order_by(Notification.created_at.desc()).limit(limit).all()
+
+    def exists_for_binder_trigger(self, binder_id: int, trigger: NotificationTrigger) -> bool:
+        """Return True if a notification for this binder+trigger already exists (idempotency guard)."""
+        return (
+            self.db.query(Notification)
+            .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)
+            .first()
+        ) is not None
