@@ -34,6 +34,11 @@ def test_create_update_complete_get_delete_flow(test_db):
     completed = service.mark_completed(created.id)
     assert completed.status == TaxDeadlineStatus.COMPLETED
     assert completed.completed_at is not None
+    completed_at_first = completed.completed_at
+
+    completed_again = service.mark_completed(created.id)
+    assert completed_again.id == created.id
+    assert completed_again.completed_at == completed_at_first
 
     fetched = service.get_deadline(created.id)
     assert fetched.id == created.id

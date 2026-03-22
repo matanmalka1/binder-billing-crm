@@ -58,3 +58,23 @@ def test_upcoming_overdue_name_search_and_summary(test_db):
     urgent_ids = {item["deadline"].id for item in summary["urgent"]}
     assert urgent_ids == {overdue.id, red.id, yellow.id, other_due.id}
     assert {d.id for d in summary["upcoming"]} == {red.id, yellow.id, other_due.id}
+
+
+def test_query_service_default_reference_date_paths(test_db):
+    business = create_business(test_db, name_prefix="Query Defaults")
+    writer = TaxDeadlineService(test_db)
+    service = TaxDeadlineQueryService(test_db)
+
+    due_tomorrow = writer.create_deadline(
+        business.id,
+        DeadlineType.VAT,
+        date.today() + timedelta(days=1),
+    )
+
+    upcoming = service.get_upcoming_deadlines()
+    assert due_tomorrow.id in {d.id for d in upcoming}
+
+    overdue = service.get_overdue_deadlines()
+    assert overdue == []
+
+    assert service.compute_urgency(due_tomorrow) in {UrgencyLevel.RED, UrgencyLevel.YELLOW}

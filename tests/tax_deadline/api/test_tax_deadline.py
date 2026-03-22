@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from app.tax_deadline.api.tax_deadline import _build_response
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from tests.tax_deadline.factories import create_business
@@ -90,3 +91,26 @@ def test_update_without_fields_returns_400(client, test_db, advisor_headers):
     resp = client.put(f"/api/v1/tax-deadlines/{deadline.id}", headers=advisor_headers, json={})
     assert resp.status_code == 400
     assert resp.json()["error"] == "TAX_DEADLINE.NO_FIELDS_PROVIDED"
+
+
+def test_list_by_client_name_and_build_response_business_name(client, test_db, advisor_headers):
+    business = create_business(test_db, name_prefix="Client Name Filter")
+    repo = TaxDeadlineRepository(test_db)
+    deadline = repo.create(
+        business_id=business.id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date.today() + timedelta(days=2),
+    )
+
+    resp = client.get(
+        "/api/v1/tax-deadlines?client_name=Client%20Name%20Filter",
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == deadline.id
+    assert items[0]["business_name"].startswith("Client Name Filter")
+
+    built = _build_response(deadline, business_name="Manual Name")
+    assert built.business_name == "Manual Name"
