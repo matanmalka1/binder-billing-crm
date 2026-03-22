@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -28,7 +28,7 @@ def create_authority_contact(
     business_id: int,
     request: AuthorityContactCreateRequest,
     db: DBSession,
-    user: CurrentUser,
+    _: CurrentUser,
 ):
     """Create new authority contact for business."""
     service = AuthorityContactService(db)
@@ -49,7 +49,7 @@ def create_authority_contact(
 def list_authority_contacts(
     business_id: int,
     db: DBSession,
-    user: CurrentUser,
+    _: CurrentUser,
     contact_type: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -79,17 +79,11 @@ def list_authority_contacts(
 def get_authority_contact(
     contact_id: int,
     db: DBSession,
-    user: CurrentUser,
+    _: CurrentUser,
 ):
     """Get a single authority contact by ID."""
     service = AuthorityContactService(db)
-    contact = service.get_contact(contact_id)
-    if not contact:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"איש קשר {contact_id} לא נמצא",
-        )
-    return AuthorityContactResponse.model_validate(contact)
+    return AuthorityContactResponse.model_validate(service.get_contact(contact_id))
 
 
 @router.patch(
@@ -100,7 +94,7 @@ def update_authority_contact(
     contact_id: int,
     request: AuthorityContactUpdateRequest,
     db: DBSession,
-    user: CurrentUser,
+    _: CurrentUser,
 ):
     """Update authority contact."""
     service = AuthorityContactService(db)
