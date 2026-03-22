@@ -18,7 +18,7 @@ This module provides:
 
 `Notification` fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `business_id` (FK -> `businesses.id`, required)
 - `binder_id` (FK -> `binders.id`, optional)
 - `trigger` (enum, required)
 - `channel` (enum, required)
@@ -65,14 +65,15 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
 - `GET /api/v1/notifications`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `client_id` (optional)
-  - `limit` (default `20`, min `1`, max `100`)
+  - `business_id` (optional)
+  - `page` (default `1`)
+  - `page_size` (default `20`, min `1`, max `100`)
 
 ### Get unread count
 - `GET /api/v1/notifications/unread-count`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `client_id` (optional)
+  - `business_id` (optional)
 
 ### Mark specific notifications as read
 - `POST /api/v1/notifications/mark-read`
@@ -89,7 +90,7 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
 - `POST /api/v1/notifications/mark-all-read`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `client_id` (optional)
+  - `business_id` (optional)
 
 ### Send manual notification
 - `POST /api/v1/notifications/send`
@@ -98,15 +99,15 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
 
 ```json
 {
-  "client_id": 123,
-  "channel": "WHATSAPP",
+  "business_id": 123,
+  "channel": "whatsapp",
   "message": "Reminder message",
-  "severity": "INFO"
+  "severity": "info"
 }
 ```
 
 Notes:
-- `channel` accepted values are `WHATSAPP` / `EMAIL`.
+- `channel` accepted values are `whatsapp` / `email`.
 - Manual sends use trigger `manual_payment_reminder` internally.
 
 ## Behavior Notes
@@ -114,7 +115,7 @@ Notes:
 - Service sends notifications via infrastructure channels:
   - `WhatsAppChannel` for WhatsApp when requested and configured.
   - `EmailChannel` as fallback/default.
-- If WhatsApp fails, service falls back to email when client email exists.
+- If WhatsApp fails, service falls back to email when owner client email exists.
 - All send paths are non-blocking for callers: `send_notification` returns `True` even on transport failure.
 - Delivery outcome is tracked in repository:
   - Initial record: `pending`
@@ -122,7 +123,7 @@ Notes:
   - On failure: `failed` + `failed_at` + `error_message`
 - Read-state operations:
   - `mark_read(notification_ids)` updates unread target rows.
-  - `mark_all_read(client_id?)` supports global or per-client bulk mark.
+  - `mark_all_read(business_id?)` supports global or per-business bulk mark.
 
 ## Error Envelope
 
@@ -138,8 +139,8 @@ Notification delivery failures are primarily recorded in persistence/logs rather
 
 - `binders` integration:
   - Binder receive/ready flows call `NotificationService` (`notify_binder_received`, `notify_ready_for_pickup`).
-- `clients` integration:
-  - Client contact data (phone/email) is used for channel routing/fallback.
+- `businesses` + `clients` integration:
+  - Business owner client contact data (phone/email) is used for channel routing/fallback.
 - `infrastructure` integration:
   - Uses `EmailChannel` and `WhatsAppChannel` from `app/infrastructure/notifications.py`.
 - `dashboard`/timeline integration:
