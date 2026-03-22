@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.clients.models.client import IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
@@ -152,3 +153,47 @@ def test_list_clients_and_conflict_info(test_db):
     info_deleted = service.get_conflict_info("670000002")
     assert len(info_deleted["active_clients"]) == 0
     assert len(info_deleted["deleted_clients"]) == 1
+
+
+def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch):
+    service = ClientService(test_db)
+
+    def _raise_integrity(**_kwargs):
+        raise IntegrityError("insert", {}, Exception("duplicate"))
+
+    monkeypatch.setattr(service.client_repo, "create", _raise_integrity)
+
+    with pytest.raises(ConflictError) as exc:
+        service.create_client(
+            full_name="Integrity",
+            id_number="690000001",
+            id_number_type=IdNumberType.CORPORATION,
+        )
+
+    assert exc.value.code == "CLIENT.CONFLICT"
+
+
+def test_restore_raises_not_found_when_client_missing(test_db):
+    service = ClientService(test_db)
+
+    with pytest.raises(NotFoundError) as exc:
+        service.restore_client(9999, actor_id=1)
+
+    assert exc.value.code == "CLIENT.NOT_FOUND"
+
+
+def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkeypatch):
+    service = ClientService(test_db)
+    created = service.create_client(
+        full_name="To Restore",
+        id_number="690000002",
+        id_number_type=IdNumberType.CORPORATION,
+    )
+    service.delete_client(created.id, actor_id=1)
+
+    monkeypatch.setattr(service.client_repo, "restore", lambda *_args, **_kwargs: None)
+
+    with pytest.raises(NotFoundError) as exc:
+        service.restore_client(created.id, actor_id=2)
+
+    assert exc.value.code == "CLIENT.NOT_FOUND"
