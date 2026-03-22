@@ -55,25 +55,28 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
         )
         return ClientResponse.model_validate(client)
     except ConflictError as e:
+        if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
+            raise
+
         conflict_info = service.get_conflict_info(request.id_number)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
                 "error": e.code,
                 "detail": str(e),
-                    "conflict": ClientConflictInfo(
-                        id_number=request.id_number,
-                        active_clients=[
-                            ActiveClientSummary.model_validate(c)
-                            for c in conflict_info["active_clients"]
-                        ],
-                        deleted_clients=[
-                            DeletedClientSummary.model_validate(c)
-                            for c in conflict_info["deleted_clients"]
-                        ],
-                    ).model_dump(mode="json"),
-                },
-            )
+                "conflict": ClientConflictInfo(
+                    id_number=request.id_number,
+                    active_clients=[
+                        ActiveClientSummary.model_validate(c)
+                        for c in conflict_info["active_clients"]
+                    ],
+                    deleted_clients=[
+                        DeletedClientSummary.model_validate(c)
+                        for c in conflict_info["deleted_clients"]
+                    ],
+                ).model_dump(mode="json"),
+            },
+        )
 
 
 # ─── Read ─────────────────────────────────────────────────────────────────────

@@ -94,7 +94,11 @@ class ClientService:
         Soft-delete a client.
         שים לב: מחיקת לקוח לא מוחקת את העסקים שלו — יש למחוק אותם בנפרד דרך BusinessService.
         """
-        self.get_client_or_raise(client_id)
+        client = self.client_repo.get_by_id_including_deleted(client_id)
+        # Preserve current API contract: deleting a missing/already-deleted client
+        # returns CLIENT.NOT_FOUND.
+        if not client or client.deleted_at is not None:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         self.client_repo.soft_delete(client_id, deleted_by=actor_id)
 
     def restore_client(self, client_id: int, actor_id: int) -> Client:

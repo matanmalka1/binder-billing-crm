@@ -94,6 +94,21 @@ def test_update_delete_restore_flow(test_db):
     assert restored.restored_by == 12
 
 
+def test_delete_raises_not_found_when_client_already_deleted(test_db):
+    service = ClientService(test_db)
+    created = service.create_client(
+        full_name="Delete Twice",
+        id_number="640000009",
+        id_number_type=IdNumberType.CORPORATION,
+    )
+    service.delete_client(created.id, actor_id=1)
+
+    with pytest.raises(NotFoundError) as exc:
+        service.delete_client(created.id, actor_id=2)
+
+    assert exc.value.code == "CLIENT.NOT_FOUND"
+
+
 def test_restore_raises_when_not_deleted(test_db):
     client = _create_client(test_db, full_name="Alive", id_number="650000001")
     service = ClientService(test_db)

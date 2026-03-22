@@ -64,25 +64,6 @@ class ClientRepository(BaseRepository):
             .first()
         )
 
-    def get_by_id_number(self, id_number: str) -> Optional[Client]:
-        """Retrieve active client by ID number (excludes soft-deleted)."""
-        return (
-            self.db.query(Client)
-            .filter(Client.id_number == id_number, Client.deleted_at.is_(None))
-            .first()
-        )
-
-    def get_all_by_id_number(self, id_number: str) -> list[Client]:
-        """Retrieve ALL clients (active and deleted) by ID number.
-        Used when checking conflicts before creating a new client or business.
-        """
-        return (
-            self.db.query(Client)
-            .filter(Client.id_number == id_number)
-            .order_by(Client.deleted_at.asc().nullsfirst())
-            .all()
-        )
-
     def get_active_by_id_number(self, id_number: str) -> list[Client]:
         """Retrieve all active (non-deleted) clients with a given ID number."""
         return (
