@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query as SAQuery, Session
 
 from app.common.repositories import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
@@ -46,6 +46,15 @@ class AuthorityContactRepository(BaseRepository):
             .first()
         )
 
+    def _base_query(self, business_id: int, contact_type: Optional[ContactType] = None) -> SAQuery:
+        query = self.db.query(AuthorityContact).filter(
+            AuthorityContact.business_id == business_id,
+            AuthorityContact.deleted_at.is_(None),
+        )
+        if contact_type:
+            query = query.filter(AuthorityContact.contact_type == contact_type)
+        return query
+
     def list_by_business(
         self,
         business_id: int,
@@ -53,16 +62,7 @@ class AuthorityContactRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[AuthorityContact]:
-        """List contacts for a client with optional pagination."""
-        query = self.db.query(AuthorityContact).filter(
-            AuthorityContact.business_id == business_id,
-            AuthorityContact.deleted_at.is_(None),
-        )
-
-        if contact_type:
-            query = query.filter(AuthorityContact.contact_type == contact_type)
-
-        query = query.order_by(AuthorityContact.created_at.desc())
+        query = self._base_query(business_id, contact_type).order_by(AuthorityContact.created_at.desc())
         return self._paginate(query, page, page_size)
 
     def count_by_business(
@@ -70,14 +70,7 @@ class AuthorityContactRepository(BaseRepository):
         business_id: int,
         contact_type: Optional[ContactType] = None,
     ) -> int:
-        """Count non-deleted contacts for a client."""
-        query = self.db.query(AuthorityContact).filter(
-            AuthorityContact.business_id == business_id,
-            AuthorityContact.deleted_at.is_(None),
-        )
-        if contact_type:
-            query = query.filter(AuthorityContact.contact_type == contact_type)
-        return query.count()
+        return self._base_query(business_id, contact_type).count()
 
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""
