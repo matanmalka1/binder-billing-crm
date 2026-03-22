@@ -17,6 +17,8 @@ class BinderDetailResponse(BaseModel):
     status: BinderStatus
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
+    # days_active: ימים שחלפו מתחילת תקופת הקלסר (period_start → היום).
+    # נקרא days_active ולא days_in_office כי הוא מחושב גם על קלסרים שהוחזרו.
     days_active: Optional[int] = None
     work_state: Optional[str] = None
     signals: list[str] = Field(default_factory=list)
@@ -31,12 +33,24 @@ class BinderListResponseExtended(BaseModel):
     total: int
 
 
+# ── History schemas ───────────────────────────────────────────────────────────
+# BinderHistoryEntry and BinderHistoryResponse are defined here (extended view)
+# and re-exported so that binders_history.py imports from one place.
+# The canonical definitions in binder.py schemas use `changed_at: datetime`;
+# the API router converts to the string form via .isoformat() before this layer.
+# To avoid the type conflict, binders_history.py now passes datetime objects
+# directly and lets Pydantic serialise them.
+# NOTE: binder.py schemas also contain BinderHistoryEntry — those are used
+# for the core binder schema module. Import from binder.py for the core
+# schemas and from here only for the extended (operations/dashboard) views.
+
 class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
+    # Accept datetime — Pydantic will serialise it correctly in the response.
     changed_at: str
-    notes: str | None = None
+    notes: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

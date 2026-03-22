@@ -84,12 +84,14 @@ class BusinessRepository(BaseRepository):
         status: Optional[str] = None,
         business_type: Optional[str] = None,
         search: Optional[str] = None,
-        has_signals: Optional[bool] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Business]:
-        """List active businesses with optional filters."""
-        from sqlalchemy.orm import joinedload
+        """List active businesses with optional filters.
+
+        Signal-based filtering is intentionally excluded — it is computed
+        in the service layer (SignalsService) and cannot be pushed to SQL.
+        """
         from app.clients.models.client import Client
 
         query = (

@@ -10,6 +10,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_lookup import get_client_or_raise, assert_client_allows_create
 from app.notification.services.notification_service import NotificationService
@@ -25,6 +26,9 @@ class BinderIntakeService:
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.client_repo = ClientRepository(db)
+        # Used to resolve a Business for NotificationService, which expects
+        # (Binder, Business) — not (Binder, Client).
+        self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
 
     def receive(
@@ -93,7 +97,10 @@ class BinderIntakeService:
             )
 
         if is_new_binder:
-            # Binders belong to client — notify directly via client_id
-            self.notification_service.notify_binder_received(binder, client)
+            # NotificationService.notify_binder_received expects (Binder, Business).
+            # Fetch the first active business for this client.
+            businesses = self.business_repo.list_by_client(client_id)
+            if businesses:
+                self.notification_service.notify_binder_received(binder, businesses[0])
 
         return binder, intake, is_new_binder

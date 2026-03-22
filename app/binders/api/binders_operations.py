@@ -15,7 +15,13 @@ router = APIRouter(
 )
 
 
-def _build_response(items, service: BinderOperationsService, page: int, page_size: int, total: int):
+def _build_response(
+    items,
+    service: BinderOperationsService,
+    page: int,
+    page_size: int,
+    total: int,
+) -> BinderListResponseExtended:
     enriched = [
         BinderDetailResponse(**service.enrich_binder(b))
         for b in items

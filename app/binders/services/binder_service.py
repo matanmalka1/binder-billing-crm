@@ -8,7 +8,7 @@ from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
@@ -22,7 +22,10 @@ class BinderService(BinderListService):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
-        self.client_repo = ClientRepository(db)
+        # Binders belong to clients, but notifications use Business objects.
+        # BusinessRepository is used here to look up the primary business
+        # for the client so NotificationService receives the correct type.
+        self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
 
@@ -68,9 +71,11 @@ class BinderService(BinderListService):
             notes="סומן כמוכן לאיסוף",
         )
 
-        client = self.client_repo.get_by_id(binder.client_id)
-        if client:
-            self.notification_service.notify_ready_for_pickup(updated, client)
+        # NotificationService.notify_ready_for_pickup expects (Binder, Business).
+        # Fetch the first active business for this client as the notification target.
+        businesses = self.business_repo.list_by_client(binder.client_id)
+        if businesses:
+            self.notification_service.notify_ready_for_pickup(updated, businesses[0])
 
         return updated
 

@@ -4,6 +4,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.businesses.models.business import Business
 from app.clients.models.client import Client
 
 
@@ -14,7 +15,9 @@ class AdvancePaymentReportService:
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
         query = (
             self.db.query(
-                AdvancePayment.client_id,
+                AdvancePayment.business_id,
+                Business.client_id,
+                Business.business_name,
                 Client.full_name.label("client_name"),
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
@@ -28,16 +31,27 @@ class AdvancePaymentReportService:
                     0,
                 ).label("overdue_count"),
             )
-            .join(Client, Client.id == AdvancePayment.client_id)
-            .filter(AdvancePayment.year == year)
+            .join(Business, Business.id == AdvancePayment.business_id)
+            .join(Client, Client.id == Business.client_id)
+            .filter(
+                AdvancePayment.period.like(f"{year}-%"),
+                AdvancePayment.deleted_at.is_(None),
+            )
         )
         if month is not None:
-            query = query.filter(AdvancePayment.month == month)
-        rows = query.group_by(AdvancePayment.client_id, Client.full_name).all()
+            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
+        rows = query.group_by(
+            AdvancePayment.business_id,
+            Business.client_id,
+            Business.business_name,
+            Client.full_name,
+        ).all()
 
         items = [
             {
+                "business_id": r.business_id,
                 "client_id": r.client_id,
+                "business_name": r.business_name,
                 "client_name": r.client_name,
                 "total_expected": float(r.total_expected),
                 "total_paid": float(r.total_paid),

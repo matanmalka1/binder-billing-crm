@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import func
@@ -84,25 +85,22 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.internal_notes = detail.internal_notes
             response.amendment_reason = detail.amendment_reason
 
-        try:
-            from app.annual_reports.services.financial_service import AnnualReportFinancialService
-            from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+        from app.annual_reports.services.financial_service import AnnualReportFinancialService
+        from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
-            orm_report = self.repo.get_by_id(report_id)
-            tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
-            response.profit = tax.net_profit
-            advances_paid = sum(
-                float(p.paid_amount)
-                for p in self.db.query(AdvancePayment).filter(
-                    AdvancePayment.business_id == orm_report.business_id,
-                    AdvancePayment.year == orm_report.tax_year,
-                    func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
-                ).all()
-                if p.paid_amount is not None
-            )
-            response.final_balance = round(tax.tax_after_credits - advances_paid, 2)
-        except Exception:
-            pass
+        orm_report = self.repo.get_by_id(report_id)
+        tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
+        response.profit = tax.net_profit
+        advances_paid = sum(
+            (p.paid_amount or Decimal("0"))
+            for p in self.db.query(AdvancePayment).filter(
+                AdvancePayment.business_id == orm_report.business_id,
+                AdvancePayment.period.like(f"{orm_report.tax_year}-%"),
+                func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
+                AdvancePayment.deleted_at.is_(None),
+            ).all()
+        )
+        response.final_balance = round(tax.tax_after_credits - advances_paid, 2)
 
         return response
 

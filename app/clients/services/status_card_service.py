@@ -53,14 +53,14 @@ class StatusCardService:
 
         resolved_year = year or utcnow().year
         return ClientStatusCardResponse(
-            client_id=business.client_id,  # נשמר לתאימות לאחור
+            client_id=business.client_id,
             business_id=business_id,
             year=resolved_year,
             vat=self._vat_card(business_id, resolved_year),
             annual_report=self._annual_report_card(business_id, resolved_year),
             charges=self._charges_card(business_id),
             advance_payments=self._advance_payments_card(business_id, resolved_year),
-            binders=self._binders_card(business_id),
+            binders=self._binders_card(business.client_id),
             documents=self._documents_card(business_id),
         )
 
@@ -115,8 +115,8 @@ class StatusCardService:
         total = sum((r.paid_amount or Decimal(0)) for r in rows)
         return AdvancePaymentsCard(total_paid=total, count=len(rows))
 
-    def _binders_card(self, business_id: int) -> BindersCard:
-        rows = self._binder_repo.list_by_business(business_id)
+    def _binders_card(self, client_id: int) -> BindersCard:
+        rows = self._binder_repo.list_by_client(client_id)
         active = [r for r in rows if r.status != BinderStatus.RETURNED]
         in_office = sum(1 for r in active if r.status == BinderStatus.IN_OFFICE)
         return BindersCard(active_count=len(active), in_office_count=in_office)

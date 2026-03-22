@@ -1,9 +1,11 @@
 """Advances summary — links advance payments to an annual report."""
 
+from decimal import Decimal
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
@@ -24,15 +26,14 @@ class AnnualReportAdvancesSummaryService:
             self.db.query(AdvancePayment)
             .filter(
                 AdvancePayment.business_id == report.business_id,
-                AdvancePayment.year == report.tax_year,
+                AdvancePayment.period.like(f"{report.tax_year}-%"),
                 func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
+                AdvancePayment.deleted_at.is_(None),
             )
             .all()
         )
 
-        total = sum(
-            float(p.paid_amount) for p in payments if p.paid_amount is not None
-        )
+        total = sum((p.paid_amount or Decimal("0")) for p in payments)
         count = len(payments)
 
         tax_result = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)

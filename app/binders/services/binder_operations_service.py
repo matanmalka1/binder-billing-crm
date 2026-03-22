@@ -1,3 +1,6 @@
+from datetime import date
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
@@ -40,18 +43,43 @@ class BinderOperationsService:
         """Check client existence for client-binders route."""
         return self.client_repo.get_by_id(client_id) is not None
 
-    def enrich_binder(self, binder: Binder, db: Session | None = None) -> dict:
-        """Enrich binder with operational state."""
+    def enrich_binder(
+        self,
+        binder: Binder,
+        reference_date: Optional[date] = None,
+        db: Optional[Session] = None,
+    ) -> dict:
+        """
+        Enrich binder with operational state.
+
+        Returns a dict that matches BinderDetailResponse fields:
+          id, client_id, client_name, binder_number, period_start, period_end,
+          status, returned_at, pickup_person_name, days_active,
+          work_state, signals.
+        """
         effective_db = db or self.db
+        ref_date = reference_date or date.today()
         signals_service = SignalsService(effective_db)
+
+        client = self.client_repo.get_by_id(binder.client_id)
+        client_name = client.full_name if client else None
+
+        # days_active = days elapsed since period_start (matches BinderDetailResponse).
+        days_active = (ref_date - binder.period_start).days
+
         return {
             "id": binder.id,
             "client_id": binder.client_id,
+            "client_name": client_name,
             "binder_number": binder.binder_number,
             "period_start": binder.period_start,
+            "period_end": binder.period_end,
             "status": binder.status.value,
             "returned_at": binder.returned_at,
             "pickup_person_name": binder.pickup_person_name,
-            "work_state": WorkStateService.derive_work_state(binder, db=effective_db).value,
-            "signals": signals_service.compute_binder_signals(binder),
+            "days_active": days_active,
+            "work_state": WorkStateService.derive_work_state(
+                binder, ref_date, effective_db
+            ).value,
+            "signals": signals_service.compute_binder_signals(binder, ref_date),
         }

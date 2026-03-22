@@ -1,18 +1,17 @@
 # Binders Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-22 (domain-by-domain backend sync).
 
-
-Manages physical binder lifecycle in the CRM: intake, operational tracking, ready-for-pickup, return, audit history, and list views enriched with derived operational metadata.
+Manages physical binder lifecycle in the CRM: intake (find-or-create), operational tracking, ready-for-pickup, return, audit history, and list views enriched with derived operational metadata.
 
 ## Scope
 
 This module provides:
-- Binder intake (`in_office`)
+- Binder intake — find active binder by number or create new one, record material intake event
 - Lifecycle transitions (`in_office -> ready_for_pickup -> returned`)
 - Active/open binder listing with filters, sort, and pagination
 - Binder history/audit trail (`binder_status_logs`)
-- Client-scoped binder listing (`/clients/{client_id}/binders`)
+- Business-scoped binder listing (`/businesses/{business_id}/binders`)
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
 - Derived UX fields (`days_in_office`, `work_state`, `signals`, `available_actions`)
 
@@ -22,16 +21,16 @@ This module provides:
 
 Primary fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
-- `binder_number` (required)
-- `binder_type` (enum, required)
-- `received_at` (date, required)
+- `client_id` (FK -> `clients.id`, required) — binders belong to the client, not a specific business
+- `binder_number` (required) — globally unique label on the physical binder
+- `period_start` (date, required) — start of the binder's reporting period
+- `period_end` (date, optional) — null means the binder is still active
 - `status` (enum, required, default `in_office`)
-- `received_by` (FK -> `users.id`, required)
-- `returned_at`, `returned_by`, `pickup_person_name` (return metadata)
-- `annual_report_id` (optional FK -> `annual_reports.id`)
+- `returned_at` (date, optional)
+- `pickup_person_name` (optional) — who collected the binder
 - `notes` (optional)
 - `created_at`
+- `created_by` (FK -> `users.id`, required)
 - `deleted_at`, `deleted_by` (soft delete)
 
 Status enum values:
@@ -39,20 +38,49 @@ Status enum values:
 - `ready_for_pickup`
 - `returned`
 
-Type enum values:
+Indexes and uniqueness:
+- `idx_binder_client` on `client_id`
+- `idx_binder_status` on `status`
+- `idx_binder_period_start` on `period_start`
+- Partial unique index `idx_active_binder_unique` on `binder_number` for non-returned, non-deleted binders
+
+### `BinderIntake` (`app/binders/models/binder_intake.py`)
+
+Records a single material intake event — every time a client brings materials to the office.
+
+Fields:
+- `id` (PK)
+- `binder_id` (FK -> `binders.id`, required)
+- `received_at` (date, required)
+- `received_by` (FK -> `users.id`, required)
+- `notes` (optional)
+- `created_at`
+
+### `BinderIntakeMaterial` (`app/binders/models/binder_intake_material.py`)
+
+One item within an intake event — a specific material type for a specific business.
+
+Fields:
+- `id` (PK)
+- `intake_id` (FK -> `binder_intakes.id`, required)
+- `business_id` (FK -> `businesses.id`, optional) — null means all businesses under the client
+- `material_type` (enum, required)
+- `annual_report_id` (FK -> `annual_reports.id`, optional)
+- `description` (optional)
+- `created_at`
+
+Material type enum values:
 - `vat`
 - `income_tax`
-- `national_insurance`
-- `capital_declaration`
 - `annual_report`
 - `salary`
 - `bookkeeping`
+- `national_insurance`
+- `capital_declaration`
+- `pension_and_insurance`
+- `corporate_docs`
+- `tax_assessment`
 - `other`
-
-Indexes and uniqueness:
-- `idx_binder_status` on `status`
-- `idx_binder_received_at` on `received_at`
-- Partial unique index `idx_active_binder_unique` on `binder_number` for non-returned binders
 
 ### `BinderStatusLog` (`app/binders/models/binder_status_log.py`)
 
@@ -78,21 +106,32 @@ Role access:
 
 #### Receive binder
 - `POST /api/v1/binders/receive`
+- Find-or-create: if `binder_number` matches an active binder for this client, adds an intake to it. Otherwise creates a new binder.
 - Request body (`BinderReceiveRequest`):
 
 ```json
 {
   "client_id": 123,
   "binder_number": "BND-2026-001",
-  "binder_type": "other",
+  "period_start": "2026-01-01",
   "received_at": "2026-03-16",
   "received_by": 7,
-  "notes": "Optional"
+  "notes": "Optional",
+  "materials": [
+    {
+      "material_type": "vat",
+      "business_id": 45,
+      "description": "January invoices"
+    }
+  ]
 }
 ```
 
-- Response: `BinderResponse` (includes derived fields)
-- Behavior: creates binder, writes initial status log (`null -> in_office`), triggers binder-received notification
+- Response: `BinderReceiveResult`
+  - `binder` — enriched `BinderResponse`
+  - `intake` — `BinderIntakeResponse` with material list
+  - `is_new_binder` — `true` if a new binder was created
+- Behavior: creates or reuses binder, records intake + materials, writes status log (`null -> in_office`) on new binder, triggers binder-received notification on new binder only
 
 #### Mark ready for pickup
 - `POST /api/v1/binders/{binder_id}/ready`
@@ -122,7 +161,7 @@ Role access:
   - `year`
   - `page` (default `1`)
   - `page_size` (default `20`, max `100`)
-  - `sort_by` (`received_at`, `days_in_office`, `status`, `client_name`)
+  - `sort_by` (`period_start`, `days_in_office`, `status`, `client_name`)
   - `sort_dir` (`asc`, `desc`, defaults to `desc`)
 
 #### Get binder by id
@@ -133,7 +172,7 @@ Role access:
 - `DELETE /api/v1/binders/{binder_id}`
 - Role: `ADVISOR`
 - Response: `204 No Content`
-- Behavior: sets `deleted_at` + `deleted_by`
+- Behavior: sets `status=returned` (if not already), `deleted_at`, `deleted_by`
 
 ### Operations routes (`app/binders/api/binders_operations.py`)
 
@@ -155,14 +194,15 @@ Base prefix: `/api/v1/binders`
 #### Binder intake history
 - `GET /api/v1/binders/{binder_id}/intakes`
 - Response model: `BinderIntakeListResponse`
-- Returns intake rows with `received_by_name` enrichment
+- Returns all intake events for the binder with `received_by_name` enrichment and material items
 
-### Client-scoped binders (cross-domain route)
+### Business-scoped binders (cross-domain route)
 
-Implemented in `app/clients/api/clients_binders.py` using binders services.
+Implemented in `app/businesses/api/business_binders_router.py`.
+Resolves `business.client_id` and delegates to `BinderOperationsService`.
 
-- `GET /api/v1/clients/{client_id}/binders`
-- Returns all binders for a client (paginated), enriched with `work_state` and `signals`
+- `GET /api/v1/businesses/{business_id}/binders`
+- Returns all binders for the client that owns the business (paginated), enriched with `work_state` and `signals`
 
 ## Lifecycle and Rules
 
@@ -171,15 +211,21 @@ Transition rules (`app/binders/services/binder_helpers.py`):
 - `ready_for_pickup -> returned` only
 - Return requires non-empty pickup person name
 
+Intake rules (`app/binders/services/binder_intake_service.py`):
+- If an active binder with the same `binder_number` exists for this client, the intake is appended to it
+- If the binder belongs to a different client, `BINDER.CLIENT_MISMATCH` is raised
+- If no active binder exists, a new one is created with status `in_office`
+- Notification is sent only on new binder creation
+
 Derived fields (`app/binders/services/binder_list_service.py`):
-- `days_in_office`: `today - received_at`
+- `days_in_office`: `today - period_start`
 - `work_state`: derived by `WorkStateService`
 - `signals`: derived by `SignalsService`
 - `available_actions`: generated action contracts for frontend execution
 
 Work state (`app/binders/services/work_state_service.py`):
 - `completed`: binder status is `returned`
-- `in_progress`: ready-for-pickup, or received in last 14 days, or recent notification activity
+- `in_progress`: ready-for-pickup, or period_start within last 14 days, or recent notification activity on this binder
 - `waiting_for_work`: older than threshold and no recent activity
 
 Signals (`app/binders/services/signals_service.py`):
@@ -190,7 +236,8 @@ Signals (`app/binders/services/signals_service.py`):
 ## Error Codes
 
 Common domain errors surfaced from binder services:
-- `BINDER.CONFLICT` (active binder number already exists)
+- `BINDER.CONFLICT` (active binder number already exists for a different client — use intake flow)
+- `BINDER.CLIENT_MISMATCH` (binder_number belongs to a different client)
 - `BINDER.NOT_FOUND`
 - `BINDER.INVALID_STATUS`
 - `BINDER.MISSING_PICKUP_PERSON`
@@ -217,15 +264,20 @@ Errors follow the global envelope from `app/core/exceptions.py` with:
   - `app/binders/services/binder_list_service.py`
   - `app/binders/services/binder_operations_service.py`
   - `app/binders/services/binder_history_service.py`
+  - `app/binders/services/binder_intake_service.py`
   - `app/binders/services/work_state_service.py`
   - `app/binders/services/signals_service.py`
 - Repositories:
   - `app/binders/repositories/binder_repository.py`
   - `app/binders/repositories/binder_repository_extensions.py`
   - `app/binders/repositories/binder_status_log_repository.py`
+  - `app/binders/repositories/binder_intake_repository.py`
+  - `app/binders/repositories/binder_intake_material_repository.py`
 - Models:
   - `app/binders/models/binder.py`
   - `app/binders/models/binder_status_log.py`
+  - `app/binders/models/binder_intake.py`
+  - `app/binders/models/binder_intake_material.py`
 
 ## Tests
 
@@ -242,10 +294,10 @@ Domain tests:
 - `tests/binders/repository/test_binder_repository_extensions.py`
 
 Cross-domain binders API test:
-- `tests/clients/api/test_clients_binders.py`
+- `tests/businesses/api/test_business_binders.py`
 
 Run binder-focused tests:
 
 ```bash
-pytest tests/binders tests/clients/api/test_clients_binders.py -q
+pytest tests/binders tests/businesses/api/test_business_binders.py -q
 ```

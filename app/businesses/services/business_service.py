@@ -43,7 +43,6 @@ class BusinessService:
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
-        # בדיקת כפילות שם עסק לאותו לקוח
         if business_name:
             existing_businesses = self.business_repo.list_by_client(client_id)
             for b in existing_businesses:
@@ -96,7 +95,12 @@ class BusinessService:
         page_size: int = 20,
         reference_date: Optional[date] = None,
     ) -> tuple[list[Business], int]:
-        """List businesses with pagination and optional filters."""
+        """List businesses with pagination and optional filters.
+
+        Note: has_signals=True checks missing_documents and unpaid_charges only.
+        binder_signals are always empty at the business level — they require
+        a client-level query. This is known architectural debt (Sprint 10+).
+        """
         if has_signals is None:
             items = self.business_repo.list(
                 status=status,
@@ -151,6 +155,17 @@ class BusinessService:
         business = self.business_repo.get_by_id(business_id)
         if not business:
             return None
+
+        # Normalize status to enum to handle both string and enum inputs safely.
+        if "status" in fields and fields["status"] is not None:
+            try:
+                fields["status"] = BusinessStatus(fields["status"])
+            except ValueError:
+                raise AppError(
+                    f"סטטוס לא חוקי: {fields['status']}",
+                    "BUSINESS.INVALID_STATUS",
+                    status_code=400,
+                )
 
         if "status" in fields and fields["status"] in (
             BusinessStatus.FROZEN, BusinessStatus.CLOSED
@@ -250,11 +265,3 @@ class BusinessService:
             or signals.get("unpaid_charges")
             or signals.get("binder_signals")
         )
-
-
-def get_business_or_raise(db: Session, business_id: int) -> Business:
-    """Fetch a business or raise NotFoundError."""
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-    return business
