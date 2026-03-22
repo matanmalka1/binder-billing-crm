@@ -28,7 +28,7 @@ def test_reset_password_endpoint_success(client, test_db, advisor_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == target.id
-    assert data["token_version"] == 1
+    assert "token_version" not in data
 
 
 def test_reset_password_endpoint_returns_404_for_missing_user(client, advisor_headers):

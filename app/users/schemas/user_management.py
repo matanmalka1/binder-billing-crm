@@ -6,6 +6,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.users.models.user import UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.services.user_management_policies import MIN_PASSWORD_LENGTH
 
 
 class UserCreateRequest(BaseModel):
@@ -13,7 +14,7 @@ class UserCreateRequest(BaseModel):
     email: EmailStr
     phone: Optional[str] = None
     role: UserRole
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH)
 
 
 class UserUpdateRequest(BaseModel):
@@ -30,7 +31,7 @@ class UserUpdateRequest(BaseModel):
 
 
 class PasswordResetRequest(BaseModel):
-    new_password: str = Field(min_length=8)
+    new_password: str = Field(min_length=MIN_PASSWORD_LENGTH)
 
 
 class UserManagementResponse(BaseModel):
@@ -40,7 +41,6 @@ class UserManagementResponse(BaseModel):
     phone: Optional[str] = None
     role: UserRole
     is_active: bool
-    token_version: int
     created_at: datetime
     last_login_at: Optional[datetime] = None
 

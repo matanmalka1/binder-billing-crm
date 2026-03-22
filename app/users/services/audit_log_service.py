@@ -1,9 +1,10 @@
+import json
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.users.models.user_audit_log import AuditAction, AuditStatus
+from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 from app.users.repositories.user_audit_log_repository import UserAuditLogRepository
 
 
@@ -67,4 +68,19 @@ class AuditLogService:
             from_ts=from_ts,
             to_ts=to_ts,
         )
-        return items, total
+        return [self._to_dict(item) for item in items], total
+
+    @staticmethod
+    def _to_dict(log: UserAuditLog) -> dict:
+        """Deserialize audit log ORM row into a plain dict for schema consumption."""
+        return {
+            "id": log.id,
+            "action": log.action,
+            "actor_user_id": log.actor_user_id,
+            "target_user_id": log.target_user_id,
+            "email": log.email,
+            "status": log.status,
+            "reason": log.reason,
+            "metadata": json.loads(log.metadata_json) if log.metadata_json else None,
+            "created_at": log.created_at,
+        }

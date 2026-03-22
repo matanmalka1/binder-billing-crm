@@ -90,7 +90,7 @@ def test_advisor_can_update_and_activate_deactivate_user(client, advisor_headers
     )
     assert deactivate_response.status_code == 200
     assert deactivate_response.json()["is_active"] is False
-    assert deactivate_response.json()["token_version"] == 1
+    assert "token_version" not in deactivate_response.json()
 
     activate_response = client.post(
         f"/api/v1/users/{target.id}/activate",

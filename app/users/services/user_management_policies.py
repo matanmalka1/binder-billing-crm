@@ -1,5 +1,7 @@
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ForbiddenError
 from app.users.models.user import UserRole
+
+MIN_PASSWORD_LENGTH = 8
 
 IMMUTABLE_UPDATE_FIELDS = {
     "id",
@@ -16,5 +18,5 @@ def ensure_advisor(actor_role: UserRole) -> None:
 
 
 def validate_password(password: str) -> None:
-    if len(password) < 8:
+    if len(password) < MIN_PASSWORD_LENGTH:
         raise AppError("הסיסמה חייבת להכיל לפחות 8 תווים", "USER.INVALID_PASSWORD")

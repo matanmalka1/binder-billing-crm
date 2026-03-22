@@ -1,3 +1,6 @@
+import pytest
+
+from app.core.exceptions import NotFoundError
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_audit_log_repository import UserAuditLogRepository
@@ -70,12 +73,10 @@ def test_list_users_and_reset_password(test_db, test_user):
     assert len(password_reset_logs) == 1
     assert password_reset_logs[0].status == AuditStatus.SUCCESS
 
-    assert (
+    with pytest.raises(NotFoundError):
         service.reset_password(
             actor_user_id=test_user.id,
             actor_role=UserRole.ADVISOR,
             target_user_id=999999,
             new_password="newpassword123",
         )
-        is None
-    )

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
@@ -50,10 +50,10 @@ def test_list_logs_returns_filtered_items_and_total(test_db):
     )
     assert filtered_total == 1
     assert len(filtered_items) == 1
-    assert filtered_items[0].action == AuditAction.LOGIN_FAILURE
+    assert filtered_items[0]["action"] == AuditAction.LOGIN_FAILURE
 
-    from_ts = datetime.utcnow() - timedelta(minutes=1)
-    to_ts = datetime.utcnow() + timedelta(minutes=1)
+    from_ts = datetime.now(UTC) - timedelta(minutes=1)
+    to_ts = datetime.now(UTC) + timedelta(minutes=1)
     all_items, all_total = service.list_logs(
         page=1,
         page_size=1,

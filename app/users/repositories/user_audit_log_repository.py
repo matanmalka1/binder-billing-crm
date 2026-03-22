@@ -4,14 +4,15 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.repositories import BaseRepository
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 
-class UserAuditLogRepository:
+class UserAuditLogRepository(BaseRepository):
     """Data access layer for user audit logs."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def create(
         self,
@@ -56,8 +57,7 @@ class UserAuditLogRepository:
             from_ts=from_ts,
             to_ts=to_ts,
         )
-        offset = (page - 1) * page_size
-        return query.order_by(UserAuditLog.created_at.desc()).offset(offset).limit(page_size).all()
+        return self._paginate(query.order_by(UserAuditLog.created_at.desc()), page, page_size)
 
     def count(
         self,

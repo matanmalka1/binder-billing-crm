@@ -30,11 +30,10 @@ class UserRepository(BaseRepository):
         is_active: Optional[bool] = None,
     ) -> list[User]:
         """List users with pagination."""
-        offset = (page - 1) * page_size
         query = self.db.query(User)
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
-        return query.order_by(User.id.asc()).offset(offset).limit(page_size).all()
+        return self._paginate(query.order_by(User.id.asc()), page, page_size)
 
     def count(self, is_active: Optional[bool] = None) -> int:
         """Count users."""

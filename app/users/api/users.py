@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from typing import Optional
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -54,65 +54,47 @@ def list_users(
 @router.get("/{user_id}", response_model=UserManagementResponse)
 def get_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    found = service.get_user(actor_role=user.role, user_id=user_id)
-    if not found:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
-    return found
+    return service.get_user(actor_role=user.role, user_id=user_id)
 
 
 @router.patch("/{user_id}", response_model=UserManagementResponse)
 def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     update_data = request.model_dump(exclude_unset=True, exclude_none=True)
-    updated = service.update_user(
+    return service.update_user(
         actor_user_id=user.id,
         actor_role=user.role,
         user_id=user_id,
         **update_data,
     )
 
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
-    return updated
-
 
 @router.post("/{user_id}/activate", response_model=UserManagementResponse)
 def activate_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    updated = service.activate_user(
+    return service.activate_user(
         actor_user_id=user.id,
         actor_role=user.role,
         user_id=user_id,
     )
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
-    return updated
 
 
 @router.post("/{user_id}/deactivate", response_model=UserManagementResponse)
 def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    updated = service.deactivate_user(
+    return service.deactivate_user(
         actor_user_id=user.id,
         actor_role=user.role,
         target_user_id=user_id,
     )
-
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
-    return updated
 
 
 @router.post("/{user_id}/reset-password", response_model=UserManagementResponse)
 def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
-    updated = service.reset_password(
+    return service.reset_password(
         actor_user_id=user.id,
         actor_role=user.role,
         target_user_id=user_id,
         new_password=request.new_password,
     )
-
-    if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="המשתמש לא נמצא")
-    return updated

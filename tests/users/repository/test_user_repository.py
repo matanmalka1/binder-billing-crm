@@ -46,3 +46,22 @@ def test_token_version_mutation_methods(test_db):
     assert repo.deactivate_and_bump_token(999999) is None
     assert repo.set_password_and_bump_token(999999, "x") is None
 
+
+def test_list_by_ids_handles_empty_and_existing_ids(test_db):
+    repo = UserRepository(test_db)
+    first = repo.create(
+        full_name="List User One",
+        email="list.one@example.com",
+        password_hash="hashed",
+        role=UserRole.ADVISOR,
+    )
+    second = repo.create(
+        full_name="List User Two",
+        email="list.two@example.com",
+        password_hash="hashed",
+        role=UserRole.SECRETARY,
+    )
+
+    assert repo.list_by_ids([]) == []
+    fetched = repo.list_by_ids([first.id, second.id])
+    assert {item.id for item in fetched} == {first.id, second.id}

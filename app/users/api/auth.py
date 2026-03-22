@@ -12,6 +12,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE_NAME = "access_token"
 COOKIE_SAMESITE = "none" if config.APP_ENV == "production" else "lax"
+REMEMBER_ME_TTL_MULTIPLIER = 2
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -29,7 +30,7 @@ def login(request: LoginRequest, db: DBSession, response: Response):
 
     ttl_hours = config.JWT_TTL_HOURS
     if request.remember_me:
-        ttl_hours = config.JWT_TTL_HOURS * 2
+        ttl_hours = config.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
 
     token = auth_service.generate_token(user, ttl_hours=ttl_hours)
 
@@ -48,7 +49,8 @@ def login(request: LoginRequest, db: DBSession, response: Response):
         user=UserResponse(
             id=user.id,
             full_name=user.full_name,
-            role=user.role.value,
+            role=user.role,
+            email=user.email,
         ),
     )
 

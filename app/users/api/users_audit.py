@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -41,22 +40,8 @@ def list_audit_logs(
         from_ts=from_ts,
         to_ts=to_ts,
     )
-    response_items = [
-        UserAuditLogResponse(
-            id=item.id,
-            action=item.action,
-            actor_user_id=item.actor_user_id,
-            target_user_id=item.target_user_id,
-            email=item.email,
-            status=item.status,
-            reason=item.reason,
-            metadata=json.loads(item.metadata_json) if item.metadata_json else None,
-            created_at=item.created_at,
-        )
-        for item in items
-    ]
     return UserAuditLogListResponse(
-        items=response_items,
+        items=[UserAuditLogResponse(**item) for item in items],
         page=page,
         page_size=page_size,
         total=total,
