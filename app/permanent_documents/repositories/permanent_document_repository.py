@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.permanent_documents.models.permanent_document import DocumentStatus, PermanentDocument
+from app.permanent_documents.models.permanent_document import DocumentScope, DocumentStatus, PermanentDocument
 
 
 class PermanentDocumentRepository:
@@ -13,7 +13,9 @@ class PermanentDocumentRepository:
 
     def create(
         self,
+        client_id: int,
         business_id: int,
+        scope: DocumentScope,
         document_type: str,
         storage_key: str,
         uploaded_by: int,
@@ -25,9 +27,12 @@ class PermanentDocumentRepository:
         file_size_bytes: Optional[int] = None,
         mime_type: Optional[str] = None,
         notes: Optional[str] = None,
+        commit: bool = True,
     ) -> PermanentDocument:
         document = PermanentDocument(
+            client_id=client_id,
             business_id=business_id,
+            scope=scope,
             document_type=document_type,
             storage_key=storage_key,
             uploaded_by=uploaded_by,
@@ -42,12 +47,22 @@ class PermanentDocumentRepository:
             notes=notes,
         )
         self.db.add(document)
-        self.db.commit()
-        self.db.refresh(document)
+        if commit:
+            self.db.commit()
+            self.db.refresh(document)
+        else:
+            self.db.flush()
         return document
 
     def get_by_id(self, document_id: int) -> Optional[PermanentDocument]:
-        return self.db.query(PermanentDocument).filter(PermanentDocument.id == document_id).first()
+        return (
+            self.db.query(PermanentDocument)
+            .filter(
+                PermanentDocument.id == document_id,
+                PermanentDocument.is_deleted == False,  # noqa: E712
+            )
+            .first()
+        )
 
     def list_by_business(
         self,
