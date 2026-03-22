@@ -46,6 +46,7 @@ def test_get_active_and_deleted_by_id_number(test_db):
     assert [c.id for c in deleted_rows] == [deleted.id]
     assert [c.id for c in all_rows_active] == [active.id]
     assert [c.id for c in all_rows_deleted] == [deleted.id]
+    assert repo.get_by_id_number("200000001").id == active.id
 
 
 def test_restore_clears_deleted_fields(test_db):
@@ -59,6 +60,7 @@ def test_restore_clears_deleted_fields(test_db):
     assert restored.deleted_by is None
     assert restored.restored_at is not None
     assert restored.restored_by == 7
+    assert repo.restore(restored.id, restored_by=7) is None
 
 
 def test_list_count_search_and_list_by_ids(test_db):
@@ -80,6 +82,17 @@ def test_list_count_search_and_list_by_ids(test_db):
 
     by_ids = repo.list_by_ids([bob.id, deleted.id])
     assert [c.id for c in by_ids] == [bob.id]
+
+    search_items, search_total = repo.search(client_name="Bob", id_number="400000002", page=1, page_size=10)
+    assert search_total == 1
+    assert [c.id for c in search_items] == [bob.id]
+
+    assert repo.list_by_ids([]) == []
+
+
+def test_soft_delete_returns_false_for_missing_client(test_db):
+    repo = ClientRepository(test_db)
+    assert repo.soft_delete(9999, deleted_by=1) is False
 
 
 def test_update_ignores_unknown_fields(test_db):
