@@ -5,13 +5,12 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.notification.repositories.notification_repository import NotificationRepository
-
+from app.notification.models.notification import Notification
 
 
 class WorkState(str, PyEnum):
     """Derived operational work state (NOT persisted)."""
-    
+
     WAITING_FOR_WORK = "waiting_for_work"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -28,46 +27,23 @@ class WorkStateService:
         reference_date: Optional[date] = None,
         db: Optional[Session] = None,
     ) -> WorkState:
-        """
-        Derive work state from binder properties.
-        
-        Logic:
-        - COMPLETED: status == RETURNED
-        - IN_PROGRESS: received within last 14 days OR ready_for_pickup OR recent notification activity
-        - WAITING_FOR_WORK: older than 14 days, not returned, not ready, no recent activity
-        
-        Args:
-            binder: Binder entity
-            reference_date: Date for calculation (defaults to today)
-            db: Database session (optional, for notification history)
-        
-        Returns:
-            Derived WorkState (not persisted)
-        """
         if reference_date is None:
             reference_date = date.today()
 
-        # Completed work
         if binder.status == BinderStatus.RETURNED:
             return WorkState.COMPLETED
 
-        # In progress: ready for pickup
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             return WorkState.IN_PROGRESS
 
-        # In progress: recently received (within threshold)
-        days_since_received = (reference_date - binder.received_at).days
-        if days_since_received < WorkStateService.IDLE_THRESHOLD_DAYS:
+        days_since_start = (reference_date - binder.period_start).days
+        if days_since_start < WorkStateService.IDLE_THRESHOLD_DAYS:
             return WorkState.IN_PROGRESS
 
-        # Check notification history for recent activity
         if db is not None:
-            if WorkStateService._has_recent_notification_activity(
-                binder, reference_date, db
-            ):
+            if WorkStateService._has_recent_notification_activity(binder, reference_date, db):
                 return WorkState.IN_PROGRESS
 
-        # Waiting for work: older, not completed, not ready, no recent activity
         return WorkState.WAITING_FOR_WORK
 
     @staticmethod
@@ -77,36 +53,23 @@ class WorkStateService:
         db: Session,
     ) -> bool:
         """
-        Check if binder has notification activity within the idle threshold.
-        
-        Recent notifications indicate active work.
+        Check for notifications linked directly to this binder within the idle threshold.
+
+        Queries by binder_id (not business_id/client_id) to avoid false positives
+        from notifications on other binders of the same client.
         """
-        
-        notification_repo = NotificationRepository(db)
-        
-        # Get all notifications for this binder
-        # Note: list_by_binder doesn't exist in NotificationRepository
-        # We need to check by business_id instead
-        notifications = notification_repo.list_by_business(
-            binder.business_id, page=1, page_size=100
-        )
-        
-        # Filter to this specific binder
-        binder_notifications = [
-            n for n in notifications if n.binder_id == binder.id
-        ]
-        
-        if not binder_notifications:
-            return False
-        
-        # Check if any notification was created within the threshold
         threshold_date = reference_date - timedelta(days=WorkStateService.IDLE_THRESHOLD_DAYS)
-        
-        for notification in binder_notifications:
-            if notification.created_at.date() >= threshold_date:
-                return True
-        
-        return False
+
+        count = (
+            db.query(Notification)
+            .filter(
+                Notification.binder_id == binder.id,
+                Notification.created_at >= threshold_date,
+            )
+            .limit(1)
+            .count()
+        )
+        return count > 0
 
     @staticmethod
     def is_idle(
@@ -114,6 +77,5 @@ class WorkStateService:
         reference_date: Optional[date] = None,
         db: Optional[Session] = None,
     ) -> bool:
-        """Check if binder is idle (waiting for work)."""
         state = WorkStateService.derive_work_state(binder, reference_date, db)
         return state == WorkState.WAITING_FOR_WORK

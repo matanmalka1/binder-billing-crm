@@ -25,29 +25,18 @@ router = APIRouter(
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
     """Receive material into existing binder or create new one."""
     service = BinderService(db)
+    materials = [m.model_dump() for m in request.materials] if request.materials else []
     binder, intake, is_new_binder = service.receive_binder(
-        business_id=request.business_id,
+        client_id=request.client_id,
         binder_number=request.binder_number,
-        binder_type=request.binder_type,
+        period_start=request.period_start,
         received_at=request.received_at,
         received_by=request.received_by,
         notes=request.notes,
+        materials=materials,
     )
     binder_resp = fetch_client_and_build_response(binder, db)
     return BinderReceiveResult(
-        id=binder_resp.id,
-        business_id=binder_resp.business_id,
-        client_name=binder_resp.client_name,
-        binder_number=binder_resp.binder_number,
-        binder_type=binder_resp.binder_type,
-        status=binder_resp.status,
-        received_at=binder_resp.received_at,
-        returned_at=binder_resp.returned_at,
-        pickup_person_name=binder_resp.pickup_person_name,
-        days_in_office=binder_resp.days_in_office,
-        work_state=binder_resp.work_state,
-        signals=binder_resp.signals,
-        available_actions=binder_resp.available_actions,
         binder=binder_resp,
         intake=BinderIntakeResponse.model_validate(intake),
         is_new_binder=is_new_binder,
@@ -58,7 +47,6 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
 def mark_ready_for_pickup(binder_id: int, db: DBSession, user: CurrentUser):
     """Mark binder as ready for pickup."""
     service = BinderService(db)
-
     binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
     return fetch_client_and_build_response(binder, db)
 
@@ -72,14 +60,12 @@ def return_binder(
 ):
     """Return binder to client."""
     service = BinderService(db)
-
     pickup_person_name = (
         request.pickup_person_name.strip()
         if request and request.pickup_person_name and request.pickup_person_name.strip()
         else user.full_name
     )
     returned_by = request.returned_by if request and request.returned_by is not None else user.id
-
     binder = service.return_binder(
         binder_id=binder_id,
         pickup_person_name=pickup_person_name,

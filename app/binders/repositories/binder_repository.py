@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.utils.time_utils import utcnow
 
 
@@ -16,20 +16,18 @@ class BinderRepository(BaseRepository):
 
     def create(
         self,
-        business_id: int,
+        client_id: int,
         binder_number: str,
-        binder_type: BinderType,
-        received_at: date,
-        received_by: int,
+        period_start: date,
+        created_by: int,
         notes: Optional[str] = None,
     ) -> Binder:
-        """Create new binder (intake flow)."""
+        """Create new binder."""
         binder = Binder(
-            business_id=business_id,
+            client_id=client_id,
             binder_number=binder_number,
-            binder_type=binder_type,
-            received_at=received_at,
-            received_by=received_by,
+            period_start=period_start,
+            created_by=created_by,
             status=BinderStatus.IN_OFFICE,
             notes=notes,
         )
@@ -60,10 +58,10 @@ class BinderRepository(BaseRepository):
 
     def list_active(
         self,
-        business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         status: Optional[str] = None,
         binder_number: Optional[str] = None,
-        sort_by: str = "received_at",
+        sort_by: str = "period_start",
         sort_dir: str = "desc",
         page: int = 1,
         page_size: int = 1000,
@@ -71,10 +69,13 @@ class BinderRepository(BaseRepository):
         """List active binders with optional filters, sorting, and pagination."""
         from sqlalchemy import asc, desc
 
-        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
+        query = self.db.query(Binder).filter(
+            Binder.status != BinderStatus.RETURNED,
+            Binder.deleted_at.is_(None),
+        )
 
-        if business_id:
-            query = query.filter(Binder.business_id == business_id)
+        if client_id:
+            query = query.filter(Binder.client_id == client_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -83,12 +84,11 @@ class BinderRepository(BaseRepository):
             query = query.filter(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
 
         sort_col_map = {
-            "received_at": Binder.received_at,
-            "days_in_office": Binder.received_at,  # older received_at → more days
+            "period_start": Binder.period_start,
+            "days_in_office": Binder.period_start,  # older period_start → more days
             "status": Binder.status,
         }
-        col = sort_col_map.get(sort_by, Binder.received_at)
-        # For days_in_office, ascending days = descending received_at and vice versa
+        col = sort_col_map.get(sort_by, Binder.period_start)
         effective_dir = sort_dir
         if sort_by == "days_in_office":
             effective_dir = "asc" if sort_dir == "desc" else "desc"
@@ -100,14 +100,17 @@ class BinderRepository(BaseRepository):
 
     def count_active(
         self,
-        business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         status: Optional[str] = None,
     ) -> int:
         """Count active binders with optional filters."""
-        query = self.db.query(Binder).filter(Binder.status != BinderStatus.RETURNED, Binder.deleted_at.is_(None))
+        query = self.db.query(Binder).filter(
+            Binder.status != BinderStatus.RETURNED,
+            Binder.deleted_at.is_(None),
+        )
 
-        if business_id:
-            query = query.filter(Binder.business_id == business_id)
+        if client_id:
+            query = query.filter(Binder.client_id == client_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -133,12 +136,12 @@ class BinderRepository(BaseRepository):
             .count()
         )
 
-    def list_by_business(self, business_id: int) -> list[Binder]:
-        """Return all non-deleted binders for a business (all statuses)."""
+    def list_by_client(self, client_id: int) -> list[Binder]:
+        """Return all non-deleted binders for a client (all statuses)."""
         return (
             self.db.query(Binder)
-            .filter(Binder.business_id == business_id, Binder.deleted_at.is_(None))
-            .order_by(Binder.received_at.asc())
+            .filter(Binder.client_id == client_id, Binder.deleted_at.is_(None))
+            .order_by(Binder.period_start.asc())
             .all()
         )
 
@@ -147,7 +150,6 @@ class BinderRepository(BaseRepository):
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()
         if not binder:
             return False
-        # Release active-number uniqueness slot after soft delete.
         binder.status = BinderStatus.RETURNED
         if binder.returned_at is None:
             binder.returned_at = date.today()

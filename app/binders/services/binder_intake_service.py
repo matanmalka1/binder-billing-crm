@@ -4,14 +4,14 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ConflictError
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lookup import get_business_or_raise
-from app.clients.services.client_lookup import assert_business_allows_create
+from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
+from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_lookup import get_client_or_raise, assert_client_allows_create
 from app.notification.services.notification_service import NotificationService
 
 
@@ -23,41 +23,48 @@ class BinderIntakeService:
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
         self.intake_repo = BinderIntakeRepository(db)
+        self.material_repo = BinderIntakeMaterialRepository(db)
+        self.client_repo = ClientRepository(db)
         self.notification_service = NotificationService(db)
 
     def receive(
         self,
-        business_id: int,
+        client_id: int,
         binder_number: str,
-        binder_type: BinderType,
+        period_start: date,
         received_at: date,
         received_by: int,
         notes: Optional[str] = None,
+        materials: Optional[list[dict]] = None,
     ) -> tuple[Binder, BinderIntake, bool]:
         """
-        Find active binder or create new one, then record the intake.
+        Find active binder by number or create new one, then record the intake.
+
+        materials: list of dicts with keys:
+            material_type (str), business_id (int|None),
+            annual_report_id (int|None), description (str|None)
+
         Returns (binder, intake, is_new_binder).
         """
-        business = get_business_or_raise(self.db, business_id)
-        assert_business_allows_create(business)
+        client = get_client_or_raise(self.db, client_id)
+        assert_client_allows_create(client)
 
         existing = self.binder_repo.get_active_by_number(binder_number)
 
         if existing:
-            if existing.business_id != business_id:
+            if existing.client_id != client_id:
                 raise ConflictError(
-                    f"הקלסר {binder_number} שייך לעסק אחר",
-                    "BINDER.BUSINESS_MISMATCH",
+                    f"הקלסר {binder_number} שייך ללקוח אחר",
+                    "BINDER.CLIENT_MISMATCH",
                 )
             binder = existing
             is_new_binder = False
         else:
             binder = self.binder_repo.create(
-                business_id=business_id,
+                client_id=client_id,
                 binder_number=binder_number,
-                binder_type=binder_type,
-                received_at=received_at,
-                received_by=received_by,
+                period_start=period_start,
+                created_by=received_by,
                 notes=notes,
             )
             self.status_log_repo.append(
@@ -76,7 +83,17 @@ class BinderIntakeService:
             notes=notes,
         )
 
+        for mat in (materials or []):
+            self.material_repo.create(
+                intake_id=intake.id,
+                material_type=mat["material_type"],
+                business_id=mat.get("business_id"),
+                annual_report_id=mat.get("annual_report_id"),
+                description=mat.get("description"),
+            )
+
         if is_new_binder:
-            self.notification_service.notify_binder_received(binder, business)
+            # Binders belong to client — notify directly via client_id
+            self.notification_service.notify_binder_received(binder, client)
 
         return binder, intake, is_new_binder

@@ -14,44 +14,54 @@ class BinderRepositoryExtensions:
         page: int = 1,
         page_size: int = 20,
     ) -> list[Binder]:
-        """List open binders (status != RETURNED) with pagination."""
+        """List open binders (status != RETURNED, not soft-deleted) with pagination."""
         query = (
             self.db.query(Binder)
-            .filter(Binder.status != BinderStatus.RETURNED)
-            .order_by(Binder.received_at.desc(), Binder.id.desc())
+            .filter(
+                Binder.status != BinderStatus.RETURNED,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
     def count_open_binders(self) -> int:
-        """Count open binders."""
+        """Count open binders (not soft-deleted)."""
         return (
             self.db.query(Binder)
-            .filter(Binder.status != BinderStatus.RETURNED)
+            .filter(
+                Binder.status != BinderStatus.RETURNED,
+                Binder.deleted_at.is_(None),
+            )
             .count()
         )
 
-    def list_by_business(
+    def list_by_client(
         self,
-        business_id: int,
+        client_id: int,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Binder]:
-        """List all binders for a business."""
+        """List all binders for a client (not soft-deleted)."""
         query = (
             self.db.query(Binder)
-            .filter(Binder.business_id == business_id)
-            .order_by(Binder.received_at.desc(), Binder.id.desc())
+            .filter(
+                Binder.client_id == client_id,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
-    def count_by_business(self, business_id: int) -> int:
-        """Count binders for a business."""
+    def count_by_client(self, client_id: int) -> int:
+        """Count binders for a client (not soft-deleted)."""
         return (
             self.db.query(Binder)
-            .filter(Binder.business_id == business_id)
+            .filter(
+                Binder.client_id == client_id,
+                Binder.deleted_at.is_(None),
+            )
             .count()
         )

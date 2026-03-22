@@ -23,13 +23,13 @@ class BinderReceiveRequest(BaseModel):
     אם binder_number קיים ופעיל — מוסיף intake לקלסר קיים.
     אם לא — יוצר קלסר חדש.
     """
-    client_id: int                            # קלסר שייך ללקוח, לא לעסק
+    client_id: int                            # קלסר שייך ללקוח
     binder_number: str
     period_start: date                        # תחילת תקופת הקלסר
     received_at: date                         # תאריך קבלת החומרים (ב-intake)
     received_by: int
     notes: Optional[str] = None
-    materials: list[BinderIntakeMaterialRequest] = []
+    materials: list[BinderIntakeMaterialRequest] = Field(default_factory=list)
 
 
 class BinderReturnRequest(BaseModel):
@@ -52,9 +52,9 @@ class BinderResponse(BaseModel):
     notes: Optional[str] = None
     created_at: datetime
     # ── Derived (computed by service, not stored) ─────────────────────────────
-    days_active: Optional[int] = None        # today - period_start
+    days_in_office: Optional[int] = None     # today - period_start
     work_state: Optional[str] = None
-    signals: list[str] = []
+    signals: list[str] = Field(default_factory=list)
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -89,7 +89,7 @@ class BinderIntakeResponse(BaseModel):
     received_by_name: Optional[str] = None   # enriched by service
     notes: Optional[str] = None
     created_at: datetime
-    materials: list[BinderIntakeMaterialResponse] = []
+    materials: list[BinderIntakeMaterialResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

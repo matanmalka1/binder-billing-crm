@@ -4,11 +4,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
@@ -22,27 +22,29 @@ class BinderService(BinderListService):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
-        self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
 
     def receive_binder(
         self,
-        business_id: int,
+        client_id: int,
         binder_number: str,
-        binder_type: BinderType,
+        period_start: date,
         received_at: date,
         received_by: int,
         notes: Optional[str] = None,
+        materials: Optional[list[dict]] = None,
     ) -> tuple[Binder, BinderIntake, bool]:
         """Receive material into existing binder or create new one."""
         return self.intake_service.receive(
-            business_id=business_id,
+            client_id=client_id,
             binder_number=binder_number,
-            binder_type=binder_type,
+            period_start=period_start,
             received_at=received_at,
             received_by=received_by,
             notes=notes,
+            materials=materials,
         )
 
     def mark_ready_for_pickup(self, binder_id: int, user_id: int) -> Binder:
@@ -55,9 +57,7 @@ class BinderService(BinderListService):
 
         old_status = binder.status.value
         updated = self.binder_repo.update_status(
-            binder_id,
-            BinderStatus.READY_FOR_PICKUP,
-            binder=binder,
+            binder_id, BinderStatus.READY_FOR_PICKUP, binder=binder,
         )
 
         self.status_log_repo.append(
@@ -68,9 +68,9 @@ class BinderService(BinderListService):
             notes="סומן כמוכן לאיסוף",
         )
 
-        business = self.business_repo.get_by_id(binder.business_id)
-        if business:
-            self.notification_service.notify_ready_for_pickup(updated, business)
+        client = self.client_repo.get_by_id(binder.client_id)
+        if client:
+            self.notification_service.notify_ready_for_pickup(updated, client)
 
         return updated
 
@@ -119,14 +119,14 @@ class BinderService(BinderListService):
 
     def list_active_binders(
         self,
-        business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         status: Optional[str] = None,
-        sort_by: str = "received_at",
+        sort_by: str = "period_start",
         sort_dir: str = "desc",
     ) -> list[Binder]:
         """List active binders with optional filters."""
         return self.binder_repo.list_active(
-            business_id=business_id,
+            client_id=client_id,
             status=status,
             sort_by=sort_by,
             sort_dir=sort_dir,
