@@ -15,6 +15,7 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 @router.post(
     "/work-items/{item_id}/ready-for-review",
     response_model=VatWorkItemResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def mark_ready_for_review(
     item_id: int,

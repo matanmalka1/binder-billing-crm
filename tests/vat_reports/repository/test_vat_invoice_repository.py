@@ -1,7 +1,9 @@
-from datetime import date, datetime
+from datetime import datetime
 from itertools import count
 
-from app.clients.models import Client, ClientType
+from app.businesses.models.business import Business
+from app.businesses.models.business_tax_profile import VatType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType
@@ -26,28 +28,27 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
     idx = next(_client_seq)
-    c = Client(
-        full_name=f"VAT Repo Client {idx}",
-        id_number=f"VRI{idx:03d}",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date.today(),
-    )
-    db.add(c)
+    client = Client(full_name=f"VAT Repo Client {idx}", id_number=f"VRI{idx:03d}")
+    db.add(client)
     db.commit()
-    db.refresh(c)
-    return c
+    db.refresh(client)
+    return db.get(Business, client.id)
 
 
 def test_list_by_work_item_orders_and_filters_by_type(test_db):
     user = _user(test_db)
-    client = _client(test_db)
+    business = _business(test_db)
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(client_id=client.id, period="2026-05", created_by=user.id)
-    other_item = work_item_repo.create(client_id=client.id, period="2026-06", created_by=user.id)
+    item = work_item_repo.create(
+        business_id=business.id, period="2026-05", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    other_item = work_item_repo.create(
+        business_id=business.id, period="2026-06", period_type=VatType.MONTHLY, created_by=user.id
+    )
 
     expense = invoice_repo.create(
         work_item_id=item.id,
@@ -90,17 +91,23 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
 
 
 
-def test_sum_income_net_by_client_year_filters_by_client_year_and_income_only(test_db):
+def test_sum_income_net_by_business_year_filters_by_business_year_and_income_only(test_db):
     user = _user(test_db)
-    client = _client(test_db)
-    other_client = _client(test_db)
+    business = _business(test_db)
+    other_business = _business(test_db)
 
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    target_item = work_item_repo.create(client_id=client.id, period="2026-01", created_by=user.id)
-    previous_year_item = work_item_repo.create(client_id=client.id, period="2025-12", created_by=user.id)
-    other_client_item = work_item_repo.create(client_id=other_client.id, period="2026-02", created_by=user.id)
+    target_item = work_item_repo.create(
+        business_id=business.id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    previous_year_item = work_item_repo.create(
+        business_id=business.id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    other_business_item = work_item_repo.create(
+        business_id=other_business.id, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id
+    )
 
     invoice_repo.create(
         work_item_id=target_item.id,
@@ -134,18 +141,18 @@ def test_sum_income_net_by_client_year_filters_by_client_year_and_income_only(te
         vat_amount=51.0,
     )
     invoice_repo.create(
-        work_item_id=other_client_item.id,
+        work_item_id=other_business_item.id,
         created_by=user.id,
         invoice_type=InvoiceType.INCOME,
-        invoice_number="INC-OTHER-CLIENT",
+        invoice_number="INC-OTHER-BUSINESS",
         invoice_date=datetime(2026, 2, 3),
         counterparty_name="Customer C",
         net_amount=700.0,
         vat_amount=119.0,
     )
 
-    assert invoice_repo.sum_income_net_by_client_year(client.id, 2026) == 1000.0
-    assert invoice_repo.sum_income_net_by_client_year(client.id, 2024) == 0.0
+    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 1000.0
+    assert invoice_repo.sum_income_net_by_business_year(business.id, 2024) == 0.0
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

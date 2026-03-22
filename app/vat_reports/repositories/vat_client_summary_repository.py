@@ -18,6 +18,7 @@ class VatClientSummaryRepository:
             .filter(
                 VatWorkItem.business_id == business_id,
                 VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.deleted_at.is_(None),
             )
             .scalar()
         )
@@ -40,7 +41,10 @@ class VatClientSummaryRepository:
         return (
             self.db.query(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
             .outerjoin(net_sq, VatWorkItem.id == net_sq.c.work_item_id)
-            .filter(VatWorkItem.business_id == business_id)
+            .filter(
+                VatWorkItem.business_id == business_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
             .order_by(VatWorkItem.period.desc())
             .all()
         )
@@ -58,7 +62,10 @@ class VatClientSummaryRepository:
                     case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
                 ).label("filed_count"),
             )
-            .filter(VatWorkItem.business_id == business_id)
+            .filter(
+                VatWorkItem.business_id == business_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
             .group_by(year_expr)
             .order_by(year_expr.desc())
             .all()

@@ -17,8 +17,9 @@ from sqlalchemy import (
 )
 from app.utils.enum_utils import pg_enum
 
+from datetime import date
+
 from app.database import Base
-from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import (
     DocumentType,
     ExpenseCategory,
@@ -67,7 +68,7 @@ class VatInvoice(Base):
     is_exceptional = Column(Boolean, nullable=False, default=False)
 
     # Timestamp
-    created_at = Column(Date, nullable=False, default=utcnow)
+    created_at = Column(Date, nullable=False, default=date.today)
 
     __table_args__ = (
         UniqueConstraint(

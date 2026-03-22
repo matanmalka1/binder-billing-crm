@@ -2,11 +2,12 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.services.vat_report_queries import _compute_deadline_fields
+from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 from app.vat_reports.schemas import (
     VatAuditLogResponse,
     VatAuditTrailResponse,
@@ -22,7 +23,7 @@ def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWor
     data = VatWorkItemResponse.model_validate(item)
     data.business_name = name_map.get(item.business_id)
     data.business_status = status_map.get(item.business_id)
-    deadline = _compute_deadline_fields(item)
+    deadline = compute_deadline_fields(item)
     data.submission_deadline = deadline["submission_deadline"]
     data.days_until_deadline = deadline["days_until_deadline"]
     data.is_overdue = deadline["is_overdue"]
@@ -31,7 +32,11 @@ def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWor
     return data
 
 
-@router.get("/work-items/{item_id}", response_model=VatWorkItemResponse)
+@router.get(
+    "/work-items/{item_id}",
+    response_model=VatWorkItemResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     """Get a single work item by ID."""
     service = VatReportService(db)
@@ -44,7 +49,11 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     )
 
 
-@router.get("/businesses/{business_id}/work-items", response_model=VatWorkItemListResponse)
+@router.get(
+    "/businesses/{business_id}/work-items",
+    response_model=VatWorkItemListResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def list_business_work_items(business_id: int, db: DBSession, current_user: CurrentUser):
     """List all VAT work items for a business."""
     service = VatReportService(db)
@@ -56,13 +65,17 @@ def list_business_work_items(business_id: int, db: DBSession, current_user: Curr
     return VatWorkItemListResponse(items=items, total=len(items))
 
 
-@router.get("/work-items", response_model=VatWorkItemListResponse)
+@router.get(
+    "/work-items",
+    response_model=VatWorkItemListResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def list_work_items(
     db: DBSession,
     current_user: CurrentUser,
     status_filter: Optional[VatWorkItemStatus] = Query(default=None, alias="status"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=50, ge=1, le=200),
+    page_size: int = Query(default=20, ge=1, le=200),
     period: Optional[str] = Query(None),
     business_name: Optional[str] = Query(None),
 ):
@@ -79,7 +92,11 @@ def list_work_items(
     return VatWorkItemListResponse(items=items, total=enriched["total"])
 
 
-@router.get("/work-items/{item_id}/audit", response_model=VatAuditTrailResponse)
+@router.get(
+    "/work-items/{item_id}/audit",
+    response_model=VatAuditTrailResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser):
     """Get the full audit trail for a work item."""
     service = VatReportService(db)

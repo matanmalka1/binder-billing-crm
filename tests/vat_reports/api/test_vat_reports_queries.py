@@ -30,7 +30,7 @@ def test_get_work_item_includes_user_names_and_deadline_fields(
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,
-        json={"client_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
+        json={"business_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
     )
     assert create_resp.status_code == 201
     item_id = create_resp.json()["id"]
@@ -51,7 +51,7 @@ def test_get_work_item_includes_user_names_and_deadline_fields(
     file_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/file",
         headers=advisor_headers,
-        json={"filing_method": "online"},
+        json={"submission_method": "online"},
     )
     assert file_resp.status_code == 200
 
@@ -85,11 +85,11 @@ def test_list_work_items_supports_status_and_client_name_filters(
     assert client.post(
         f"/api/v1/vat/work-items/{filed_item_id}/file",
         headers=advisor_headers,
-        json={"filing_method": "online"},
+        json={"submission_method": "online"},
     ).status_code == 200
 
     list_resp = client.get(
-        f"/api/v1/vat/work-items?status=filed&client_name={vat_client.full_name}",
+        f"/api/v1/vat/work-items?status=filed&business_name={vat_client.full_name}",
         headers=advisor_headers,
     )
     assert list_resp.status_code == 200
@@ -98,5 +98,5 @@ def test_list_work_items_supports_status_and_client_name_filters(
     assert len(body["items"]) == 1
     assert body["items"][0]["id"] == filed_item_id
     assert body["items"][0]["status"] == "filed"
-    assert body["items"][0]["client_name"] == vat_client.full_name
+    assert body["items"][0]["business_name"] == vat_client.full_name
     assert body["items"][0]["id"] != pending_item_id

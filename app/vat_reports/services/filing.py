@@ -28,7 +28,7 @@ def file_vat_return(
 
     if item.status != VatWorkItemStatus.READY_FOR_REVIEW:
         raise AppError(
-            f"לא ניתן להגיש מסטטוס {item.status.value}. נדרש READY_FOR_REVIEW.",
+            f"לא ניתן להגיש מסטטוס {item.status.value}. נדרש סטטוס 'מוכן לבדיקה'.",
             "VAT.INVALID_TRANSITION",
         )
 

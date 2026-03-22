@@ -2,7 +2,7 @@
 
 import json
 from decimal import Decimal
-from typing import Optional, Tuple
+from typing import Optional
 
 from app.core.exceptions import AppError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -14,7 +14,7 @@ from app.vat_reports.services.constants import OSEK_PATUR_CEILING_ILS, VALID_TRA
 def assert_editable(item) -> None:
     """Raise if the work item is FILED (immutable)."""
     if item.status == VatWorkItemStatus.FILED:
-        raise AppError("filed: לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש", "VAT.FILED_IMMUTABLE")
+        raise AppError("לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש", "VAT.FILED_IMMUTABLE")
 
 
 def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
@@ -31,10 +31,11 @@ def recalculate_totals(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
     item_id: int,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Recompute output / input VAT totals from stored invoices (single query)."""
     output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
-    work_item_repo.update_vat_totals(item_id, output_vat, input_vat)
+    output_net, input_net = invoice_repo.sum_net_both_types(item_id)
+    work_item_repo.update_vat_totals(item_id, output_vat, input_vat, output_net, input_net)
     return output_vat, input_vat
 
 
@@ -65,12 +66,12 @@ def resolve_invoice_derived_fields(
     )
 
     if vat_amount < 0:
-        raise AppError("negative: הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
+        raise AppError("הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
     if net_amount <= 0:
-        raise AppError("positive: הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
+        raise AppError("הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
     if invoice_type == InvoiceType.EXPENSE and not expense_category:
         raise AppError(
-            "expense_category: חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
+            "חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
             "VAT.EXPENSE_CATEGORY_REQUIRED",
         )
     if (
@@ -79,7 +80,7 @@ def resolve_invoice_derived_fields(
         and not counterparty_id
     ):
         raise AppError(
-            "counterparty_id: חשבונית מס לתשומות חייבת לכלול מספר עוסק של הספק",
+            "חשבונית מס לתשומות חייבת לכלול מספר עוסק של הספק",
             "VAT.COUNTERPARTY_ID_REQUIRED",
         )
 

@@ -1,8 +1,9 @@
 """Routes: work item creation and material intake."""
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Depends, status
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 from app.vat_reports.schemas import (
     VatWorkItemCreateRequest,
     VatWorkItemResponse,
@@ -12,7 +13,12 @@ from app.vat_reports.services.vat_report_service import VatReportService
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 
-@router.post("/work-items", response_model=VatWorkItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/work-items",
+    response_model=VatWorkItemResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def create_work_item(
     request: VatWorkItemCreateRequest,
     db: DBSession,
@@ -38,6 +44,7 @@ def create_work_item(
 @router.post(
     "/work-items/{item_id}/materials-complete",
     response_model=VatWorkItemResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def mark_materials_complete(
     item_id: int,

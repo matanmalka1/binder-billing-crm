@@ -35,6 +35,7 @@ from app.vat_reports.services.data_entry_common import (
 def add_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
+    business_repo: BusinessRepository,
     *,
     item_id: int,
     created_by: int,
@@ -52,11 +53,11 @@ def add_invoice(
     """Add an invoice to a work item. Validation delegated to resolve_invoice_derived_fields."""
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_editable(item)
 
-    business = BusinessRepository(work_item_repo.db).get_by_id(item.business_id)
+    business = business_repo.get_by_id(item.business_id)
     if business:
         assert_business_not_closed(business)
 
@@ -85,7 +86,7 @@ def add_invoice(
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)
     if existing:
         raise ConflictError(
-            f"already exists: מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
+            f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
             "VAT.CONFLICT",
         )
 
@@ -99,7 +100,7 @@ def add_invoice(
             action=ACTION_STATUS_CHANGED,
             old_value=VatWorkItemStatus.MATERIAL_RECEIVED.value,
             new_value=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS.value,
-            note="Auto-transitioned on first invoice entry",
+            note="מעבר אוטומטי בעת הוספת חשבונית ראשונה",
         )
     elif original_status not in (
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,

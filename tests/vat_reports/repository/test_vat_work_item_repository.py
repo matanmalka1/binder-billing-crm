@@ -1,11 +1,14 @@
 from datetime import date, timedelta
 from itertools import count
 
-from app.clients.models import Client, ClientType
+from app.annual_reports.models.annual_report_enums import SubmissionMethod
+from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business_tax_profile import VatType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
-from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 
@@ -26,41 +29,39 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
     idx = next(_client_seq)
-    c = Client(
-        full_name=f"VAT Work Repo Client {idx}",
-        id_number=f"VWR{idx:03d}",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date.today(),
-    )
-    db.add(c)
+    client = Client(full_name=f"VAT Work Repo Client {idx}", id_number=f"VWR{idx:03d}")
+    db.add(client)
     db.commit()
-    db.refresh(c)
-    return c
+    db.refresh(client)
+    return db.get(Business, client.id)
 
 
 def test_status_listing_totals_and_audit_trail(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
-    client = _client(test_db)
+    business = _business(test_db)
     now = utcnow()
 
     oldest = repo.create(
-        client_id=client.id,
+        business_id=business.id,
         period="2026-01",
+        period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
     newest = repo.create(
-        client_id=client.id,
+        business_id=business.id,
         period="2026-03",
+        period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
     middle = repo.create(
-        client_id=client.id,
+        business_id=business.id,
         period="2026-02",
+        period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
@@ -73,7 +74,13 @@ def test_status_listing_totals_and_audit_trail(test_db):
     assert [item.period for item in all_items] == ["2026-03", "2026-02", "2026-01"]
     assert repo.count_all() == 3
 
-    updated = repo.update_vat_totals(oldest.id, total_output_vat=170.0, total_input_vat=20.0)
+    updated = repo.update_vat_totals(
+        oldest.id,
+        total_output_vat=170.0,
+        total_input_vat=20.0,
+        total_output_net=1000.0,
+        total_input_net=200.0,
+    )
     assert float(updated.total_output_vat) == 170.0
     assert float(updated.total_input_vat) == 20.0
     assert float(updated.net_vat) == 150.0
@@ -99,13 +106,18 @@ def test_status_listing_totals_and_audit_trail(test_db):
 def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
-    client = _client(test_db)
-    item = repo.create(client_id=client.id, period="2026-11", created_by=user.id)
+    business = _business(test_db)
+    item = repo.create(
+        business_id=business.id,
+        period="2026-11",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
 
     filed = repo.mark_filed(
         item_id=item.id,
         final_vat_amount=321.5,
-        filing_method=FilingMethod.ONLINE,
+        submission_method=SubmissionMethod.ONLINE,
         filed_by=user.id,
         is_overridden=True,
         override_justification="manual override",
@@ -124,6 +136,6 @@ def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     assert repo.mark_filed(
         item_id=999999,
         final_vat_amount=1.0,
-        filing_method=FilingMethod.MANUAL,
+        submission_method=SubmissionMethod.MANUAL,
         filed_by=user.id,
     ) is None

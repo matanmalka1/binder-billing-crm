@@ -1,9 +1,11 @@
 """Routes: advisor review and filing (advisor-only)."""
 
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
 
-from app.users.api.deps import CurrentUser, DBSession
-from app.users.models.user import UserRole
+from fastapi import APIRouter, Depends
+
+from app.users.api.deps import DBSession, require_role
+from app.users.models.user import User, UserRole
 from app.vat_reports.schemas import (
     FileVatReturnRequest,
     VatWorkItemResponse,
@@ -21,7 +23,7 @@ def file_vat_return(
     item_id: int,
     request: FileVatReturnRequest,
     db: DBSession,
-    current_user: CurrentUser,
+    current_user: Annotated[User, Depends(require_role(UserRole.ADVISOR))],
 ):
     """
     Confirm and file the VAT return.  Locks the period.
@@ -29,12 +31,6 @@ def file_vat_return(
     Advisor only.
     Override amount requires written justification.
     """
-    if current_user.role != UserRole.ADVISOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="רק יועצים יכולים להגיש דוח מע\"מ",
-        )
-
     service = VatReportService(db)
     item = service.file_vat_return(
         item_id=item_id,

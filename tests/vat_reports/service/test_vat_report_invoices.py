@@ -21,10 +21,14 @@ class TestAddInvoice:
         invoice_repo.get_by_number.return_value = None
         invoice_repo.create.return_value = make_invoice()
         invoice_repo.sum_vat_both_types.return_value = (170.0, 0.0)
+        invoice_repo.sum_net_both_types.return_value = (1000.0, 0.0)
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
 
         return data_entry.add_invoice(
             work_item_repo,
             invoice_repo,
+            business_repo,
             item_id=1,
             created_by=1,
             invoice_type=InvoiceType.INCOME,
@@ -45,12 +49,15 @@ class TestAddInvoice:
     def test_negative_vat_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.INCOME,
@@ -65,12 +72,15 @@ class TestAddInvoice:
     def test_zero_net_amount_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.INCOME,
@@ -85,12 +95,15 @@ class TestAddInvoice:
     def test_expense_without_category_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.EXPENSE,
@@ -105,12 +118,15 @@ class TestAddInvoice:
     def test_expense_tax_invoice_without_counterparty_id_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.EXPENSE,
@@ -127,6 +143,8 @@ class TestAddInvoice:
     def test_duplicate_invoice_number_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item()
         invoice_repo.get_by_number.return_value = make_invoice()  # already exists
 
@@ -134,6 +152,7 @@ class TestAddInvoice:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.INCOME,
@@ -148,12 +167,15 @@ class TestAddInvoice:
     def test_cannot_add_to_filed_item(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
         work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.FILED)
 
         with pytest.raises(AppError) as exc_info:
             data_entry.add_invoice(
                 work_item_repo,
                 invoice_repo,
+                business_repo,
                 item_id=1,
                 created_by=1,
                 invoice_type=InvoiceType.INCOME,

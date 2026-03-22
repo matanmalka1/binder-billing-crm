@@ -48,7 +48,7 @@ def export_vat_business(
             result = export_to_pdf(db, business_id, year)
             media_type = "application/pdf"
     except ImportError as exc:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="שגיאה פנימית. יש לנסות שוב.")
     except Exception:
         logger.exception("VAT export failed for business_id=%s year=%s", business_id, year)
         raise HTTPException(

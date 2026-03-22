@@ -45,6 +45,19 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
     "entertainment": "אירוח וכיבוד",
     "gifts": "מתנות",
     "other": "אחר",
+    "fuel": "דלק",
+    "vehicle_maintenance": "תחזוקת רכב",
+    "vehicle_leasing": "ליסינג רכב",
+    "maintenance": "תחזוקה",
+    "utilities": "חשמל ומים",
+    "communication": "תקשורת",
+    "postage_and_shipping": "משלוחים ודואר",
+    "bank_fees": "עמלות בנק",
+    "tolls_and_parking": "חניה וכבישי אגרה",
+    "mixed_expense": "הוצאה מעורבת",
+    "vehicle_insurance": "ביטוח רכב",
+    "insurance": "ביטוח",
+    "municipal_tax": "ארנונה",
 }
 
 # Deduction rates per expense category (0.0 = prohibited, 1.0 = fully deductible)

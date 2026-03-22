@@ -1,10 +1,12 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
-from app.clients.models import Client, ClientType
+from app.businesses.models.business import Business
+from app.businesses.models.business_tax_profile import VatType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
@@ -26,45 +28,53 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(test_db) -> Client:
-    client = Client(
-        full_name="VAT Export Client",
-        id_number="VEP001",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date.today(),
-    )
+def _business(test_db) -> Business:
+    client = Client(full_name="VAT Export Client", id_number="VEP001")
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-    return client
+    return test_db.get(Business, client.id)
 
 
 def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatch):
     user = _user(test_db)
-    client = _client(test_db)
+    business = _business(test_db)
     service = VatReportService(test_db)
-    item_2026 = service.work_item_repo.create(client_id=client.id, period="2026-01", created_by=user.id)
-    item_2025 = service.work_item_repo.create(client_id=client.id, period="2025-12", created_by=user.id)
-    service.work_item_repo.update_vat_totals(item_2026.id, 170.0, 20.0)
-    service.work_item_repo.update_vat_totals(item_2025.id, 85.0, 10.0)
+    item_2026 = service.work_item_repo.create(
+        business_id=business.id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    item_2025 = service.work_item_repo.create(
+        business_id=business.id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    service.work_item_repo.update_vat_totals(item_2026.id, 170.0, 20.0, 1000.0, 200.0)
+    service.work_item_repo.update_vat_totals(item_2025.id, 85.0, 10.0, 500.0, 100.0)
 
     captured = {}
 
-    def _fake_export(client_name, client_id, year, periods, export_dir):
-        captured["client_name"] = client_name
-        captured["client_id"] = client_id
+    def _fake_export(business_name, business_id, year, periods, export_dir):
+        captured["business_name"] = business_name
+        captured["business_id"] = business_id
         captured["year"] = year
         captured["periods"] = periods
         captured["export_dir"] = export_dir
-        return {"format": "pdf", "filepath": "/tmp/fake.pdf", "filename": "fake.pdf", "generated_at": datetime.utcnow()}
+        return {
+            "format": "pdf",
+            "filepath": "/tmp/fake.pdf",
+            "filename": "fake.pdf",
+            "generated_at": datetime.utcnow(),
+        }
 
     monkeypatch.setattr(
         "app.vat_reports.services.vat_export_service.export_vat_to_pdf",
         _fake_export,
     )
 
-    with pytest.raises(AttributeError):
-        export_to_pdf(test_db, client.id, 2026)
+    payload = export_to_pdf(test_db, business.id, 2026)
+    assert payload["format"] == "pdf"
+    assert captured["business_id"] == business.id
+    assert captured["year"] == 2026
+    assert len(captured["periods"]) == 1
+    assert captured["periods"][0].period == "2026-01"
 
 
 def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
@@ -74,7 +84,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
         with pytest.raises(ImportError):
             export_vat_to_pdf(
                 client_name="Client",
-                client_id=1,
+                business_id=1,
                 year=2026,
                 periods=[],
                 export_dir="/tmp",
@@ -96,7 +106,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
 
     payload = export_vat_to_pdf(
         client_name="Client",
-        client_id=1,
+        business_id=1,
         year=2026,
         periods=[period],
         export_dir="/tmp",

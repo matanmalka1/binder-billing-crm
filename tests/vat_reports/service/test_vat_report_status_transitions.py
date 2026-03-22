@@ -2,8 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.core.exceptions import AppError, NotFoundError
-from app.vat_reports.models.vat_enums import FilingMethod, VatWorkItemStatus
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import data_entry, filing
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
@@ -62,13 +63,13 @@ class TestFileVatReturn:
             work_item_repo,
             item_id=1,
             filed_by=2,
-            filing_method=FilingMethod.ONLINE,
+            submission_method=SubmissionMethod.ONLINE,
         )
 
         work_item_repo.mark_filed.assert_called_once_with(
             item_id=1,
             final_vat_amount=500.0,
-            filing_method=FilingMethod.ONLINE,
+            submission_method=SubmissionMethod.ONLINE,
             filed_by=2,
             is_overridden=False,
             override_justification=None,
@@ -88,7 +89,7 @@ class TestFileVatReturn:
             work_item_repo,
             item_id=1,
             filed_by=2,
-            filing_method=FilingMethod.MANUAL,
+            submission_method=SubmissionMethod.MANUAL,
             override_amount=400.0,
             override_justification="Client provided corrected invoice post-review",
         )
@@ -96,7 +97,7 @@ class TestFileVatReturn:
         work_item_repo.mark_filed.assert_called_once_with(
             item_id=1,
             final_vat_amount=400.0,
-            filing_method=FilingMethod.MANUAL,
+            submission_method=SubmissionMethod.MANUAL,
             filed_by=2,
             is_overridden=True,
             override_justification="Client provided corrected invoice post-review",
@@ -115,7 +116,7 @@ class TestFileVatReturn:
                 work_item_repo,
                 item_id=1,
                 filed_by=2,
-                filing_method=FilingMethod.MANUAL,
+                submission_method=SubmissionMethod.MANUAL,
                 override_amount=1000.0,
                 override_justification=None,
             )
@@ -130,7 +131,7 @@ class TestFileVatReturn:
                 work_item_repo,
                 item_id=1,
                 filed_by=2,
-                filing_method=FilingMethod.ONLINE,
+                submission_method=SubmissionMethod.ONLINE,
             )
         assert exc_info.value.code == "VAT.INVALID_TRANSITION"
 
@@ -139,5 +140,7 @@ class TestFileVatReturn:
         work_item_repo.get_by_id.return_value = None
 
         with pytest.raises(NotFoundError) as exc_info:
-            filing.file_vat_return(work_item_repo, item_id=999, filed_by=2, filing_method=FilingMethod.ONLINE)
+            filing.file_vat_return(
+                work_item_repo, item_id=999, filed_by=2, submission_method=SubmissionMethod.ONLINE
+            )
         assert exc_info.value.code == "VAT.NOT_FOUND"

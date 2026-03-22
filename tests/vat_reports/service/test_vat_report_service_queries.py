@@ -1,6 +1,8 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 
-from app.clients.models import Client, ClientType
+from app.businesses.models.business import Business
+from app.businesses.models.business_tax_profile import VatType
+from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_report_service import VatReportService
@@ -20,27 +22,32 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(test_db) -> Client:
-    client = Client(
-        full_name="VAT Query Client",
-        id_number="VQS001",
-        client_type=ClientType.OSEK_MURSHE,
-        opened_at=date.today(),
-    )
+def _business(test_db) -> Business:
+    client = Client(full_name="VAT Query Client", id_number="VQS001")
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-    return client
+    return test_db.get(Business, client.id)
 
 
 def test_list_all_work_items_and_get_audit_trail(test_db):
     user = _user(test_db)
-    client = _client(test_db)
+    business = _business(test_db)
     service = VatReportService(test_db)
     now = datetime.utcnow()
 
-    older = service.work_item_repo.create(client_id=client.id, period="2026-01", created_by=user.id)
-    newer = service.work_item_repo.create(client_id=client.id, period="2026-02", created_by=user.id)
+    older = service.work_item_repo.create(
+        business_id=business.id,
+        period="2026-01",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+    newer = service.work_item_repo.create(
+        business_id=business.id,
+        period="2026-02",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
 
     items, total = service.list_all_work_items(page=1, page_size=1)
     assert total == 2

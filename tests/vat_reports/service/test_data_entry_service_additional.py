@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.businesses.models.business import BusinessType
 from app.core.exceptions import AppError, NotFoundError
-from app.clients.models.client import ClientType
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services.data_entry_common import (
     assert_transition_allowed,
@@ -16,12 +16,14 @@ from app.vat_reports.services.data_entry_invoices import add_invoice
 
 
 def test_add_invoice_not_found_and_invalid_status(monkeypatch):
+    business_repo = SimpleNamespace(get_by_id=lambda _id: None)
     work_item_repo = SimpleNamespace(get_by_id=lambda _id: None)
     invoice_repo = SimpleNamespace()
     with pytest.raises(NotFoundError):
         add_invoice(
             work_item_repo,
             invoice_repo,
+            business_repo,
             item_id=1,
             created_by=1,
             invoice_type=InvoiceType.INCOME,
@@ -32,7 +34,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
             vat_amount=1.7,
         )
 
-    item = SimpleNamespace(id=1, client_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
+    item = SimpleNamespace(id=1, business_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
     work_item_repo = SimpleNamespace(
         db=object(),
         get_by_id=lambda _id: item,
@@ -40,14 +42,11 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
         append_audit=lambda **kwargs: None,
     )
     invoice_repo = SimpleNamespace(get_by_number=lambda *args, **kwargs: None)
-    monkeypatch.setattr(
-        "app.vat_reports.services.data_entry_invoices.ClientRepository",
-        lambda db: SimpleNamespace(get_by_id=lambda cid: None),
-    )
     with pytest.raises(AppError):
         add_invoice(
             work_item_repo,
             invoice_repo,
+            business_repo,
             item_id=1,
             created_by=1,
             invoice_type=InvoiceType.INCOME,
@@ -60,7 +59,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
 
 
 def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
-    item = SimpleNamespace(id=1, client_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+    item = SimpleNamespace(id=1, business_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
     created = {}
     work_item_repo = SimpleNamespace(
         db=object(),
@@ -72,10 +71,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
         get_by_number=lambda *args, **kwargs: None,
         create=lambda **kwargs: created.setdefault("invoice", SimpleNamespace(id=44, **kwargs)),
     )
-    monkeypatch.setattr(
-        "app.vat_reports.services.data_entry_invoices.ClientRepository",
-        lambda db: SimpleNamespace(get_by_id=lambda cid: None),
-    )
+    business_repo = SimpleNamespace(get_by_id=lambda _id: None)
     monkeypatch.setattr(
         "app.vat_reports.services.data_entry_invoices.recalculate_totals",
         lambda *args, **kwargs: None,
@@ -84,6 +80,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
     income = add_invoice(
         work_item_repo,
         invoice_repo,
+        business_repo,
         item_id=1,
         created_by=1,
         invoice_type=InvoiceType.INCOME,
@@ -102,14 +99,14 @@ def test_data_entry_common_invalid_transition_and_ceiling():
     with pytest.raises(AppError):
         assert_transition_allowed(item, VatWorkItemStatus.FILED)
 
-    osek_client = SimpleNamespace(client_type=ClientType.OSEK_PATUR)
+    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
 
     class _InvoiceRepo:
-        def sum_income_net_by_client_year(self, client_id, year):
+        def sum_income_net_by_business_year(self, business_id, year):
             return 2000000
 
     with pytest.raises(AppError):
-        check_osek_patur_ceiling(osek_client, _InvoiceRepo(), 1, "2026-01", 1)
+        check_osek_patur_ceiling(osek_business, _InvoiceRepo(), 1, "2026-01", 1)
 
     derived = resolve_invoice_derived_fields(
         invoice_type=InvoiceType.INCOME,

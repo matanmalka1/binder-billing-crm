@@ -7,19 +7,19 @@ class TestFiling:
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/file",
             headers=advisor_headers,
-            json={"filing_method": "online"},
+            json={"submission_method": "online"},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "filed"
-        assert data["filing_method"] == "online"
+        assert data["submission_method"] == "online"
         assert data["is_overridden"] is False
 
     def test_cannot_file_without_advisor_role(self, client, secretary_headers, vat_client):
         response = client.post(
             "/api/v1/vat/work-items/1/file",
             headers=secretary_headers,
-            json={"filing_method": "online"},
+            json={"submission_method": "online"},
         )
         assert response.status_code == 403
 
@@ -28,7 +28,7 @@ class TestFiling:
         client.post(
             f"/api/v1/vat/work-items/{item_id}/file",
             headers=advisor_headers,
-            json={"filing_method": "manual"},
+            json={"submission_method": "manual"},
         )
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/invoices",
@@ -50,7 +50,7 @@ class TestFiling:
             f"/api/v1/vat/work-items/{item_id}/file",
             headers=advisor_headers,
             json={
-                "filing_method": "manual",
+                "submission_method": "manual",
                 "override_amount": "200.00",
                 "override_justification": "Corrected invoice received post-review",
             },
@@ -65,7 +65,7 @@ class TestFiling:
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/file",
             headers=advisor_headers,
-            json={"filing_method": "online", "override_amount": "999.00"},
+            json={"submission_method": "online", "override_amount": "999.00"},
         )
         assert response.status_code == 400
 
@@ -77,7 +77,7 @@ class TestFiling:
             f"/api/v1/vat/work-items/{amended_item_id}/file",
             headers=advisor_headers,
             json={
-                "filing_method": "online",
+                "submission_method": "online",
                 "submission_reference": "REF-2025-0001",
                 "is_amendment": True,
                 "amends_item_id": original_item_id,

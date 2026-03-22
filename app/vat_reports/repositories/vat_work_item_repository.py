@@ -1,4 +1,4 @@
-"""Repository for VatWorkItem and VatAuditLog entities."""
+"""Repository for VatWorkItem entities."""
 
 from typing import Optional
 
@@ -10,11 +10,13 @@ from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.annual_reports.models.annual_report_enums import SubmissionMethod  # שם חדש
+from app.vat_reports.repositories.vat_audit_log_repository import VatAuditLogRepository
 
 
 class VatWorkItemRepository:
     def __init__(self, db: Session):
         self.db = db
+        self._audit = VatAuditLogRepository(db)
 
     # ── CRUD ─────────────────────────────────────────────────────────────────
 
@@ -75,7 +77,7 @@ class VatWorkItemRepository:
         self,
         status: VatWorkItemStatus,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
         period: Optional[str] = None,
         business_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
@@ -109,7 +111,7 @@ class VatWorkItemRepository:
     def list_all(
         self,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
         period: Optional[str] = None,
         business_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
@@ -238,36 +240,10 @@ class VatWorkItemRepository:
         self.db.refresh(item)
         return item
 
-    # ── VatAuditLog ───────────────────────────────────────────────────────────
+    # ── VatAuditLog (delegated to VatAuditLogRepository) ─────────────────────
 
-    def append_audit(
-        self,
-        work_item_id: int,
-        performed_by: int,
-        action: str,
-        old_value: Optional[str] = None,
-        new_value: Optional[str] = None,
-        note: Optional[str] = None,
-        invoice_id: Optional[int] = None,
-    ) -> VatAuditLog:
-        entry = VatAuditLog(
-            work_item_id=work_item_id,
-            performed_by=performed_by,
-            action=action,
-            old_value=old_value,
-            new_value=new_value,
-            note=note,
-            invoice_id=invoice_id,
-        )
-        self.db.add(entry)
-        self.db.commit()
-        self.db.refresh(entry)
-        return entry
+    def append_audit(self, **kwargs) -> VatAuditLog:
+        return self._audit.append(**kwargs)
 
     def get_audit_trail(self, work_item_id: int) -> list[VatAuditLog]:
-        return (
-            self.db.query(VatAuditLog)
-            .filter(VatAuditLog.work_item_id == work_item_id)
-            .order_by(VatAuditLog.performed_at.asc())
-            .all()
-        )
+        return self._audit.get_audit_trail(work_item_id)

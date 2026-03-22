@@ -11,6 +11,7 @@ from app.businesses.repositories.business_tax_profile_repository import Business
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services import data_entry, filing, intake, vat_report_queries
+from app.vat_reports.services import vat_report_enrichment
 from app.users.repositories.user_repository import UserRepository
 
 
@@ -39,13 +40,13 @@ class VatReportService:
     # ── Data entry ───────────────────────────────────────────────────────────
 
     def add_invoice(self, **kwargs):
-        return data_entry.add_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
+        return data_entry.add_invoice(self.work_item_repo, self.invoice_repo, self.business_repo, **kwargs)
 
     def delete_invoice(self, **kwargs):
         return data_entry.delete_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
 
     def update_invoice(self, **kwargs):
-        return data_entry.update_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
+        return data_entry.update_invoice(self.work_item_repo, self.invoice_repo, self.business_repo, **kwargs)
 
     def mark_ready_for_review(self, **kwargs):
         return data_entry.mark_ready_for_review(self.work_item_repo, **kwargs)
@@ -83,21 +84,21 @@ class VatReportService:
         return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)
 
     def get_work_item_enriched(self, item_id: int) -> dict:
-        return vat_report_queries.get_work_item_enriched(
+        return vat_report_enrichment.get_work_item_enriched(
             self.work_item_repo, self.business_repo, self.user_repo, item_id
         )
 
     def get_business_items_enriched(self, business_id: int) -> dict:
-        return vat_report_queries.get_business_items_enriched(
+        return vat_report_enrichment.get_business_items_enriched(
             self.work_item_repo, self.business_repo, self.user_repo, business_id
         )
 
     def get_list_enriched(self, **kwargs) -> dict:
-        return vat_report_queries.get_list_enriched(
+        return vat_report_enrichment.get_list_enriched(
             self.work_item_repo, self.business_repo, self.user_repo, **kwargs
         )
 
     def get_audit_trail_enriched(self, item_id: int) -> dict:
-        return vat_report_queries.get_audit_trail_enriched(
+        return vat_report_enrichment.get_audit_trail_enriched(
             self.work_item_repo, self.user_repo, item_id
         )

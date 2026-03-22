@@ -9,7 +9,7 @@ class TestCreateWorkItem:
         assert isinstance(item_id, int)
 
     def test_duplicate_period_400(self, client, advisor_headers, vat_client):
-        payload = {"client_id": vat_client.id, "period": "2026-02"}
+        payload = {"business_id": vat_client.id, "period": "2026-02"}
         client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         response = client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         assert response.status_code == 409
@@ -19,7 +19,7 @@ class TestCreateWorkItem:
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
-            json={"client_id": vat_client.id, "period": "01-2026"},
+            json={"business_id": vat_client.id, "period": "01-2026"},
         )
         assert response.status_code == 422
 
@@ -27,7 +27,7 @@ class TestCreateWorkItem:
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
-            json={"client_id": vat_client.id, "period": "2026-03", "mark_pending": True},
+            json={"business_id": vat_client.id, "period": "2026-03", "mark_pending": True},
         )
         assert response.status_code == 400
         assert response.json()["error"] == "VAT.PENDING_NOTE_REQUIRED"
@@ -35,6 +35,6 @@ class TestCreateWorkItem:
     def test_unauthenticated_401(self, client, vat_client):
         response = client.post(
             "/api/v1/vat/work-items",
-            json={"client_id": vat_client.id, "period": "2026-04"},
+            json={"business_id": vat_client.id, "period": "2026-04"},
         )
         assert response.status_code == 401

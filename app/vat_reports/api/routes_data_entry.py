@@ -2,9 +2,10 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 from app.vat_reports.models.vat_enums import InvoiceType
 from app.vat_reports.schemas import (
     VatInvoiceCreateRequest,
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
     "/work-items/{item_id}/invoices",
     response_model=VatInvoiceResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def add_invoice(
     item_id: int,
@@ -50,6 +52,7 @@ def add_invoice(
 @router.get(
     "/work-items/{item_id}/invoices",
     response_model=VatInvoiceListResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def list_invoices(
     item_id: int,
@@ -66,6 +69,7 @@ def list_invoices(
 @router.patch(
     "/work-items/{item_id}/invoices/{invoice_id}",
     response_model=VatInvoiceResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def update_invoice(
     item_id: int,
@@ -97,6 +101,7 @@ def update_invoice(
 @router.delete(
     "/work-items/{item_id}/invoices/{invoice_id}",
     status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def delete_invoice(
     item_id: int,

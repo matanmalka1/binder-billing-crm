@@ -25,6 +25,7 @@ from app.vat_reports.services.data_entry_common import (
 def update_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
+    business_repo: BusinessRepository,
     *,
     item_id: int,
     invoice_id: int,
@@ -45,7 +46,7 @@ def update_invoice(
 
     assert_editable(item)
 
-    business = BusinessRepository(work_item_repo.db).get_by_id(item.business_id)
+    business = business_repo.get_by_id(item.business_id)
     if business:
         assert_business_not_closed(business)
 
@@ -60,7 +61,7 @@ def update_invoice(
         existing = invoice_repo.get_by_number(item_id, invoice.invoice_type, invoice_number)
         if existing:
             raise ConflictError(
-                f"already exists: מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
+                f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
                 "VAT.CONFLICT",
             )
 

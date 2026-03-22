@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from app.businesses.models.business_tax_profile import VatType
 from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.clients.models.client_tax_profile import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
@@ -12,16 +12,16 @@ from tests.vat_reports.service.test_vat_report_test_utils import make_item
 class TestCreateWorkItem:
     def test_happy_path_material_received(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
+        business_repo = MagicMock()
 
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = None
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = None
         work_item_repo.create.return_value = make_item()
 
         result = intake.create_work_item(
             work_item_repo,
-            client_repo,
-            client_id=10,
+            business_repo,
+            business_id=10,
             period="2026-01",
             created_by=1,
         )
@@ -32,38 +32,38 @@ class TestCreateWorkItem:
 
     def test_client_not_found_raises(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
-        client_repo.get_by_id.return_value = None
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = None
 
         with pytest.raises(NotFoundError) as exc_info:
             intake.create_work_item(
-                work_item_repo, client_repo, client_id=99, period="2026-01", created_by=1
+                work_item_repo, business_repo, business_id=99, period="2026-01", created_by=1
             )
         assert exc_info.value.code == "VAT.NOT_FOUND"
 
     def test_duplicate_period_raises(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = make_item()
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = make_item()
 
         with pytest.raises(ConflictError) as exc_info:
             intake.create_work_item(
-                work_item_repo, client_repo, client_id=10, period="2026-01", created_by=1
+                work_item_repo, business_repo, business_id=10, period="2026-01", created_by=1
             )
         assert exc_info.value.code == "VAT.CONFLICT"
 
     def test_pending_without_note_raises(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = None
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = None
 
         with pytest.raises(AppError) as exc_info:
             intake.create_work_item(
                 work_item_repo,
-                client_repo,
-                client_id=10,
+                business_repo,
+                business_id=10,
                 period="2026-01",
                 created_by=1,
                 mark_pending=True,
@@ -72,16 +72,16 @@ class TestCreateWorkItem:
 
     def test_pending_with_note_creates_item(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = None
+        business_repo = MagicMock()
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = None
         pending_item = make_item(status=VatWorkItemStatus.PENDING_MATERIALS)
         work_item_repo.create.return_value = pending_item
 
         result = intake.create_work_item(
             work_item_repo,
-            client_repo,
-            client_id=10,
+            business_repo,
+            business_id=10,
             period="2026-01",
             created_by=1,
             mark_pending=True,
@@ -91,17 +91,17 @@ class TestCreateWorkItem:
 
     def test_exempt_vat_type_rejected(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
+        business_repo = MagicMock()
         tax_profile_repo = MagicMock()
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = None
-        tax_profile_repo.get_by_client_id.return_value = MagicMock(vat_type=VatType.EXEMPT)
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = None
+        tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.EXEMPT)
 
         with pytest.raises(AppError) as exc_info:
             intake.create_work_item(
                 work_item_repo,
-                client_repo,
-                client_id=10,
+                business_repo,
+                business_id=10,
                 period="2026-01",
                 created_by=1,
                 tax_profile_repo=tax_profile_repo,
@@ -110,17 +110,17 @@ class TestCreateWorkItem:
 
     def test_bimonthly_rejects_even_month(self):
         work_item_repo = MagicMock()
-        client_repo = MagicMock()
+        business_repo = MagicMock()
         tax_profile_repo = MagicMock()
-        client_repo.get_by_id.return_value = MagicMock()
-        work_item_repo.get_by_client_period.return_value = None
-        tax_profile_repo.get_by_client_id.return_value = MagicMock(vat_type=VatType.BIMONTHLY)
+        business_repo.get_by_id.return_value = MagicMock()
+        work_item_repo.get_by_business_period.return_value = None
+        tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.BIMONTHLY)
 
         with pytest.raises(AppError) as exc_info:
             intake.create_work_item(
                 work_item_repo,
-                client_repo,
-                client_id=10,
+                business_repo,
+                business_id=10,
                 period="2026-02",
                 created_by=1,
                 tax_profile_repo=tax_profile_repo,

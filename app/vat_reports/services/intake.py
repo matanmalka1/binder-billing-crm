@@ -53,10 +53,11 @@ def create_work_item(
     """
     business = business_repo.get_by_id(business_id)
     if not business:
-        raise NotFoundError(f"Business not found: עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
 
     assert_business_allows_create(business)
 
+    profile = None
     if tax_profile_repo is not None:
         profile = tax_profile_repo.get_by_business_id(business_id)
         if profile and profile.vat_type:
@@ -65,7 +66,7 @@ def create_work_item(
     existing = work_item_repo.get_by_business_period(business_id, period)
     if existing:
         raise ConflictError(
-            f"already exists: פריט עבודה למע\"מ כבר קיים עבור עסק {business_id} לתקופה {period}",
+            f"פריט עבודה למע\"מ כבר קיים עבור עסק {business_id} לתקופה {period}",
             "VAT.CONFLICT",
         )
 
@@ -79,9 +80,12 @@ def create_work_item(
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
+    period_type = profile.vat_type if (profile and profile.vat_type) else VatType.MONTHLY
+
     item = work_item_repo.create(
         business_id=business_id,
         period=period,
+        period_type=period_type,
         created_by=created_by,
         status=status,
         pending_materials_note=pending_materials_note,
@@ -112,11 +116,11 @@ def mark_materials_complete(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     if item.status != VatWorkItemStatus.PENDING_MATERIALS:
         raise AppError(
-            f"Cannot mark materials complete: לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}",
+            f"לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}",
             "VAT.INVALID_TRANSITION",
         )
 
