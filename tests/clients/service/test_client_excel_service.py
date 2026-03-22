@@ -28,6 +28,25 @@ def test_client_excel_import_skips_blank_and_collects_errors(test_db):
     assert errors[0]["row"] == 4
 
 
+def test_client_excel_import_collects_required_field_errors(test_db):
+    service = ClientExcelService(test_db)
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["full_name", "id_number", "phone", "email"])
+    ws.append(["Missing ID", "", "", ""])
+    ws.append(["", "760000001", "", ""])
+
+    class _ClientSvc:
+        def create_client(self, **_kwargs):
+            raise AssertionError("create_client should not be called for invalid rows")
+
+    created, errors = service.import_clients_from_excel(wb, _ClientSvc(), actor_id=1)
+
+    assert created == 0
+    assert len(errors) == 2
+    assert {err["row"] for err in errors} == {2, 3}
+
+
 def test_client_excel_export_and_template_generate_files(test_db):
     service = ClientExcelService(test_db)
 
