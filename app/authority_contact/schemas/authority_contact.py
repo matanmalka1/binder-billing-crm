@@ -44,19 +44,3 @@ class AuthorityContactListResponse(BaseModel):
     page: int
     page_size: int
     total: int
-
-
-class AuthorityContactLinkCreateRequest(BaseModel):
-    """שיתוף איש קשר עם לקוח/עסק נוסף."""
-    client_id: int
-    business_id: Optional[int] = None  # None = כל עסקי הלקוח
-
-
-class AuthorityContactLinkResponse(BaseModel):
-    id: int
-    contact_id: int
-    client_id: int
-    business_id: Optional[int] = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
