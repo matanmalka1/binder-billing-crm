@@ -12,8 +12,10 @@ class TimelineEvent(BaseModel):
     binder_id: Optional[int] = None
     charge_id: Optional[int] = None
     description: str
-    metadata: dict = Field(default_factory=dict)
-    actions: Optional[list[dict[str, Any]]] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    actions: Optional[list[dict[str, Any]]] = Field(
+        default=None, deprecated=True
+    )  # deprecated — use available_actions
     available_actions: Optional[list[dict[str, Any]]] = None
 
 

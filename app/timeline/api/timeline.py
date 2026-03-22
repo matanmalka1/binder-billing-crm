@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
 from app.timeline.schemas.timeline import ClientTimelineResponse, TimelineEvent
 from app.timeline.services.timeline_service import TimelineService
@@ -16,9 +16,8 @@ router = APIRouter(
 def get_business_timeline(
     business_id: int,
     db: DBSession,
-    user: CurrentUser,
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
+    page_size: int = Query(20, ge=1, le=200),
 ):
     """Get unified client timeline."""
     service = TimelineService(db)

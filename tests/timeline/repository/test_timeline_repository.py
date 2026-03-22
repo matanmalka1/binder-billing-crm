@@ -1,9 +1,8 @@
 from datetime import date
 from itertools import count
 
-from app.binders.models.binder import BinderType
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models import Client, ClientType
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -16,8 +15,6 @@ def _client(db) -> Client:
     c = Client(
         full_name=f"Timeline Repo Client {idx}",
         id_number=f"TLR{idx:03d}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(c)
     db.commit()
@@ -48,23 +45,20 @@ def test_list_client_binders_returns_only_requested_client_binders(test_db):
     b1 = binder_repo.create(
         client_id=client_a.id,
         binder_number="TL-B-001",
-        binder_type=BinderType.VAT,
-        received_at=date.today(),
-        received_by=user.id,
+        period_start=date.today(),
+        created_by=user.id,
     )
     b2 = binder_repo.create(
         client_id=client_a.id,
         binder_number="TL-B-002",
-        binder_type=BinderType.ANNUAL_REPORT,
-        received_at=date.today(),
-        received_by=user.id,
+        period_start=date.today(),
+        created_by=user.id,
     )
     binder_repo.create(
         client_id=client_b.id,
         binder_number="TL-B-003",
-        binder_type=BinderType.SALARY,
-        received_at=date.today(),
-        received_by=user.id,
+        period_start=date.today(),
+        created_by=user.id,
     )
 
     result = binder_repo.list_by_client(client_a.id)

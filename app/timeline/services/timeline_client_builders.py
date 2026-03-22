@@ -12,6 +12,10 @@ REMINDER_TYPE_HE = {
     "binder_idle": "תיק לא פעיל",
     "unpaid_charge": "חיוב שלא שולם",
     "custom": "תזכורת מותאמת",
+    "vat_filing": "מועד דוח מע״מ",
+    "advance_payment_due": "תשלום מקדמה",
+    "annual_report_deadline": "מועד הגשת דוח שנתי",
+    "document_missing": "מסמך חסר",
 }
 
 SIGNATURE_REQUEST_TYPE_HE = {
@@ -30,7 +34,7 @@ def client_created_event(client) -> dict:
         "binder_id": None,
         "charge_id": None,
         "description": f"לקוח נוצר: {client.full_name}",
-        "metadata": {"client_type": client.client_type.value},
+        "metadata": {"business_type": client.business_type.value},
         "actions": [],
         "available_actions": [],
     }
@@ -80,14 +84,19 @@ def reminder_created_event(reminder) -> dict:
 
 
 def document_uploaded_event(document) -> dict:
-    type_he = DOCUMENT_TYPE_HE.get(document.document_type, document.document_type)
+    doc_type = (
+        document.document_type.value
+        if hasattr(document.document_type, "value")
+        else document.document_type
+    )
+    type_he = DOCUMENT_TYPE_HE.get(doc_type, doc_type)
     return {
         "event_type": "document_uploaded",
         "timestamp": document.uploaded_at,
         "binder_id": None,
         "charge_id": None,
         "description": f"מסמך הועלה: {type_he}",
-        "metadata": {"document_type": document.document_type},
+        "metadata": {"document_type": doc_type},
         "actions": [],
         "available_actions": [],
     }

@@ -1,31 +1,33 @@
 from sqlalchemy.orm import Session
 
-# Safety ceiling for per-entity bulk fetches in timeline aggregation.
-# The timeline is per-client so these limits are per-client, not global.
-# A client with more than this many charges/notifications is pathological
-# in the current CRM context. Known architectural debt.
-_TIMELINE_BULK_LIMIT = 500
-
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.businesses.models.business import Business
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.tax_deadline.models.tax_deadline import TaxDeadline
-from app.timeline.services.timeline_client_aggregator import build_client_events
-from app.timeline.services.timeline_event_builders import (
+# Safety ceiling for per-entity bulk fetches — per-client, not global.
+# Known architectural debt; see CLAUDE.md debt table.
+_TIMELINE_BULK_LIMIT = 500
+
+from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_returned_event,
     binder_status_change_event,
+    notification_sent_event,
+)
+from app.timeline.services.timeline_charge_event_builders import (
     charge_created_event,
     charge_issued_event,
     charge_paid_event,
     invoice_attached_event,
-    notification_sent_event,
 )
+from app.timeline.services.timeline_client_aggregator import build_client_events
 from app.timeline.services.timeline_tax_builders import (
     annual_report_status_changed_event,
     tax_deadline_due_event,
@@ -36,6 +38,7 @@ class TimelineService:
     """Unified business timeline aggregation."""
 
     def __init__(self, db: Session):
+        self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
         self.charge_repo = ChargeRepository(db)
@@ -48,11 +51,20 @@ class TimelineService:
         self,
         business_id: int,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
     ) -> tuple[list[dict], int]:
+        business = (
+            self.db.query(Business)
+            .filter(Business.id == business_id, Business.deleted_at.is_(None))
+            .first()
+        )
+        if not business:
+            raise NotFoundError(message="עסק לא נמצא", code="TIMELINE.BUSINESS_NOT_FOUND")
+
         events = []
 
-        binders = self.binder_repo.list_by_business(business_id)
+        # Bounded: _TIMELINE_BULK_LIMIT — older binders silently excluded if exceeded.
+        binders = self.binder_repo.list_by_client(business.client_id)
         for binder in binders:
             events.append(binder_received_event(binder))
             if binder.returned_at:
@@ -88,7 +100,7 @@ class TimelineService:
         events.extend(self._build_annual_report_events(business_id))
         events.extend(
             build_client_events(
-                self.binder_repo.db, business_id, self.reminder_repo, self.sig_repo
+                self.db, business_id, self.reminder_repo, self.sig_repo
             )
         )
 
@@ -105,8 +117,11 @@ class TimelineService:
     def _build_tax_deadline_events(self, business_id: int) -> list[dict]:
         # Tax deadlines are per-client and naturally bounded (months × years).
         deadlines = (
-            self.binder_repo.db.query(TaxDeadline)
-            .filter(TaxDeadline.business_id == business_id)
+            self.db.query(TaxDeadline)
+            .filter(
+                TaxDeadline.business_id == business_id,
+                TaxDeadline.deleted_at.is_(None),
+            )
             .limit(_TIMELINE_BULK_LIMIT)
             .all()
         )
@@ -115,8 +130,11 @@ class TimelineService:
     def _build_annual_report_events(self, business_id: int) -> list[dict]:
         # Annual reports are bounded by tax years — limit is a safety net only.
         reports = (
-            self.binder_repo.db.query(AnnualReport)
-            .filter(AnnualReport.business_id == business_id)
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.business_id == business_id,
+                AnnualReport.deleted_at.is_(None),
+            )
             .limit(_TIMELINE_BULK_LIMIT)
             .all()
         )

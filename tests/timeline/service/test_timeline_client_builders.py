@@ -1,8 +1,8 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.clients.models.client import ClientType
-from app.clients.models.client_tax_profile import VatType
+from app.businesses.models.business import BusinessType
+from app.businesses.models.business_tax_profile import VatType
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.reminders.models.reminder import ReminderType
 from app.signature_requests.models.signature_request import (
@@ -24,14 +24,14 @@ def test_client_and_tax_profile_builder_events():
         full_name="Client Builder",
         opened_at=date(2026, 1, 1),
         updated_at=datetime(2026, 1, 2, 8, 0),
-        client_type=ClientType.COMPANY,
+        business_type=BusinessType.COMPANY,
     )
     profile = SimpleNamespace(id=11, updated_at=datetime(2026, 1, 3, 9, 0), vat_type=VatType.MONTHLY)
 
     created = client_created_event(client)
     assert created["event_type"] == "client_created"
     assert created["description"] == "לקוח נוצר: Client Builder"
-    assert created["metadata"] == {"client_type": "company"}
+    assert created["metadata"] == {"business_type": "company"}
 
     updated = client_info_updated_event(client)
     assert updated["event_type"] == "client_info_updated"
@@ -78,4 +78,3 @@ def test_reminder_document_and_signature_builder_events():
         "signature_request_id": 15,
         "status": "pending_signature",
     }
-

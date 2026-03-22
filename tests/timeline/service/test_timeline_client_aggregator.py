@@ -1,8 +1,13 @@
 from datetime import date, datetime
 
-from app.clients.models import Client, ClientType
-from app.clients.models.client_tax_profile import ClientTaxProfile, VatType
-from app.permanent_documents.models.permanent_document import DocumentType, PermanentDocument
+from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
+from app.clients.models.client import Client
+from app.permanent_documents.models.permanent_document import (
+    DocumentScope,
+    DocumentType,
+    PermanentDocument,
+)
 from app.reminders.models.reminder import ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.models.signature_request import SignatureRequestType
@@ -28,26 +33,34 @@ def _user(test_db) -> User:
     return user
 
 
-def _client(test_db) -> Client:
+def _business(test_db, user_id: int) -> Business:
     client = Client(
         full_name="Timeline Aggregator Client",
         id_number="TAC001",
-        client_type=ClientType.COMPANY,
-        opened_at=date(2026, 1, 1),
-        updated_at=datetime(2026, 1, 2, 8, 0),
     )
     test_db.add(client)
+    test_db.flush()
+
+    business = Business(
+        client_id=client.id,
+        business_name="Timeline Aggregator Business",
+        business_type=BusinessType.COMPANY,
+        opened_at=date(2026, 1, 1),
+        updated_at=datetime(2026, 1, 2, 8, 0),
+        created_by=user_id,
+    )
+    test_db.add(business)
     test_db.commit()
-    test_db.refresh(client)
-    return client
+    test_db.refresh(business)
+    return business
 
 
 def test_build_client_events_collects_all_client_side_sources(test_db):
     user = _user(test_db)
-    client = _client(test_db)
+    business = _business(test_db, user.id)
 
-    profile = ClientTaxProfile(
-        client_id=client.id,
+    profile = BusinessTaxProfile(
+        business_id=business.id,
         vat_type=VatType.MONTHLY,
         updated_at=datetime(2026, 1, 3, 9, 0),
     )
@@ -55,7 +68,7 @@ def test_build_client_events_collects_all_client_side_sources(test_db):
 
     reminder_repo = ReminderRepository(test_db)
     reminder_repo.create(
-        client_id=client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date(2026, 1, 20),
         days_before=2,
@@ -65,9 +78,11 @@ def test_build_client_events_collects_all_client_side_sources(test_db):
 
     test_db.add(
         PermanentDocument(
-            client_id=client.id,
+            client_id=business.client_id,
+            business_id=business.id,
+            scope=DocumentScope.BUSINESS,
             document_type=DocumentType.ID_COPY,
-            storage_key="clients/1/id_copy/file.pdf",
+            storage_key=f"businesses/{business.id}/id_copy/file.pdf",
             uploaded_by=user.id,
             uploaded_at=datetime(2026, 1, 4, 10, 0),
             is_deleted=False,
@@ -77,14 +92,14 @@ def test_build_client_events_collects_all_client_side_sources(test_db):
 
     sig_repo = SignatureRequestRepository(test_db)
     sig_repo.create(
-        client_id=client.id,
+        business_id=business.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Signature",
         signer_name="Signer",
     )
 
-    events = build_client_events(test_db, client.id, reminder_repo, sig_repo)
+    events = build_client_events(test_db, business.id, reminder_repo, sig_repo)
     event_types = {event["event_type"] for event in events}
 
     assert event_types == {
@@ -95,4 +110,3 @@ def test_build_client_events_collects_all_client_side_sources(test_db):
         "document_uploaded",
         "signature_request_created",
     }
-

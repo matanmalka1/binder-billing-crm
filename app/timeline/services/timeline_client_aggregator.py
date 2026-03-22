@@ -3,6 +3,9 @@ from app.businesses.models.business_tax_profile import BusinessTaxProfile
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+
+_TIMELINE_BULK_LIMIT = 500
+
 from app.timeline.services.timeline_client_builders import (
     client_created_event,
     client_info_updated_event,
@@ -11,8 +14,6 @@ from app.timeline.services.timeline_client_builders import (
     signature_request_created_event,
     tax_profile_updated_event,
 )
-
-_TIMELINE_BULK_LIMIT = 500
 
 
 def build_client_events(
@@ -23,10 +24,13 @@ def build_client_events(
 ) -> list[dict]:
     events = []
 
-    business = db.query(Business).filter(Business.id == business_id).first()
+    business = db.query(Business).filter(
+        Business.id == business_id,
+        Business.deleted_at.is_(None),
+    ).first()
     if business:
         events.append(client_created_event(business))
-        if getattr(business, "updated_at", None):
+        if business.updated_at and business.updated_at != business.created_at:
             events.append(client_info_updated_event(business))
 
     profile = db.query(BusinessTaxProfile).filter(
@@ -47,6 +51,7 @@ def build_client_events(
             PermanentDocument.business_id == business_id,
             PermanentDocument.is_deleted.is_(False),
         )
+        .limit(_TIMELINE_BULK_LIMIT)
         .all()
     )
     for doc in docs:

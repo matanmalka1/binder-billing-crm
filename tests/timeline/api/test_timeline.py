@@ -1,52 +1,71 @@
 from datetime import date, datetime, timedelta
-from itertools import count
 from decimal import Decimal
+from itertools import count
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
+from app.businesses.models.business import Business, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client, ClientType
+from app.clients.models.client import Client
 from app.invoice.models.invoice import Invoice
-from app.notification.models.notification import Notification, NotificationChannel, NotificationTrigger
-from app.reminders.models.reminder import Reminder, ReminderType, ReminderStatus
-from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus, SignatureRequestType
-from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType, TaxDeadlineStatus
+from app.notification.models.notification import (
+    Notification,
+    NotificationChannel,
+    NotificationTrigger,
+)
+from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.signature_requests.models.signature_request import (
+    SignatureRequest,
+    SignatureRequestStatus,
+    SignatureRequestType,
+)
+from app.tax_deadline.models.tax_deadline import (
+    DeadlineType,
+    TaxDeadline,
+    TaxDeadlineStatus,
+)
 from app.utils.time_utils import utcnow
 
 _client_seq = count(1)
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
+    idx = next(_client_seq)
     c = Client(
-        full_name=f"Timeline Client {next(_client_seq)}",
-        id_number=f"2323232{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+        full_name=f"Timeline Client {idx}",
+        id_number=f"2323232{idx:03d}",
     )
     db.add(c)
+    db.flush()
+
+    business = Business(
+        client_id=c.id,
+        business_name=f"Timeline Business {idx}",
+        business_type=BusinessType.COMPANY,
+        opened_at=date.today(),
+    )
+    db.add(business)
     db.commit()
-    db.refresh(c)
-    return c
+    db.refresh(business)
+    return business
 
 
 def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, test_user):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     binder = Binder(
-        client_id=crm_client.id,
+        client_id=business.client_id,
         binder_number="B-100",
-        binder_type=BinderType.VAT,
-        received_at=date.today() - timedelta(days=5),
+        period_start=date.today() - timedelta(days=5),
         returned_at=date.today() - timedelta(days=1),
         status=BinderStatus.RETURNED,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     test_db.add(binder)
 
     charge = Charge(
-        client_id=crm_client.id,
+        business_id=business.id,
         amount=Decimal("500.00"),
-        currency="ILS",
-        charge_type=ChargeType.ONE_TIME,
+        charge_type=ChargeType.CONSULTATION_FEE,
         status=ChargeStatus.ISSUED,
         created_at=datetime.utcnow() - timedelta(days=4),
         issued_at=datetime.utcnow() - timedelta(days=3),
@@ -54,7 +73,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(charge)
 
     tax_deadline = TaxDeadline(
-        client_id=crm_client.id,
+        business_id=business.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         status=TaxDeadlineStatus.PENDING,
@@ -62,7 +81,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(tax_deadline)
 
     sig = SignatureRequest(
-        client_id=crm_client.id,
+        business_id=business.id,
         created_by=test_user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Sign",
@@ -74,7 +93,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(sig)
 
     reminder = Reminder(
-        client_id=crm_client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         status=ReminderStatus.PENDING,
         target_date=date.today(),
@@ -86,7 +105,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(reminder)
 
     notification = Notification(
-        client_id=crm_client.id,
+        business_id=business.id,
         trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
         channel=NotificationChannel.EMAIL,
         recipient="test@example.com",
@@ -107,25 +126,23 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.commit()
 
     resp = client.get(
-        f"/api/v1/clients/{crm_client.id}/timeline?page=1&page_size=5",
+        f"/api/v1/businesses/{business.id}/timeline?page=1&page_size=5",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
     data = resp.json()
-    # Should return newest 5 events, total includes all
-    assert data["total"] >= 7
+    assert data["total"] >= 8
     events = data["events"]
     timestamps = [datetime.fromisoformat(e["timestamp"]) for e in events]
     assert timestamps == sorted(timestamps, reverse=True)
 
 
 def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
-    # Create >500 notifications to hit cap
-    for i in range(510):
+    business = _business(test_db)
+    for _ in range(510):
         test_db.add(
             Notification(
-                client_id=crm_client.id,
+                business_id=business.id,
                 trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
                 channel=NotificationChannel.EMAIL,
                 recipient="bulk@example.com",
@@ -136,12 +153,10 @@ def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
     test_db.commit()
 
     resp = client.get(
-        f"/api/v1/clients/{crm_client.id}/timeline?page=1&page_size=200",
+        f"/api/v1/businesses/{business.id}/timeline?page=1&page_size=200",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
     data = resp.json()
-    # Total capped to 500 notifications + a few other events
     assert data["total"] <= 505
-    # First page returns at most 200 per query limit
     assert len(data["events"]) == 200
