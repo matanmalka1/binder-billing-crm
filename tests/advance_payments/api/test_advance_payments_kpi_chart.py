@@ -61,11 +61,11 @@ def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
     months = body["months"]
     assert len(months) == 12
     month1 = next(m for m in months if m["period"] == "2026-01")
-    assert month1["expected_amount"] == 100.0
-    assert month1["paid_amount"] == 80.0
+    assert Decimal(str(month1["expected_amount"])) == Decimal("100")
+    assert Decimal(str(month1["paid_amount"])) == Decimal("80")
     month3 = next(m for m in months if m["period"] == "2026-03")
-    assert month3["expected_amount"] == 50.0
-    assert month3["overdue_amount"] == 50.0
+    assert Decimal(str(month3["expected_amount"])) == Decimal("50")
+    assert Decimal(str(month3["overdue_amount"])) == Decimal("50")
 
 
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):
@@ -81,7 +81,7 @@ def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):
     data = resp.json()
     assert data["business_id"] == business.id
     assert data["year"] == 2026
-    assert data["total_expected"] == 150.0
-    assert data["total_paid"] == 80.0
+    assert Decimal(str(data["total_expected"])) == Decimal("150")
+    assert Decimal(str(data["total_paid"])) == Decimal("80")
     assert data["collection_rate"] == round(80 / 150 * 100, 2)
     assert data["overdue_count"] >= 1

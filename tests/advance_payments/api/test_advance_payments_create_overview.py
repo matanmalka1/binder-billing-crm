@@ -109,7 +109,7 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
     assert data["business_id"] == business.id
     assert data["year"] == 2026
     assert data["has_data"] is True
-    assert data["suggested_amount"] == 500.0
+    assert Decimal(str(data["suggested_amount"])) == Decimal("500")
 
 
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):

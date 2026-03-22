@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business, BusinessType
@@ -71,7 +72,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "paid"
-    assert data["paid_amount"] == 500.0
+    assert Decimal(str(data["paid_amount"])) == Decimal("500.00")
     assert data["updated_at"] is not None
 
 
