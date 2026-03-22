@@ -9,6 +9,7 @@ from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
@@ -25,6 +26,7 @@ class BinderService(BinderListService):
         # Binders belong to clients, but notifications use Business objects.
         # BusinessRepository is used here to look up the primary business
         # for the client so NotificationService receives the correct type.
+        self.client_repo = ClientRepository(db)
         self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
@@ -97,7 +99,6 @@ class BinderService(BinderListService):
             BinderStatus.RETURNED,
             binder=binder,
             returned_at=returned_at,
-            returned_by=returned_by,
             pickup_person_name=pickup_person_name.strip(),
         )
 

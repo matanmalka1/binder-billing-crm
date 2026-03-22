@@ -60,16 +60,16 @@ class WorkStateService:
         """
         threshold_date = reference_date - timedelta(days=WorkStateService.IDLE_THRESHOLD_DAYS)
 
-        count = (
+        result = (
             db.query(Notification)
             .filter(
                 Notification.binder_id == binder.id,
                 Notification.created_at >= threshold_date,
             )
             .limit(1)
-            .count()
+            .first()
         )
-        return count > 0
+        return result is not None
 
     @staticmethod
     def is_idle(

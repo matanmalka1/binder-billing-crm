@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -48,8 +48,7 @@ class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
-    # Accept datetime — Pydantic will serialise it correctly in the response.
-    changed_at: str
+    changed_at: datetime
     notes: Optional[str] = None
 
     model_config = {"from_attributes": True}

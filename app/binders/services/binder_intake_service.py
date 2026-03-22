@@ -75,7 +75,7 @@ class BinderIntakeService:
                 old_status="null",
                 new_status=BinderStatus.IN_OFFICE.value,
                 changed_by=received_by,
-                notes="Binder received",
+                notes="קלסר התקבל",
             )
             is_new_binder = True
 

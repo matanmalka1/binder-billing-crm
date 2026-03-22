@@ -29,8 +29,7 @@ def get_binder_history(binder_id: int, db: DBSession, user: CurrentUser):
                 old_status=log.old_status,
                 new_status=log.new_status,
                 changed_by=log.changed_by,
-                # Pass the ISO-format string so BinderHistoryEntry (str) is satisfied.
-                changed_at=log.changed_at.isoformat(),
+                changed_at=log.changed_at,
                 notes=log.notes,
             )
             for log in logs

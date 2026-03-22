@@ -1,13 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder, BinderStatus
+from app.common.repositories import BaseRepository
 
 
-class BinderRepositoryExtensions:
+class BinderRepositoryExtensions(BaseRepository):
     """Binder query extensions."""
 
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def list_open_binders(
         self,
@@ -23,8 +24,7 @@ class BinderRepositoryExtensions:
             )
             .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
+        return self._paginate(query, page, page_size)
 
     def count_open_binders(self) -> int:
         """Count open binders (not soft-deleted)."""
@@ -52,8 +52,7 @@ class BinderRepositoryExtensions:
             )
             .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()
+        return self._paginate(query, page, page_size)
 
     def count_by_client(self, client_id: int) -> int:
         """Count binders for a client (not soft-deleted)."""

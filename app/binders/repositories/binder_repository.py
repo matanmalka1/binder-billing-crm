@@ -146,21 +146,13 @@ class BinderRepository(BaseRepository):
         )
 
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
-        """
-        Soft-delete a binder by setting deleted_at.
-
-        Also marks the binder as RETURNED and records returned_at/returned_by
-        so the model's lifecycle state remains consistent after deletion.
-        """
+        """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()
         if not binder:
             return False
         binder.status = BinderStatus.RETURNED
         if binder.returned_at is None:
             binder.returned_at = date.today()
-        # Record who triggered the deletion as the person who "returned" it.
-        if binder.returned_by is None:
-            binder.returned_by = deleted_by
         binder.deleted_at = utcnow()
         binder.deleted_by = deleted_by
         self.db.commit()
