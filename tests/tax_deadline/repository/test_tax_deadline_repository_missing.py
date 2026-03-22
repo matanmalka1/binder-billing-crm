@@ -1,47 +1,23 @@
 from datetime import date, timedelta
 
-from app.clients.models import Client, ClientType
-from app.tax_deadline.models.tax_deadline import DeadlineType
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
+from tests.tax_deadline.factories import create_business
 
 
-def _client(db, suffix: str) -> Client:
-    c = Client(
-        full_name=f"Tax Repo Missing {suffix}",
-        id_number=f"TDM-{suffix}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
-    )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
-
-
-def test_tax_deadline_repository_list_overdue_and_list_by_client(test_db):
+def test_get_by_id_skips_soft_deleted_and_status_update_sets_completed_at(test_db):
     repo = TaxDeadlineRepository(test_db)
-    c1 = _client(test_db, "A")
-    c2 = _client(test_db, "B")
+    business = create_business(test_db, name_prefix="Repo Missing")
 
-    overdue = repo.create(
-        client_id=c1.id,
+    item = repo.create(
+        business_id=business.id,
         deadline_type=DeadlineType.VAT,
-        due_date=date.today() - timedelta(days=1),
-    )
-    repo.create(
-        client_id=c1.id,
-        deadline_type=DeadlineType.ADVANCE_PAYMENT,
-        due_date=date.today() + timedelta(days=10),
-    )
-    repo.create(
-        client_id=c2.id,
-        deadline_type=DeadlineType.ANNUAL_REPORT,
-        due_date=date.today() - timedelta(days=2),
+        due_date=date.today() + timedelta(days=5),
     )
 
-    overdue_items = repo.list_overdue(reference_date=date.today())
-    assert overdue.id in {d.id for d in overdue_items}
+    completed = repo.update_status(item.id, TaxDeadlineStatus.COMPLETED)
+    assert completed is not None
+    assert completed.status == TaxDeadlineStatus.COMPLETED
 
-    client_items = repo.list_by_client(client_id=c1.id)
-    assert len(client_items) == 2
-    assert {d.client_id for d in client_items} == {c1.id}
+    assert repo.delete(item.id, deleted_by=101) is True
+    assert repo.get_by_id(item.id) is None

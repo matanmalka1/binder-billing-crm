@@ -1,40 +1,66 @@
 from datetime import date, timedelta
 
-from app.clients.models import Client, ClientType
-from app.tax_deadline.models.tax_deadline import DeadlineType
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
+from tests.tax_deadline.factories import create_business
 
 
-def _client(db, id_number: str) -> Client:
-    crm_client = Client(
-        full_name="TD Repo Additional",
-        id_number=id_number,
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
-    )
-    db.add(crm_client)
-    db.commit()
-    db.refresh(crm_client)
-    return crm_client
-
-
-def test_list_by_client_ids_exists_update_and_delete_paths(test_db):
-    a = _client(test_db, "TDRA001")
-    b = _client(test_db, "TDRA002")
+def test_list_by_business_ids_and_filters(test_db):
     repo = TaxDeadlineRepository(test_db)
+    business_a = create_business(test_db, name_prefix="Repo A")
+    business_b = create_business(test_db, name_prefix="Repo B")
 
-    da = repo.create(a.id, DeadlineType.VAT, date.today() + timedelta(days=1))
-    db = repo.create(b.id, DeadlineType.ADVANCE_PAYMENT, date.today() + timedelta(days=2))
+    a_vat = repo.create(
+        business_id=business_a.id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date.today() + timedelta(days=1),
+    )
+    b_vat = repo.create(
+        business_id=business_b.id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date.today() + timedelta(days=2),
+    )
+    b_other = repo.create(
+        business_id=business_b.id,
+        deadline_type=DeadlineType.ADVANCE_PAYMENT,
+        due_date=date.today() + timedelta(days=3),
+    )
+    repo.update_status(b_other.id, TaxDeadlineStatus.COMPLETED)
 
-    listed = repo.list_by_client_ids([a.id, b.id])
-    assert {d.id for d in listed} == {da.id, db.id}
+    all_items = repo.list_by_business_ids([business_a.id, business_b.id])
+    assert {d.id for d in all_items} == {a_vat.id, b_vat.id, b_other.id}
 
-    assert repo.exists(a.id, DeadlineType.VAT, da.due_date) is True
-    assert repo.exists(a.id, DeadlineType.VAT, date.today() + timedelta(days=100)) is False
+    filtered = repo.list_by_business_ids(
+        [business_a.id, business_b.id],
+        status=TaxDeadlineStatus.COMPLETED.value,
+        deadline_type=DeadlineType.ADVANCE_PAYMENT,
+    )
+    assert [d.id for d in filtered] == [b_other.id]
 
-    updated = repo.update(da.id, payment_amount=123.4, description="updated")
-    assert float(updated.payment_amount) == 123.4
-    assert updated.description == "updated"
 
-    assert repo.delete(db.id) is True
-    assert repo.delete(999999) is False
+def test_list_overdue_and_list_by_business(test_db):
+    repo = TaxDeadlineRepository(test_db)
+    business = create_business(test_db, name_prefix="Repo Overdue")
+
+    overdue = repo.create(
+        business_id=business.id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date.today() - timedelta(days=1),
+    )
+    upcoming = repo.create(
+        business_id=business.id,
+        deadline_type=DeadlineType.ADVANCE_PAYMENT,
+        due_date=date.today() + timedelta(days=10),
+    )
+
+    overdue_items = repo.list_overdue(reference_date=date.today())
+    assert [d.id for d in overdue_items] == [overdue.id]
+
+    by_business = repo.list_by_business(business.id)
+    assert {d.id for d in by_business} == {overdue.id, upcoming.id}
+
+    filtered = repo.list_by_business(
+        business.id,
+        deadline_type=DeadlineType.ADVANCE_PAYMENT,
+    )
+    assert [d.id for d in filtered] == [upcoming.id]

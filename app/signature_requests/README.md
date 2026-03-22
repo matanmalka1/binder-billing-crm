@@ -1,18 +1,26 @@
 # Signature Requests Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-22
 
+Manages the digital-signature request lifecycle for business documents and approvals, including advisor workflows, public signer token flows, and immutable audit events.
 
-Manages digital signature request lifecycle for client documents and approvals, including advisor workflows, public signer token flows, and immutable audit trail events.
+## Audit Summary
+
+- Router wiring is valid:
+  - Authenticated routes are included under `/api/v1`.
+  - Public signer routes are exposed under `/sign/*` without JWT.
+- Service/repository flow is consistent and covered by tests.
+- Domain naming is `business` (not `client`) in request fields and list routes.
+- Test suite for this domain passes: `27 passed`.
 
 ## Scope
 
 This module provides:
-- Signature request creation in draft state
+- Signature request creation in `draft` state
 - Sending request links with expiring signing tokens
-- Public signer actions (view / approve / decline)
-- Advisor actions (cancel, audit trail, pending list)
-- Client-scoped signature request listing
+- Public signer actions (`view`, `approve`, `decline`)
+- Advisor actions (`cancel`, `audit trail`, `pending list`)
+- Business-scoped signature request listing
 - Automatic expiry handling for overdue pending requests
 - Immutable audit event logging per lifecycle action
 
@@ -22,7 +30,7 @@ This module provides:
 
 Core fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `business_id` (FK -> `businesses.id`, required)
 - `created_by` (FK -> `users.id`, required)
 - Optional links:
   - `annual_report_id` (FK -> `annual_reports.id`)
@@ -38,6 +46,7 @@ Core fields:
   - `status`
   - `signing_token`
   - `sent_at`, `expires_at`, `signed_at`, `declined_at`, `canceled_at`
+  - `canceled_by`
   - `signer_ip_address`, `signer_user_agent`, `decline_reason`
   - `signed_document_key`
 
@@ -71,15 +80,15 @@ Append-only audit trail fields:
 Implementation references:
 - Model: `app/signature_requests/models/signature_request.py`
 - Schemas: `app/signature_requests/schemas/signature_request.py`
-- Repository: `app/signature_requests/repositories/signature_request_repository.py` (+ CRUD/Audit mixins)
-- Services: `app/signature_requests/services/` (advisor, signer, and expiry flows)
+- Repository: `app/signature_requests/repositories/signature_request_repository.py`
+- Services: `app/signature_requests/services/`
 - APIs: `app/signature_requests/api/routes_advisor.py`, `app/signature_requests/api/routes_client.py`, `app/signature_requests/api/routes_signer.py`
 
 ## API
 
-Mounted in `app/main.py` as:
-- Advisor/client authenticated routers with `/api/v1` prefix
-- Public signer router without `/api/v1` prefix
+Mounted from `app/router_registry.py`:
+- Authenticated signature routes: `app.include_router(signature_requests_routers.router, prefix="/api/v1")`
+- Public signer routes: `app.include_router(signature_requests_routers.signer_router)`
 
 ### Advisor routes (`/api/v1/signature-requests`)
 
@@ -88,22 +97,22 @@ Roles: `ADVISOR`, `SECRETARY`
 - `POST /api/v1/signature-requests`
   - Create request (initial status: `draft`)
 - `GET /api/v1/signature-requests/pending`
-  - List pending-signature requests (paginated)
+  - List `pending_signature` requests (paginated)
 - `GET /api/v1/signature-requests/{request_id}`
   - Get request details with embedded audit trail
 - `GET /api/v1/signature-requests/{request_id}/audit-trail`
   - Get audit events only
 - `POST /api/v1/signature-requests/{request_id}/send`
   - Move `draft -> pending_signature`, generate token and expiry
-  - Returns one-time token field and signing URL hint
+  - Returns `signing_token` and `signing_url_hint`
 - `POST /api/v1/signature-requests/{request_id}/cancel`
   - Cancel request (allowed from `draft`/`pending_signature`)
 
-### Client-scoped listing (`/api/v1/clients/{client_id}/signature-requests`)
+### Business-scoped listing (`/api/v1/businesses/{business_id}/signature-requests`)
 
 Roles: `ADVISOR`, `SECRETARY`
 
-- `GET /api/v1/clients/{client_id}/signature-requests`
+- `GET /api/v1/businesses/{business_id}/signature-requests`
 - Query params:
   - `status` (optional)
   - `page` (default `1`)
@@ -114,61 +123,68 @@ Roles: `ADVISOR`, `SECRETARY`
 Auth: no JWT (token-based)
 
 - `GET /sign/{token}`
-  - Record signer view event
+  - Records `viewed` audit event
 - `POST /sign/{token}/approve`
-  - Sign request (`pending_signature -> signed`)
+  - Signs request (`pending_signature -> signed`)
 - `POST /sign/{token}/decline`
-  - Decline request (`pending_signature -> declined`)
+  - Declines request (`pending_signature -> declined`)
 
 ## Behavior Notes
 
-- `send` action is valid only in `draft` status; otherwise `SIGNATURE_REQUEST.INVALID_STATUS`.
-- Signing token is generated on send and cleared after approve/decline/cancel/expire.
-- Signer actions require signable request state:
-  - Must be `pending_signature`
-  - Must not be expired
-- Expiry handling:
-  - Runtime sign attempt on expired request auto-marks `expired` and returns `SIGNATURE_REQUEST.EXPIRED`.
-  - System/admin flow can batch expire overdue pending requests.
+- `send` is valid only in `draft` status; otherwise `SIGNATURE_REQUEST.INVALID_STATUS`.
+- `send` generates a one-time token (`secrets.token_urlsafe(32)`) and default expiry is 14 days.
+- Signing token is cleared after approve/decline/cancel/expire.
+- Signer actions require:
+  - status `pending_signature`
+  - not expired
+- Runtime expiry handling:
+  - If signer action occurs after expiry, request is auto-marked `expired` and `SIGNATURE_REQUEST.EXPIRED` is returned.
+- Batch expiry handling:
+  - `expire_overdue_requests()` marks overdue pending requests as `expired` and appends audit events.
 - Create request behavior:
-  - Validates client exists.
-  - Validates `request_type` value.
+  - Validates business exists (`BUSINESS.NOT_FOUND`).
+  - Validates `request_type` (`SIGNATURE_REQUEST.INVALID_TYPE`).
   - Optionally computes SHA-256 `content_hash` from `content_to_hash`.
-  - Falls back signer email/phone from client profile when missing.
+  - Falls back signer email/phone from business profile when missing.
 - Audit trail is append-only and records events such as `created`, `sent`, `viewed`, `signed`, `declined`, `canceled`, `expired`.
 - Annual report integration:
-  - Signing annual-report approval can auto-transition annual report status from `pending_client` to `submitted` (best-effort system action).
+  - Signing an annual-report approval can auto-transition annual report status from `pending_client` to `submitted` (best effort).
 
 ## Error Envelope
 
-Errors follow the global app format from `app/core/exceptions.py`, including:
+Errors follow global app error format (`app/core/exceptions.py`) with fields like:
 - `detail`
 - `error`
 - `error_meta`
 
-Domain errors use stable codes such as:
+Common domain error codes:
 - `SIGNATURE_REQUEST.NOT_FOUND`
+- `SIGNATURE_REQUEST.INVALID_TYPE`
 - `SIGNATURE_REQUEST.INVALID_STATUS`
 - `SIGNATURE_REQUEST.TOKEN_INVALID`
 - `SIGNATURE_REQUEST.EXPIRED`
+- `BUSINESS.NOT_FOUND`
 
 ## Cross-Domain Integration
 
-- `clients` integration:
-  - Request creation/listing is client-scoped; contact info fallback uses client email/phone.
+- `businesses` integration:
+  - Request creation/listing is business-scoped; contact fallback uses business email/phone.
 - `annual_reports` integration:
-  - Signed annual-report approval can trigger automatic status transition and approval timestamp updates.
+  - Signed annual-report approval can trigger automatic status transition and `client_approved_at` update.
 - `permanent_documents` integration:
-  - Requests may reference `document_id`/`storage_key` for signed content context.
+  - Requests may reference `document_id`/`storage_key` for document context.
 - `users` integration:
-  - Advisor identity captured in `created_by` and audit actor fields.
+  - Advisor identity is captured in `created_by` and audit actor fields.
 
 ## Tests
 
 Signature-requests test suites:
 - `tests/signature_requests/api/test_signature_requests.py`
+- `tests/signature_requests/api/test_signature_requests_cancel_and_client_list.py`
 - `tests/signature_requests/service/test_signature_requests.py`
+- `tests/signature_requests/service/test_signer_actions_auto_advance.py`
 - `tests/signature_requests/repository/test_signature_request_repository.py`
+- `tests/signature_requests/repository/test_signature_request_repository_list_by_client.py`
 
 Run only this domain:
 

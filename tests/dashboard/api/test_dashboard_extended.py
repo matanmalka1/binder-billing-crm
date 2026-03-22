@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus, BinderType
-from app.clients.models.client import Client, ClientType
+from app.binders.models.binder import Binder, BinderStatus
+from app.clients.models.client import Client
 
 
 def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
@@ -9,8 +9,6 @@ def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
     test_client = Client(
         full_name="WQ Test",
         id_number="WQ001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     test_db.add(test_client)
     test_db.commit()
@@ -18,10 +16,9 @@ def test_work_queue_endpoint(client, advisor_headers, test_db, test_user):
     binder = Binder(
         client_id=test_client.id,
         binder_number="WQ-001",
-        binder_type=BinderType.OTHER,
-        received_at=date.today() - timedelta(days=5),
+        period_start=date.today() - timedelta(days=5),
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     test_db.add(binder)
     test_db.commit()

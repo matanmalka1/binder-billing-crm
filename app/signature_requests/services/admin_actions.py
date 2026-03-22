@@ -30,6 +30,7 @@ def cancel_request(
         request_id,
         status=SignatureRequestStatus.CANCELED,
         canceled_at=utcnow(),
+        canceled_by=canceled_by,
         signing_token=None,
     )
 

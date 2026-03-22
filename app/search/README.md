@@ -1,102 +1,134 @@
 # Search Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-22.
 
-
-Provides unified search across clients, binders, and matching permanent documents, with optional operational filters (work state/signals).
+Unified search endpoint for clients, active binders, and matching permanent documents.
 
 ## Scope
 
 This module provides:
-- Unified `/search` endpoint for clients and binders
-- Optional document search results (filename/type) when `query` is provided
-- Client-level DB search/pagination for simple client queries
-- Mixed in-memory search mode for binder-derived filters
-- Role-based API access
+- Unified `GET /api/v1/search` endpoint
+- Optional document matches when `query` is provided
+- Fast DB-paginated client-only mode
+- Mixed in-memory mode when binder-derived filters are requested
+- Role-gated access (`ADVISOR`, `SECRETARY`)
 
-## Domain Model
+This module does not define DB models. It is an orchestration layer over existing repositories/services.
 
-This module does not define persistent database models.
+## Files
 
-It defines search response schemas and service logic:
-- `SearchResult` (client/binder result)
-- `DocumentSearchResult` (permanent document result)
-- `SearchResponse`
-- `SearchService`
-- `DocumentSearchService`
-
-Implementation references:
 - API: `app/search/api/search.py`
 - Schemas: `app/search/schemas/search.py`
-- Services: `app/search/services/search_service.py`, `app/search/services/document_search_service.py`, `app/search/services/search_filters.py`
+- Services:
+  - `app/search/services/search_service.py`
+  - `app/search/services/document_search_service.py`
+  - `app/search/services/search_filters.py`
 
-## API
+## Routing
 
-Router prefix is `/api/v1/search` (mounted in `app/main.py`).
+- Router prefix inside module: `/search`
+- App mount: `app/router_registry.py` adds this router with prefix `/api/v1`
+- Effective endpoint: `GET /api/v1/search`
 
-### Unified search
-- `GET /api/v1/search`
-- Roles: `ADVISOR`, `SECRETARY`
-- Query params:
-  - `query` (optional)
-  - `client_name` (optional)
-  - `id_number` (optional)
-  - `binder_number` (optional)
-  - `work_state` (optional)
-  - `signal_type` (optional list query param; repeatable)
-  - `has_signals` (optional boolean)
-  - `page` (default `1`, min `1`)
-  - `page_size` (default `20`, min `1`, max `100`)
+## Query Parameters
 
-Response shape:
-- `results`: list of client/binder search hits
-- `documents`: list of document hits (when `query` is present)
-- `page`, `page_size`, `total`
+- `query` (optional)
+- `client_name` (optional)
+- `id_number` (optional)
+- `binder_number` (optional)
+- `work_state` (optional)
+- `signal_type` (optional, repeatable list param)
+- `has_signals` (optional bool)
+- `page` (default `1`, min `1`)
+- `page_size` (default `20`, min `1`, max `100`)
 
-## Behavior Notes
+## Response Shape
 
-- Result types:
-  - `client` result includes client identity fields.
-  - `binder` result includes `binder_id`, `binder_number`, derived `work_state`, and `signals`.
-- Document search:
-  - Triggered only when `query` is provided.
-  - Searches permanent documents by filename/type.
-  - Max document matches: `50`.
-- Search execution modes:
-  - Client-only DB mode (faster): when querying clients without binder-derived filters.
-  - Mixed mode (in-memory post-processing): when binder filters/derived fields are involved.
-- Mixed-mode safety ceilings:
-  - `_MIXED_SEARCH_BINDER_LIMIT = 1000`
-  - `_MIXED_SEARCH_CLIENT_LIMIT = 500`
-  - Results beyond ceilings are excluded (known limitation).
-- `signal_type` matching uses OR semantics (`any` requested signal present).
+`SearchResponse`:
+- `results: SearchResult[]`
+- `documents: DocumentSearchResult[]`
+- `page: int`
+- `page_size: int`
+- `total: int` (count of `results`, not `documents`)
 
-## Error Envelope
+`SearchResult` (`result_type: "client" | "binder"`):
+- `client_id`, `client_name`
+- `binder_id`, `binder_number` (binder rows only)
+- `work_state`, `signals` (binder rows only)
+- `client_status` is currently always `null`
 
-Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+`DocumentSearchResult`:
+- `id`, `business_id`, `client_name`, `document_type`, `original_filename`, `tax_year`, `status`
+- Note: `client_name` here is populated from `Business.full_name` (naming legacy in schema)
 
-Authorization failures are handled by shared role/auth dependencies.
+## Execution Modes
 
-## Cross-Domain Integration
+### 1) Client-only DB mode (fast path)
+Triggered when:
+- at least one of `query`, `client_name`, `id_number` is present
+- and none of `work_state`, `signal_type`, `has_signals`, `binder_number` is provided
 
-Search composes data from:
-- `clients` repository search (`client_name`, `id_number`, free query)
-- `binders` repository + derived work-state/signals
-- `permanent_documents` repository for document matches
-- `binders` services:
-  - `WorkStateService`
-  - `SignalsService`
+Behavior:
+- Uses `ClientRepository.search(...)` with DB pagination (`page`, `page_size`)
+- Returns only `client`-type rows in `results`
+
+### 2) Mixed mode (in-memory post-filter + pagination)
+Triggered for binder-related filtering/search.
+
+Behavior:
+- Builds a combined result list in memory, then paginates in memory
+- Client side of mixed mode fetches up to `_MIXED_SEARCH_CLIENT_LIMIT = 500`
+- Binder side fetches active binders up to `_MIXED_SEARCH_BINDER_LIMIT = 1000`
+- Anything beyond those ceilings is excluded from results
+
+Binder matching details:
+- Base binder source is `BinderRepository.list_active(...)` (non-returned + non-deleted)
+- If `binder_number` is provided, it is used as DB binder-number filter
+- Else, if `query` is provided and `client_name`/`id_number` are not provided, `query` is reused as binder-number filter
+- Derived fields per binder:
+  - `work_state` via `WorkStateService.derive_work_state(...)`
+  - `signals` via `SignalsService.compute_binder_signals(...)`
+- `signal_type` uses OR semantics (`any` requested signal is enough)
+- `has_signals=true` means `len(signals) > 0`; `false` means no signals
+
+## Document Search
+
+Executed only when `query` is provided.
+
+- Service: `DocumentSearchService.search_documents(query)`
+- Repository call: `PermanentDocumentRepository.search_by_query(query, limit=50)`
+- Search fields: `original_filename` OR `document_type` (ILIKE)
+- Includes only non-deleted and non-superseded permanent documents
+- Enriches each result with business name using `BusinessRepository.get_by_id(...)` (with in-call cache)
+
+## Data Constraints
+
+- Clients: only active/non-deleted clients (`Client.deleted_at IS NULL`)
+- Binders: only active binders (`status != RETURNED` and `deleted_at IS NULL`)
+- Permanent documents: non-deleted and latest version (`superseded_by IS NULL`)
+
+## Known Limitations
+
+- Mixed mode has hard safety ceilings (`500` clients, `1000` binders)
+- In mixed mode, ordering is construction order (clients first, then binders), not a global relevance score
+- A client can appear both as a `client` row and as one or more `binder` rows
+
+## Error/Authorization
+
+- Authorization is enforced by shared role dependency (`require_role`)
+- Error envelope follows global app error format from `app/core/exceptions.py`
 
 ## Tests
 
-Search test suites:
-- `tests/search/api/test_search.py`
-- `tests/search/api/test_search_db_filtering.py`
+- API:
+  - `tests/search/api/test_search.py`
+  - `tests/search/api/test_search_db_filtering.py`
+- Service:
+  - `tests/search/service/test_search_service.py`
+  - `tests/search/service/test_document_search_service.py`
+  - `tests/search/service/test_search_filters.py`
 
-Run only this domain:
+Run:
 
 ```bash
 pytest tests/search -q

@@ -1,36 +1,36 @@
 # Tax Deadline Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-22.
 
-
-Manages client tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and automatic yearly deadline generation.
+Manages business tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and yearly deadline generation.
 
 ## Scope
 
 This module provides:
-- CRUD-like management for `tax_deadlines`
+- Tax-deadline CRUD lifecycle over `tax_deadlines`
 - Deadline completion tracking
-- Dashboard urgent/upcoming deadlines summary
-- Client deadline timeline endpoint
-- Idempotent yearly deadline generation by client profile
-- Automatic reminder creation when a deadline is created
+- Dashboard urgent/upcoming summary
+- Business timeline endpoint
+- Idempotent yearly deadline generation by business tax profile
+- Automatic reminder creation on deadline creation (`days_before=7`)
 - Role-based API access
 
 ## Domain Model
 
-`TaxDeadline` fields:
+`TaxDeadline` (`app/tax_deadline/models/tax_deadline.py`) fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `business_id` (FK -> `businesses.id`, required)
 - `deadline_type` (enum, required)
+- `period` (`YYYY-MM`, optional)
 - `due_date` (required)
-- `status` (enum, default `pending`)
-- Financial fields:
-  - `payment_amount` (optional)
-  - `currency` (default `ILS`)
-- Metadata:
-  - `description` (optional)
-  - `created_at`
-  - `completed_at` (optional)
+- `status` (`pending`/`completed`, default `pending`)
+- `completed_at` (optional)
+- `completed_by` (optional FK -> `users.id`)
+- `advance_payment_id` (optional FK -> `advance_payments.id`)
+- `payment_amount` (optional)
+- `description` (optional)
+- `created_at`
+- `deleted_at` / `deleted_by` (soft delete)
 
 Deadline type enum values:
 - `vat`
@@ -39,104 +39,121 @@ Deadline type enum values:
 - `annual_report`
 - `other`
 
-Status enum values:
-- `pending`
-- `completed`
-
 Urgency levels (derived, not persisted):
 - `green`
 - `yellow`
 - `red`
 - `overdue`
 
-Implementation references:
-- Model: `app/tax_deadline/models/tax_deadline.py`
-- Schemas: `app/tax_deadline/schemas/tax_deadline.py`
-- Repository: `app/tax_deadline/repositories/tax_deadline_repository.py`
-- Services: `app/tax_deadline/services/tax_deadline_service.py`, `app/tax_deadline/services/deadline_generator.py`, `app/tax_deadline/services/timeline_service.py`
-- APIs: `app/tax_deadline/api/tax_deadline.py`, `app/tax_deadline/api/deadline_generate.py`
-
 ## API
 
-Router prefix is `/api/v1/tax-deadlines` (mounted in `app/main.py`).
+Routers are mounted with prefix `/api/v1`, and tax-deadline routers use `/tax-deadlines`.
+
+### Access control
+
+Default tax-deadline router access: `ADVISOR`, `SECRETARY`.
+
+Advisor-only endpoints:
+- `POST /api/v1/tax-deadlines`
+- `POST /api/v1/tax-deadlines/{deadline_id}/complete`
+- `PUT /api/v1/tax-deadlines/{deadline_id}`
+- `DELETE /api/v1/tax-deadlines/{deadline_id}`
+- `POST /api/v1/tax-deadlines/generate`
+
+Advisor + Secretary endpoints:
+- `GET /api/v1/tax-deadlines`
+- `GET /api/v1/tax-deadlines/{deadline_id}`
+- `GET /api/v1/tax-deadlines/timeline`
+- `GET /api/v1/tax-deadlines/dashboard/urgent`
 
 ### Create deadline
+
 - `POST /api/v1/tax-deadlines`
-- Roles: `ADVISOR`, `SECRETARY`
-- Body:
+
+Body:
 
 ```json
 {
-  "client_id": 123,
+  "business_id": 123,
   "deadline_type": "vat",
   "due_date": "2026-04-19",
+  "period": "2026-03",
   "payment_amount": 1500.5,
   "description": "VAT filing"
 }
 ```
 
 ### List deadlines
+
 - `GET /api/v1/tax-deadlines`
-- Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `client_id` (optional)
-  - `client_name` (optional substring)
+  - `business_id` (optional)
+  - `client_name` (optional business-name substring filter; legacy query-param name)
   - `deadline_type` (optional)
   - `status` (optional)
   - `page` (default `1`, min `1`)
   - `page_size` (default `20`, min `1`, max `100`)
 
+Behavior:
+- `business_id` present: returns all matching deadlines for that business.
+- `client_name` present: resolves business IDs by name then returns matching deadlines.
+- no business filters: returns pending deadlines only, from today forward, capped at `GLOBAL_DEADLINE_FETCH_LIMIT` before pagination.
+
 ### Get deadline
+
 - `GET /api/v1/tax-deadlines/{deadline_id}`
-- Roles: `ADVISOR`, `SECRETARY`
 
 ### Complete deadline
+
 - `POST /api/v1/tax-deadlines/{deadline_id}/complete`
-- Roles: `ADVISOR`, `SECRETARY`
+- Idempotent if already completed.
 
 ### Update deadline
+
 - `PUT /api/v1/tax-deadlines/{deadline_id}`
-- Roles: `ADVISOR`, `SECRETARY`
-- Editable fields:
+- At least one editable field is required.
+- Editable in service/repository:
   - `deadline_type`
   - `due_date`
   - `payment_amount`
   - `description`
 
 ### Delete deadline
-- `DELETE /api/v1/tax-deadlines/{deadline_id}`
-- Roles: `ADVISOR`, `SECRETARY`
-- Returns `204 No Content`
 
-### Timeline by client
+- `DELETE /api/v1/tax-deadlines/{deadline_id}`
+- Soft delete.
+- Returns `204 No Content`.
+
+### Timeline by business
+
 - `GET /api/v1/tax-deadlines/timeline`
-- Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `client_id` (required)
-- Returns due-date ordered entries with:
+  - `business_id` (required)
+- Returns due-date sorted entries with:
   - `days_remaining`
   - `milestone_label`
 
 ### Dashboard urgent summary
+
 - `GET /api/v1/tax-deadlines/dashboard/urgent`
-- Roles: `ADVISOR`, `SECRETARY`
 - Returns:
-  - `urgent` (overdue/red/yellow)
-  - `upcoming` (next 7 days)
+  - `urgent`: overdue + red + yellow deadlines
+  - `upcoming`: pending deadlines in `[today, today+7]`
 
 ### Generate yearly deadlines
+
 - `POST /api/v1/tax-deadlines/generate`
-- Role: `ADVISOR` only
-- Body:
+
+Body:
 
 ```json
 {
-  "client_id": 123,
+  "business_id": 123,
   "year": 2026
 }
 ```
 
-- Returns:
+Response:
 
 ```json
 {
@@ -144,60 +161,55 @@ Router prefix is `/api/v1/tax-deadlines` (mounted in `app/main.py`).
 }
 ```
 
-## Behavior Notes
+## Generation Rules
 
-- Creating a deadline validates client existence and auto-creates a reminder (`days_before=7`).
-- `mark_completed` is idempotent for already-completed deadlines.
-- Update requires at least one field (`TAX_DEADLINE.NO_FIELDS_PROVIDED` otherwise).
-- Listing behavior:
-  - With `client_id`/`client_name`: filtered client-scope listing.
-  - Without client filters: returns pending deadlines, bounded by `_GLOBAL_DEADLINE_FETCH_LIMIT = 500` before pagination.
-- Urgency computation (pending deadlines only):
-  - `<0 days`: `overdue`
-  - `<=2 days`: `red`
-  - `<=7 days`: `yellow`
-  - `>7 days`: `green`
-- Generator behavior (`generate_all`):
-  - VAT deadlines generated from client VAT profile (`monthly`/`bimonthly`; none for exempt/undefined).
-  - Advance-payment deadlines generated monthly.
-  - Annual-report deadline generated once per year.
-  - Uses repository `exists(...)` check so generation is idempotent.
+`DeadlineGeneratorService` generates:
+- VAT deadlines by `vat_type`:
+  - `monthly` -> 12 deadlines
+  - `bimonthly` -> 6 deadlines
+  - `exempt`/missing profile -> none
+- Advance-payment deadlines monthly (12)
+- Annual report deadline once (`April 30` of `year + 1`)
+- National-insurance deadlines are not auto-generated.
 
-## Error Envelope
+Generation is idempotent via repository `exists(business_id, deadline_type, due_date)` checks.
 
-Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+## Urgency Rules
 
-Domain errors use stable codes such as:
+Derived in query service for pending deadlines:
+- `<0 days`: `overdue`
+- `<=2 days`: `red`
+- `<=7 days`: `yellow`
+- `>7 days`: `green`
+
+## Error Codes
+
+Domain errors include:
 - `TAX_DEADLINE.NOT_FOUND`
 - `TAX_DEADLINE.NO_FIELDS_PROVIDED`
 
-Other related domain errors may surface via integrations (for example client/reminder validations).
+Error envelope follows the app-wide exception format.
 
-## Cross-Domain Integration
+## Integration Points
 
-- `clients` integration:
-  - Deadline CRUD is client-scoped; name-based filtering uses client search.
-- `reminders` integration:
-  - Deadline creation triggers tax-deadline reminder creation.
-- `client_tax_profile` integration:
-  - Deadline generator reads VAT filing frequency (`monthly`/`bimonthly`/`exempt`).
-- `actions` integration:
-  - Deadline responses include `available_actions` from `app/actions/report_deadline_actions.py`.
+- `businesses`:
+  - business existence + create guards
+  - business-name lookup for list enrichment
+- `reminders`:
+  - auto-reminder on create
+- `business_tax_profile`:
+  - VAT frequency for generator
+- `actions`:
+  - `available_actions` via `app/actions/report_deadline_actions.py`
 
 ## Tests
 
-Tax-deadline test suites:
-- `tests/tax_deadline/api/test_tax_deadline.py`
-- `tests/tax_deadline/api/test_tax_deadline_crud.py`
-- `tests/tax_deadline/api/test_tax_deadline_dashboard.py`
-- `tests/tax_deadline/service/test_tax_deadline.py`
-- `tests/tax_deadline/service/test_tax_deadline_service_get_client_deadlines.py`
-- `tests/tax_deadline/repository/test_tax_deadline_repository.py`
+Domain tests are under:
+- `tests/tax_deadline/api/`
+- `tests/tax_deadline/service/`
+- `tests/tax_deadline/repository/`
 
-Run only this domain:
+Run:
 
 ```bash
 pytest tests/tax_deadline -q

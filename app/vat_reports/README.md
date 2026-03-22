@@ -1,223 +1,152 @@
 # VAT Reports Module
 
-> Last audited: 2026-03-17 (domain-by-domain backend sync).
+> Last audited: 2026-03-22
 
-
-Manages VAT work-item lifecycle (intake, data entry, review, filing), invoice capture, audit trail, and client-level summary/export.
+Manages VAT work-item lifecycle per business and period: intake, data entry, review, filing, audit trail, and business-level summary/export.
 
 ## Scope
 
-This module provides:
-- VAT work-item creation per client/period
-- Lifecycle status transitions from intake to filed state
-- Invoice add/list/delete flows with totals recalculation
-- Advisor filing flow with optional override + justification
-- Work-item and audit-trail query endpoints with pagination
-- Client VAT summary endpoint and yearly export (Excel/PDF)
+- Create one VAT work item per `business_id + period`
+- Track lifecycle states until filed (immutable after filing)
+- Add/update/delete invoices and recalculate VAT totals
+- Advisor filing flow with optional override + mandatory justification
+- Query work items, invoices, and audit trail
+- Business summary and yearly export (Excel/PDF)
 
-## Domain Model
+## API Base Path
 
-`VatWorkItem` fields:
-- `id` (PK)
-- `client_id` (FK, required)
+Router is mounted under `/api/v1/vat` (via `app/router_registry.py` + `app/vat_reports/api/routers.py`).
+
+## Access Control
+
+- Most VAT endpoints require `ADVISOR` or `SECRETARY`
+- Advisor-only endpoints:
+  - `POST /api/v1/vat/work-items/{item_id}/send-back`
+  - `POST /api/v1/vat/work-items/{item_id}/file`
+  - `DELETE /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}`
+
+## Data Model
+
+### `VatWorkItem`
+
+Core fields:
+- `id`
+- `business_id` (FK, required)
 - `created_by` (FK, required)
 - `assigned_to` (FK, optional)
 - `period` (`YYYY-MM`, required)
-- `status` (enum)
+- `period_type` (`VatType` snapshot: monthly / bimonthly)
+- `status` (`pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`)
 - `pending_materials_note` (optional)
 - `total_output_vat`, `total_input_vat`, `net_vat`
-- `final_vat_amount` (optional)
-- `is_overridden` (boolean)
-- `override_justification` (optional)
-- `filing_method` (enum, optional)
-- `filed_at`, `filed_by` (optional)
+- `total_output_net`, `total_input_net` (VAT form net snapshots)
+- `final_vat_amount` (set when filed)
+- `is_overridden`, `override_justification`
+- `submission_method` (`online`, `manual`, `representative`)
+- `submission_reference` (optional)
+- `is_amendment`, `amends_item_id`
+- `filed_at`, `filed_by`
 - `created_at`, `updated_at`
+- soft-delete fields: `deleted_at`, `deleted_by`
 
-Uniqueness:
-- one work item per (`client_id`, `period`)
+Constraint:
+- unique per (`business_id`, `period`)
 
-`VatInvoice` fields:
-- `id` (PK)
-- `work_item_id` (FK, required)
-- `created_by` (FK, required)
-- `invoice_type` (enum)
-- `invoice_number` (required)
-- `invoice_date` (required)
-- `counterparty_name` (required)
-- `counterparty_id` (optional)
+### `VatInvoice`
+
+Core fields:
+- `id`, `work_item_id`, `created_by`
+- `invoice_type` (`income` / `expense`)
+- `document_type` (`tax_invoice`, `transaction_invoice`, `receipt`, `consolidated`, `self_invoice`, `credit_note`)
+- `invoice_number`, `invoice_date` (`date`)
+- `counterparty_name`, `counterparty_id` (optional)
 - `net_amount`, `vat_amount`
-- `expense_category` (optional enum; required for expense invoices)
+- `expense_category` (required for expense invoices)
+- `rate_type` (`standard`, `exempt`, `zero_rate`)
+- `deduction_rate` (derived from expense category)
+- `is_exceptional` (derived: net amount > 25,000)
 - `created_at`
 
-Invoice uniqueness:
-- one invoice number per (`work_item_id`, `invoice_type`, `invoice_number`)
+Constraint:
+- unique per (`work_item_id`, `invoice_type`, `invoice_number`)
 
-`VatAuditLog` fields:
-- `id` (PK)
-- `work_item_id` (FK)
-- `performed_by` (FK)
+### `VatAuditLog`
+
+- `id`, `work_item_id`, `performed_by`, `performed_at`
 - `action`
 - `old_value`, `new_value`, `note`
-- `performed_at`
+- `invoice_id` (optional FK; set null on invoice deletion)
 
-Status enum values:
-- `pending_materials`
-- `material_received`
-- `data_entry_in_progress`
-- `ready_for_review`
-- `filed`
+## Endpoints
 
-Additional enums:
-- Filing method: `manual`, `online`
-- Invoice type: `income`, `expense`
-- Expense category: `office`, `travel`, `professional_services`, `equipment`, `rent`, `salary`, `marketing`, `other`
+### Intake
 
-Implementation references:
-- Models: `app/vat_reports/models/vat_work_item.py`, `app/vat_reports/models/vat_invoice.py`, `app/vat_reports/models/vat_audit_log.py`, `app/vat_reports/models/vat_enums.py`
-- Schemas: `app/vat_reports/schemas/vat_report.py`, `app/vat_reports/schemas/vat_client_summary_schema.py`
-- Repositories: `app/vat_reports/repositories/vat_work_item_repository.py`, `app/vat_reports/repositories/vat_invoice_repository.py`, `app/vat_reports/repositories/vat_client_summary_repository.py`
-- Services: `app/vat_reports/services/vat_report_service.py` and delegated flows under `app/vat_reports/services/`
-- API: `app/vat_reports/api/routers.py` + route files in `app/vat_reports/api/`
-
-## API
-
-Router prefix is `/api/v1/vat` (mounted in `app/main.py` via `vat_reports_router`).
-
-### Create work item
 - `POST /api/v1/vat/work-items`
-- Requires authenticated user
-- Body:
-
-```json
-{
-  "client_id": 123,
-  "period": "2026-01",
-  "assigned_to": 45,
-  "mark_pending": true,
-  "pending_materials_note": "Missing bank statement"
-}
-```
-
-### Mark materials complete
+  - body: `business_id`, `period`, `assigned_to?`, `mark_pending?`, `pending_materials_note?`
 - `POST /api/v1/vat/work-items/{item_id}/materials-complete`
-- Requires authenticated user
-- Transition: `pending_materials -> material_received`
+  - transition: `pending_materials -> material_received`
 
-### Add invoice
+### Data Entry
+
 - `POST /api/v1/vat/work-items/{item_id}/invoices`
-- Requires authenticated user
-- Body (example):
-
-```json
-{
-  "invoice_type": "expense",
-  "invoice_number": "INV-1001",
-  "invoice_date": "2026-01-15T00:00:00Z",
-  "counterparty_name": "Vendor Ltd",
-  "counterparty_id": "512345678",
-  "net_amount": 1000,
-  "vat_amount": 170,
-  "expense_category": "office"
-}
-```
-
-### List invoices
+  - body includes: `invoice_type`, `net_amount`, `vat_amount`, optional identity/document fields
 - `GET /api/v1/vat/work-items/{item_id}/invoices`
-- Requires authenticated user
-- Query params:
-  - `invoice_type` (optional: `income` or `expense`)
-
-### Update invoice
+  - query: `invoice_type?`
 - `PATCH /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}`
-- Requires authenticated user
-- Supports partial update for invoice data-entry fields.
+  - partial invoice updates
+- `DELETE /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}` (advisor only)
 
-### Delete invoice
-- `DELETE /api/v1/vat/work-items/{item_id}/invoices/{invoice_id}`
-- Requires authenticated user
-- Returns `204 No Content`
+### Status + Filing
 
-### Mark ready for review
 - `POST /api/v1/vat/work-items/{item_id}/ready-for-review`
-- Requires authenticated user
-- Transition: `data_entry_in_progress -> ready_for_review`
+  - transition: `data_entry_in_progress -> ready_for_review`
+- `POST /api/v1/vat/work-items/{item_id}/send-back` (advisor only)
+  - body: `correction_note`
+  - transition: `ready_for_review -> data_entry_in_progress`
+- `POST /api/v1/vat/work-items/{item_id}/file` (advisor only)
+  - body: `submission_method`, `override_amount?`, `override_justification?`, `submission_reference?`, `is_amendment?`, `amends_item_id?`
 
-### Send back for correction
-- `POST /api/v1/vat/work-items/{item_id}/send-back`
-- Role: `ADVISOR`
-- Body:
+### Queries
 
-```json
-{
-  "correction_note": "Please fix invoice classification"
-}
-```
-
-- Transition: `ready_for_review -> data_entry_in_progress`
-
-### File VAT return
-- `POST /api/v1/vat/work-items/{item_id}/file`
-- Role: `ADVISOR`
-- Body:
-
-```json
-{
-  "filing_method": "online",
-  "override_amount": 2500,
-  "override_justification": "Authority correction per call"
-}
-```
-
-### Get work item
 - `GET /api/v1/vat/work-items/{item_id}`
-- Requires authenticated user
-
-### List client work items
-- `GET /api/v1/vat/clients/{client_id}/work-items`
-- Requires authenticated user
-
-### List work items
+- `GET /api/v1/vat/businesses/{business_id}/work-items`
 - `GET /api/v1/vat/work-items`
-- Requires authenticated user
-- Query params:
-  - `status` (optional)
-  - `page` (default `1`, min `1`)
-  - `page_size` (default `50`, min `1`, max `200`)
-
-### Get work-item audit trail
+  - query: `status?`, `page` (default `1`), `page_size` (default `20`, max `200`), `period?`, `business_name?`
 - `GET /api/v1/vat/work-items/{item_id}/audit`
-- Requires authenticated user
+- `GET /api/v1/vat/businesses/{business_id}/summary`
+- `GET /api/v1/vat/businesses/{business_id}/export`
+  - query: `format=excel|pdf`, `year` (`2000-2100`)
 
-### Client summary
-- `GET /api/v1/vat/client/{client_id}/summary`
-- Roles: `ADVISOR`, `SECRETARY`
+## Business Rules
 
-### Client export
-- `GET /api/v1/vat/client/{client_id}/export`
-- Role: `ADVISOR`
-- Query params:
-  - `format` (`excel` or `pdf`)
-  - `year` (2000-2100)
+- `period` must match `YYYY-MM`
+- duplicate work item for the same (`business_id`, `period`) is rejected
+- if `mark_pending=true`, `pending_materials_note` is required
+- VAT-exempt businesses cannot open VAT work items
+- bi-monthly businesses cannot open even-month periods
+- first invoice on `material_received` auto-transitions to `data_entry_in_progress`
+- invoices can be added only in `material_received`, `data_entry_in_progress`, or `ready_for_review`
+- work item is immutable after `filed`
+- `expense` invoice requires `expense_category`
+- `tax_invoice` expense requires `counterparty_id`
+- `net_amount` must be `> 0`; `vat_amount` must be `>= 0`
+- filing requires current status `ready_for_review`
+- override filing amount requires `override_justification`
+- invoice changes recalculate totals and append audit records
 
-## Behavior Notes
+## Notes From Audit
 
-- Work-item period must be `YYYY-MM`.
-- Creating duplicate work item for same (`client_id`, `period`) is rejected.
-- If `mark_pending=true`, `pending_materials_note` is required.
-- First invoice on a `material_received` item auto-transitions it to `data_entry_in_progress`.
-- Editing is blocked once item status is `filed`.
-- Expense invoices require `expense_category`.
-- `net_amount` must be positive; `vat_amount` must be non-negative.
-- `ready_for_review` and filing transitions enforce strict state checks.
-- Filing override requires explicit justification.
-- Invoice mutations trigger totals recalculation (`output`, `input`, `net`) and append audit entries.
+- API and model are business-scoped (`business_id`), not client-scoped
+- filing field is `submission_method` (not `filing_method`)
+- query endpoints expose deadline enrichment fields on work-item responses: `submission_deadline`, `days_until_deadline`, `is_overdue`
 
-## Error Envelope
+## References
 
-Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- Models: `app/vat_reports/models/`
+- Schemas: `app/vat_reports/schemas/`
+- Routes: `app/vat_reports/api/`
+- Services: `app/vat_reports/services/`
+- Repositories: `app/vat_reports/repositories/`
 
 Domain errors use stable codes such as:
 - `VAT.NOT_FOUND`
@@ -234,15 +163,18 @@ Additional route-level HTTP errors are also used (for example forbidden role che
 
 ## Cross-Domain Integration
 
-- `clients`: validates client existence and enriches responses with client names.
+- `businesses`: validates business existence/status and enriches with business display/status.
 - `users/auth`: all VAT endpoints use current-user dependency; advisor-only operations enforce role checks.
-- `reports`: VAT client summary and export endpoints provide reporting outputs (Excel/PDF).
+- `annual_reports`: reuses shared `SubmissionMethod` enum (`online` / `manual` / `representative`).
 
 ## Tests
 
 VAT reports test suites:
 - `tests/vat_reports/api/test_vat_reports_intake.py`
 - `tests/vat_reports/api/test_vat_reports_invoices.py`
+- `tests/vat_reports/api/test_vat_reports_invoices_update_and_filters.py`
+- `tests/vat_reports/api/test_vat_reports_materials_complete.py`
+- `tests/vat_reports/api/test_vat_reports_queries.py`
 - `tests/vat_reports/api/test_vat_reports_status.py`
 - `tests/vat_reports/api/test_vat_reports_filing.py`
 - `tests/vat_reports/api/test_vat_reports_audit.py`
@@ -250,10 +182,13 @@ VAT reports test suites:
 - `tests/vat_reports/api/test_vat_reports_utils.py`
 - `tests/vat_reports/service/test_vat_report_intake.py`
 - `tests/vat_reports/service/test_vat_report_invoices.py`
+- `tests/vat_reports/service/test_data_entry_service_additional.py`
+- `tests/vat_reports/service/test_vat_report_queries.py`
 - `tests/vat_reports/service/test_vat_report_status_transitions.py`
 - `tests/vat_reports/service/test_vat_report_service_queries.py`
 - `tests/vat_reports/service/test_vat_export_pdf_functions.py`
 - `tests/vat_reports/service/test_vat_report_test_utils.py`
+- `tests/vat_reports/repository/test_vat_client_summary_repository.py`
 - `tests/vat_reports/repository/test_vat_work_item_repository.py`
 - `tests/vat_reports/repository/test_vat_invoice_repository.py`
 

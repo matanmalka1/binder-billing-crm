@@ -30,7 +30,7 @@ from app.notification.api.notifications import advisor_router as notification_ad
 from app.reminders.api import routers as reminders
 from app.reports.api import reports
 from app.search.api import search
-from app.tax_deadline.api import tax_deadline, deadline_generate
+from app.tax_deadline.api import tax_deadline, deadline_generate, tax_deadline_queries
 from app.timeline.api import timeline
 from app.users.api import auth
 from app.vat_reports.api.routers import router as vat_reports_router
@@ -51,6 +51,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(annual_report_export.router, prefix="/api/v1")
     app.include_router(tax_deadline.router, prefix="/api/v1")
     app.include_router(deadline_generate.router, prefix="/api/v1")
+    app.include_router(tax_deadline_queries.router, prefix="/api/v1")
     app.include_router(authority_contact.router, prefix="/api/v1")
     app.include_router(dashboard_tax.router, prefix="/api/v1")
     # Place Excel routes before parameterized /clients/{id} to avoid path conflicts

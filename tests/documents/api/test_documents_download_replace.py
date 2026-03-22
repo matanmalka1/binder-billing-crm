@@ -1,15 +1,12 @@
 from io import BytesIO
-from datetime import date
 
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 def _create_client(db):
     client = Client(
         full_name="Docs Client",
         id_number="DOC-001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(client)
     db.commit()
@@ -24,7 +21,7 @@ def test_document_download_and_replace(client, test_db, advisor_headers):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", BytesIO(b"orig"), "application/pdf")},
-        data={"client_id": crm_client.id, "document_type": "id_copy"},
+        data={"business_id": crm_client.id, "document_type": "id_copy"},
     )
     assert upload_resp.status_code == 201
     doc_id = upload_resp.json()["id"]

@@ -1,7 +1,7 @@
 def work_queue_item(binder, client, work_state, signals, reference_date) -> dict:
     return {
         "binder_id": binder.id,
-        "client_id": client.id,
+        "business_id": client.id,
         "client_name": client.full_name,
         "binder_number": binder.binder_number,
         "work_state": work_state.value,
@@ -14,7 +14,7 @@ def idle_attention_item(binder, client, reference_date) -> dict:
     return {
         "item_type": "idle_binder",
         "binder_id": binder.id,
-        "client_id": client.id,
+        "business_id": client.id,
         "client_name": client.full_name,
         "description": (
             f"Binder {binder.binder_number} idle for "
@@ -27,7 +27,7 @@ def ready_attention_item(binder, client) -> dict:
     return {
         "item_type": "ready_for_pickup",
         "binder_id": binder.id,
-        "client_id": client.id,
+        "business_id": client.id,
         "client_name": client.full_name,
         "description": f"Binder {binder.binder_number} ready for pickup",
     }
@@ -37,7 +37,7 @@ def unpaid_charge_attention_item(charge, client) -> dict:
     return {
         "item_type": "unpaid_charge",
         "binder_id": None,
-        "client_id": client.id,
+        "business_id": client.id,
         "client_name": client.full_name,
         "description": f"Unpaid charge: {float(charge.amount)} {charge.currency}",
     }

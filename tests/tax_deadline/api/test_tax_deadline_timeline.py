@@ -1,40 +1,27 @@
 from datetime import date, timedelta
 
-from app.clients.models import Client, ClientType
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
-
-
-def _client(db) -> Client:
-    c = Client(
-        full_name="Tax Timeline Client",
-        id_number="TT-001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
-    )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
+from tests.tax_deadline.factories import create_business
 
 
 def test_tax_deadline_timeline_returns_sorted_with_labels(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = create_business(test_db, name_prefix="API Timeline")
     repo = TaxDeadlineRepository(test_db)
 
     later = repo.create(
-        client_id=crm_client.id,
+        business_id=business.id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=date.today() + timedelta(days=15),
     )
     sooner = repo.create(
-        client_id=crm_client.id,
+        business_id=business.id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=3),
     )
 
     resp = client.get(
-        f"/api/v1/tax-deadlines/timeline?client_id={crm_client.id}",
+        f"/api/v1/tax-deadlines/timeline?business_id={business.id}",
         headers=advisor_headers,
     )
 
