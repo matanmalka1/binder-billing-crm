@@ -57,6 +57,38 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
     AnnualReportStatus.CLOSED: set(),
 }
 
+# ── Kanban stage → status mapping (one-way: promotes to first status in stage) ──
+# Note: this map intentionally moves to a single target status per stage.
+# Demoting within a stage requires direct status transition.
+STAGE_TO_STATUS: dict[str, str] = {
+    "material_collection": "collecting_docs",
+    "in_progress": "docs_complete",
+    "final_review": "in_preparation",
+    "client_signature": "pending_client",
+    "transmitted": "submitted",
+}
+
+# ── Israeli tax law constants ──────────────────────────────────────────────────
+# Donation credit rate — Section 46 of the Income Tax Ordinance
+DONATION_CREDIT_RATE = 0.35
+
+# ── National Insurance (ביטוח לאומי) rates — per NII annual circular ──────────
+# Base rate applies up to the monthly ceiling; high rate applies above it
+NI_RATE_BASE = 0.0597
+NI_RATE_HIGH = 0.1783
+
+# ── Statutory partial recognition rates — Income Tax Regulations ──────────────
+# Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
+# Re-exported from model to keep service layer free of direct model imports
+from app.annual_reports.models.annual_report_expense_line import (  # noqa: E402
+    DEFAULT_RECOGNITION_RATE,
+    STATUTORY_RECOGNITION_RATES,
+)
+
+# ── Stuck-report defaults ──────────────────────────────────────────────────────
+STUCK_REPORT_STALE_DAYS = 7
+STUCK_REPORT_LIMIT = 3
+
 # Which schedules are triggered by income flags
 SCHEDULE_FLAGS = [
     ("has_rental_income", AnnualReportSchedule.SCHEDULE_B),
@@ -67,7 +99,15 @@ SCHEDULE_FLAGS = [
 ]
 
 __all__ = [
+    "DEFAULT_RECOGNITION_RATE",
+    "DONATION_CREDIT_RATE",
     "FORM_MAP",
+    "NI_RATE_BASE",
+    "NI_RATE_HIGH",
     "SCHEDULE_FLAGS",
+    "STAGE_TO_STATUS",
+    "STATUTORY_RECOGNITION_RATES",
+    "STUCK_REPORT_STALE_DAYS",
+    "STUCK_REPORT_LIMIT",
     "VALID_TRANSITIONS",
 ]

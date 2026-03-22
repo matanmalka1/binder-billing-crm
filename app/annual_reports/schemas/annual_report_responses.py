@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -26,9 +27,9 @@ class AnnualReportResponse(BaseModel):
     custom_deadline_note: Optional[str] = None
     submitted_at: Optional[datetime] = None
     ita_reference: Optional[str] = None
-    assessment_amount: Optional[float] = None
-    refund_due: Optional[float] = None
-    tax_due: Optional[float] = None
+    assessment_amount: Optional[Decimal] = None
+    refund_due: Optional[Decimal] = None
+    tax_due: Optional[Decimal] = None
     has_rental_income: bool = False
     has_capital_gains: bool = False
     has_foreign_income: bool = False
@@ -83,18 +84,21 @@ class AnnualReportDetailResponse(AnnualReportResponse):
     schedules: list[ScheduleEntryResponse] = []
     status_history: list[StatusHistoryResponse] = []
     # פרטי מס — מ-AnnualReportDetail
-    pension_contribution: Optional[float] = None
-    donation_amount: Optional[float] = None
-    other_credits: Optional[float] = None
+    pension_contribution: Optional[Decimal] = None
+    donation_amount: Optional[Decimal] = None
+    other_credits: Optional[Decimal] = None
     client_approved_at: Optional[datetime] = None
     internal_notes: Optional[str] = None
     amendment_reason: Optional[str] = None
+    # שדות מ-AnnualReport (מס מחושב)
+    tax_refund_amount: Optional[float] = None
+    tax_due_amount: Optional[float] = None
     # סיכום פיננסי — מחושב בשירות
-    total_income: float = 0.0
-    total_expenses: float = 0.0
-    taxable_income: float = 0.0
-    profit: Optional[float] = None
-    final_balance: Optional[float] = None
+    total_income: Optional[Decimal] = None
+    total_expenses: Optional[Decimal] = None
+    taxable_income: Optional[Decimal] = None
+    profit: Optional[Decimal] = None
+    final_balance: Optional[Decimal] = None
 
 
 class SeasonSummaryResponse(BaseModel):
@@ -110,5 +114,6 @@ class SeasonSummaryResponse(BaseModel):
     assessment_issued: int
     objection_filed: int
     closed: int
+    amended: int = 0
     completion_rate: float
     overdue_count: int

@@ -17,7 +17,7 @@ router = APIRouter(
 )
 
 
-@router.post("/{report_id}/schedules", response_model=ScheduleEntryResponse, status_code=201)
+@router.post("/{report_id}/schedules", response_model=ScheduleEntryResponse, status_code=201, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: CurrentUser):
     """Manually add a schedule to a report (auto-generated ones are created at report creation)."""
     service = AnnualReportService(db)
@@ -33,7 +33,7 @@ def list_schedules(report_id: int, db: DBSession, user: CurrentUser):
     return [ScheduleEntryResponse.model_validate(entry) for entry in schedules]
 
 
-@router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse)
+@router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def complete_schedule(report_id: int, body: ScheduleCompleteRequest, db: DBSession, user: CurrentUser):
     """Mark a specific schedule as complete."""
     service = AnnualReportService(db)

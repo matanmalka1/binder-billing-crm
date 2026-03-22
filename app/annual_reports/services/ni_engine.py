@@ -2,14 +2,13 @@
 
 from dataclasses import dataclass
 
+from app.annual_reports.services.constants import NI_RATE_BASE as _NI_RATE_BASE, NI_RATE_HIGH as _NI_RATE_HIGH
+
 _NI_CEILING_BY_YEAR: dict[int, float] = {
     2024: 90_264.0,
     2025: 93_384.0,
-    2026: 93_384.0,
+    2026: 93_384.0,  # PLACEHOLDER — update when NII publishes 2026 ceiling
 }
-
-_NI_RATE_BASE = 0.0597
-_NI_RATE_HIGH = 0.1783
 
 
 @dataclass

@@ -10,7 +10,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
-@router.post("/{report_id}/transition", response_model=AnnualReportDetailResponse)
+@router.post("/{report_id}/transition", response_model=AnnualReportDetailResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def transition_stage(report_id: int, body: StageTransitionRequest, db: DBSession, user: CurrentUser):
     service = AnnualReportService(db)
     return service.transition_stage(

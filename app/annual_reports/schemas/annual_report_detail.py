@@ -43,8 +43,6 @@ class ReportDetailResponse(BaseModel):
     amendment_reason: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    # נקודות זיכוי — ממודל נפרד
-    credit_points: list[CreditPointResponse] = []
 
     model_config = {"from_attributes": True}
 

@@ -10,6 +10,12 @@ class AnnualReportDetail(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, unique=True)
 
+    # ── Credit points breakdown ────────────────────────────────────────────
+    credit_points = Column(Numeric(5, 2), nullable=True, default=2.25)
+    pension_credit_points = Column(Numeric(5, 2), nullable=True, default=0)
+    life_insurance_credit_points = Column(Numeric(5, 2), nullable=True, default=0)
+    tuition_credit_points = Column(Numeric(5, 2), nullable=True, default=0)
+
     # ── Deductions ────────────────────────────────────────────────────────
     pension_contribution = Column(Numeric(12, 2), nullable=True, default=0)
     donation_amount = Column(Numeric(12, 2), nullable=True, default=0)

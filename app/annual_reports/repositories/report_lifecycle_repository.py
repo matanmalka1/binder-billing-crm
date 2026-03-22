@@ -5,14 +5,14 @@ from datetime import timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from app.annual_reports.models import AnnualReport, AnnualReportStatus
 from app.utils.time_utils import utcnow
 
 
 class AnnualReportLifecycleRepository:
-    def list_overdue(self, tax_year: Optional[int] = None) -> list[AnnualReport]:
+    def list_overdue(self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
         now = utcnow()
         open_statuses = [
             AnnualReportStatus.NOT_STARTED,
@@ -32,16 +32,8 @@ class AnnualReportLifecycleRepository:
         )
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
-        return q.order_by(AnnualReport.filing_deadline.asc()).all()
-
-    def soft_delete(self, report_id: int, deleted_by: int) -> bool:
-        report = self.db.query(AnnualReport).filter(AnnualReport.id == report_id).first()
-        if not report:
-            return False
-        report.deleted_at = utcnow()
-        report.deleted_by = deleted_by
-        self.db.commit()
-        return True
+        q = q.order_by(AnnualReport.filing_deadline.asc())
+        return self._paginate(q, page, page_size)
 
     def sum_financials_by_year(self, tax_year: int) -> dict:
         row = (
@@ -76,15 +68,18 @@ class AnnualReportLifecycleRepository:
         )
 
     def get_season_summary(self, tax_year: int) -> dict:
-        all_reports = (
-            self.db.query(AnnualReport)
+        rows = (
+            self.db.query(AnnualReport.status, func.count(AnnualReport.id).label("cnt"))
             .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
+            .group_by(AnnualReport.status)
             .all()
         )
         summary = {s.value: 0 for s in AnnualReportStatus}
-        for report in all_reports:
-            summary[report.status.value] += 1
-        summary["total"] = len(all_reports)
+        total = 0
+        for row in rows:
+            summary[row.status.value] += row.cnt
+            total += row.cnt
+        summary["total"] = total
         return summary
 
 

@@ -69,6 +69,8 @@ class AnnualReportExpenseRepository:
         return line
 
     def delete(self, line_id: int) -> bool:
+        # Intentional hard-delete: expense lines are user-entered data with no
+        # audit trail requirement. Soft-delete would require schema migration (Sprint 10+).
         line = self.get_by_id(line_id)
         if not line:
             return False

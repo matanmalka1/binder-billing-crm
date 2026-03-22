@@ -1,7 +1,5 @@
 """Annex (schedule) data lines for an annual report."""
 
-from enum import Enum as PyEnum
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, Text
 from app.utils.enum_utils import pg_enum
 

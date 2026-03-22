@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
+from app.core.exceptions import NotFoundError
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.annual_reports.schemas import (
@@ -77,10 +78,16 @@ def get_kanban_view(db: DBSession, user: CurrentUser):
 
 
 @router.get("/overdue", response_model=list[AnnualReportResponse])
-def list_overdue(db: DBSession, user: CurrentUser, tax_year: int | None = Query(None)):
+def list_overdue(
+    db: DBSession,
+    user: CurrentUser,
+    tax_year: int | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
     """Reports past their filing deadline that have not been submitted."""
     service = AnnualReportService(db)
-    return service.get_overdue(tax_year=tax_year)
+    return service.get_overdue(tax_year=tax_year, page=page, page_size=page_size)
 
 
 @router.get("/{report_id}", response_model=AnnualReportDetailResponse)
@@ -89,7 +96,7 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     service = AnnualReportService(db)
     detail = service.get_detail_report(report_id)
     if detail is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
+        raise NotFoundError("הדוח לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
     return detail
 
 
@@ -103,7 +110,7 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     service = AnnualReportService(db)
     deleted = service.delete_report(report_id, actor_id=user.id, actor_name=user.full_name)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הדוח לא נמצא")
+        raise NotFoundError("הדוח לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

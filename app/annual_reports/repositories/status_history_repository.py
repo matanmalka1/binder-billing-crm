@@ -23,7 +23,6 @@ class AnnualReportStatusHistoryRepository:
             from_status=from_status,
             to_status=to_status,
             changed_by=changed_by,
-            changed_by_name=changed_by_name,
             note=note,
         )
         self.db.add(entry)

@@ -52,12 +52,19 @@ class AnnualReportReportRepository(BaseRepository):
             .first()
         )
 
-    def list_by_business(self, business_id: int) -> list[AnnualReport]:
-        return (
+    def list_by_business(self, business_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
+        q = (
             self.db.query(AnnualReport)
             .filter(AnnualReport.business_id == business_id, AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.tax_year.desc())
-            .all()
+        )
+        return self._paginate(q, page, page_size)
+
+    def count_by_business(self, business_id: int) -> int:
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.business_id == business_id, AnnualReport.deleted_at.is_(None))
+            .count()
         )
 
     def list_by_status(
@@ -66,7 +73,7 @@ class AnnualReportReportRepository(BaseRepository):
         tax_year: Optional[int] = None,
         assigned_to: Optional[int] = None,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
     ) -> list[AnnualReport]:
         q = self.db.query(AnnualReport).filter(AnnualReport.status == status, AnnualReport.deleted_at.is_(None))
         if tax_year:
@@ -90,7 +97,7 @@ class AnnualReportReportRepository(BaseRepository):
         self,
         tax_year: int,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
         sort_by: str = "status",
         order: str = "asc",
     ) -> list[AnnualReport]:
@@ -109,7 +116,7 @@ class AnnualReportReportRepository(BaseRepository):
     def list_all(
         self,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
         sort_by: str = "tax_year",
         order: str = "desc",
     ) -> list[AnnualReport]:

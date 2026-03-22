@@ -85,7 +85,8 @@ class FinancialTaxMixin:
             passed += 1
 
         detail = self.detail_repo.get_by_report_id(report_id)
-        if not detail or (detail.tax_due_amount is None and detail.tax_refund_amount is None):
+        report = self._get_report_or_raise(report_id)
+        if report.tax_due is None and report.refund_due is None:
             issues.append("חסר חישוב מס — יש למלא חוב מס או החזר מס")
         else:
             passed += 1

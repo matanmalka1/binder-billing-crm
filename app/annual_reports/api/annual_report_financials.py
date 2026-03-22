@@ -75,7 +75,7 @@ def add_income_line(report_id: int, body: IncomeLineCreateRequest, db: DBSession
     return svc.add_income(report_id, body.source_type, body.amount, body.description)
 
 
-@router.patch("/{report_id}/income/{line_id}", response_model=IncomeLineResponse)
+@router.patch("/{report_id}/income/{line_id}", response_model=IncomeLineResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def update_income_line(
     report_id: int, line_id: int, body: IncomeLineUpdateRequest, db: DBSession, user: CurrentUser
 ):
@@ -108,7 +108,7 @@ def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSessi
     )
 
 
-@router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse)
+@router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def update_expense_line(
     report_id: int, line_id: int, body: ExpenseLineUpdateRequest, db: DBSession, user: CurrentUser
 ):

@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from app.core.exceptions import AppError
+from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE
 
 _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
     2024: [
@@ -21,7 +22,7 @@ _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
         (576_540, 0.35),
         (None, 0.47),
     ],
-    2026: [
+    2026: [  # PLACEHOLDER — update when ITA publishes 2026 brackets
         (84_120, 0.10),
         (120_720, 0.14),
         (193_800, 0.20),
@@ -36,8 +37,6 @@ _CREDIT_POINT_VALUE_BY_YEAR: dict[int, float] = {
     2025: 3_003.0,
     2026: 3_003.0,
 }
-
-_DONATION_CREDIT_RATE = 0.35
 
 
 @dataclass
@@ -73,9 +72,11 @@ def calculate_tax(
 ) -> TaxCalculationResult:
     """Calculate Israeli income tax for the given tax year."""
     if tax_year not in _BRACKETS_BY_YEAR:
-       raise AppError(
-            f"Tax year {tax_year} is not supported. Supported years: {sorted(_BRACKETS_BY_YEAR)}"
-        "TAX_ENGINE.INVALID_INPUT", status_code=400)
+        raise AppError(
+            f"שנת מס {tax_year} אינה נתמכת. שנים נתמכות: {sorted(_BRACKETS_BY_YEAR)}",
+            "TAX_ENGINE.INVALID_INPUT",
+            status_code=400,
+        )
     year_brackets = _BRACKETS_BY_YEAR[tax_year]
     credit_point_value = _CREDIT_POINT_VALUE_BY_YEAR[tax_year]
 

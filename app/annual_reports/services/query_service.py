@@ -1,8 +1,5 @@
 from datetime import date
-from decimal import Decimal
 from typing import Optional
-
-from sqlalchemy import func
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
 from app.annual_reports.schemas.annual_report_responses import (
@@ -22,15 +19,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
             return None
         return self._to_responses([report])[0]
 
-    def get_business_reports(self, business_id: int) -> list[AnnualReportResponse]:
-        reports = self.repo.list_by_business(business_id)
-        return self._to_responses(reports)
+    def get_business_reports(self, business_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+        reports = self.repo.list_by_business(business_id, page=page, page_size=page_size)
+        total = self.repo.count_by_business(business_id)
+        return self._to_responses(reports), total
 
     def list_reports(
         self,
         tax_year: int | None = None,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
         sort_by: str = "tax_year",
         order: str = "desc",
     ) -> tuple[list[AnnualReportResponse], int]:
@@ -45,8 +43,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
     def get_season_summary(self, tax_year: int) -> dict:
         return self.repo.get_season_summary(tax_year)
 
-    def get_overdue(self, tax_year: Optional[int] = None) -> list[AnnualReportResponse]:
-        reports = self.repo.list_overdue(tax_year=tax_year)
+    def get_overdue(self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20) -> list[AnnualReportResponse]:
+        reports = self.repo.list_overdue(tax_year=tax_year, page=page, page_size=page_size)
         return self._to_responses(reports)
 
     def get_status_history(self, report_id: int) -> list:
@@ -57,7 +55,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
         """Return report with schedules, history, financial summary, and detail fields. None if not found."""
         from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
         from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
-        from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
+        from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
 
         report = self.get_report(report_id)
         if report is None:
@@ -69,44 +67,37 @@ class AnnualReportQueryService(AnnualReportBaseService):
         expense_repo = AnnualReportExpenseRepository(self.db)
         total_income = income_repo.total_income(report_id)
         total_expenses = expense_repo.total_expenses(report_id)
+        recognized_expenses = expense_repo.total_recognized_expenses(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
 
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
         response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
-        response.total_income = float(total_income)
-        response.total_expenses = float(total_expenses)
-        response.taxable_income = float(total_income - total_expenses)
+        response.total_income = total_income
+        response.total_expenses = total_expenses
+        response.taxable_income = total_income - recognized_expenses
 
+        orm_report = self.repo.get_by_id(report_id)
         if detail:
-            response.tax_refund_amount = float(detail.tax_refund_amount) if detail.tax_refund_amount is not None else None
-            response.tax_due_amount = float(detail.tax_due_amount) if detail.tax_due_amount is not None else None
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes
             response.amendment_reason = detail.amendment_reason
+        if orm_report:
+            response.tax_refund_amount = float(orm_report.refund_due) if orm_report.refund_due is not None else None
+            response.tax_due_amount = float(orm_report.tax_due) if orm_report.tax_due is not None else None
 
         from app.annual_reports.services.financial_service import AnnualReportFinancialService
-        from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
-        orm_report = self.repo.get_by_id(report_id)
         tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         response.profit = tax.net_profit
-        advances_paid = sum(
-            (p.paid_amount or Decimal("0"))
-            for p in self.db.query(AdvancePayment).filter(
-                AdvancePayment.business_id == orm_report.business_id,
-                AdvancePayment.period.like(f"{orm_report.tax_year}-%"),
-                func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
-                AdvancePayment.deleted_at.is_(None),
-            ).all()
-        )
+        advances_paid = self.advance_repo.sum_paid_by_business_year(orm_report.business_id, orm_report.tax_year)
         response.final_balance = round(tax.tax_after_credits - advances_paid, 2)
 
         return response
 
     def amend_report(self, report_id: int, reason: str, actor_id: int, actor_name: str) -> AnnualReportDetailResponse:
         """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
-        from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
+        from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
 
         report = self._get_or_raise(report_id)
         if report.status != AnnualReportStatus.SUBMITTED:

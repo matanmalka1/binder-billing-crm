@@ -18,7 +18,7 @@ class AnnualReportScheduleService(AnnualReportBaseService):
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
             raise NotFoundError(
-                f"לוח זמנים '{schedule}' לא נמצא בדוח {report_id}",
+                f"נספח '{schedule}' לא נמצא בדוח {report_id}",
                 "ANNUAL_REPORT.LINE_NOT_FOUND",
             )
         return entry
@@ -27,9 +27,8 @@ class AnnualReportScheduleService(AnnualReportBaseService):
         try:
             return AnnualReportSchedule(schedule)
         except ValueError:
-            valid = sorted(e.value for e in AnnualReportSchedule)
             raise AppError(
-                f"לוח זמנים לא חוקי '{schedule}'. חוקיים: {valid}",
+                f"נספח לא חוקי: '{schedule}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
 

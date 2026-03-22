@@ -4,7 +4,6 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_not_closed
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
@@ -24,13 +23,13 @@ class FinancialCrudMixin:
         description: Optional[str] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
-        business = BusinessRepository(self.db).get_by_id(report.business_id)
+        business = self.business_repo.get_by_id(report.business_id)
         if business:
             assert_business_not_closed(business)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(
-                f"סוג הכנסה לא חוקי '{source_type}'. חוקיים: {sorted(valid_sources)}",
+                f"סוג הכנסה לא חוקי: '{source_type}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         line = self.income_repo.add(report_id, IncomeSourceType(source_type), amount, description)
@@ -41,7 +40,7 @@ class FinancialCrudMixin:
         if "source_type" in fields and fields["source_type"] is not None:
             valid_sources = {e.value for e in IncomeSourceType}
             if fields["source_type"] not in valid_sources:
-                raise AppError(f"סוג הכנסה לא חוקי. חוקיים: {sorted(valid_sources)}", "ANNUAL_REPORT.INVALID_TYPE")
+                raise AppError(f"סוג הכנסה לא חוקי: '{fields['source_type']}'", "ANNUAL_REPORT.INVALID_TYPE")
             fields["source_type"] = IncomeSourceType(fields["source_type"])
         line = self.income_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
@@ -64,13 +63,13 @@ class FinancialCrudMixin:
         supporting_document_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
-        business = BusinessRepository(self.db).get_by_id(report.business_id)
+        business = self.business_repo.get_by_id(report.business_id)
         if business:
             assert_business_not_closed(business)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(
-                f"קטגוריית הוצאה לא חוקית '{category}'. חוקיות: {sorted(valid_categories)}",
+                f"קטגוריית הוצאה לא חוקית: '{category}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         line = self.expense_repo.add(
@@ -89,7 +88,7 @@ class FinancialCrudMixin:
         if "category" in fields and fields["category"] is not None:
             valid_categories = {e.value for e in ExpenseCategoryType}
             if fields["category"] not in valid_categories:
-                raise AppError(f"קטגוריית הוצאה לא חוקית. חוקיות: {sorted(valid_categories)}", "ANNUAL_REPORT.INVALID_TYPE")
+                raise AppError(f"קטגוריית הוצאה לא חוקית: '{fields['category']}'", "ANNUAL_REPORT.INVALID_TYPE")
             fields["category"] = ExpenseCategoryType(fields["category"])
         line = self.expense_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:

@@ -21,7 +21,7 @@ router = APIRouter(
 )
 
 
-@router.post("/{report_id}/status", response_model=AnnualReportResponse)
+@router.post("/{report_id}/status", response_model=AnnualReportResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def transition_status(
     report_id: int,
     body: StatusTransitionRequest,
@@ -49,7 +49,7 @@ def transition_status(
     return report
 
 
-@router.post("/{report_id}/submit", response_model=AnnualReportDetailResponse)
+@router.post("/{report_id}/submit", response_model=AnnualReportDetailResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def submit_report(
     report_id: int,
     body: SubmitRequest,
@@ -72,7 +72,7 @@ def submit_report(
     return detail
 
 
-@router.post("/{report_id}/deadline", response_model=AnnualReportResponse)
+@router.post("/{report_id}/deadline", response_model=AnnualReportResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
 def update_deadline(
     report_id: int,
     body: DeadlineUpdateRequest,

@@ -37,7 +37,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         report = self._get_or_raise(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
         if new_status not in valid_statuses:
-            raise AppError(f"סטטוס לא חוקי '{new_status}'. חוקיים: {sorted(valid_statuses)}", "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(f"סטטוס לא חוקי: '{new_status}'", "ANNUAL_REPORT.INVALID_STATUS")
         ns = AnnualReportStatus(new_status)
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):

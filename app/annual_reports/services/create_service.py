@@ -40,7 +40,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:
             raise AppError(
-                f"סוג לקוח לא חוקי '{client_type}'. חוקיים: {sorted(valid_client_types)}",
+                f"סוג לקוח לא חוקי: '{client_type}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         ct = ClientTypeForReport(client_type)
@@ -48,7 +48,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         valid_deadline_types = {e.value for e in DeadlineType}
         if deadline_type not in valid_deadline_types:
             raise AppError(
-                f"סוג מועד אחרון לא חוקי '{deadline_type}'. חוקיים: {sorted(valid_deadline_types)}",
+                f"סוג מועד אחרון לא חוקי: '{deadline_type}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
         dt = DeadlineType(deadline_type)
@@ -101,7 +101,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             changed_by_name=created_by_name,
             note=(
                 f"הדוח נוצר. טופס: {form_type.value}, מועד אחרון: "
-                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'TBD'}"
+                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'לא נקבע'}"
             ),
         )
 

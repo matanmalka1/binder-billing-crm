@@ -1,15 +1,7 @@
 from app.core.exceptions import AppError
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
+from app.annual_reports.services.constants import STAGE_TO_STATUS
 from .base import AnnualReportBaseService
-
-
-STAGE_TO_STATUS: dict[str, str] = {
-    "material_collection": "collecting_docs",
-    "in_progress": "docs_complete",
-    "final_review": "in_preparation",
-    "client_signature": "pending_client",
-    "transmitted": "submitted",
-}
 
 
 class AnnualReportKanbanService(AnnualReportBaseService):
@@ -31,4 +23,4 @@ class AnnualReportKanbanService(AnnualReportBaseService):
         )
 
 
-__all__ = ["AnnualReportKanbanService", "STAGE_TO_STATUS"]
+__all__ = ["AnnualReportKanbanService"]
