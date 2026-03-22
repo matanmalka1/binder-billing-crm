@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from datetime import datetime
+from typing import Literal, Optional
+
+from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -11,6 +14,9 @@ from app.correspondence.schemas.correspondence import (
 )
 from app.correspondence.services.correspondence_service import CorrespondenceService
 
+_DEFAULT_PAGE_SIZE = 20
+_MAX_PAGE_SIZE = 100
+
 router = APIRouter(
     prefix="/businesses",
     tags=["correspondence"],
@@ -22,18 +28,45 @@ router = APIRouter(
 def list_correspondence(
     business_id: int,
     db: DBSession,
-    user: CurrentUser,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(_DEFAULT_PAGE_SIZE, ge=1, le=_MAX_PAGE_SIZE),
+    correspondence_type: Optional[CorrespondenceType] = Query(None),
+    contact_id: Optional[int] = Query(None),
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
 ):
     service = CorrespondenceService(db)
-    entries, total = service.list_business_entries(business_id, page=page, page_size=page_size)
-    return CorrespondenceListResponse(
+    entries, total = service.list_business_entries(
+        business_id,
+        page=page,
+        page_size=page_size,
+        correspondence_type=correspondence_type,
+        contact_id=contact_id,
+        from_date=from_date,
+        to_date=to_date,
+        sort_dir=sort_dir,
+    )
+    return CorrespondenceListResponse.build(
         items=[CorrespondenceResponse.model_validate(e) for e in entries],
         page=page,
         page_size=page_size,
         total=total,
     )
+
+
+@router.get(
+    "/{business_id}/correspondence/{correspondence_id}",
+    response_model=CorrespondenceResponse,
+)
+def get_correspondence(
+    business_id: int,
+    correspondence_id: int,
+    db: DBSession,
+):
+    service = CorrespondenceService(db)
+    entry = service.get_entry(correspondence_id, business_id)
+    return CorrespondenceResponse.model_validate(entry)
 
 
 @router.post(
@@ -47,17 +80,10 @@ def create_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    try:
-        corr_type = CorrespondenceType(request.correspondence_type)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"סוג התכתבות לא חוקי: {request.correspondence_type}",
-        )
     service = CorrespondenceService(db)
     entry = service.add_entry(
         business_id=business_id,
-        correspondence_type=corr_type,
+        correspondence_type=request.correspondence_type,
         subject=request.subject,
         occurred_at=request.occurred_at,
         created_by=user.id,
@@ -79,16 +105,6 @@ def update_correspondence(
     user: CurrentUser,
 ):
     update_data = request.model_dump(exclude_unset=True)
-    if "correspondence_type" in update_data:
-        try:
-            update_data["correspondence_type"] = CorrespondenceType(
-                update_data["correspondence_type"]
-            )
-        except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"סוג התכתבות לא חוקי: {update_data['correspondence_type']}",
-            )
     service = CorrespondenceService(db)
     entry = service.update_entry(correspondence_id, business_id, **update_data)
     return CorrespondenceResponse.model_validate(entry)

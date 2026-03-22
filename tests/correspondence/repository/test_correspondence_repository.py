@@ -1,7 +1,8 @@
 from datetime import date, datetime, timedelta
 from itertools import count
 
-from app.clients.models import Client, ClientType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.users.models.user import User, UserRole
@@ -11,18 +12,26 @@ from app.users.services.auth_service import AuthService
 _client_seq = count(1)
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
     idx = next(_client_seq)
     c = Client(
         full_name=f"Correspondence Repo Client {idx}",
-        id_number=f"CRP{idx:03d}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+        id_number=f"CRP{idx:09d}",
     )
     db.add(c)
     db.commit()
     db.refresh(c)
-    return c
+
+    b = Business(
+        client_id=c.id,
+        business_name=f"Correspondence Repo Business {idx}",
+        business_type=BusinessType.COMPANY,
+        opened_at=date.today(),
+    )
+    db.add(b)
+    db.commit()
+    db.refresh(b)
+    return b
 
 
 def _user(test_db) -> User:
@@ -39,55 +48,121 @@ def _user(test_db) -> User:
     return user
 
 
-def test_list_by_client_paginated_and_soft_delete(test_db):
+def test_list_by_business_paginated_and_soft_delete(test_db):
     repo = CorrespondenceRepository(test_db)
     user = _user(test_db)
-    client_a = _client(test_db)
-    client_b = _client(test_db)
+    business_a = _business(test_db)
+    business_b = _business(test_db)
     base = datetime(2026, 1, 1, 12, 0, 0)
 
     first = repo.create(
-        client_id=client_a.id,
+        business_id=business_a.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="First",
         occurred_at=base + timedelta(days=1),
         created_by=user.id,
     )
     second = repo.create(
-        client_id=client_a.id,
+        business_id=business_a.id,
         correspondence_type=CorrespondenceType.CALL,
         subject="Second",
         occurred_at=base + timedelta(days=2),
         created_by=user.id,
     )
     third = repo.create(
-        client_id=client_a.id,
+        business_id=business_a.id,
         correspondence_type=CorrespondenceType.MEETING,
         subject="Third",
         occurred_at=base + timedelta(days=3),
         created_by=user.id,
     )
     repo.create(
-        client_id=client_b.id,
+        business_id=business_b.id,
         correspondence_type=CorrespondenceType.LETTER,
-        subject="Other client",
+        subject="Other business",
         occurred_at=base + timedelta(days=4),
         created_by=user.id,
     )
 
-    page_1_items, page_1_total = repo.list_by_client_paginated(client_a.id, page=1, page_size=2)
+    page_1_items, page_1_total = repo.list_by_business_paginated(business_a.id, page=1, page_size=2)
     assert page_1_total == 3
     assert [entry.id for entry in page_1_items] == [third.id, second.id]
 
-    page_2_items, page_2_total = repo.list_by_client_paginated(client_a.id, page=2, page_size=2)
+    page_2_items, page_2_total = repo.list_by_business_paginated(business_a.id, page=2, page_size=2)
     assert page_2_total == 3
     assert [entry.id for entry in page_2_items] == [first.id]
 
     assert repo.soft_delete(second.id, deleted_by=user.id) is True
     assert repo.get_by_id(second.id) is None
 
-    remaining, total_after_delete = repo.list_by_client_paginated(client_a.id, page=1, page_size=10)
+    remaining, total_after_delete = repo.list_by_business_paginated(business_a.id, page=1, page_size=10)
     assert total_after_delete == 2
     assert {entry.id for entry in remaining} == {first.id, third.id}
     assert repo.soft_delete(999999, deleted_by=user.id) is False
 
+
+def test_list_by_business_filters_and_sort(test_db):
+    repo = CorrespondenceRepository(test_db)
+    user = _user(test_db)
+    business = _business(test_db)
+    base = datetime(2026, 1, 1, 8, 0, 0)
+
+    e1 = repo.create(
+        business_id=business.id,
+        correspondence_type=CorrespondenceType.EMAIL,
+        subject="Email 1",
+        occurred_at=base,
+        created_by=user.id,
+        contact_id=10,
+    )
+    e2 = repo.create(
+        business_id=business.id,
+        correspondence_type=CorrespondenceType.CALL,
+        subject="Call",
+        occurred_at=base + timedelta(days=1),
+        created_by=user.id,
+        contact_id=20,
+    )
+    e3 = repo.create(
+        business_id=business.id,
+        correspondence_type=CorrespondenceType.EMAIL,
+        subject="Email 2",
+        occurred_at=base + timedelta(days=2),
+        created_by=user.id,
+        contact_id=10,
+    )
+
+    items, total = repo.list_by_business_paginated(
+        business.id,
+        page=1,
+        page_size=10,
+        correspondence_type=CorrespondenceType.EMAIL,
+        contact_id=10,
+        from_date=base + timedelta(hours=1),
+        to_date=base + timedelta(days=2),
+        sort_dir="asc",
+    )
+
+    assert total == 1
+    assert [i.id for i in items] == [e3.id]
+    assert e1.id != e2.id
+
+
+def test_update_ignores_unknown_fields(test_db):
+    repo = CorrespondenceRepository(test_db)
+    user = _user(test_db)
+    business = _business(test_db)
+
+    entry = repo.create(
+        business_id=business.id,
+        correspondence_type=CorrespondenceType.EMAIL,
+        subject="Before",
+        occurred_at=datetime(2026, 1, 1, 8, 0, 0),
+        created_by=user.id,
+    )
+
+    updated = repo.update(entry.id, subject="After", not_a_field="ignored")
+    assert updated is not None
+    assert updated.subject == "After"
+    assert not hasattr(updated, "not_a_field")
+    assert repo.update(999999, subject="Missing") is None

@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
-from app.core.exceptions import AppError, app_error_handler, value_error_handler
 from app.middleware.request_id import RequestIDMiddleware
 from app.lifespan import lifespan
 from app.router_registry import register_routers
@@ -32,9 +31,9 @@ def info():
     return {"app": "Binder Billing CRM", "env": config.APP_ENV}
 
 
+# All handlers (including AppError and ValueError) are registered inside
+# setup_exception_handlers — no need to add them separately here.
 setup_exception_handlers(app)
-app.add_exception_handler(AppError, app_error_handler)
-app.add_exception_handler(ValueError, value_error_handler)
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(

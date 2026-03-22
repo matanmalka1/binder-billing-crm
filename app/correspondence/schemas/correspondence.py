@@ -1,9 +1,20 @@
-from datetime import datetime
+import math
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.correspondence.models.correspondence import CorrespondenceType
+
+
+def _validate_occurred_at(v: Optional[datetime]) -> Optional[datetime]:
+    if v is None:
+        return v
+    now = datetime.now(timezone.utc)
+    v_aware = v if v.tzinfo is not None else v.replace(tzinfo=timezone.utc)
+    if v_aware > now:
+        raise ValueError("תאריך ההתכתבות לא יכול להיות בעתיד")
+    return v
 
 
 class CorrespondenceCreateRequest(BaseModel):
@@ -13,6 +24,11 @@ class CorrespondenceCreateRequest(BaseModel):
     notes: Optional[str] = None
     occurred_at: datetime
 
+    @field_validator("occurred_at")
+    @classmethod
+    def occurred_at_not_future(cls, v: datetime) -> datetime:
+        return _validate_occurred_at(v)
+
 
 class CorrespondenceUpdateRequest(BaseModel):
     contact_id: Optional[int] = None
@@ -20,6 +36,11 @@ class CorrespondenceUpdateRequest(BaseModel):
     subject: Optional[str] = None
     notes: Optional[str] = None
     occurred_at: Optional[datetime] = None
+
+    @field_validator("occurred_at")
+    @classmethod
+    def occurred_at_not_future(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return _validate_occurred_at(v)
 
 
 class CorrespondenceResponse(BaseModel):
@@ -31,7 +52,7 @@ class CorrespondenceResponse(BaseModel):
     notes: Optional[str] = None
     occurred_at: datetime
     created_by: int
-    created_at: Optional[datetime] = None
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -41,3 +62,20 @@ class CorrespondenceListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+    total_pages: int
+
+    @classmethod
+    def build(
+        cls,
+        items: list[CorrespondenceResponse],
+        page: int,
+        page_size: int,
+        total: int,
+    ) -> "CorrespondenceListResponse":
+        return cls(
+            items=items,
+            page=page,
+            page_size=page_size,
+            total=total,
+            total_pages=math.ceil(total / page_size) if page_size else 0,
+        )

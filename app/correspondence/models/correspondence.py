@@ -7,7 +7,7 @@ Israeli context:
   meetings with clients, and email exchanges.
 
 Design decisions:
-- occurred_at is DateTime (not Date) — meetings and calls have a specific time.
+- occurred_at is DateTime(timezone=True) — stored as UTC, frontend converts to Asia/Jerusalem.
 - contact_id links to AuthorityContact (רשות המסים, ביטוח לאומי, etc.) —
   nullable because not all correspondence involves an authority contact.
 - No updated_at — correspondence entries are immutable once created;
@@ -21,7 +21,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Tex
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
-from app.utils.time_utils import utcnow
+from app.utils.time_utils import utcnow_aware
 
 
 class CorrespondenceType(str, PyEnum):
@@ -29,6 +29,7 @@ class CorrespondenceType(str, PyEnum):
     LETTER  = "letter"   # מכתב / דואר רשום
     EMAIL   = "email"    # דואר אלקטרוני
     MEETING = "meeting"  # פגישה פיזית או זום
+    FAX     = "fax"      # פקס (תקשורת חוקית עם רשויות מס)
 
 
 class Correspondence(Base):
@@ -42,18 +43,17 @@ class Correspondence(Base):
     correspondence_type = Column(pg_enum(CorrespondenceType), nullable=False)
     subject             = Column(String, nullable=False)
     notes               = Column(Text, nullable=True)
-    occurred_at         = Column(DateTime, nullable=False)  # מתי התרחש האירוע בפועל
+    occurred_at         = Column(DateTime(timezone=True), nullable=False)  # UTC; מתי התרחש האירוע בפועל
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow_aware, nullable=False)
 
     # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_correspondence_business",          "business_id"),
         Index("idx_correspondence_occurred",          "occurred_at"),
         Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
     )

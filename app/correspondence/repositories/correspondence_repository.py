@@ -1,11 +1,11 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
-from app.utils.time_utils import utcnow
+from app.utils.time_utils import utcnow_aware
 
 
 class CorrespondenceRepository:
@@ -37,16 +37,39 @@ class CorrespondenceRepository:
         return entry
 
     def list_by_business_paginated(
-        self, business_id: int, *, page: int, page_size: int
+        self,
+        business_id: int,
+        *,
+        page: int,
+        page_size: int,
+        correspondence_type: Optional[CorrespondenceType] = None,
+        contact_id: Optional[int] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         base = self.db.query(Correspondence).filter(
             Correspondence.business_id == business_id,
             Correspondence.deleted_at.is_(None),
         )
 
+        if correspondence_type is not None:
+            base = base.filter(Correspondence.correspondence_type == correspondence_type)
+        if contact_id is not None:
+            base = base.filter(Correspondence.contact_id == contact_id)
+        if from_date is not None:
+            base = base.filter(Correspondence.occurred_at >= from_date)
+        if to_date is not None:
+            base = base.filter(Correspondence.occurred_at <= to_date)
+
         total = base.with_entities(func.count()).scalar() or 0
+        order = (
+            Correspondence.occurred_at.desc()
+            if sort_dir == "desc"
+            else Correspondence.occurred_at.asc()
+        )
         offset = (page - 1) * page_size
-        items = base.order_by(Correspondence.occurred_at.desc()).offset(offset).limit(page_size).all()
+        items = base.order_by(order).offset(offset).limit(page_size).all()
         return items, total
 
     def get_by_id(self, entry_id: int) -> Optional[Correspondence]:
@@ -71,7 +94,7 @@ class CorrespondenceRepository:
         entry = self.get_by_id(entry_id)
         if not entry:
             return False
-        entry.deleted_at = utcnow()
+        entry.deleted_at = utcnow_aware()
         entry.deleted_by = deleted_by
         self.db.commit()
         return True

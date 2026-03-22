@@ -1,28 +1,36 @@
 from datetime import date, datetime
 
-from app.clients.models import Client, ClientType
-from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.businesses.models.business import Business, BusinessType
+from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
 
 
-def _create_client(test_db, id_number: str = "111222333") -> Client:
-    c = Client(
+def _create_business(test_db, id_number: str = "111222333") -> Business:
+    client = Client(
         full_name="Update Test Client",
         id_number=id_number,
-        client_type=ClientType.COMPANY,
+    )
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+
+    business = Business(
+        client_id=client.id,
+        business_name=f"Update Business {id_number}",
+        business_type=BusinessType.COMPANY,
         opened_at=date.today(),
     )
-    test_db.add(c)
+    test_db.add(business)
     test_db.commit()
-    test_db.refresh(c)
-    return c
+    test_db.refresh(business)
+    return business
 
 
-def _add_entry(test_db, client_id: int, user_id: int):
+def _add_entry(test_db, business_id: int, user_id: int):
     svc = CorrespondenceService(test_db)
     return svc.add_entry(
-        client_id=client_id,
+        business_id=business_id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Original subject",
         occurred_at=datetime(2026, 1, 10, 9, 0, 0),
@@ -31,11 +39,11 @@ def _add_entry(test_db, client_id: int, user_id: int):
 
 
 def test_update_correspondence(client, test_db, advisor_headers, test_user):
-    c = _create_client(test_db)
-    entry = _add_entry(test_db, c.id, test_user.id)
+    business = _create_business(test_db)
+    entry = _add_entry(test_db, business.id, test_user.id)
 
     response = client.patch(
-        f"/api/v1/clients/{c.id}/correspondence/{entry.id}",
+        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
         headers=advisor_headers,
         json={"subject": "Updated subject", "correspondence_type": "meeting"},
     )
@@ -44,28 +52,27 @@ def test_update_correspondence(client, test_db, advisor_headers, test_user):
     data = response.json()
     assert data["subject"] == "Updated subject"
     assert data["correspondence_type"] == "meeting"
-    # unchanged field preserved
     assert data["occurred_at"].startswith("2026-01-10")
 
 
 def test_update_correspondence_invalid_type(client, test_db, advisor_headers, test_user):
-    c = _create_client(test_db)
-    entry = _add_entry(test_db, c.id, test_user.id)
+    business = _create_business(test_db)
+    entry = _add_entry(test_db, business.id, test_user.id)
 
     response = client.patch(
-        f"/api/v1/clients/{c.id}/correspondence/{entry.id}",
+        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
         headers=advisor_headers,
-        json={"correspondence_type": "fax"},
+        json={"correspondence_type": "invalid_type"},
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 def test_update_correspondence_not_found(client, test_db, advisor_headers):
-    c = _create_client(test_db)
+    business = _create_business(test_db)
 
     response = client.patch(
-        f"/api/v1/clients/{c.id}/correspondence/99999",
+        f"/api/v1/businesses/{business.id}/correspondence/99999",
         headers=advisor_headers,
         json={"subject": "x"},
     )
@@ -74,11 +81,11 @@ def test_update_correspondence_not_found(client, test_db, advisor_headers):
 
 
 def test_delete_correspondence(client, test_db, advisor_headers, test_user):
-    c = _create_client(test_db)
-    entry = _add_entry(test_db, c.id, test_user.id)
+    business = _create_business(test_db)
+    entry = _add_entry(test_db, business.id, test_user.id)
 
     response = client.delete(
-        f"/api/v1/clients/{c.id}/correspondence/{entry.id}",
+        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
         headers=advisor_headers,
     )
 
@@ -86,16 +93,16 @@ def test_delete_correspondence(client, test_db, advisor_headers, test_user):
 
 
 def test_deleted_not_returned_in_list(client, test_db, advisor_headers, test_user):
-    c = _create_client(test_db)
-    entry = _add_entry(test_db, c.id, test_user.id)
+    business = _create_business(test_db)
+    entry = _add_entry(test_db, business.id, test_user.id)
 
     client.delete(
-        f"/api/v1/clients/{c.id}/correspondence/{entry.id}",
+        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
         headers=advisor_headers,
     )
 
     response = client.get(
-        f"/api/v1/clients/{c.id}/correspondence",
+        f"/api/v1/businesses/{business.id}/correspondence",
         headers=advisor_headers,
     )
     assert response.status_code == 200
@@ -106,11 +113,11 @@ def test_deleted_not_returned_in_list(client, test_db, advisor_headers, test_use
 def test_delete_correspondence_secretary_forbidden(
     client, test_db, secretary_headers, test_user
 ):
-    c = _create_client(test_db)
-    entry = _add_entry(test_db, c.id, test_user.id)
+    business = _create_business(test_db)
+    entry = _add_entry(test_db, business.id, test_user.id)
 
     response = client.delete(
-        f"/api/v1/clients/{c.id}/correspondence/{entry.id}",
+        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
         headers=secretary_headers,
     )
 

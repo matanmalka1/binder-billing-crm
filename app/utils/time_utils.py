@@ -14,3 +14,13 @@ def utcnow() -> datetime:
 
     return datetime.now(UTC).replace(tzinfo=None)
 
+
+def utcnow_aware() -> datetime:
+    """
+    Return the current UTC time as a timezone-aware datetime.
+
+    Use this for columns declared as DateTime(timezone=True).
+    """
+
+    return datetime.now(UTC)
+
