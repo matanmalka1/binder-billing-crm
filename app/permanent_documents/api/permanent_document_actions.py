@@ -1,12 +1,11 @@
-from typing import Annotated, Optional
+from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.permanent_documents.services.permanent_document_action_service import PermanentDocumentActionService
 from app.permanent_documents.schemas.permanent_document import (
-    ApproveDocumentRequest,
     DocumentVersionsResponse,
     PermanentDocumentResponse,
     RejectDocumentRequest,
@@ -28,7 +27,6 @@ def approve_document(
     document_id: int,
     db: DBSession,
     user: CurrentUser,
-    body: ApproveDocumentRequest = Body({}),
 ):
     doc = PermanentDocumentActionService(db).approve_document(document_id, user.id)
     return PermanentDocumentResponse.model_validate(doc)
@@ -45,7 +43,7 @@ def reject_document(
     db: DBSession,
     user: CurrentUser,
 ):
-    doc = PermanentDocumentActionService(db).reject_document(document_id, body.notes)
+    doc = PermanentDocumentActionService(db).reject_document(document_id, body.notes, user.id)
     return PermanentDocumentResponse.model_validate(doc)
 
 
