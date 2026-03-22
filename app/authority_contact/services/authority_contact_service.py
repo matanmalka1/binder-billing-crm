@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.businesses.services.business_lookup import get_business_or_raise
@@ -27,7 +27,7 @@ class AuthorityContactService:
     ) -> AuthorityContact:
         """Add new authority contact for business."""
         get_business_or_raise(self.db, business_id)
-        contact_type_enum = ContactType(contact_type)
+        contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
 
         return self.contact_repo.create(
             business_id=business_id,
@@ -46,7 +46,8 @@ class AuthorityContactService:
     ) -> AuthorityContact:
         """Update contact details."""
         if "contact_type" in fields:
-            fields["contact_type"] = ContactType(fields["contact_type"])
+            ct = fields["contact_type"]
+            fields["contact_type"] = ct if isinstance(ct, ContactType) else ContactType(ct)
 
         updated = self.contact_repo.update(contact_id, **fields)
         if not updated:
@@ -75,6 +76,9 @@ class AuthorityContactService:
         if not success:
             raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
 
-    def get_contact(self, contact_id: int) -> Optional[AuthorityContact]:
+    def get_contact(self, contact_id: int) -> AuthorityContact:
         """Get contact by ID."""
-        return self.contact_repo.get_by_id(contact_id)
+        contact = self.contact_repo.get_by_id(contact_id)
+        if not contact:
+            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
+        return contact
