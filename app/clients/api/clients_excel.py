@@ -70,7 +70,7 @@ async def import_clients_from_excel(
     content_length = request.headers.get("Content-Length")
     if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",
         )
 
@@ -85,7 +85,7 @@ async def import_clients_from_excel(
     contents = await file.read(MAX_UPLOAD_SIZE + 1)
     if len(contents) > MAX_UPLOAD_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",
         )
     try:
