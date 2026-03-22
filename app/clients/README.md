@@ -12,6 +12,10 @@ Manages CRM clients at the identity level only. Business-level state (status, ta
 - Conflict detection by `id_number` (active vs soft-deleted records)
 - Excel export/template/import endpoints
 
+Comments:
+- This module should stay identity-only. If a field is business-process related, it belongs in `businesses` (or a dedicated domain), not here.
+- Soft delete is part of the domain contract. Avoid hard deletes unless there is a migration/maintenance requirement.
+
 ## Implementation Map
 
 - Model: `app/clients/models/client.py`
@@ -44,6 +48,9 @@ Validation highlights:
 - `id_number` must be exactly 9 digits for all ID types (schema-level validation)
 - Israeli checksum validation is applied only when `id_number_type == individual`
 
+Comments:
+- The 9-digit rule is currently global across ID types by design in `ClientCreateRequest`; changing this affects API behavior and tests.
+
 ## API
 
 Routers are mounted with `/api/v1` in `app/router_registry.py`, so clients endpoints are under `/api/v1/clients`.
@@ -62,6 +69,10 @@ Excel endpoints:
 - `GET /api/v1/clients/template` (`ADVISOR`, `SECRETARY`)
 - `POST /api/v1/clients/import` (`ADVISOR` only, max upload 10MB)
 
+Comments:
+- Import is partial-success by design: valid rows are created, invalid rows are returned in the `errors` array.
+- Import currently creates identity-only clients and does not auto-create businesses.
+
 ## Error Codes
 
 - `CLIENT.NOT_FOUND`
@@ -74,6 +85,9 @@ Excel endpoints:
 - A client can have multiple businesses (`app/businesses/`).
 - Binders are client-scoped (`client_id`) and are reused in business status-card aggregation.
 - Business guard helpers (`assert_business_allows_create`, `assert_business_not_closed`) are defined in `app/businesses/services/business_guards.py` and used by several domains.
+
+Comments:
+- If client deletion/restoration rules change, check downstream flows that resolve binders/status via `client_id`.
 
 ## Tests
 
@@ -93,3 +107,6 @@ Run clients tests:
 ```bash
 pytest -q tests/clients
 ```
+
+Comments:
+- Run this suite after changing schemas, conflict logic, or Excel import/export behavior.
