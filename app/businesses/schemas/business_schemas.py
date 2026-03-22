@@ -71,6 +71,8 @@ class ClientBusinessesResponse(BaseModel):
     """רשימת עסקים של לקוח ספציפי."""
     client_id: int
     items: list[BusinessResponse]
+    page: int
+    page_size: int
     total: int
 
 

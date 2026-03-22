@@ -19,6 +19,14 @@ class BusinessTaxProfileService:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
         return self.repo.get_by_business_id(business_id)
 
+    def get_profile_or_empty(self, business_id: int):
+        """Return the tax profile, or an empty response shell if none exists yet."""
+        from app.businesses.schemas.business_tax_profile_schemas import BusinessTaxProfileResponse
+        profile = self.get_profile(business_id)
+        if profile is None:
+            return BusinessTaxProfileResponse(business_id=business_id)
+        return BusinessTaxProfileResponse.model_validate(profile)
+
     def update_profile(self, business_id: int, **fields) -> BusinessTaxProfile:
         if not self.business_repo.get_by_id(business_id):
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")

@@ -19,20 +19,21 @@ router = APIRouter(
 def get_tax_profile(business_id: int, db: DBSession, user: CurrentUser):
     """Get tax profile for a specific business."""
     service = BusinessTaxProfileService(db)
-    profile = service.get_profile(business_id)
-    if profile is None:
-        return BusinessTaxProfileResponse(business_id=business_id)
-    return BusinessTaxProfileResponse.model_validate(profile)
+    return service.get_profile_or_empty(business_id)
 
 
-@router.patch("/{business_id}/tax-profile", response_model=BusinessTaxProfileResponse)
+@router.patch(
+    "/{business_id}/tax-profile",
+    response_model=BusinessTaxProfileResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def update_tax_profile(
     business_id: int,
     request: BusinessTaxProfileUpdateRequest,
     db: DBSession,
     user: CurrentUser,
 ):
-    """Update (or create) tax profile for a specific business."""
+    """Update (or create) tax profile for a specific business (ADVISOR only)."""
     service = BusinessTaxProfileService(db)
     update_data = request.model_dump(exclude_unset=True)
     profile = service.update_profile(business_id, **update_data)

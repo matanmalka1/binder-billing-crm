@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -7,7 +7,7 @@ from app.binders.schemas.binder_extended import (
     BinderListResponseExtended,
 )
 from app.binders.services.binder_operations_service import BinderOperationsService
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_lookup import get_business_or_raise
 
 router = APIRouter(
     prefix="/businesses",
@@ -30,13 +30,7 @@ def list_business_binders(
     Note: Binders belong to clients, not businesses. This endpoint resolves
     the client that owns the business and returns that client's binders.
     """
-    
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="העסק לא נמצא",
-        )
+    business = get_business_or_raise(db, business_id)
 
     service = BinderOperationsService(db)
     items, total = service.get_client_binders(

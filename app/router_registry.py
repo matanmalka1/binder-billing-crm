@@ -16,6 +16,7 @@ from app.annual_reports.api import (
 from app.binders.api import binders, binders_history, binders_operations
 from app.clients.api import clients, clients_excel
 from app.businesses.api import business_binders_router, business_status_card_router, business_tax_profile_router
+from app.businesses.api.businesses import client_businesses_router, businesses_router
 from app.dashboard.api import dashboard, dashboard_extended, dashboard_overview, dashboard_tax
 from app.users.api import users, users_audit
 from app.signature_requests.api import routers as signature_requests_routers
@@ -58,6 +59,8 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(business_status_card_router.router, prefix="/api/v1")
     app.include_router(business_binders_router.router, prefix="/api/v1")
     app.include_router(business_tax_profile_router.router, prefix="/api/v1")
+    app.include_router(client_businesses_router, prefix="/api/v1")
+    app.include_router(businesses_router, prefix="/api/v1")
     app.include_router(binders_operations.router, prefix="/api/v1")
     app.include_router(binders.router, prefix="/api/v1")
     app.include_router(dashboard.router, prefix="/api/v1")
