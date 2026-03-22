@@ -1,12 +1,13 @@
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, Depends, Header, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.charge.schemas.charge import BulkChargeActionRequest, BulkChargeActionResponse, ChargeCancelRequest, ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
+from app.charge.services.charge_query_service import ChargeQueryService
 
 
 router = APIRouter(
@@ -23,18 +24,15 @@ router = APIRouter(
 )
 def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser):
     """Create new charge (ADVISOR only)."""
-    service = BillingService(db)
-
-    charge = service.create_charge(
+    charge = BillingService(db).create_charge(
         business_id=request.business_id,
         amount=request.amount,
         charge_type=request.charge_type,
         period=request.period,
-        currency=request.currency,
         actor_id=user.id,
     )
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_business_name(charge)
+    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -45,11 +43,9 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
 )
 def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Issue a draft charge (ADVISOR only)."""
-    service = BillingService(db)
-
-    charge = service.issue_charge(charge_id, actor_id=user.id)
+    charge = BillingService(db).issue_charge(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_business_name(charge)
+    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -60,11 +56,9 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
 )
 def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     """Mark issued charge as paid (ADVISOR only)."""
-    service = BillingService(db)
-
-    charge = service.mark_charge_paid(charge_id, actor_id=user.id)
+    charge = BillingService(db).mark_charge_paid(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_business_name(charge)
+    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -75,11 +69,9 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
 )
 def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest)):
     """Cancel a charge (ADVISOR only)."""
-    service = BillingService(db)
-
-    charge = service.cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
+    charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = service.enrich_business_name(charge)
+    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
     return ChargeResponse(**data)
 
 
@@ -98,8 +90,7 @@ def list_charges(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List charges with role-based data filtering."""
-    service = BillingService(db)
-    return service.list_charges_for_role(
+    return ChargeQueryService(db).list_charges_for_role(
         user_role=user.role,
         business_id=business_id,
         status=status_filter,
@@ -115,23 +106,16 @@ def list_charges(
 )
 def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Get charge by ID (authenticated users)."""
-    service = BillingService(db)
-    charge = service.get_charge(charge_id)
-
-    if not charge:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="החיוב לא נמצא"
-        )
-
-    client_name = service.enrich_business_name(charge)
+    charge = BillingService(db).get_charge(charge_id)
+    client_name = ChargeQueryService(db).enrich_business_name(charge)
 
     if user.role == UserRole.SECRETARY:
         data = ChargeResponseSecretary.model_validate(charge).model_dump()
-        data["client_name"] = client_name
+        data["business_name"] = client_name
         return ChargeResponseSecretary(**data)
 
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["client_name"] = client_name
+    data["business_name"] = client_name
     return ChargeResponse(**data)
 
 
@@ -140,7 +124,12 @@ def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
     response_model=BulkChargeActionResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def bulk_charge_action(request: BulkChargeActionRequest, db: DBSession, user: CurrentUser):
+def bulk_charge_action(
+    request: BulkChargeActionRequest,
+    db: DBSession,
+    user: CurrentUser,
+    x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
+):
     """Apply action to multiple charges in bulk (ADVISOR only)."""
     service = BulkBillingService(db)
     succeeded, failed = service.bulk_action(

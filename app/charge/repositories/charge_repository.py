@@ -20,7 +20,6 @@ class ChargeRepository(BaseRepository):
         business_id: int,
         amount: float,
         charge_type: str,
-        currency: str = "ILS",
         period: Optional[str] = None,
         created_by: Optional[int] = None,
     ) -> Charge:
@@ -28,7 +27,6 @@ class ChargeRepository(BaseRepository):
         charge = Charge(
             business_id=business_id,
             amount=amount,
-            currency=currency,
             charge_type=charge_type,
             period=period,
             status=ChargeStatus.DRAFT,
@@ -144,7 +142,7 @@ class ChargeRepository(BaseRepository):
 
     def soft_delete(self, charge_id: int, deleted_by: int) -> bool:
         """Soft-delete a charge by setting deleted_at."""
-        charge = self.db.query(Charge).filter(Charge.id == charge_id).first()
+        charge = self.get_by_id(charge_id)
         if not charge:
             return False
         charge.deleted_at = utcnow()

@@ -2,6 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError
 from app.charge.schemas.charge import BulkChargeFailedItem
 from app.charge.services.billing_service import BillingService
 
@@ -40,7 +41,9 @@ class BulkBillingService:
                         reason=cancellation_reason,
                     )
                 succeeded.append(charge_id)
-            except Exception as exc:
-                failed.append(BulkChargeFailedItem(id=charge_id, error=str(exc)))
+            except AppError as exc:
+                failed.append(BulkChargeFailedItem(id=charge_id, error=exc.message))
+            except Exception:
+                failed.append(BulkChargeFailedItem(id=charge_id, error="אירעה שגיאה פנימית"))
 
         return succeeded, failed

@@ -1,15 +1,12 @@
-from typing import Optional, Union
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lookup import get_business_or_raise
 from app.businesses.services.business_guards import assert_business_allows_create
-from app.users.models.user import UserRole
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
 
@@ -20,7 +17,6 @@ class BillingService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self.business_repo = BusinessRepository(db)
 
     def create_charge(
         self,
@@ -29,7 +25,6 @@ class BillingService:
         charge_type: str,
         actor_id: Optional[int] = None,
         period: Optional[str] = None,
-        currency: str = "ILS",
     ) -> Charge:
         """
         Create new charge in draft status.
@@ -51,7 +46,6 @@ class BillingService:
             amount=amount,
             charge_type=charge_type,
             period=period,
-            currency=currency,
             created_by=actor_id,
         )
 
@@ -171,68 +165,9 @@ class BillingService:
 
         return self.charge_repo.soft_delete(charge_id, deleted_by=actor_id)
 
-    def get_charge(self, charge_id: int) -> Optional[Charge]:
-        """Get charge by ID."""
-        return self.charge_repo.get_by_id(charge_id)
-
-    def enrich_business_name(self, charge: Charge) -> str | None:
-        """Return the business full_name for a single charge."""
-        businesses = self.business_repo.list_by_ids([charge.business_id])
-        return businesses[0].full_name if businesses else None
-
-    def list_charges(
-        self,
-        business_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> tuple[list[Charge], int, dict[int, str]]:
-        """
-        List charges with pagination.
-
-        Returns (items, total, business_name_map) where business_name_map maps
-        business_id → full_name for all charges in the page.
-        """
-        items = self.charge_repo.list_charges(
-            business_id=business_id,
-            status=status,
-            charge_type=charge_type,
-            page=page,
-            page_size=page_size,
-        )
-        total = self.charge_repo.count_charges(business_id=business_id, status=status, charge_type=charge_type)
-
-        # Batch-fetch client names for this page (single extra query)
-        business_ids = list({c.business_id for c in items})
-        businesses = self.business_repo.list_by_ids(business_ids)
-        business_name_map: dict[int, str] = {c.id: c.full_name for c in businesses}
-
-        return items, total, business_name_map
-
-    def list_charges_for_role(
-        self,
-        user_role: UserRole,
-        business_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> ChargeListResponse:
-        """List charges serialized and role-shaped in one call."""
-        items, total, business_name_map = self.list_charges(
-            business_id=business_id, status=status, charge_type=charge_type, page=page, page_size=page_size
-        )
-        schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
-
-        def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
-            data = schema.model_validate(charge).model_dump()
-            data["client_name"] = business_name_map.get(charge.business_id)
-            return schema(**data)
-
-        return ChargeListResponse(
-            items=[_enrich(c) for c in items],
-            page=page,
-            page_size=page_size,
-            total=total,
-        )
+    def get_charge(self, charge_id: int) -> Charge:
+        """Get charge by ID. Raises NotFoundError if not found."""
+        charge = self.charge_repo.get_by_id(charge_id)
+        if not charge:
+            raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
+        return charge

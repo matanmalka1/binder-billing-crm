@@ -40,19 +40,21 @@ class InvoiceService:
         # Validate charge exists
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(f"not found: חיוב {charge_id} לא נמצא", "INVOICE.NOT_FOUND")
+            raise NotFoundError(f"חיוב {charge_id} לא נמצא", "INVOICE.NOT_FOUND")
 
         # Validate charge is issued
         if charge.status != ChargeStatus.ISSUED:
             raise AppError(
-                f"Cannot attach invoice for charge in status {charge.status.value}: לא ניתן לצרף חשבונית לחיוב במצב {charge.status.value}"
-            , "INVOICE.INVALID_STATUS")
+                f"לא ניתן לצרף חשבונית לחיוב במצב {charge.status.value}",
+                "INVOICE.INVALID_STATUS",
+            )
 
         # Validate no existing invoice
         if self.invoice_repo.exists_for_charge(charge_id):
             raise ConflictError(
-                f"already has an invoice: לחיוב {charge_id} כבר קיימת חשבונית"
-            , "INVOICE.CONFLICT")
+                f"לחיוב {charge_id} כבר קיימת חשבונית",
+                "INVOICE.CONFLICT",
+            )
 
         # Create invoice reference
         return self.invoice_repo.create(
