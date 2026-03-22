@@ -55,9 +55,5 @@ class RejectDocumentRequest(BaseModel):
     notes: str
 
 
-class ApproveDocumentRequest(BaseModel):
-    pass
-
-
 class UpdateNotesRequest(BaseModel):
     notes: str
