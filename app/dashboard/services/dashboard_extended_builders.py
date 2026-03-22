@@ -17,8 +17,8 @@ def idle_attention_item(binder, client, reference_date) -> dict:
         "business_id": client.id,
         "client_name": client.full_name,
         "description": (
-            f"Binder {binder.binder_number} idle for "
-            f"{(reference_date - binder.period_start).days} days"
+            f"תיק {binder.binder_number} ממתין ללא פעילות "
+            f"{(reference_date - binder.period_start).days} ימים"
         ),
     }
 
@@ -29,7 +29,7 @@ def ready_attention_item(binder, client) -> dict:
         "binder_id": binder.id,
         "business_id": client.id,
         "client_name": client.full_name,
-        "description": f"Binder {binder.binder_number} ready for pickup",
+        "description": f"תיק {binder.binder_number} מוכן לאיסוף",
     }
 
 
@@ -39,5 +39,5 @@ def unpaid_charge_attention_item(charge, client) -> dict:
         "binder_id": None,
         "business_id": client.id,
         "client_name": client.full_name,
-        "description": f"Unpaid charge: {float(charge.amount)} {charge.currency}",
+        "description": f"חיוב לא משולם: {float(charge.amount)} {charge.currency}",
     }

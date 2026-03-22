@@ -15,28 +15,27 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
         id=10,
         client_id=20,
         binder_number="DB-100",
-        received_at=date(2026, 3, 1),
+        period_start=date(2026, 3, 1),
     )
-    client = SimpleNamespace(id=20, full_name="Dashboard Client")
+    business = SimpleNamespace(id=20, full_name="Dashboard Client")
     charge = SimpleNamespace(amount=123.45, currency="ILS")
     work_state = SimpleNamespace(value="in_progress")
     signals = [{"key": "idle", "level": "yellow"}]
 
-    queue = work_queue_item(binder, client, work_state, signals, reference_date)
+    queue = work_queue_item(binder, business, work_state, signals, reference_date)
     assert queue["binder_id"] == binder.id
-    assert queue["client_name"] == client.full_name
+    assert queue["client_name"] == business.full_name
     assert queue["work_state"] == "in_progress"
     assert queue["days_since_received"] == 9
 
-    idle = idle_attention_item(binder, client, reference_date)
+    idle = idle_attention_item(binder, business, reference_date)
     assert idle["item_type"] == "idle_binder"
-    assert "idle for 9 days" in idle["description"]
+    assert "9 ימים" in idle["description"]
 
-    ready = ready_attention_item(binder, client)
+    ready = ready_attention_item(binder, business)
     assert ready["item_type"] == "ready_for_pickup"
-    assert "ready for pickup" in ready["description"]
+    assert "מוכן לאיסוף" in ready["description"]
 
-    unpaid = unpaid_charge_attention_item(charge, client)
+    unpaid = unpaid_charge_attention_item(charge, business)
     assert unpaid["item_type"] == "unpaid_charge"
-    assert unpaid["description"] == "Unpaid charge: 123.45 ILS"
-
+    assert unpaid["description"] == "חיוב לא משולם: 123.45 ILS"

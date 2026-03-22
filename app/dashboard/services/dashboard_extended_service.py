@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.businesses.models.business import Business
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -47,13 +46,7 @@ class DashboardExtendedService:
                 page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
             )
             client_ids = list({binder.client_id for binder in binders})
-            businesses = (
-                self.db.query(Business)
-                .filter(Business.client_id.in_(client_ids), Business.deleted_at.is_(None))
-                .all()
-                if client_ids
-                else []
-            )
+            businesses = self.business_repo.list_by_client_ids(client_ids)
             business_map = {}
             for business in businesses:
                 business_map.setdefault(business.client_id, business)

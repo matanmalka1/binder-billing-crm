@@ -88,6 +88,15 @@ class BusinessRepositoryRead(BaseRepository):
     ) -> int:
         return self._build_base_query(status, business_type, search).count()
 
+    def list_by_client_ids(self, client_ids: list[int]) -> list[Business]:
+        if not client_ids:
+            return []
+        return (
+            self.db.query(Business)
+            .filter(Business.client_id.in_(client_ids), Business.deleted_at.is_(None))
+            .all()
+        )
+
     def list_by_ids(self, business_ids: list[int]) -> list[Business]:
         if not business_ids:
             return []

@@ -1,17 +1,15 @@
 from datetime import date
 
-from app.binders.models.binder import BinderStatus, BinderType
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.models.client import Client
 from app.dashboard.services.dashboard_service import DashboardService
-from app.clients.models.client import Client, ClientType
 
 
 def _client(db) -> Client:
     client = Client(
         full_name="Dash Client",
         id_number="D-001",
-        client_type=ClientType.COMPANY,
-        opened_at=date(2024, 1, 1),
     )
     db.add(client)
     db.commit()
@@ -24,9 +22,8 @@ def _binder(db, client_id: int, user_id: int, number: str, status: BinderStatus)
     binder = repo.create(
         client_id=client_id,
         binder_number=number,
-        binder_type=BinderType.VAT,
-        received_at=date(2024, 1, 5),
-        received_by=user_id,
+        period_start=date(2024, 1, 5),
+        created_by=user_id,
     )
     if status != BinderStatus.IN_OFFICE:
         repo.update_status(binder.id, status, binder=binder)

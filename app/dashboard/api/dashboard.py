@@ -1,10 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 from app.dashboard.schemas.dashboard import DashboardSummaryResponse
 from app.dashboard.services.dashboard_service import DashboardService
 
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+router = APIRouter(
+    prefix="/dashboard",
+    tags=["dashboard"],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 
 
 @router.get("/summary", response_model=DashboardSummaryResponse)
