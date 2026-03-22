@@ -17,7 +17,7 @@ class PermanentDocumentActionService:
 
     def _get_or_raise(self, document_id: int) -> PermanentDocument:
         doc = self.document_repo.get_by_id(document_id)
-        if not doc or doc.is_deleted:
+        if not doc:
             raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
         return doc
 
@@ -30,10 +30,12 @@ class PermanentDocumentActionService:
         self.db.refresh(doc)
         return doc
 
-    def reject_document(self, document_id: int, notes: str) -> PermanentDocument:
+    def reject_document(self, document_id: int, notes: str, rejected_by: int) -> PermanentDocument:
         doc = self._get_or_raise(document_id)
         doc.status = DocumentStatus.REJECTED
         doc.notes = notes
+        doc.rejected_by = rejected_by
+        doc.rejected_at = utcnow()
         self.db.commit()
         self.db.refresh(doc)
         return doc
