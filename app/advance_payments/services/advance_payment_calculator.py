@@ -21,10 +21,12 @@ def derive_annual_income_from_vat(
 def calculate_expected_amount(
     annual_income: Decimal,
     advance_rate: Decimal,
+    period_months_count: int = 1,
 ) -> Decimal:
     """
-    Monthly advance payment = (annual_income * advance_rate / 100) / 12,
+    Advance payment per period = (annual_income * advance_rate / 100) / 12 * period_months_count,
     rounded to the nearest whole shekel.
+    period_months_count=1 → monthly, period_months_count=2 → bi-monthly.
     """
     monthly = (annual_income * advance_rate / Decimal("100")) / Decimal("12")
-    return monthly.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    return (monthly * period_months_count).quantize(Decimal("1"), rounding=ROUND_HALF_UP)

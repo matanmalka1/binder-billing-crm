@@ -13,7 +13,7 @@ from app.advance_payments.schemas.advance_payment import (
     ChartDataResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.utils.time_utils import utcnow
+from app.core.exceptions import AppError
 
 router = APIRouter(
     prefix="/businesses/{business_id}/advance-payments",
@@ -32,9 +32,6 @@ def list_advance_payments(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    if year is None:
-        year = utcnow().year
-
     service = AdvancePaymentService(db)
     items, total = service.list_payments(
         business_id,
@@ -64,7 +61,7 @@ def create_advance_payment(
     user: CurrentUser,
 ):
     if request.business_id != business_id:
-        raise ValueError("business_id בגוף הבקשה חייב להיות זהה ל-business_id בנתיב")
+        raise AppError("business_id בגוף הבקשה חייב להיות זהה ל-business_id בנתיב", "ADVANCE_PAYMENT.BUSINESS_ID_MISMATCH")
 
     service = AdvancePaymentService(db)
     payment = service.create_payment(

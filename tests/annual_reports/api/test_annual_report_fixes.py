@@ -1,4 +1,3 @@
-"""Tests for Task 4 bug fixes: days_until_due and assigned_to validation."""
 from datetime import date, timedelta
 
 import pytest

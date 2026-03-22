@@ -4,6 +4,8 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.utils.time_utils import utcnow
+
 from app.common.repositories import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
@@ -118,23 +120,22 @@ class AdvancePaymentRepository(BaseRepository):
         return query.all()
 
     def sum_paid_by_business_year(self, business_id: int, year: int) -> float:
-        rows = (
-            self.db.query(AdvancePayment)
+        result = (
+            self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
             .filter(
                 AdvancePayment.business_id == business_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
                 AdvancePayment.deleted_at.is_(None),
             )
-            .all()
+            .scalar()
         )
-        return sum(float(p.paid_amount) for p in rows if p.paid_amount is not None)
+        return float(result)
 
     def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
 
     def soft_delete(self, payment_id: int, deleted_by: int) -> bool:
-        from app.utils.time_utils import utcnow
         payment = self.get_by_id(payment_id)
         if not payment:
             return False

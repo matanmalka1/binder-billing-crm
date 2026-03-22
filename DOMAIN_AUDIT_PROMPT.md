@@ -5,7 +5,8 @@
 
 **STOP — before doing anything, ask me: "Which domain should I audit?"
 Do not read any files until I specify the domain.
-Audit strictly the files under `app/{domain}/` only — do NOT read tests/, alembic/, or any file outside this path.**
+Audit strictly the files under `app/{domain}/` only — do NOT read tests/, alembic/ 
+**
 
 - Output the audit report as a markdown file only — do not print findings in the chat. Save to `audit_{domain}.md` in the project root.
 

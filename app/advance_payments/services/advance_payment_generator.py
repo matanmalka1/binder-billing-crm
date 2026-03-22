@@ -30,7 +30,7 @@ def generate_annual_schedule(
 
     service = AdvancePaymentService(db)
     repo = AdvancePaymentRepository(db)
-    suggested: Optional[Decimal] = service.suggest_expected_amount(business_id, year)
+    suggested: Optional[Decimal] = service.suggest_expected_amount(business_id, year, period_months_count)
 
     # Build list of period start months
     if period_months_count == 2:

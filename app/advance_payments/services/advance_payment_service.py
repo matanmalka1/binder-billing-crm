@@ -3,6 +3,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.utils.time_utils import utcnow
+
 from app.core.exceptions import ConflictError, NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
@@ -36,11 +38,13 @@ class AdvancePaymentService:
     def list_payments(
         self,
         business_id: int,
-        year: int,
+        year: Optional[int] = None,
         status: Optional[list[AdvancePaymentStatus]] = None,
         page: int = 1,
-        page_size: int = 50,
+        page_size: int = 20,
     ) -> tuple[list[AdvancePayment], int]:
+        if year is None:
+            year = utcnow().year
         if not self._business_repo.get_by_id(business_id):
             raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
         return self.repo.list_by_business_year(
@@ -148,18 +152,19 @@ class AdvancePaymentService:
 
     # ─── KPIs ─────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _collection_rate(total_paid: float, total_expected: float) -> float:
+        return round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
+
     def get_annual_kpis(self, business_id: int, year: int) -> dict:
         if not self._business_repo.get_by_id(business_id):
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
         data = self.analytics_repo.get_annual_kpis(business_id, year)
-        total_expected = data["total_expected"]
-        total_paid = data["total_paid"]
-        collection_rate = (total_paid / total_expected * 100) if total_expected > 0 else 0.0
         return {
             **data,
             "business_id": business_id,
             "year": year,
-            "collection_rate": round(collection_rate, 2),
+            "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }
 
     def get_overview_kpis(
@@ -171,21 +176,18 @@ class AdvancePaymentService:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
-        total_expected = data["total_expected"]
-        total_paid = data["total_paid"]
-        collection_rate = (total_paid / total_expected * 100) if total_expected > 0 else 0.0
-        return {**data, "collection_rate": round(collection_rate, 2)}
+        return {**data, "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"])}
 
     def get_chart_data(self, business_id: int, year: int) -> dict:
         if not self._business_repo.get_by_id(business_id):
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
         months = self.analytics_repo.monthly_chart_data(business_id, year)
         return {"business_id": business_id, "year": year, "months": months}
 
     # ─── Suggest ──────────────────────────────────────────────────────────────
 
     def suggest_expected_amount(
-        self, business_id: int, year: int
+        self, business_id: int, year: int, period_months_count: int = 1
     ) -> Optional[Decimal]:
         """
         מחשב הצעה למקדמה לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה.
@@ -202,4 +204,6 @@ class AdvancePaymentService:
             return None
 
         annual_income = derive_annual_income_from_vat(prior_year_vat)
-        return calculate_expected_amount(annual_income, Decimal(str(profile.advance_rate)))
+        return calculate_expected_amount(
+            annual_income, Decimal(str(profile.advance_rate)), period_months_count
+        )
