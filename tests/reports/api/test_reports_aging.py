@@ -2,33 +2,43 @@ from datetime import date, timedelta
 from decimal import Decimal
 from itertools import count
 
+from app.businesses.models.business import Business, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client, ClientType
+from app.clients.models import Client
 
 
 _client_seq = count(1)
 
 
-def _client(db) -> Client:
+def _client_and_business(db) -> tuple[Client, Business]:
+    seq = next(_client_seq)
     client = Client(
-        full_name=f"Aging Client {next(_client_seq)}",
-        id_number=f"11111111{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
+        full_name=f"Aging Client {seq}",
+        id_number=f"11111111{seq}",
     )
     db.add(client)
     db.commit()
     db.refresh(client)
-    return client
+    business = db.query(Business).filter(Business.client_id == client.id).first()
+    if business is None:
+        business = Business(
+            client_id=client.id,
+            business_name=client.full_name,
+            business_type=BusinessType.COMPANY,
+            opened_at=date.today(),
+        )
+        db.add(business)
+        db.commit()
+        db.refresh(business)
+    return client, business
 
 
-def _charge(db, client_id: int, amount: Decimal, issued_days_ago: int):
+def _charge(db, business_id: int, amount: Decimal, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
-        client_id=client_id,
+        business_id=business_id,
         amount=amount,
-        currency="ILS",
-        charge_type=ChargeType.ONE_TIME,
+        charge_type=ChargeType.CONSULTATION_FEE,
         status=ChargeStatus.ISSUED,
         issued_at=issued_at,
         created_at=issued_at,
@@ -40,17 +50,17 @@ def _charge(db, client_id: int, amount: Decimal, issued_days_ago: int):
 
 
 def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
-    client_a = _client(test_db)
-    client_b = _client(test_db)
+    client_a, business_a = _client_and_business(test_db)
+    client_b, business_b = _client_and_business(test_db)
 
     # Client A: mix across buckets
-    _charge(test_db, client_a.id, Decimal("100"), issued_days_ago=10)   # current
-    _charge(test_db, client_a.id, Decimal("200"), issued_days_ago=45)   # 30
-    _charge(test_db, client_a.id, Decimal("300"), issued_days_ago=75)   # 60
-    _charge(test_db, client_a.id, Decimal("400"), issued_days_ago=120)  # 90+
+    _charge(test_db, business_a.id, Decimal("100"), issued_days_ago=10)   # current
+    _charge(test_db, business_a.id, Decimal("200"), issued_days_ago=45)   # 30
+    _charge(test_db, business_a.id, Decimal("300"), issued_days_ago=75)   # 60
+    _charge(test_db, business_a.id, Decimal("400"), issued_days_ago=120)  # 90+
 
     # Client B: single 90+ should sort below A because total is smaller
-    _charge(test_db, client_b.id, Decimal("150"), issued_days_ago=200)
+    _charge(test_db, business_b.id, Decimal("150"), issued_days_ago=200)
 
     resp = client.get("/api/v1/reports/aging", headers=advisor_headers)
     assert resp.status_code == 200
@@ -75,14 +85,14 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
 
 
 def test_aging_report_no_cap_with_large_dataset(client, test_db, advisor_headers):
-    # SQL aggregation covers all records — capped is always False
+    # Service caps to a fixed number of businesses.
     for _ in range(2001):
-        c = _client(test_db)
-        _charge(test_db, c.id, Decimal("1"), issued_days_ago=5)
+        _, b = _client_and_business(test_db)
+        _charge(test_db, b.id, Decimal("1"), issued_days_ago=5)
 
     resp = client.get("/api/v1/reports/aging", headers=advisor_headers)
     assert resp.status_code == 200
     body = resp.json()
-    assert body["capped"] is False
-    assert body["cap_limit"] is None
-    assert body["summary"]["total_clients"] == 2001
+    assert body["capped"] is True
+    assert body["cap_limit"] == 2000
+    assert body["summary"]["total_clients"] == 2000

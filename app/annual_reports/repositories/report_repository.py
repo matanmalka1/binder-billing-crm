@@ -139,6 +139,25 @@ class AnnualReportReportRepository(BaseRepository):
     def count_all(self) -> int:
         return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
 
+    def list_by_tax_year_with_client(self, tax_year: int) -> list:
+        """Return (AnnualReport, Business.client_id, Client.full_name) for status report."""
+        from app.businesses.models.business import Business
+        from app.clients.models.client import Client
+
+        return (
+            self.db.query(AnnualReport, Business.client_id, Client.full_name)
+            .join(Business, Business.id == AnnualReport.business_id)
+            .join(Client, Client.id == Business.client_id)
+            .filter(
+                AnnualReport.tax_year == tax_year,
+                AnnualReport.deleted_at.is_(None),
+                Business.deleted_at.is_(None),
+                Client.deleted_at.is_(None),
+            )
+            .order_by(AnnualReport.filing_deadline.asc().nulls_last())
+            .all()
+        )
+
     def update(self, report_id: int, **fields) -> Optional[AnnualReport]:
         report = self.get_by_id(report_id)
         return self._update_entity(report, touch_updated_at=True, **fields)

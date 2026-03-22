@@ -143,3 +143,45 @@ class AdvancePaymentRepository(BaseRepository):
         payment.deleted_by = deleted_by
         self.db.commit()
         return True
+
+    def get_collections_aggregates(self, year: int, month=None) -> list:
+        """Per-business aggregates for the collections report."""
+        from sqlalchemy import case, func
+        from app.businesses.models.business import Business
+        from app.clients.models.client import Client
+
+        query = (
+            self.db.query(
+                AdvancePayment.business_id,
+                Business.client_id,
+                Business.business_name,
+                Client.full_name.label("client_name"),
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, 1),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("overdue_count"),
+            )
+            .join(Business, Business.id == AdvancePayment.business_id)
+            .join(Client, Client.id == Business.client_id)
+            .filter(
+                AdvancePayment.period.like(f"{year}-%"),
+                AdvancePayment.deleted_at.is_(None),
+                Business.deleted_at.is_(None),
+                Client.deleted_at.is_(None),
+            )
+        )
+        if month is not None:
+            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
+        return query.group_by(
+            AdvancePayment.business_id,
+            Business.client_id,
+            Business.business_name,
+            Client.full_name,
+        ).all()

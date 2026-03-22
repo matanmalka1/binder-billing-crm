@@ -4,7 +4,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.businesses.repositories.business_repository import BusinessRepository
+
+_AGING_CHARGE_FETCH_LIMIT = 2000
 
 
 class AgingReportService:
@@ -13,7 +15,7 @@ class AgingReportService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.business_repo = BusinessRepository(db)
 
     def generate_aging_report(
         self,
@@ -31,25 +33,27 @@ class AgingReportService:
         if as_of_date is None:
             as_of_date = date.today()
 
-        rows = self.charge_repo.get_aging_buckets(as_of_date)
+        all_rows = self.charge_repo.get_aging_buckets(as_of_date)
+        capped = len(all_rows) > _AGING_CHARGE_FETCH_LIMIT
+        rows = all_rows[:_AGING_CHARGE_FETCH_LIMIT]
 
-        client_ids = [row.client_id for row in rows]
-        client_map = {c.id: c for c in self.client_repo.list_by_ids(client_ids)}
+        business_ids = [row.business_id for row in rows]
+        business_map = {b.id: b for b in self.business_repo.list_by_ids(business_ids)}
 
         items = []
         total_outstanding = 0.0
 
         for row in rows:
-            client = client_map.get(row.client_id)
-            if not client:
+            business = business_map.get(row.business_id)
+            if not business:
                 continue
 
             oldest_date = row.oldest_issued_at.date() if row.oldest_issued_at else None
             oldest_days = (as_of_date - oldest_date).days if oldest_date else None
 
             items.append({
-                "client_id": row.client_id,
-                "client_name": client.full_name,
+                "client_id": business.client_id,
+                "client_name": business.business_name,
                 "total_outstanding": round(float(row.total), 2),
                 "current": round(float(row.current), 2),
                 "days_30": round(float(row.days_30), 2),
@@ -76,6 +80,6 @@ class AgingReportService:
             "total_outstanding": round(total_outstanding, 2),
             "items": items,
             "summary": summary,
-            "capped": False,
-            "cap_limit": None,
+            "capped": capped,
+            "cap_limit": _AGING_CHARGE_FETCH_LIMIT,
         }

@@ -4,8 +4,6 @@ import tempfile
 from pathlib import Path
 from typing import Dict
 
-from sqlalchemy.orm import Session
-
 from app.reports.services.export_excel import export_aging_report_to_excel
 from app.reports.services.export_pdf import export_aging_report_to_pdf
 
@@ -17,8 +15,7 @@ class ExportService:
     Generates downloadable files from report data.
     """
 
-    def __init__(self, db: Session):
-        self.db = db
+    def __init__(self):
         export_base = Path(tempfile.gettempdir()) / "exports"
         export_base.mkdir(parents=True, exist_ok=True)
         self.export_dir = str(export_base)

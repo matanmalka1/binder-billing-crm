@@ -2,8 +2,8 @@ from app.reports.api import reports as reports_api
 
 
 class _FakeExportService:
-    def __init__(self, db):
-        self.db = db
+    def __init__(self):
+        pass
 
     def export_aging_report_to_excel(self, report):
         raise ImportError("xlsx backend missing")

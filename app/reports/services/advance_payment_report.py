@@ -1,51 +1,16 @@
 from typing import Optional
 
-from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.businesses.models.business import Business
-from app.clients.models.client import Client
+from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 
 
 class AdvancePaymentReportService:
     def __init__(self, db: Session):
-        self.db = db
+        self.repo = AdvancePaymentRepository(db)
 
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
-        query = (
-            self.db.query(
-                AdvancePayment.business_id,
-                Business.client_id,
-                Business.business_name,
-                Client.full_name.label("client_name"),
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, 1),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                ).label("overdue_count"),
-            )
-            .join(Business, Business.id == AdvancePayment.business_id)
-            .join(Client, Client.id == Business.client_id)
-            .filter(
-                AdvancePayment.period.like(f"{year}-%"),
-                AdvancePayment.deleted_at.is_(None),
-            )
-        )
-        if month is not None:
-            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
-        rows = query.group_by(
-            AdvancePayment.business_id,
-            Business.client_id,
-            Business.business_name,
-            Client.full_name,
-        ).all()
+        rows = self.repo.get_collections_aggregates(year, month)
 
         items = [
             {
