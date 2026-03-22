@@ -124,7 +124,7 @@ class NotificationService:
         self,
         business_ids: list[int],
         template: str,
-        channel: str = "email",
+        channel: NotificationChannel = NotificationChannel.EMAIL,
         trigger: NotificationTrigger = NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
@@ -138,7 +138,7 @@ class NotificationService:
                 trigger=trigger,
                 content=template,
                 triggered_by=triggered_by,
-                preferred_channel=channel,
+                preferred_channel=channel.value,
                 severity=severity,
             )
             if ok:
@@ -232,6 +232,11 @@ class NotificationService:
             )
 
         return True
+
+    def list_paginated(
+        self, page: int = 1, page_size: int = 20, business_id: Optional[int] = None
+    ) -> tuple:
+        return self.notification_repo.list_paginated(page=page, page_size=page_size, business_id=business_id)
 
     def list_recent(self, limit: int = 20, business_id: Optional[int] = None):
         return self.notification_repo.list_recent(limit=limit, business_id=business_id)
