@@ -24,6 +24,8 @@ class ReminderRepository(BaseRepository):
         binder_id: Optional[int] = None,
         charge_id: Optional[int] = None,
         tax_deadline_id: Optional[int] = None,
+        annual_report_id: Optional[int] = None,
+        advance_payment_id: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Reminder:
         """Create new reminder."""
@@ -38,6 +40,8 @@ class ReminderRepository(BaseRepository):
             binder_id=binder_id,
             charge_id=charge_id,
             tax_deadline_id=tax_deadline_id,
+            annual_report_id=annual_report_id,
+            advance_payment_id=advance_payment_id,
             created_by=created_by,
         )
         self.db.add(reminder)
@@ -47,7 +51,11 @@ class ReminderRepository(BaseRepository):
 
     def get_by_id(self, reminder_id: int) -> Optional[Reminder]:
         """Retrieve reminder by ID."""
-        return self.db.query(Reminder).filter(Reminder.id == reminder_id).first()
+        return (
+            self.db.query(Reminder)
+            .filter(Reminder.id == reminder_id, Reminder.deleted_at.is_(None))
+            .first()
+        )
 
     def list_pending_by_date(
         self,
@@ -61,6 +69,7 @@ class ReminderRepository(BaseRepository):
             .filter(
                 Reminder.status == ReminderStatus.PENDING,
                 Reminder.send_on <= reference_date,
+                Reminder.deleted_at.is_(None),
             )
             .order_by(Reminder.send_on.asc())
         )
@@ -74,6 +83,7 @@ class ReminderRepository(BaseRepository):
             .filter(
                 Reminder.status == ReminderStatus.PENDING,
                 Reminder.send_on <= reference_date,
+                Reminder.deleted_at.is_(None),
             )
             .count()
         )
@@ -87,7 +97,7 @@ class ReminderRepository(BaseRepository):
         """List reminders by status."""
         query = (
             self.db.query(Reminder)
-            .filter(Reminder.status == status)
+            .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
             .order_by(Reminder.created_at.desc())
         )
 
@@ -95,11 +105,19 @@ class ReminderRepository(BaseRepository):
 
     def count_by_status(self, status: ReminderStatus) -> int:
         """Count reminders by status."""
-        return self.db.query(Reminder).filter(Reminder.status == status).count()
+        return (
+            self.db.query(Reminder)
+            .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
+            .count()
+        )
 
     def count_by_business(self, business_id: int) -> int:
         """Count all reminders for a business."""
-        return self.db.query(Reminder).filter(Reminder.business_id == business_id).count()
+        return (
+            self.db.query(Reminder)
+            .filter(Reminder.business_id == business_id, Reminder.deleted_at.is_(None))
+            .count()
+        )
 
     def list_by_business(
         self,
@@ -110,7 +128,7 @@ class ReminderRepository(BaseRepository):
         """List all reminders for a specific business."""
         query = (
             self.db.query(Reminder)
-            .filter(Reminder.business_id == business_id)
+            .filter(Reminder.business_id == business_id, Reminder.deleted_at.is_(None))
             .order_by(Reminder.created_at.desc())
         )
         return self._paginate(query, page, page_size)

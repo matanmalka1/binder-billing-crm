@@ -77,3 +77,10 @@ def test_list_signature_requests_by_client_with_status_filter(client, test_db, a
     assert pending_resp.status_code == 200
     assert pending_resp.json()["total"] == 1
     assert pending_resp.json()["items"][0]["id"] == req_a_pending
+
+
+def test_get_signature_request_not_found_returns_404(client, advisor_headers):
+    resp = client.get("/api/v1/signature-requests/999999", headers=advisor_headers)
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "בקשת החתימה לא נמצאה"

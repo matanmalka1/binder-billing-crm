@@ -2,7 +2,9 @@ from datetime import timedelta
 
 from app.clients.models import Client
 from app.signature_requests.models.signature_request import (
+    SignatureAuditEvent,
     SignatureRequestStatus,
+    SignatureRequest,
     SignatureRequestType,
 )
 from app.signature_requests.repositories.signature_request_repository import (
@@ -128,3 +130,65 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
 
     audit_events = repo.list_audit_events(active_pending.id)
     assert [event.event_type for event in audit_events] == ["early", "late"]
+
+
+def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test_db):
+    repo = SignatureRequestRepository(test_db)
+    user = _user(test_db)
+    client = _client(test_db, suffix="AR")
+
+    assert repo.update(999999, status=SignatureRequestStatus.CANCELED) is None
+
+    pending = repo.create(
+        business_id=client.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.ANNUAL_REPORT_APPROVAL,
+        title="Annual Pending",
+        signer_name="Signer A",
+        annual_report_id=77,
+    )
+    draft = repo.create(
+        business_id=client.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.ANNUAL_REPORT_APPROVAL,
+        title="Annual Draft",
+        signer_name="Signer B",
+        annual_report_id=77,
+    )
+    other = repo.create(
+        business_id=client.id,
+        created_by=user.id,
+        request_type=SignatureRequestType.ANNUAL_REPORT_APPROVAL,
+        title="Different Report",
+        signer_name="Signer C",
+        annual_report_id=88,
+    )
+
+    repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
+    repo.update(other.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
+
+    annual_pending = repo.list_pending_by_annual_report(77)
+    assert [item.id for item in annual_pending] == [pending.id]
+    assert draft.id not in [item.id for item in annual_pending]
+
+    model_repr = repr(
+        SignatureRequest(
+            id=123,
+            business_id=456,
+            created_by=user.id,
+            request_type=SignatureRequestType.CUSTOM,
+            title="Repr",
+            signer_name="Signer",
+            status=SignatureRequestStatus.DRAFT,
+        )
+    )
+    audit_repr = repr(
+        SignatureAuditEvent(
+            id=321,
+            signature_request_id=123,
+            event_type="created",
+            actor_type="advisor",
+        )
+    )
+    assert "SignatureRequest(id=123" in model_repr
+    assert "SignatureAuditEvent(id=321" in audit_repr

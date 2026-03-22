@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.businesses.models.business import BusinessStatus
+
 
 class SearchResult(BaseModel):
     """Single search result."""
@@ -9,7 +11,7 @@ class SearchResult(BaseModel):
     result_type: str  # "client" | "binder"
     business_id: int
     client_name: str
-    client_status: Optional[str] = None  # "active" | "frozen" | "closed"
+    client_status: Optional[BusinessStatus] = None
     binder_id: Optional[int] = None
     binder_number: Optional[str] = None
     work_state: Optional[str] = None

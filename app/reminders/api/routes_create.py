@@ -1,15 +1,22 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
+from app.reminders.models.reminder import ReminderType
 from app.reminders.schemas.reminders import ReminderCreateRequest, ReminderResponse
 from app.reminders.services import ReminderService
 
 create_router = APIRouter()
 
 
-@create_router.post("/", response_model=ReminderResponse, status_code=status.HTTP_201_CREATED)
+@create_router.post(
+    "/",
+    response_model=ReminderResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def create_reminder(
     request: ReminderCreateRequest,
     db: DBSession,
@@ -17,12 +24,7 @@ def create_reminder(
 ):
     service = ReminderService(db)
 
-    if request.reminder_type == "tax_deadline_approaching":
-        if not request.tax_deadline_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="נדרש tax_deadline_id עבור תזכורות מסוג tax_deadline_approaching",
-            )
+    if request.reminder_type == ReminderType.TAX_DEADLINE_APPROACHING:
         reminder = service.create_tax_deadline_reminder(
             business_id=request.business_id,
             tax_deadline_id=request.tax_deadline_id,
@@ -32,12 +34,17 @@ def create_reminder(
             created_by=user.id,
         )
 
-    elif request.reminder_type == "binder_idle":
-        if not request.binder_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="נדרש binder_id עבור תזכורות מסוג binder_idle",
-            )
+    elif request.reminder_type == ReminderType.VAT_FILING:
+        reminder = service.create_vat_filing_reminder(
+            business_id=request.business_id,
+            tax_deadline_id=request.tax_deadline_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    elif request.reminder_type == ReminderType.BINDER_IDLE:
         reminder = service.create_idle_binder_reminder(
             business_id=request.business_id,
             binder_id=request.binder_id,
@@ -46,12 +53,7 @@ def create_reminder(
             created_by=user.id,
         )
 
-    elif request.reminder_type == "unpaid_charge":
-        if not request.charge_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="נדרש charge_id עבור תזכורות מסוג unpaid_charge",
-            )
+    elif request.reminder_type == ReminderType.UNPAID_CHARGE:
         reminder = service.create_unpaid_charge_reminder(
             business_id=request.business_id,
             charge_id=request.charge_id,
@@ -60,13 +62,28 @@ def create_reminder(
             created_by=user.id,
         )
 
-    elif request.reminder_type == "custom":
-        if not request.message:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="נדרש message עבור תזכורות מותאמות אישית",
-            )
-        reminder = service.create_custom_reminder(
+    elif request.reminder_type == ReminderType.ANNUAL_REPORT_DEADLINE:
+        reminder = service.create_annual_report_deadline_reminder(
+            business_id=request.business_id,
+            annual_report_id=request.annual_report_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    elif request.reminder_type == ReminderType.ADVANCE_PAYMENT_DUE:
+        reminder = service.create_advance_payment_due_reminder(
+            business_id=request.business_id,
+            advance_payment_id=request.advance_payment_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    elif request.reminder_type == ReminderType.DOCUMENT_MISSING:
+        reminder = service.create_document_missing_reminder(
             business_id=request.business_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -74,10 +91,13 @@ def create_reminder(
             created_by=user.id,
         )
 
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"סוג התזכורת אינו נתמך: {request.reminder_type}",
+    else:  # ReminderType.CUSTOM
+        reminder = service.create_custom_reminder(
+            business_id=request.business_id,
+            target_date=request.target_date,
+            days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
         )
 
     return ReminderResponse.model_validate(reminder)

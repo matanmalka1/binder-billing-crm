@@ -3,9 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.clients.models import Client, ClientType
-from app.binders.models.binder import Binder, BinderStatus, BinderType
+from app.binders.models.binder import Binder, BinderStatus
+from app.businesses.models.business import Business, BusinessStatus, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.clients.models import Client
 from app.reminders.api import routes_create
 from app.reminders.models.reminder import ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -15,8 +16,6 @@ def _client(db) -> Client:
     crm_client = Client(
         full_name="Reminder API Additional Client",
         id_number="RMA001",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(crm_client)
     db.commit()
@@ -24,14 +23,29 @@ def _client(db) -> Client:
     return crm_client
 
 
-def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, test_db, advisor_headers):
+def _business(db, client_id: int, user_id: int) -> Business:
+    business = Business(
+        client_id=client_id,
+        business_type=BusinessType.COMPANY,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+        created_by=user_id,
+    )
+    db.add(business)
+    db.commit()
+    db.refresh(business)
+    return business
+
+
+def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
 
     idle = client.post(
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "binder_idle",
             "target_date": date.today().isoformat(),
             "days_before": 3,
@@ -43,7 +57,7 @@ def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, tes
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "unpaid_charge",
             "target_date": date.today().isoformat(),
             "days_before": 3,
@@ -52,10 +66,11 @@ def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, tes
     assert unpaid.status_code == 400
 
 
-def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_headers):
+def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
     reminder = ReminderRepository(test_db).create(
-        client_id=crm_client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
         days_before=0,
@@ -69,13 +84,14 @@ def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_he
     assert resp.json()["status"] == "sent"
 
 
-def test_create_tax_deadline_missing_id_returns_400(client, test_db, advisor_headers):
+def test_create_tax_deadline_missing_id_returns_400(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
     resp = client.post(
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "tax_deadline_approaching",
             "target_date": date.today().isoformat(),
             "days_before": 2,
@@ -92,7 +108,7 @@ def test_create_reminder_unsupported_type_branch_direct(monkeypatch):
 
     monkeypatch.setattr(routes_create, "ReminderService", _Svc)
     request = SimpleNamespace(
-        client_id=1,
+        business_id=1,
         reminder_type="unsupported",
         target_date=date.today(),
         days_before=1,
@@ -110,16 +126,16 @@ def test_create_reminder_unsupported_type_branch_direct(monkeypatch):
 
 def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
     binder = Binder(
         client_id=crm_client.id,
         binder_number="RMA-B",
-        binder_type=BinderType.OTHER,
-        received_at=date.today(),
+        period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
-        received_by=test_user.id,
+        created_by=test_user.id,
     )
     charge = Charge(
-        client_id=crm_client.id,
+        business_id=business.id,
         amount=10,
         charge_type=ChargeType.ONE_TIME,
         status=ChargeStatus.ISSUED,
@@ -133,7 +149,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "binder_idle",
             "target_date": date.today().isoformat(),
             "days_before": 2,
@@ -147,7 +163,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "unpaid_charge",
             "target_date": date.today().isoformat(),
             "days_before": 3,
@@ -161,7 +177,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "custom",
             "target_date": date.today().isoformat(),
             "days_before": 0,

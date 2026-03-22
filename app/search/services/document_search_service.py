@@ -21,7 +21,7 @@ class DocumentSearchService:
         for doc in docs:
             if doc.business_id not in business_cache:
                 business = self.business_repo.get_by_id(doc.business_id)
-                business_cache[doc.business_id] = business.full_name if business else "Unknown"
+                business_cache[doc.business_id] = business.full_name if business else "לא ידוע"
             results.append(
                 {
                     "id": doc.id,

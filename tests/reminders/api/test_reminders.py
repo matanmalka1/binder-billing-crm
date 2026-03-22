@@ -1,11 +1,11 @@
 from datetime import date, timedelta
 from decimal import Decimal
-
-from app.binders.models.binder import Binder, BinderStatus, BinderType
-from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client, ClientType
 from itertools import count
 
+from app.binders.models.binder import Binder, BinderStatus
+from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.clients.models import Client
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
@@ -18,8 +18,6 @@ def _client(db) -> Client:
     client = Client(
         full_name="Reminder Client",
         id_number=f"22222222{next(_client_seq)}",
-        client_type=ClientType.COMPANY,
-        opened_at=date.today(),
     )
     db.add(client)
     db.commit()
@@ -27,9 +25,23 @@ def _client(db) -> Client:
     return client
 
 
-def _tax_deadline(db, client_id: int) -> TaxDeadline:
-    deadline = TaxDeadline(
+def _business(db, client_id: int, user_id: int) -> Business:
+    business = Business(
         client_id=client_id,
+        business_type=BusinessType.COMPANY,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+        created_by=user_id,
+    )
+    db.add(business)
+    db.commit()
+    db.refresh(business)
+    return business
+
+
+def _tax_deadline(db, business_id: int) -> TaxDeadline:
+    deadline = TaxDeadline(
+        business_id=business_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         status=TaxDeadlineStatus.PENDING,
@@ -44,10 +56,9 @@ def _binder(db, client_id: int, user_id: int) -> Binder:
     binder = Binder(
         client_id=client_id,
         binder_number="B-1",
-        binder_type=BinderType.VAT,
-        received_at=date.today(),
+        period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
-        received_by=user_id,
+        created_by=user_id,
     )
     db.add(binder)
     db.commit()
@@ -55,9 +66,9 @@ def _binder(db, client_id: int, user_id: int) -> Binder:
     return binder
 
 
-def _charge(db, client_id: int) -> Charge:
+def _charge(db, business_id: int) -> Charge:
     charge = Charge(
-        client_id=client_id,
+        business_id=business_id,
         amount=Decimal("100.00"),
         currency="ILS",
         charge_type=ChargeType.ONE_TIME,
@@ -71,14 +82,15 @@ def _charge(db, client_id: int) -> Charge:
 
 def test_create_tax_deadline_reminder_success(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    deadline = _tax_deadline(test_db, crm_client.id)
+    business = _business(test_db, crm_client.id, test_user.id)
+    deadline = _tax_deadline(test_db, business.id)
 
     target = deadline.due_date
     response = client.post(
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "business_id": business.id,
             "reminder_type": "tax_deadline_approaching",
             "target_date": target.isoformat(),
             "days_before": 3,
@@ -88,7 +100,7 @@ def test_create_tax_deadline_reminder_success(client, test_db, advisor_headers, 
 
     assert response.status_code == 201
     data = response.json()
-    assert data["client_id"] == crm_client.id
+    assert data["business_id"] == business.id
     assert data["reminder_type"] == "tax_deadline_approaching"
     assert data["send_on"] == (target - timedelta(days=3)).isoformat()
 
@@ -98,7 +110,7 @@ def test_create_custom_missing_message_returns_400(client, advisor_headers):
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": 1,
+            "business_id": 1,
             "reminder_type": "custom",
             "target_date": date.today().isoformat(),
             "days_before": 1,
@@ -109,12 +121,12 @@ def test_create_custom_missing_message_returns_400(client, advisor_headers):
     assert "message" in resp.json()["detail"]
 
 
-def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_headers):
+def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    # create simple custom reminder directly via repo to avoid message validation duplication
+    business = _business(test_db, crm_client.id, test_user.id)
     repo = ReminderRepository(test_db)
     reminder = repo.create(
-        client_id=crm_client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
         days_before=0,
@@ -133,21 +145,23 @@ def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_h
     assert updated.status == ReminderStatus.CANCELED
 
 
-def test_list_reminders_filters_by_client_and_status(client, test_db, advisor_headers, test_user):
+def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
     other_client = _client(test_db)
+    business = _business(test_db, crm_client.id, test_user.id)
+    other_business = _business(test_db, other_client.id, test_user.id)
 
     repo = ReminderRepository(test_db)
     repo.create(
-        client_id=crm_client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
         days_before=0,
         send_on=date.today(),
-        message="For client A",
+        message="For business A",
     )
     canceled = repo.create(
-        client_id=crm_client.id,
+        business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
         days_before=0,
@@ -156,21 +170,21 @@ def test_list_reminders_filters_by_client_and_status(client, test_db, advisor_he
     )
     repo.update_status(canceled.id, ReminderStatus.CANCELED, canceled_at=date.today())
     repo.create(
-        client_id=other_client.id,
+        business_id=other_business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
         days_before=0,
         send_on=date.today(),
-        message="Other client",
+        message="Other business",
     )
 
-    # Client filter
-    client_resp = client.get(
-        f"/api/v1/reminders?client_id={crm_client.id}&page=1&page_size=10",
+    # Business filter
+    biz_resp = client.get(
+        f"/api/v1/reminders?business_id={business.id}&page=1&page_size=10",
         headers=advisor_headers,
     )
-    assert client_resp.status_code == 200
-    assert all(item["client_id"] == crm_client.id for item in client_resp.json()["items"])
+    assert biz_resp.status_code == 200
+    assert all(item["business_id"] == business.id for item in biz_resp.json()["items"])
 
     # Status filter
     status_resp = client.get(

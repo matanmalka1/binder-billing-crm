@@ -42,7 +42,7 @@ class SearchService:
         if reference_date is None:
             reference_date = date.today()
 
-        binder_derived_filter = work_state or signal_type or has_signals is not None
+        binder_derived_filter = bool(work_state or signal_type or (has_signals is not None))
 
         documents: list[dict] = (
             DocumentSearchService(self.db).search_documents(query) if query else []
@@ -134,7 +134,7 @@ class SearchService:
                     {
                         "result_type": "binder",
                         "business_id": binder.business_id,
-                        "client_name": client.full_name if client else "Unknown",
+                        "client_name": client.full_name if client else "לא ידוע",
                         "client_status": client.status.value if client else None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,

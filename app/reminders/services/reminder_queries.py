@@ -15,7 +15,7 @@ def _build_name_map(
 ) -> Dict[int, str]:
     business_ids = list({r.business_id for r in items})
     businesses = business_repo.list_by_ids(business_ids)
-    return {b.id: b.business_name for b in businesses}
+    return {b.id: b.full_name for b in businesses}
 
 
 def get_reminders(

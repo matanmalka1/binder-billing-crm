@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.annual_reports.repositories.report_repository import AnnualReportReportRepository as AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.reminders.services import factory, reminder_queries, status_changes
+from app.reminders.services import factory, factory_extended, reminder_queries, status_changes
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 
@@ -20,6 +22,8 @@ class ReminderService:
         self.charge_repo = ChargeRepository(db)
         self.binder_repo = BinderRepository(db)
         self.tax_deadline_repo = TaxDeadlineRepository(db)
+        self.annual_report_repo = AnnualReportRepository(db)
+        self.advance_payment_repo = AdvancePaymentRepository(db)
 
     # Creation flows
     def create_tax_deadline_reminder(self, **kwargs):
@@ -39,6 +43,26 @@ class ReminderService:
 
     def create_custom_reminder(self, **kwargs):
         return factory.create_custom_reminder(self.reminder_repo, self.business_repo, **kwargs)
+
+    def create_vat_filing_reminder(self, **kwargs):
+        return factory_extended.create_vat_filing_reminder(
+            self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs
+        )
+
+    def create_annual_report_deadline_reminder(self, **kwargs):
+        return factory_extended.create_annual_report_deadline_reminder(
+            self.reminder_repo, self.business_repo, self.annual_report_repo, **kwargs
+        )
+
+    def create_advance_payment_due_reminder(self, **kwargs):
+        return factory_extended.create_advance_payment_due_reminder(
+            self.reminder_repo, self.business_repo, self.advance_payment_repo, **kwargs
+        )
+
+    def create_document_missing_reminder(self, **kwargs):
+        return factory_extended.create_document_missing_reminder(
+            self.reminder_repo, self.business_repo, **kwargs
+        )
 
     # Queries
     def get_reminders(self, **kwargs):
