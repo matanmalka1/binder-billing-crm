@@ -62,6 +62,15 @@ def test_delete_contact_missing_raises_not_found(test_db):
     assert exc_info.value.code == "AUTHORITY_CONTACT.NOT_FOUND"
 
 
+def test_get_contact_missing_raises_not_found(test_db):
+    service = AuthorityContactService(test_db)
+
+    with pytest.raises(NotFoundError) as exc_info:
+        service.get_contact(999)
+
+    assert exc_info.value.code == "AUTHORITY_CONTACT.NOT_FOUND"
+
+
 def test_list_contacts_filters_and_paginates(test_db):
     business = _business(test_db)
     repo = AuthorityContactRepository(test_db)

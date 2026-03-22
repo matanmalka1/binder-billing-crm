@@ -78,6 +78,21 @@ def test_create_authority_contact_unknown_business_returns_404(client, advisor_h
     assert response.json()["error"] == "BUSINESS.NOT_FOUND"
 
 
+def test_create_authority_contact_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+    business = _create_business(test_db)
+
+    response = client.post(
+        f"/api/v1/businesses/{business.id}/authority-contacts",
+        headers=advisor_headers,
+        json={
+            "contact_type": "invalid_type",
+            "name": "Bad Type",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_list_authority_contacts_filters_by_type(client, test_db, advisor_headers):
     business = _create_business(test_db)
     _create_contact(test_db, business.id, ContactType.VAT_BRANCH)
@@ -96,6 +111,17 @@ def test_list_authority_contacts_filters_by_type(client, test_db, advisor_header
     assert all(item["contact_type"] == "vat_branch" for item in data["items"])
 
 
+def test_list_authority_contacts_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+    business = _create_business(test_db)
+
+    response = client.get(
+        f"/api/v1/businesses/{business.id}/authority-contacts?contact_type=invalid_type",
+        headers=advisor_headers,
+    )
+
+    assert response.status_code == 422
+
+
 def test_update_authority_contact(client, test_db, advisor_headers):
     business = _create_business(test_db)
     contact = _create_contact(test_db, business.id, ContactType.VAT_BRANCH)
@@ -111,6 +137,19 @@ def test_update_authority_contact(client, test_db, advisor_headers):
     assert data["name"] == "Updated Name"
     assert data["contact_type"] == "assessing_officer"
     assert data["updated_at"] is not None
+
+
+def test_update_authority_contact_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+    business = _create_business(test_db)
+    contact = _create_contact(test_db, business.id, ContactType.VAT_BRANCH)
+
+    response = client.patch(
+        f"/api/v1/businesses/authority-contacts/{contact.id}",
+        headers=advisor_headers,
+        json={"contact_type": "invalid_type"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_delete_authority_contact_soft_deletes(client, test_db, advisor_headers):

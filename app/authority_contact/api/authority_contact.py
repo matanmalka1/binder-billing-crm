@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.authority_contact.models.authority_contact import ContactType
 from app.authority_contact.schemas.authority_contact import (
     AuthorityContactCreateRequest,
     AuthorityContactListResponse,
@@ -50,7 +51,7 @@ def list_authority_contacts(
     business_id: int,
     db: DBSession,
     _: CurrentUser,
-    contact_type: Optional[str] = None,
+    contact_type: Optional[ContactType] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

@@ -1,6 +1,6 @@
 # Authority Contact Module
 
-> Last audited: 2026-03-21 (domain-by-domain backend sync).
+> Last audited: 2026-03-22 (domain-by-domain backend sync).
 
 Manages per-business authority contacts (tax office, VAT branch, national insurance, etc.) used by the CRM and referenced by other domains (for example correspondence entries).
 
@@ -82,7 +82,7 @@ Router prefix is `/api/v1/businesses` (mounted in `app/main.py`).
 
 - Creating a contact validates that the business exists (`BUSINESS.NOT_FOUND` on missing business).
 - `contact_type` is validated against the enum; invalid values return a validation error.
-- Update/delete for unknown contacts return `AUTHORITY_CONTACT.NOT_FOUND`.
+- Get, update, and delete for unknown or soft-deleted contacts raise `AUTHORITY_CONTACT.NOT_FOUND`.
 - Repository reads (`get_by_id`, list/count) exclude soft-deleted records.
 - Delete does not remove rows; it sets `deleted_at` + `deleted_by`.
 
@@ -108,6 +108,7 @@ Authority-contact test suites:
 - `tests/authority_contact/api/test_authority_contact.py`
 - `tests/authority_contact/service/test_authority_contact.py`
 - `tests/authority_contact/repository/test_authority_contact_repository.py`
+- `tests/authority_contact/model/test_authority_contact_model.py`
 
 Run only this domain:
 
