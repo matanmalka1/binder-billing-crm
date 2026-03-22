@@ -14,6 +14,7 @@ from app.notification.models.notification import (
 class NotificationResponse(BaseModel):
     id: int
     business_id: int
+    business_name: Optional[str] = None
     binder_id: Optional[int] = None
     trigger: NotificationTrigger
     channel: NotificationChannel
