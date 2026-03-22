@@ -84,8 +84,8 @@ VAT type enum values:
 Implementation references:
 - Models: `app/businesses/models/business.py`, `app/businesses/models/business_tax_profile.py`
 - Schemas: `app/businesses/schemas/business_schemas.py`, `app/businesses/schemas/business_tax_profile_schemas.py`
-- Repositories: `app/businesses/repositories/business_repository.py`, `app/businesses/repositories/business_tax_profile_repository.py`
-- Services: `app/businesses/services/business_service.py`, `app/businesses/services/business_tax_profile_service.py`, `app/businesses/services/business_lookup.py`
+- Repositories: `app/businesses/repositories/business_repository.py`, `app/businesses/repositories/business_repository_read.py`, `app/businesses/repositories/business_tax_profile_repository.py`
+- Services: `app/businesses/services/business_service.py`, `app/businesses/services/business_bulk_service.py`, `app/businesses/services/business_tax_profile_service.py`, `app/businesses/services/status_card_service.py`, `app/businesses/services/business_lookup.py`, `app/businesses/services/business_guards.py`
 - APIs: `app/businesses/api/businesses.py`, `app/businesses/api/business_tax_profile_router.py`, `app/businesses/api/business_status_card_router.py`, `app/businesses/api/business_binders_router.py`
 
 ## API
@@ -159,6 +159,7 @@ Roles: `ADVISOR`, `SECRETARY` unless noted
 #### Bulk status action
 - `POST /api/v1/businesses/bulk-action`
 - Role: `ADVISOR` only
+- Required header: `X-Idempotency-Key`
 - Body:
 
 ```json
@@ -268,10 +269,16 @@ Domain errors:
 ## Tests
 
 Business test suites:
-- `tests/businesses/api/test_businesses.py`
-- `tests/businesses/api/test_business_binders.py`
+- `tests/businesses/api/test_business_status_card.py`
+- `tests/businesses/api/test_businesses_and_tax_profile_api.py`
+- `tests/businesses/service/test_business_bulk_service.py`
+- `tests/businesses/service/test_business_guards.py`
+- `tests/businesses/service/test_business_lookup.py`
 - `tests/businesses/service/test_business_service.py`
-- `tests/businesses/repository/test_business_repository.py`
+- `tests/businesses/service/test_business_service_additional.py`
+- `tests/businesses/service/test_business_tax_profile_service.py`
+- `tests/businesses/service/test_status_card_service.py`
+- `tests/businesses/repository/test_business_repositories.py`
 
 Run only this domain:
 
