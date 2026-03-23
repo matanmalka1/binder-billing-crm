@@ -106,7 +106,7 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     )
     business = SimpleNamespace(id=20, full_name="Mapped Business")
     mapped_charge_business = SimpleNamespace(id=77, full_name="Charge Business")
-    charge = SimpleNamespace(id=4, business_id=77, amount=300, currency="ILS")
+    charge = SimpleNamespace(id=4, business_id=77, amount=300)
 
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business)])
     monkeypatch.setattr(
@@ -121,3 +121,4 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"
     assert items[0]["client_name"] == "Charge Business"
+    assert items[0]["description"] == "חיוב לא משולם: ₪300"

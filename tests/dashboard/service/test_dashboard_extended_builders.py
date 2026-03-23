@@ -18,7 +18,7 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
         period_start=date(2026, 3, 1),
     )
     business = SimpleNamespace(id=20, full_name="Dashboard Client")
-    charge = SimpleNamespace(amount=123.45, currency="ILS")
+    charge = SimpleNamespace(amount=123.45)
     work_state = SimpleNamespace(value="in_progress")
     signals = [{"key": "idle", "level": "yellow"}]
 
@@ -38,4 +38,4 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
 
     unpaid = unpaid_charge_attention_item(charge, business)
     assert unpaid["item_type"] == "unpaid_charge"
-    assert unpaid["description"] == "חיוב לא משולם: 123.45 ILS"
+    assert unpaid["description"] == "חיוב לא משולם: ₪123.45"

@@ -114,3 +114,23 @@ def test_list_by_client_name_and_build_response_business_name(client, test_db, a
 
     built = _build_response(deadline, business_name="Manual Name")
     assert built.business_name == "Manual Name"
+
+
+def test_list_tax_deadlines_enriches_fallback_business_name_for_sole_proprietor(
+    client, test_db, advisor_headers,
+):
+    business = create_business(test_db, name_prefix="Sole Prop")
+    repo = TaxDeadlineRepository(test_db)
+    deadline = repo.create(
+        business_id=business.id,
+        deadline_type=DeadlineType.ADVANCE_PAYMENT,
+        due_date=date.today() + timedelta(days=1),
+    )
+
+    resp = client.get("/api/v1/tax-deadlines", headers=advisor_headers)
+    assert resp.status_code == 200
+
+    item = next((row for row in resp.json()["items"] if row["id"] == deadline.id), None)
+    assert item is not None
+    assert item["business_id"] == business.id
+    assert item["business_name"] == business.full_name

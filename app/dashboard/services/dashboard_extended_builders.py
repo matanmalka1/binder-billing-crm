@@ -1,3 +1,12 @@
+from decimal import Decimal
+
+
+def _format_ils_amount(amount) -> str:
+    normalized = Decimal(str(amount)).quantize(Decimal("0.01"))
+    formatted = f"{normalized:,.2f}".rstrip("0").rstrip(".")
+    return f"₪{formatted}"
+
+
 def work_queue_item(binder, client, work_state, signals, reference_date) -> dict:
     return {
         "binder_id": binder.id,
@@ -39,5 +48,5 @@ def unpaid_charge_attention_item(charge, client) -> dict:
         "binder_id": None,
         "business_id": client.id,
         "client_name": client.full_name,
-        "description": f"חיוב לא משולם: {float(charge.amount)} {charge.currency}",
+        "description": f"חיוב לא משולם: {_format_ils_amount(charge.amount)}",
     }

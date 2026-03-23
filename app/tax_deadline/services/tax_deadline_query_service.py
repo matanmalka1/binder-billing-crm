@@ -89,7 +89,7 @@ class TaxDeadlineQueryService:
         """Return {business_id: business_name} for the given deadlines."""
         business_ids = list({d.business_id for d in deadlines})
         businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
-        return {b.id: b.business_name for b in businesses}
+        return {b.id: b.full_name for b in businesses}
 
     def get_urgent_deadlines_summary(
         self,
