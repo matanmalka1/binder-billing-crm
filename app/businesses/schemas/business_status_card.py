@@ -3,9 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDecimal
+
 
 class VatSummaryCard(BaseModel):
-    net_vat_total: Decimal
+    net_vat_total: ApiDecimal
     periods_filed: int
     periods_total: int
     latest_period: Optional[str] = None
@@ -15,17 +17,17 @@ class AnnualReportCard(BaseModel):
     status: Optional[str] = None
     form_type: Optional[str] = None
     filing_deadline: Optional[str] = None
-    refund_due: Optional[Decimal] = None
-    tax_due: Optional[Decimal] = None
+    refund_due: Optional[ApiDecimal] = None
+    tax_due: Optional[ApiDecimal] = None
 
 
 class ChargesCard(BaseModel):
-    total_outstanding: Decimal
+    total_outstanding: ApiDecimal
     unpaid_count: int
 
 
 class AdvancePaymentsCard(BaseModel):
-    total_paid: Decimal
+    total_paid: ApiDecimal
     count: int
 
 

@@ -7,6 +7,7 @@ from app.annual_reports.schemas import (
     AmendRequest,
     AnnualReportCreateRequest,
     AnnualReportDetailResponse,
+    AnnualReportKanbanViewResponse,
     AnnualReportListResponse,
     AnnualReportResponse,
 )
@@ -69,7 +70,7 @@ def list_annual_reports(
     )
 
 
-@router.get("/kanban/view", response_model=dict)
+@router.get("/kanban/view", response_model=AnnualReportKanbanViewResponse)
 def get_kanban_view(db: DBSession, user: CurrentUser):
     """Kanban board view grouped by stage."""
     service = AnnualReportService(db)

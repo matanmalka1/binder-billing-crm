@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
+from app.core.api_types import ApiDateTime
 from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
@@ -19,7 +20,7 @@ class SignatureAuditEventResponse(BaseModel):
     actor_name: Optional[str] = None
     ip_address: Optional[str] = None
     notes: Optional[str] = None
-    occurred_at: datetime
+    occurred_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 
@@ -41,12 +42,12 @@ class SignatureRequestResponse(BaseModel):
     storage_key: Optional[str] = None
     annual_report_id: Optional[int] = None
     document_id: Optional[int] = None
-    created_at: datetime
-    sent_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
-    signed_at: Optional[datetime] = None
-    declined_at: Optional[datetime] = None
-    canceled_at: Optional[datetime] = None
+    created_at: ApiDateTime
+    sent_at: Optional[ApiDateTime] = None
+    expires_at: Optional[ApiDateTime] = None
+    signed_at: Optional[ApiDateTime] = None
+    declined_at: Optional[ApiDateTime] = None
+    canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None      # קיים במודל, חסר בגרסה הישנה
     signer_ip_address: Optional[str] = None
     decline_reason: Optional[str] = None
@@ -105,7 +106,7 @@ class SignerViewResponse(BaseModel):
     signer_name: str
     status: SignatureRequestStatus          # enum
     content_hash: Optional[str] = None
-    expires_at: Optional[datetime] = None
+    expires_at: Optional[ApiDateTime] = None
 
 
 class SignerDeclineRequest(BaseModel):

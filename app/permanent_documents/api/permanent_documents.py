@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.permanent_documents.schemas.permanent_document import (
+    DocumentDownloadUrlResponse,
     OperationalSignalsResponse,
     PermanentDocumentListResponse,
     PermanentDocumentResponse,
@@ -86,7 +87,7 @@ def get_operational_signals(
 
 @router.get(
     "/{document_id}/download-url",
-    response_model=dict,
+    response_model=DocumentDownloadUrlResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_download_url(document_id: int, db: DBSession, user: CurrentUser):

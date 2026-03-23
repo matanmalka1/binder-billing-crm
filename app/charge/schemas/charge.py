@@ -6,11 +6,12 @@ import re
 from pydantic import BaseModel, Field, field_validator
 
 from app.charge.models.charge import ChargeType, ChargeStatus
+from app.core.api_types import ApiDateTime, ApiDecimal
 
 
 class ChargeCreateRequest(BaseModel):
     business_id: int
-    amount: Decimal = Field(gt=0)
+    amount: ApiDecimal = Field(gt=0)
     charge_type: ChargeType                     # enum — לא str חופשי
     period: Optional[str] = None                # "YYYY-MM"
     months_covered: int = Field(1, ge=1)        # קיים במודל
@@ -32,17 +33,17 @@ class ChargeResponse(BaseModel):
     annual_report_id: Optional[int] = None
     charge_type: ChargeType
     status: ChargeStatus
-    amount: Decimal
+    amount: ApiDecimal
     period: Optional[str] = None
     months_covered: int
     description: Optional[str] = None
-    created_at: datetime
+    created_at: ApiDateTime
     created_by: Optional[int] = None
-    issued_at: Optional[datetime] = None
+    issued_at: Optional[ApiDateTime] = None
     issued_by: Optional[int] = None
-    paid_at: Optional[datetime] = None
+    paid_at: Optional[ApiDateTime] = None
     paid_by: Optional[int] = None
-    canceled_at: Optional[datetime] = None
+    canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None
     cancellation_reason: Optional[str] = None
 
@@ -59,9 +60,9 @@ class ChargeResponseSecretary(BaseModel):
     period: Optional[str] = None
     months_covered: int
     description: Optional[str] = None
-    created_at: datetime
-    issued_at: Optional[datetime] = None
-    paid_at: Optional[datetime] = None
+    created_at: ApiDateTime
+    issued_at: Optional[ApiDateTime] = None
+    paid_at: Optional[ApiDateTime] = None
 
     model_config = {"from_attributes": True}
 

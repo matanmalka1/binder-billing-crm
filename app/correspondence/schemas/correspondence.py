@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, field_validator
 
 from app.correspondence.models.correspondence import CorrespondenceType
+from app.core.api_types import ApiDateTime
 
 
 def _validate_occurred_at(v: Optional[datetime]) -> Optional[datetime]:
@@ -22,7 +23,7 @@ class CorrespondenceCreateRequest(BaseModel):
     correspondence_type: CorrespondenceType
     subject: str
     notes: Optional[str] = None
-    occurred_at: datetime
+    occurred_at: ApiDateTime
 
     @field_validator("occurred_at")
     @classmethod
@@ -35,7 +36,7 @@ class CorrespondenceUpdateRequest(BaseModel):
     correspondence_type: Optional[CorrespondenceType] = None
     subject: Optional[str] = None
     notes: Optional[str] = None
-    occurred_at: Optional[datetime] = None
+    occurred_at: Optional[ApiDateTime] = None
 
     @field_validator("occurred_at")
     @classmethod
@@ -50,9 +51,9 @@ class CorrespondenceResponse(BaseModel):
     correspondence_type: CorrespondenceType
     subject: str
     notes: Optional[str] = None
-    occurred_at: datetime
+    occurred_at: ApiDateTime
     created_by: int
-    created_at: datetime
+    created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 

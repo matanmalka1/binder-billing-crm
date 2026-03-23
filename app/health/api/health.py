@@ -11,13 +11,19 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.health.schemas import HealthCheckResponse
 from app.health.services.health_service import HealthService
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", status_code=status.HTTP_200_OK)
-def health_check(db: Session = Depends(get_db)) -> dict:
+@router.get(
+    "/health",
+    response_model=HealthCheckResponse,
+    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HealthCheckResponse}},
+    status_code=status.HTTP_200_OK,
+)
+def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse | JSONResponse:
     """
     Health check endpoint.
     
@@ -30,4 +36,4 @@ def health_check(db: Session = Depends(get_db)) -> dict:
     result = HealthService(db).check()
     if result["status"] != "healthy":
         return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=result)
-    return result
+    return HealthCheckResponse(**result)

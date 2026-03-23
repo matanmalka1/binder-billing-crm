@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from app.core.api_types import ApiDateTime
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationSeverity,
@@ -22,14 +23,14 @@ class NotificationResponse(BaseModel):
     recipient: str
     content_snapshot: str
     status: NotificationStatus
-    sent_at: Optional[datetime] = None
-    failed_at: Optional[datetime] = None
+    sent_at: Optional[ApiDateTime] = None
+    failed_at: Optional[ApiDateTime] = None
     error_message: Optional[str] = None
     retry_count: int
     is_read: bool
-    read_at: Optional[datetime] = None
+    read_at: Optional[ApiDateTime] = None
     triggered_by: Optional[int] = None
-    created_at: datetime
+    created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 

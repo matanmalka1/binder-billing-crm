@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDateTime, ApiDecimal
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 
@@ -13,22 +14,22 @@ class VatPeriodRow(BaseModel):
     work_item_id: int = 0
     period: str
     status: VatWorkItemStatus
-    total_output_vat: Decimal
-    total_input_vat: Decimal
-    net_vat: Decimal
-    total_output_net: Decimal = Decimal("0")
-    total_input_net: Decimal = Decimal("0")
-    final_vat_amount: Optional[Decimal]
-    filed_at: Optional[datetime]
+    total_output_vat: ApiDecimal
+    total_input_vat: ApiDecimal
+    net_vat: ApiDecimal
+    total_output_net: ApiDecimal = Decimal("0")
+    total_input_net: ApiDecimal = Decimal("0")
+    final_vat_amount: Optional[ApiDecimal]
+    filed_at: Optional[ApiDateTime]
 
     model_config = {"from_attributes": True}
 
 
 class VatAnnualSummary(BaseModel):
     year: int
-    total_output_vat: Decimal
-    total_input_vat: Decimal
-    net_vat: Decimal
+    total_output_vat: ApiDecimal
+    total_input_vat: ApiDecimal
+    net_vat: ApiDecimal
     periods_count: int
     filed_count: int
 

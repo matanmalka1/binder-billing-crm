@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from app.binders.models.binder import BinderStatus
+from app.core.api_types import ApiDateTime
 
 
 class BinderDetailResponse(BaseModel):
@@ -36,10 +37,9 @@ class BinderListResponseExtended(BaseModel):
 # ── History schemas ───────────────────────────────────────────────────────────
 # BinderHistoryEntry and BinderHistoryResponse are defined here (extended view)
 # and re-exported so that binders_history.py imports from one place.
-# The canonical definitions in binder.py schemas use `changed_at: datetime`;
-# the API router converts to the string form via .isoformat() before this layer.
-# To avoid the type conflict, binders_history.py now passes datetime objects
-# directly and lets Pydantic serialise them.
+# The canonical definitions in binder.py schemas use `changed_at: ApiDateTime`;
+# the API router passes datetime objects directly and lets Pydantic serialise
+# them as UTC ISO 8601 strings.
 # NOTE: binder.py schemas also contain BinderHistoryEntry — those are used
 # for the core binder schema module. Import from binder.py for the core
 # schemas and from here only for the extended (operations/dashboard) views.
@@ -48,7 +48,7 @@ class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
-    changed_at: datetime
+    changed_at: ApiDateTime
     notes: Optional[str] = None
 
     model_config = {"from_attributes": True}

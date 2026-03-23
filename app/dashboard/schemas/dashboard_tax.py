@@ -2,6 +2,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDecimal
+
 
 class TaxSubmissionWidgetResponse(BaseModel):
     tax_year: int
@@ -10,5 +12,5 @@ class TaxSubmissionWidgetResponse(BaseModel):
     reports_in_progress: int
     reports_not_started: int
     submission_percentage: float
-    total_refund_due: Decimal
-    total_tax_due: Decimal
+    total_refund_due: ApiDecimal
+    total_tax_due: ApiDecimal

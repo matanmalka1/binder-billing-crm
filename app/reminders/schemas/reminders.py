@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
 from app.reminders.models.reminder import ReminderType, ReminderStatus
+from app.core.api_types import ApiDateTime
 
 
 class ReminderCreateRequest(BaseModel):
@@ -53,10 +54,10 @@ class ReminderResponse(BaseModel):
     tax_deadline_id: Optional[int] = None
     annual_report_id: Optional[int] = None     # קיים במודל
     advance_payment_id: Optional[int] = None   # קיים במודל
-    created_at: datetime
+    created_at: ApiDateTime
     created_by: Optional[int] = None
-    sent_at: Optional[datetime] = None
-    canceled_at: Optional[datetime] = None
+    sent_at: Optional[ApiDateTime] = None
+    canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None          # קיים במודל
 
     model_config = {"from_attributes": True}

@@ -35,6 +35,7 @@ def test_authenticated_client_creation(client, auth_token):
     assert data["id_number_type"] == "corporation"
     assert "id" in data
     assert "created_at" in data
+    assert data["created_at"].endswith("Z")
 
 
 def test_client_creation_duplicate_id_number(client, auth_token):

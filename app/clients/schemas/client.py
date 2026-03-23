@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.clients.models.client import IdNumberType
+from app.core.api_types import ApiDateTime
 from app.utils.id_validation import validate_israeli_id_checksum
 
 
@@ -71,8 +72,8 @@ class ClientResponse(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     notes: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[ApiDateTime] = None
+    updated_at: Optional[ApiDateTime] = None
 
     model_config = {"from_attributes": True}
 
@@ -100,7 +101,7 @@ class DeletedClientSummary(BaseModel):
     id: int
     full_name: str
     id_number: str
-    deleted_at: datetime
+    deleted_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 
@@ -113,3 +114,14 @@ class ClientConflictInfo(BaseModel):
     id_number: str
     active_clients: list[ActiveClientSummary]
     deleted_clients: list[DeletedClientSummary]
+
+
+class ClientImportError(BaseModel):
+    row: int
+    error: str
+
+
+class ClientImportResponse(BaseModel):
+    created: int
+    total_rows: int
+    errors: list[ClientImportError]

@@ -3,12 +3,14 @@ from typing import Optional, Any
 
 from pydantic import BaseModel, Field
 
+from app.core.api_types import ApiDateTime
+
 
 class TimelineEvent(BaseModel):
     """Single timeline event."""
 
     event_type: str
-    timestamp: datetime
+    timestamp: ApiDateTime
     binder_id: Optional[int] = None
     charge_id: Optional[int] = None
     description: str

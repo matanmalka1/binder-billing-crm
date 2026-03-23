@@ -1,5 +1,8 @@
+from typing import Literal
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.config import config
 from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
@@ -21,12 +24,22 @@ app = FastAPI(
 )
 
 
-@app.get("/")
+class RootResponse(BaseModel):
+    service: Literal["binder-billing-crm"]
+    status: Literal["running"]
+
+
+class AppInfoResponse(BaseModel):
+    app: Literal["Binder Billing CRM"]
+    env: Literal["development", "test", "staging", "production"]
+
+
+@app.get("/", response_model=RootResponse)
 def root():
     return {"service": "binder-billing-crm", "status": "running"}
 
 
-@app.get("/info")
+@app.get("/info", response_model=AppInfoResponse)
 def info():
     return {"app": "Binder Billing CRM", "env": config.APP_ENV}
 

@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
+from app.core.api_types import ApiDecimal
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -15,8 +16,8 @@ from app.vat_reports.models.vat_enums import (
 
 
 class VatInvoiceUpdateRequest(BaseModel):
-    net_amount: Optional[Decimal] = None
-    vat_amount: Optional[Decimal] = None
+    net_amount: Optional[ApiDecimal] = None
+    vat_amount: Optional[ApiDecimal] = None
     invoice_number: Optional[str] = None
     invoice_date: Optional[date] = None         # Date — לא DateTime
     counterparty_name: Optional[str] = None

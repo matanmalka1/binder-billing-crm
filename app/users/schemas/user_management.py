@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
+from app.core.api_types import ApiDateTime
 from app.users.models.user import UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.services.user_management_policies import MIN_PASSWORD_LENGTH
@@ -41,8 +42,8 @@ class UserManagementResponse(BaseModel):
     phone: Optional[str] = None
     role: UserRole
     is_active: bool
-    created_at: datetime
-    last_login_at: Optional[datetime] = None
+    created_at: ApiDateTime
+    last_login_at: Optional[ApiDateTime] = None
 
     model_config = {"from_attributes": True}
 
@@ -63,7 +64,7 @@ class UserAuditLogResponse(BaseModel):
     status: AuditStatus
     reason: Optional[str] = None
     metadata: Optional[dict] = None    
-    created_at: datetime
+    created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 

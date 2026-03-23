@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
+from app.core.api_types import ApiDecimal
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -20,8 +21,8 @@ class VatInvoiceCreateRequest(BaseModel):
     invoice_number: Optional[str] = None
     invoice_date: Optional[date] = None    # Date — לא DateTime
     counterparty_name: Optional[str] = None
-    net_amount: Decimal
-    vat_amount: Decimal
+    net_amount: ApiDecimal
+    vat_amount: ApiDecimal
     counterparty_id: Optional[str] = None
     counterparty_id_type: Optional[CounterpartyIdType] = None  # קיים במודל
     expense_category: Optional[ExpenseCategory] = None
@@ -64,11 +65,11 @@ class VatInvoiceResponse(BaseModel):
     counterparty_name: str
     counterparty_id: Optional[str] = None
     counterparty_id_type: Optional[CounterpartyIdType] = None  # קיים במודל
-    net_amount: Decimal
-    vat_amount: Decimal
+    net_amount: ApiDecimal
+    vat_amount: ApiDecimal
     expense_category: Optional[ExpenseCategory] = None
     rate_type: VatRateType
-    deduction_rate: Decimal
+    deduction_rate: ApiDecimal
     is_exceptional: bool
     created_by: int
     created_at: date                       # Date במודל

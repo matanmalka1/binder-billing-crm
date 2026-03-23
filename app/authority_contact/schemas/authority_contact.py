@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 from app.authority_contact.models.authority_contact import ContactType
+from app.core.api_types import ApiDateTime
 
 
 class AuthorityContactCreateRequest(BaseModel):
@@ -33,8 +34,8 @@ class AuthorityContactResponse(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime
-    updated_at: Optional[datetime] = None
+    created_at: ApiDateTime
+    updated_at: Optional[ApiDateTime] = None
 
     model_config = {"from_attributes": True}
 

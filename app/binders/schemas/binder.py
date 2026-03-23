@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.binders.models.binder import BinderStatus
 from app.binders.models.binder_intake_material import MaterialType
+from app.core.api_types import ApiDateTime
 
 
 # ── Intake request ────────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ class BinderResponse(BaseModel):
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
     notes: Optional[str] = None
-    created_at: datetime
+    created_at: ApiDateTime
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: Optional[int] = None     # today - period_start
     work_state: Optional[str] = None
@@ -76,7 +77,7 @@ class BinderIntakeMaterialResponse(BaseModel):
     business_id: Optional[int] = None
     annual_report_id: Optional[int] = None
     description: Optional[str] = None
-    created_at: datetime
+    created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 
@@ -88,7 +89,7 @@ class BinderIntakeResponse(BaseModel):
     received_by: int
     received_by_name: Optional[str] = None   # enriched by service
     notes: Optional[str] = None
-    created_at: datetime
+    created_at: ApiDateTime
     materials: list[BinderIntakeMaterialResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -112,7 +113,7 @@ class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
-    changed_at: datetime
+    changed_at: ApiDateTime
     notes: Optional[str] = None
 
     model_config = {"from_attributes": True}

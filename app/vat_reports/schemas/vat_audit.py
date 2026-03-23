@@ -5,6 +5,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDateTime
+
 
 class VatAuditLogResponse(BaseModel):
     id: int
@@ -15,7 +17,7 @@ class VatAuditLogResponse(BaseModel):
     old_value: Optional[str]
     new_value: Optional[str]
     note: Optional[str]
-    performed_at: datetime
+    performed_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 

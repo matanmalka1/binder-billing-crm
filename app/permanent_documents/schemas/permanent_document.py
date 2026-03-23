@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDateTime
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
     DocumentStatus,
@@ -29,11 +30,11 @@ class PermanentDocumentResponse(BaseModel):
     annual_report_id: Optional[int] = None
     notes: Optional[str] = None
     uploaded_by: int
-    uploaded_at: datetime
+    uploaded_at: ApiDateTime
     approved_by: Optional[int] = None
-    approved_at: Optional[datetime] = None
+    approved_at: Optional[ApiDateTime] = None
     rejected_by: Optional[int] = None      
-    rejected_at: Optional[datetime] = None  
+    rejected_at: Optional[ApiDateTime] = None  
 
     model_config = {"from_attributes": True}
 
@@ -49,6 +50,10 @@ class DocumentVersionsResponse(BaseModel):
 class OperationalSignalsResponse(BaseModel):
     business_id: int
     missing_documents: list[DocumentType]   
+
+
+class DocumentDownloadUrlResponse(BaseModel):
+    url: str
 
 
 class RejectDocumentRequest(BaseModel):

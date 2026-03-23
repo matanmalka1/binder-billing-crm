@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.clients.schemas.client import ClientImportResponse
 from app.clients.services.client_service import ClientService
 from app.clients.services.client_excel_service import ClientExcelService
 
@@ -59,7 +60,11 @@ def download_client_template(db: DBSession, user: CurrentUser):
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
-@router.post("/import", dependencies=[Depends(require_role(UserRole.ADVISOR))])
+@router.post(
+    "/import",
+    response_model=ClientImportResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 async def import_clients_from_excel(
     file: UploadFile,
     request: Request,

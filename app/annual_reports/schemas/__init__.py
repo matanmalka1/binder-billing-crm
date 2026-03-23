@@ -9,6 +9,9 @@ from app.annual_reports.schemas.annual_report_requests import (  # noqa: F401
     SubmitRequest,
 )
 from app.annual_reports.schemas.annual_report_responses import (  # noqa: F401
+    AnnualReportKanbanItemResponse,
+    AnnualReportKanbanStageResponse,
+    AnnualReportKanbanViewResponse,
     AnnualReportDetailResponse,
     AnnualReportListResponse,
     AnnualReportResponse,
@@ -21,6 +24,9 @@ from app.annual_reports.schemas.annual_report_detail import AnnualReportDetailUp
 __all__ = [
     "AmendRequest",
     "AnnualReportCreateRequest",
+    "AnnualReportKanbanItemResponse",
+    "AnnualReportKanbanStageResponse",
+    "AnnualReportKanbanViewResponse",
     "AnnualReportDetailResponse",
     "AnnualReportDetailUpdateRequest",
     "AnnualReportListResponse",

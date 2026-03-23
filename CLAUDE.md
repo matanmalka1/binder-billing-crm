@@ -2,8 +2,6 @@
 # Binder & Billing CRM (Backend)
 
 > Single source of truth for assistant behavior and project rules.
-> Also read `BACKEND_SPEC.md` for per-domain service/repo/ORM detail before touching any domain.
-
 ---
 
 ## Assistant Behavior
@@ -176,7 +174,6 @@ These are intentional, documented constraints — not bugs. Do not work around t
 
 | File                           | Purpose                                         |
 | ------------------------------ | ----------------------------------------------- |
-| `BACKEND_SPEC.md`              | Per-domain service/repo/ORM detail + known gaps |
 | `alembic/versions/`            | Migration history                               |
 | `render.yaml`                  | Production deploy config and env var list       |
 | `app/infrastructure/README.md` | Storage + notification adapter details          |

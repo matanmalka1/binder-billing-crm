@@ -5,6 +5,7 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.businesses.models.business import BusinessType, BusinessStatus
+from app.core.api_types import ApiDateTime
 
 
 # ─── Requests ────────────────────────────────────────────────────────────────
@@ -46,7 +47,7 @@ class BusinessResponse(BaseModel):
     opened_at: date
     closed_at: Optional[date] = None
     notes: Optional[str] = None
-    created_at: Optional[datetime] = None
+    created_at: Optional[ApiDateTime] = None
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

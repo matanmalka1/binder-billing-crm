@@ -6,6 +6,12 @@ from fastapi.responses import FileResponse
 
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
+from app.reports.schemas import (
+    AdvancePaymentCollectionsReportResponse,
+    AgingReportResponse,
+    AnnualReportStatusReportResponse,
+    VatComplianceReportResponse,
+)
 from app.reports.services.reports_service import AgingReportService
 from app.reports.services.export_service import ExportService
 from app.reports.services.annual_report_status_report import AnnualReportStatusReportService
@@ -20,7 +26,7 @@ router = APIRouter(
 )
 
 
-@router.get("/vat-compliance")
+@router.get("/vat-compliance", response_model=VatComplianceReportResponse)
 def get_vat_compliance_report(
     db: DBSession,
     year: int = Query(...),
@@ -29,7 +35,7 @@ def get_vat_compliance_report(
     return service.get_vat_compliance_report(year)
 
 
-@router.get("/advance-payments")
+@router.get("/advance-payments", response_model=AdvancePaymentCollectionsReportResponse)
 def get_advance_payment_report(
     db: DBSession,
     year: int = Query(...),
@@ -39,7 +45,7 @@ def get_advance_payment_report(
     return service.get_collections_report(year, month)
 
 
-@router.get("/annual-reports")
+@router.get("/annual-reports", response_model=AnnualReportStatusReportResponse)
 def get_annual_report_status_report(
     db: DBSession,
     tax_year: int = Query(...),
@@ -48,7 +54,7 @@ def get_annual_report_status_report(
     return service.get_report(tax_year)
 
 
-@router.get("/aging")
+@router.get("/aging", response_model=AgingReportResponse)
 def get_aging_report(
     db: DBSession,
     as_of_date: Optional[date] = Query(None),

@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from decimal import Decimal
+from typing import Annotated, Any
+
+from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
+
+
+def _coerce_decimal(value: Any) -> Any:
+    if value is None or isinstance(value, Decimal):
+        return value
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    return value
+
+
+def _normalize_utc_datetime(value: Any) -> Any:
+    if value is None or not isinstance(value, datetime):
+        return value
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _serialize_decimal(value: Decimal) -> str:
+    return format(value, "f")
+
+
+def _serialize_datetime(value: datetime) -> str:
+    normalized = _normalize_utc_datetime(value)
+    return normalized.isoformat().replace("+00:00", "Z")
+
+
+ApiDecimal = Annotated[
+    Decimal,
+    BeforeValidator(_coerce_decimal),
+    PlainSerializer(_serialize_decimal, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "format": "decimal", "examples": ["123.45"]}),
+]
+
+ApiDateTime = Annotated[
+    datetime,
+    BeforeValidator(_normalize_utc_datetime),
+    PlainSerializer(_serialize_datetime, return_type=str, when_used="json"),
+    WithJsonSchema(
+        {
+            "type": "string",
+            "format": "date-time",
+            "examples": ["2026-01-02T03:04:05Z"],
+        }
+    ),
+]

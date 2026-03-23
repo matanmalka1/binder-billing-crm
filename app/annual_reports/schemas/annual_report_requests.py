@@ -4,6 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from app.core.api_types import ApiDateTime, ApiDecimal
 from app.annual_reports.models.annual_report_enums import (
     ClientTypeForReport,
     DeadlineType,
@@ -39,9 +40,9 @@ class StatusTransitionRequest(BaseModel):
     status: AnnualReportStatus              # enum — לא str חופשי
     note: Optional[str] = None
     ita_reference: Optional[str] = None
-    assessment_amount: Optional[Decimal] = None
-    refund_due: Optional[Decimal] = None
-    tax_due: Optional[Decimal] = None
+    assessment_amount: Optional[ApiDecimal] = None
+    refund_due: Optional[ApiDecimal] = None
+    tax_due: Optional[ApiDecimal] = None
 
 
 class DeadlineUpdateRequest(BaseModel):
@@ -50,7 +51,7 @@ class DeadlineUpdateRequest(BaseModel):
 
 
 class SubmitRequest(BaseModel):
-    submitted_at: Optional[datetime] = None
+    submitted_at: Optional[ApiDateTime] = None
     ita_reference: Optional[str] = None
     submission_method: Optional[SubmissionMethod] = None
     note: Optional[str] = None
