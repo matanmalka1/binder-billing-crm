@@ -26,9 +26,10 @@ from app.businesses.models.business import Business, BusinessStatus, BusinessTyp
 @event.listens_for(Client, "after_insert")
 def _create_default_business_for_client(mapper, connection, target):
     """Keep legacy tests working: every seeded client gets a matching business."""
+    # Avoid forcing id=client.id, which can collide with already-created businesses
+    # in suites that manually seed business rows between client inserts.
     connection.execute(
         Business.__table__.insert().values(
-            id=target.id,
             client_id=target.id,
             business_name=target.full_name,
             business_type=BusinessType.COMPANY,

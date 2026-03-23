@@ -92,7 +92,7 @@ def test_tax_calculation_uses_detail_credit_components(monkeypatch, test_db):
         other_credits=20.0,
     )
 
-    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_client_year", lambda *args, **kwargs: 0.0)
-    monkeypatch.setattr(financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_business_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(financial.advance_repo, "sum_paid_by_business_year", lambda *args, **kwargs: 0.0)
     out = financial.get_tax_calculation(report.id)
     assert out.total_credit_points == 3.0

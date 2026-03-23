@@ -62,9 +62,10 @@ def test_create_list_and_get_business_endpoints(client, test_db, test_user, advi
     )
     assert list_client_resp.status_code == 200
     list_client_data = list_client_resp.json()
-    assert list_client_data["total"] == 1
-    assert list_client_data["items"][0]["id"] == created_data["id"]
-    assert list_client_data["items"][0]["available_actions"] == []
+    assert list_client_data["total"] == 2
+    assert created_data["id"] in [item["id"] for item in list_client_data["items"]]
+    created_row = next(item for item in list_client_data["items"] if item["id"] == created_data["id"])
+    assert created_row["available_actions"] == []
 
     list_all_resp = client.get(
         "/api/v1/businesses?page=1&page_size=10&search=API Biz",

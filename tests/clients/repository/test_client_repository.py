@@ -39,14 +39,20 @@ def test_get_active_and_deleted_by_id_number(test_db):
 
     active_rows = repo.get_active_by_id_number("200000001")
     deleted_rows = repo.get_deleted_by_id_number("200000002")
-    all_rows_active = repo.get_all_by_id_number("200000001")
-    all_rows_deleted = repo.get_all_by_id_number("200000002")
+    all_rows_active = [
+        *repo.get_active_by_id_number("200000001"),
+        *repo.get_deleted_by_id_number("200000001"),
+    ]
+    all_rows_deleted = [
+        *repo.get_active_by_id_number("200000002"),
+        *repo.get_deleted_by_id_number("200000002"),
+    ]
 
     assert [c.id for c in active_rows] == [active.id]
     assert [c.id for c in deleted_rows] == [deleted.id]
     assert [c.id for c in all_rows_active] == [active.id]
     assert [c.id for c in all_rows_deleted] == [deleted.id]
-    assert repo.get_by_id_number("200000001").id == active.id
+    assert repo.get_active_by_id_number("200000001")[0].id == active.id
 
 
 def test_restore_clears_deleted_fields(test_db):

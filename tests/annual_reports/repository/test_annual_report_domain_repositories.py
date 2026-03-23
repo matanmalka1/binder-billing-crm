@@ -68,7 +68,6 @@ def test_detail_annex_income_and_expense_repository_methods(test_db):
     assert detail_repo.get_by_report_id(report_id) is None
     created_detail = detail_repo.upsert(
         report_id,
-        tax_due_amount=Decimal("120.00"),
         internal_notes="initial",
     )
     fetched_detail = detail_repo.get_by_report_id(report_id)

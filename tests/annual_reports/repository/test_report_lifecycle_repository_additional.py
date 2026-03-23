@@ -1,6 +1,5 @@
 from datetime import date
 
-from app.annual_reports.repositories.report_lifecycle_repository import AnnualReportLifecycleRepository
 from app.annual_reports.services import AnnualReportService
 from app.clients.models import Client
 
@@ -25,14 +24,12 @@ def _report(test_db):
 
 
 def test_lifecycle_soft_delete_true_and_false(test_db):
-    repo = AnnualReportLifecycleRepository()
-    repo.db = test_db
+    repo = AnnualReportService(test_db).repo
 
     assert repo.soft_delete(999999, deleted_by=1) is False
 
     report = _report(test_db)
     assert repo.soft_delete(report.id, deleted_by=5) is True
 
-    refreshed = AnnualReportService(test_db).repo.get_by_client_year(report.business_id, 2026)
+    refreshed = AnnualReportService(test_db).repo.get_by_business_year(report.business_id, 2026)
     assert refreshed is None
-

@@ -47,9 +47,9 @@ def test_readiness_passes_when_all_checks_complete(test_db):
     # Provide income so taxable income > 0
     service.add_income(report.id, source_type="salary", amount=10_000)
     # Provide tax result and client approval
+    AnnualReportService(test_db).repo.update(report.id, tax_due=1000)
     AnnualReportDetailRepository(test_db).upsert(
         report.id,
-        tax_due_amount=1000,
         client_approved_at=datetime.utcnow(),
     )
 

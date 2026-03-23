@@ -5,18 +5,19 @@ from types import SimpleNamespace
 import pytest
 
 from app.annual_reports.services import annual_report_pdf_service as pdf_mod
+from app.annual_reports.services import annual_report_pdf_builder as pdf_builder
 from app.core.exceptions import NotFoundError
 
 
 def test_fmt_and_r_helpers():
-    assert pdf_mod._fmt(None) == "—"
-    assert pdf_mod._fmt(1234.5).startswith("₪")
-    assert isinstance(pdf_mod._r("שלום"), str)
+    assert pdf_builder._fmt(None) == "—"
+    assert pdf_builder._fmt(1234.5).startswith("₪")
+    assert isinstance(pdf_builder._r("שלום"), str)
 
 
 def test_get_font_falls_back_to_helvetica(monkeypatch):
-    monkeypatch.setattr(pdf_mod.os.path, "exists", lambda _p: False)
-    assert pdf_mod._get_font() == "Helvetica"
+    monkeypatch.setattr(pdf_builder.os.path, "exists", lambda _p: False)
+    assert pdf_builder._get_font() == "Helvetica"
 
 
 def test_generate_raises_not_found_when_report_missing(test_db):
@@ -36,11 +37,11 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
         def get_by_id(self, report_id):
             return fake_report if report_id == 7 else None
 
-    class _ClientRepo:
+    class _BusinessRepo:
         def __init__(self, db):
             self.db = db
 
-        def get_by_id(self, client_id):
+        def get_by_id(self, business_id):
             return SimpleNamespace(full_name="Client PDF")
 
     class _FinSvc:
@@ -77,10 +78,10 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             return SimpleNamespace(tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120"))
 
     monkeypatch.setattr(pdf_mod, "AnnualReportRepository", _Repo)
-    monkeypatch.setattr(pdf_mod, "ClientRepository", _ClientRepo)
+    monkeypatch.setattr(pdf_mod, "BusinessRepository", _BusinessRepo)
     monkeypatch.setattr(pdf_mod, "AnnualReportFinancialService", _FinSvc)
     monkeypatch.setattr(pdf_mod, "AnnualReportDetailService", _DetailSvc)
-    monkeypatch.setattr(pdf_mod, "_build_pdf", lambda *args, **kwargs: b"pdf-bytes")
+    monkeypatch.setattr(pdf_mod, "build_pdf", lambda *args, **kwargs: b"pdf-bytes")
 
     payload, tax_year = pdf_mod.AnnualReportPdfService(test_db).generate(7)
 
@@ -94,6 +95,8 @@ def test_build_pdf_runs_when_reportlab_available_or_raises():
         client_type="corporation",
         status=SimpleNamespace(value="not_started"),
         ita_reference="123",
+        refund_due=0,
+        tax_due=120,
     )
     summary = SimpleNamespace(
         income_lines=[SimpleNamespace(source_type="salary", amount=1000)],
@@ -116,7 +119,7 @@ def test_build_pdf_runs_when_reportlab_available_or_raises():
     detail = SimpleNamespace(tax_refund_amount=0, tax_due_amount=120)
 
     try:
-        pdf = pdf_mod._build_pdf(report, "Client", summary, tax, detail)
+        pdf = pdf_builder.build_pdf(report, "Client", summary, tax, detail)
         assert isinstance(pdf, (bytes, bytearray))
         assert len(pdf) > 0
     except ImportError:

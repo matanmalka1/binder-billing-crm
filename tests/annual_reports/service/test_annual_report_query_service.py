@@ -46,7 +46,8 @@ def test_query_service_list_detail_kanban_and_client_reports(test_db, test_user)
     service.repo.update(report_a_2025.id, status=AnnualReportStatus.SUBMITTED)
     service.repo.update(report_b_2024.id, status=AnnualReportStatus.IN_PREPARATION)
 
-    client_reports = service.get_client_reports(client_a.id)
+    client_reports, total_client_reports = service.get_business_reports(client_a.id, page=1, page_size=20)
+    assert total_client_reports == 2
     assert [r.id for r in client_reports] == [report_a_2026.id, report_a_2025.id]
 
     reports_2025, total_2025 = service.list_reports(tax_year=2025, page=1, page_size=20)

@@ -46,14 +46,14 @@ def _client(test_db) -> Client:
 def _report(
     repo: AnnualReportReportRepository,
     *,
-    client_id: int,
+    business_id: int,
     created_by: int,
     tax_year: int,
     status: AnnualReportStatus,
     deadline: datetime,
 ):
     return repo.create(
-        business_id=client_id,
+        business_id=business_id,
         created_by=created_by,
         tax_year=tax_year,
         client_type=ClientTypeForReport.CORPORATION,
@@ -106,9 +106,9 @@ def test_report_repository_status_listings_and_soft_delete(test_db):
     assert [r.id for r in all_reports] == [not_started.id, submitted_a.id, submitted_b.id]
     assert repo.count_all() == 3
 
-    with_clients = repo.list_all_with_clients()
-    assert len(with_clients) == 3
-    assert {r.business_id for r in with_clients} == {client_a.id, client_b.id}
+    with_businesses = repo.list_all_with_businesses()
+    assert len(with_businesses) == 3
+    assert {r.business_id for r in with_businesses} == {client_a.id, client_b.id}
 
     assert repo.soft_delete(submitted_a.id, deleted_by=user.id) is True
     assert repo.count_all() == 2

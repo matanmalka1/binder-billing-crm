@@ -28,8 +28,8 @@ class _FakeReminderService:
         self.db = db
         self.sent = []
 
-    def get_pending_reminders(self):
-        return ([SimpleNamespace(id=1, reminder_type="custom")], 1, [])
+    def get_pending_reminders(self, *args, **kwargs):
+        return ([SimpleNamespace(id=1, reminder_type="custom", business_id=1, message="m1")], 1, [])
 
     def mark_sent(self, reminder_id):
         self.sent.append(reminder_id)
@@ -89,6 +89,7 @@ def test_daily_expiry_job_logs_when_items_expired(monkeypatch):
 def test_daily_reminder_job_runs_one_iteration(monkeypatch):
     db = _FakeDB()
     fake_service = _FakeReminderService(db)
+    notify_calls = {"n": 0}
     sleep_calls = {"n": 0}
 
     async def _fake_sleep(_):
@@ -97,13 +98,18 @@ def test_daily_reminder_job_runs_one_iteration(monkeypatch):
             raise _StopLoop()
 
     monkeypatch.setattr(background_jobs, "SessionLocal", lambda: db)
-    monkeypatch.setattr(background_jobs, "ReminderService", lambda _db: fake_service)
+    monkeypatch.setattr("app.reminders.services.reminder_service.ReminderService", lambda _db: fake_service)
+    monkeypatch.setattr(
+        "app.notification.services.notification_service.NotificationService",
+        lambda _db: SimpleNamespace(notify_payment_reminder=lambda **_kwargs: notify_calls.__setitem__("n", notify_calls["n"] + 1)),
+    )
     monkeypatch.setattr(background_jobs.asyncio, "sleep", _fake_sleep)
 
     with pytest.raises(_StopLoop):
         asyncio.run(background_jobs.daily_reminder_job())
 
     assert fake_service.sent == [1]
+    assert notify_calls["n"] == 1
     assert db.closed is True
 
 
@@ -120,11 +126,15 @@ def test_daily_reminder_job_handles_exceptions(monkeypatch):
         def __init__(self, db):
             self.db = db
 
-        def get_pending_reminders(self):
+        def get_pending_reminders(self, *args, **kwargs):
             raise RuntimeError("bad reminder query")
 
     monkeypatch.setattr(background_jobs, "SessionLocal", lambda: db)
-    monkeypatch.setattr(background_jobs, "ReminderService", _BadReminderService)
+    monkeypatch.setattr("app.reminders.services.reminder_service.ReminderService", _BadReminderService)
+    monkeypatch.setattr(
+        "app.notification.services.notification_service.NotificationService",
+        lambda _db: SimpleNamespace(notify_payment_reminder=lambda **_kwargs: True),
+    )
     monkeypatch.setattr(background_jobs.asyncio, "sleep", _fake_sleep)
 
     with pytest.raises(_StopLoop):
