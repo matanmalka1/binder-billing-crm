@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -61,7 +61,7 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
             "format": "pdf",
             "filepath": "/tmp/fake.pdf",
             "filename": "fake.pdf",
-            "generated_at": datetime.utcnow(),
+            "generated_at": datetime.now(UTC),
         }
 
     monkeypatch.setattr(
@@ -101,7 +101,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
         total_input_vat=Decimal("20.00"),
         net_vat=Decimal("150.00"),
         final_vat_amount=Decimal("150.00"),
-        filed_at=datetime.utcnow() - timedelta(days=1),
+        filed_at=datetime.now(UTC) - timedelta(days=1),
     )
 
     payload = export_vat_to_pdf(

@@ -45,5 +45,5 @@ COMPANY_WORDS = [
     "נגב",
 ]
 
-# Bcrypt hash for "Password123!" so seeded users can authenticate in local flows.
-DEFAULT_PASSWORD_HASH = "$2b$12$GCe3xb22PzzJ4b9/UJwbxeSpuz/v5Uc79Kiv7YCINfz5RDMf54.2a"
+# Bcrypt hash for "Aa100100!!" so seeded users can authenticate in local flows.
+DEFAULT_PASSWORD_HASH = "$2b$12$binOkEqSC0TCTiRwaS3UqOBTRtqV.KGaWxqCbsQUmUz0UTc1mVIIm"

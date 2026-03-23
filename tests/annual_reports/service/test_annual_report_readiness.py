@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
 from app.annual_reports.services import AnnualReportService
@@ -50,7 +50,7 @@ def test_readiness_passes_when_all_checks_complete(test_db):
     AnnualReportService(test_db).repo.update(report.id, tax_due=1000)
     AnnualReportDetailRepository(test_db).upsert(
         report.id,
-        client_approved_at=datetime.utcnow(),
+        client_approved_at=datetime.now(UTC),
     )
 
     result = service.get_readiness_check(report.id)

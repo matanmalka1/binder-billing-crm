@@ -30,7 +30,7 @@ def get_work_item_enriched(
     return {
         "item": item,
         "name_map": {item.business_id: display_name},
-        "status_map": {item.business_id: business.status.value if business else None},
+        "status_map": {item.business_id: business.status if business else None},
         "user_map": user_map,
     }
 
@@ -50,7 +50,7 @@ def get_business_items_enriched(
     return {
         "items": items,
         "name_map": {business_id: display_name},
-        "status_map": {business_id: business.status.value if business else None},
+        "status_map": {business_id: business.status if business else None},
         "user_map": {u.id: u.full_name for u in users},
     }
 
@@ -89,7 +89,7 @@ def get_list_enriched(
         "name_map": {
             b.id: (b.business_name or b.client.full_name) for b in businesses
         },
-        "status_map": {b.id: b.status.value for b in businesses},
+        "status_map": {b.id: b.status for b in businesses},
         "user_map": {u.id: u.full_name for u in users},
     }
 

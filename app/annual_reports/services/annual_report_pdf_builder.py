@@ -7,8 +7,6 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from bidi.algorithm import get_display
-
 from app.annual_reports.services.labels import (
     CLIENT_TYPE_LABELS as _CLIENT_TYPE_LABELS,
     EXPENSE_LABELS as _EXPENSE_LABELS,
@@ -57,6 +55,7 @@ def _get_font() -> str:
 def _r(text: str) -> str:
     """Reorder Hebrew text to visual LTR order for reportlab (no shaping engine)."""
     try:
+        from bidi.algorithm import get_display
         return get_display(text)
     except Exception:
         return text

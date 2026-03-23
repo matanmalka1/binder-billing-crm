@@ -143,7 +143,7 @@ class SeedCoverageValidator:
             client_ids=client_ids,
             per_client_counts=self._count_by_fk(db, PermanentDocument, PermanentDocument.client_id),
             minimum=2,
-            maximum=3,
+            maximum=4,
         )
         self._assert_per_client_bounds(
             errors,

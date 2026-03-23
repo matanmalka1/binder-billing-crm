@@ -56,12 +56,11 @@ Notes:
 ## Migration chain
 
 ```
-f90ff6e80bcf  ← HEAD (initial_schema — fresh start 2026-03-21)
+ff773718d72e  ← HEAD (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
 
-### `f90ff6e80bcf` ← HEAD
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
@@ -102,7 +101,7 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision
 3. Edit the generated file:
    - Add the required top docstring.
    - Wrap all partial-index `where` strings with `sa.text(...)`.
-   - Ensure `down_revision` points to `f90ff6e80bcf` (or the current HEAD).
+   - Ensure `down_revision` points to `ff773718d72e` (or the current HEAD).
 4. Apply:
    `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 

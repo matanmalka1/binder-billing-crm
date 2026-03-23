@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
@@ -41,7 +41,7 @@ def _create_client_and_business(test_db, suffix: str) -> tuple[Client, Business]
 
 def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_user):
     crm_client, business = _create_client_and_business(test_db, "VAT")
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     filed = VatWorkItem(
         business_id=business.id,

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from app.businesses.models.business import Business
 from app.businesses.models.business_tax_profile import VatType
@@ -34,7 +34,7 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     user = _user(test_db)
     business = _business(test_db)
     service = VatReportService(test_db)
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
 
     older = service.work_item_repo.create(
         business_id=business.id,

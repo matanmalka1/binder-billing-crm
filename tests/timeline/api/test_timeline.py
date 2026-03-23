@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import count
 
@@ -67,8 +67,8 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         amount=Decimal("500.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
         status=ChargeStatus.ISSUED,
-        created_at=datetime.utcnow() - timedelta(days=4),
-        issued_at=datetime.utcnow() - timedelta(days=3),
+        created_at=datetime.now(UTC) - timedelta(days=4),
+        issued_at=datetime.now(UTC) - timedelta(days=3),
     )
     test_db.add(charge)
 
@@ -87,8 +87,8 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         title="Sign",
         signer_name="Signer",
         status=SignatureRequestStatus.PENDING_SIGNATURE,
-        created_at=datetime.utcnow() - timedelta(days=6),
-        sent_at=datetime.utcnow() - timedelta(days=5),
+        created_at=datetime.now(UTC) - timedelta(days=6),
+        sent_at=datetime.now(UTC) - timedelta(days=5),
     )
     test_db.add(sig)
 
@@ -100,7 +100,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         days_before=0,
         send_on=date.today(),
         message="Reminder",
-        created_at=datetime.utcnow() - timedelta(days=7),
+        created_at=datetime.now(UTC) - timedelta(days=7),
     )
     test_db.add(reminder)
 
@@ -110,7 +110,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         channel=NotificationChannel.EMAIL,
         recipient="test@example.com",
         content_snapshot="Ready",
-        created_at=datetime.utcnow() - timedelta(days=8),
+        created_at=datetime.now(UTC) - timedelta(days=8),
     )
     test_db.add(notification)
 
@@ -119,8 +119,8 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         charge_id=charge.id,
         provider="dummy",
         external_invoice_id="INV-1",
-        issued_at=datetime.utcnow() - timedelta(days=2),
-        created_at=datetime.utcnow() - timedelta(days=2),
+        issued_at=datetime.now(UTC) - timedelta(days=2),
+        created_at=datetime.now(UTC) - timedelta(days=2),
     )
     test_db.add(invoice)
     test_db.commit()
