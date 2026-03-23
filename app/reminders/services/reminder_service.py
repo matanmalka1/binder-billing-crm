@@ -78,6 +78,9 @@ class ReminderService:
         return reminder_queries.get_reminder(self.reminder_repo, reminder_id)
 
     # Status changes
+    def claim_for_processing(self, reminder_id: int):
+        return self.reminder_repo.claim_for_processing(reminder_id)
+
     def mark_sent(self, reminder_id: int):
         return status_changes.mark_sent(self.reminder_repo, reminder_id)
 

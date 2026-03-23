@@ -133,6 +133,16 @@ class ReminderRepository(BaseRepository):
         )
         return self._paginate(query, page, page_size)
 
+    def claim_for_processing(self, reminder_id: int) -> Optional[Reminder]:
+        """Transition PENDING → PROCESSING. Returns None if already claimed/sent."""
+        reminder = self.get_by_id(reminder_id)
+        if not reminder or reminder.status != ReminderStatus.PENDING:
+            return None
+        reminder.status = ReminderStatus.PROCESSING
+        self.db.commit()
+        self.db.refresh(reminder)
+        return reminder
+
     def update_status(
         self,
         reminder_id: int,

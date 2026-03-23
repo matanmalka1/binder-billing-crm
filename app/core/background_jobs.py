@@ -78,6 +78,11 @@ async def daily_reminder_job() -> None:
             sent = failed = 0
             for reminder in items:
                 try:
+                    # Claim before sending — prevents double-send if process restarts
+                    # between send and mark_sent. Stuck PROCESSING rows are observable.
+                    claimed = reminder_svc.claim_for_processing(reminder.id)
+                    if not claimed:
+                        continue
                     notification_svc.notify_payment_reminder(
                         business_id=reminder.business_id,
                         reminder_text=reminder.message,

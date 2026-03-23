@@ -38,9 +38,10 @@ class ReminderType(str, PyEnum):
 
 
 class ReminderStatus(str, PyEnum):
-    PENDING  = "pending"
-    SENT     = "sent"
-    CANCELED = "canceled"
+    PENDING    = "pending"
+    PROCESSING = "processing"  # claimed by background job; in-flight
+    SENT       = "sent"
+    CANCELED   = "canceled"
 
 
 class Reminder(Base):

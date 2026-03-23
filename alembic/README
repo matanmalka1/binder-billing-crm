@@ -56,10 +56,26 @@ Notes:
 ## Migration chain
 
 ```
-ff773718d72e  ← HEAD (initial_schema — fresh start 2026-03-23)
+8a3c1f2b9d4e  ← HEAD (add processing to reminderstatus enum — 2026-03-23)
+ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0002 — add_reminder_status_processing (8a3c1f2b9d4e)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 8a3c1f2b9d4e`
+- What it does:
+  Adds `'processing'` to the `reminderstatus` PostgreSQL enum so the daily background
+  job can claim reminder rows before sending (prevents double-send on crash/restart).
+  SQLite requires no DDL change (string columns accept any value).
+- Important notes:
+  - Downgrade is a no-op — PostgreSQL cannot remove enum values.
+  - Any rows stuck in `status='processing'` after a crash can be reset manually:
+    `UPDATE reminders SET status='pending' WHERE status='processing';`
+
+### 0001 — initial_schema (ff773718d72e)
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
