@@ -8,7 +8,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
-from app.binders.schemas.binder import BinderIntakeMaterialResponse, BinderIntakeResponse
+from app.binders.schemas.binder import BinderHistoryEntry, BinderIntakeMaterialResponse, BinderIntakeResponse
 from app.core.exceptions import NotFoundError
 from app.users.repositories.user_repository import UserRepository
 
@@ -23,6 +23,23 @@ class BinderHistoryService:
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.user_repo = UserRepository(db)
+
+    def build_history_entries(self, logs: list[BinderStatusLog]) -> list[BinderHistoryEntry]:
+        """Enrich status log records with changed_by user names."""
+        user_ids = {log.changed_by for log in logs}
+        users = [self.user_repo.get_by_id(uid) for uid in user_ids]
+        name_map = {u.id: u.full_name for u in users if u}
+        return [
+            BinderHistoryEntry(
+                old_status=log.old_status,
+                new_status=log.new_status,
+                changed_by=log.changed_by,
+                changed_by_name=name_map.get(log.changed_by),
+                changed_at=log.changed_at,
+                notes=log.notes,
+            )
+            for log in logs
+        ]
 
     def get_binder_history(
         self, binder_id: int

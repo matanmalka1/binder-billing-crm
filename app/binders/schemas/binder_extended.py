@@ -48,6 +48,7 @@ class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
+    changed_by_name: Optional[str] = None    # enriched by service
     changed_at: ApiDateTime
     notes: Optional[str] = None
 

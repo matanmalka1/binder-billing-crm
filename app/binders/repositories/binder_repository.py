@@ -65,14 +65,18 @@ class BinderRepository(BaseRepository):
         sort_dir: str = "desc",
         page: int = 1,
         page_size: int = 1000,
+        include_returned: bool = False,
     ) -> list[Binder]:
-        """List active binders with optional filters, sorting, and pagination."""
+        """List binders with optional filters, sorting, and pagination.
+
+        By default excludes RETURNED binders. Pass include_returned=True to
+        include them (used when filtering explicitly by returned status).
+        """
         from sqlalchemy import asc, desc
 
-        query = self.db.query(Binder).filter(
-            Binder.status != BinderStatus.RETURNED,
-            Binder.deleted_at.is_(None),
-        )
+        query = self.db.query(Binder).filter(Binder.deleted_at.is_(None))
+        if not include_returned:
+            query = query.filter(Binder.status != BinderStatus.RETURNED)
 
         if client_id:
             query = query.filter(Binder.client_id == client_id)

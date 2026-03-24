@@ -31,6 +31,15 @@ class BinderIntakeRepository:
         self.db.refresh(intake)
         return intake
 
+    def get_first_by_binder(self, binder_id: int) -> Optional[BinderIntake]:
+        """Get the earliest intake for a binder (first material received)."""
+        return (
+            self.db.query(BinderIntake)
+            .filter(BinderIntake.binder_id == binder_id)
+            .order_by(BinderIntake.received_at.asc())
+            .first()
+        )
+
     def list_by_binder(self, binder_id: int) -> list[BinderIntake]:
         """Get all intakes for a binder, ordered by received_at ascending."""
         return (
