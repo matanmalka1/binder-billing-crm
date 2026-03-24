@@ -63,7 +63,7 @@ def test_update_detail_creates_and_updates(client, test_db, advisor_headers):
     first = first_response.json()
     assert first["pension_contribution"] == "1200.50"
     assert first["donation_amount"] == "300.00"
-    assert first["client_approved_at"] == "2026-02-15T12:00:00"
+    assert first["client_approved_at"] == "2026-02-15T12:00:00Z"
     assert first["internal_notes"] == "Initial review complete"
     assert first["updated_at"] is None
 

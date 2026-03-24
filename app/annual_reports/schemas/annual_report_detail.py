@@ -39,6 +39,8 @@ class ReportDetailResponse(BaseModel):
     pension_contribution: Optional[ApiDecimal] = None
     donation_amount: Optional[ApiDecimal] = None
     other_credits: Optional[ApiDecimal] = None
+    tax_refund_amount: Optional[float] = None
+    tax_due_amount: Optional[float] = None
     client_approved_at: Optional[ApiDateTime] = None
     internal_notes: Optional[str] = None
     amendment_reason: Optional[str] = None

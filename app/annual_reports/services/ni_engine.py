@@ -21,7 +21,7 @@ class NationalInsuranceResult:
 def calculate_national_insurance(income: float, tax_year: int = 2024) -> NationalInsuranceResult:
     """Calculate Israeli National Insurance for the given tax year."""
     ceiling = _NI_CEILING_BY_YEAR.get(tax_year, _NI_CEILING_BY_YEAR[2024])
-    income = max(income, 0.0)
+    income = max(float(income), 0.0)
     base = min(income, ceiling)
     above = max(income - ceiling, 0.0)
     base_amount = round(base * _NI_RATE_BASE, 2)

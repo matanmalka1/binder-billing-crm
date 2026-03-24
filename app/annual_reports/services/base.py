@@ -20,19 +20,29 @@ class AnnualReportBaseService:
 
     def _to_responses(self, reports: list[AnnualReport]) -> list[AnnualReportResponse]:
         """
-        Project ORM instances to AnnualReportResponse, populating client_name
+        Project ORM instances to AnnualReportResponse, populating client context
         from the client repository rather than mutating the ORM objects.
         """
         if not reports:
             return []
         business_ids = {r.business_id for r in reports}
         businesses = self.business_repo.list_by_ids(list(business_ids)) if business_ids else []
-        id_to_name = {b.id: b.full_name for b in businesses}
+        id_to_context = {
+            b.id: {
+                "client_id": b.client_id,
+                "client_name": b.full_name,
+                "business_name": b.business_name,
+            }
+            for b in businesses
+        }
         from app.actions.report_deadline_actions import get_annual_report_actions
         result = []
         for r in reports:
             obj = AnnualReportResponse.model_validate(r)
-            obj.client_name = id_to_name.get(r.business_id)
+            context = id_to_context.get(r.business_id, {})
+            obj.client_id = context.get("client_id")
+            obj.client_name = context.get("client_name")
+            obj.business_name = context.get("business_name")
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
             result.append(obj)
         return result

@@ -33,6 +33,9 @@ def test_get_report_not_found_and_delete_paths(client, test_db, advisor_headers)
     report_id = _create_report(test_db)
     get_ok = client.get(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)
     assert get_ok.status_code == 200
+    body = get_ok.json()
+    assert body["client_id"] is not None
+    assert body["client_name"] == "AR CreateRead Additional"
 
     del_ok = client.delete(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)
     assert del_ok.status_code == 204

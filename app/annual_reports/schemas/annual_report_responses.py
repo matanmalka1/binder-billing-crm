@@ -20,6 +20,9 @@ from app.annual_reports.models.annual_report_enums import (
 class AnnualReportResponse(BaseModel):
     id: int
     business_id: int
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    business_name: Optional[str] = None
     tax_year: int
     client_type: ClientTypeForReport
     form_type: AnnualReportForm
@@ -76,6 +79,7 @@ class StatusHistoryResponse(BaseModel):
     from_status: Optional[AnnualReportStatus] = None
     to_status: AnnualReportStatus
     changed_by: int
+    changed_by_name: Optional[str] = None
     note: Optional[str] = None
     occurred_at: ApiDateTime
 

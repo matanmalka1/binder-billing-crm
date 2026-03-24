@@ -71,6 +71,10 @@ def calculate_tax(
     other_credits: float = 0.0,
 ) -> TaxCalculationResult:
     """Calculate Israeli income tax for the given tax year."""
+    taxable_income = float(taxable_income)
+    pension_deduction = float(pension_deduction)
+    donation_amount = float(donation_amount)
+    other_credits = float(other_credits)
     if tax_year not in _BRACKETS_BY_YEAR:
         raise AppError(
             f"שנת מס {tax_year} אינה נתמכת. שנים נתמכות: {sorted(_BRACKETS_BY_YEAR)}",
