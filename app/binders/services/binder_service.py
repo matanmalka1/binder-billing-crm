@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from typing import Optional
 
@@ -11,6 +12,8 @@ from app.binders.repositories.binder_status_log_repository import BinderStatusLo
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
+
+_log = logging.getLogger(__name__)
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
 from app.notification.services.notification_service import NotificationService
@@ -73,16 +76,23 @@ class BinderService(BinderListService):
             notes="סומן כמוכן לאיסוף",
         )
 
-        # NotificationService.notify_ready_for_pickup expects (Binder, Business).
-        # Fetch the first active business for this client as the notification target.
         businesses = self.business_repo.list_by_client(binder.client_id)
         if businesses:
             self.notification_service.notify_ready_for_pickup(updated, businesses[0])
+        else:
+            _log.warning(
+                "notify_ready_for_pickup skipped: client %s has no businesses (binder %s)",
+                binder.client_id, binder_id,
+            )
 
         return updated
 
     def return_binder(
-        self, binder_id: int, pickup_person_name: str, returned_by: int
+        self,
+        binder_id: int,
+        pickup_person_name: str,
+        returned_by: int,
+        returned_at: Optional[date] = None,
     ) -> Binder:
         """Return binder to client."""
         binder = self.binder_repo.get_by_id(binder_id)
@@ -92,13 +102,13 @@ class BinderService(BinderListService):
         binder_helpers.validate_return_transition(binder, pickup_person_name)
 
         old_status = binder.status.value
-        returned_at = date.today()
+        effective_returned_at = returned_at or date.today()
 
         updated = self.binder_repo.update_status(
             binder_id,
             BinderStatus.RETURNED,
             binder=binder,
-            returned_at=returned_at,
+            returned_at=effective_returned_at,
             pickup_person_name=pickup_person_name.strip(),
         )
 
@@ -108,6 +118,27 @@ class BinderService(BinderListService):
             new_status=BinderStatus.RETURNED.value,
             changed_by=returned_by,
             notes=f"נאסף על ידי {pickup_person_name}",
+        )
+
+        return updated
+
+    def revert_ready(self, binder_id: int, user_id: int) -> Binder:
+        """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
+        binder = self.binder_repo.get_by_id(binder_id)
+        if not binder:
+            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
+
+        binder_helpers.validate_revert_ready_transition(binder)
+
+        old_status = binder.status.value
+        updated = self.binder_repo.update_status(binder_id, BinderStatus.IN_OFFICE, binder=binder)
+
+        self.status_log_repo.append(
+            binder_id=binder_id,
+            old_status=old_status,
+            new_status=BinderStatus.IN_OFFICE.value,
+            changed_by=user_id,
+            notes="בוטל סטטוס מוכן לאיסוף",
         )
 
         return updated

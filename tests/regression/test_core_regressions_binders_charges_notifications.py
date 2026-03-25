@@ -26,7 +26,7 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder"]["binder_number"] == "S5-REG-001"
+    assert data["binder"]["binder_number"].startswith(str(test_client.id) + "/")
     assert data["binder"]["status"] == "in_office"
 
 

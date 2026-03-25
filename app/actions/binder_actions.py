@@ -31,6 +31,21 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
     if status == BinderStatus.READY_FOR_PICKUP.value:
         actions.append(
             build_action(
+                key="revert_ready",
+                label="בטל מוכן לאיסוף",
+                method="post",
+                endpoint=f"/binders/{binder.id}/revert-ready",
+                action_id=_generate_action_id("binder", binder.id, "revert_ready"),
+                confirm={
+                    "title": "ביטול סטטוס מוכן לאיסוף",
+                    "message": "האם לבטל את הסימון כמוכן לאיסוף ולהחזיר את הקלסר לסטטוס במשרד?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
+            )
+        )
+        actions.append(
+            build_action(
                 key="return",
                 label="החזרת קלסר",
                 method="post",

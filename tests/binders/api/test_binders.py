@@ -40,6 +40,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert response.status_code == 201
     binder_data = _receive_payload(response.json())
     binder_id = binder_data["id"]
+    assert binder_data["binder_number"].startswith(str(test_client.id) + "/")
     actions = binder_data.get("available_actions", [])
     assert any(action["key"] == "ready" for action in actions)
     ready_action = next(action for action in actions if action["key"] == "ready")

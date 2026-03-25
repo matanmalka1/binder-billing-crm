@@ -149,6 +149,27 @@ class BinderRepository(BaseRepository):
             .all()
         )
 
+    def get_active_by_client(self, client_id: int) -> Optional[Binder]:
+        """Return the single non-returned, non-full, non-deleted binder for a client."""
+        return (
+            self.db.query(Binder)
+            .filter(
+                Binder.client_id == client_id,
+                Binder.status != BinderStatus.RETURNED,
+                Binder.is_full.is_(False),
+                Binder.deleted_at.is_(None),
+            )
+            .first()
+        )
+
+    def count_all_by_client(self, client_id: int) -> int:
+        """Count ALL binders for a client (including soft-deleted) for monotonic label seq."""
+        return (
+            self.db.query(Binder)
+            .filter(Binder.client_id == client_id)
+            .count()
+        )
+
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
         """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()

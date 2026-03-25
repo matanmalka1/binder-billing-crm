@@ -1,19 +1,23 @@
+import logging
 from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ConflictError
+from app.core.exceptions import AppError
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
+from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
+
+_log = logging.getLogger(__name__)
 
 
 class BinderIntakeService:
@@ -50,30 +54,29 @@ class BinderIntakeService:
 
         Returns (binder, intake, is_new_binder).
         """
-        client = ClientService(self.db).get_client_or_raise(client_id)
+        ClientService(self.db).get_client_or_raise(client_id)
 
-        binder_number = str(client_id)
-        existing = self.binder_repo.get_active_by_number(binder_number)
+        businesses = self.business_repo.list_by_client(client_id)
+        has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
+        if businesses and not has_active:
+            raise AppError(
+                "לא ניתן לקלוט קלסר ללקוח מוקפא או סגור",
+                "BINDER.CLIENT_LOCKED",
+            )
+
+        existing = self.binder_repo.get_active_by_client(client_id)
 
         if existing and open_new_binder:
-            if existing.client_id != client_id:
-                raise ConflictError(
-                    f"הקלסר {binder_number} שייך ללקוח אחר",
-                    "BINDER.CLIENT_MISMATCH",
-                )
             existing.is_full = True
             self.db.flush()
             existing = None
 
         if existing:
-            if existing.client_id != client_id:
-                raise ConflictError(
-                    f"הקלסר {binder_number} שייך ללקוח אחר",
-                    "BINDER.CLIENT_MISMATCH",
-                )
             binder = existing
             is_new_binder = False
         else:
+            seq = self.binder_repo.count_all_by_client(client_id) + 1
+            binder_number = f"{client_id}/{seq}"
             binder = self.binder_repo.create(
                 client_id=client_id,
                 binder_number=binder_number,
@@ -107,10 +110,12 @@ class BinderIntakeService:
             )
 
         if is_new_binder:
-            # NotificationService.notify_binder_received expects (Binder, Business).
-            # Fetch the first active business for this client.
-            businesses = self.business_repo.list_by_client(client_id)
             if businesses:
                 self.notification_service.notify_binder_received(binder, businesses[0])
+            else:
+                _log.warning(
+                    "notify_binder_received skipped: client %s has no businesses (binder %s)",
+                    client_id, binder.id,
+                )
 
         return binder, intake, is_new_binder

@@ -4,8 +4,9 @@ import pytest
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
+from app.businesses.models.business import Business, BusinessStatus, BusinessType
 from app.clients.models import Client
-from app.core.exceptions import ConflictError
+from app.core.exceptions import AppError
 
 
 def _client(db, id_number: str) -> Client:
@@ -19,39 +20,41 @@ def _client(db, id_number: str) -> Client:
     return client
 
 
-def test_receive_raises_conflict_when_binder_belongs_to_other_client(test_db, test_user):
-    owner = _client(test_db, "BI-SVC-001")
-    other = _client(test_db, "BI-SVC-002")
-
-    existing = Binder(
-        client_id=owner.id,
-        binder_number="BIN-CONFLICT-1",
-        period_start=date.today(),
-        created_by=test_user.id,
-        status=BinderStatus.IN_OFFICE,
+def _business(db, client_id: int, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
+    biz = Business(
+        client_id=client_id,
+        business_type=BusinessType.OSEK_PATUR,
+        status=status,
+        opened_at=date.today(),
     )
-    test_db.add(existing)
-    test_db.commit()
+    db.add(biz)
+    db.commit()
+    db.refresh(biz)
+    return biz
+
+
+def test_receive_creates_composite_binder_label(test_db, test_user):
+    client = _client(test_db, "BI-SVC-NEW-001")
+    _business(test_db, client.id)
 
     service = BinderIntakeService(test_db)
-    with pytest.raises(ConflictError) as exc_info:
-        service.receive(
-            client_id=other.id,
-            binder_number="BIN-CONFLICT-1",
-            period_start=date.today(),
-            received_at=date.today(),
-            received_by=test_user.id,
-            notes="should fail",
-        )
+    binder, _, is_new = service.receive(
+        client_id=client.id,
+        period_start=date.today(),
+        received_at=date.today(),
+        received_by=test_user.id,
+    )
 
-    assert exc_info.value.code == "BINDER.CLIENT_MISMATCH"
+    assert is_new is True
+    assert binder.binder_number == f"{client.id}/1"
 
 
 def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     client = _client(test_db, "BI-SVC-003")
+    _business(test_db, client.id)
     existing = Binder(
         client_id=client.id,
-        binder_number="BIN-EXISTING-1",
+        binder_number=f"{client.id}/1",
         period_start=date.today(),
         created_by=test_user.id,
         status=BinderStatus.IN_OFFICE,
@@ -63,7 +66,6 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     service = BinderIntakeService(test_db)
     binder, intake, is_new = service.receive(
         client_id=client.id,
-        binder_number="BIN-EXISTING-1",
         period_start=date.today(),
         received_at=date.today(),
         received_by=test_user.id,
@@ -73,3 +75,51 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     assert binder.id == existing.id
     assert intake.binder_id == existing.id
     assert is_new is False
+
+
+def test_receive_raises_when_all_businesses_locked(test_db, test_user):
+    client = _client(test_db, "BI-SVC-LOCKED-001")
+    # conftest auto-creates one ACTIVE business per client; mark all as FROZEN
+    test_db.query(Business).filter(Business.client_id == client.id).update(
+        {"status": BusinessStatus.FROZEN}
+    )
+    test_db.commit()
+
+    service = BinderIntakeService(test_db)
+    with pytest.raises(AppError) as exc_info:
+        service.receive(
+            client_id=client.id,
+            period_start=date.today(),
+            received_at=date.today(),
+            received_by=test_user.id,
+        )
+
+    assert exc_info.value.code == "BINDER.CLIENT_LOCKED"
+
+
+def test_receive_second_binder_increments_seq(test_db, test_user):
+    client = _client(test_db, "BI-SVC-SEQ-001")
+    _business(test_db, client.id)
+
+    # Seed first binder manually as already full (so service creates a new one)
+    existing = Binder(
+        client_id=client.id,
+        binder_number=f"{client.id}/1",
+        period_start=date.today(),
+        created_by=test_user.id,
+        status=BinderStatus.IN_OFFICE,
+        is_full=True,
+    )
+    test_db.add(existing)
+    test_db.commit()
+
+    service = BinderIntakeService(test_db)
+    binder, _, is_new = service.receive(
+        client_id=client.id,
+        period_start=date.today(),
+        received_at=date.today(),
+        received_by=test_user.id,
+    )
+
+    assert is_new is True
+    assert binder.binder_number == f"{client.id}/2"

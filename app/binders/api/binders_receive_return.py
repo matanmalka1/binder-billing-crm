@@ -70,5 +70,14 @@ def return_binder(
         binder_id=binder_id,
         pickup_person_name=pickup_person_name,
         returned_by=returned_by,
+        returned_at=request.returned_at if request else None,
     )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/revert-ready", response_model=BinderResponse)
+def revert_ready(binder_id: int, db: DBSession, user: CurrentUser):
+    """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
+    service = BinderService(db)
+    binder = service.revert_ready(binder_id=binder_id, user_id=user.id)
     return fetch_client_and_build_response(binder, db)

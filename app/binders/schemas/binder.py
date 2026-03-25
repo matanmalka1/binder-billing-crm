@@ -36,6 +36,7 @@ class BinderReceiveRequest(BaseModel):
 class BinderReturnRequest(BaseModel):
     pickup_person_name: Optional[str] = None
     returned_by: Optional[int] = None
+    returned_at: Optional[date] = None
 
 
 # ── Core response ─────────────────────────────────────────────────────────────
