@@ -25,6 +25,7 @@ class BusinessRepository(BusinessRepositoryRead):
         opened_at: date,
         business_name: Optional[str] = None,
         notes: Optional[str] = None,
+        tax_id_number: Optional[str] = None,
         created_by: Optional[int] = None,
     ) -> Business:
         business = Business(
@@ -33,6 +34,7 @@ class BusinessRepository(BusinessRepositoryRead):
             business_type=business_type,
             opened_at=opened_at,
             notes=notes,
+            tax_id_number=tax_id_number,
             created_by=created_by,
         )
         self.db.add(business)

@@ -56,11 +56,25 @@ Notes:
 ## Migration chain
 
 ```
-8a3c1f2b9d4e  ← HEAD (add processing to reminderstatus enum — 2026-03-23)
+5d8f1a4c2e7b  ← HEAD (add business_type and tax_year_start to business_tax_profiles — 2026-03-25)
+4c9d2e3b1f6a         (add is_full to binders — 2026-03-24)
+3b7e2c1a0f5d         (add changed_by_name to binder_status_history — 2026-03-23)
+8a3c1f2b9d4e         (add processing to reminderstatus enum — 2026-03-23)
 ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0005 — add_business_type_and_tax_year_start_to_tax_profile (5d8f1a4c2e7b)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 5d8f1a4c2e7b`
+- What it does:
+  Adds `business_type` (varchar 100, nullable) and `tax_year_start` (integer, nullable) columns
+  to `business_tax_profiles`. These fields were missing from the model but expected by the frontend.
+- Important notes:
+  - Both columns are nullable — no data migration needed.
+  - Downgrade drops both columns.
 
 ### 0002 — add_reminder_status_processing (8a3c1f2b9d4e)
 

@@ -44,6 +44,7 @@ def create_business(
         opened_at=request.opened_at,
         business_name=request.business_name,
         notes=request.notes,
+        tax_id_number=request.tax_id_number,
         actor_id=user.id,
     )
     return _to_business_response(business, user.role)

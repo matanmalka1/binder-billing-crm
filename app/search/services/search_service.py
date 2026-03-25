@@ -58,14 +58,16 @@ class SearchService:
                     page=page,
                     page_size=page_size,
                 )
+                binder_map = self.binder_repo.map_active_by_clients([c.id for c in clients])
                 return [
                     {
                         "result_type": "client",
                         "client_id": c.id,
                         "client_name": c.full_name,
+                        "id_number": c.id_number,
                         "client_status": None,
-                        "binder_id": None,
-                        "binder_number": None,
+                        "binder_id": binder_map[c.id].id if c.id in binder_map else None,
+                        "binder_number": binder_map[c.id].binder_number if c.id in binder_map else None,
                         "work_state": None,
                         "signals": [],
                     }
@@ -84,15 +86,18 @@ class SearchService:
                 page=1,
                 page_size=_MIXED_SEARCH_CLIENT_LIMIT,
             )
+            client_binder_map = self.binder_repo.map_active_by_clients([c.id for c in all_clients])
             for c in all_clients:
+                b = client_binder_map.get(c.id)
                 results.append(
                     {
                         "result_type": "client",
                         "client_id": c.id,
                         "client_name": c.full_name,
+                        "id_number": c.id_number,
                         "client_status": None,
-                        "binder_id": None,
-                        "binder_number": None,
+                        "binder_id": b.id if b else None,
+                        "binder_number": b.binder_number if b else None,
                         "work_state": None,
                         "signals": [],
                     }
@@ -135,6 +140,7 @@ class SearchService:
                         "result_type": "binder",
                         "client_id": binder.client_id,
                         "client_name": client.full_name if client else "לא ידוע",
+                        "id_number": client.id_number if client else None,
                         "client_status": None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,

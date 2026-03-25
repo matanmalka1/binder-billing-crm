@@ -31,6 +31,7 @@ class BusinessService:
         opened_at: date,
         business_name: Optional[str] = None,
         notes: Optional[str] = None,
+        tax_id_number: Optional[str] = None,
         actor_id: Optional[int] = None,
     ) -> Business:
         client = self.client_repo.get_by_id(client_id)
@@ -48,7 +49,8 @@ class BusinessService:
         try:
             return self.business_repo.create(
                 client_id=client_id, business_type=business_type, opened_at=opened_at,
-                business_name=business_name, notes=notes, created_by=actor_id,
+                business_name=business_name, notes=notes, tax_id_number=tax_id_number,
+                created_by=actor_id,
             )
         except IntegrityError:
             raise ConflictError(

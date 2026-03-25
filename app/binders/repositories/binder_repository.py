@@ -170,6 +170,22 @@ class BinderRepository(BaseRepository):
             .count()
         )
 
+    def map_active_by_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:
+        """Return {client_id: binder} for the active (non-returned, non-full) binder of each client."""
+        if not client_ids:
+            return {}
+        rows = (
+            self.db.query(Binder)
+            .filter(
+                Binder.client_id.in_(client_ids),
+                Binder.status != BinderStatus.RETURNED,
+                Binder.is_full.is_(False),
+                Binder.deleted_at.is_(None),
+            )
+            .all()
+        )
+        return {b.client_id: b for b in rows}
+
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
         """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()

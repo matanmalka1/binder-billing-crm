@@ -137,7 +137,7 @@ class NotificationService:
     def _build_name_map(self, notifications: list) -> dict[int, str]:
         ids = list({n.business_id for n in notifications})
         businesses = self.business_repo.list_by_ids(ids)
-        return {b.id: b.business_name for b in businesses if b.business_name}
+        return {b.id: b.full_name for b in businesses}
 
     def count_unread(self, business_id: Optional[int] = None) -> int:
         return self.notification_repo.count_unread(business_id=business_id)

@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.exceptions import ConflictError, NotFoundError
 from app.clients.models.client import Client, IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_binder_helper import create_initial_binder
 
 
 class ClientService:
@@ -37,7 +38,6 @@ class ClientService:
         אם לקוח עם אותו ת.ז. כבר קיים ופעיל — זורק CLIENT.CONFLICT עם client_id.
         אם לקוח עם אותו ת.ז. קיים אך מחוק — זורק CLIENT.DELETED_EXISTS עם רשימת הרשומות.
         """
-        # בדיקת לקוח פעיל קיים
         active_clients = self.client_repo.get_active_by_id_number(id_number)
         if active_clients:
             raise ConflictError(
@@ -45,7 +45,6 @@ class ClientService:
                 "CLIENT.CONFLICT",
             )
 
-        # בדיקת לקוחות מחוקים
         deleted_clients = self.client_repo.get_deleted_by_id_number(id_number)
         if deleted_clients:
             raise ConflictError(
@@ -54,7 +53,7 @@ class ClientService:
             )
 
         try:
-            return self.client_repo.create(
+            client = self.client_repo.create(
                 full_name=full_name,
                 id_number=id_number,
                 id_number_type=id_number_type,
@@ -72,6 +71,8 @@ class ClientService:
                 f"לקוח עם מספר ת.ז. {id_number} כבר קיים",
                 "CLIENT.CONFLICT",
             )
+        create_initial_binder(self.db, client, actor_id)
+        return client
 
     def get_client(self, client_id: int) -> Optional[Client]:
         """Get client by ID."""

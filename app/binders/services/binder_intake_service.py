@@ -16,6 +16,7 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
+from app.binders.services.binder_helpers import parse_period_to_date
 
 _log = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class BinderIntakeService:
         existing = self.binder_repo.get_active_by_client(client_id)
 
         if existing and open_new_binder:
+            existing.period_end = self._resolve_closing_period(existing.id, received_at)
             existing.is_full = True
             self.db.flush()
             existing = None
@@ -119,3 +121,10 @@ class BinderIntakeService:
                 )
 
         return binder, intake, is_new_binder
+
+    def _resolve_closing_period(self, binder_id: int, fallback: date) -> date:
+        """Derive period_end from the last material's description period string."""
+        last_mat = self.material_repo.get_last_by_binder(binder_id)
+        if not last_mat or not last_mat.description:
+            return fallback
+        return parse_period_to_date(last_mat.description) or fallback

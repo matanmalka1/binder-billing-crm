@@ -33,6 +33,9 @@ class BusinessTaxProfile(Base):
     advance_rate = Column(Numeric(5, 2), nullable=True)
     advance_rate_updated_at = Column(Date, nullable=True)
 
+    business_type = Column(String(100), nullable=True)
+    tax_year_start = Column(Integer, nullable=True)
+
     fiscal_year_start_month = Column(Integer, nullable=False, default=1)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)

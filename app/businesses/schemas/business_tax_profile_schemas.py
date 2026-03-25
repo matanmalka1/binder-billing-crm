@@ -13,6 +13,8 @@ class BusinessTaxProfileResponse(BaseModel):
     vat_type: Optional[VatType] = None
     vat_start_date: Optional[date] = None           # קיים במודל
     vat_exempt_ceiling: Optional[ApiDecimal] = None    # קיים במודל
+    business_type: Optional[str] = None
+    tax_year_start: Optional[int] = None
     accountant_name: Optional[str] = None
     advance_rate: Optional[ApiDecimal] = None
     advance_rate_updated_at: Optional[date] = None  # קיים במודל
@@ -27,6 +29,8 @@ class BusinessTaxProfileUpdateRequest(BaseModel):
     vat_type: Optional[VatType] = None              # enum — לא str חופשי
     vat_start_date: Optional[date] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
+    business_type: Optional[str] = None
+    tax_year_start: Optional[int] = Field(None, ge=1900, le=2100)
     accountant_name: Optional[str] = None
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
     advance_rate_updated_at: Optional[date] = None

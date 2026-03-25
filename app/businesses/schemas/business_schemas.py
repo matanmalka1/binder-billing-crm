@@ -19,6 +19,7 @@ class BusinessCreateRequest(BaseModel):
     opened_at: date
     business_name: Optional[str] = None
     notes: Optional[str] = None
+    tax_id_number: Optional[str] = None
 
 
 class BusinessUpdateRequest(BaseModel):

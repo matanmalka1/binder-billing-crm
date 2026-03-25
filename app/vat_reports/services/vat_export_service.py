@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 from app.vat_reports.services.vat_export_excel import export_vat_to_excel
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
 
@@ -27,7 +28,11 @@ def _load(db: Session, business_id: int, year: int):
         raise NotFoundError(f"עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
     display_name = business.business_name or business.client.full_name
     all_periods = VatClientSummaryRepository(db).get_periods_for_business(business_id)
-    periods = [p for p, *_ in all_periods if p.period.startswith(str(year))]
+    periods = [
+        VatPeriodRow.model_validate(work_item)
+        for work_item, *_ in all_periods
+        if work_item.period.startswith(str(year))
+    ]
     return display_name, periods
 
 
