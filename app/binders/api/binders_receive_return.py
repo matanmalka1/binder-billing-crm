@@ -28,8 +28,8 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     materials = [m.model_dump() for m in request.materials] if request.materials else []
     binder, intake, is_new_binder = service.receive_binder(
         client_id=request.client_id,
-        binder_number=request.binder_number,
         period_start=request.period_start,
+        open_new_binder=request.open_new_binder,
         received_at=request.received_at,
         received_by=request.received_by,
         notes=request.notes,

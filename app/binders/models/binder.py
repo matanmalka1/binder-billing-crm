@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey,
+    Boolean, Column, Date, DateTime, ForeignKey,
     Index, Integer, String, Text,
     column, and_,
 )
@@ -54,6 +54,9 @@ class Binder(Base):
 
     # Who picked up the binder (client / courier / employee / family member).
     pickup_person_name = Column(String, nullable=True)
+
+    # Marked True when the binder is physically full; triggers opening a new one.
+    is_full = Column(Boolean, default=False, nullable=False)
 
     # Physical logistics info: shelf location, binder color, material condition.
     notes = Column(Text, nullable=True)

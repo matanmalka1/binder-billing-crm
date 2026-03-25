@@ -34,10 +34,10 @@ class BinderIntakeService:
     def receive(
         self,
         client_id: int,
-        binder_number: str,
         period_start: date,
         received_at: date,
         received_by: int,
+        open_new_binder: bool = False,
         notes: Optional[str] = None,
         materials: Optional[list[dict]] = None,
     ) -> tuple[Binder, BinderIntake, bool]:
@@ -52,7 +52,18 @@ class BinderIntakeService:
         """
         client = ClientService(self.db).get_client_or_raise(client_id)
 
+        binder_number = str(client_id)
         existing = self.binder_repo.get_active_by_number(binder_number)
+
+        if existing and open_new_binder:
+            if existing.client_id != client_id:
+                raise ConflictError(
+                    f"הקלסר {binder_number} שייך ללקוח אחר",
+                    "BINDER.CLIENT_MISMATCH",
+                )
+            existing.is_full = True
+            self.db.flush()
+            existing = None
 
         if existing:
             if existing.client_id != client_id:

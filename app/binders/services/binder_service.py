@@ -34,18 +34,18 @@ class BinderService(BinderListService):
     def receive_binder(
         self,
         client_id: int,
-        binder_number: str,
         period_start: date,
         received_at: date,
         received_by: int,
+        open_new_binder: bool = False,
         notes: Optional[str] = None,
         materials: Optional[list[dict]] = None,
     ) -> tuple[Binder, BinderIntake, bool]:
         """Receive material into existing binder or create new one."""
         return self.intake_service.receive(
             client_id=client_id,
-            binder_number=binder_number,
             period_start=period_start,
+            open_new_binder=open_new_binder,
             received_at=received_at,
             received_by=received_by,
             notes=notes,

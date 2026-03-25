@@ -25,10 +25,10 @@ class BinderReceiveRequest(BaseModel):
     אם לא — יוצר קלסר חדש.
     """
     client_id: int                            # קלסר שייך ללקוח
-    binder_number: str
-    period_start: date                        # תחילת תקופת הקלסר
+    period_start: date = Field(default_factory=date.today)  # תחילת תקופת הקלסר
     received_at: date                         # תאריך קבלת החומרים (ב-intake)
     received_by: int
+    open_new_binder: bool = False             # True = סמן קלסר קיים כמלא ופתח חדש
     notes: Optional[str] = None
     materials: list[BinderIntakeMaterialRequest] = Field(default_factory=list)
 
@@ -48,6 +48,7 @@ class BinderResponse(BaseModel):
     period_start: date
     period_end: Optional[date] = None
     status: BinderStatus
+    is_full: bool = False
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
     notes: Optional[str] = None
