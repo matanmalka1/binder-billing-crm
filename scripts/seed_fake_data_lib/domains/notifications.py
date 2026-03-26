@@ -7,12 +7,13 @@ from app.binders.models.binder import BinderStatus
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
+    NotificationSeverity,
     NotificationStatus,
     NotificationTrigger,
 )
 
 
-def create_notifications(db, rng: Random, clients, businesses, binders) -> None:
+def create_notifications(db, rng: Random, clients, businesses, binders, users=None) -> None:
     clients_by_id = {c.id: c for c in clients}
     businesses_by_client_id: dict[int, list] = {}
     for business in businesses:
@@ -49,18 +50,24 @@ def create_notifications(db, rng: Random, clients, businesses, binders) -> None:
         )[0]
         sent_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 50)) if status == NotificationStatus.SENT else None
         failed_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 50)) if status == NotificationStatus.FAILED else None
+        severity = rng.choice(list(NotificationSeverity))
+        triggered_by = None
+        if trigger == NotificationTrigger.MANUAL_PAYMENT_REMINDER and users:
+            triggered_by = rng.choice(users).id
 
         notification = Notification(
             business_id=business.id,
             binder_id=binder.id,
             trigger=trigger,
             channel=channel,
+            severity=severity,
             status=status,
             recipient=recipient,
             content_snapshot=f"הודעה אוטומטית עבור קלסר {binder.binder_number}",
             sent_at=sent_at,
             failed_at=failed_at,
             error_message=("פסק זמן מול הספק" if status == NotificationStatus.FAILED else None),
+            triggered_by=triggered_by,
             created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
         )
         db.add(notification)
@@ -79,6 +86,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders) -> None:
                         binder_id=fallback_binder.id,
                         trigger=NotificationTrigger.BINDER_RECEIVED,
                         channel=NotificationChannel.EMAIL,
+                        severity=NotificationSeverity.INFO,
                         status=NotificationStatus.PENDING,
                         recipient=client.email or "client@example.com",
                         content_snapshot=f"הודעה אוטומטית עבור קלסר {fallback_binder.binder_number}",

@@ -22,7 +22,7 @@ DEADLINE_LABELS = {
 }
 
 
-def create_tax_deadlines(db, rng: Random, cfg, businesses) -> list[TaxDeadline]:
+def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     today = date.today()
     for business in businesses:
@@ -38,11 +38,11 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses) -> list[TaxDeadline]:
                 if due_date < today and rng.random() < 0.5
                 else TaxDeadlineStatus.PENDING
             )
-            completed_at = (
-                datetime.now(UTC) - timedelta(days=rng.randint(1, 30))
-                if status == TaxDeadlineStatus.COMPLETED
-                else None
-            )
+            completed_at = None
+            completed_by = None
+            if status == TaxDeadlineStatus.COMPLETED:
+                completed_at = datetime.now(UTC) - timedelta(days=rng.randint(1, 30))
+                completed_by = rng.choice(users).id if users else None
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))
             deadline_type = rng.choice(list(TaxDeadlineType))
             period = f"{due_date.year}-{due_date.month:02d}" if deadline_type != TaxDeadlineType.OTHER else None
@@ -57,7 +57,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses) -> list[TaxDeadline]:
                 description=description,
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
                 completed_at=completed_at,
-                completed_by=None,
+                completed_by=completed_by,
             )
             db.add(deadline)
             deadlines.append(deadline)

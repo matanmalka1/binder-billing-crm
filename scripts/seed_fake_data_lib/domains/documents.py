@@ -5,6 +5,7 @@ from random import Random
 
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
+    DocumentStatus,
     DocumentType,
     PermanentDocument,
 )
@@ -21,6 +22,18 @@ def create_documents(db, rng: Random, clients, businesses, users):
         if rng.random() < 0.8:
             docs.append(DocumentType.ENGAGEMENT_AGREEMENT)
         for doc_type in docs:
+            uploaded_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 500))
+            status = rng.choices(
+                [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],
+                weights=[10, 20, 60, 10],
+                k=1,
+            )[0]
+            approved_by = None
+            approved_at = None
+            if status == DocumentStatus.APPROVED and rng.random() < 0.7:
+                approved_by = rng.choice(users).id
+                approved_at = uploaded_at + timedelta(days=rng.randint(1, 30))
+
             document = PermanentDocument(
                 client_id=client.id,
                 business_id=None,
@@ -30,9 +43,15 @@ def create_documents(db, rng: Random, clients, businesses, users):
                     f"clients/{client.id}/"
                     f"{doc_type.value}_{rng.randint(1000, 9999)}.pdf"
                 ),
+                original_filename=f"{doc_type.value}.pdf",
+                file_size_bytes=rng.randint(50000, 500000),
+                mime_type="application/pdf",
+                status=status,
                 is_present=rng.random() > 0.05,
                 uploaded_by=rng.choice(users).id,
-                uploaded_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 500)),
+                uploaded_at=uploaded_at,
+                approved_by=approved_by,
+                approved_at=approved_at,
             )
             db.add(document)
             documents.append(document)
@@ -40,6 +59,18 @@ def create_documents(db, rng: Random, clients, businesses, users):
         for business in businesses_by_client_id.get(client.id, []):
             if rng.random() > 0.6:
                 continue
+            uploaded_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 500))
+            status = rng.choices(
+                [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],
+                weights=[10, 20, 60, 10],
+                k=1,
+            )[0]
+            approved_by = None
+            approved_at = None
+            if status == DocumentStatus.APPROVED and rng.random() < 0.7:
+                approved_by = rng.choice(users).id
+                approved_at = uploaded_at + timedelta(days=rng.randint(1, 30))
+
             document = PermanentDocument(
                 client_id=client.id,
                 business_id=business.id,
@@ -49,9 +80,15 @@ def create_documents(db, rng: Random, clients, businesses, users):
                     f"clients/{client.id}/businesses/{business.id}/"
                     f"doc_{rng.randint(1000, 9999)}.pdf"
                 ),
+                original_filename=f"document_{rng.randint(1000, 9999)}.pdf",
+                file_size_bytes=rng.randint(50000, 500000),
+                mime_type="application/pdf",
+                status=status,
                 is_present=rng.random() > 0.05,
                 uploaded_by=rng.choice(users).id,
-                uploaded_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 500)),
+                uploaded_at=uploaded_at,
+                approved_by=approved_by,
+                approved_at=approved_at,
             )
             db.add(document)
             documents.append(document)

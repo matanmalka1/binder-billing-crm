@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from random import Random
 
 from app.binders.models.binder import BinderStatus
@@ -44,6 +44,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 send_on=send_on,
                 tax_deadline_id=deadline.id,
                 message=f"תזכורת: מועדי מס מתקרבים ({deadline_label})",
+                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
             db.add(reminder)
             reminders.append(reminder)
@@ -61,6 +62,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 send_on=today,
                 binder_id=binder.id,
                 message=f"תזכורת: תיק {binder.binder_number} לא טופל {days_idle} ימים",
+                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
             db.add(reminder)
             reminders.append(reminder)
@@ -84,9 +86,9 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 send_on=today,
                 charge_id=charge.id,
                 message=f"תזכורת: חשבונית #{charge.id} לא שולמה {days_unpaid} ימים",
+                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
             db.add(reminder)
             reminders.append(reminder)
 
     db.flush()
-    return reminders

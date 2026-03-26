@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
 from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
-from app.clients.models.client import Client
+from app.clients.models.client import Client, IdNumberType
 
 from ..constants import COMPANY_WORDS
 from ..random_utils import full_name
@@ -54,6 +54,7 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
         client = Client(
             full_name=full_name_value,
             id_number=f"{100000000 + serial}",
+            id_number_type=rng.choice(list(IdNumberType)),
             phone=f"05{rng.randint(10000000, 99999999)}",
             email=f"client{serial}@example.com",
             notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
@@ -69,7 +70,7 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
     return clients
 
 
-def create_businesses(db, rng: Random, clients: list[Client]) -> list[Business]:
+def create_businesses(db, rng: Random, clients: list[Client], users=None) -> list[Business]:
     businesses: list[Business] = []
     existing_businesses = int(db.execute(select(func.count()).select_from(Business)).scalar_one())
     for i, client in enumerate(clients):
@@ -105,6 +106,7 @@ def create_businesses(db, rng: Random, clients: list[Client]) -> list[Business]:
             closed_at=closed_at,
             phone=client.phone,
             email=client.email,
+            created_by=rng.choice(users).id if users else None,
             notes=rng.choice(["", "עסק ותיק", "מעקב חודשי", "לקוח חשוב"]),
         )
         db.add(business)

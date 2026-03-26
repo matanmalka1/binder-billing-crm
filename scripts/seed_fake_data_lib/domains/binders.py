@@ -59,7 +59,7 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
 def create_binder_logs(db, rng: Random, binders, users) -> None:
     for binder in binders:
         logs = []
-        logs.append(("created", BinderStatus.IN_OFFICE.value, "קבלת קלסר"))
+        logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.IN_OFFICE.value, "קבלת קלסר"))
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "הטיפול הושלם"))
         elif binder.status == BinderStatus.RETURNED:

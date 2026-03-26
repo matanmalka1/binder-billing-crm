@@ -166,7 +166,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             )
             extension_reason = (
                 rng.choice(list(ExtensionReason))
-                if deadline_type == DeadlineType.CUSTOM
+                if deadline_type == DeadlineType.EXTENDED
                 else None
             )
             submitted_at = (
@@ -180,6 +180,11 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 )
                 else None
             )
+
+            created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 400))
+            updated_at = created_at - timedelta(days=rng.randint(0, 60))
+            if updated_at > created_at:
+                updated_at = created_at
 
             report = AnnualReport(
                 business_id=business.id,
@@ -203,8 +208,8 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 submission_method=submission_method,
                 extension_reason=extension_reason,
                 notes=rng.choice(["", "דורש בדיקה", "ממתין לחתימת לקוח"]),
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 400)),
-                updated_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
+                created_at=created_at,
+                updated_at=updated_at,
                 created_by=rng.choice(advisors) if advisors else fallback_user_id,
                 assigned_to=rng.choice(advisors) if advisors else None,
             )
@@ -241,11 +246,19 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
     db.flush()
 
 
-def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
+def create_annual_report_schedule_entries(db, rng: Random, reports, users=None) -> None:
+    advisors = [u.id for u in users] if users else []
+    fallback_user_id = users[0].id if users else None
+
     for report in reports:
         for schedule in list(AnnualReportSchedule):
             is_required = rng.random() < 0.4
             is_complete = is_required and rng.random() < 0.5
+            completed_at = None
+            completed_by = None
+            if is_complete:
+                completed_at = report.created_at + timedelta(days=rng.randint(5, 60))
+                completed_by = rng.choice(advisors) if advisors else fallback_user_id
             entry = AnnualReportScheduleEntry(
                 annual_report_id=report.id,
                 schedule=schedule,
@@ -253,7 +266,8 @@ def create_annual_report_schedule_entries(db, rng: Random, reports) -> None:
                 is_complete=is_complete,
                 notes="נוצר אוטומטית" if is_required else None,
                 created_at=report.created_at,
-                completed_at=(report.created_at + timedelta(days=rng.randint(5, 60))) if is_complete else None,
+                completed_at=completed_at,
+                completed_by=completed_by,
             )
             db.add(entry)
     db.flush()

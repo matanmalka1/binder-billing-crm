@@ -120,6 +120,10 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
             else:
                 request_type = rng.choice(type_cycle)
 
+            canceled_by = None
+            if status == SignatureRequestStatus.CANCELED:
+                canceled_by = rng.choice(users).id
+
             request = SignatureRequest(
                 business_id=business.id,
                 created_by=rng.choice(users).id,
@@ -141,6 +145,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 signed_at=timestamps["signed_at"],
                 declined_at=timestamps["declined_at"],
                 canceled_at=timestamps["canceled_at"],
+                canceled_by=canceled_by,
             )
             db.add(request)
             requests.append(request)
