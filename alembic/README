@@ -56,7 +56,8 @@ Notes:
 ## Migration chain
 
 ```
-5d8f1a4c2e7b  ← HEAD (add business_type and tax_year_start to business_tax_profiles — 2026-03-25)
+6e3f2b1d0c8a  ← HEAD (fix vat_invoices document_type enum collision — 2026-03-29)
+5d8f1a4c2e7b         (add business_type and tax_year_start to business_tax_profiles — 2026-03-25)
 4c9d2e3b1f6a         (add is_full to binders — 2026-03-24)
 3b7e2c1a0f5d         (add changed_by_name to binder_status_history — 2026-03-23)
 8a3c1f2b9d4e         (add processing to reminderstatus enum — 2026-03-23)
@@ -64,6 +65,23 @@ ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0006 — fix_vat_document_type_enum_name (6e3f2b1d0c8a)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 6e3f2b1d0c8a`
+- What it does:
+  Creates a new `vatdocumenttype` PostgreSQL enum with values
+  (tax_invoice, transaction_invoice, receipt, consolidated, self_invoice, credit_note)
+  and alters `vat_invoices.document_type` to use it.
+  Previously, both `permanent_documents.document_type` and `vat_invoices.document_type`
+  shared the same `documenttype` enum name in PostgreSQL. PostgreSQL only created the first
+  definition (for permanent_documents), so VAT document type values were never registered,
+  causing `invalid input value for enum documenttype: "tax_invoice"` on every insert.
+- Important notes:
+  - PostgreSQL-only migration. SQLite not affected (no native enum type).
+  - Existing NULL rows in `vat_invoices.document_type` are unaffected.
+  - Downgrade reverts to the broken state (NULL-casting all values) — do not run in production.
 
 ### 0005 — add_business_type_and_tax_year_start_to_tax_profile (5d8f1a4c2e7b)
 

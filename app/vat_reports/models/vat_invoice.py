@@ -40,7 +40,7 @@ class VatInvoice(Base):
 
     # Document classification
     invoice_type  = Column(pg_enum(InvoiceType), nullable=False)
-    document_type = Column(pg_enum(DocumentType), nullable=True)
+    document_type = Column(pg_enum(DocumentType, name="vatdocumenttype"), nullable=True)
     # CREDIT_NOTE reversal is applied in service layer — amounts always positive here
 
     # Invoice identity
