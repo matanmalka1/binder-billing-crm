@@ -1,8 +1,15 @@
 from datetime import date
 
+from sqlalchemy import String, cast
+from sqlalchemy.dialects import postgresql
+
 from app.businesses.models.business import Business, BusinessType
 from app.clients.models.client import Client, IdNumberType
-from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
+from app.permanent_documents.models.permanent_document import (
+    DocumentScope,
+    DocumentType,
+    PermanentDocument,
+)
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
 )
@@ -83,3 +90,10 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
     assert active.is_deleted is False
     assert repo.count_by_business(business_a.id) == 1
     assert repo.count_by_business(business_b.id) == 1
+
+
+def test_document_type_search_uses_cast_for_postgres_ilike():
+    expr = cast(PermanentDocument.document_type, String).ilike("%id%")
+    compiled = str(expr.compile(dialect=postgresql.dialect()))
+    assert "CAST(permanent_documents.document_type AS VARCHAR)" in compiled
+    assert "ILIKE" in compiled

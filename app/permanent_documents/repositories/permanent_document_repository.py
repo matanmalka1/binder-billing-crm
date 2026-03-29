@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import String, cast
 from sqlalchemy.orm import Session
 
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentStatus, PermanentDocument
@@ -105,7 +106,7 @@ class PermanentDocumentRepository:
                 PermanentDocument.superseded_by == None,  # noqa: E711
                 (
                     PermanentDocument.original_filename.ilike(term)
-                    | PermanentDocument.document_type.ilike(term)
+                    | cast(PermanentDocument.document_type, String).ilike(term)
                 ),
             )
             .order_by(PermanentDocument.uploaded_at.desc())
