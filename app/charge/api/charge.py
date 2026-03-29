@@ -29,6 +29,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         amount=request.amount,
         charge_type=request.charge_type,
         period=request.period,
+        months_covered=request.months_covered,
         actor_id=user.id,
     )
     data = ChargeResponse.model_validate(charge).model_dump()

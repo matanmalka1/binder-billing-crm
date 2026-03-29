@@ -21,6 +21,7 @@ class ChargeRepository(BaseRepository):
         amount: float,
         charge_type: str,
         period: Optional[str] = None,
+        months_covered: int = 1,
         created_by: Optional[int] = None,
     ) -> Charge:
         """Create new charge in draft status."""
@@ -29,6 +30,7 @@ class ChargeRepository(BaseRepository):
             amount=amount,
             charge_type=charge_type,
             period=period,
+            months_covered=months_covered,
             status=ChargeStatus.DRAFT,
             created_by=created_by,
         )

@@ -25,6 +25,7 @@ class BillingService:
         charge_type: str,
         actor_id: Optional[int] = None,
         period: Optional[str] = None,
+        months_covered: int = 1,
     ) -> Charge:
         """
         Create new charge in draft status.
@@ -46,6 +47,7 @@ class BillingService:
             amount=amount,
             charge_type=charge_type,
             period=period,
+            months_covered=months_covered,
             created_by=actor_id,
         )
 

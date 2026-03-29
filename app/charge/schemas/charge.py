@@ -14,7 +14,7 @@ class ChargeCreateRequest(BaseModel):
     amount: ApiDecimal = Field(gt=0)
     charge_type: ChargeType                     # enum — לא str חופשי
     period: Optional[str] = None                # "YYYY-MM"
-    months_covered: int = Field(1, ge=1)        # קיים במודל
+    months_covered: int = Field(1, ge=1, le=2)  # monthly or bimonthly
     description: Optional[str] = None          # קיים במודל
     annual_report_id: Optional[int] = None     # קיים במודל
 

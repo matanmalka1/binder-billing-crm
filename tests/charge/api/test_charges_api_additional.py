@@ -81,3 +81,24 @@ def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_head
         },
     )
     assert invalid_period.status_code == 422
+
+
+def test_create_charge_supports_bimonthly_period(client, advisor_headers, test_db):
+    business = _business(test_db)
+
+    response = client.post(
+        "/api/v1/charges",
+        headers=advisor_headers,
+        json={
+            "business_id": business.id,
+            "amount": 150.0,
+            "charge_type": "monthly_retainer",
+            "period": "2026-03",
+            "months_covered": 2,
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["period"] == "2026-03"
+    assert payload["months_covered"] == 2
