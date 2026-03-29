@@ -4,7 +4,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_not_closed
 from app.vat_reports.models.vat_enums import DocumentType, ExpenseCategory, VatRateType
@@ -64,6 +64,11 @@ def update_invoice(
                 f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
                 "VAT.CONFLICT",
             )
+
+    if net_amount is not None and net_amount <= 0:
+        raise AppError("סכום נטו חייב להיות חיובי", code="INVALID_NET_AMOUNT", status_code=400)
+    if vat_amount is not None and vat_amount < 0:
+        raise AppError("סכום מע״מ לא יכול להיות שלילי", code="INVALID_VAT_AMOUNT", status_code=400)
 
     snapshot_before = audit_invoice_snapshot(invoice)
 

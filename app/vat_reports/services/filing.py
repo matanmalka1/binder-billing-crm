@@ -32,6 +32,23 @@ def file_vat_return(
             "VAT.INVALID_TRANSITION",
         )
 
+    if amends_item_id is not None:
+        amended_item = work_item_repo.get_by_id(amends_item_id)
+        if amended_item is None:
+            raise AppError("פריט מתוקן לא נמצא", code="AMENDED_ITEM_NOT_FOUND", status_code=404)
+        if amended_item.business_id != item.business_id:
+            raise AppError("פריט מתוקן שייך לעסק אחר", code="AMENDED_ITEM_WRONG_BUSINESS", status_code=400)
+        if amended_item.status != VatWorkItemStatus.FILED:
+            raise AppError("ניתן לתקן רק פריט שהוגש", code="AMENDED_ITEM_NOT_FILED", status_code=400)
+
+        current_item = amended_item
+        while current_item is not None:
+            if current_item.id == item.id:
+                raise AppError("זוהתה שרשרת תיקונים מעגלית", code="AMENDMENT_CYCLE", status_code=400)
+            if current_item.amends_item_id is None:
+                break
+            current_item = work_item_repo.get_by_id(current_item.amends_item_id)
+
     is_overridden = override_amount is not None
 
     if is_overridden and not override_justification:
