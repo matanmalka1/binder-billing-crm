@@ -11,6 +11,7 @@ from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 from app.vat_reports.schemas import (
     VatAuditLogResponse,
     VatAuditTrailResponse,
+    VatPeriodOptionsResponse,
     VatWorkItemListResponse,
     VatWorkItemLookupResponse,
     VatWorkItemResponse,
@@ -51,6 +52,22 @@ def lookup_work_item(
     if not item:
         return None
     return VatWorkItemLookupResponse.model_validate(item)
+
+
+@router.get(
+    "/businesses/{business_id}/period-options",
+    response_model=VatPeriodOptionsResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
+def get_period_options(
+    business_id: int,
+    db: DBSession,
+    current_user: CurrentUser,
+    year: Optional[int] = Query(default=None, ge=2000, le=2100),
+):
+    """Return selectable VAT periods for a business based on its reporting frequency."""
+    service = VatReportService(db)
+    return service.get_period_options(business_id=business_id, year=year)
 
 
 @router.get(

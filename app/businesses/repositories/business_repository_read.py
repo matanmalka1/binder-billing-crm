@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import String, cast
 from sqlalchemy.orm import Query as SAQuery, Session
 
 from app.common.repositories import BaseRepository
@@ -42,6 +43,9 @@ class BusinessRepositoryRead(BaseRepository):
                 Business.business_name.ilike(term)
                 | Client.full_name.ilike(term)
                 | Client.id_number.ilike(term)
+                | Business.tax_id_number.ilike(term)
+                | cast(Client.id, String).ilike(term)
+                | cast(Business.id, String).ilike(term)
             )
         return query
 

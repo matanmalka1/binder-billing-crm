@@ -10,7 +10,7 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services import data_entry, filing, intake, vat_report_queries
+from app.vat_reports.services import data_entry, filing, intake, period_options, vat_report_queries
 from app.vat_reports.services import vat_report_enrichment
 from app.users.repositories.user_repository import UserRepository
 
@@ -36,6 +36,14 @@ class VatReportService:
 
     def mark_materials_complete(self, **kwargs):
         return intake.mark_materials_complete(self.work_item_repo, **kwargs)
+
+    def get_period_options(self, **kwargs):
+        return period_options.get_period_options(
+            self.work_item_repo,
+            self.business_repo,
+            tax_profile_repo=self.tax_profile_repo,
+            **kwargs,
+        )
 
     # ── Data entry ───────────────────────────────────────────────────────────
 

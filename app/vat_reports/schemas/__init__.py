@@ -11,6 +11,8 @@ from app.vat_reports.schemas.vat_invoice_update import VatInvoiceUpdateRequest  
 from app.vat_reports.schemas.vat_report import (  # noqa: F401
     FileVatReturnRequest,
     SendBackForCorrectionRequest,
+    VatPeriodOptionsResponse,
+    VatPeriodOptionResponse,
     VatWorkItemCreateRequest,
     VatWorkItemListResponse,
     VatWorkItemLookupResponse,
@@ -20,6 +22,8 @@ from app.vat_reports.schemas.vat_report import (  # noqa: F401
 __all__ = [
     "FileVatReturnRequest",
     "SendBackForCorrectionRequest",
+    "VatPeriodOptionResponse",
+    "VatPeriodOptionsResponse",
     "VatAuditLogResponse",
     "VatAuditTrailResponse",
     "VatInvoiceCreateRequest",

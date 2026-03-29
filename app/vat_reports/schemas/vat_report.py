@@ -73,6 +73,21 @@ class VatWorkItemListResponse(BaseModel):
     total: int
 
 
+class VatPeriodOptionResponse(BaseModel):
+    period: str
+    label: str
+    start_month: int
+    end_month: int
+    is_opened: bool
+
+
+class VatPeriodOptionsResponse(BaseModel):
+    business_id: int
+    year: int
+    period_type: VatType
+    options: list[VatPeriodOptionResponse]
+
+
 # ── Status transitions ────────────────────────────────────────────────────────
 
 class SendBackForCorrectionRequest(BaseModel):
