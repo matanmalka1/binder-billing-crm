@@ -13,6 +13,7 @@ from app.vat_reports.schemas.vat_report import (  # noqa: F401
     SendBackForCorrectionRequest,
     VatWorkItemCreateRequest,
     VatWorkItemListResponse,
+    VatWorkItemLookupResponse,
     VatWorkItemResponse,
 )
 
@@ -27,5 +28,6 @@ __all__ = [
     "VatInvoiceUpdateRequest",
     "VatWorkItemCreateRequest",
     "VatWorkItemListResponse",
+    "VatWorkItemLookupResponse",
     "VatWorkItemResponse",
 ]

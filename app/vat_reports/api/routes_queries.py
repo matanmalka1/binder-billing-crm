@@ -12,6 +12,7 @@ from app.vat_reports.schemas import (
     VatAuditLogResponse,
     VatAuditTrailResponse,
     VatWorkItemListResponse,
+    VatWorkItemLookupResponse,
     VatWorkItemResponse,
 )
 from app.vat_reports.services.vat_report_service import VatReportService
@@ -19,8 +20,9 @@ from app.vat_reports.services.vat_report_service import VatReportService
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
 
 
-def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWorkItemResponse:
+def _serialize(item, name_map: dict, status_map: dict, user_map: dict, client_map: dict | None = None) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
+    data.client_id = client_map.get(item.business_id) if client_map else None
     data.business_name = name_map.get(item.business_id)
     data.business_status = status_map.get(item.business_id)
     deadline = compute_deadline_fields(item)
@@ -30,6 +32,25 @@ def _serialize(item, name_map: dict, status_map: dict, user_map: dict) -> VatWor
     data.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None
     data.filed_by_name = user_map.get(item.filed_by) if item.filed_by else None
     return data
+
+
+@router.get(
+    "/work-items/lookup",
+    response_model=Optional[VatWorkItemLookupResponse],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
+def lookup_work_item(
+    db: DBSession,
+    current_user: CurrentUser,
+    business_id: int = Query(...),
+    period: str = Query(...),
+):
+    """Lookup a VAT work item by business + period. Returns null if not found."""
+    service = VatReportService(db)
+    item = service.work_item_repo.get_by_business_period(business_id, period)
+    if not item:
+        return None
+    return VatWorkItemLookupResponse.model_validate(item)
 
 
 @router.get(
@@ -46,6 +67,7 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
         enriched["name_map"],
         enriched["status_map"],
         enriched["user_map"],
+        enriched.get("client_map"),
     )
 
 
@@ -58,8 +80,9 @@ def list_business_work_items(business_id: int, db: DBSession, current_user: Curr
     """List all VAT work items for a business."""
     service = VatReportService(db)
     enriched = service.get_business_items_enriched(business_id)
+    cm = enriched.get("client_map")
     items = [
-        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])
+        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"], cm)
         for i in enriched["items"]
     ]
     return VatWorkItemListResponse(items=items, total=len(items))
@@ -85,8 +108,9 @@ def list_work_items(
         status_filter=status_filter, page=page, page_size=page_size,
         period=period, business_name=business_name,
     )
+    cm = enriched.get("client_map")
     items = [
-        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"])
+        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"], cm)
         for i in enriched["items"]
     ]
     return VatWorkItemListResponse(items=items, total=enriched["total"])

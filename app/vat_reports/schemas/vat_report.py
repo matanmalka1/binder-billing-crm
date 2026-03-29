@@ -33,6 +33,7 @@ class VatWorkItemCreateRequest(BaseModel):
 class VatWorkItemResponse(BaseModel):
     id: int
     business_id: int
+    client_id: Optional[int] = None         # enriched by service
     business_name: Optional[str] = None    # enriched by service
     business_status: Optional[BusinessStatus] = None  # enum
     period: str
@@ -79,6 +80,14 @@ class SendBackForCorrectionRequest(BaseModel):
 
 
 # ── Filing ────────────────────────────────────────────────────────────────────
+
+class VatWorkItemLookupResponse(BaseModel):
+    id: int
+    status: VatWorkItemStatus
+    period: str
+
+    model_config = {"from_attributes": True}
+
 
 class FileVatReturnRequest(BaseModel):
     submission_method: SubmissionMethod    # שם חדש — תואם המודל
