@@ -1,13 +1,24 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import String, cast, func
 from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
 
 from app.common.repositories import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+
+
+def advance_payment_status_text_expr():
+    """
+    Normalize enum-backed status columns to lowercase text.
+
+    SQLite stores enums as strings, but PostgreSQL keeps a native enum type.
+    Casting avoids `lower(enum_type)` errors on PostgreSQL while preserving the
+    case-insensitive matching used for legacy SQLite fixtures.
+    """
+    return func.lower(cast(AdvancePayment.status, String))
 
 
 class AdvancePaymentRepository(BaseRepository):
@@ -81,7 +92,7 @@ class AdvancePaymentRepository(BaseRepository):
         )
         if status:
             normalized = [s.value.lower() for s in status]
-            query = query.filter(func.lower(AdvancePayment.status).in_(normalized))
+            query = query.filter(advance_payment_status_text_expr().in_(normalized))
         total = query.count()
         items = self._paginate(query, page, page_size)
         return items, total
@@ -116,7 +127,7 @@ class AdvancePaymentRepository(BaseRepository):
             query = query.filter(AdvancePayment.period == month_str)
         if statuses:
             normalized = [s.value.lower() for s in statuses]
-            query = query.filter(func.lower(AdvancePayment.status).in_(normalized))
+            query = query.filter(advance_payment_status_text_expr().in_(normalized))
         return query.all()
 
     def sum_paid_by_business_year(self, business_id: int, year: int) -> float:
@@ -125,7 +136,7 @@ class AdvancePaymentRepository(BaseRepository):
             .filter(
                 AdvancePayment.business_id == business_id,
                 AdvancePayment.period.like(f"{year}-%"),
-                func.lower(AdvancePayment.status) == AdvancePaymentStatus.PAID.value,
+                advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
                 AdvancePayment.deleted_at.is_(None),
             )
             .scalar()
@@ -161,7 +172,7 @@ class AdvancePaymentRepository(BaseRepository):
                 func.coalesce(
                     func.sum(
                         case(
-                            (func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value, 1),
+                            (advance_payment_status_text_expr() == AdvancePaymentStatus.OVERDUE.value, 1),
                             else_=0,
                         )
                     ),

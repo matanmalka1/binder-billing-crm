@@ -5,6 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.advance_payments.repositories.advance_payment_repository import (
+    advance_payment_status_text_expr,
+)
 
 
 class AdvancePaymentAnalyticsRepository(BaseRepository):
@@ -51,7 +54,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
         if statuses:
             normalized = [s.value.lower() for s in statuses]
-            query = query.filter(func.lower(AdvancePayment.status).in_(normalized))
+            query = query.filter(advance_payment_status_text_expr().in_(normalized))
         total_expected, total_paid = query.one()
         return {
             "total_expected": float(total_expected),
@@ -68,7 +71,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                     func.sum(
                         case(
                             (
-                                func.lower(AdvancePayment.status) == AdvancePaymentStatus.OVERDUE.value,
+                                advance_payment_status_text_expr() == AdvancePaymentStatus.OVERDUE.value,
                                 AdvancePayment.expected_amount,
                             ),
                             else_=0,

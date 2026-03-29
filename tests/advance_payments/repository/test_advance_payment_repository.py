@@ -3,9 +3,13 @@ from decimal import Decimal
 from itertools import count
 
 from sqlalchemy import text
+from sqlalchemy.dialects import postgresql
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+    advance_payment_status_text_expr,
+)
 from app.businesses.models.business import Business, BusinessType
 from app.businesses.models.business_tax_profile import VatType
 from app.clients.models.client import Client
@@ -189,3 +193,13 @@ def test_list_by_business_year_handles_legacy_uppercase_status_values(test_db):
     )
     assert filtered_total == 1
     assert filtered[0].id == payment.id
+
+
+def test_status_expression_casts_enum_for_postgres():
+    compiled = str(
+        advance_payment_status_text_expr().compile(
+            dialect=postgresql.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert compiled == "lower(CAST(advance_payments.status AS VARCHAR))"
