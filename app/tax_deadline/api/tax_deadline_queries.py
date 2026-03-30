@@ -23,10 +23,16 @@ router = APIRouter(
 )
 
 
-def _build_response(deadline, business_name: Optional[str] = None) -> TaxDeadlineResponse:
+def _build_response(
+    deadline,
+    business_name: Optional[str] = None,
+    client_id: Optional[int] = None,
+) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
     if business_name is not None:
         r.business_name = business_name
+    if client_id is not None:
+        r.client_id = client_id
     r.available_actions = get_tax_deadline_actions(deadline)
     return r
 
@@ -59,9 +65,17 @@ def list_tax_deadlines(
     paginated = items[offset: offset + page_size]
 
     business_name_map = service.build_business_name_map(paginated)
+    client_id_map = service.build_client_id_map(paginated)
 
     return TaxDeadlineListResponse(
-        items=[_build_response(d, business_name=business_name_map.get(d.business_id)) for d in paginated],
+        items=[
+            _build_response(
+                d,
+                business_name=business_name_map.get(d.business_id),
+                client_id=client_id_map.get(d.business_id),
+            )
+            for d in paginated
+        ],
         page=page,
         page_size=page_size,
         total=total,

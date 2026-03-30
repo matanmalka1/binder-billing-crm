@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 
 from sqlalchemy import String, cast
-from sqlalchemy.orm import Query as SAQuery, Session
+from sqlalchemy.orm import Query as SAQuery, Session, joinedload
 
 from app.common.repositories import BaseRepository
 from app.businesses.models.business import Business
@@ -106,6 +106,7 @@ class BusinessRepositoryRead(BaseRepository):
             return []
         return (
             self.db.query(Business)
+            .options(joinedload(Business.client))
             .filter(Business.id.in_(business_ids), Business.deleted_at.is_(None))
             .all()
         )

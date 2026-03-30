@@ -24,6 +24,7 @@ class TaxDeadlineCreateRequest(BaseModel):
 class TaxDeadlineResponse(BaseModel):
     id: int
     business_id: int
+    client_id: Optional[int] = None         # enriched by service
     business_name: Optional[str] = None     # enriched by service
     deadline_type: DeadlineType
     period: Optional[str] = None

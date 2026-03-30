@@ -11,6 +11,7 @@ from app.tax_deadline.schemas.tax_deadline import (
     TaxDeadlineUpdateRequest,
 )
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.actions.report_deadline_actions import get_tax_deadline_actions
 
 router = APIRouter(
@@ -20,10 +21,13 @@ router = APIRouter(
 )
 
 
-def _build_response(deadline, business_name: Optional[str] = None) -> TaxDeadlineResponse:
+def _build_response(deadline, db=None, business_name: Optional[str] = None) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
     if business_name is not None:
         r.business_name = business_name
+    if db is not None:
+        business = BusinessRepository(db).get_by_id(deadline.business_id)
+        r.client_id = business.client_id if business else None
     r.available_actions = get_tax_deadline_actions(deadline)
     return r
 
@@ -49,7 +53,7 @@ def create_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return _build_response(deadline)
+    return _build_response(deadline, db=db)
 
 
 @router.get("/{deadline_id:int}", response_model=TaxDeadlineResponse)
@@ -57,7 +61,7 @@ def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Get tax deadline by ID."""
     service = TaxDeadlineService(db)
     deadline = service.get_deadline(deadline_id)
-    return _build_response(deadline)
+    return _build_response(deadline, db=db)
 
 
 @router.post(
@@ -69,7 +73,7 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Mark deadline as completed."""
     service = TaxDeadlineService(db)
     deadline = service.mark_completed(deadline_id)
-    return _build_response(deadline)
+    return _build_response(deadline, db=db)
 
 
 @router.put(
@@ -93,7 +97,7 @@ def update_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return _build_response(deadline)
+    return _build_response(deadline, db=db)
 
 
 @router.delete(

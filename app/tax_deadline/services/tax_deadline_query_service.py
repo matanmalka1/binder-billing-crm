@@ -91,6 +91,12 @@ class TaxDeadlineQueryService:
         businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
         return {b.id: b.full_name for b in businesses}
 
+    def build_client_id_map(self, deadlines: list[TaxDeadline]) -> dict[int, int]:
+        """Return {business_id: client_id} for the given deadlines."""
+        business_ids = list({d.business_id for d in deadlines})
+        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
+        return {b.id: b.client_id for b in businesses}
+
     def get_urgent_deadlines_summary(
         self,
         reference_date: Optional[date] = None,
