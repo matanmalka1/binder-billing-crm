@@ -28,10 +28,10 @@ def test_get_binder_actions_ready_for_pickup_returns_return_action_with_input():
 
     actions = get_binder_actions(binder)
 
-    assert len(actions) == 1
-    assert actions[0]["key"] == "return"
-    assert actions[0]["id"] == "binder-11-return"
-    assert actions[0]["confirm"]["inputs"][0]["name"] == "pickup_person_name"
+    assert len(actions) == 2
+    assert [action["key"] for action in actions] == ["revert_ready", "return"]
+    assert actions[1]["id"] == "binder-11-return"
+    assert actions[1]["confirm"]["inputs"][0]["name"] == "pickup_person_name"
 
 
 def test_get_business_actions_active_advisor_returns_freeze_action():

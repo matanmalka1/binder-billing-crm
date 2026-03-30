@@ -27,9 +27,14 @@ class _FakeReminderService:
     def __init__(self, db):
         self.db = db
         self.sent = []
+        self.claimed = []
 
     def get_pending_reminders(self, *args, **kwargs):
         return ([SimpleNamespace(id=1, reminder_type="custom", business_id=1, message="m1")], 1, [])
+
+    def claim_for_processing(self, reminder_id):
+        self.claimed.append(reminder_id)
+        return True
 
     def mark_sent(self, reminder_id):
         self.sent.append(reminder_id)
@@ -109,6 +114,7 @@ def test_daily_reminder_job_runs_one_iteration(monkeypatch):
         asyncio.run(background_jobs.daily_reminder_job())
 
     assert fake_service.sent == [1]
+    assert fake_service.claimed == [1]
     assert notify_calls["n"] == 1
     assert db.closed is True
 

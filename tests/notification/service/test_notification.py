@@ -139,7 +139,7 @@ def test_list_and_read_delegation_methods(test_db):
         mark_all_read=lambda business_id=None: 5,
     )
     service.business_repo = SimpleNamespace(
-        list_by_ids=lambda ids: [SimpleNamespace(id=4, business_name="Biz 4")],
+        list_by_ids=lambda ids: [SimpleNamespace(id=4, full_name="Biz 4")],
     )
 
     items, total = service.list_paginated(page=2, page_size=10, business_id=4)

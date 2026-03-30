@@ -4,14 +4,19 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 from app.reminders.schemas.reminders import ReminderListResponse, ReminderResponse
 from app.reminders.services import ReminderService
 
 list_router = APIRouter()
 
 
-@list_router.get("/", response_model=ReminderListResponse)
+@list_router.get(
+    "/",
+    response_model=ReminderListResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def list_reminders(
     db: DBSession,
     _user: CurrentUser,

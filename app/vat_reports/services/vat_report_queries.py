@@ -1,5 +1,6 @@
 """Query helpers for VAT work items and invoices."""
 
+import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
@@ -8,6 +9,8 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+
+logger = logging.getLogger(__name__)
 
 
 def compute_deadline_fields(item) -> dict:
@@ -18,7 +21,8 @@ def compute_deadline_fields(item) -> dict:
         today = datetime.now(timezone.utc).date()
         days = (dl - today).days
         return {"submission_deadline": dl, "days_until_deadline": days, "is_overdue": days < 0}
-    except Exception:
+    except (ValueError, TypeError) as exc:
+        logger.warning("Failed to compute deadline for period '%s': %s", item.period, exc)
         return {"submission_deadline": None, "days_until_deadline": None, "is_overdue": None}
 
 
@@ -39,7 +43,12 @@ def _resolve_business_ids(
 ) -> Optional[list[int]]:
     if not business_name:
         return None
-    businesses = business_repo.list(search=business_name, page=1, page_size=10000)
+    businesses = business_repo.list(search=business_name, page=1, page_size=500)
+    if len(businesses) >= 500:
+        logger.warning(
+            "Business name search '%s' returned max results, may be truncated",
+            business_name,
+        )
     return [b.id for b in businesses]
 
 
@@ -90,4 +99,3 @@ def list_invoices(
 
 def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
     return work_item_repo.get_audit_trail(item_id)
-

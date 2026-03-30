@@ -142,14 +142,16 @@ def test_compute_deadline_fields_rolls_december_to_next_year():
     assert isinstance(result["is_overdue"], bool)
 
 
-def test_compute_deadline_fields_invalid_period_returns_nones():
+def test_compute_deadline_fields_invalid_period_returns_nones(caplog):
     item = MagicMock()
     item.period = "bad-period"
 
-    result = vat_report_queries.compute_deadline_fields(item)
+    with caplog.at_level("WARNING"):
+        result = vat_report_queries.compute_deadline_fields(item)
 
     assert result == {
         "submission_deadline": None,
         "days_until_deadline": None,
         "is_overdue": None,
     }
+    assert "Failed to compute deadline for period 'bad-period'" in caplog.text

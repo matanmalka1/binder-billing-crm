@@ -51,6 +51,9 @@ def file_vat_return(
 
     is_overridden = override_amount is not None
 
+    if is_overridden and override_amount <= 0:
+        raise AppError("סכום דריסה חייב להיות חיובי", code="INVALID_OVERRIDE_AMOUNT", status_code=400)
+
     if is_overridden and not override_justification:
         raise AppError("נדרש נימוק כאשר מחליפים את הסכום", "VAT.JUSTIFICATION_REQUIRED")
 

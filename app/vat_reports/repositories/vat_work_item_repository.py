@@ -62,7 +62,7 @@ class VatWorkItemRepository:
             .first()
         )
 
-    def list_by_business(self, business_id: int) -> list[VatWorkItem]:
+    def list_by_business(self, business_id: int, limit: int = 200) -> list[VatWorkItem]:
         return (
             self.db.query(VatWorkItem)
             .filter(
@@ -70,6 +70,7 @@ class VatWorkItemRepository:
                 VatWorkItem.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.period.desc())
+            .limit(limit)
             .all()
         )
 

@@ -71,7 +71,13 @@ class TestFiling:
 
     def test_filing_with_submission_reference_and_amendment_fields(self, client, advisor_headers, vat_client):
         amended_item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-04")
-        original_item_id = create_work_item(client, advisor_headers, vat_client, "2025-01")
+        original_item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-01")
+        original_file_response = client.post(
+            f"/api/v1/vat/work-items/{original_item_id}/file",
+            headers=advisor_headers,
+            json={"submission_method": "online"},
+        )
+        assert original_file_response.status_code == 200
 
         response = client.post(
             f"/api/v1/vat/work-items/{amended_item_id}/file",

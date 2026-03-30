@@ -84,3 +84,20 @@ def test_vat_work_item_repository_list_by_business(test_db):
 
     rows = repo.list_by_business(b1.id)
     assert [r.id for r in rows] == [a.id, b.id]
+
+
+def test_vat_work_item_repository_list_by_business_applies_limit(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+    repo = VatWorkItemRepository(test_db)
+
+    for month in range(1, 301):
+        year = 2026 + (month - 1) // 12
+        month_in_year = ((month - 1) % 12) + 1
+        repo.create(business.id, f"{year:04d}-{month_in_year:02d}", VatType.MONTHLY, user.id)
+
+    rows = repo.list_by_business(business.id)
+
+    assert len(rows) == 200
+    assert rows[0].period == "2050-12"
+    assert rows[-1].period == "2034-05"
