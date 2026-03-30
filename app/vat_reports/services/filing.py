@@ -8,6 +8,29 @@ from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_FILED, ACTION_OVERRIDE
+from app.vat_reports.services.data_entry_common import assert_transition_allowed
+
+
+def _validate_amendment(
+    work_item_repo: VatWorkItemRepository,
+    item,
+    amends_item_id: int,
+) -> None:
+    amended_item = work_item_repo.get_by_id(amends_item_id)
+    if amended_item is None:
+        raise AppError("פריט מתוקן לא נמצא", code="AMENDED_ITEM_NOT_FOUND", status_code=404)
+    if amended_item.business_id != item.business_id:
+        raise AppError("פריט מתוקן שייך לעסק אחר", code="AMENDED_ITEM_WRONG_BUSINESS", status_code=400)
+    if amended_item.status != VatWorkItemStatus.FILED:
+        raise AppError("ניתן לתקן רק פריט שהוגש", code="AMENDED_ITEM_NOT_FILED", status_code=400)
+
+    current_item = amended_item
+    while current_item is not None:
+        if current_item.id == item.id:
+            raise AppError("זוהתה שרשרת תיקונים מעגלית", code="AMENDMENT_CYCLE", status_code=400)
+        if current_item.amends_item_id is None:
+            break
+        current_item = work_item_repo.get_by_id(current_item.amends_item_id)
 
 
 def file_vat_return(
@@ -15,7 +38,7 @@ def file_vat_return(
     *,
     item_id: int,
     filed_by: int,
-    submission_method: SubmissionMethod,        
+    submission_method: SubmissionMethod,
     override_amount: Optional[float] = None,
     override_justification: Optional[str] = None,
     submission_reference: Optional[str] = None,
@@ -26,28 +49,10 @@ def file_vat_return(
     if not item:
         raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
-    if item.status != VatWorkItemStatus.READY_FOR_REVIEW:
-        raise AppError(
-            f"לא ניתן להגיש מסטטוס {item.status.value}. נדרש סטטוס 'מוכן לבדיקה'.",
-            "VAT.INVALID_TRANSITION",
-        )
+    assert_transition_allowed(item, VatWorkItemStatus.FILED)
 
     if amends_item_id is not None:
-        amended_item = work_item_repo.get_by_id(amends_item_id)
-        if amended_item is None:
-            raise AppError("פריט מתוקן לא נמצא", code="AMENDED_ITEM_NOT_FOUND", status_code=404)
-        if amended_item.business_id != item.business_id:
-            raise AppError("פריט מתוקן שייך לעסק אחר", code="AMENDED_ITEM_WRONG_BUSINESS", status_code=400)
-        if amended_item.status != VatWorkItemStatus.FILED:
-            raise AppError("ניתן לתקן רק פריט שהוגש", code="AMENDED_ITEM_NOT_FILED", status_code=400)
-
-        current_item = amended_item
-        while current_item is not None:
-            if current_item.id == item.id:
-                raise AppError("זוהתה שרשרת תיקונים מעגלית", code="AMENDMENT_CYCLE", status_code=400)
-            if current_item.amends_item_id is None:
-                break
-            current_item = work_item_repo.get_by_id(current_item.amends_item_id)
+        _validate_amendment(work_item_repo, item, amends_item_id)
 
     is_overridden = override_amount is not None
 
@@ -76,7 +81,7 @@ def file_vat_return(
     filed_item = work_item_repo.mark_filed(
         item_id=item_id,
         final_vat_amount=final_amount,
-        submission_method=submission_method,    
+        submission_method=submission_method,
         filed_by=filed_by,
         is_overridden=is_overridden,
         override_justification=override_justification if is_overridden else None,
