@@ -41,6 +41,7 @@ def list_advance_payments_overview(
     items = [
         AdvancePaymentOverviewRow(
             id=payment.id,
+            client_id=client_id,
             business_id=payment.business_id,
             business_name=business_name,
             period=payment.period,
@@ -50,7 +51,7 @@ def list_advance_payments_overview(
             paid_amount=payment.paid_amount,
             status=payment.status,
         )
-        for payment, business_name in rows
+        for payment, business_name, client_id in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,

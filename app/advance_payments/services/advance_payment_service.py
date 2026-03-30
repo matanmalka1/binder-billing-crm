@@ -140,6 +140,7 @@ class AdvancePaymentService:
                     p,
                     (businesses[p.business_id].business_name or businesses[p.business_id].client.full_name)
                     if p.business_id in businesses else "",
+                    businesses[p.business_id].client_id if p.business_id in businesses else 0,
                 )
                 for p in payments
             ],
