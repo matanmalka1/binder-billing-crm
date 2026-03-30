@@ -15,7 +15,7 @@ def get_business_actions(
     status = _value(business.status)
     actions: list[dict[str, Any]] = []
 
-    if status == BusinessStatus.ACTIVE.value and (user_role == UserRole.ADVISOR or user_role is None):
+    if status == BusinessStatus.ACTIVE.value and user_role == UserRole.ADVISOR:
         actions.append(
             build_action(
                 key="freeze",
@@ -32,6 +32,22 @@ def get_business_actions(
                 },
             )
         )
+        actions.append(
+            build_action(
+                key="close",
+                label="סגירת עסק",
+                method="patch",
+                endpoint=f"/businesses/{business.id}",
+                payload={"status": "closed"},
+                action_id=_generate_action_id("business", business.id, "close"),
+                confirm={
+                    "title": "אישור סגירת עסק",
+                    "message": "האם לסגור את העסק?",
+                    "confirm_label": "אישור",
+                    "cancel_label": "ביטול",
+                },
+            )
+        )
 
     if status == BusinessStatus.FROZEN.value:
         actions.append(
@@ -44,6 +60,23 @@ def get_business_actions(
                 action_id=_generate_action_id("business", business.id, "activate"),
             )
         )
+        if user_role == UserRole.ADVISOR:
+            actions.append(
+                build_action(
+                    key="close",
+                    label="סגירת עסק",
+                    method="patch",
+                    endpoint=f"/businesses/{business.id}",
+                    payload={"status": "closed"},
+                    action_id=_generate_action_id("business", business.id, "close"),
+                    confirm={
+                        "title": "אישור סגירת עסק",
+                        "message": "האם לסגור את העסק?",
+                        "confirm_label": "אישור",
+                        "cancel_label": "ביטול",
+                    },
+                )
+            )
 
     return actions
 

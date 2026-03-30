@@ -39,8 +39,7 @@ def test_get_business_actions_active_advisor_returns_freeze_action():
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
-    assert len(actions) == 1
-    assert actions[0]["key"] == "freeze"
+    assert [action["key"] for action in actions] == ["freeze", "close"]
     assert actions[0]["payload"] == {"status": "frozen"}
     assert actions[0]["id"] == "business-5-freeze"
 
@@ -58,8 +57,7 @@ def test_get_business_actions_frozen_returns_activate_action():
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
-    assert len(actions) == 1
-    assert actions[0]["key"] == "activate"
+    assert [action["key"] for action in actions] == ["activate", "close"]
     assert actions[0]["payload"] == {"status": "active"}
     assert actions[0]["id"] == "business-7-activate"
 

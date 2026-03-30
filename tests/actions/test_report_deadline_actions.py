@@ -51,6 +51,8 @@ def test_get_annual_report_actions_closed_states_have_no_actions():
     statuses = [
         AnnualReportStatus.AMENDED.value,
         AnnualReportStatus.ACCEPTED.value,
+        AnnualReportStatus.ASSESSMENT_ISSUED.value,
+        AnnualReportStatus.OBJECTION_FILED.value,
         AnnualReportStatus.CLOSED.value,
     ]
 

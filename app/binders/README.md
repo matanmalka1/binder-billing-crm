@@ -9,6 +9,7 @@ Manages physical binder lifecycle in the CRM: intake (find-or-create), operation
 This module provides:
 - Binder intake — find active binder by number or create new one, record material intake event
 - Lifecycle transitions (`in_office -> ready_for_pickup -> returned`)
+- `returned` is terminal in the current implementation; no reopen action/API exists
 - Active/open binder listing with filters, sort, and pagination
 - Binder history/audit trail (`binder_status_logs`)
 - Business-scoped binder listing (`/businesses/{business_id}/binders`)
@@ -208,7 +209,9 @@ Resolves `business.client_id` and delegates to `BinderOperationsService`.
 
 Transition rules (`app/binders/services/binder_helpers.py`):
 - `in_office -> ready_for_pickup` only
+- `ready_for_pickup -> in_office` only (via `revert-ready`)
 - `ready_for_pickup -> returned` only
+- `returned` is terminal; there is currently no `returned -> in_office` transition
 - Return requires non-empty pickup person name
 
 Intake rules (`app/binders/services/binder_intake_service.py`):

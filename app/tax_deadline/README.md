@@ -9,6 +9,7 @@ Manages business tax deadlines lifecycle (create/list/update/complete/delete), u
 This module provides:
 - Tax-deadline CRUD lifecycle over `tax_deadlines`
 - Deadline completion tracking
+- `completed` is terminal in the current implementation; there is no reopen action/API
 - Dashboard urgent/upcoming summary
 - Business timeline endpoint
 - Idempotent yearly deadline generation by business tax profile
@@ -107,6 +108,7 @@ Behavior:
 
 - `POST /api/v1/tax-deadlines/{deadline_id}/complete`
 - Idempotent if already completed.
+- `completed` is terminal; there is currently no `completed -> pending` transition.
 
 ### Update deadline
 

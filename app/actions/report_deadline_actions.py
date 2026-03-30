@@ -4,9 +4,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.tax_deadline.models.tax_deadline import TaxDeadline, TaxDeadlineStatus
+from app.actions.action_helpers import _generate_action_id, _value, build_action
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.actions.action_contracts import _generate_action_id, _value, build_action
+from app.tax_deadline.models.tax_deadline import TaxDeadline, TaxDeadlineStatus
+
+SUBMIT_BLOCKED_STATUSES = {
+    AnnualReportStatus.SUBMITTED.value,
+    AnnualReportStatus.AMENDED.value,
+    AnnualReportStatus.ACCEPTED.value,
+    AnnualReportStatus.ASSESSMENT_ISSUED.value,
+    AnnualReportStatus.OBJECTION_FILED.value,
+    AnnualReportStatus.CLOSED.value,
+}
 
 
 def get_tax_deadline_actions(deadline: TaxDeadline) -> list[dict[str, Any]]:
@@ -53,8 +62,7 @@ def get_annual_report_actions(report_id: int, status: str) -> list[dict[str, Any
             )
         )
 
-    if status not in (AnnualReportStatus.SUBMITTED.value, AnnualReportStatus.AMENDED.value,
-                      AnnualReportStatus.ACCEPTED.value, AnnualReportStatus.CLOSED.value):
+    if status not in SUBMIT_BLOCKED_STATUSES:
         actions.append(
             build_action(
                 key="submit",

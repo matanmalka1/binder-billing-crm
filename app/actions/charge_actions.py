@@ -16,7 +16,7 @@ def _cancel_charge_action(charge_id: int) -> dict[str, Any]:
         confirm={
             "title": "אישור ביטול חיוב",
             "message": "האם לבטל את החיוב?",
-            "confirm_label": "ביטול",
+            "confirm_label": "אשר ביטול",
             "cancel_label": "חזרה",
         },
     )
