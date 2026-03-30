@@ -27,14 +27,14 @@ from app.utils.time_utils import utcnow
 
 
 class ReminderType(str, PyEnum):
-    TAX_DEADLINE_APPROACHING = "tax_deadline_approaching"  # מועד מס כללי מתקרב
-    VAT_FILING               = "vat_filing"                # מועד דוח מע"מ
-    ADVANCE_PAYMENT_DUE      = "advance_payment_due"       # תשלום מקדמה
-    ANNUAL_REPORT_DEADLINE   = "annual_report_deadline"    # מועד הגשת דוח שנתי
-    BINDER_IDLE              = "binder_idle"               # תיק לא פעיל
-    UNPAID_CHARGE            = "unpaid_charge"             # חיוב שלא שולם
-    DOCUMENT_MISSING         = "document_missing"          # מסמך חסר מהלקוח
-    CUSTOM                   = "custom"                    # תזכורת ידנית
+    TAX_DEADLINE_APPROACHING = "tax_deadline_approaching"  # General tax deadline approaching
+    VAT_FILING               = "vat_filing"                # VAT filing deadline
+    ADVANCE_PAYMENT_DUE      = "advance_payment_due"       # Advance payment due
+    ANNUAL_REPORT_DEADLINE   = "annual_report_deadline"    # Annual report filing deadline
+    BINDER_IDLE              = "binder_idle"               # Binder inactive
+    UNPAID_CHARGE            = "unpaid_charge"             # Unpaid charge
+    DOCUMENT_MISSING         = "document_missing"          # Missing document from client
+    CUSTOM                   = "custom"                    # Manual reminder
 
 
 class ReminderStatus(str, PyEnum):
@@ -56,8 +56,8 @@ class Reminder(Base):
                            default=ReminderStatus.PENDING, nullable=False)
 
     # ── Scheduling ────────────────────────────────────────────────────────────
-    target_date = Column(Date, nullable=False)         # תאריך האירוע עצמו
-    days_before = Column(Integer, nullable=False)      # כמה ימים לפני לשלוח
+    target_date = Column(Date, nullable=False)         # The event date itself
+    days_before = Column(Integer, nullable=False)      # How many days before to send
     send_on     = Column(Date, nullable=False, index=True)  # pre-computed: target_date - days_before
 
     # ── Content ───────────────────────────────────────────────────────────────
@@ -74,10 +74,10 @@ class Reminder(Base):
     created_at   = Column(DateTime, default=utcnow, nullable=False)
     sent_at      = Column(DateTime, nullable=True)
     canceled_at  = Column(DateTime, nullable=True)
-    canceled_by  = Column(Integer, ForeignKey("users.id"), nullable=True)  # מי ביטל
+    canceled_by  = Column(Integer, ForeignKey("users.id"), nullable=True)  # Who canceled
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # null = מערכת
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # null = system
 
     # ── Soft delete ───────────────────────────────────────────────────────────
     deleted_at = Column(DateTime, nullable=True)

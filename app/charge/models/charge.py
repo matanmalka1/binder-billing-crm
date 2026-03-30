@@ -11,11 +11,11 @@ from app.utils.time_utils import utcnow
 
 
 class ChargeType(str, PyEnum):
-    MONTHLY_RETAINER   = "monthly_retainer"    # שוטף חודשי
-    ANNUAL_REPORT_FEE  = "annual_report_fee"   # עבור דוח שנתי ספציפי
-    VAT_FILING_FEE     = "vat_filing_fee"      # עבודת מע"מ מחוץ לריטיינר
-    REPRESENTATION_FEE = "representation_fee"  # ייצוג בדיונים / השגות
-    CONSULTATION_FEE   = "consultation_fee"    # ייעוץ חד-פעמי
+    MONTHLY_RETAINER   = "monthly_retainer"    # Monthly retainer
+    ANNUAL_REPORT_FEE  = "annual_report_fee"   # For a specific annual report
+    VAT_FILING_FEE     = "vat_filing_fee"      # VAT work outside the retainer
+    REPRESENTATION_FEE = "representation_fee"  # Representation in discussions / objections
+    CONSULTATION_FEE   = "consultation_fee"    # One-time consultation
     OTHER              = "other"
 
 
@@ -32,7 +32,7 @@ class Charge(Base):
     id          = Column(Integer, primary_key=True, autoincrement=True)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
 
-    # קישור אופציונלי לדוח שנתי (לאינדיקטור "שולם" ברשימת הדוחות)
+    # Optional link to annual report (for "paid" indicator in reports list)
     annual_report_id = Column(
         Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
     )
@@ -42,13 +42,13 @@ class Charge(Base):
         pg_enum(ChargeStatus), default=ChargeStatus.DRAFT, nullable=False
     )
 
-    amount = Column(Numeric(10, 2), nullable=False)  # תמיד ₪, ללא currency
+    amount = Column(Numeric(10, 2), nullable=False)  # Always ₪, no currency
 
-    # התקופה אליה מתייחס החיוב
-    period         = Column(String(7), nullable=True, index=True)  # "YYYY-MM" — החודש הראשון
-    months_covered = Column(Integer, default=1, nullable=False)    # כמה חודשים מכוסים
+    # The period to which the charge refers
+    period         = Column(String(7), nullable=True, index=True)  # "YYYY-MM" — the first month
+    months_covered = Column(Integer, default=1, nullable=False)    # How many months covered
 
-    description = Column(Text, nullable=True)  # טקסט חופשי לשורת החיוב
+    description = Column(Text, nullable=True)  # Free text for the charge line
 
     # Lifecycle timestamps + actors
     created_at  = Column(DateTime, default=utcnow, nullable=False)

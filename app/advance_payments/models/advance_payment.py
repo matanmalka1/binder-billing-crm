@@ -31,18 +31,18 @@ from app.utils.time_utils import utcnow
 
 
 class AdvancePaymentStatus(str, PyEnum):
-    PENDING = "pending"   # טרם שולם
-    PAID    = "paid"      # שולם במלואו
-    PARTIAL = "partial"   # שולם חלקית
-    OVERDUE = "overdue"   # באיחור
+    PENDING = "pending"   # Not yet paid
+    PAID    = "paid"      # Paid in full
+    PARTIAL = "partial"   # Paid partially
+    OVERDUE = "overdue"   # Overdue
 
 
 class PaymentMethod(str, PyEnum):
-    BANK_TRANSFER = "bank_transfer"  # העברה בנקאית
-    CREDIT_CARD   = "credit_card"    # כרטיס אשראי
-    CHECK         = "check"          # המחאה
-    DIRECT_DEBIT  = "direct_debit"   # הוראת קבע — נפוץ מאוד במקדמות
-    CASH          = "cash"           # מזומן — נדיר, קיים בבנק הדואר
+    BANK_TRANSFER = "bank_transfer"  # Bank transfer
+    CREDIT_CARD   = "credit_card"    # Credit card
+    CHECK         = "check"          # Check
+    DIRECT_DEBIT  = "direct_debit"   # Direct debit — very common for advance payments
+    CASH          = "cash"           # Cash — rare, exists at post office bank
     OTHER         = "other"
 
 
@@ -53,19 +53,19 @@ class AdvancePayment(Base):
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
 
     # ── Period ────────────────────────────────────────────────────────────────
-    period              = Column(String(7), nullable=False)       # "YYYY-MM" — חודש ראשון בתקופה
-    period_months_count = Column(Integer, nullable=False, default=1)  # 1=חודשי, 2=דו-חודשי
-    due_date            = Column(Date, nullable=False)            # בדרך כלל ה-15 לחודש שאחרי התקופה
+    period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period
+    period_months_count = Column(Integer, nullable=False, default=1)  # 1=monthly, 2=bi-monthly
+    due_date            = Column(Date, nullable=False)            # Usually the 15th of the month after the period
 
     # ── Amounts ───────────────────────────────────────────────────────────────
-    expected_amount = Column(Numeric(10, 2), nullable=True)  # לפי שיעור המקדמה
-    paid_amount     = Column(Numeric(10, 2), nullable=True)  # בפועל
+    expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
+    paid_amount     = Column(Numeric(10, 2), nullable=True)  # Actually
 
     # ── Status & payment ──────────────────────────────────────────────────────
     status         = Column(pg_enum(AdvancePaymentStatus),
                             default=AdvancePaymentStatus.PENDING, nullable=False)
-    paid_at        = Column(DateTime, nullable=True)              # מתי שולם בפועל
-    payment_method = Column(pg_enum(PaymentMethod), nullable=True)  # אמצעי תשלום
+    paid_at        = Column(DateTime, nullable=True)              # When actually paid
+    payment_method = Column(pg_enum(PaymentMethod), nullable=True)  # Payment method
 
     # ── Cross-domain links ────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)

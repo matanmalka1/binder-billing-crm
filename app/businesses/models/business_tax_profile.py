@@ -15,9 +15,8 @@ class VatType(str, PyEnum):
 
 class BusinessTaxProfile(Base):
     """
-    פרופיל מס של עסק ספציפי.
-    כל עסק מחזיק פרופיל מס נפרד (סוג מע"מ, שיעור מקדמות וכו').
-    שינוי שם מ-ClientTaxProfile ל-BusinessTaxProfile.
+    Tax profile of a specific business.
+    Each business holds a separate tax profile (VAT type, advance rate, etc.).
     """
     __tablename__ = "business_tax_profiles"
 
