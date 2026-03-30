@@ -57,6 +57,9 @@ def file_vat_return(
     if is_overridden and not override_justification:
         raise AppError("נדרש נימוק כאשר מחליפים את הסכום", "VAT.JUSTIFICATION_REQUIRED")
 
+    if item.net_vat is None and override_amount is None:
+        raise AppError("סכום מע״מ סופי חייב להיות מוגדר", code="MISSING_FINAL_AMOUNT", status_code=400)
+
     if is_overridden:
         final_amount = override_amount
         work_item_repo.append_audit(
