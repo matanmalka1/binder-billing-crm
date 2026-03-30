@@ -1,25 +1,6 @@
 from datetime import datetime
 
-DEADLINE_TYPE_HE = {
-    "vat": "מע״מ",
-    "advance_payment": "מקדמה",
-    "national_insurance": "ביטוח לאומי",
-    "annual_report": "דוח שנתי",
-    "other": "אחר",
-}
-
-ANNUAL_REPORT_STATUS_HE = {
-    "not_started": "טרם התחיל",
-    "collecting_docs": "איסוף מסמכים",
-    "docs_complete": "מסמכים התקבלו",
-    "in_preparation": "בהכנה",
-    "pending_client": "ממתין לאישור לקוח",
-    "submitted": "הוגש",
-    "accepted": "התקבל",
-    "assessment_issued": "שומה הוצאה",
-    "objection_filed": "השגה הוגשה",
-    "closed": "סגור",
-}
+from app.timeline.labels import ANNUAL_REPORT_STATUS_HE, DEADLINE_TYPE_HE
 
 
 def tax_deadline_due_event(deadline) -> dict:

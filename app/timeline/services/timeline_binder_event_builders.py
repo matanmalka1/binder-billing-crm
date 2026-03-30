@@ -1,22 +1,7 @@
 from datetime import datetime
 
 from app.actions.action_contracts import get_binder_actions
-
-
-# "none" is a legacy sentinel value that may appear in old status_log rows
-# before the enum was introduced — kept for backward compatibility.
-BINDER_STATUS_HE = {
-    "none": "חדש",
-    "in_office": "במשרד",
-    "ready_for_pickup": "מוכן לאיסוף",
-    "returned": "הוחזר",
-}
-
-NOTIFICATION_TRIGGER_HE = {
-    "binder_received": "קלסר התקבל",
-    "binder_ready_for_pickup": "קלסר מוכן לאיסוף",
-    "manual_payment_reminder": "תזכורת תשלום ידנית",
-}
+from app.timeline.labels import BINDER_STATUS_HE, NOTIFICATION_TRIGGER_HE
 
 
 def _attach_actions(event: dict, actions: list) -> dict:

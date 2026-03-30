@@ -1,30 +1,10 @@
 from datetime import datetime
 
-
-DOCUMENT_TYPE_HE = {
-    "id_copy": "צילום ת.ז.",
-    "power_of_attorney": "ייפוי כוח",
-    "engagement_agreement": "הסכם התקשרות",
-}
-
-REMINDER_TYPE_HE = {
-    "tax_deadline_approaching": "מועד מס מתקרב",
-    "binder_idle": "תיק לא פעיל",
-    "unpaid_charge": "חיוב שלא שולם",
-    "custom": "תזכורת מותאמת",
-    "vat_filing": "מועד דוח מע״מ",
-    "advance_payment_due": "תשלום מקדמה",
-    "annual_report_deadline": "מועד הגשת דוח שנתי",
-    "document_missing": "מסמך חסר",
-}
-
-SIGNATURE_REQUEST_TYPE_HE = {
-    "engagement_agreement": "הסכם התקשרות",
-    "annual_report_approval": "אישור דוח שנתי",
-    "power_of_attorney": "ייפוי כוח",
-    "vat_return_approval": 'אישור דוח מע"מ',
-    "custom": "חתימה",
-}
+from app.timeline.labels import (
+    DOCUMENT_TYPE_HE,
+    REMINDER_TYPE_HE,
+    SIGNATURE_REQUEST_TYPE_HE,
+)
 
 
 def client_created_event(client) -> dict:

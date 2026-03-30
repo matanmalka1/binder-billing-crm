@@ -1,14 +1,5 @@
 from app.actions.action_contracts import get_charge_actions
-
-
-CHARGE_TYPE_HE = {
-    "monthly_retainer": "ריטיינר חודשי",
-    "annual_report_fee": "שכר טרחה לדוח שנתי",
-    "vat_filing_fee": "שכר טרחה לדוח מע״מ",
-    "representation_fee": "שכר טרחה לייצוג",
-    "consultation_fee": "שכר טרחה לייעוץ",
-    "other": "אחר",
-}
+from app.timeline.labels import CHARGE_TYPE_HE
 
 
 def _attach_actions(event: dict, actions: list) -> dict:
