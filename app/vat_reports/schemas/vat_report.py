@@ -7,10 +7,10 @@ import re
 
 from pydantic import BaseModel, field_validator
 
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.common.enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
 from app.businesses.models.business_tax_profile import VatType
-from app.annual_reports.models.annual_report_enums import SubmissionMethod
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 
 # ── Work Item ─────────────────────────────────────────────────────────────────

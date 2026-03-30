@@ -2,6 +2,8 @@
 
 from enum import Enum as PyEnum
 
+from app.common.enums import SubmissionMethod
+
 
 class ClientTypeForReport(str, PyEnum):
     """Client types that determine which ITA form is required."""
@@ -63,12 +65,6 @@ class ReportStage(str, PyEnum):
     CLIENT_SIGNATURE = "client_signature"
     TRANSMITTED = "transmitted"
     POST_SUBMISSION = "post_submission"  # assessment_issued, objection_filed
-
-class SubmissionMethod(str, PyEnum):
-    ONLINE         = "online"          # שידור ישיר (מייצגים)
-    MANUAL         = "manual"          # הגשה פיזית לפקיד השומה
-    REPRESENTATIVE = "representative"  # דרך מערכת המייצגים (שע"מ)
-
 
 class ExtensionReason(str, PyEnum):
     MILITARY_SERVICE       = "military_service"  # מילואים

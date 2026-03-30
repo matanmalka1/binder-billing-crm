@@ -3,11 +3,11 @@
 import json
 from typing import Optional
 
+from app.common.enums import SubmissionMethod
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_FILED, ACTION_OVERRIDE
-from app.annual_reports.models.annual_report_enums import SubmissionMethod  
 
 
 def file_vat_return(

@@ -19,13 +19,13 @@ from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
     Index, Integer, Numeric, String, Text, UniqueConstraint,
 )
+from app.common.enums import SubmissionMethod
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.businesses.models.business_tax_profile import VatType
-from app.annual_reports.models.annual_report_enums import SubmissionMethod
 
 class VatWorkItem(Base):
     __tablename__ = "vat_work_items"

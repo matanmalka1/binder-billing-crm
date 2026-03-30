@@ -5,11 +5,11 @@ from typing import Optional
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
+from app.common.enums import SubmissionMethod
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.annual_reports.models.annual_report_enums import SubmissionMethod  # שם חדש
 from app.vat_reports.repositories.vat_audit_log_repository import VatAuditLogRepository
 
 
