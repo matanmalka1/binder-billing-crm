@@ -10,7 +10,7 @@ from app.businesses.repositories.business_tax_profile_repository import Business
 from app.businesses.services.business_guards import assert_business_allows_create
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED
+from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED, ACTION_WORK_ITEM_CREATED_PENDING
 
 
 def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
@@ -63,6 +63,9 @@ def create_work_item(
         if profile and profile.vat_type:
             _validate_period_for_vat_type(period, profile.vat_type)
 
+    # WARNING: This check only filters for non-deleted items (deleted_at IS NULL).
+    # If we ever allow soft-deleting FILED items, this guard must be updated to
+    # also block creation when a FILED item exists for the same period, even if deleted.
     existing = work_item_repo.get_by_business_period(business_id, period)
     if existing:
         raise ConflictError(
@@ -92,10 +95,11 @@ def create_work_item(
         assigned_to=assigned_to,
     )
 
+    action = ACTION_WORK_ITEM_CREATED_PENDING if mark_pending else ACTION_MATERIAL_RECEIVED
     work_item_repo.append_audit(
         work_item_id=item.id,
         performed_by=created_by,
-        action=ACTION_MATERIAL_RECEIVED,
+        action=action,
         new_value=json.dumps({"status": status.value, "period": period}),
     )
 

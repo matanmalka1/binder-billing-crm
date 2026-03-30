@@ -16,6 +16,7 @@ ANNUAL_REPORT_DUE_MONTH = 4    # April
 ANNUAL_REPORT_DUE_DAY = 30     # April 30 of year+1
 
 # ── Urgency thresholds ────────────────────────────────────────────────────────
+# MUST MATCH frontend src/features/taxDeadlines/utils.ts urgency thresholds
 URGENCY_RED_DAYS = 2           # ≤ 2 days remaining → RED
 URGENCY_YELLOW_DAYS = 7        # ≤ 7 days remaining → YELLOW
 

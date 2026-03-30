@@ -13,6 +13,7 @@ from app.advance_payments.schemas.advance_payment import (
     ChartDataResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
 from app.core.exceptions import AppError
 
 router = APIRouter(
@@ -102,7 +103,7 @@ def get_annual_kpis(
     user: CurrentUser,
     year: int = Query(...),
 ):
-    service = AdvancePaymentService(db)
+    service = AdvancePaymentAnalyticsService(db)
     data = service.get_annual_kpis(business_id=business_id, year=year)
     return AnnualKPIResponse(**data)
 
@@ -114,7 +115,7 @@ def get_chart_data(
     user: CurrentUser,
     year: int = Query(...),
 ):
-    service = AdvancePaymentService(db)
+    service = AdvancePaymentAnalyticsService(db)
     data = service.get_chart_data(business_id=business_id, year=year)
     return ChartDataResponse(**data)
 

@@ -13,7 +13,6 @@ from app.tax_deadline.schemas.tax_deadline import (
     TimelineEntry,
 )
 from app.tax_deadline.services.tax_deadline_query_service import TaxDeadlineQueryService
-from app.tax_deadline.services.constants import GLOBAL_DEADLINE_FETCH_LIMIT
 from app.actions.report_deadline_actions import get_tax_deadline_actions
 
 router = APIRouter(
@@ -52,17 +51,9 @@ def list_tax_deadlines(
     service = TaxDeadlineQueryService(db)
     type_enum = DeadlineType(deadline_type) if deadline_type else None
 
-    if business_id:
-        from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-        items = TaxDeadlineService(db).get_business_deadlines(business_id, status_filter, type_enum)
-    elif client_name:
-        items = service.get_deadlines_by_client_name(client_name, status_filter, type_enum)
-    else:
-        items = service.list_all_pending()[:GLOBAL_DEADLINE_FETCH_LIMIT]
-
-    total = len(items)
-    offset = (page - 1) * page_size
-    paginated = items[offset: offset + page_size]
+    paginated, total = service.list_deadlines(
+        business_id, client_name, status_filter, type_enum, page=page, page_size=page_size
+    )
 
     business_name_map = service.build_business_name_map(paginated)
     client_id_map = service.build_client_id_map(paginated)

@@ -21,9 +21,43 @@ class TaxDeadlineQueryService:
         self.deadline_repo = TaxDeadlineRepository(db)
         self.business_repo = BusinessRepository(db)
 
-    def list_all_pending(self) -> list[TaxDeadline]:
-        """Return all pending deadlines regardless of business."""
-        return self.deadline_repo.list_pending_due_by_date(date.today(), FAR_FUTURE_DATE)
+    def list_deadlines(
+        self,
+        business_id: Optional[int],
+        client_name: Optional[str],
+        status: Optional[str],
+        deadline_type: Optional[DeadlineType],
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[TaxDeadline], int]:
+        """Route branching logic: by business, by client name, or all pending."""
+        if business_id:
+            items = self.deadline_repo.list_by_business(business_id, status, deadline_type)
+            total = len(items)
+            offset = (page - 1) * page_size
+            return items[offset: offset + page_size], total
+        elif client_name:
+            items = self.get_deadlines_by_client_name(client_name, status, deadline_type)
+            total = len(items)
+            offset = (page - 1) * page_size
+            return items[offset: offset + page_size], total
+        else:
+            return self.list_all_pending(page=page, page_size=page_size)
+
+    def list_all_pending(
+        self,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[TaxDeadline], int]:
+        """Return paginated pending deadlines with SQL-level pagination."""
+        total = self.deadline_repo.count_pending_due_by_date(date.today(), FAR_FUTURE_DATE)
+        items = self.deadline_repo.list_pending_due_by_date(
+            date.today(),
+            FAR_FUTURE_DATE,
+            limit=page_size,
+            offset=(page - 1) * page_size,
+        )
+        return items, total
 
     def get_upcoming_deadlines(
         self,

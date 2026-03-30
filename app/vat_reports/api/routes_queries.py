@@ -48,7 +48,7 @@ def lookup_work_item(
 ):
     """Lookup a VAT work item by business + period. Returns null if not found."""
     service = VatReportService(db)
-    item = service.work_item_repo.get_by_business_period(business_id, period)
+    item = service.get_work_item_by_business_period(business_id, period)
     if not item:
         return None
     return VatWorkItemLookupResponse.model_validate(item)

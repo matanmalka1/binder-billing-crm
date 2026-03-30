@@ -100,6 +100,14 @@ class AdvancePaymentOverviewRow(BaseModel):
     paid_amount: Optional[ApiDecimal] = None
     status: AdvancePaymentStatus
 
+    @computed_field
+    @property
+    def delta(self) -> Optional[Decimal]:
+        """expected - paid. שלילי = חוסר תשלום."""
+        if self.expected_amount is None or self.paid_amount is None:
+            return None
+        return self.expected_amount - self.paid_amount
+
     model_config = {"from_attributes": True, "use_enum_values": True}
 
 

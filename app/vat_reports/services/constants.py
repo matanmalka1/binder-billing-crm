@@ -25,6 +25,7 @@ VALID_TRANSITIONS: dict[VatWorkItemStatus, set[VatWorkItemStatus]] = {
 }
 
 # Audit action labels
+ACTION_WORK_ITEM_CREATED_PENDING = "work_item_created_pending"
 ACTION_MATERIAL_RECEIVED = "material_received"
 ACTION_STATUS_CHANGED = "status_changed"
 ACTION_INVOICE_ADDED = "invoice_added"
@@ -96,6 +97,12 @@ CATEGORY_DEDUCTION_RATES: dict[str, Decimal] = {
     "other":                 Decimal("0.0000"),
 }
 
+# VAT submission deadlines
+# 15 = statutory deadline by law; 19 = digital filing extension granted by tax authority.
+# Work items use the statutory deadline as the conservative target.
+VAT_STATUTORY_DEADLINE_DAY = 15   # base legal deadline
+VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19  # extension for digital filing only
+
 # OSEK PATUR annual turnover ceiling (updated annually per tax authority)
 # 2026 value: 122,833 ₪  (2025: 120,000 ₪)
 OSEK_PATUR_CEILING_ILS: Decimal = Decimal("122833")
@@ -109,11 +116,14 @@ __all__ = [
     "ACTION_INVOICE_DELETED",
     "ACTION_INVOICE_UPDATED",
     "ACTION_MATERIAL_RECEIVED",
+    "ACTION_WORK_ITEM_CREATED_PENDING",
     "ACTION_OVERRIDE",
     "ACTION_STATUS_CHANGED",
     "CATEGORY_DEDUCTION_RATES",
     "CATEGORY_LABELS_SERVER",
     "EXCEPTIONAL_INVOICE_THRESHOLD",
     "OSEK_PATUR_CEILING_ILS",
+    "VAT_ONLINE_EXTENDED_DEADLINE_DAY",
+    "VAT_STATUTORY_DEADLINE_DAY",
     "VALID_TRANSITIONS",
 ]

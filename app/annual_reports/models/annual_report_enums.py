@@ -78,7 +78,7 @@ __all__ = [
     "AnnualReportStatus",
     "ClientTypeForReport",
     "DeadlineType",
-    "ExtensionReason",    # נוסף
+    "ExtensionReason",    
     "ReportStage",
-    "SubmissionMethod",   # נוסף
+    "SubmissionMethod",   
 ]

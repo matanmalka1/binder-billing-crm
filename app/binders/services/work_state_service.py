@@ -1,25 +1,15 @@
 from datetime import date, timedelta
-from enum import Enum as PyEnum
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder, BinderStatus
+from app.binders.services.constants import IDLE_THRESHOLD_DAYS, WorkState
 from app.notification.models.notification import Notification
-
-
-class WorkState(str, PyEnum):
-    """Derived operational work state (NOT persisted)."""
-
-    WAITING_FOR_WORK = "waiting_for_work"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
 
 
 class WorkStateService:
     """Derive operational work state for binders."""
-
-    IDLE_THRESHOLD_DAYS = 14
 
     @staticmethod
     def derive_work_state(
@@ -37,7 +27,7 @@ class WorkStateService:
             return WorkState.IN_PROGRESS
 
         days_since_start = (reference_date - binder.period_start).days
-        if days_since_start < WorkStateService.IDLE_THRESHOLD_DAYS:
+        if days_since_start < IDLE_THRESHOLD_DAYS:
             return WorkState.IN_PROGRESS
 
         if db is not None:
@@ -58,7 +48,7 @@ class WorkStateService:
         Queries by binder_id (not business_id/client_id) to avoid false positives
         from notifications on other binders of the same client.
         """
-        threshold_date = reference_date - timedelta(days=WorkStateService.IDLE_THRESHOLD_DAYS)
+        threshold_date = reference_date - timedelta(days=IDLE_THRESHOLD_DAYS)
 
         result = (
             db.query(Notification)

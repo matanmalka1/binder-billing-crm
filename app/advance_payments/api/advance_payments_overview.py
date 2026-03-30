@@ -7,7 +7,7 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
 )
-from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
 
 overview_router = APIRouter(
     prefix="/advance-payments",
@@ -28,7 +28,7 @@ def list_advance_payments_overview(
 ):
     resolved_statuses = [AdvancePaymentStatus(s) for s in status] if status else None
 
-    service = AdvancePaymentService(db)
+    service = AdvancePaymentAnalyticsService(db)
     rows, total = service.list_overview(
         year=year,
         month=month,

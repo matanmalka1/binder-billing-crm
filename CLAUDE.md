@@ -98,7 +98,7 @@ app/<domain>/
 - No raw SQL — ORM only
 - Strict layering: `API → Service → Repository → ORM`
 - No cross-domain imports at Repository or Model level
-- No business logic in API routers
+- No business logic in API routers — **routers must not contain branching business logic; all if/elif/else dispatch belongs in the service layer**
 - Background jobs must be idempotent
 - Auth: `require_role()` at endpoint level; fine-grained checks in Service layer
 - Every list endpoint must support standardized pagination, filtering, and sorting
@@ -138,7 +138,6 @@ These are intentional, documented constraints — not bugs. Do not work around t
 | `search_service.py`             | `_MIXED_SEARCH_CLIENT_LIMIT = 500` clients                       | Results silently capped                  |
 | `timeline_service.py`           | `_TIMELINE_BULK_LIMIT = 500` per entity                          | Older events silently truncated          |
 | `reports_service.py`            | `_AGING_CHARGE_FETCH_LIMIT = 2000` charges                       | Charges beyond ceiling silently excluded |
-| `tax_deadline` repo             | No server-side pagination on global pending list                 | Unbounded DB query                       |
 | `binders/work_state`            | Notification check fetches 100 by `client_id`, filters in memory | No binder-scoped query                   |
 
 **Root fix:** persist `work_state` and signals, or push aggregation to SQL. Until then, respect the ceilings.
@@ -167,6 +166,33 @@ These are intentional, documented constraints — not bugs. Do not work around t
 - Start: `alembic upgrade head && gunicorn -k uvicorn.workers.UvicornWorker app.main:app`
 - Required secrets (set in Render dashboard — never commit): `DATABASE_URL`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`
 - Optional secrets: `SENDGRID_API_KEY`, `EMAIL_FROM_ADDRESS`, `R2_*`, `INVOICE_PROVIDER_*`
+
+---
+
+## VAT Deadlines
+
+- **15th = statutory deadline by law** (`VAT_STATUTORY_DEADLINE_DAY = 15` in `app/vat_reports/services/constants.py`)
+- **19th = digital filing extension** granted by the tax authority for businesses filing online (`VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19`)
+- Work items use the 15th as the conservative target. Never swap these — the 19th is a privilege, not the legal baseline.
+
+---
+
+## Security & Authorization
+
+All endpoints that return sensitive data scope queries by `business_id` or perform fetch-then-check ownership at the service layer. No endpoint exposes items across business boundaries. This IDOR-safe pattern is enforced by convention — new endpoints must follow it.
+
+---
+
+## Future Constraints
+
+- **VAT soft-delete + uniqueness gap**: The duplicate-period check in `app/vat_reports/services/intake.py` filters for non-deleted items only (`deleted_at IS NULL`). If soft-deleting FILED items is ever allowed, the guard must also block creation when a FILED item exists for the same period, even if deleted. See warning comment in `create_work_item`.
+
+---
+
+## Frontend-Backend Sync
+
+- **Urgency thresholds**: `URGENCY_RED_DAYS = 2` and `URGENCY_YELLOW_DAYS = 7` are intentionally duplicated in `app/tax_deadline/services/constants.py` (backend) and `src/features/taxDeadlines/utils.ts` (frontend). Both files have cross-reference comments. Update both when changing thresholds.
+- **Enum fields**: Any field backed by a backend enum MUST use a `z.enum([...])` in the frontend Zod schema. Define the array in `constants.ts`, not inline in the schema or component.
 
 ---
 

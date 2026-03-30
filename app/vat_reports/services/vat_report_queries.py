@@ -9,6 +9,7 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ def compute_deadline_fields(item) -> dict:
     """Derive submission_deadline, days_until_deadline, is_overdue from period."""
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
-        dl = date(year + 1, 1, 15) if month == 12 else date(year, month + 1, 15)
+        dl = date(year + 1, 1, VAT_STATUTORY_DEADLINE_DAY) if month == 12 else date(year, month + 1, VAT_STATUTORY_DEADLINE_DAY)
         today = datetime.now(timezone.utc).date()
         days = (dl - today).days
         return {"submission_deadline": dl, "days_until_deadline": days, "is_overdue": days < 0}

@@ -1,17 +1,76 @@
+"""TaxDeadlineRepository — backward-compatible re-export.
+
+Implementation is split into:
+  - tax_deadline_query_repository.TaxDeadlineQueryRepository  (read + count)
+  - tax_deadline_write_repository.TaxDeadlineWriteRepository  (write)
+
+TaxDeadlineRepository is a unified facade over both for callers that need both.
+New code should import from the split modules directly.
+"""
+
 from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-from app.utils.time_utils import utcnow
+from app.tax_deadline.repositories.tax_deadline_query_repository import TaxDeadlineQueryRepository
+from app.tax_deadline.repositories.tax_deadline_write_repository import TaxDeadlineWriteRepository
 
 
 class TaxDeadlineRepository:
-    """Data access layer for TaxDeadline entities."""
+    """Unified facade over query + write repositories."""
 
     def __init__(self, db: Session):
         self.db = db
+        self._q = TaxDeadlineQueryRepository(db)
+        self._w = TaxDeadlineWriteRepository(db)
+
+    # ── Read ──────────────────────────────────────────────────────────────────
+
+    def get_by_id(self, deadline_id: int) -> Optional[TaxDeadline]:
+        return self._q.get_by_id(deadline_id)
+
+    def list_pending_due_by_date(
+        self,
+        from_date: date,
+        to_date: date,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> list[TaxDeadline]:
+        return self._q.list_pending_due_by_date(from_date, to_date, limit=limit, offset=offset)
+
+    def count_pending_due_by_date(self, from_date: date, to_date: date) -> int:
+        return self._q.count_pending_due_by_date(from_date, to_date)
+
+    def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
+        return self._q.list_overdue(reference_date)
+
+    def list_by_business_ids(
+        self,
+        business_ids: list[int],
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+    ) -> list[TaxDeadline]:
+        return self._q.list_by_business_ids(business_ids, status=status, deadline_type=deadline_type)
+
+    def list_by_business(
+        self,
+        business_id: int,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+    ) -> list[TaxDeadline]:
+        return self._q.list_by_business(business_id, status=status, deadline_type=deadline_type)
+
+    def exists(
+        self,
+        business_id: int,
+        deadline_type: DeadlineType,
+        due_date: date,
+    ) -> bool:
+        return self._q.exists(business_id, deadline_type, due_date)
+
+    # ── Write ─────────────────────────────────────────────────────────────────
 
     def create(
         self,
@@ -22,27 +81,13 @@ class TaxDeadlineRepository:
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
-        """Create a new tax deadline."""
-        deadline = TaxDeadline(
+        return self._w.create(
             business_id=business_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
             payment_amount=payment_amount,
             description=description,
-            status=TaxDeadlineStatus.PENDING,
-        )
-        self.db.add(deadline)
-        self.db.commit()
-        self.db.refresh(deadline)
-        return deadline
-
-    def get_by_id(self, deadline_id: int) -> Optional[TaxDeadline]:
-        """Retrieve a non-deleted deadline by ID."""
-        return (
-            self.db.query(TaxDeadline)
-            .filter(TaxDeadline.id == deadline_id, TaxDeadline.deleted_at.is_(None))
-            .first()
         )
 
     def update_status(
@@ -51,89 +96,7 @@ class TaxDeadlineRepository:
         status: TaxDeadlineStatus,
         completed_at: Optional[datetime] = None,
     ) -> Optional[TaxDeadline]:
-        """Update deadline status (and optional completion timestamp)."""
-        deadline = self.get_by_id(deadline_id)
-        if not deadline:
-            return None
-
-        deadline.status = status
-        if completed_at:
-            deadline.completed_at = completed_at
-
-        self.db.commit()
-        self.db.refresh(deadline)
-        return deadline
-
-    def list_pending_due_by_date(
-        self,
-        from_date: date,
-        to_date: date,
-    ) -> list[TaxDeadline]:
-        """List pending, non-deleted deadlines due within [from_date, to_date]."""
-        return (
-            self.db.query(TaxDeadline)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.status == TaxDeadlineStatus.PENDING,
-                TaxDeadline.due_date >= from_date,
-                TaxDeadline.due_date <= to_date,
-            )
-            .order_by(TaxDeadline.due_date.asc())
-            .all()
-        )
-
-    def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
-        """List pending, non-deleted deadlines overdue before reference_date."""
-        return (
-            self.db.query(TaxDeadline)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.status == TaxDeadlineStatus.PENDING,
-                TaxDeadline.due_date < reference_date,
-            )
-            .order_by(TaxDeadline.due_date.asc())
-            .all()
-        )
-
-    def list_by_business_ids(
-        self,
-        business_ids: list[int],
-        status: Optional[str] = None,
-        deadline_type: Optional[DeadlineType] = None,
-    ) -> list[TaxDeadline]:
-        """List non-deleted deadlines for multiple businesses with optional filters."""
-        query = (
-            self.db.query(TaxDeadline)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id.in_(business_ids),
-            )
-        )
-        if status:
-            query = query.filter(TaxDeadline.status == status)
-        if deadline_type:
-            query = query.filter(TaxDeadline.deadline_type == deadline_type)
-        return query.order_by(TaxDeadline.due_date.asc()).all()
-
-    def list_by_business(
-        self,
-        business_id: int,
-        status: Optional[str] = None,
-        deadline_type: Optional[DeadlineType] = None,
-    ) -> list[TaxDeadline]:
-        """List non-deleted deadlines for a business with optional filters."""
-        query = (
-            self.db.query(TaxDeadline)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id == business_id,
-            )
-        )
-        if status:
-            query = query.filter(TaxDeadline.status == status)
-        if deadline_type:
-            query = query.filter(TaxDeadline.deadline_type == deadline_type)
-        return query.order_by(TaxDeadline.due_date.asc()).all()
+        return self._w.update_status(deadline_id, status, completed_at=completed_at)
 
     def update(
         self,
@@ -144,50 +107,13 @@ class TaxDeadlineRepository:
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> Optional[TaxDeadline]:
-        """Update editable fields on a deadline."""
-        deadline = self.get_by_id(deadline_id)
-        if not deadline:
-            return None
-
-        if deadline_type:
-            deadline.deadline_type = deadline_type
-        if due_date:
-            deadline.due_date = due_date
-        if payment_amount is not None:
-            deadline.payment_amount = payment_amount
-        if description is not None:
-            deadline.description = description
-
-        self.db.commit()
-        self.db.refresh(deadline)
-        return deadline
-
-    def exists(
-        self,
-        business_id: int,
-        deadline_type: DeadlineType,
-        due_date: date,
-    ) -> bool:
-        """Return True if a non-deleted deadline with same business/type/due_date exists."""
-        return (
-            self.db.query(TaxDeadline.id)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id == business_id,
-                TaxDeadline.deadline_type == deadline_type,
-                TaxDeadline.due_date == due_date,
-            )
-            .first()
-            is not None
+        return self._w.update(
+            deadline_id,
+            deadline_type=deadline_type,
+            due_date=due_date,
+            payment_amount=payment_amount,
+            description=description,
         )
 
     def delete(self, deadline_id: int, deleted_by: int) -> bool:
-        """Soft-delete a deadline by ID."""
-        deadline = self.get_by_id(deadline_id)
-        if not deadline:
-            return False
-
-        deadline.deleted_at = utcnow()
-        deadline.deleted_by = deleted_by
-        self.db.commit()
-        return True
+        return self._w.delete(deadline_id, deleted_by)

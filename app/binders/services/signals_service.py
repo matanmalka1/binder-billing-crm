@@ -1,26 +1,17 @@
 from datetime import date
-from enum import Enum as PyEnum
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.services.constants import SignalType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
 from app.binders.services.work_state_service import WorkStateService
 from app.charge.models.charge import ChargeStatus
 from app.binders.models.binder import BinderStatus
-
-
-class SignalType(str, PyEnum):
-    """Operational signal types (internal, non-blocking)."""
-
-    MISSING_DOCUMENTS = "missing_permanent_documents"
-    READY_FOR_PICKUP = "ready_for_pickup"
-    UNPAID_CHARGES = "unpaid_charges"
-    IDLE_BINDER = "idle_binder"
 
 
 class SignalsService:

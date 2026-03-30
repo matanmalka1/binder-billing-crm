@@ -88,6 +88,9 @@ class VatReportService:
     def list_invoices(self, **kwargs):
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
+    def get_work_item_by_business_period(self, business_id: int, period: str):
+        return self.work_item_repo.get_by_business_period(business_id, period)
+
     def get_audit_trail(self, item_id: int):
         return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)
 

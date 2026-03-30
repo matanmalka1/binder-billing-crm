@@ -24,8 +24,9 @@ def calculate_expected_amount(
     period_months_count: int = 1,
 ) -> Decimal:
     """
-    Advance payment per period = (annual_income * advance_rate / 100) / 12 * period_months_count,
-    rounded to the nearest whole shekel.
+    Formula: annual_income × rate / 12 × period_months_count
+    This matches the Israeli tax authority's advance payment calculation method.
+    Rounded to the nearest whole shekel.
     period_months_count=1 → monthly, period_months_count=2 → bi-monthly.
     """
     monthly = (annual_income * advance_rate / Decimal("100")) / Decimal("12")
