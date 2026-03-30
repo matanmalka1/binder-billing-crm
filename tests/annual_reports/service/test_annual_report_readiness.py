@@ -35,7 +35,7 @@ def test_readiness_reports_issues_when_missing_data(test_db):
 
     assert result.is_ready is False
     assert "לא הוזנו נתוני הכנסה לדוח" in result.issues
-    assert "חסר חישוב מס — יש למלא חוב מס או החזר מס" in result.issues
+    assert "חסר חישוב מס — יש לשמור את תוצאת חישוב המס" in result.issues
     assert "הדוח לא אושר על ידי הלקוח" in result.issues
     assert result.completion_pct < 100
 

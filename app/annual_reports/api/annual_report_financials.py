@@ -1,6 +1,6 @@
-"""Endpoints for income lines, expense lines, financial summary, and readiness check."""
+"""Endpoints for income lines, expense lines, financial summary, readiness, and VAT import."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -15,9 +15,11 @@ from app.annual_reports.schemas.annual_report_financials import (
     IncomeLineUpdateRequest,
     ReadinessCheckResponse,
     TaxCalculationResponse,
+    VatAutoPopulateResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.advances_summary_service import AnnualReportAdvancesSummaryService
+from app.annual_reports.services.vat_import_service import VatImportService
 
 
 router = APIRouter(
@@ -124,3 +126,22 @@ def update_expense_line(
 def delete_expense_line(report_id: int, line_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
     svc.delete_expense(report_id, line_id)
+
+
+# ── VAT auto-populate ─────────────────────────────────────────────────────────
+
+@router.post(
+    "/{report_id}/auto-populate",
+    response_model=VatAutoPopulateResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def auto_populate_from_vat(
+    report_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    force: bool = Query(False, description="מחק שורות קיימות ומלא מחדש"),
+):
+    """מילוי אוטומטי של שורות הכנסה/הוצאה מנתוני מע\"מ של העסק לשנת המס."""
+    svc = VatImportService(db)
+    result = svc.auto_populate(report_id, force=force)
+    return VatAutoPopulateResponse(**result)

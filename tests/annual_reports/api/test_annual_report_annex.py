@@ -41,7 +41,7 @@ def test_annex_crud_flow(client, test_db, advisor_headers):
     create = client.post(
         f"/api/v1/annual-reports/{report.id}/annex/{schedule}",
         headers=advisor_headers,
-        json={"data": {"gross_rent": 12000}, "notes": "First line"},
+        json={"data": {"rental_income": 12000}, "notes": "First line"},
     )
     assert create.status_code == 201
     line_id = create.json()["id"]
@@ -50,10 +50,10 @@ def test_annex_crud_flow(client, test_db, advisor_headers):
     update = client.patch(
         f"/api/v1/annual-reports/{report.id}/annex/{schedule}/{line_id}",
         headers=advisor_headers,
-        json={"data": {"gross_rent": 15000}, "notes": "Updated"},
+        json={"data": {"rental_income": 15000}, "notes": "Updated"},
     )
     assert update.status_code == 200
-    assert update.json()["data"]["gross_rent"] == 15000
+    assert update.json()["data"]["rental_income"] == 15000
 
     listing = client.get(
         f"/api/v1/annual-reports/{report.id}/annex/{schedule}",
@@ -77,7 +77,7 @@ def test_add_annex_requires_report_exists(client, advisor_headers):
     resp = client.post(
         "/api/v1/annual-reports/999/annex/schedule_b",
         headers=advisor_headers,
-        json={"data": {"gross_rent": 1000}},
+        json={"data": {"rental_income": 1000}},
     )
     assert resp.status_code == 404
     assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"

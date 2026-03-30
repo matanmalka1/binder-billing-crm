@@ -87,3 +87,31 @@ class VatInvoiceAggregationRepository:
             .scalar()
         )
         return float(result or 0)
+
+    def sum_expense_net_by_business_year_grouped(
+        self, business_id: int, year: int
+    ) -> dict[str, float]:
+        """Return {expense_category_value: total_net_amount} for EXPENSE invoices.
+
+        Aggregates across all work items for this business in the given tax year.
+        Used by annual reports auto-population to map VAT expense categories.
+        """
+        rows = (
+            self.db.query(
+                VatInvoice.expense_category,
+                func.sum(VatInvoice.net_amount).label("total"),
+            )
+            .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
+            .filter(
+                VatWorkItem.business_id == business_id,
+                VatInvoice.invoice_type == InvoiceType.EXPENSE,
+                VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .group_by(VatInvoice.expense_category)
+            .all()
+        )
+        return {
+            (row.expense_category.value if row.expense_category else "other"): float(row.total or 0)
+            for row in rows
+        }

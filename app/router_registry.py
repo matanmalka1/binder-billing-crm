@@ -4,6 +4,7 @@ from app.advance_payments.api import advance_payments, advance_payments_overview
 from app.annual_reports.api import (
     annual_report_annex,
     annual_report_business,
+    annual_report_charges,
     annual_report_create_read,
     annual_report_detail,
     annual_report_financials,
@@ -11,6 +12,7 @@ from app.annual_reports.api import (
     annual_report_season,
     annual_report_kanban,
     annual_report_status,
+    annual_report_tax,
     routes_export as annual_report_export,
 )
 from app.binders.api import binders, binders_history, binders_operations
@@ -49,6 +51,8 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(annual_report_business.businesses_router, prefix="/api/v1")
     app.include_router(annual_report_season.season_router, prefix="/api/v1")
     app.include_router(annual_report_export.router, prefix="/api/v1")
+    app.include_router(annual_report_tax.router, prefix="/api/v1")
+    app.include_router(annual_report_charges.router, prefix="/api/v1")
     app.include_router(tax_deadline.router, prefix="/api/v1")
     app.include_router(deadline_generate.router, prefix="/api/v1")
     app.include_router(tax_deadline_queries.router, prefix="/api/v1")

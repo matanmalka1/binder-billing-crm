@@ -1,4 +1,4 @@
-"""Schemas for income/expense lines and financial summary."""
+"""Schemas for income/expense lines, financial summary, and tax calculation."""
 
 from decimal import Decimal
 from typing import Literal, Optional
@@ -148,3 +148,28 @@ class ReadinessCheckResponse(BaseModel):
     is_ready: bool
     issues: list[str]
     completion_pct: float   # 0.0–100.0, rounded to 1 decimal
+
+
+# ── Tax calculation save ──────────────────────────────────────────────────────
+
+class TaxCalculationSaveRequest(BaseModel):
+    tax_due: Optional[ApiDecimal] = None
+    refund_due: Optional[ApiDecimal] = None
+
+
+class TaxCalculationSaveResponse(BaseModel):
+    annual_report_id: int
+    tax_due: Optional[ApiDecimal]
+    refund_due: Optional[ApiDecimal]
+    saved_at: ApiDateTime
+
+
+# ── VAT auto-populate ─────────────────────────────────────────────────────────
+
+class VatAutoPopulateResponse(BaseModel):
+    annual_report_id: int
+    income_lines_created: int
+    expense_lines_created: int
+    income_total: ApiDecimal
+    expense_total: ApiDecimal
+    lines_deleted: int = 0

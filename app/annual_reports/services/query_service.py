@@ -82,6 +82,10 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes
             response.amendment_reason = detail.amendment_reason
+            response.credit_points = detail.credit_points
+            response.pension_credit_points = detail.pension_credit_points
+            response.life_insurance_credit_points = detail.life_insurance_credit_points
+            response.tuition_credit_points = detail.tuition_credit_points
         if orm_report:
             response.tax_refund_amount = float(orm_report.refund_due) if orm_report.refund_due is not None else None
             response.tax_due_amount = float(orm_report.tax_due) if orm_report.tax_due is not None else None

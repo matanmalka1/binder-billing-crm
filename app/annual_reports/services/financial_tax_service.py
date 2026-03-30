@@ -1,13 +1,27 @@
 """Tax and readiness operations for annual report financial service."""
 
+from decimal import Decimal
+from typing import Optional
+
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.schemas.annual_report_financials import (
     BracketBreakdownItem,
     NationalInsuranceResponse,
     ReadinessCheckResponse,
     TaxCalculationResponse,
+    TaxCalculationSaveResponse,
 )
 from app.annual_reports.services.ni_engine import calculate_national_insurance
 from app.annual_reports.services.tax_engine import calculate_tax
+from app.core.exceptions import AppError
+
+_PRE_SUBMISSION_STATUSES = {
+    AnnualReportStatus.NOT_STARTED,
+    AnnualReportStatus.COLLECTING_DOCS,
+    AnnualReportStatus.DOCS_COMPLETE,
+    AnnualReportStatus.IN_PREPARATION,
+    AnnualReportStatus.PENDING_CLIENT,
+}
 
 
 class FinancialTaxMixin:
@@ -87,7 +101,7 @@ class FinancialTaxMixin:
         detail = self.detail_repo.get_by_report_id(report_id)
         report = self._get_report_or_raise(report_id)
         if report.tax_due is None and report.refund_due is None:
-            issues.append("חסר חישוב מס — יש למלא חוב מס או החזר מס")
+            issues.append("חסר חישוב מס — יש לשמור את תוצאת חישוב המס")
         else:
             passed += 1
 
@@ -103,6 +117,38 @@ class FinancialTaxMixin:
             issues=issues,
             completion_pct=completion_pct,
         )
+
+
+    def save_tax_calculation(
+        self,
+        report_id: int,
+        tax_due: Optional[Decimal],
+        refund_due: Optional[Decimal],
+    ) -> TaxCalculationSaveResponse:
+        """Persist computed tax_due / refund_due to the annual report record."""
+        if tax_due is not None and refund_due is not None:
+            raise AppError(
+                "לא ניתן לשמור גם חוב מס וגם החזר מס בו-זמנית",
+                "ANNUAL_REPORT.TAX_CONFLICT",
+            )
+        report = self._get_report_or_raise(report_id)
+        updated = self.report_repo.update(report.id, tax_due=tax_due, refund_due=refund_due)
+        return TaxCalculationSaveResponse(
+            annual_report_id=report_id,
+            tax_due=updated.tax_due,
+            refund_due=updated.refund_due,
+            saved_at=updated.updated_at,
+        )
+
+    def invalidate_tax_if_open(self, business_id: int, tax_year: int) -> None:
+        """Clear saved tax_due / refund_due when advances change before submission.
+
+        Called from the advance_payments API after a payment is marked PAID so
+        the advisor is prompted to re-save the tax calculation.
+        """
+        report = self.report_repo.get_by_business_year(business_id, tax_year)
+        if report and report.status in _PRE_SUBMISSION_STATUSES:
+            self.report_repo.update(report.id, tax_due=None, refund_due=None)
 
 
 __all__ = ["FinancialTaxMixin"]

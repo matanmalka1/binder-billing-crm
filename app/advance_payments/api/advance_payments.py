@@ -138,6 +138,15 @@ def update_advance_payment(
         payment_id=payment_id,
         **request.model_dump(exclude_unset=True),
     )
+    # When a payment is marked PAID, invalidate any open annual report tax calculation
+    # for the same business+year so the advisor is prompted to re-save after recalculation.
+    if payment.status == AdvancePaymentStatus.PAID and payment.period:
+        try:
+            tax_year = int(payment.period.split("-")[0])
+            from app.annual_reports.services.financial_service import AnnualReportFinancialService
+            AnnualReportFinancialService(db).invalidate_tax_if_open(payment.business_id, tax_year)
+        except Exception:
+            pass  # Non-critical: do not fail the payment update if hook errors
     return AdvancePaymentRow.model_validate(payment)
 
 

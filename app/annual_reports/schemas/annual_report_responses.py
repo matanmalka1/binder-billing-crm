@@ -93,6 +93,11 @@ class AnnualReportDetailResponse(AnnualReportResponse):
     pension_contribution: Optional[ApiDecimal] = None
     donation_amount: Optional[ApiDecimal] = None
     other_credits: Optional[ApiDecimal] = None
+    # נקודות זיכוי — מ-AnnualReportDetail
+    credit_points: Optional[ApiDecimal] = None
+    pension_credit_points: Optional[ApiDecimal] = None
+    life_insurance_credit_points: Optional[ApiDecimal] = None
+    tuition_credit_points: Optional[ApiDecimal] = None
     client_approved_at: Optional[ApiDateTime] = None
     internal_notes: Optional[str] = None
     amendment_reason: Optional[str] = None
