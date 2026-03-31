@@ -59,7 +59,6 @@ class BinderResponse(BaseModel):
     received_at: Optional[date] = None       # received_at of first intake
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: Optional[int] = None     # today - period_start
-    work_state: Optional[str] = None
     signals: list[str] = Field(default_factory=list)
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
 

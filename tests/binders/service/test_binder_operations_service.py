@@ -3,7 +3,6 @@ from datetime import date, timedelta
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_operations_service import BinderOperationsService
-from app.binders.services.work_state_service import WorkState
 from app.clients.models.client import Client
 
 
@@ -77,7 +76,7 @@ def test_client_exists_returns_boolean(test_db):
     assert service.client_exists(9999) is False
 
 
-def test_enrich_binder_includes_work_state_and_signals(test_db, test_user):
+def test_enrich_binder_includes_signals(test_db, test_user):
     client = _create_client(test_db, "Client D", "C-030")
     idle_binder = _create_binder(
         test_db,
@@ -92,5 +91,4 @@ def test_enrich_binder_includes_work_state_and_signals(test_db, test_user):
     enriched = service.enrich_binder(idle_binder, db=test_db)
 
     assert enriched["id"] == idle_binder.id
-    assert enriched["work_state"] == WorkState.WAITING_FOR_WORK.value
     assert "idle_binder" in enriched["signals"]

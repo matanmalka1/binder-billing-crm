@@ -217,7 +217,7 @@ Roles: `ADVISOR`, `SECRETARY`
 Roles: `ADVISOR`, `SECRETARY`
 
 - `GET /api/v1/businesses/{business_id}/binders`
-- Resolves `business.client_id` and returns that client's binders (paginated), enriched with `work_state` and `signals`
+- Resolves `business.client_id` and returns that client's binders (paginated), enriched with `signals`
 - See [Binders module](../binders/README.md) for full field reference
 
 ---

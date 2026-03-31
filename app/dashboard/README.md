@@ -61,7 +61,7 @@ Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
   - `page_size` (default `20`, min `1`, max `100`)
 - Returns operational binder queue with:
   - `binder_id`, `client_id`, `client_name`
-  - `binder_number`, `work_state`, `signals`
+  - `binder_number`, `signals`
   - `days_since_received`
 
 ### Attention
@@ -85,7 +85,7 @@ Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
 - Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
 - Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
-- Work queue and attention are computed from active binders and derived signals/work-state.
+- Work queue and attention are computed from active binders and derived signals.
 - Advisor-only attention enrichment includes unpaid issued charges.
 - Tax-submission widget derives progress buckets from annual-report statuses and active client count.
 - `DashboardExtendedService` has hard in-memory safety limits:
@@ -106,7 +106,7 @@ Domain errors use stable codes such as:
 ## Cross-Domain Integration
 
 Dashboard aggregates across:
-- `binders` (status counts, active binders, work-state, signals, binder actions)
+- `binders` (status counts, active binders, signals, binder actions)
 - `clients` (counts, names, client actions)
 - `charge` (issued/unpaid charges, charge actions)
 - `annual_reports` (tax-submission widget metrics and financial sums)

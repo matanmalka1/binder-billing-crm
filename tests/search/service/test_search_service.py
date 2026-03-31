@@ -17,17 +17,12 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
     )
     svc.signals_service = SimpleNamespace(compute_binder_signals=lambda *_args, **_kwargs: ["idle_binder"])
     monkeypatch.setattr(
-        "app.search.services.search_service.WorkStateService.derive_work_state",
-        lambda *_args, **_kwargs: SimpleNamespace(value="stuck"),
-    )
-    monkeypatch.setattr(
         "app.search.services.search_service.DocumentSearchService",
         lambda db: SimpleNamespace(search_documents=lambda query: [{"id": 10}]),
     )
 
     items, total, docs = svc.search(
         query="alpha",
-        work_state="stuck",
         has_signals=True,
         signal_type=["idle_binder"],
         page=1,

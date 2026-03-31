@@ -2,7 +2,6 @@ from datetime import date
 from types import SimpleNamespace
 
 from app.binders.models.binder import BinderStatus
-from app.binders.services.work_state_service import WorkState
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.users.models.user import UserRole
 
@@ -18,10 +17,6 @@ def test_get_work_queue_uses_builder_with_pagination(test_db, monkeypatch):
     )
     business = SimpleNamespace(id=10, full_name="Queue Client")
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business)])
-    monkeypatch.setattr(
-        "app.dashboard.services.dashboard_extended_service.WorkStateService.derive_work_state",
-        lambda binder, reference_date, db: WorkState.IN_PROGRESS,
-    )
     monkeypatch.setattr(
         service.signals_service,
         "compute_binder_signals",
@@ -62,8 +57,9 @@ def test_get_attention_items_returns_idle_and_ready_items(test_db, monkeypatch):
         lambda: [(idle_binder, business_idle), (ready_binder, business_ready)],
     )
     monkeypatch.setattr(
-        "app.dashboard.services.dashboard_extended_service.WorkStateService.is_idle",
-        lambda binder, reference_date, db: binder.id == 1,
+        service.signals_service,
+        "is_idle_binder",
+        lambda binder, reference_date: binder.id == 1,
     )
 
     items = service.get_attention_items(user_role=None, reference_date=date(2026, 3, 10))
@@ -83,7 +79,8 @@ def test_get_attention_items_advisor_skips_unmapped_charge_clients(test_db, monk
     business_obj = SimpleNamespace(id=13, full_name="No Attention")
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business_obj)])
     monkeypatch.setattr(
-        "app.dashboard.services.dashboard_extended_service.WorkStateService.is_idle",
+        service.signals_service,
+        "is_idle_binder",
         lambda *_args, **_kwargs: False,
     )
     service.charge_repo = SimpleNamespace(
@@ -110,7 +107,8 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
 
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business)])
     monkeypatch.setattr(
-        "app.dashboard.services.dashboard_extended_service.WorkStateService.is_idle",
+        service.signals_service,
+        "is_idle_binder",
         lambda *_args, **_kwargs: False,
     )
     service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])

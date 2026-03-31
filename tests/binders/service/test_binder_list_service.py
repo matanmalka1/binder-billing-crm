@@ -50,10 +50,6 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(monkeypatch, test_db
     service.client_repo = ClientRepository(test_db)
 
     monkeypatch.setattr(
-        "app.binders.services.binder_list_service.WorkStateService.derive_work_state",
-        lambda binder, ref_date, db: type("WS", (), {"value": "stuck"})(),
-    )
-    monkeypatch.setattr(
         "app.binders.services.binder_list_service.SignalsService.compute_binder_signals",
         lambda self, binder, ref_date: ["idle_binder"] if binder.client_id == c1.id else [],
     )

@@ -53,7 +53,6 @@ class WorkQueueItem(BaseModel):
     business_id: int
     client_name: str
     binder_number: str
-    work_state: str
     signals: list[str]
     days_since_received: int
 

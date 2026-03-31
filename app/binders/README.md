@@ -14,7 +14,7 @@ This module provides:
 - Binder history/audit trail (`binder_status_logs`)
 - Business-scoped binder listing (`/businesses/{business_id}/binders`)
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
-- Derived UX fields (`days_in_office`, `work_state`, `signals`, `available_actions`)
+- Derived UX fields (`days_in_office`, `signals`, `available_actions`)
 
 ## Domain Model
 
@@ -155,7 +155,6 @@ Role access:
 - Query params:
   - `status`
   - `client_id`
-  - `work_state`
   - `query` (matches client name or binder number)
   - `client_name`
   - `binder_number`
@@ -182,7 +181,7 @@ Base prefix: `/api/v1/binders`
 #### List open binders
 - `GET /api/v1/binders/open`
 - Returns binders where `status != returned`
-- Response model: `BinderListResponseExtended` (`work_state`, `signals` included)
+- Response model: `BinderListResponseExtended` (`signals` included)
 
 ### History routes (`app/binders/api/binders_history.py`)
 
@@ -203,7 +202,7 @@ Implemented in `app/businesses/api/business_binders_router.py`.
 Resolves `business.client_id` and delegates to `BinderOperationsService`.
 
 - `GET /api/v1/businesses/{business_id}/binders`
-- Returns all binders for the client that owns the business (paginated), enriched with `work_state` and `signals`
+- Returns all binders for the client that owns the business (paginated), enriched with `signals`
 
 ## Lifecycle and Rules
 
@@ -222,14 +221,8 @@ Intake rules (`app/binders/services/binder_intake_service.py`):
 
 Derived fields (`app/binders/services/binder_list_service.py`):
 - `days_in_office`: `today - period_start`
-- `work_state`: derived by `WorkStateService`
 - `signals`: derived by `SignalsService`
 - `available_actions`: generated action contracts for frontend execution
-
-Work state (`app/binders/services/work_state_service.py`):
-- `completed`: binder status is `returned`
-- `in_progress`: ready-for-pickup, or period_start within last 14 days, or recent notification activity on this binder
-- `waiting_for_work`: older than threshold and no recent activity
 
 Signals (`app/binders/services/signals_service.py`):
 - Binder-level signals currently include:
@@ -268,7 +261,6 @@ Errors follow the global envelope from `app/core/exceptions.py` with:
   - `app/binders/services/binder_operations_service.py`
   - `app/binders/services/binder_history_service.py`
   - `app/binders/services/binder_intake_service.py`
-  - `app/binders/services/work_state_service.py`
   - `app/binders/services/signals_service.py`
 - Repositories:
   - `app/binders/repositories/binder_repository.py`
@@ -289,7 +281,6 @@ Domain tests:
 - `tests/binders/api/test_binder_history.py`
 - `tests/binders/service/test_binder_service_basic.py`
 - `tests/binders/service/test_binder_operations_service.py`
-- `tests/binders/service/test_work_state.py`
 - `tests/binders/service/test_signals.py`
 - `tests/binders/service/test_operational_signals.py`
 - `tests/binders/service/test_signals_service_client_signals.py`

@@ -1,14 +1,6 @@
 from enum import Enum as PyEnum
 
 
-class WorkState(str, PyEnum):
-    """Derived operational work state (NOT persisted)."""
-
-    WAITING_FOR_WORK = "waiting_for_work"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-
-
 class SignalType(str, PyEnum):
     """Operational signal types (internal, non-blocking)."""
 

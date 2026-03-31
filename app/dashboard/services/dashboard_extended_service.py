@@ -9,7 +9,6 @@ from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services.signals_service import SignalsService
-from app.binders.services.work_state_service import WorkStateService
 from app.users.models.user import UserRole
 from app.dashboard.services.dashboard_extended_builders import (
     idle_attention_item,
@@ -68,9 +67,8 @@ class DashboardExtendedService:
 
         items = []
         for binder, business in self._active_binders_with_businesses():
-            work_state = WorkStateService.derive_work_state(binder, reference_date, self.db)
             signals = self.signals_service.compute_binder_signals(binder, reference_date)
-            items.append(work_queue_item(binder, business, work_state, signals, reference_date))
+            items.append(work_queue_item(binder, business, signals, reference_date))
         total = len(items)
         offset = (page - 1) * page_size
         return items[offset : offset + page_size], total
@@ -85,7 +83,7 @@ class DashboardExtendedService:
 
         items = []
         for binder, business in self._active_binders_with_businesses():
-            if WorkStateService.is_idle(binder, reference_date, self.db):
+            if self.signals_service.is_idle_binder(binder, reference_date):
                 items.append(idle_attention_item(binder, business, reference_date))
             if binder.status == BinderStatus.READY_FOR_PICKUP:
                 items.append(ready_attention_item(binder, business))

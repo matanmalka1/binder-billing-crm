@@ -5,7 +5,6 @@ from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder
 from app.binders.schemas.binder import BinderResponse
 from app.binders.services.signals_service import SignalsService
-from app.binders.services.work_state_service import WorkStateService
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 
@@ -21,7 +20,6 @@ class BinderListService:
         binder: Binder,
         *,
         reference_date: Optional[date] = None,
-        work_state: Optional[str] = None,
         signals: Optional[list[str]] = None,
         client_name: Optional[str] = None,
         signals_service: Optional[SignalsService] = None,
@@ -30,9 +28,6 @@ class BinderListService:
         service = signals_service or SignalsService(self.db)
         response = BinderResponse.model_validate(binder)
         response.days_in_office = (ref_date - binder.period_start).days
-        response.work_state = work_state or WorkStateService.derive_work_state(
-            binder, ref_date, self.db,
-        ).value
         response.signals = signals if signals is not None else service.compute_binder_signals(
             binder, ref_date,
         )
@@ -98,9 +93,6 @@ class BinderListService:
 
         items: list[BinderResponse] = []
         for binder in binders:
-            current_work_state = WorkStateService.derive_work_state(
-                binder, ref_date, self.db,
-            ).value
             current_signals = signals_service.compute_binder_signals(binder, ref_date)
 
             current_client_name = client_name_map.get(binder.client_id)
@@ -128,7 +120,6 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
-                    work_state=current_work_state,
                     signals=current_signals,
                     client_name=current_client_name,
                     signals_service=signals_service,

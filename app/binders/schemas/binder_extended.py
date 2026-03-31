@@ -8,7 +8,7 @@ from app.core.api_types import ApiDateTime
 
 
 class BinderDetailResponse(BaseModel):
-    """תצוגה מורחבת עם שדות תפעוליים — לתור העבודה ולוח המחוונים."""
+    """תצוגה מורחבת עם שדות תפעוליים."""
     id: int
     client_id: int
     client_name: Optional[str] = None
@@ -21,7 +21,6 @@ class BinderDetailResponse(BaseModel):
     # days_active: ימים שחלפו מתחילת תקופת הקלסר (period_start → היום).
     # נקרא days_active ולא days_in_office כי הוא מחושב גם על קלסרים שהוחזרו.
     days_active: Optional[int] = None
-    work_state: Optional[str] = None
     signals: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

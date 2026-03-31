@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -9,9 +9,10 @@ from app.binders.services.constants import SignalType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.operational_signals_builder import build_client_operational_signals
-from app.binders.services.work_state_service import WorkStateService
 from app.charge.models.charge import ChargeStatus
 from app.binders.models.binder import BinderStatus
+from app.notification.models.notification import Notification
+from app.binders.services.constants import IDLE_THRESHOLD_DAYS
 
 
 class SignalsService:
@@ -48,7 +49,7 @@ class SignalsService:
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             signals.append(SignalType.READY_FOR_PICKUP.value)
 
-        if WorkStateService.is_idle(binder, reference_date):
+        if self.is_idle_binder(binder, reference_date):
             signals.append(SignalType.IDLE_BINDER.value)
 
         return signals
@@ -87,6 +88,40 @@ class SignalsService:
             "unpaid_charges": False,
             "binder_signals": binder_signals,
         }
+
+    def is_idle_binder(
+        self,
+        binder: Binder,
+        reference_date: Optional[date] = None,
+    ) -> bool:
+        if reference_date is None:
+            reference_date = date.today()
+
+        if binder.status != BinderStatus.IN_OFFICE:
+            return False
+
+        days_since_start = (reference_date - binder.period_start).days
+        if days_since_start < IDLE_THRESHOLD_DAYS:
+            return False
+
+        return not self._has_recent_notification_activity(binder, reference_date)
+
+    def _has_recent_notification_activity(
+        self,
+        binder: Binder,
+        reference_date: date,
+    ) -> bool:
+        threshold_date = reference_date - timedelta(days=IDLE_THRESHOLD_DAYS)
+        result = (
+            self.db.query(Notification)
+            .filter(
+                Notification.binder_id == binder.id,
+                Notification.created_at >= threshold_date,
+            )
+            .limit(1)
+            .first()
+        )
+        return result is not None
 
     def compute_business_signals(
         self,
