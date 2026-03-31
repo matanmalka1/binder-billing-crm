@@ -21,7 +21,6 @@ def list_binders(
     user: CurrentUser,
     status_filter: Optional[str] = Query(None, alias="status"),
     client_id: Optional[int] = None,
-    work_state: Optional[str] = None,
     query: Optional[str] = None,
     client_name: Optional[str] = None,
     binder_number: Optional[str] = None,
@@ -36,7 +35,6 @@ def list_binders(
     items, total = service.list_binders_enriched(
         client_id=client_id,
         status=status_filter,
-        work_state=work_state,
         query=query,
         client_name_filter=client_name,
         binder_number=binder_number,

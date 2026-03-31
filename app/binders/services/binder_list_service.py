@@ -67,7 +67,6 @@ class BinderListService:
         *,
         client_id: Optional[int] = None,
         status: Optional[str] = None,
-        work_state: Optional[str] = None,
         query: Optional[str] = None,
         client_name_filter: Optional[str] = None,
         binder_number: Optional[str] = None,
@@ -103,9 +102,6 @@ class BinderListService:
                 binder, ref_date, self.db,
             ).value
             current_signals = signals_service.compute_binder_signals(binder, ref_date)
-
-            if work_state and current_work_state != work_state:
-                continue
 
             current_client_name = client_name_map.get(binder.client_id)
 
