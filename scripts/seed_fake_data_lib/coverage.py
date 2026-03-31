@@ -52,14 +52,16 @@ class SeedCoverageValidator:
         expected_signature_requests = self.cfg.clients * self.cfg.signature_requests_per_client
         expected_schedule_entries = expected_reports * len(AnnualReportSchedule)
 
-        self._expect_exact_count(errors, counts, "users", self.cfg.users)
+        if not getattr(self.cfg, "preserve_users", False):
+            self._expect_exact_count(errors, counts, "users", self.cfg.users)
         self._expect_exact_count(errors, counts, "clients", self.cfg.clients)
         self._expect_exact_count(errors, counts, "annual_reports", expected_reports)
         self._expect_exact_count(errors, counts, "signature_requests", expected_signature_requests)
         self._expect_exact_count(errors, counts, "annual_report_schedules", expected_schedule_entries)
 
         self._expect_min_count(errors, counts, "permanent_documents", self.cfg.clients * 2)
-        self._expect_min_count(errors, counts, "user_audit_logs", self.cfg.users)
+        if not getattr(self.cfg, "preserve_users", False):
+            self._expect_min_count(errors, counts, "user_audit_logs", self.cfg.users)
         self._expect_min_count(errors, counts, "annual_report_income_lines", expected_reports)
         self._expect_min_count(errors, counts, "annual_report_expense_lines", expected_reports)
         self._expect_min_count(errors, counts, "annual_report_annex_data", expected_reports)

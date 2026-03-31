@@ -46,12 +46,18 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 original_filename=f"{doc_type.value}.pdf",
                 file_size_bytes=rng.randint(50000, 500000),
                 mime_type="application/pdf",
+                tax_year=None,
                 status=status,
                 is_present=rng.random() > 0.05,
+                notes=rng.choice([None, "סריקה באיכות טובה", "נדרש דף ספח", "עודכן לפי מסמך חדש"]),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
                 approved_at=approved_at,
+                rejected_by=rng.choice(users).id if status == DocumentStatus.REJECTED else None,
+                rejected_at=uploaded_at + timedelta(days=rng.randint(1, 10))
+                if status == DocumentStatus.REJECTED
+                else None,
             )
             db.add(document)
             documents.append(document)
@@ -83,12 +89,18 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 original_filename=f"document_{rng.randint(1000, 9999)}.pdf",
                 file_size_bytes=rng.randint(50000, 500000),
                 mime_type="application/pdf",
+                tax_year=rng.choice([uploaded_at.year, uploaded_at.year - 1, None]),
                 status=status,
                 is_present=rng.random() > 0.05,
+                notes=rng.choice([None, "מסמך מסווג להוצאות", "שייך לשנת המס האחרונה", "נשלח על ידי הלקוח"]),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
                 approved_at=approved_at,
+                rejected_by=rng.choice(users).id if status == DocumentStatus.REJECTED else None,
+                rejected_at=uploaded_at + timedelta(days=rng.randint(1, 10))
+                if status == DocumentStatus.REJECTED
+                else None,
             )
             db.add(document)
             documents.append(document)

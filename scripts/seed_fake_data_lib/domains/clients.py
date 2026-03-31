@@ -118,7 +118,16 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
 def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) -> list[BusinessTaxProfile]:
     profiles: list[BusinessTaxProfile] = []
     for business in businesses:
-        vat_type = rng.choice(list(VatType))
+        if business.business_type == BusinessType.OSEK_PATUR:
+            vat_type = VatType.EXEMPT
+        elif business.business_type == BusinessType.COMPANY:
+            vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY, VatType.MONTHLY])
+        elif business.business_type == BusinessType.EMPLOYEE:
+            vat_type = rng.choice([VatType.EXEMPT, VatType.MONTHLY])
+        else:
+            vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
+
+        tax_year_start = rng.choice([1, 1, 1, 4, 7, 10])
         profile = BusinessTaxProfile(
             business_id=business.id,
             vat_type=vat_type,
@@ -134,7 +143,9 @@ def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) ->
             vat_exempt_ceiling=rng.choice([None, None, 120000, 132000]) if vat_type == VatType.EXEMPT else None,
             advance_rate=rng.choice([None, 2.5, 3.0, 4.0, 5.5, 7.0]),
             advance_rate_updated_at=rng.choice([None, date.today() - timedelta(days=rng.randint(10, 220))]),
-            fiscal_year_start_month=rng.choice([1, 1, 1, 4, 7, 10]),
+            business_type=business.business_type.value,
+            tax_year_start=tax_year_start,
+            fiscal_year_start_month=tax_year_start,
         )
         db.add(profile)
         profiles.append(profile)

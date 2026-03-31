@@ -13,7 +13,6 @@ from ..random_utils import full_name
 
 def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
     binders: list[Binder] = []
-    binder_serial = 10000 + int(rng.random() * 2000)
     businesses_by_client_id: dict[int, list] = {}
     for business in businesses:
         businesses_by_client_id.setdefault(business.client_id, []).append(business)
@@ -23,7 +22,7 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
             cfg.min_binders_per_client,
             cfg.max_binders_per_client,
         )
-        for _ in range(num):
+        for seq in range(1, num + 1):
             period_start = date.today() - timedelta(days=rng.randint(0, 120))
 
             if rng.random() < 0.4:
@@ -40,16 +39,16 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
 
             binder = Binder(
                 client_id=client_id,
-                binder_number=f"B-{binder_serial}",
+                binder_number=f"{client_id}/{seq}",
                 period_start=period_start,
                 period_end=period_end,
                 returned_at=returned_at,
                 status=status,
+                is_full=seq < num and status == BinderStatus.RETURNED,
                 created_by=rng.choice(users).id,
                 pickup_person_name=(full_name(rng) if status == BinderStatus.RETURNED else None),
                 notes=rng.choice(["", "דחוף", "הלקוח ביקש שיחה חוזרת"]),
             )
-            binder_serial += 1
             db.add(binder)
             binders.append(binder)
     db.flush()

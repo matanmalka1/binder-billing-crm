@@ -24,6 +24,7 @@ class SeedConfig:
     max_authority_contacts_per_client: int
     seed: int
     reset: bool
+    preserve_users: bool
 
 
 def parse_args() -> SeedConfig:
@@ -96,6 +97,11 @@ def parse_args() -> SeedConfig:
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--reset", action="store_true", help="Delete existing rows before seeding")
+    parser.add_argument(
+        "--preserve-users",
+        action="store_true",
+        help="Reuse existing users and keep the users tables untouched during reset",
+    )
 
     args = parser.parse_args()
     if args.users < 1:
@@ -156,4 +162,5 @@ def parse_args() -> SeedConfig:
         max_authority_contacts_per_client=args.max_authority_contacts_per_client,
         seed=args.seed,
         reset=args.reset,
+        preserve_users=args.preserve_users,
     )

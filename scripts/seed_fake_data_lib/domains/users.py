@@ -12,6 +12,10 @@ from ..constants import DEFAULT_PASSWORD_HASH
 from ..random_utils import full_name
 
 
+def get_existing_users(db) -> list[User]:
+    return list(db.execute(select(User).order_by(User.id)).scalars())
+
+
 def create_users(db, rng: Random, cfg) -> list[User]:
     users: list[User] = []
     existing_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())

@@ -3,6 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from random import Random
+from typing import Any, Iterable
+
+from sqlalchemy import delete
 
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_credit_point_reason import (
@@ -95,6 +98,148 @@ SEEDABLE_STATUSES = [
     AnnualReportStatus.OBJECTION_FILED,
     AnnualReportStatus.CLOSED,
 ]
+
+COUNTRIES = ["ארצות הברית", "בריטניה", "גרמניה", "צרפת", "קפריסין", "פורטוגל"]
+PROPERTY_CITIES = ["תל אביב", "ירושלים", "חיפה", "נתניה", "הרצליה"]
+SECURITIES = ["מניית בנק לאומי", "מדד S&P 500", "קרן סל ת\"א 125", "אג\"ח ממשלתי"]
+
+
+def _random_decimal(rng: Random, minimum: float, maximum: float) -> Decimal:
+    return Decimal(str(round(rng.uniform(minimum, maximum), 2)))
+
+
+def _as_plain_decimal(value: Decimal) -> float:
+    return float(value.quantize(Decimal("0.01")))
+
+
+def _property_address(rng: Random) -> str:
+    return f"{rng.choice(['הרצל', 'ביאליק', 'ויצמן', 'דיזנגוף'])} {rng.randint(1, 120)}, {rng.choice(PROPERTY_CITIES)}"
+
+
+def _build_annex_payload(
+    rng: Random,
+    report: AnnualReport,
+    schedule: AnnualReportSchedule,
+) -> dict[str, Any]:
+    if schedule == AnnualReportSchedule.SCHEDULE_A:
+        gross_income = _random_decimal(rng, 80_000, 520_000)
+        cost_of_goods = _random_decimal(rng, 10_000, float(gross_income * Decimal("0.65")))
+        gross_profit = gross_income - cost_of_goods
+        operating_expenses = _random_decimal(rng, 15_000, float(gross_profit * Decimal("0.85")))
+        return {
+            "gross_income": _as_plain_decimal(gross_income),
+            "cost_of_goods": _as_plain_decimal(cost_of_goods),
+            "gross_profit": _as_plain_decimal(gross_profit),
+            "operating_expenses": _as_plain_decimal(operating_expenses),
+            "net_income": _as_plain_decimal(gross_profit - operating_expenses),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_B:
+        rental_income = _random_decimal(rng, 24_000, 96_000)
+        maintenance = _random_decimal(rng, 1_500, 12_000)
+        depreciation = _random_decimal(rng, 0, 8_000)
+        return {
+            "property_address": _property_address(rng),
+            "rental_income": _as_plain_decimal(rental_income),
+            "depreciation_claimed": _as_plain_decimal(depreciation),
+            "maintenance_expenses": _as_plain_decimal(maintenance),
+            "net_rental_income": _as_plain_decimal(rental_income - maintenance - depreciation),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_BET:
+        purchase_price = _random_decimal(rng, 25_000, 220_000)
+        sale_price = purchase_price + _random_decimal(rng, 5_000, 90_000)
+        return {
+            "asset_description": rng.choice(["מכירת דירה להשקעה", "מכירת ציוד עסקי", "מכירת זכות במקרקעין"]),
+            "purchase_date": f"{report.tax_year - rng.randint(1, 6)}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
+            "sale_date": f"{report.tax_year}-{rng.randint(1, 12):02d}-{rng.randint(1, 28):02d}",
+            "purchase_price": _as_plain_decimal(purchase_price),
+            "sale_price": _as_plain_decimal(sale_price),
+            "capital_gain": _as_plain_decimal(sale_price - purchase_price),
+            "tax_rate": _as_plain_decimal(_random_decimal(rng, 20, 30)),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_GIMMEL:
+        gross_income = _random_decimal(rng, 8_000, 85_000)
+        foreign_tax = _random_decimal(rng, 0, float(gross_income * Decimal("0.22")))
+        return {
+            "country": rng.choice(COUNTRIES),
+            "income_type": rng.choice(["משכורת", "דיבידנד", "ריבית", "שכירות"]),
+            "gross_income": _as_plain_decimal(gross_income),
+            "foreign_tax_paid": _as_plain_decimal(foreign_tax),
+            "net_income": _as_plain_decimal(gross_income - foreign_tax),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_DALET:
+        asset_cost = _random_decimal(rng, 6_000, 80_000)
+        annual_dep = _random_decimal(rng, 1_000, float(asset_cost * Decimal("0.25")))
+        accumulated = annual_dep + _random_decimal(rng, 500, float(asset_cost * Decimal("0.35")))
+        return {
+            "asset_description": rng.choice(["מחשב נייד", "ריהוט משרדי", "מערכת מיזוג", "מכונת ייצור"]),
+            "asset_cost": _as_plain_decimal(asset_cost),
+            "depreciation_rate": _as_plain_decimal(_random_decimal(rng, 7, 20)),
+            "accumulated_depreciation": _as_plain_decimal(accumulated),
+            "annual_depreciation": _as_plain_decimal(annual_dep),
+            "book_value": _as_plain_decimal(max(asset_cost - accumulated, Decimal("0.00"))),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_HEH:
+        rental_income = _random_decimal(rng, 36_000, 72_000)
+        exempt_amount = min(rental_income, _random_decimal(rng, 24_000, 60_000))
+        return {
+            "property_address": _property_address(rng),
+            "rental_income": _as_plain_decimal(rental_income),
+            "exempt_amount": _as_plain_decimal(exempt_amount),
+            "taxable_amount": _as_plain_decimal(rental_income - exempt_amount),
+        }
+    if schedule == AnnualReportSchedule.SCHEDULE_VAV:
+        purchase_price = _random_decimal(rng, 8_000, 70_000)
+        sale_price = purchase_price + rng.choice([
+            _random_decimal(rng, 1_500, 20_000),
+            -_random_decimal(rng, 500, 12_000),
+        ])
+        return {
+            "security_name": rng.choice(SECURITIES),
+            "quantity": _as_plain_decimal(_random_decimal(rng, 10, 600)),
+            "purchase_price": _as_plain_decimal(purchase_price),
+            "sale_price": _as_plain_decimal(sale_price),
+            "gain_loss": _as_plain_decimal(sale_price - purchase_price),
+        }
+    if schedule == AnnualReportSchedule.ANNEX_15:
+        gross_amount = _random_decimal(rng, 6_000, 60_000)
+        withholding = _random_decimal(rng, 0, float(gross_amount * Decimal("0.25")))
+        return {
+            "country": rng.choice(COUNTRIES),
+            "income_description": rng.choice(["הכנסות ייעוץ", "דיבידנד מחברה זרה", "תמלוגים", "ריבית מפיקדון"]),
+            "gross_amount": _as_plain_decimal(gross_amount),
+            "withholding_tax": _as_plain_decimal(withholding),
+            "treaty_rate": _as_plain_decimal(_random_decimal(rng, 5, 25)),
+        }
+    if schedule == AnnualReportSchedule.ANNEX_867:
+        return {
+            "bank_name": rng.choice(["בנק הפועלים", "בנק לאומי", "מזרחי טפחות", "IBI Trade"]),
+            "account_number": f"{rng.randint(10000, 99999)}-{rng.randint(1000000, 9999999)}",
+            "interest_income": _as_plain_decimal(_random_decimal(rng, 300, 8_000)),
+            "dividend_income": _as_plain_decimal(_random_decimal(rng, 0, 12_000)),
+            "withholding_tax": _as_plain_decimal(_random_decimal(rng, 0, 2_500)),
+        }
+    return {}
+
+
+def _annex_schedules_for_report(report: AnnualReport, rng: Random) -> list[AnnualReportSchedule]:
+    schedules: list[AnnualReportSchedule] = []
+    if report.client_type in (ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.CORPORATION):
+        schedules.append(AnnualReportSchedule.SCHEDULE_A)
+    if report.has_rental_income:
+        schedules.append(AnnualReportSchedule.SCHEDULE_B)
+    if report.has_capital_gains:
+        schedules.extend([AnnualReportSchedule.SCHEDULE_BET, AnnualReportSchedule.SCHEDULE_VAV])
+    if report.has_foreign_income:
+        schedules.extend([AnnualReportSchedule.SCHEDULE_GIMMEL, AnnualReportSchedule.ANNEX_15])
+    if report.has_depreciation:
+        schedules.append(AnnualReportSchedule.SCHEDULE_DALET)
+    if report.has_exempt_rental:
+        schedules.append(AnnualReportSchedule.SCHEDULE_HEH)
+    if rng.random() < 0.35:
+        schedules.append(AnnualReportSchedule.ANNEX_867)
+    if not schedules:
+        schedules = [rng.choice(list(AnnualReportSchedule))]
+    return list(dict.fromkeys(schedules))
 
 
 def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
@@ -221,25 +366,49 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
 
 def create_annual_report_details(db, rng: Random, reports) -> None:
     for report in reports:
+        credit_points = Decimal("2.25")
+        pension_credit_points = Decimal(str(rng.choice([0, 0.25, 0.5, 0.75, 1.0])))
+        life_insurance_credit_points = Decimal(str(rng.choice([0, 0.25, 0.5])))
+        tuition_credit_points = Decimal(str(rng.choice([0, 0, 0.5, 1.0])))
+        if report.client_type == ClientTypeForReport.CORPORATION:
+            credit_points = Decimal("0.00")
+            pension_credit_points = Decimal("0.00")
+            life_insurance_credit_points = Decimal("0.00")
+            tuition_credit_points = Decimal("0.00")
+
+        client_approved_at = None
+        if report.status in (
+            AnnualReportStatus.PENDING_CLIENT,
+            AnnualReportStatus.SUBMITTED,
+            AnnualReportStatus.ACCEPTED,
+            AnnualReportStatus.CLOSED,
+        ):
+            client_approved_at = report.created_at + timedelta(days=rng.randint(7, 45))
+
         detail = AnnualReportDetail(
             report_id=report.id,
-            pension_contribution=Decimal(str(round(rng.uniform(0, 15000), 2))),
-            donation_amount=Decimal(str(round(rng.uniform(0, 6000), 2))),
-            other_credits=Decimal(str(round(rng.uniform(0, 3500), 2))),
-            client_approved_at=(
-                datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
-                if rng.random() < 0.5
-                else None
-            ),
+            credit_points=credit_points,
+            pension_credit_points=pension_credit_points,
+            life_insurance_credit_points=life_insurance_credit_points,
+            tuition_credit_points=tuition_credit_points,
+            pension_contribution=_random_decimal(rng, 0, 15_000),
+            donation_amount=_random_decimal(rng, 0, 6_000),
+            other_credits=_random_decimal(rng, 0, 3_500),
+            client_approved_at=client_approved_at,
             internal_notes=rng.choice(
                 [
                     None,
                     "ממתין לאישור לקוח",
                     "לעדכן נתוני שכר מתוקנים",
                     'לבדוק שוב את קלטי המע"מ',
+                    "לצרף אישורי תרומות ומסמכי בנק",
                 ]
             ),
-            amendment_reason=rng.choice([None, "תיקון לפי מסמכים מעודכנים"]),
+            amendment_reason=(
+                rng.choice(["תיקון לפי מסמכים מעודכנים", "תיקון בעקבות שומת מס"])
+                if report.status == AnnualReportStatus.AMENDED
+                else None
+            ),
             created_at=report.created_at,
         )
         db.add(detail)
@@ -305,12 +474,30 @@ def create_annual_report_income_lines(db, rng: Random, reports) -> None:
     db.flush()
 
 
-def create_annual_report_expense_lines(db, rng: Random, reports) -> None:
+def create_annual_report_expense_lines(
+    db,
+    rng: Random,
+    reports,
+    seeded_documents: Iterable | None = None,
+    replace_existing: bool = False,
+) -> None:
+    if replace_existing:
+        db.execute(delete(AnnualReportExpenseLine))
+        db.flush()
+
     base_categories = [
         ExpenseCategoryType.PROFESSIONAL_SERVICES,
         ExpenseCategoryType.BANK_FEES,
         ExpenseCategoryType.INSURANCE,
     ]
+    documents_by_business_id: dict[int, list] = {}
+    documents_by_client_id: dict[int, list] = {}
+    if seeded_documents:
+        for document in seeded_documents:
+            if getattr(document, "business_id", None):
+                documents_by_business_id.setdefault(document.business_id, []).append(document)
+            documents_by_client_id.setdefault(document.client_id, []).append(document)
+
     for report in reports:
         category_candidates = list(base_categories)
         if report.client_type in (ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.CORPORATION):
@@ -320,24 +507,36 @@ def create_annual_report_expense_lines(db, rng: Random, reports) -> None:
                     ExpenseCategoryType.COMMUNICATION,
                     ExpenseCategoryType.VEHICLE,
                     ExpenseCategoryType.MARKETING,
+                    ExpenseCategoryType.TRAVEL,
+                    ExpenseCategoryType.TRAINING,
                 ]
             )
         if report.has_depreciation:
             category_candidates.append(ExpenseCategoryType.DEPRECIATION)
+        if rng.random() < 0.45:
+            category_candidates.append(ExpenseCategoryType.OTHER)
         unique_categories = list(dict.fromkeys(category_candidates))
         line_count = min(len(unique_categories), rng.randint(1, 4))
         chosen_categories = rng.sample(unique_categories, k=line_count)
 
         for category in chosen_categories:
+            linked_document = None
+            business_docs = documents_by_business_id.get(report.business_id, [])
+            if business_docs and rng.random() < 0.7:
+                linked_document = rng.choice(business_docs)
             expense_line = AnnualReportExpenseLine(
                 annual_report_id=report.id,
                 category=category,
-                amount=Decimal(str(round(rng.uniform(200, 40_000), 2))),
+                amount=_random_decimal(rng, 200, 40_000),
                 recognition_rate=default_recognition_rate(category),
-                supporting_document_ref=None,
-                supporting_document_id=None,
+                supporting_document_ref=(
+                    (linked_document.original_filename or linked_document.storage_key.split("/")[-1])
+                    if linked_document
+                    else (f"EXP-{report.tax_year}-{rng.randint(1000, 9999)}" if rng.random() < 0.35 else None)
+                ),
+                supporting_document_id=linked_document.id if linked_document else None,
                 description=rng.choice(
-                    [None, "הוצאה מוכרת", "לבדוק התאמה לחשבונית"]
+                    [None, "הוצאה מוכרת", "לבדוק התאמה לחשבונית", "מסמך תומך קיים בתיק הלקוח"]
                 ),
                 created_at=report.created_at,
             )
@@ -347,36 +546,14 @@ def create_annual_report_expense_lines(db, rng: Random, reports) -> None:
 
 def create_annual_report_annex_data(db, rng: Random, reports) -> None:
     for report in reports:
-        applicable_schedules: list[AnnualReportSchedule] = []
-        if report.has_rental_income:
-            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_B)
-        if report.has_capital_gains:
-            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_BET)
-        if report.has_foreign_income:
-            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_GIMMEL)
-        if report.has_depreciation:
-            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_DALET)
-        if report.has_exempt_rental:
-            applicable_schedules.append(AnnualReportSchedule.SCHEDULE_HEH)
-
-        if not applicable_schedules:
-            applicable_schedules = [rng.choice(list(AnnualReportSchedule))]
-
+        applicable_schedules = _annex_schedules_for_report(report, rng)
         for line_number, schedule in enumerate(applicable_schedules, start=1):
             annex_line = AnnualReportAnnexData(
                 annual_report_id=report.id,
                 schedule=schedule,
                 line_number=line_number,
-                data={
-                    "amount": float(round(rng.uniform(500, 90_000), 2)),
-                    "description": rng.choice(
-                        [
-                            "נתון שנוצר אוטומטית לצורך סביבת דמו",
-                            "ערך להשלמה בבדיקת רו\"ח",
-                        ]
-                    ),
-                },
-                notes=rng.choice([None, "נדרש מסמך תומך"]),
+                data=_build_annex_payload(rng, report, schedule),
+                notes=rng.choice([None, "אומת מול טפסי 867", "נדרש מסמך תומך", "נבדק מול הנהלת חשבונות"]),
                 created_at=report.created_at,
             )
             db.add(annex_line)
@@ -385,6 +562,7 @@ def create_annual_report_annex_data(db, rng: Random, reports) -> None:
 
 def create_annual_report_status_history(db, rng: Random, reports, users) -> None:
     fallback_user = users[0] if users else None
+    users_by_id = {user.id: user for user in users}
     for report in reports:
         history_statuses = _status_path_to(report.status)
         previous = None
@@ -394,12 +572,20 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
             if actor_id is None and fallback_user:
                 actor_id = fallback_user.id
             occurred_at += timedelta(hours=rng.randint(1, 72))
+            actor = users_by_id.get(actor_id)
             entry = AnnualReportStatusHistory(
                 annual_report_id=report.id,
                 from_status=previous,
                 to_status=status,
                 changed_by=actor_id,
-                note="היסטוריית סטטוסים שנוצרה אוטומטית",
+                changed_by_name=actor.full_name if actor else None,
+                note=rng.choice(
+                    [
+                        "היסטוריית סטטוסים שנוצרה אוטומטית",
+                        "עודכן לאחר בדיקת מסמכים",
+                        "הועבר לשלב הבא בתהליך",
+                    ]
+                ),
                 occurred_at=occurred_at,
             )
             db.add(entry)

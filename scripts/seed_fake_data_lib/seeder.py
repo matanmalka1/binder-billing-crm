@@ -94,10 +94,18 @@ class Seeder:
             if self.cfg.reset:
                 self._reset(db)
 
-            seeded_users = users.create_users(db, self.rng, self.cfg)
+            if self.cfg.preserve_users:
+                seeded_users = users.get_existing_users(db)
+                if not seeded_users:
+                    raise RuntimeError(
+                        "No existing users found for --preserve-users mode. "
+                        "Create users first or run without --preserve-users after approval."
+                    )
+            else:
+                seeded_users = users.create_users(db, self.rng, self.cfg)
             seeded_clients = clients.create_clients(db, self.rng, self.cfg)
             seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
-            clients.create_business_tax_profiles(db, self.rng, seeded_businesses)
+            seeded_profiles = clients.create_business_tax_profiles(db, self.rng, seeded_businesses)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_businesses, seeded_users)
             binder_intakes = binders.create_binder_intakes(db, seeded_binders)
             seeded_charges = charges.create_charges(db, self.rng, self.cfg, seeded_businesses, seeded_users)
@@ -110,7 +118,6 @@ class Seeder:
             contacts.create_correspondence(db, self.rng, seeded_businesses, seeded_users, contacts_seeded)
             reports.create_annual_report_details(db, self.rng, seeded_reports)
             reports.create_annual_report_income_lines(db, self.rng, seeded_reports)
-            reports.create_annual_report_expense_lines(db, self.rng, seeded_reports)
             reports.create_annual_report_annex_data(db, self.rng, seeded_reports)
             reports.create_annual_report_schedule_entries(db, self.rng, seeded_reports, seeded_users)
             reports.create_annual_report_credit_points(db, self.rng, seeded_reports)
@@ -119,6 +126,7 @@ class Seeder:
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders)
             reminders.create_reminders(db, self.rng, seeded_businesses, seeded_binders, seeded_charges, seeded_deadlines)
             seeded_documents = documents.create_documents(db, self.rng, seeded_clients, seeded_businesses, seeded_users)
+            reports.create_annual_report_expense_lines(db, self.rng, seeded_reports, seeded_documents, replace_existing=True)
             binders.create_binder_intake_materials(
                 db,
                 self.rng,
@@ -128,9 +136,17 @@ class Seeder:
                 binder_intakes,
             )
             binders.create_binder_logs(db, self.rng, seeded_binders, seeded_users)
-            users.create_user_audit_logs(db, self.rng, seeded_users)
+            if not self.cfg.preserve_users:
+                users.create_user_audit_logs(db, self.rng, seeded_users)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders, seeded_users)
-            vat_work_items = vat.create_vat_work_items(db, self.rng, self.cfg, seeded_businesses, seeded_users)
+            vat_work_items = vat.create_vat_work_items(
+                db,
+                self.rng,
+                self.cfg,
+                seeded_businesses,
+                seeded_users,
+                seeded_profiles,
+            )
             vat.create_vat_invoices(db, self.rng, self.cfg, vat_work_items, seeded_users)
             vat.create_vat_audit_logs(db, self.rng, vat_work_items, seeded_users)
             signature_requests_seeded = signature_requests.create_signature_requests(
@@ -158,6 +174,8 @@ class Seeder:
 
     def _reset(self, db) -> None:
         for table in reversed(Base.metadata.sorted_tables):
+            if self.cfg.preserve_users and table.name in {"users", "user_audit_logs"}:
+                continue
             db.execute(table.delete())
         db.commit()
 
