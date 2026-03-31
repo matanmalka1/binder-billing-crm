@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.binders.models.binder import BinderStatus
 from app.core.api_types import ApiDateTime
@@ -21,7 +21,6 @@ class BinderDetailResponse(BaseModel):
     # days_active: ימים שחלפו מתחילת תקופת הקלסר (period_start → היום).
     # נקרא days_active ולא days_in_office כי הוא מחושב גם על קלסרים שהוחזרו.
     days_active: Optional[int] = None
-    signals: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions
 from app.clients.repositories.client_repository import ClientRepository
-from app.binders.services.signals_service import SignalsService
 
 
 class BinderOperationsService:
@@ -53,11 +52,10 @@ class BinderOperationsService:
 
         Returns a dict that matches BinderDetailResponse fields:
           id, client_id, client_name, binder_number, period_start, period_end,
-          status, returned_at, pickup_person_name, days_active, signals.
+          status, returned_at, pickup_person_name, days_active.
         """
         effective_db = db or self.db
         ref_date = reference_date or date.today()
-        signals_service = SignalsService(effective_db)
 
         client = self.client_repo.get_by_id(binder.client_id)
         client_name = client.full_name if client else None
@@ -76,5 +74,4 @@ class BinderOperationsService:
             "returned_at": binder.returned_at,
             "pickup_person_name": binder.pickup_person_name,
             "days_active": days_active,
-            "signals": signals_service.compute_binder_signals(binder, ref_date),
         }

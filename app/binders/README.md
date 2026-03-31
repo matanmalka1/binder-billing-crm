@@ -14,7 +14,7 @@ This module provides:
 - Binder history/audit trail (`binder_status_logs`)
 - Business-scoped binder listing (`/businesses/{business_id}/binders`)
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
-- Derived UX fields (`days_in_office`, `signals`, `available_actions`)
+- Derived UX fields (`days_in_office`, `available_actions`)
 
 ## Domain Model
 
@@ -181,7 +181,7 @@ Base prefix: `/api/v1/binders`
 #### List open binders
 - `GET /api/v1/binders/open`
 - Returns binders where `status != returned`
-- Response model: `BinderListResponseExtended` (`signals` included)
+- Response model: `BinderListResponseExtended`
 
 ### History routes (`app/binders/api/binders_history.py`)
 
@@ -202,7 +202,7 @@ Implemented in `app/businesses/api/business_binders_router.py`.
 Resolves `business.client_id` and delegates to `BinderOperationsService`.
 
 - `GET /api/v1/businesses/{business_id}/binders`
-- Returns all binders for the client that owns the business (paginated), enriched with `signals`
+- Returns all binders for the client that owns the business (paginated)
 
 ## Lifecycle and Rules
 
@@ -221,13 +221,7 @@ Intake rules (`app/binders/services/binder_intake_service.py`):
 
 Derived fields (`app/binders/services/binder_list_service.py`):
 - `days_in_office`: `today - period_start`
-- `signals`: derived by `SignalsService`
 - `available_actions`: generated action contracts for frontend execution
-
-Signals (`app/binders/services/signals_service.py`):
-- Binder-level signals currently include:
-  - `ready_for_pickup`
-  - `idle_binder`
 
 ## Error Codes
 
@@ -281,9 +275,7 @@ Domain tests:
 - `tests/binders/api/test_binder_history.py`
 - `tests/binders/service/test_binder_service_basic.py`
 - `tests/binders/service/test_binder_operations_service.py`
-- `tests/binders/service/test_signals.py`
 - `tests/binders/service/test_operational_signals.py`
-- `tests/binders/service/test_signals_service_client_signals.py`
 - `tests/binders/repository/test_binder_repository.py`
 - `tests/binders/repository/test_binder_repository_extensions.py`
 

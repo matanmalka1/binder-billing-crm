@@ -4,7 +4,6 @@ from typing import Optional
 from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder
 from app.binders.schemas.binder import BinderResponse
-from app.binders.services.signals_service import SignalsService
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 
@@ -20,17 +19,11 @@ class BinderListService:
         binder: Binder,
         *,
         reference_date: Optional[date] = None,
-        signals: Optional[list[str]] = None,
         client_name: Optional[str] = None,
-        signals_service: Optional[SignalsService] = None,
     ) -> BinderResponse:
         ref_date = reference_date or date.today()
-        service = signals_service or SignalsService(self.db)
         response = BinderResponse.model_validate(binder)
         response.days_in_office = (ref_date - binder.period_start).days
-        response.signals = signals if signals is not None else service.compute_binder_signals(
-            binder, ref_date,
-        )
         response.available_actions = get_binder_actions(binder)
         response.client_name = client_name
         self._enrich_intake_fields(response, binder.id)
@@ -78,7 +71,6 @@ class BinderListService:
         db_sort_by = "period_start" if effective_sort_by == "client_name" else effective_sort_by
 
         ref_date = reference_date or date.today()
-        signals_service = SignalsService(self.db)
         binders = self.binder_repo.list_active(
             client_id=client_id,
             status=status,
@@ -93,8 +85,6 @@ class BinderListService:
 
         items: list[BinderResponse] = []
         for binder in binders:
-            current_signals = signals_service.compute_binder_signals(binder, ref_date)
-
             current_client_name = client_name_map.get(binder.client_id)
 
             if query:
@@ -120,9 +110,7 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
-                    signals=current_signals,
                     client_name=current_client_name,
-                    signals_service=signals_service,
                 )
             )
 

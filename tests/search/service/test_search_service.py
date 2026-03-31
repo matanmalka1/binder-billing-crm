@@ -15,7 +15,6 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
         list_active=lambda **kwargs: [binder],
         map_active_by_clients=lambda ids: {1: binder},
     )
-    svc.signals_service = SimpleNamespace(compute_binder_signals=lambda *_args, **_kwargs: ["idle_binder"])
     monkeypatch.setattr(
         "app.search.services.search_service.DocumentSearchService",
         lambda db: SimpleNamespace(search_documents=lambda query: [{"id": 10}]),
@@ -23,11 +22,8 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
 
     items, total, docs = svc.search(
         query="alpha",
-        has_signals=True,
-        signal_type=["idle_binder"],
         page=1,
         page_size=10,
-        reference_date=date.today(),
     )
     assert docs == [{"id": 10}]
     assert total >= 1

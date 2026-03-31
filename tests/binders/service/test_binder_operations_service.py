@@ -76,7 +76,7 @@ def test_client_exists_returns_boolean(test_db):
     assert service.client_exists(9999) is False
 
 
-def test_enrich_binder_includes_signals(test_db, test_user):
+def test_enrich_binder_returns_expected_fields(test_db, test_user):
     client = _create_client(test_db, "Client D", "C-030")
     idle_binder = _create_binder(
         test_db,
@@ -91,4 +91,4 @@ def test_enrich_binder_includes_signals(test_db, test_user):
     enriched = service.enrich_binder(idle_binder, db=test_db)
 
     assert enriched["id"] == idle_binder.id
-    assert "idle_binder" in enriched["signals"]
+    assert enriched["days_active"] >= 30

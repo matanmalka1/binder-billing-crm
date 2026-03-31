@@ -13,7 +13,6 @@ class SearchResult(BaseModel):
     client_status: Optional[str] = None
     binder_id: Optional[int] = None
     binder_number: Optional[str] = None
-    signals: list[str] = Field(default_factory=list)
 
 
 class DocumentSearchResult(BaseModel):

@@ -67,8 +67,7 @@ class DashboardExtendedService:
 
         items = []
         for binder, business in self._active_binders_with_businesses():
-            signals = self.signals_service.compute_binder_signals(binder, reference_date)
-            items.append(work_queue_item(binder, business, signals, reference_date))
+            items.append(work_queue_item(binder, business, reference_date))
         total = len(items)
         offset = (page - 1) * page_size
         return items[offset : offset + page_size], total

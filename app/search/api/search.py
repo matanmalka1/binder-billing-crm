@@ -22,8 +22,6 @@ def search(
     client_name: Optional[str] = None,
     id_number: Optional[str] = None,
     binder_number: Optional[str] = None,
-    signal_type: Optional[list[str]] = Query(None),
-    has_signals: Optional[bool] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -34,8 +32,6 @@ def search(
         client_name=client_name,
         id_number=id_number,
         binder_number=binder_number,
-        signal_type=signal_type,
-        has_signals=has_signals,
         page=page,
         page_size=page_size,
     )

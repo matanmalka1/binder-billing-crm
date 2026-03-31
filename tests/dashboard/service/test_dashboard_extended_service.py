@@ -17,18 +17,11 @@ def test_get_work_queue_uses_builder_with_pagination(test_db, monkeypatch):
     )
     business = SimpleNamespace(id=10, full_name="Queue Client")
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business)])
-    monkeypatch.setattr(
-        service.signals_service,
-        "compute_binder_signals",
-        lambda binder, reference_date: [{"key": "kpi"}],
-    )
-
     items, total = service.get_work_queue(page=1, page_size=10, reference_date=date(2026, 3, 10))
 
     assert total == 1
     assert len(items) == 1
     assert items[0]["binder_id"] == 1
-    assert items[0]["signals"] == [{"key": "kpi"}]
     assert items[0]["business_id"] == 10
 
 

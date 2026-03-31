@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -59,7 +59,6 @@ class BinderResponse(BaseModel):
     received_at: Optional[date] = None       # received_at of first intake
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: Optional[int] = None     # today - period_start
-    signals: list[str] = Field(default_factory=list)
     available_actions: list[dict[str, Any]] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

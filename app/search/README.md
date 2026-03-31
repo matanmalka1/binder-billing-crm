@@ -36,8 +36,6 @@ This module does not define DB models. It is an orchestration layer over existin
 - `client_name` (optional)
 - `id_number` (optional)
 - `binder_number` (optional)
-- `signal_type` (optional, repeatable list param)
-- `has_signals` (optional bool)
 - `page` (default `1`, min `1`)
 - `page_size` (default `20`, min `1`, max `100`)
 
@@ -53,7 +51,6 @@ This module does not define DB models. It is an orchestration layer over existin
 `SearchResult` (`result_type: "client" | "binder"`):
 - `client_id`, `client_name`
 - `binder_id`, `binder_number` (binder rows only)
-- `signals` (binder rows only)
 - `client_status` is currently always `null`
 
 `DocumentSearchResult`:
@@ -65,7 +62,7 @@ This module does not define DB models. It is an orchestration layer over existin
 ### 1) Client-only DB mode (fast path)
 Triggered when:
 - at least one of `query`, `client_name`, `id_number` is present
-- and none of `signal_type`, `has_signals`, `binder_number` is provided
+- and `binder_number` is not provided
 
 Behavior:
 - Uses `ClientRepository.search(...)` with DB pagination (`page`, `page_size`)
@@ -84,10 +81,6 @@ Binder matching details:
 - Base binder source is `BinderRepository.list_active(...)` (non-returned + non-deleted)
 - If `binder_number` is provided, it is used as DB binder-number filter
 - Else, if `query` is provided and `client_name`/`id_number` are not provided, `query` is reused as binder-number filter
-- Derived fields per binder:
-  - `signals` via `SignalsService.compute_binder_signals(...)`
-- `signal_type` uses OR semantics (`any` requested signal is enough)
-- `has_signals=true` means `len(signals) > 0`; `false` means no signals
 
 ## Document Search
 

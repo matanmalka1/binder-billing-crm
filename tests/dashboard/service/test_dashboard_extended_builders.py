@@ -19,9 +19,7 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
     )
     business = SimpleNamespace(id=20, full_name="Dashboard Client")
     charge = SimpleNamespace(amount=123.45)
-    signals = [{"key": "idle", "level": "yellow"}]
-
-    queue = work_queue_item(binder, business, signals, reference_date)
+    queue = work_queue_item(binder, business, reference_date)
     assert queue["binder_id"] == binder.id
     assert queue["client_name"] == business.full_name
     assert queue["days_since_received"] == 9

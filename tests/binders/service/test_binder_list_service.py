@@ -42,17 +42,12 @@ def _seed_binders(db, user_id: int):
     return c1, c2, b1, b2
 
 
-def test_list_binders_enriched_filters_and_invalid_sort_dir(monkeypatch, test_db, test_user):
+def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     c1, c2, _b1, _b2 = _seed_binders(test_db, test_user.id)
     service = BinderListService()
     service.db = test_db
     service.binder_repo = BinderRepository(test_db)
     service.client_repo = ClientRepository(test_db)
-
-    monkeypatch.setattr(
-        "app.binders.services.binder_list_service.SignalsService.compute_binder_signals",
-        lambda self, binder, ref_date: ["idle_binder"] if binder.client_id == c1.id else [],
-    )
 
     items, total = service.list_binders_enriched(
         sort_by="client_name",

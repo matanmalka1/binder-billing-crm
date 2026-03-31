@@ -7,13 +7,12 @@ def _format_ils_amount(amount) -> str:
     return f"₪{formatted}"
 
 
-def work_queue_item(binder, client, signals, reference_date) -> dict:
+def work_queue_item(binder, client, reference_date) -> dict:
     return {
         "binder_id": binder.id,
         "business_id": client.id,
         "client_name": client.full_name,
         "binder_number": binder.binder_number,
-        "signals": signals,
         "days_since_received": (reference_date - binder.period_start).days,
     }
 

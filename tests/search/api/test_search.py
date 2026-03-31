@@ -18,14 +18,6 @@ def test_search_with_query(client, advisor_headers):
     assert response.status_code == 200
 
 
-def test_search_with_signal_filters(client, advisor_headers):
-    """Test search accepts signal filters at API boundary."""
-    response = client.get(
-        "/api/v1/search?signal_type=idle_binder",
-        headers=advisor_headers,
-    )
-    assert response.status_code == 200
-
 
 def test_search_requires_auth(client):
     """Test search requires authentication."""

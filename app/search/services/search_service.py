@@ -5,13 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.search.services.search_filters import matches_signal_type
 from app.search.services.document_search_service import DocumentSearchService
-from app.binders.services.signals_service import SignalsService
 
-# Safety ceiling for mixed / derived-state searches that must be resolved in memory.
+# Safety ceiling for mixed searches that must be resolved in memory.
 # Pure client-only searches already use DB-level pagination and are not affected.
-# Known architectural debt — signals cannot be persisted per CLAUDE.md.
+# Known architectural debt — see CLAUDE.md.
 _MIXED_SEARCH_BINDER_LIMIT = 1000
 _MIXED_SEARCH_CLIENT_LIMIT = 500
 
@@ -23,7 +21,6 @@ class SearchService:
         self.db = db
         self.client_repo = ClientRepository(db)
         self.binder_repo = BinderRepository(db)
-        self.signals_service = SignalsService(db)
 
     def search(
         self,
@@ -31,24 +28,16 @@ class SearchService:
         client_name: Optional[str] = None,
         id_number: Optional[str] = None,
         binder_number: Optional[str] = None,
-        signal_type: Optional[list[str]] = None,
-        has_signals: Optional[bool] = None,
         page: int = 1,
         page_size: int = 20,
-        reference_date: Optional[date] = None,
     ) -> tuple[list[dict], int, list[dict]]:
-        if reference_date is None:
-            reference_date = date.today()
-
-        binder_derived_filter = bool(signal_type or (has_signals is not None))
-
         documents: list[dict] = (
             DocumentSearchService(self.db).search_documents(query) if query else []
         )
 
         # --- Client search: DB-level filtering ---
         if query or client_name or id_number:
-            if not binder_derived_filter and not binder_number:
+            if not binder_number:
                 clients, total = self.client_repo.search(
                     query=query,
                     client_name=client_name,
@@ -66,12 +55,11 @@ class SearchService:
                         "client_status": None,
                         "binder_id": binder_map[c.id].id if c.id in binder_map else None,
                         "binder_number": binder_map[c.id].binder_number if c.id in binder_map else None,
-                        "signals": [],
                     }
                     for c in clients
                 ], total, documents
 
-        # --- Mixed / binder-filtered search: build full result set then paginate ---
+        # --- Mixed / binder-number search: build full result set then paginate ---
         # Bounded by _MIXED_SEARCH_*_LIMIT. Results beyond ceiling are excluded.
         results: list[dict] = []
 
@@ -95,36 +83,19 @@ class SearchService:
                         "client_status": None,
                         "binder_id": b.id if b else None,
                         "binder_number": b.binder_number if b else None,
-                        "signals": [],
                     }
                 )
 
-        if query or binder_number or binder_derived_filter:
+        if query or binder_number:
             db_binder_number = binder_number or (query if not (client_name or id_number) else None)
-            # Bounded fetch — binders beyond ceiling are excluded from results.
             binders = self.binder_repo.list_active(
                 binder_number=db_binder_number,
                 page=1,
                 page_size=_MIXED_SEARCH_BINDER_LIMIT,
             )
-            matched: list[tuple] = []
-            for binder in binders:
-                current_signals = self.signals_service.compute_binder_signals(
-                    binder, reference_date
-                )
-
-                match = True
-                if signal_type:
-                    match = matches_signal_type(current_signals, signal_type)
-                if has_signals is not None and match:
-                    match = (len(current_signals) > 0) == has_signals
-
-                if match:
-                    matched.append((binder, current_signals))
-
-            binder_client_ids = [b.client_id for b, _ in matched]
+            binder_client_ids = [b.client_id for b in binders]
             binder_client_map = {c.id: c for c in self.client_repo.list_by_ids(binder_client_ids)}
-            for binder, current_signals in matched:
+            for binder in binders:
                 client = binder_client_map.get(binder.client_id)
                 results.append(
                     {
@@ -135,7 +106,6 @@ class SearchService:
                         "client_status": None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,
-                        "signals": current_signals,
                     }
                 )
 
