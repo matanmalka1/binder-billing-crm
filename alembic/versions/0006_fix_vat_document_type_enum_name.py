@@ -32,8 +32,12 @@ VAT_DOC_TYPE_VALUES = [
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
+
     vatdocumenttype = sa.Enum(*VAT_DOC_TYPE_VALUES, name="vatdocumenttype")
-    vatdocumenttype.create(op.get_bind(), checkfirst=True)
+    vatdocumenttype.create(bind, checkfirst=True)
 
     op.alter_column(
         "vat_invoices",
@@ -45,6 +49,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
+
     # Revert column back to the legacy (incorrect) documenttype enum
     legacy_documenttype = sa.Enum(
         "id_copy", "power_of_attorney", "engagement_agreement", "tax_form",
@@ -61,4 +69,4 @@ def downgrade() -> None:
         postgresql_using="NULL::documenttype",
     )
 
-    sa.Enum(name="vatdocumenttype").drop(op.get_bind(), checkfirst=True)
+    sa.Enum(name="vatdocumenttype").drop(bind, checkfirst=True)
