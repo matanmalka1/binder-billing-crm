@@ -140,8 +140,6 @@ These are intentional, documented constraints — not bugs. Do not work around t
 | `reports_service.py`            | `_AGING_CHARGE_FETCH_LIMIT = 2000` charges                       | Charges beyond ceiling silently excluded |
 | `binders/work_state`            | Notification check fetches 100 by `client_id`, filters in memory | No binder-scoped query                   |
 
-**Root fix:** persist `work_state` and signals, or push aggregation to SQL. Until then, respect the ceilings.
-
 ---
 
 ## Infrastructure

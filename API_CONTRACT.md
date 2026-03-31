@@ -102,7 +102,7 @@
 
 ## Search (advisor + secretary)
 
-- `GET /api/v1/search` — filters: `query`, `client_name`, `id_number`, `binder_number`, `work_state`, `signal_type[]`, `has_signals`; paginated.
+- `GET /api/v1/search` — filters: `query`, `client_name`, `id_number`, `binder_number`, `signal_type[]`, `has_signals`; paginated.
 
 ---
 
