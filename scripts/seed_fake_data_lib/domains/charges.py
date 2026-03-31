@@ -7,15 +7,17 @@ from random import Random
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
 
+from ._business_groups import group_businesses_by_client, pick_businesses_for_client
+
 
 def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]:
     charges: list[Charge] = []
-    for business in businesses:
+    for client_businesses in group_businesses_by_client(businesses).values():
         num = rng.randint(
             cfg.min_charges_per_client,
             cfg.max_charges_per_client,
         )
-        for _ in range(num):
+        for business in pick_businesses_for_client(rng, client_businesses, num):
             status = rng.choices(
                 [ChargeStatus.DRAFT, ChargeStatus.ISSUED, ChargeStatus.PAID, ChargeStatus.CANCELED],
                 weights=[20, 30, 40, 10],

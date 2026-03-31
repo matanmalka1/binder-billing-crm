@@ -62,9 +62,16 @@ def create_documents(db, rng: Random, clients, businesses, users):
             db.add(document)
             documents.append(document)
 
-        for business in businesses_by_client_id.get(client.id, []):
-            if rng.random() > 0.6:
-                continue
+        client_businesses = businesses_by_client_id.get(client.id, [])
+        remaining_business_doc_slots = max(0, 4 - len(docs))
+        if remaining_business_doc_slots <= 0:
+            continue
+
+        selected_businesses = rng.sample(
+            client_businesses,
+            k=min(remaining_business_doc_slots, len(client_businesses)),
+        )
+        for business in selected_businesses:
             uploaded_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 500))
             status = rng.choices(
                 [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],

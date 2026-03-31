@@ -13,6 +13,8 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestType,
 )
 
+from ._business_groups import group_businesses_by_client, pick_businesses_for_client
+
 
 def _pick_related_for_client(rng: Random, rows_by_client: dict[int, list], client_id: int):
     rows = rows_by_client.get(client_id, [])
@@ -100,11 +102,15 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
     type_cycle_idx = 0
     status_cycle_idx = 0
 
-    for business in businesses:
-        client = clients_by_id.get(business.client_id)
+    for client_businesses in group_businesses_by_client(businesses).values():
+        client = clients_by_id.get(client_businesses[0].client_id)
         if not client:
             continue
-        for _ in range(cfg.signature_requests_per_client):
+        for business in pick_businesses_for_client(
+            rng,
+            client_businesses,
+            cfg.signature_requests_per_client,
+        ):
             report = _pick_related_for_client(rng, reports_by_business, business.id)
             document = _pick_related_for_client(rng, documents_by_client, client.id)
             if status_cycle_idx < len(status_cycle):

@@ -18,6 +18,8 @@ from app.vat_reports.models.vat_enums import (
 )
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
+
+from ._business_groups import group_businesses_by_client
 from app.businesses.models.business_tax_profile import VatType
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 
@@ -60,16 +62,17 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
         for profile in (profiles or [])
     }
 
-    for business in businesses:
+    for client_businesses in group_businesses_by_client(businesses).values():
         num_items = rng.randint(cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client)
         periods = _choose_periods(rng, num_items)
-        profile = profile_by_business_id.get(business.id)
-        if profile and profile.vat_type in (VatType.MONTHLY, VatType.BIMONTHLY):
-            period_type = profile.vat_type
-        else:
-            period_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
 
         for period in periods:
+            business = rng.choice(client_businesses)
+            profile = profile_by_business_id.get(business.id)
+            if profile and profile.vat_type in (VatType.MONTHLY, VatType.BIMONTHLY):
+                period_type = profile.vat_type
+            else:
+                period_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
             if business.status == BusinessStatus.CLOSED:
                 status = rng.choice([VatWorkItemStatus.FILED, VatWorkItemStatus.READY_FOR_REVIEW])
             elif business.status == BusinessStatus.FROZEN:

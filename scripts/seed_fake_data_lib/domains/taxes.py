@@ -11,6 +11,8 @@ from app.tax_deadline.models.tax_deadline import (
     TaxDeadlineStatus,
 )
 
+from ._business_groups import group_businesses_by_client, pick_businesses_for_client
+
 
 # Hebrew labels for deadline types used in seed descriptions
 DEADLINE_LABELS = {
@@ -25,12 +27,12 @@ DEADLINE_LABELS = {
 def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     today = date.today()
-    for business in businesses:
+    for client_businesses in group_businesses_by_client(businesses).values():
         num = rng.randint(
             cfg.min_tax_deadlines_per_client,
             cfg.max_tax_deadlines_per_client,
         )
-        for _ in range(num):
+        for business in pick_businesses_for_client(rng, client_businesses, num):
             due_offset = rng.randint(-30, 60)
             due_date = today + timedelta(days=due_offset)
             status = (
@@ -72,10 +74,11 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
         if dl.period:
             deadlines_by_business_period[(dl.business_id, dl.period)] = dl
 
-    for business in businesses:
+    for client_businesses in group_businesses_by_client(businesses).values():
         year = date.today().year
         months = sorted(rng.sample(range(1, 13), k=rng.randint(3, 7)))
         for month in months:
+            business = rng.choice(client_businesses)
             period = f"{year}-{month:02d}"
             due_date = date(year, month, min(rng.randint(10, 28), 28))
             deadline = deadlines_by_business_period.get((business.id, period))

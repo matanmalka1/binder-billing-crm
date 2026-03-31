@@ -34,6 +34,8 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.models.business import BusinessType
 from app.users.models.user import UserRole
 
+from ._business_groups import group_businesses_by_client
+
 
 def standard_deadline(tax_year: int) -> datetime:
     return datetime(tax_year + 1, 4, 30, 23, 59, 59)
@@ -274,12 +276,13 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
     fallback_user_id = users[0].id if users else None
     status_cycle = list(SEEDABLE_STATUSES)
     status_cycle_idx = 0
-    for business in businesses:
+    for client_businesses in group_businesses_by_client(businesses).values():
         years = rng.sample(
             available_years,
             k=min(cfg.annual_reports_per_client, len(available_years)),
         )
         for year in years:
+            business = rng.choice(client_businesses)
             if business.business_type == BusinessType.COMPANY:
                 client_type_for_report = ClientTypeForReport.CORPORATION
                 form_type = AnnualReportForm.FORM_6111
