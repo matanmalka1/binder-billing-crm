@@ -152,3 +152,23 @@ class ReminderRepository(BaseRepository):
         """Update reminder status and additional fields."""
         reminder = self.get_by_id(reminder_id)
         return self._update_status(reminder, new_status, **additional_fields)
+
+    def cancel_pending_by_charge(self, charge_id: int) -> int:
+        """Cancel all PENDING reminders linked to a charge. Returns count canceled."""
+        from app.utils.time_utils import utcnow as _utcnow
+        now = _utcnow()
+        rows = (
+            self.db.query(Reminder)
+            .filter(
+                Reminder.charge_id == charge_id,
+                Reminder.status == ReminderStatus.PENDING,
+                Reminder.deleted_at.is_(None),
+            )
+            .all()
+        )
+        for r in rows:
+            r.status = ReminderStatus.CANCELED
+            r.canceled_at = now
+        if rows:
+            self.db.commit()
+        return len(rows)

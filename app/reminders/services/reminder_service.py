@@ -86,3 +86,6 @@ class ReminderService:
 
     def cancel_reminder(self, reminder_id: int):
         return status_changes.cancel_reminder(self.reminder_repo, reminder_id)
+
+    def cancel_reminders_for_charge(self, charge_id: int) -> int:
+        return self.reminder_repo.cancel_pending_by_charge(charge_id)

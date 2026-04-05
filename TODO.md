@@ -16,26 +16,10 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ---
 
 ## 1. Domain Logic — VAT Reports
-
-
 ## 2. Domain Logic — Advance Payments
-
----
-
-
-
 ## 3. Domain Logic — Annual Reports
-
-
 ## 4. Domain Logic — Tax Deadlines
-
----
-
-
-
 ## 5. Domain Logic — Charge / Invoice
-
----
 
 ## [HIGH] Reminder not canceled when charge is marked paid
 - **File:** `app/charge/services/billing_service.py:82-86`
@@ -107,8 +91,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 
 ## 10. Redundant Code
-
-
 ## 11. Architectural Violations
 
 ---
@@ -129,16 +111,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 - **Category:** Edge Case
 - **Issue:** `mark_ready_for_pickup()` calls `business_repo.list_by_client()` and passes `businesses[0]` to `NotificationService`; if a client has multiple businesses the notification may reference the wrong one.
 - **Fix:** Either add a `business_id` FK to `Binder` (preferred) or document this as a known limitation with a `TODO` comment.
-
----
-
-## [LOW] `advance_payment.paid_amount` should default to 0, not NULL
-- **File:** `app/advance_payments/models/advance_payment.py`
-- **Category:** Nullable Semantics
-- **Issue:** `paid_amount` is nullable; if `NULL`, the schema's computed `delta = expected - paid` will error or return wrong results.
-- **Fix:** Set `server_default="0"` and `default=Decimal("0")` on the column, or add a `@validator` in the schema to coerce `None → 0`.
-
----
 
 ## 13. Security
 
