@@ -6,6 +6,7 @@ from app.actions.report_deadline_actions import (
 )
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.tax_deadline.models.tax_deadline import TaxDeadlineStatus
+from app.users.models.user import UserRole
 
 
 def test_get_tax_deadline_actions_non_completed_has_complete_and_edit():
@@ -25,6 +26,14 @@ def test_get_tax_deadline_actions_completed_has_only_edit():
 
     assert [action["key"] for action in actions] == ["edit"]
     assert actions[0]["endpoint"] == "/tax-deadlines/4"
+
+
+def test_get_tax_deadline_actions_secretary_has_no_actions():
+    deadline = SimpleNamespace(id=5, status=TaxDeadlineStatus.PENDING)
+
+    actions = get_tax_deadline_actions(deadline, user_role=UserRole.SECRETARY)
+
+    assert actions == []
 
 
 def test_get_annual_report_actions_submitted_has_amend_only():

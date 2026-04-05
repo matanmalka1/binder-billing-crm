@@ -36,24 +36,52 @@ class TaxDeadlineQueryService:
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
-        elif client_name:
+        if client_name:
             items = self.get_deadlines_by_client_name(client_name, status, deadline_type)
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
-        else:
-            return self.list_all_pending(page=page, page_size=page_size)
+        return self.list_all(status=status, deadline_type=deadline_type, page=page, page_size=page_size)
 
     def list_all_pending(
         self,
         page: int = 1,
         page_size: int = 50,
+        deadline_type: Optional[DeadlineType] = None,
     ) -> tuple[list[TaxDeadline], int]:
         """Return paginated pending deadlines with SQL-level pagination."""
-        total = self.deadline_repo.count_pending_due_by_date(date.today(), FAR_FUTURE_DATE)
-        items = self.deadline_repo.list_pending_due_by_date(
-            date.today(),
-            FAR_FUTURE_DATE,
+        total = self.deadline_repo.count_filtered(
+            status=TaxDeadlineStatus.PENDING,
+            deadline_type=deadline_type,
+            due_from=date.today(),
+            due_to=FAR_FUTURE_DATE,
+        )
+        items = self.deadline_repo.list_filtered(
+            status=TaxDeadlineStatus.PENDING,
+            deadline_type=deadline_type,
+            due_from=date.today(),
+            due_to=FAR_FUTURE_DATE,
+            limit=page_size,
+            offset=(page - 1) * page_size,
+        )
+        return items, total
+
+    def list_all(
+        self,
+        *,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[TaxDeadline], int]:
+        """Return paginated deadlines for the global list while preserving pending-by-default behavior."""
+        if status in (None, "", TaxDeadlineStatus.PENDING, TaxDeadlineStatus.PENDING.value):
+            return self.list_all_pending(page=page, page_size=page_size, deadline_type=deadline_type)
+
+        total = self.deadline_repo.count_filtered(status=status, deadline_type=deadline_type)
+        items = self.deadline_repo.list_filtered(
+            status=status,
+            deadline_type=deadline_type,
             limit=page_size,
             offset=(page - 1) * page_size,
         )

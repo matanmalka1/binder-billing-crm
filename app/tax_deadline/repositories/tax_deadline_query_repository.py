@@ -12,6 +12,9 @@ class TaxDeadlineQueryRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def _base_query(self):
+        return self.db.query(TaxDeadline).filter(TaxDeadline.deleted_at.is_(None))
+
     def get_by_id(self, deadline_id: int) -> Optional[TaxDeadline]:
         """Retrieve a non-deleted deadline by ID."""
         return (
@@ -59,6 +62,54 @@ class TaxDeadlineQueryRepository:
             )
             .count()
         )
+
+    def list_filtered(
+        self,
+        *,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> list[TaxDeadline]:
+        """List non-deleted deadlines with optional status/type/date filters."""
+        query = self._base_query()
+        if status:
+            query = query.filter(TaxDeadline.status == status)
+        if deadline_type:
+            query = query.filter(TaxDeadline.deadline_type == deadline_type)
+        if due_from is not None:
+            query = query.filter(TaxDeadline.due_date >= due_from)
+        if due_to is not None:
+            query = query.filter(TaxDeadline.due_date <= due_to)
+
+        query = query.order_by(TaxDeadline.due_date.asc())
+        if offset:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
+
+    def count_filtered(
+        self,
+        *,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+    ) -> int:
+        """Count non-deleted deadlines with optional status/type/date filters."""
+        query = self._base_query()
+        if status:
+            query = query.filter(TaxDeadline.status == status)
+        if deadline_type:
+            query = query.filter(TaxDeadline.deadline_type == deadline_type)
+        if due_from is not None:
+            query = query.filter(TaxDeadline.due_date >= due_from)
+        if due_to is not None:
+            query = query.filter(TaxDeadline.due_date <= due_to)
+        return query.count()
 
     def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
         """List pending, non-deleted deadlines overdue before reference_date."""

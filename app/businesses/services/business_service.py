@@ -131,18 +131,3 @@ class BusinessService:
         if not restored:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
         return restored
-
-    # ─── Bulk ─────────────────────────────────────────────────────────────────
-
-    def bulk_update_status(
-        self,
-        business_ids: list[int],
-        action: str,
-        actor_id: int,
-        actor_role: UserRole = UserRole.ADVISOR,
-    ) -> tuple[list[int], list[dict]]:
-        return self._bulk.bulk_update_status(
-            business_ids=business_ids, action=action,
-            actor_id=actor_id, actor_role=actor_role,
-            update_fn=self.update_business,
-        )

@@ -54,9 +54,6 @@ class BinderResponse(BaseModel):
     pickup_person_name: Optional[str] = None
     notes: Optional[str] = None
     created_at: ApiDateTime
-    # ── Derived from first intake (enriched by service) ───────────────────────
-    binder_type: Optional[str] = None        # material_type of first intake material
-    received_at: Optional[date] = None       # received_at of first intake
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: Optional[int] = None     # today - period_start
     available_actions: list[dict[str, Any]] = Field(default_factory=list)

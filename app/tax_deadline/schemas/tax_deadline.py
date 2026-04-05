@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.tax_deadline.models.tax_deadline import (
@@ -19,6 +19,18 @@ class TaxDeadlineCreateRequest(BaseModel):
     period: Optional[str] = None            # "YYYY-MM" — קיים במודל
     payment_amount: Optional[ApiDecimal] = Field(None, ge=0)
     description: Optional[str] = None
+
+    @field_validator("period")
+    @classmethod
+    def validate_period(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        if len(value) != 7 or value[4] != "-" or not value[:4].isdigit() or not value[5:7].isdigit():
+            raise ValueError("period must be in YYYY-MM format")
+        month = int(value[5:7])
+        if month < 1 or month > 12:
+            raise ValueError("period must be in YYYY-MM format")
+        return value
 
 
 class TaxDeadlineResponse(BaseModel):
@@ -47,6 +59,11 @@ class TaxDeadlineUpdateRequest(BaseModel):
     period: Optional[str] = None
     payment_amount: Optional[ApiDecimal] = Field(None, ge=0)
     description: Optional[str] = None
+
+    @field_validator("period")
+    @classmethod
+    def validate_period(cls, value: Optional[str]) -> Optional[str]:
+        return TaxDeadlineCreateRequest.validate_period(value)
 
 
 class TaxDeadlineListResponse(BaseModel):

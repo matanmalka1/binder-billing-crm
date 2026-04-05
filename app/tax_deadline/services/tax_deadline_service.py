@@ -68,7 +68,7 @@ class TaxDeadlineService:
 
         return deadline
 
-    def mark_completed(self, deadline_id: int) -> TaxDeadline:
+    def mark_completed(self, deadline_id: int, completed_by: Optional[int] = None) -> TaxDeadline:
         """Mark deadline as completed."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
@@ -81,6 +81,7 @@ class TaxDeadlineService:
             deadline_id,
             TaxDeadlineStatus.COMPLETED,
             completed_at=utcnow(),
+            completed_by=completed_by,
         )
 
     def update_deadline(
@@ -89,17 +90,25 @@ class TaxDeadlineService:
         *,
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
+        period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Update editable fields on a deadline."""
-        if not any([deadline_type, due_date, payment_amount is not None, description is not None]):
+        if not any([
+            deadline_type,
+            due_date,
+            period is not None,
+            payment_amount is not None,
+            description is not None,
+        ]):
             raise AppError("לא סופקו שדות לעדכון", "TAX_DEADLINE.NO_FIELDS_PROVIDED")
 
         deadline = self.deadline_repo.update(
             deadline_id,
             deadline_type=deadline_type,
             due_date=due_date,
+            period=period,
             payment_amount=payment_amount,
             description=description,
         )

@@ -131,22 +131,6 @@ def test_update_delete_restore_and_bulk_action_endpoints(
     assert restore_ok.status_code == 200
     assert restore_ok.json()["status"] == "active"
 
-    bulk_resp = client.post(
-        "/api/v1/businesses/bulk-action",
-        headers={**advisor_headers, "X-Idempotency-Key": "biz-bulk-1"},
-        json={"business_ids": [business_a.id, business_c.id, 999999], "action": "close"},
-    )
-    assert bulk_resp.status_code == 200
-    bulk_data = bulk_resp.json()
-    assert sorted(bulk_data["succeeded"]) == sorted([business_a.id, business_c.id])
-    assert bulk_data["failed"][0]["id"] == 999999
-    assert bulk_data["failed"][0]["error"] == "עסק 999999 לא נמצא"
-
-    refreshed_a = test_db.query(Business).filter(Business.id == business_a.id).first()
-    refreshed_c = test_db.query(Business).filter(Business.id == business_c.id).first()
-    assert refreshed_a.status == BusinessStatus.CLOSED
-    assert refreshed_c.status == BusinessStatus.CLOSED
-
 
 def test_business_tax_profile_api_endpoints(client, test_db, test_user, advisor_headers, secretary_headers):
     crm_client = _create_client(

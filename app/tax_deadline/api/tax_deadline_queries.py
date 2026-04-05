@@ -26,13 +26,14 @@ def _build_response(
     deadline,
     business_name: Optional[str] = None,
     client_id: Optional[int] = None,
+    user_role: UserRole | str | None = None,
 ) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
     if business_name is not None:
         r.business_name = business_name
     if client_id is not None:
         r.client_id = client_id
-    r.available_actions = get_tax_deadline_actions(deadline)
+    r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
     return r
 
 
@@ -64,6 +65,7 @@ def list_tax_deadlines(
                 d,
                 business_name=business_name_map.get(d.business_id),
                 client_id=client_id_map.get(d.business_id),
+                user_role=user.role,
             )
             for d in paginated
         ],
@@ -106,9 +108,19 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
                 due_date=deadline.due_date,
                 urgency=item["urgency"],
                 days_remaining=item["days_remaining"],
-                payment_amount=float(deadline.payment_amount) if deadline.payment_amount else None,
+                payment_amount=deadline.payment_amount,
             )
         )
 
-    upcoming = [_build_response(d) for d in summary["upcoming"]]
+    upcoming_business_name_map = service.build_business_name_map(summary["upcoming"])
+    upcoming_client_id_map = service.build_client_id_map(summary["upcoming"])
+    upcoming = [
+        _build_response(
+            d,
+            business_name=upcoming_business_name_map.get(d.business_id),
+            client_id=upcoming_client_id_map.get(d.business_id),
+            user_role=user.role,
+        )
+        for d in summary["upcoming"]
+    ]
     return DashboardDeadlinesResponse(urgent=urgent_items, upcoming=upcoming)

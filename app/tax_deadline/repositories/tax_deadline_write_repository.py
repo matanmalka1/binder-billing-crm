@@ -47,6 +47,7 @@ class TaxDeadlineWriteRepository:
         deadline_id: int,
         status: TaxDeadlineStatus,
         completed_at: Optional[datetime] = None,
+        completed_by: Optional[int] = None,
     ) -> Optional[TaxDeadline]:
         deadline = self.get_by_id(deadline_id)
         if not deadline:
@@ -54,6 +55,8 @@ class TaxDeadlineWriteRepository:
         deadline.status = status
         if completed_at:
             deadline.completed_at = completed_at
+        if completed_by is not None:
+            deadline.completed_by = completed_by
         self.db.commit()
         self.db.refresh(deadline)
         return deadline
@@ -64,6 +67,7 @@ class TaxDeadlineWriteRepository:
         *,
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
+        period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> Optional[TaxDeadline]:
@@ -74,6 +78,8 @@ class TaxDeadlineWriteRepository:
             deadline.deadline_type = deadline_type
         if due_date:
             deadline.due_date = due_date
+        if period is not None:
+            deadline.period = period
         if payment_amount is not None:
             deadline.payment_amount = payment_amount
         if description is not None:

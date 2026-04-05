@@ -32,6 +32,6 @@ def build_timeline(business_id: int, business_repo, deadline_repo) -> list[dict]
             "status": d.status,
             "days_remaining": days_remaining,
             "milestone_label": label,
-            "payment_amount": float(d.payment_amount) if d.payment_amount is not None else None,
+            "payment_amount": d.payment_amount,
         })
     return result

@@ -3,10 +3,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.binders.services.signals_service import SignalsService
-from app.users.models.user import UserRole
 
 _HAS_SIGNALS_FETCH_LIMIT = 1000
 
@@ -57,33 +56,6 @@ class BusinessBulkService:
         total = len(filtered)
         offset = (page - 1) * page_size
         return filtered[offset: offset + page_size], total
-
-    def bulk_update_status(
-        self,
-        business_ids: list[int],
-        action: str,
-        actor_id: int,
-        actor_role: UserRole = UserRole.ADVISOR,
-        update_fn=None,
-    ) -> tuple[list[int], list[dict]]:
-        """Apply freeze/close/activate to multiple businesses. Never raises on partial failure."""
-        action_to_status = {
-            "freeze": BusinessStatus.FROZEN,
-            "close": BusinessStatus.CLOSED,
-            "activate": BusinessStatus.ACTIVE,
-        }
-        new_status = action_to_status[action]
-        succeeded: list[int] = []
-        failed: list[dict] = []
-
-        for business_id in business_ids:
-            try:
-                update_fn(business_id=business_id, user_role=actor_role, status=new_status)
-                succeeded.append(business_id)
-            except Exception as exc:
-                failed.append({"id": business_id, "error": str(exc)})
-
-        return succeeded, failed
 
     def check_signal_limit(self, total_count: int) -> None:
         """Raise AppError if total exceeds the fetch limit for signal filtering."""

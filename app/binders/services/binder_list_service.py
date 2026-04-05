@@ -4,8 +4,6 @@ from typing import Optional
 from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder
 from app.binders.schemas.binder import BinderResponse
-from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 
 
 _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
@@ -26,18 +24,7 @@ class BinderListService:
         response.days_in_office = (ref_date - binder.period_start).days
         response.available_actions = get_binder_actions(binder)
         response.client_name = client_name
-        self._enrich_intake_fields(response, binder.id)
         return response
-
-    def _enrich_intake_fields(self, response: BinderResponse, binder_id: int) -> None:
-        intake_repo = BinderIntakeRepository(self.db)
-        material_repo = BinderIntakeMaterialRepository(self.db)
-        first_intake = intake_repo.get_first_by_binder(binder_id)
-        if first_intake:
-            response.received_at = first_intake.received_at
-            materials = material_repo.list_by_intake(first_intake.id)
-            if materials:
-                response.binder_type = materials[0].material_type.value
 
     def get_binder_with_client_name(self, binder_id: int) -> Optional[BinderResponse]:
         binder = self.binder_repo.get_by_id(binder_id)

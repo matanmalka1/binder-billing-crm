@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions
-from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -16,7 +15,6 @@ class BinderOperationsService:
         self.db = db
         self.repo = BinderRepositoryExtensions(db)
         self.client_repo = ClientRepository(db)
-        self.intake_repo = BinderIntakeRepository(db)
 
     def get_open_binders(
         self,
@@ -53,15 +51,12 @@ class BinderOperationsService:
 
         Returns a dict that matches BinderDetailResponse fields:
           id, client_id, client_name, binder_number, period_start, period_end,
-          status, returned_at, pickup_person_name, received_at, days_in_office.
+          status, returned_at, pickup_person_name, days_in_office.
         """
         ref_date = reference_date or date.today()
 
         client = self.client_repo.get_by_id(binder.client_id)
         client_name = client.full_name if client else None
-
-        first_intake = self.intake_repo.get_first_by_binder(binder.id)
-        received_at = first_intake.received_at if first_intake else None
 
         # days_in_office = days elapsed since period_start (matches BinderDetailResponse).
         days_in_office = (ref_date - binder.period_start).days
@@ -76,6 +71,5 @@ class BinderOperationsService:
             "status": binder.status.value,
             "returned_at": binder.returned_at,
             "pickup_person_name": binder.pickup_person_name,
-            "received_at": received_at,
             "days_in_office": days_in_office,
         }

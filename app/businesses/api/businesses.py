@@ -1,13 +1,10 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.businesses.schemas.business_schemas import (
-    BulkBusinessActionRequest,
-    BulkBusinessActionResponse,
-    BulkBusinessFailedItem,
     BusinessListResponse,
     BusinessResponse,
     BusinessUpdateRequest,
@@ -99,27 +96,3 @@ def delete_business(business_id: int, db: DBSession, user: CurrentUser):
 def restore_business(business_id: int, db: DBSession, user: CurrentUser):
     business = BusinessService(db).restore_business(business_id, actor_id=user.id, actor_role=user.role)
     return _to_business_response(business, user.role)
-
-
-@businesses_router.post(
-    "/bulk-action",
-    response_model=BulkBusinessActionResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-def bulk_business_action(
-    request: BulkBusinessActionRequest,
-    db: DBSession,
-    user: CurrentUser,
-    x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
-):
-    """Apply freeze/close/activate to multiple businesses (ADVISOR only)."""
-    succeeded, failed = BusinessService(db).bulk_update_status(
-        business_ids=request.business_ids,
-        action=request.action,
-        actor_id=user.id,
-        actor_role=user.role,
-    )
-    return BulkBusinessActionResponse(
-        succeeded=succeeded,
-        failed=[BulkBusinessFailedItem(**f) for f in failed],
-    )

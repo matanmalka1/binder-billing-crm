@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -13,6 +14,7 @@ def test_tax_deadline_timeline_returns_sorted_with_labels(client, test_db, advis
         business_id=business.id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=date.today() + timedelta(days=15),
+        payment_amount=Decimal("1200.50"),
     )
     sooner = repo.create(
         business_id=business.id,
@@ -31,3 +33,4 @@ def test_tax_deadline_timeline_returns_sorted_with_labels(client, test_db, advis
     assert items[0]["milestone_label"] == "תשלום מקדמה"
     assert items[1]["milestone_label"] == "הגשת דוח שנתי"
     assert items[0]["days_remaining"] <= items[1]["days_remaining"]
+    assert items[1]["payment_amount"] == "1200.50"

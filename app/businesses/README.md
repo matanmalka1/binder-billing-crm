@@ -157,25 +157,6 @@ Roles: `ADVISOR`, `SECRETARY` unless noted
 - Role: `ADVISOR` only
 - Restores a soft-deleted business; sets `status=active`, records `restored_at`, `restored_by`
 
-#### Bulk status action
-- `POST /api/v1/businesses/bulk-action`
-- Role: `ADVISOR` only
-- Required header: `X-Idempotency-Key`
-- Body:
-
-```json
-{
-  "business_ids": [1, 2, 3],
-  "action": "freeze"
-}
-```
-
-- `action` values: `freeze`, `close`, `activate`
-- Partial-success by design — per-item failures are returned without aborting successful items
-- Response: `BulkBusinessActionResponse` with `succeeded` and `failed` lists
-
----
-
 ### Tax profile (`/api/v1/businesses/{business_id}/tax-profile`)
 
 Roles: `ADVISOR`, `SECRETARY`

@@ -43,6 +43,40 @@ class TaxDeadlineRepository:
     def count_pending_due_by_date(self, from_date: date, to_date: date) -> int:
         return self._q.count_pending_due_by_date(from_date, to_date)
 
+    def list_filtered(
+        self,
+        *,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        limit: Optional[int] = None,
+        offset: int = 0,
+    ) -> list[TaxDeadline]:
+        return self._q.list_filtered(
+            status=status,
+            deadline_type=deadline_type,
+            due_from=due_from,
+            due_to=due_to,
+            limit=limit,
+            offset=offset,
+        )
+
+    def count_filtered(
+        self,
+        *,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+    ) -> int:
+        return self._q.count_filtered(
+            status=status,
+            deadline_type=deadline_type,
+            due_from=due_from,
+            due_to=due_to,
+        )
+
     def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
         return self._q.list_overdue(reference_date)
 
@@ -95,8 +129,14 @@ class TaxDeadlineRepository:
         deadline_id: int,
         status: TaxDeadlineStatus,
         completed_at: Optional[datetime] = None,
+        completed_by: Optional[int] = None,
     ) -> Optional[TaxDeadline]:
-        return self._w.update_status(deadline_id, status, completed_at=completed_at)
+        return self._w.update_status(
+            deadline_id,
+            status,
+            completed_at=completed_at,
+            completed_by=completed_by,
+        )
 
     def update(
         self,
@@ -104,6 +144,7 @@ class TaxDeadlineRepository:
         *,
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
+        period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> Optional[TaxDeadline]:
@@ -111,6 +152,7 @@ class TaxDeadlineRepository:
             deadline_id,
             deadline_type=deadline_type,
             due_date=due_date,
+            period=period,
             payment_amount=payment_amount,
             description=description,
         )

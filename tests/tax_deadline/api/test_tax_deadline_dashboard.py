@@ -53,9 +53,9 @@ def test_dashboard_urgent_deadlines(client, test_db, advisor_headers):
     assert {"overdue", "red", "yellow"} == urgencies
 
     amount_map = {item["urgency"]: item["payment_amount"] for item in urgent}
-    assert float(amount_map["overdue"]) == 100.0
-    assert float(amount_map["red"]) == 200.0
-    assert float(amount_map["yellow"]) == 300.0
+    assert amount_map["overdue"] == "100.00"
+    assert amount_map["red"] == "200.00"
+    assert amount_map["yellow"] == "300.00"
 
     upcoming = data["upcoming"]
     assert len(upcoming) == 2

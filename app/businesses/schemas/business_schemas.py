@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -29,11 +29,6 @@ class BusinessUpdateRequest(BaseModel):
     status: Optional[BusinessStatus] = None         # enum
     notes: Optional[str] = None
     closed_at: Optional[date] = None
-
-
-class BulkBusinessActionRequest(BaseModel):
-    business_ids: list[int] = Field(min_length=1)
-    action: Literal["freeze", "close", "activate"]
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────
@@ -76,15 +71,3 @@ class ClientBusinessesResponse(BaseModel):
     page: int
     page_size: int
     total: int
-
-
-# ─── Bulk ─────────────────────────────────────────────────────────────────────
-
-class BulkBusinessFailedItem(BaseModel):
-    id: int
-    error: str
-
-
-class BulkBusinessActionResponse(BaseModel):
-    succeeded: list[int]
-    failed: list[BulkBusinessFailedItem]
