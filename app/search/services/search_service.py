@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.search.schemas.search import DocumentSearchResult
 from app.search.services.document_search_service import DocumentSearchService
 
 # Safety ceiling for mixed searches that must be resolved in memory.
@@ -30,8 +31,8 @@ class SearchService:
         binder_number: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[dict], int, list[dict]]:
-        documents: list[dict] = (
+    ) -> tuple[list[dict], int, list[DocumentSearchResult]]:
+        documents: list[DocumentSearchResult] = (
             DocumentSearchService(self.db).search_documents(query) if query else []
         )
 

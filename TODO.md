@@ -51,11 +51,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 - **Issue:** `search_documents()` constructs raw `dict` response objects with a `business_cache`; this is presentation/serialization logic that belongs in the router or schema layer.
 - **Fix:** Return typed objects (ORM or dataclass); move dict construction to the router or a `DocumentSearchResult` schema with a `from_orm` factory.
 
----
-
-
-
-
 ## 10. Redundant Code
 ## 11. Architectural Violations
 

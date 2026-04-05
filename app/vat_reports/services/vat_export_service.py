@@ -44,3 +44,18 @@ def export_to_excel(db: Session, business_id: int, year: int) -> Dict[str, objec
 def export_to_pdf(db: Session, business_id: int, year: int) -> Dict[str, object]:
     display_name, periods = _load(db, business_id, year)
     return export_vat_to_pdf(display_name, business_id, year, periods, _get_export_dir())
+
+
+_MEDIA_TYPES = {
+    "excel": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "pdf": "application/pdf",
+}
+
+
+def export(db: Session, business_id: int, year: int, fmt: str) -> tuple[Dict[str, object], str]:
+    """Dispatch export by format. Returns (result_dict, media_type)."""
+    if fmt == "excel":
+        result = export_to_excel(db, business_id, year)
+    else:
+        result = export_to_pdf(db, business_id, year)
+    return result, _MEDIA_TYPES[fmt]

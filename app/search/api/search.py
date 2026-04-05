@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.search.schemas.search import DocumentSearchResult, SearchResponse, SearchResult
+from app.search.schemas.search import SearchResponse, SearchResult
 from app.search.services.search_service import SearchService
 
 router = APIRouter(
@@ -38,7 +38,7 @@ def search(
 
     return SearchResponse(
         results=[SearchResult(**r) for r in results],
-        documents=[DocumentSearchResult(**d) for d in documents],
+        documents=documents,
         page=page,
         page_size=page_size,
         total=total,
