@@ -25,6 +25,7 @@ class DocumentSearchService:
             results.append(
                 {
                     "id": doc.id,
+                    "client_id": doc.client_id,
                     "business_id": doc.business_id,
                     "client_name": business_cache[doc.business_id],
                     "document_type": doc.document_type,

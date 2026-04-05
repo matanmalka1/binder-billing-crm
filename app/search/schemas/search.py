@@ -19,6 +19,7 @@ class DocumentSearchResult(BaseModel):
     """Single document search result."""
 
     id: int
+    client_id: int
     business_id: int
     client_name: str
     document_type: str
