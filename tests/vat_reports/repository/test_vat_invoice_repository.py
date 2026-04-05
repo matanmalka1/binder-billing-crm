@@ -6,7 +6,12 @@ from app.businesses.models.business_tax_profile import VatType
 from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatRateType
+from app.vat_reports.models.vat_enums import (
+    DocumentType,
+    ExpenseCategory,
+    InvoiceType,
+    VatRateType,
+)
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
@@ -260,6 +265,148 @@ def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
 
     assert invoice_repo.sum_vat_both_types(item.id) == (170.0, 102.0)
     assert invoice_repo.sum_net_both_types(item.id) == (1400.0, 700.0)
+
+
+def test_credit_notes_reduce_vat_and_net_totals(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    item = work_item_repo.create(
+        business_id=business.id,
+        period="2026-08",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-BASE",
+        invoice_date=datetime(2026, 8, 1),
+        counterparty_name="Customer A",
+        net_amount=1000.0,
+        vat_amount=170.0,
+        rate_type=VatRateType.STANDARD,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-CN",
+        invoice_date=datetime(2026, 8, 2),
+        counterparty_name="Customer A",
+        net_amount=200.0,
+        vat_amount=34.0,
+        rate_type=VatRateType.STANDARD,
+        document_type=DocumentType.CREDIT_NOTE,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-BASE",
+        invoice_date=datetime(2026, 8, 3),
+        counterparty_name="Vendor A",
+        net_amount=500.0,
+        vat_amount=85.0,
+        expense_category=ExpenseCategory.OFFICE,
+        deduction_rate=1.0,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-CN",
+        invoice_date=datetime(2026, 8, 4),
+        counterparty_name="Vendor A",
+        net_amount=100.0,
+        vat_amount=17.0,
+        expense_category=ExpenseCategory.OFFICE,
+        deduction_rate=1.0,
+        document_type=DocumentType.CREDIT_NOTE,
+    )
+
+    assert invoice_repo.sum_vat_both_types(item.id) == (136.0, 68.0)
+    assert invoice_repo.sum_net_both_types(item.id) == (800.0, 400.0)
+
+
+def test_credit_notes_reduce_income_turnover_for_yearly_ceiling(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    item = work_item_repo.create(
+        business_id=business.id, period="2026-09", period_type=VatType.MONTHLY, created_by=user.id
+    )
+
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-TURNOVER",
+        invoice_date=datetime(2026, 9, 1),
+        counterparty_name="Customer A",
+        net_amount=1000.0,
+        vat_amount=170.0,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-TURNOVER-CN",
+        invoice_date=datetime(2026, 9, 2),
+        counterparty_name="Customer A",
+        net_amount=250.0,
+        vat_amount=42.5,
+        document_type=DocumentType.CREDIT_NOTE,
+    )
+
+    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 750.0
+
+
+def test_credit_notes_reduce_grouped_expense_totals(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    item = work_item_repo.create(
+        business_id=business.id, period="2026-10", period_type=VatType.MONTHLY, created_by=user.id
+    )
+
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-GROUP-1",
+        invoice_date=datetime(2026, 10, 1),
+        counterparty_name="Vendor A",
+        net_amount=600.0,
+        vat_amount=102.0,
+        expense_category=ExpenseCategory.OFFICE,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-GROUP-CN",
+        invoice_date=datetime(2026, 10, 2),
+        counterparty_name="Vendor A",
+        net_amount=150.0,
+        vat_amount=25.5,
+        expense_category=ExpenseCategory.OFFICE,
+        document_type=DocumentType.CREDIT_NOTE,
+    )
+
+    assert invoice_repo._agg.sum_expense_net_by_business_year_grouped(business.id, 2026) == {
+        "office": 450.0
+    }
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

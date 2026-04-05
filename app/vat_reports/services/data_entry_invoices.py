@@ -10,6 +10,7 @@ from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_not_closed
 from app.vat_reports.models.vat_enums import (
+    CounterpartyIdType,
     DocumentType,
     ExpenseCategory,
     InvoiceType,
@@ -46,6 +47,7 @@ def add_invoice(
     net_amount: float,
     vat_amount: float,
     counterparty_id: Optional[str] = None,
+    counterparty_id_type: Optional[CounterpartyIdType] = None,
     expense_category: Optional[ExpenseCategory] = None,
     rate_type: VatRateType = VatRateType.STANDARD,
     document_type: Optional[DocumentType] = None,
@@ -119,6 +121,7 @@ def add_invoice(
         invoice_date=invoice_date,
         counterparty_name=counterparty_name,
         counterparty_id=counterparty_id,
+        counterparty_id_type=counterparty_id_type,
         net_amount=net_amount,
         vat_amount=vat_amount,
         expense_category=expense_category,

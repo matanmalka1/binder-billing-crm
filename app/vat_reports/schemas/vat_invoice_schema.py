@@ -24,7 +24,7 @@ class VatInvoiceCreateRequest(BaseModel):
     net_amount: ApiDecimal
     vat_amount: ApiDecimal
     counterparty_id: Optional[str] = None
-    counterparty_id_type: Optional[CounterpartyIdType] = None  # קיים במודל
+    counterparty_id_type: Optional[CounterpartyIdType] = None  
     expense_category: Optional[ExpenseCategory] = None
     rate_type: VatRateType = VatRateType.STANDARD
     document_type: Optional[DocumentType] = None

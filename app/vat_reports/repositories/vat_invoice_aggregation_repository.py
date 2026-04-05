@@ -1,12 +1,11 @@
 """Aggregation queries for VatInvoice entities."""
 
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.vat_reports.models.vat_enums import InvoiceType, VatRateType
+from app.vat_reports.models.vat_enums import DocumentType, InvoiceType, VatRateType
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -14,6 +13,17 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 class VatInvoiceAggregationRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    @staticmethod
+    def _signed_amount(column):
+        """Treat credit notes as negative contributions while stored values stay positive."""
+        return case(
+            (
+                VatInvoice.document_type == DocumentType.CREDIT_NOTE,
+                -column,
+            ),
+            else_=column,
+        )
 
     def sum_vat_both_types(self, work_item_id: int) -> tuple[float, float]:
         """Return (output_vat, deductible_input_vat).
@@ -32,14 +42,15 @@ class VatInvoiceAggregationRepository:
                             case(
                                 (
                                     VatInvoice.rate_type == VatRateType.STANDARD,
-                                    VatInvoice.vat_amount,
+                                    self._signed_amount(VatInvoice.vat_amount),
                                 ),
                                 else_=0,
                             ),
                         ),
                         (
                             VatInvoice.invoice_type == InvoiceType.EXPENSE,
-                            VatInvoice.vat_amount * VatInvoice.deduction_rate,
+                            self._signed_amount(VatInvoice.vat_amount)
+                            * VatInvoice.deduction_rate,
                         ),
                         else_=0,
                     )
@@ -65,7 +76,7 @@ class VatInvoiceAggregationRepository:
         rows = (
             self.db.query(
                 VatInvoice.invoice_type,
-                func.sum(VatInvoice.net_amount).label("total"),
+                func.sum(self._signed_amount(VatInvoice.net_amount)).label("total"),
             )
             .filter(
                 VatInvoice.work_item_id == work_item_id,
@@ -89,7 +100,7 @@ class VatInvoiceAggregationRepository:
         Used for OSEK PATUR ceiling enforcement.
         """
         result = (
-            self.db.query(func.sum(VatInvoice.net_amount))
+            self.db.query(func.sum(self._signed_amount(VatInvoice.net_amount)))
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
                 VatWorkItem.business_id == business_id,
@@ -112,7 +123,7 @@ class VatInvoiceAggregationRepository:
         rows = (
             self.db.query(
                 VatInvoice.expense_category,
-                func.sum(VatInvoice.net_amount).label("total"),
+                func.sum(self._signed_amount(VatInvoice.net_amount)).label("total"),
             )
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(

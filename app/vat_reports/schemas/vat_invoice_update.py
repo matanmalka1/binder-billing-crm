@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from app.core.api_types import ApiDecimal
 from app.vat_reports.models.vat_enums import (
@@ -40,3 +40,14 @@ class VatInvoiceUpdateRequest(BaseModel):
         if v is not None and v < 0:
             raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
         return v
+
+    @model_validator(mode="after")
+    def validate_counterparty_id(self) -> "VatInvoiceUpdateRequest":
+        cid = self.counterparty_id
+        cid_type = self.counterparty_id_type
+        if cid is None:
+            return self
+        if cid_type in (CounterpartyIdType.IL_BUSINESS, CounterpartyIdType.IL_PERSONAL):
+            if not cid.isdigit() or len(cid) != 9:
+                raise ValueError("מספר עוסק / ת\"ז ישראלי חייב להיות 9 ספרות")
+        return self

@@ -116,3 +116,50 @@ def test_expense_tax_invoice_requires_counterparty_id(client, advisor_headers, v
 
     assert resp.status_code == 400
     assert resp.json()["error"] == "VAT.COUNTERPARTY_ID_REQUIRED"
+
+
+def test_create_invoice_persists_counterparty_identity_fields(client, advisor_headers, vat_client):
+    item_id = create_work_item(client, advisor_headers, vat_client, "2026-08")
+
+    resp = client.post(
+        f"/api/v1/vat/work-items/{item_id}/invoices",
+        headers=advisor_headers,
+        json={
+            **_expense_payload(
+                invoice_number="EXP-ID-1",
+                document_type="tax_invoice",
+                counterparty_id="512345678",
+            ),
+            "counterparty_id_type": "il_business",
+        },
+    )
+
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["counterparty_id"] == "512345678"
+    assert body["counterparty_id_type"] == "il_business"
+
+
+def test_update_invoice_persists_counterparty_identity_fields(client, advisor_headers, vat_client):
+    item_id = create_work_item(client, advisor_headers, vat_client, "2026-09")
+    create_resp = client.post(
+        f"/api/v1/vat/work-items/{item_id}/invoices",
+        headers=advisor_headers,
+        json=income_payload(invoice_number="INV-ID-UPD"),
+    )
+    assert create_resp.status_code == 201
+    invoice_id = create_resp.json()["id"]
+
+    patch_resp = client.patch(
+        f"/api/v1/vat/work-items/{item_id}/invoices/{invoice_id}",
+        headers=advisor_headers,
+        json={
+            "counterparty_id": "123456789",
+            "counterparty_id_type": "il_personal",
+        },
+    )
+
+    assert patch_resp.status_code == 200
+    body = patch_resp.json()
+    assert body["counterparty_id"] == "123456789"
+    assert body["counterparty_id_type"] == "il_personal"

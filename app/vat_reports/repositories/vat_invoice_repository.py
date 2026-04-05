@@ -11,6 +11,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import (
+    CounterpartyIdType,
     DocumentType,
     ExpenseCategory,
     InvoiceType,
@@ -40,6 +41,7 @@ class VatInvoiceRepository:
         net_amount: float,
         vat_amount: float,
         counterparty_id: Optional[str] = None,
+        counterparty_id_type: Optional[CounterpartyIdType] = None,
         expense_category: Optional[ExpenseCategory] = None,
         rate_type: VatRateType = VatRateType.STANDARD,
         deduction_rate: float = 1.0,
@@ -54,6 +56,7 @@ class VatInvoiceRepository:
             invoice_date=invoice_date,
             counterparty_name=counterparty_name,
             counterparty_id=counterparty_id,
+            counterparty_id_type=counterparty_id_type,
             net_amount=net_amount,
             vat_amount=vat_amount,
             expense_category=expense_category,

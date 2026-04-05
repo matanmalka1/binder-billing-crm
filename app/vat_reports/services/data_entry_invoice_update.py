@@ -7,7 +7,12 @@ from typing import Optional
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_not_closed
-from app.vat_reports.models.vat_enums import DocumentType, ExpenseCategory, VatRateType
+from app.vat_reports.models.vat_enums import (
+    CounterpartyIdType,
+    DocumentType,
+    ExpenseCategory,
+    VatRateType,
+)
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import (
@@ -35,6 +40,8 @@ def update_invoice(
     invoice_number: Optional[str] = None,
     invoice_date: Optional[datetime] = None,
     counterparty_name: Optional[str] = None,
+    counterparty_id: Optional[str] = None,
+    counterparty_id_type: Optional[CounterpartyIdType] = None,
     expense_category: Optional[ExpenseCategory] = None,
     rate_type: Optional[VatRateType] = None,
     document_type: Optional[DocumentType] = None,
@@ -78,6 +85,8 @@ def update_invoice(
         "invoice_number": invoice_number,
         "invoice_date": invoice_date,
         "counterparty_name": counterparty_name,
+        "counterparty_id": counterparty_id,
+        "counterparty_id_type": counterparty_id_type,
         "expense_category": expense_category,
         "rate_type": rate_type,
         "document_type": document_type,
