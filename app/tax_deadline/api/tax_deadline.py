@@ -13,7 +13,6 @@ from app.tax_deadline.schemas.tax_deadline import (
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.actions.report_deadline_actions import get_tax_deadline_actions
-from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/tax-deadlines",
@@ -81,6 +80,18 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Mark deadline as completed."""
     service = TaxDeadlineService(db)
     deadline = service.mark_completed(deadline_id, completed_by=user.id)
+    return _build_response(deadline, db=db, user_role=user.role)
+
+
+@router.post(
+    "/{deadline_id:int}/reopen",
+    response_model=TaxDeadlineResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def reopen_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
+    """Revert a completed deadline back to pending."""
+    service = TaxDeadlineService(db)
+    deadline = service.reopen_deadline(deadline_id)
     return _build_response(deadline, db=db, user_role=user.role)
 
 

@@ -8,7 +8,7 @@ TaxDeadlineRepository is a unified facade over both for callers that need both.
 New code should import from the split modules directly.
 """
 
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -50,6 +50,7 @@ class TaxDeadlineRepository:
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
         due_to: Optional[date] = None,
+        period: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
     ) -> list[TaxDeadline]:
@@ -58,6 +59,7 @@ class TaxDeadlineRepository:
             deadline_type=deadline_type,
             due_from=due_from,
             due_to=due_to,
+            period=period,
             limit=limit,
             offset=offset,
         )
@@ -69,12 +71,14 @@ class TaxDeadlineRepository:
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
         due_to: Optional[date] = None,
+        period: Optional[str] = None,
     ) -> int:
         return self._q.count_filtered(
             status=status,
             deadline_type=deadline_type,
             due_from=due_from,
             due_to=due_to,
+            period=period,
         )
 
     def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
@@ -93,8 +97,18 @@ class TaxDeadlineRepository:
         business_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
     ) -> list[TaxDeadline]:
-        return self._q.list_by_business(business_id, status=status, deadline_type=deadline_type)
+        return self._q.list_by_business(
+            business_id,
+            status=status,
+            deadline_type=deadline_type,
+            due_from=due_from,
+            due_to=due_to,
+            period=period,
+        )
 
     def exists(
         self,
@@ -128,15 +142,9 @@ class TaxDeadlineRepository:
         self,
         deadline_id: int,
         status: TaxDeadlineStatus,
-        completed_at: Optional[datetime] = None,
-        completed_by: Optional[int] = None,
+        **kwargs,
     ) -> Optional[TaxDeadline]:
-        return self._w.update_status(
-            deadline_id,
-            status,
-            completed_at=completed_at,
-            completed_by=completed_by,
-        )
+        return self._w.update_status(deadline_id, status, **kwargs)
 
     def update(
         self,

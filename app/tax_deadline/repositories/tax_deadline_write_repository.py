@@ -42,20 +42,22 @@ class TaxDeadlineWriteRepository:
         self.db.refresh(deadline)
         return deadline
 
+    _UNSET = object()
+
     def update_status(
         self,
         deadline_id: int,
         status: TaxDeadlineStatus,
-        completed_at: Optional[datetime] = None,
-        completed_by: Optional[int] = None,
+        completed_at: Optional[datetime] = _UNSET,
+        completed_by: Optional[int] = _UNSET,
     ) -> Optional[TaxDeadline]:
         deadline = self.get_by_id(deadline_id)
         if not deadline:
             return None
         deadline.status = status
-        if completed_at:
+        if completed_at is not self._UNSET:
             deadline.completed_at = completed_at
-        if completed_by is not None:
+        if completed_by is not self._UNSET:
             deadline.completed_by = completed_by
         self.db.commit()
         self.db.refresh(deadline)

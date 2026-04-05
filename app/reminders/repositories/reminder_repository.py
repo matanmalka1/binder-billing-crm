@@ -88,6 +88,26 @@ class ReminderRepository(ReminderRepositoryRead):
             .first()
         ) is not None
 
+    def cancel_pending_by_tax_deadline(self, tax_deadline_id: int) -> int:
+        """Cancel all PENDING reminders linked to a tax deadline. Returns count canceled."""
+        from app.utils.time_utils import utcnow as _utcnow
+        now = _utcnow()
+        rows = (
+            self.db.query(Reminder)
+            .filter(
+                Reminder.tax_deadline_id == tax_deadline_id,
+                Reminder.status == ReminderStatus.PENDING,
+                Reminder.deleted_at.is_(None),
+            )
+            .all()
+        )
+        for r in rows:
+            r.status = ReminderStatus.CANCELED
+            r.canceled_at = now
+        if rows:
+            self.db.commit()
+        return len(rows)
+
     def cancel_pending_by_charge(self, charge_id: int) -> int:
         """Cancel all PENDING reminders linked to a charge. Returns count canceled."""
         from app.utils.time_utils import utcnow as _utcnow

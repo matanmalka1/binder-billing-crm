@@ -29,10 +29,16 @@ class TaxDeadlineQueryService:
         deadline_type: Optional[DeadlineType],
         page: int = 1,
         page_size: int = 50,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
     ) -> tuple[list[TaxDeadline], int]:
         """Route branching logic: by business, by business name, or all pending."""
         if business_id:
-            items = self.deadline_repo.list_by_business(business_id, status, deadline_type)
+            items = self.deadline_repo.list_by_business(
+                business_id, status, deadline_type,
+                due_from=due_from, due_to=due_to, period=period,
+            )
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
@@ -41,26 +47,36 @@ class TaxDeadlineQueryService:
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
-        return self.list_all(status=status, deadline_type=deadline_type, page=page, page_size=page_size)
+        return self.list_all(
+            status=status, deadline_type=deadline_type, page=page, page_size=page_size,
+            due_from=due_from, due_to=due_to, period=period,
+        )
 
     def list_all_pending(
         self,
         page: int = 1,
         page_size: int = 50,
         deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
     ) -> tuple[list[TaxDeadline], int]:
         """Return paginated pending deadlines with SQL-level pagination."""
+        effective_from = due_from if due_from is not None else date.today()
+        effective_to = due_to if due_to is not None else FAR_FUTURE_DATE
         total = self.deadline_repo.count_filtered(
             status=TaxDeadlineStatus.PENDING,
             deadline_type=deadline_type,
-            due_from=date.today(),
-            due_to=FAR_FUTURE_DATE,
+            due_from=effective_from,
+            due_to=effective_to,
+            period=period,
         )
         items = self.deadline_repo.list_filtered(
             status=TaxDeadlineStatus.PENDING,
             deadline_type=deadline_type,
-            due_from=date.today(),
-            due_to=FAR_FUTURE_DATE,
+            due_from=effective_from,
+            due_to=effective_to,
+            period=period,
             limit=page_size,
             offset=(page - 1) * page_size,
         )
@@ -73,15 +89,27 @@ class TaxDeadlineQueryService:
         deadline_type: Optional[DeadlineType] = None,
         page: int = 1,
         page_size: int = 50,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
     ) -> tuple[list[TaxDeadline], int]:
         """Return paginated deadlines for the global list while preserving pending-by-default behavior."""
         if status in (None, "", TaxDeadlineStatus.PENDING, TaxDeadlineStatus.PENDING.value):
-            return self.list_all_pending(page=page, page_size=page_size, deadline_type=deadline_type)
+            return self.list_all_pending(
+                page=page, page_size=page_size, deadline_type=deadline_type,
+                due_from=due_from, due_to=due_to, period=period,
+            )
 
-        total = self.deadline_repo.count_filtered(status=status, deadline_type=deadline_type)
+        total = self.deadline_repo.count_filtered(
+            status=status, deadline_type=deadline_type,
+            due_from=due_from, due_to=due_to, period=period,
+        )
         items = self.deadline_repo.list_filtered(
             status=status,
             deadline_type=deadline_type,
+            due_from=due_from,
+            due_to=due_to,
+            period=period,
             limit=page_size,
             offset=(page - 1) * page_size,
         )

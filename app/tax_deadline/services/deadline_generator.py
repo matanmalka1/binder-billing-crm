@@ -62,7 +62,15 @@ class DeadlineGeneratorService:
         return created
 
     def generate_advance_payment_deadlines(self, business_id: int, year: int) -> list:
-        """Generate monthly advance payment deadlines (מקדמות) for the year."""
+        """Generate monthly advance payment deadlines (מקדמות) for the year.
+
+        Skips businesses exempt from VAT (VatType.EXEMPT) — they are not liable
+        for advance payments under the current tax profile model.
+        """
+        profile = self.profile_repo.get_by_business_id(business_id)
+        if profile and profile.vat_type == VatType.EXEMPT:
+            return []
+
         created = []
         for month in range(1, 13):
             due_date = date(year, month, ADVANCE_PAYMENT_DUE_DAY)

@@ -84,6 +84,22 @@ class TaxDeadlineService:
             completed_by=completed_by,
         )
 
+    def reopen_deadline(self, deadline_id: int) -> TaxDeadline:
+        """Revert a completed deadline back to pending."""
+        deadline = self.deadline_repo.get_by_id(deadline_id)
+        if not deadline:
+            raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
+
+        if deadline.status == TaxDeadlineStatus.PENDING:
+            return deadline
+
+        return self.deadline_repo.update_status(
+            deadline_id,
+            TaxDeadlineStatus.PENDING,
+            completed_at=None,
+            completed_by=None,
+        )
+
     def update_deadline(
         self,
         deadline_id: int,
@@ -115,6 +131,16 @@ class TaxDeadlineService:
 
         if not deadline:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
+
+        if due_date:
+            reminder_service = ReminderService(self.db)
+            reminder_service.cancel_reminders_for_tax_deadline(deadline_id)
+            reminder_service.create_tax_deadline_reminder(
+                business_id=deadline.business_id,
+                tax_deadline_id=deadline.id,
+                target_date=deadline.due_date,
+                days_before=7,
+            )
 
         return deadline
 

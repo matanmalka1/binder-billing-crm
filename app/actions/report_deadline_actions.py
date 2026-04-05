@@ -42,6 +42,17 @@ def get_tax_deadline_actions(
             )
         )
 
+    if status == TaxDeadlineStatus.COMPLETED.value:
+        actions.append(
+            build_action(
+                key="reopen",
+                label="החזר לממתין",
+                method="post",
+                endpoint=f"/tax-deadlines/{deadline.id}/reopen",
+                action_id=_generate_action_id("tax_deadline", deadline.id, "reopen"),
+            )
+        )
+
     actions.append(
         build_action(
             key="edit",

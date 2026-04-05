@@ -6,11 +6,11 @@ from app.businesses.services.business_lookup import get_business_or_raise
 
 
 _MILESTONE_LABELS: dict[str, str] = {
-    "vat_bimonthly":  'הגשת דוח מע"מ דו-חודשי',
-    "vat_monthly":    'הגשת דוח מע"מ חודשי',
-    "advance_payment": "תשלום מקדמה",
-    "annual_report":   "הגשת דוח שנתי",
+    "vat":                'הגשת דוח מע"מ',
+    "advance_payment":    "תשלום מקדמה",
+    "annual_report":      "הגשת דוח שנתי",
     "national_insurance": "תשלום ביטוח לאומי",
+    "other":              "מועד אחר",
 }
 
 

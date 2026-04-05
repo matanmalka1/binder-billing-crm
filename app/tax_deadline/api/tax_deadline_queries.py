@@ -46,16 +46,24 @@ def list_tax_deadlines(
     client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
+    due_from: Optional[str] = Query(None, description="סינון מתאריך (YYYY-MM-DD)"),
+    due_to: Optional[str] = Query(None, description="סינון עד תאריך (YYYY-MM-DD)"),
+    period: Optional[str] = Query(None, description="סינון לפי תקופה (YYYY-MM)"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List tax deadlines with optional filters."""
+    from datetime import date as date_type
     service = TaxDeadlineQueryService(db)
     type_enum = DeadlineType(deadline_type) if deadline_type else None
     search_name = business_name or client_name
 
+    due_from_date = date_type.fromisoformat(due_from) if due_from else None
+    due_to_date = date_type.fromisoformat(due_to) if due_to else None
+
     paginated, total = service.list_deadlines(
-        business_id, search_name, status_filter, type_enum, page=page, page_size=page_size
+        business_id, search_name, status_filter, type_enum, page=page, page_size=page_size,
+        due_from=due_from_date, due_to=due_to_date, period=period,
     )
 
     business_name_map = service.build_business_name_map(paginated)
