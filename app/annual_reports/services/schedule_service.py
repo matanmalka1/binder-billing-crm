@@ -1,7 +1,8 @@
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
-from app.annual_reports .models import AnnualReport, AnnualReportSchedule
+from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.models.annual_report_schedule_entry import AnnualReportSchedule
 from .base import AnnualReportBaseService
 from .constants import SCHEDULE_FLAGS
 

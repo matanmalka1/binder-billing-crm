@@ -144,6 +144,34 @@ def test_compute_deadline_fields_rolls_december_to_next_year():
     assert isinstance(result["is_overdue"], bool)
 
 
+def test_compute_deadline_fields_manual_filer_uses_statutory():
+    from app.common.enums import SubmissionMethod
+    item = MagicMock()
+    item.period = "2030-06"
+
+    result = vat_report_queries.compute_deadline_fields(
+        item, submission_method=SubmissionMethod.MANUAL
+    )
+
+    assert str(result["submission_deadline"]) == "2030-07-15"
+    assert str(result["statutory_deadline"]) == "2030-07-15"
+    assert str(result["extended_deadline"]) == "2030-07-19"
+
+
+def test_compute_deadline_fields_online_filer_uses_extended():
+    from app.common.enums import SubmissionMethod
+    item = MagicMock()
+    item.period = "2030-06"
+
+    result = vat_report_queries.compute_deadline_fields(
+        item, submission_method=SubmissionMethod.ONLINE
+    )
+
+    assert str(result["submission_deadline"]) == "2030-07-19"
+    assert str(result["statutory_deadline"]) == "2030-07-15"
+    assert str(result["extended_deadline"]) == "2030-07-19"
+
+
 def test_compute_deadline_fields_invalid_period_returns_nones(caplog):
     item = MagicMock()
     item.period = "bad-period"

@@ -25,7 +25,7 @@ def _serialize(item, name_map: dict, status_map: dict, user_map: dict, client_ma
     data.client_id = client_map.get(item.business_id) if client_map else None
     data.business_name = name_map.get(item.business_id)
     data.business_status = status_map.get(item.business_id)
-    deadline = compute_deadline_fields(item)
+    deadline = compute_deadline_fields(item, submission_method=item.submission_method)
     data.submission_deadline = deadline["submission_deadline"]
     data.statutory_deadline = deadline["statutory_deadline"]
     data.extended_deadline = deadline["extended_deadline"]

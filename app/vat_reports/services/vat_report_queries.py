@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
@@ -17,8 +18,15 @@ from app.vat_reports.services.constants import (
 logger = logging.getLogger(__name__)
 
 
-def compute_deadline_fields(item) -> dict:
-    """Derive statutory and extended deadline fields from period."""
+def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+    """Derive statutory and extended deadline fields from period.
+
+    - statutory_deadline: 15th (legal baseline)
+    - extended_deadline: 19th (digital filing extension)
+    - submission_deadline: statutory by default; extended if submission_method is ONLINE
+    - days_until_deadline: days remaining until submission_deadline
+    - is_overdue: True if submission_deadline has passed
+    """
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
         deadline_year = year + 1 if month == 12 else year
@@ -33,10 +41,16 @@ def compute_deadline_fields(item) -> dict:
             deadline_month,
             VAT_ONLINE_EXTENDED_DEADLINE_DAY,
         )
+        # Use extended deadline for online filers, statutory for manual filers
+        submission_deadline = (
+            extended_deadline
+            if submission_method == SubmissionMethod.ONLINE
+            else statutory_deadline
+        )
         today = datetime.now(timezone.utc).date()
-        days = (statutory_deadline - today).days
+        days = (submission_deadline - today).days
         return {
-            "submission_deadline": statutory_deadline,
+            "submission_deadline": submission_deadline,
             "statutory_deadline": statutory_deadline,
             "extended_deadline": extended_deadline,
             "days_until_deadline": days,
