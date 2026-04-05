@@ -62,7 +62,7 @@ class BillingService:
         Raises:
             AppError: If charge not found or not in draft status
         """
-        charge = self.charge_repo.get_by_id(charge_id)
+        charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
             raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
@@ -75,6 +75,7 @@ class BillingService:
         issued = self.charge_repo.update_status(
             charge_id,
             ChargeStatus.ISSUED,
+            charge=charge,
             issued_at=utcnow(),
             issued_by=actor_id,
         )
@@ -98,7 +99,7 @@ class BillingService:
         Raises:
             AppError: If charge not found or not in issued status
         """
-        charge = self.charge_repo.get_by_id(charge_id)
+        charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
             raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
@@ -111,6 +112,7 @@ class BillingService:
         return self.charge_repo.update_status(
             charge_id,
             ChargeStatus.PAID,
+            charge=charge,
             paid_at=utcnow(),
             paid_by=actor_id,
         )
@@ -127,7 +129,7 @@ class BillingService:
         Raises:
             AppError: If charge not found or in invalid status
         """
-        charge = self.charge_repo.get_by_id(charge_id)
+        charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
             raise NotFoundError(f"החיוב {charge_id} לא נמצא", "CHARGE.NOT_FOUND")
 
@@ -140,6 +142,7 @@ class BillingService:
         return self.charge_repo.update_status(
             charge_id,
             ChargeStatus.CANCELED,
+            charge=charge,
             canceled_by=actor_id,
             canceled_at=utcnow(),
             cancellation_reason=reason,

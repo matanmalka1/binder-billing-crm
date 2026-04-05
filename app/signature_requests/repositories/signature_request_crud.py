@@ -62,6 +62,24 @@ class SignatureRequestCrudMixin:
             .first()
         )
 
+    def get_by_id_for_update(self, request_id: int) -> Optional[SignatureRequest]:
+        """Fetch with a row-level lock for status transitions."""
+        return (
+            self.db.query(SignatureRequest)
+            .filter(SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None))
+            .with_for_update()
+            .first()
+        )
+
+    def get_by_token_for_update(self, token: str) -> Optional[SignatureRequest]:
+        """Fetch by signing token with a row-level lock for signer actions."""
+        return (
+            self.db.query(SignatureRequest)
+            .filter(SignatureRequest.signing_token == token, SignatureRequest.deleted_at.is_(None))
+            .with_for_update()
+            .first()
+        )
+
     def list_by_business(
         self,
         business_id: int,
@@ -116,16 +134,21 @@ class SignatureRequestCrudMixin:
             .count()
         )
 
-    def update(self, request_id: int, **fields) -> Optional[SignatureRequest]:
-        req = self.get_by_id(request_id)
-        if req is None:
+    def update(self, request_id: int, req: Optional[SignatureRequest] = None, **fields) -> Optional[SignatureRequest]:
+        """Update fields on a signature request.
+
+        Pass a pre-fetched (optionally locked) ``req`` entity to avoid a second
+        SELECT and keep the lock from get_by_id_for_update() / get_by_token_for_update() alive.
+        """
+        entity = req or self.get_by_id(request_id)
+        if entity is None:
             return None
         for key, value in fields.items():
-            if hasattr(req, key):
-                setattr(req, key, value)
+            if hasattr(entity, key):
+                setattr(entity, key, value)
         self.db.commit()
-        self.db.refresh(req)
-        return req
+        self.db.refresh(entity)
+        return entity
 
     def list_pending_by_annual_report(self, annual_report_id: int) -> list[SignatureRequest]:
         """Return all PENDING_SIGNATURE requests linked to the given annual report."""

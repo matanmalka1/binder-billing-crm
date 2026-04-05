@@ -19,7 +19,7 @@ def mark_ready_for_review(
     Raises:
         AppError: If not in DATA_ENTRY_IN_PROGRESS.
     """
-    item = work_item_repo.get_by_id(item_id)
+    item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
         raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
@@ -29,7 +29,7 @@ def mark_ready_for_review(
             "VAT.INVALID_TRANSITION",
         )
 
-    updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW)
+    updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW, item=item)
 
     work_item_repo.append_audit(
         work_item_id=item_id,
@@ -61,13 +61,13 @@ def send_back_for_correction(
             "VAT.JUSTIFICATION_REQUIRED",
         )
 
-    item = work_item_repo.get_by_id(item_id)
+    item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
         raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_transition_allowed(item, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 
-    updated = work_item_repo.update_status(item_id, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+    updated = work_item_repo.update_status(item_id, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS, item=item)
 
     work_item_repo.append_audit(
         work_item_id=item_id,

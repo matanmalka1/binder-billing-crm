@@ -65,6 +65,11 @@ class SignatureRequestService:
             from app.annual_reports.services.annual_report_service import AnnualReportService
 
             svc = AnnualReportService(self.db)
+            # Cheap early-exit guard — no lock here.
+            # transition_status() acquires the row-level lock internally via
+            # _get_or_raise_for_update(). The sig_request lock was already released
+            # by the commit in sign_request(), so there is no cross-lock deadlock.
+            # Lock ordering invariant: annual_report is always locked after sig_request commits.
             report = svc.repo.get_by_id(annual_report_id)
             if report is None or report.status != AnnualReportStatus.PENDING_CLIENT:
                 return

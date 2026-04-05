@@ -132,7 +132,7 @@ class TestMarkMaterialsComplete:
     def test_happy_path(self):
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.PENDING_MATERIALS)
-        work_item_repo.get_by_id.return_value = item
+        work_item_repo.get_by_id_for_update.return_value = item
         work_item_repo.update_status.return_value = make_item(
             status=VatWorkItemStatus.MATERIAL_RECEIVED
         )
@@ -142,7 +142,7 @@ class TestMarkMaterialsComplete:
 
     def test_wrong_status_raises(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id.return_value = make_item(
+        work_item_repo.get_by_id_for_update.return_value = make_item(
             status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
         )
 

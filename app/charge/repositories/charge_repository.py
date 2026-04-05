@@ -47,6 +47,12 @@ class ChargeRepository(BaseRepository):
             .first()
         )
 
+    def get_by_id_for_update(self, charge_id: int) -> Optional[Charge]:
+        """Retrieve charge with a row-level lock for status transitions."""
+        return self._locked_first(
+            self.db.query(Charge).filter(Charge.id == charge_id, Charge.deleted_at.is_(None))
+        )
+
     def list_charges(
         self,
         business_id: Optional[int] = None,
@@ -94,11 +100,16 @@ class ChargeRepository(BaseRepository):
         self,
         charge_id: int,
         new_status: ChargeStatus,
+        charge: Optional[Charge] = None,
         **additional_fields,
     ) -> Optional[Charge]:
-        """Update charge status and additional fields."""
-        charge = self.get_by_id(charge_id)
-        return self._update_status(charge, new_status, **additional_fields)
+        """Update charge status and additional fields.
+
+        Pass a pre-fetched (optionally locked) ``charge`` entity to avoid a second
+        SELECT and to keep the lock acquired by get_by_id_for_update() in scope.
+        """
+        entity = charge or self.get_by_id(charge_id)
+        return self._update_status(entity, new_status, **additional_fields)
 
     def get_aging_buckets(self, as_of_date: date) -> list:
         """Aggregate unpaid (ISSUED) charges per client into aging buckets via SQL."""

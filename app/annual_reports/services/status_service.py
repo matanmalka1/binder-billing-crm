@@ -12,6 +12,18 @@ from .base import AnnualReportBaseService
 
 class AnnualReportStatusService(AnnualReportBaseService):
 
+    def _get_or_raise_for_update(self, report_id: int) -> AnnualReport:
+        """Fetch annual report with a row-level lock for status transitions.
+
+        Lock is held until the first db.commit() in the repository.  Side effects
+        that follow the commit (status history, signature request operations) are
+        outside the lock window — they run in separate commits.
+        """
+        report = self.repo.get_by_id_for_update(report_id)
+        if not report:
+            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+        return report
+
     def _assert_filing_readiness(self, report_id: int) -> None:
         """Raise AppError listing all blocking issues before SUBMITTED transition."""
         from app.annual_reports.services.financial_service import AnnualReportFinancialService
@@ -34,7 +46,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         tax_due: Optional[float] = None,
         submitted_at: Optional[datetime] = None,
     ) -> AnnualReportResponse:
-        report = self._get_or_raise(report_id)
+        report = self._get_or_raise_for_update(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
         if new_status not in valid_statuses:
             raise AppError(f"סטטוס לא חוקי: '{new_status}'", "ANNUAL_REPORT.INVALID_STATUS")
@@ -67,7 +79,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
                 update_fields["tax_due"] = tax_due
 
         old_status = report.status
-        updated = self.repo.update(report_id, **update_fields)
+        updated = self.repo.update(report_id, report=report, **update_fields)
 
         self.repo.append_status_history(
             annual_report_id=report_id,
@@ -124,7 +136,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
         changed_by_name: str,
         custom_deadline_note: Optional[str] = None,
     ) -> AnnualReportResponse:
-        report = self._get_or_raise(report_id)
+        report = self._get_or_raise_for_update(report_id)
         valid_deadline_types = {e.value for e in DeadlineType}
         if deadline_type not in valid_deadline_types:
             raise AppError(f"סוג מועד אחרון לא חוקי '{deadline_type}'", "ANNUAL_REPORT.INVALID_TYPE")
@@ -139,6 +151,7 @@ class AnnualReportStatusService(AnnualReportBaseService):
 
         updated = self.repo.update(
             report_id,
+            report=report,
             deadline_type=dt,
             filing_deadline=filing_deadline,
             custom_deadline_note=custom_deadline_note,

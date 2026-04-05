@@ -118,7 +118,7 @@ def mark_materials_complete(
     Raises:
         AppError: If item not found or not in PENDING_MATERIALS.
     """
-    item = work_item_repo.get_by_id(item_id)
+    item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
         raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
@@ -132,6 +132,7 @@ def mark_materials_complete(
     updated = work_item_repo.update_status(
         item_id,
         VatWorkItemStatus.MATERIAL_RECEIVED,
+        item=item,
         pending_materials_note=None,
     )
 

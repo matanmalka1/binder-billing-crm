@@ -45,7 +45,7 @@ def file_vat_return(
     is_amendment: bool = False,
     amends_item_id: Optional[int] = None,
 ):
-    item = work_item_repo.get_by_id(item_id)
+    item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
         raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
@@ -88,6 +88,7 @@ def file_vat_return(
         submission_reference=submission_reference,
         is_amendment=is_amendment,
         amends_item_id=amends_item_id,
+        item=item,
     )
 
     work_item_repo.append_audit(

@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.signature_request_validations import assert_signable, get_by_token_or_raise
+from app.signature_requests.services.signature_request_validations import assert_signable, get_by_token_or_raise, get_by_token_or_raise_for_update
 from app.utils.time_utils import utcnow
 
 
@@ -38,12 +38,13 @@ def sign_request(
     user_agent: Optional[str] = None,
 ) -> tuple[SignatureRequest, Optional[int], Optional[datetime]]:
     """Returns (req, annual_report_id, signed_at) so the façade can handle cross-domain side-effects."""
-    req = get_by_token_or_raise(repo, token)
+    req = get_by_token_or_raise_for_update(repo, token)
     assert_signable(repo, req)
 
     now = utcnow()
     req = repo.update(
         req.id,
+        req=req,
         status=SignatureRequestStatus.SIGNED,
         signed_at=now,
         signer_ip_address=ip_address,
@@ -72,12 +73,13 @@ def decline_request(
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
 ) -> SignatureRequest:
-    req = get_by_token_or_raise(repo, token)
+    req = get_by_token_or_raise_for_update(repo, token)
     assert_signable(repo, req)
 
     now = utcnow()
     req = repo.update(
         req.id,
+        req=req,
         status=SignatureRequestStatus.DECLINED,
         declined_at=now,
         signer_ip_address=ip_address,

@@ -44,6 +44,12 @@ class BinderRepository(BaseRepository):
             .first()
         )
 
+    def get_by_id_for_update(self, binder_id: int) -> Optional[Binder]:
+        """Fetch with a row-level lock for status transitions."""
+        return self._locked_first(
+            self.db.query(Binder).filter(Binder.id == binder_id, Binder.deleted_at.is_(None))
+        )
+
     def get_active_by_number(self, binder_number: str) -> Optional[Binder]:
         """Get active (non-returned) binder by number (excludes soft-deleted)."""
         return (

@@ -58,6 +58,15 @@ class BaseRepository:
             **additional_fields,
         )
 
+    def _locked_first(self, query):
+        """Apply SELECT … FOR UPDATE and return the first result.
+
+        On PostgreSQL this acquires a row-level exclusive lock until db.commit().
+        On SQLite (used in tests) with_for_update() is accepted but is a no-op —
+        tests can only verify code paths, not true blocking semantics.
+        """
+        return query.with_for_update().first()
+
     @staticmethod
     def _paginate(query, page: int, page_size: int):
         """Apply offset/limit pagination to a SQLAlchemy query."""

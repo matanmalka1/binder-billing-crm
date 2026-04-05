@@ -5,7 +5,7 @@ from typing import Optional
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.signature_request_validations import get_or_raise
+from app.signature_requests.services.signature_request_validations import get_or_raise_for_update
 from app.utils.time_utils import utcnow
 
 
@@ -17,7 +17,7 @@ def cancel_request(
     canceled_by_name: str,
     reason: Optional[str] = None,
 ) -> SignatureRequest:
-    req = get_or_raise(repo, request_id)
+    req = get_or_raise_for_update(repo, request_id)
 
     cancelable = {SignatureRequestStatus.DRAFT, SignatureRequestStatus.PENDING_SIGNATURE}
     if req.status not in cancelable:
@@ -28,6 +28,7 @@ def cancel_request(
 
     req = repo.update(
         request_id,
+        req=req,
         status=SignatureRequestStatus.CANCELED,
         canceled_at=utcnow(),
         canceled_by=canceled_by,

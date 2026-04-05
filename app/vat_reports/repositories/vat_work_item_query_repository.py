@@ -20,6 +20,15 @@ class VatWorkItemQueryRepository:
             .first()
         )
 
+    def get_by_id_for_update(self, item_id: int) -> Optional[VatWorkItem]:
+        """Fetch with a row-level lock for status transitions."""
+        return (
+            self.db.query(VatWorkItem)
+            .filter(VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None))
+            .with_for_update()
+            .first()
+        )
+
     def get_by_business_period(self, business_id: int, period: str) -> Optional[VatWorkItem]:
         return (
             self.db.query(VatWorkItem)

@@ -83,6 +83,7 @@ class VatInvoiceAggregationRepository:
                 VatWorkItem.business_id == business_id,
                 VatInvoice.invoice_type == InvoiceType.INCOME,
                 VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.deleted_at.is_(None),
             )
             .scalar()
         )

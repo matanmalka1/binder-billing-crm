@@ -57,7 +57,7 @@ class BinderService(BinderListService):
 
     def mark_ready_for_pickup(self, binder_id: int, user_id: int) -> Binder:
         """Mark binder as ready for pickup."""
-        binder = self.binder_repo.get_by_id(binder_id)
+        binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
             raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
 
@@ -95,7 +95,7 @@ class BinderService(BinderListService):
         returned_at: Optional[date] = None,
     ) -> Binder:
         """Return binder to client."""
-        binder = self.binder_repo.get_by_id(binder_id)
+        binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
             raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
 
@@ -124,7 +124,7 @@ class BinderService(BinderListService):
 
     def revert_ready(self, binder_id: int, user_id: int) -> Binder:
         """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
-        binder = self.binder_repo.get_by_id(binder_id)
+        binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
             raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
 

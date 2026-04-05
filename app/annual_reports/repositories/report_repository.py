@@ -41,6 +41,14 @@ class AnnualReportReportRepository(BaseRepository):
             .first()
         )
 
+    def get_by_id_for_update(self, report_id: int) -> Optional[AnnualReport]:
+        """Fetch with a row-level lock for status transitions."""
+        return self._locked_first(
+            self.db.query(AnnualReport).filter(
+                AnnualReport.id == report_id, AnnualReport.deleted_at.is_(None)
+            )
+        )
+
     def get_by_business_year(self, business_id: int, tax_year: int) -> Optional[AnnualReport]:
         return (
             self.db.query(AnnualReport)
@@ -158,9 +166,11 @@ class AnnualReportReportRepository(BaseRepository):
             .all()
         )
 
-    def update(self, report_id: int, **fields) -> Optional[AnnualReport]:
-        report = self.get_by_id(report_id)
-        return self._update_entity(report, touch_updated_at=True, **fields)
+    def update(self, report_id: int, report: Optional[AnnualReport] = None, **fields) -> Optional[AnnualReport]:
+        """Update report fields. Pass a pre-fetched (optionally locked) ``report`` entity
+        to avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
+        entity = report or self.get_by_id(report_id)
+        return self._update_entity(entity, touch_updated_at=True, **fields)
 
     def soft_delete(self, report_id: int, deleted_by: int) -> bool:
         report = self.get_by_id(report_id)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import count
 
 from app.businesses.models.business import Business
@@ -153,6 +153,49 @@ def test_sum_income_net_by_business_year_filters_by_business_year_and_income_onl
 
     assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 1000.0
     assert invoice_repo.sum_income_net_by_business_year(business.id, 2024) == 0.0
+
+
+def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    active_item = work_item_repo.create(
+        business_id=business.id, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id
+    )
+    deleted_item = work_item_repo.create(
+        business_id=business.id, period="2026-04", period_type=VatType.MONTHLY, created_by=user.id
+    )
+
+    invoice_repo.create(
+        work_item_id=active_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-ACTIVE",
+        invoice_date=datetime(2026, 3, 1),
+        counterparty_name="Customer A",
+        net_amount=5000.0,
+        vat_amount=850.0,
+    )
+    invoice_repo.create(
+        work_item_id=deleted_item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-DELETED",
+        invoice_date=datetime(2026, 4, 1),
+        counterparty_name="Customer B",
+        net_amount=9000.0,
+        vat_amount=1530.0,
+    )
+
+    # Soft-delete the second work item directly
+    deleted_item.deleted_at = datetime.now(timezone.utc)
+    test_db.commit()
+
+    # Only the active item's invoices should count toward the ceiling
+    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 5000.0
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

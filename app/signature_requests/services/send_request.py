@@ -10,7 +10,7 @@ from app.signature_requests.models.signature_request import (
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.utils.time_utils import utcnow
-from app.signature_requests.services.signature_request_validations import get_or_raise
+from app.signature_requests.services.signature_request_validations import get_or_raise_for_update
 
 
 DEFAULT_EXPIRY_DAYS = 14
@@ -25,7 +25,7 @@ def send_request(
     expiry_days: int = DEFAULT_EXPIRY_DAYS,
 ) -> SignatureRequest:
     """Transition a DRAFT request to PENDING_SIGNATURE and generate token."""
-    req = get_or_raise(repo, request_id)
+    req = get_or_raise_for_update(repo, request_id)
 
     if req.status != SignatureRequestStatus.DRAFT:
         raise AppError(
@@ -39,6 +39,7 @@ def send_request(
 
     req = repo.update(
         request_id,
+        req=req,
         status=SignatureRequestStatus.PENDING_SIGNATURE,
         signing_token=signing_token,
         sent_at=now,

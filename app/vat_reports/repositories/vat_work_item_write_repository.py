@@ -24,6 +24,10 @@ class VatWorkItemWriteRepository:
     def get_by_id(self, item_id: int) -> Optional[VatWorkItem]:
         return self._query.get_by_id(item_id)
 
+    def get_by_id_for_update(self, item_id: int) -> Optional[VatWorkItem]:
+        """Fetch with a row-level lock for status transitions."""
+        return self._query.get_by_id_for_update(item_id)
+
     def get_by_business_period(self, business_id: int, period: str) -> Optional[VatWorkItem]:
         return self._query.get_by_business_period(business_id, period)
 
@@ -79,9 +83,12 @@ class VatWorkItemWriteRepository:
         self,
         item_id: int,
         new_status: VatWorkItemStatus,
+        item: Optional[VatWorkItem] = None,
         **extra_fields,
     ) -> Optional[VatWorkItem]:
-        item = self.get_by_id(item_id)
+        """Update status. Pass a pre-fetched (optionally locked) ``item`` to
+        avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
+        item = item or self.get_by_id(item_id)
         if not item:
             return None
         item.status = new_status
@@ -125,8 +132,11 @@ class VatWorkItemWriteRepository:
         submission_reference: Optional[str] = None,
         is_amendment: bool = False,
         amends_item_id: Optional[int] = None,
+        item: Optional[VatWorkItem] = None,
     ) -> Optional[VatWorkItem]:
-        item = self.get_by_id(item_id)
+        """File the work item. Pass a pre-fetched (optionally locked) ``item`` to
+        avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
+        item = item or self.get_by_id(item_id)
         if not item:
             return None
         item.status = VatWorkItemStatus.FILED
