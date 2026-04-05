@@ -50,16 +50,53 @@ async def daily_expiry_job() -> None:
             db.close()
 
 
+async def daily_vat_compliance_job() -> None:
+    """Create VAT_FILING reminders for overdue unfiled periods (deadline = 15th of following month)."""
+    while True:
+        await asyncio.sleep(_INTERVAL)
+        db = SessionLocal()
+        try:
+            from datetime import date as _date
+            from app.reminders.models.reminder import ReminderType
+            from app.reminders.repositories.reminder_repository import ReminderRepository
+            from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
+
+            today = _date.today()
+            overdue = VatComplianceRepository(db).get_overdue_unfiled(today)
+            reminder_repo = ReminderRepository(db)
+            created = 0
+            for row in overdue:
+                if reminder_repo.exists_vat_compliance_reminder(row.business_id, row.period):
+                    continue
+                year, month = map(int, row.period.split("-"))
+                # Deadline: 15th of the month after the VAT period
+                next_month = month + 1 if month < 12 else 1
+                next_year = year if month < 12 else year + 1
+                deadline = _date(next_year, next_month, 15)
+                reminder_repo.create(
+                    business_id=row.business_id,
+                    reminder_type=ReminderType.VAT_FILING,
+                    target_date=deadline,
+                    days_before=0,
+                    send_on=today,
+                    message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד החוקי ({deadline}) עבר",
+                )
+                created += 1
+                logger.info(
+                    "VAT compliance: created overdue reminder business_id=%d period=%s",
+                    row.business_id,
+                    row.period,
+                )
+            if created:
+                logger.info("VAT compliance job: created %d reminder(s)", created)
+        except Exception:
+            logger.exception("Daily VAT compliance job failed")
+        finally:
+            db.close()
+
+
 async def daily_reminder_job() -> None:
-    """Dispatch pending reminders once per day in the background.
-
-    For each due reminder the job:
-    1. Sends an actual notification via NotificationService.
-    2. Only marks the reminder as SENT after a successful send.
-
-    Reminders are processed in batches of _REMINDER_BATCH_SIZE to keep
-    the DB session short-lived.
-    """
+    """Dispatch pending reminders once per day. Processed in batches of _REMINDER_BATCH_SIZE."""
     while True:
         await asyncio.sleep(_INTERVAL)
         db = SessionLocal()

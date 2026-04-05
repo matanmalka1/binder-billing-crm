@@ -3,11 +3,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.repositories.base_repository import BaseRepository
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.reminders.repositories.reminder_repository_read import ReminderRepositoryRead
 
 
-class ReminderRepository(BaseRepository):
+class ReminderRepository(ReminderRepositoryRead):
     """Data access layer for Reminder entities."""
 
     def __init__(self, db: Session):
@@ -28,7 +28,6 @@ class ReminderRepository(BaseRepository):
         advance_payment_id: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Reminder:
-        """Create new reminder."""
         reminder = Reminder(
             business_id=business_id,
             reminder_type=reminder_type,
@@ -50,88 +49,11 @@ class ReminderRepository(BaseRepository):
         return reminder
 
     def get_by_id(self, reminder_id: int) -> Optional[Reminder]:
-        """Retrieve reminder by ID."""
         return (
             self.db.query(Reminder)
             .filter(Reminder.id == reminder_id, Reminder.deleted_at.is_(None))
             .first()
         )
-
-    def list_pending_by_date(
-        self,
-        reference_date: date,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Reminder]:
-        """List pending reminders that should be sent on or before reference_date."""
-        query = (
-            self.db.query(Reminder)
-            .filter(
-                Reminder.status == ReminderStatus.PENDING,
-                Reminder.send_on <= reference_date,
-                Reminder.deleted_at.is_(None),
-            )
-            .order_by(Reminder.send_on.asc())
-        )
-
-        return self._paginate(query, page, page_size)
-
-    def count_pending_by_date(self, reference_date: date) -> int:
-        """Count pending reminders."""
-        return (
-            self.db.query(Reminder)
-            .filter(
-                Reminder.status == ReminderStatus.PENDING,
-                Reminder.send_on <= reference_date,
-                Reminder.deleted_at.is_(None),
-            )
-            .count()
-        )
-
-    def list_by_status(
-        self,
-        status: ReminderStatus,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Reminder]:
-        """List reminders by status."""
-        query = (
-            self.db.query(Reminder)
-            .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
-            .order_by(Reminder.created_at.desc())
-        )
-
-        return self._paginate(query, page, page_size)
-
-    def count_by_status(self, status: ReminderStatus) -> int:
-        """Count reminders by status."""
-        return (
-            self.db.query(Reminder)
-            .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
-            .count()
-        )
-
-    def count_by_business(self, business_id: int) -> int:
-        """Count all reminders for a business."""
-        return (
-            self.db.query(Reminder)
-            .filter(Reminder.business_id == business_id, Reminder.deleted_at.is_(None))
-            .count()
-        )
-
-    def list_by_business(
-        self,
-        business_id: int,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Reminder]:
-        """List all reminders for a specific business."""
-        query = (
-            self.db.query(Reminder)
-            .filter(Reminder.business_id == business_id, Reminder.deleted_at.is_(None))
-            .order_by(Reminder.created_at.desc())
-        )
-        return self._paginate(query, page, page_size)
 
     def claim_for_processing(self, reminder_id: int) -> Optional[Reminder]:
         """Transition PENDING → PROCESSING. Returns None if already claimed/sent."""
@@ -149,9 +71,22 @@ class ReminderRepository(BaseRepository):
         new_status: ReminderStatus,
         **additional_fields,
     ) -> Optional[Reminder]:
-        """Update reminder status and additional fields."""
         reminder = self.get_by_id(reminder_id)
         return self._update_status(reminder, new_status, **additional_fields)
+
+    def exists_vat_compliance_reminder(self, business_id: int, period: str) -> bool:
+        """True if a VAT_FILING reminder for this business+period is already PENDING or SENT."""
+        return (
+            self.db.query(Reminder)
+            .filter(
+                Reminder.business_id == business_id,
+                Reminder.reminder_type == ReminderType.VAT_FILING,
+                Reminder.message.contains(period),
+                Reminder.status.in_([ReminderStatus.PENDING, ReminderStatus.SENT]),
+                Reminder.deleted_at.is_(None),
+            )
+            .first()
+        ) is not None
 
     def cancel_pending_by_charge(self, charge_id: int) -> int:
         """Cancel all PENDING reminders linked to a charge. Returns count canceled."""

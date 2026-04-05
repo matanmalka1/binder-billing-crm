@@ -1,5 +1,7 @@
 """Repository queries used exclusively by the VAT compliance report."""
 
+from datetime import date
+
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
@@ -55,6 +57,30 @@ class VatComplianceRepository:
                 VatWorkItem.filed_at.isnot(None),
                 VatWorkItem.deleted_at.is_(None),
             )
+            .all()
+        )
+
+    def get_overdue_unfiled(self, reference_date: date) -> list:
+        """Work items whose statutory deadline (15th of month after period) has passed
+        and are not yet FILED. Returns rows with business_id, period, client_name."""
+        return (
+            self.db.query(
+                VatWorkItem.business_id,
+                VatWorkItem.period,
+                Client.full_name.label("client_name"),
+            )
+            .join(Business, Business.id == VatWorkItem.business_id)
+            .join(Client, Client.id == Business.client_id)
+            .filter(
+                VatWorkItem.status != VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+                Business.deleted_at.is_(None),
+                Client.deleted_at.is_(None),
+                # period is "YYYY-MM"; deadline is the 15th of the following month.
+                # Approximated in SQL by comparing period string: period < reference month.
+                func.substr(VatWorkItem.period, 1, 7) < reference_date.strftime("%Y-%m"),
+            )
+            .order_by(VatWorkItem.period.asc())
             .all()
         )
 

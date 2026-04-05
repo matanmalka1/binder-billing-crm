@@ -85,3 +85,12 @@ class BusinessRepository(BusinessRepositoryRead):
             .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
             .first()
         ) is not None
+
+    def all_non_deleted_are_closed(self, client_id: int) -> bool:
+        """Returns True if the client has at least one non-deleted business and all are CLOSED."""
+        businesses = (
+            self.db.query(Business)
+            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .all()
+        )
+        return bool(businesses) and all(b.status == BusinessStatus.CLOSED for b in businesses)

@@ -38,6 +38,13 @@ class BusinessService:
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
+        if self.business_repo.all_non_deleted_are_closed(client_id):
+            raise AppError(
+                "כל העסקים של לקוח זה סגורים — לא ניתן להוסיף עסק חדש ללא אישור מפורש",
+                "BUSINESS.CLIENT_ALL_CLOSED",
+                status_code=409,
+            )
+
         if business_name:
             for b in self.business_repo.list_by_client(client_id, page=1, page_size=10_000):
                 if b.business_name and b.business_name.strip().lower() == business_name.strip().lower():

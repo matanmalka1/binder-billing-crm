@@ -3,17 +3,10 @@
 > Generated from full dual-lens review (engineering + Israeli tax law).
 > Sorted by severity within each section. Fix in order: CRITICAL → HIGH → MEDIUM → LOW.
 
----
-
 ## High Priority Focus
 
 Top 10 most urgent tasks based on impact, dependencies, and current development risk.
 - [ ] **[HIGH] Reminder not canceled when charge is marked paid** (`app/charge/services/billing_service.py:82-86`) — Reason: Advisors receive stale "unpaid charge" reminders for charges already marked paid, eroding trust in the notification system and causing unnecessary follow-up.
-- [ ] **[HIGH] VatWorkItem unique constraint allows re-creation after soft-delete in PostgreSQL** (`app/vat_reports/models/vat_work_item.py:79`) — Reason: In production (PostgreSQL), soft-deleting a VAT period permanently blocks re-creation, silently making that period unfileable without manual DB intervention.
-- [ ] **[HIGH] Annual report stuck in SUBMITTED if amendment needed** (`app/annual_reports/services/constants.py:17-57`) — Reason: A filed report that requires correction has no valid next state in the transition graph, requiring manual DB writes to proceed — blocking a normal legal workflow.
-- [ ] **[HIGH] `assert_business_not_closed()` does not block FROZEN businesses** (`app/businesses/services/business_guards.py:19-25`) — Reason: Call sites that use the weaker guard instead of `assert_business_allows_create()` silently allow writes on FROZEN businesses, violating the core business-status invariant.
-
----
 
 ## 1. Domain Logic — VAT Reports
 ## 2. Domain Logic — Advance Payments
@@ -22,39 +15,9 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ## 5. Domain Logic — Charge / Invoice
 ## 6. Domain Logic — Businesses
 ## 7. Domain Logic — Clients
-
----
-
-## [MEDIUM] No client-level status gate — closed clients can get new businesses
-- **File:** `app/businesses/services/business_service.py` (create path)
-- **Category:** Business Rule Gap
-- **Issue:** `Client` has no status field; a client with all CLOSED businesses can have new businesses created under them without any system-level warning.
-- **Fix:** Add a check in `BusinessService.create()`: if all existing non-deleted businesses for this client are CLOSED, require explicit ADVISOR confirmation or warn. Alternatively, add `Client.status` column with its own guard.
-
----
-
 ## 8. Separation of Concerns
-
----
-
-## [MEDIUM] Export format dispatch logic inside API router
-- **File:** `app/vat_reports/api/routes_business_summary.py:44-57`
-- **Category:** Business Logic in Router
-- **Issue:** The export endpoint contains `if format == "excel": ... else: ...` branching and inline `try/except ImportError` — this is business logic that belongs in the service layer.
-- **Fix:** Move format dispatch into `VatExportService.export(format, ...)`. The router calls one method and returns the result.
-
----
-
-## [MEDIUM] `document_search_service` builds raw dicts (presentation in service)
-- **File:** `app/search/services/document_search_service.py:20-35`
-- **Category:** Separation of Concerns
-- **Issue:** `search_documents()` constructs raw `dict` response objects with a `business_cache`; this is presentation/serialization logic that belongs in the router or schema layer.
-- **Fix:** Return typed objects (ORM or dataclass); move dict construction to the router or a `DocumentSearchResult` schema with a `from_orm` factory.
-
 ## 10. Redundant Code
 ## 11. Architectural Violations
-
----
 
 ## [MEDIUM] Idempotency keys declared on bulk endpoints but never consumed
 - **File:** `app/charge/api/charge.py:132`, `app/businesses/api/businesses.py:113`
@@ -102,24 +65,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ---
 
 ## 14. Missing Features (Domain Completeness)
-
----
-
-## [HIGH] Advance payment status not auto-derived from paid_amount
-- **File:** `app/advance_payments/services/advance_payment_service.py` (update path)
-- **Category:** Missing Feature
-- **Issue:** Updating `paid_amount` does not auto-set status to PAID or PARTIAL; advisors must manually update status, creating stale PENDING records.
-- **Fix:** In `update_payment()`, after persisting `paid_amount`, derive status: `PAID` if `paid >= expected`, `PARTIAL` if `0 < paid < expected`, else `PENDING`.
-
----
-
-## [HIGH] No VAT compliance reminder for missed filing periods
-- **File:** `app/core/background_jobs.py` (new job needed)
-- **Category:** Missing Feature
-- **Issue:** The `vat_compliance` repository can identify overdue unfiled periods, but no background job fires reminders when a period passes its statutory deadline without a filed work item.
-- **Fix:** Add a `daily_vat_compliance_job()` to `background_jobs.py` that queries `VatComplianceRepository` for past-deadline unfiled periods and creates reminders via `ReminderService`.
-
----
 
 ## [MEDIUM] Annual report filing deadline not auto-populated by entity type
 - **File:** `app/annual_reports/services/` (create path)
