@@ -9,22 +9,48 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY
+from app.vat_reports.services.constants import (
+    VAT_ONLINE_EXTENDED_DEADLINE_DAY,
+    VAT_STATUTORY_DEADLINE_DAY,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def compute_deadline_fields(item) -> dict:
-    """Derive submission_deadline, days_until_deadline, is_overdue from period."""
+    """Derive statutory and extended deadline fields from period."""
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
-        dl = date(year + 1, 1, VAT_STATUTORY_DEADLINE_DAY) if month == 12 else date(year, month + 1, VAT_STATUTORY_DEADLINE_DAY)
+        deadline_year = year + 1 if month == 12 else year
+        deadline_month = 1 if month == 12 else month + 1
+        statutory_deadline = date(
+            deadline_year,
+            deadline_month,
+            VAT_STATUTORY_DEADLINE_DAY,
+        )
+        extended_deadline = date(
+            deadline_year,
+            deadline_month,
+            VAT_ONLINE_EXTENDED_DEADLINE_DAY,
+        )
         today = datetime.now(timezone.utc).date()
-        days = (dl - today).days
-        return {"submission_deadline": dl, "days_until_deadline": days, "is_overdue": days < 0}
+        days = (statutory_deadline - today).days
+        return {
+            "submission_deadline": statutory_deadline,
+            "statutory_deadline": statutory_deadline,
+            "extended_deadline": extended_deadline,
+            "days_until_deadline": days,
+            "is_overdue": days < 0,
+        }
     except (ValueError, TypeError) as exc:
         logger.warning("Failed to compute deadline for period '%s': %s", item.period, exc)
-        return {"submission_deadline": None, "days_until_deadline": None, "is_overdue": None}
+        return {
+            "submission_deadline": None,
+            "statutory_deadline": None,
+            "extended_deadline": None,
+            "days_until_deadline": None,
+            "is_overdue": None,
+        }
 
 
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):

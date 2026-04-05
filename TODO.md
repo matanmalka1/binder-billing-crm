@@ -219,7 +219,7 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [LOW] `sum_vat_both_types` and `sum_net_both_types` run redundant paired queries
+##  [x] [LOW] `sum_vat_both_types` and `sum_net_both_types` run redundant paired queries
 - **File:** `app/vat_reports/repositories/vat_invoice_aggregation_repository.py:18-72`
 - **Category:** Redundant Code
 - **Issue:** Both methods fire two separate `func.sum` queries filtered by `invoice_type`; this can be one grouped query.

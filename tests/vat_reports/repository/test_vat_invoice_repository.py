@@ -6,7 +6,7 @@ from app.businesses.models.business_tax_profile import VatType
 from app.clients.models import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType
+from app.vat_reports.models.vat_enums import ExpenseCategory, InvoiceType, VatRateType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
@@ -196,6 +196,70 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
 
     # Only the active item's invoices should count toward the ceiling
     assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 5000.0
+
+
+def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
+    user = _user(test_db)
+    business = _business(test_db)
+    work_item_repo = VatWorkItemRepository(test_db)
+    invoice_repo = VatInvoiceRepository(test_db)
+
+    item = work_item_repo.create(
+        business_id=business.id,
+        period="2026-07",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-STD",
+        invoice_date=datetime(2026, 7, 1),
+        counterparty_name="Customer A",
+        net_amount=1000.0,
+        vat_amount=170.0,
+        rate_type=VatRateType.STANDARD,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.INCOME,
+        invoice_number="INC-ZERO",
+        invoice_date=datetime(2026, 7, 2),
+        counterparty_name="Customer B",
+        net_amount=400.0,
+        vat_amount=68.0,
+        rate_type=VatRateType.ZERO_RATE,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-ONE",
+        invoice_date=datetime(2026, 7, 3),
+        counterparty_name="Vendor A",
+        net_amount=500.0,
+        vat_amount=85.0,
+        expense_category=ExpenseCategory.OFFICE,
+        deduction_rate=1.0,
+    )
+    invoice_repo.create(
+        work_item_id=item.id,
+        created_by=user.id,
+        invoice_type=InvoiceType.EXPENSE,
+        invoice_number="EXP-TWO",
+        invoice_date=datetime(2026, 7, 4),
+        counterparty_name="Vendor B",
+        net_amount=200.0,
+        vat_amount=34.0,
+        expense_category=ExpenseCategory.VEHICLE,
+        deduction_rate=0.5,
+    )
+
+    assert invoice_repo.sum_vat_both_types(item.id) == (170.0, 102.0)
+    assert invoice_repo.sum_net_both_types(item.id) == (1400.0, 700.0)
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

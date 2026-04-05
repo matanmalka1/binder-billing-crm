@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import InvoiceType, VatRateType
@@ -22,54 +22,66 @@ class VatInvoiceAggregationRepository:
           (EXEMPT and ZERO_RATE contribute 0 to output VAT)
         - Input VAT: sum of vat_amount * deduction_rate for EXPENSE invoices
         """
-        # Output VAT: only STANDARD-rate INCOME invoices
-        output_row = (
-            self.db.query(func.sum(VatInvoice.vat_amount))
+        rows = (
+            self.db.query(
+                VatInvoice.invoice_type,
+                func.sum(
+                    case(
+                        (
+                            VatInvoice.invoice_type == InvoiceType.INCOME,
+                            case(
+                                (
+                                    VatInvoice.rate_type == VatRateType.STANDARD,
+                                    VatInvoice.vat_amount,
+                                ),
+                                else_=0,
+                            ),
+                        ),
+                        (
+                            VatInvoice.invoice_type == InvoiceType.EXPENSE,
+                            VatInvoice.vat_amount * VatInvoice.deduction_rate,
+                        ),
+                        else_=0,
+                    )
+                ).label("total"),
+            )
             .filter(
                 VatInvoice.work_item_id == work_item_id,
-                VatInvoice.invoice_type == InvoiceType.INCOME,
-                VatInvoice.rate_type == VatRateType.STANDARD,
+                VatInvoice.invoice_type.in_((InvoiceType.INCOME, InvoiceType.EXPENSE)),
             )
-            .scalar()
-        )
-        output_vat = float(output_row or 0)
-
-        # Input VAT: vat_amount * deduction_rate per invoice (computed in Python)
-        expense_rows = (
-            self.db.query(VatInvoice.vat_amount, VatInvoice.deduction_rate)
-            .filter(
-                VatInvoice.work_item_id == work_item_id,
-                VatInvoice.invoice_type == InvoiceType.EXPENSE,
-            )
+            .group_by(VatInvoice.invoice_type)
             .all()
         )
-        input_vat = float(
-            sum(
-                Decimal(str(row.vat_amount)) * Decimal(str(row.deduction_rate))
-                for row in expense_rows
-            )
-        )
+        grouped = {
+            row.invoice_type: Decimal(str(row.total or 0))
+            for row in rows
+        }
+        output_vat = float(grouped.get(InvoiceType.INCOME, Decimal("0")))
+        input_vat = float(grouped.get(InvoiceType.EXPENSE, Decimal("0")))
         return output_vat, input_vat
 
     def sum_net_both_types(self, work_item_id: int) -> tuple[float, float]:
         """Return (output_net, input_net) — sum of net_amount for INCOME and EXPENSE."""
-        output_row = (
-            self.db.query(func.sum(VatInvoice.net_amount))
+        rows = (
+            self.db.query(
+                VatInvoice.invoice_type,
+                func.sum(VatInvoice.net_amount).label("total"),
+            )
             .filter(
                 VatInvoice.work_item_id == work_item_id,
-                VatInvoice.invoice_type == InvoiceType.INCOME,
+                VatInvoice.invoice_type.in_((InvoiceType.INCOME, InvoiceType.EXPENSE)),
             )
-            .scalar()
+            .group_by(VatInvoice.invoice_type)
+            .all()
         )
-        input_row = (
-            self.db.query(func.sum(VatInvoice.net_amount))
-            .filter(
-                VatInvoice.work_item_id == work_item_id,
-                VatInvoice.invoice_type == InvoiceType.EXPENSE,
-            )
-            .scalar()
+        grouped = {
+            row.invoice_type: float(row.total or 0)
+            for row in rows
+        }
+        return (
+            grouped.get(InvoiceType.INCOME, 0.0),
+            grouped.get(InvoiceType.EXPENSE, 0.0),
         )
-        return float(output_row or 0), float(input_row or 0)
 
     def sum_income_net_by_business_year(self, business_id: int, year: int) -> float:
         """Sum net_amount of INCOME invoices for a business across a tax year.

@@ -62,6 +62,8 @@ class VatWorkItemResponse(BaseModel):
     updated_at: datetime
     # Derived — not stored
     submission_deadline: Optional[date] = None
+    statutory_deadline: Optional[date] = None
+    extended_deadline: Optional[date] = None
     days_until_deadline: Optional[int] = None
     is_overdue: Optional[bool] = None
 

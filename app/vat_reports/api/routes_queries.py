@@ -28,6 +28,8 @@ def _serialize(item, name_map: dict, status_map: dict, user_map: dict, client_ma
     data.business_status = status_map.get(item.business_id)
     deadline = compute_deadline_fields(item)
     data.submission_deadline = deadline["submission_deadline"]
+    data.statutory_deadline = deadline["statutory_deadline"]
+    data.extended_deadline = deadline["extended_deadline"]
     data.days_until_deadline = deadline["days_until_deadline"]
     data.is_overdue = deadline["is_overdue"]
     data.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None

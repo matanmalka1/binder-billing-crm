@@ -138,7 +138,7 @@ Constraint:
 
 - API and model are business-scoped (`business_id`), not client-scoped
 - filing field is `submission_method` (not `filing_method`)
-- query endpoints expose deadline enrichment fields on work-item responses: `submission_deadline`, `days_until_deadline`, `is_overdue`
+- query endpoints expose deadline enrichment fields on work-item responses: `submission_deadline`, `statutory_deadline`, `extended_deadline`, `days_until_deadline`, `is_overdue`
 
 ## References
 

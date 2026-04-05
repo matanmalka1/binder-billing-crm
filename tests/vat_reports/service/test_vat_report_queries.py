@@ -138,6 +138,8 @@ def test_compute_deadline_fields_rolls_december_to_next_year():
     result = vat_report_queries.compute_deadline_fields(item)
 
     assert str(result["submission_deadline"]) == "2031-01-15"
+    assert str(result["statutory_deadline"]) == "2031-01-15"
+    assert str(result["extended_deadline"]) == "2031-01-19"
     assert isinstance(result["days_until_deadline"], int)
     assert isinstance(result["is_overdue"], bool)
 
@@ -151,6 +153,8 @@ def test_compute_deadline_fields_invalid_period_returns_nones(caplog):
 
     assert result == {
         "submission_deadline": None,
+        "statutory_deadline": None,
+        "extended_deadline": None,
         "days_until_deadline": None,
         "is_overdue": None,
     }
