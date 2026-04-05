@@ -4,7 +4,6 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
-
 from app.core.exceptions import ConflictError, NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
@@ -12,6 +11,7 @@ from app.advance_payments.services.advance_payment_calculator import (
     calculate_expected_amount,
     derive_annual_income_from_vat,
 )
+from app.advance_payments.services.constants import VAT_RATE
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
 from app.businesses.services.business_guards import validate_business_for_create
@@ -104,6 +104,18 @@ class AdvancePaymentService:
                 "ADVANCE_PAYMENT.NOT_FOUND",
             )
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
+
+        # Auto-derive status from paid_amount unless the caller is explicitly setting status.
+        if "paid_amount" in filtered and "status" not in filtered:
+            paid = filtered["paid_amount"]
+            expected = filtered.get("expected_amount", payment.expected_amount)
+            if paid is None or paid == 0:
+                filtered["status"] = AdvancePaymentStatus.PENDING
+            elif expected is not None and paid >= expected:
+                filtered["status"] = AdvancePaymentStatus.PAID
+            else:
+                filtered["status"] = AdvancePaymentStatus.PARTIAL
+
         return self.repo.update(payment, **filtered)
 
     # ─── Delete ───────────────────────────────────────────────────────────────
@@ -117,15 +129,11 @@ class AdvancePaymentService:
             )
         self.repo.soft_delete(payment_id, deleted_by=actor_id)
 
-    # ─── Suggest ──────────────────────────────────────────────────────────────
-
+    # ─── Suggest ─────────────────────────────────────────────────────────────
     def suggest_expected_amount(
         self, business_id: int, year: int, period_months_count: int = 1
     ) -> Optional[Decimal]:
-        """
-        מחשב הצעה למקדמה לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה.
-        מחזיר None אם חסר מידע.
-        """
+        """מחשב הצעה למקדמה לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה. מחזיר None אם חסר מידע."""
         profile = self._tax_profile_repo.get_by_business_id(business_id)
         if profile is None or profile.advance_rate is None:
             return None
@@ -136,7 +144,7 @@ class AdvancePaymentService:
         if prior_year_vat is None:
             return None
 
-        annual_income = derive_annual_income_from_vat(prior_year_vat)
+        annual_income = derive_annual_income_from_vat(prior_year_vat, VAT_RATE)
         return calculate_expected_amount(
             annual_income, Decimal(str(profile.advance_rate)), period_months_count
         )

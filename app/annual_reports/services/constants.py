@@ -39,6 +39,7 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
     AnnualReportStatus.SUBMITTED: {
         AnnualReportStatus.ACCEPTED,
         AnnualReportStatus.ASSESSMENT_ISSUED,
+        AnnualReportStatus.AMENDED,
     },
     AnnualReportStatus.AMENDED: {
         AnnualReportStatus.IN_PREPARATION,
@@ -75,6 +76,8 @@ STAGE_TO_STATUS: dict[str, str] = {
 # ── Israeli tax law constants ──────────────────────────────────────────────────
 # Donation credit rate — Section 46 of the Income Tax Ordinance
 DONATION_CREDIT_RATE = 0.35
+# Minimum donation required before any credit is granted (Section 46 ITO)
+DONATION_MINIMUM_ILS = 190
 
 # ── National Insurance (ביטוח לאומי) rates — per NII annual circular ──────────
 # Base rate applies up to the monthly ceiling; high rate applies above it

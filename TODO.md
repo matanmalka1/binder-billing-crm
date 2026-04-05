@@ -8,7 +8,6 @@
 ## High Priority Focus
 
 Top 10 most urgent tasks based on impact, dependencies, and current development risk.
-- [x] **[HIGH] Advance payment due-date formula wrong for companies (חברות)** (`app/advance_payments/services/advance_payment_generator.py:50-55`) — Reason: Companies are assigned a due date one month too late, causing all advance payment deadlines for חברות clients to be systemically wrong.
 - [ ] **[HIGH] Reminder not canceled when charge is marked paid** (`app/charge/services/billing_service.py:82-86`) — Reason: Advisors receive stale "unpaid charge" reminders for charges already marked paid, eroding trust in the notification system and causing unnecessary follow-up.
 - [ ] **[HIGH] VatWorkItem unique constraint allows re-creation after soft-delete in PostgreSQL** (`app/vat_reports/models/vat_work_item.py:79`) — Reason: In production (PostgreSQL), soft-deleting a VAT period permanently blocks re-creation, silently making that period unfileable without manual DB intervention.
 - [ ] **[HIGH] Annual report stuck in SUBMITTED if amendment needed** (`app/annual_reports/services/constants.py:17-57`) — Reason: A filed report that requires correction has no valid next state in the transition graph, requiring manual DB writes to proceed — blocking a normal legal workflow.
@@ -23,80 +22,16 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [x] [HIGH] Advance payment due-date formula wrong for companies (חברות)
-- **File:** `app/advance_payments/services/advance_payment_generator.py:50-62`
-- **Category:** Wrong Logic
-- **Status:** RESOLVED (2026-04-05)
-- **Issue:** Due date was always computed as the 15th of the month following the period end, which is correct for self-employed (עצמאי) but wrong for companies — companies file advances by the 15th of the *same* covered month.
-- **Fix Applied:** Added branching logic on `business.business_type`: if `COMPANY`, set `due_date` to the 15th of the period's own month; otherwise use the original formula (next month) for self-employed businesses.
 
----
-
-## [MEDIUM] VAT rate hardcoded in income reverse-calculation
-- **File:** `app/advance_payments/services/advance_payment_calculator.py:11-18`
-- **Category:** Missing Logic
-- **Issue:** `derive_annual_income_from_vat()` divides by an assumed VAT rate that is either hardcoded or pulled from a non-versioned constant; if the rate changes, the derived income is silently wrong.
-- **Fix:** Accept `vat_rate: Decimal` as an explicit parameter; callers should pass the current year's rate from a versioned constants table.
-
----
-
-## [LOW] AdvancePaymentStatus.PARTIAL never set automatically
-- **File:** `app/advance_payments/models/advance_payment.py`
-- **Category:** Missing Logic
-- **Issue:** The PARTIAL status exists but is never auto-set when `0 < paid_amount < expected_amount`; advisors must remember to update it manually.
-- **Fix:** In `AdvancePaymentService.update_payment()`, after writing `paid_amount`, derive and write the correct status: PAID if `paid >= expected`, PARTIAL if `0 < paid < expected`, PENDING otherwise.
-
----
 
 ## 3. Domain Logic — Annual Reports
 
----
-
-
-
-## [HIGH] 2026 National Insurance ceiling is a 2025 placeholder
-- **File:** `app/annual_reports/services/ni_engine.py:10`
-- **Category:** Wrong Logic
-- **Issue:** `_NI_CEILING_BY_YEAR[2026] = 93_384.0` is the 2025 ceiling; NII publishes an updated ceiling annually.
-- **Fix:** Update `_NI_CEILING_BY_YEAR[2026]` with the NII-published 2026 annual income ceiling.
-
----
-
-## [HIGH] NI rates are self-employed only — wrong for employee reports
-- **File:** `app/annual_reports/services/constants.py:77-78`
-- **Category:** Potential Wrong Logic
-- **Issue:** `NI_RATE_BASE = 0.0597` and `NI_RATE_HIGH = 0.1783` are the self-employed (עצמאי) rates; employees (שכירים) have different employee/employer split rates, but `ni_engine.py` uses a single pair regardless of `ClientTypeForReport`.
-- **Fix:** Add a `client_type` parameter to `calculate_national_insurance()`; apply the employee rate schedule when `client_type == ClientTypeForReport.INDIVIDUAL` (with employment income flag).
-
----
-
-## [MEDIUM] SUBMITTED → AMENDED transition missing from annual report state machine
-- **File:** `app/annual_reports/services/constants.py:39-42`
-- **Category:** Missing Logic / Data Integrity
-- **Issue:** `VALID_TRANSITIONS` has no path from `SUBMITTED` to `AMENDED`; once a report is submitted it cannot legally move to amendment without manual DB intervention.
-- **Fix:** Add `AnnualReportStatus.SUBMITTED: {AnnualReportStatus.AMENDED, ...existing targets...}` to `VALID_TRANSITIONS`.
-
----
-
-## [LOW] Donation credit granted below legal minimum floor (190 ₪)
-- **File:** `app/annual_reports/services/tax_engine.py:91` / `constants.py:73`
-- **Category:** Wrong Logic
-- **Issue:** `donation_credit = donation_amount * 0.35` is applied unconditionally; Israeli law (Section 46 ITO) requires the donation to exceed 190 ₪ before any credit is granted.
-- **Fix:** Add `DONATION_MINIMUM_ILS = 190` constant; set `donation_credit = 0` when `donation_amount < DONATION_MINIMUM_ILS`.
-
----
 
 ## 4. Domain Logic — Tax Deadlines
 
 ---
 
-## [MEDIUM] Deadline can be created for already-filed annual report
-- **File:** `app/tax_deadline/services/tax_deadline_service.py`
-- **Category:** Business Rule Gap
-- **Issue:** No guard prevents creating a tax deadline for a `(business_id, tax_year)` that already has an `AnnualReport` in `SUBMITTED / ACCEPTED / CLOSED` status, polluting the work queue with irrelevant items.
-- **Fix:** Before creating a deadline, query `AnnualReportRepository` for the same `(business_id, tax_year)` with a terminal status and raise or warn if found.
 
----
 
 ## 5. Domain Logic — Charge / Invoice
 
@@ -215,14 +150,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 - **Category:** Data Integrity
 - **Issue:** `UniqueConstraint("business_id", "period")` has no `postgresql_where` predicate; in PostgreSQL, a soft-deleted row for `(business_id=1, period="2025-01")` permanently blocks re-creation of that period.
 - **Fix:** Add `postgresql_where=text("deleted_at IS NULL")` to the constraint, matching the pattern used in `annual_report_model.py`.
-
----
-
-## [HIGH] Annual report stuck in SUBMITTED if amendment needed (no valid transition)
-- **File:** `app/annual_reports/services/constants.py:17-57`
-- **Category:** Data Integrity
-- **Issue:** `VALID_TRANSITIONS[SUBMITTED]` has no path to `AMENDED`; once submitted, a report requiring correction has no programmatic next state and requires manual DB intervention.
-- **Fix:** Add `AnnualReportStatus.AMENDED` to `VALID_TRANSITIONS[AnnualReportStatus.SUBMITTED]`. (Tracked also under §3.)
 
 ---
 

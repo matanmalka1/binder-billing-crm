@@ -11,6 +11,14 @@ from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRep
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
+from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+
+_TERMINAL_ANNUAL_REPORT_STATUSES = {
+    AnnualReportStatus.SUBMITTED,
+    AnnualReportStatus.ACCEPTED,
+    AnnualReportStatus.CLOSED,
+}
 
 
 class TaxDeadlineService:
@@ -32,6 +40,15 @@ class TaxDeadlineService:
     ) -> TaxDeadline:
         """Create new tax deadline."""
         validate_business_for_create(self.db, business_id)
+
+        if deadline_type == DeadlineType.ANNUAL_REPORT:
+            tax_year = due_date.year - 1
+            report = AnnualReportRepository(self.db).get_by_business_year(business_id, tax_year)
+            if report and report.status in _TERMINAL_ANNUAL_REPORT_STATUSES:
+                raise AppError(
+                    f"דוח שנתי לשנת {tax_year} כבר הוגש — לא ניתן ליצור מועד הגשה חדש",
+                    "TAX_DEADLINE.ANNUAL_REPORT_ALREADY_FILED",
+                )
 
         deadline = self.deadline_repo.create(
             business_id=business_id,

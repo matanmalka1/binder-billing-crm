@@ -10,7 +10,7 @@ from app.core.exceptions import AppError
 
 def derive_annual_income_from_vat(
     total_output_vat: Decimal,
-    vat_rate: Decimal = Decimal("0.18"),
+    vat_rate: Decimal,
 ) -> Decimal:
     """Reverse-calculate annual taxable income from total output VAT."""
     if vat_rate == 0:

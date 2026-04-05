@@ -17,7 +17,7 @@ Israeli context:
 
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
-    Index, Integer, Numeric, String, Text, UniqueConstraint,
+    Index, Integer, Numeric, String, Text,
 )
 from app.common.enums import SubmissionMethod
 from app.utils.enum_utils import pg_enum
@@ -76,7 +76,13 @@ class VatWorkItem(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint("business_id", "period", name="uq_vat_work_item_business_period"),
+        Index(
+            "uq_vat_work_item_business_period",
+            "business_id",
+            "period",
+            unique=True,
+            postgresql_where=Column("deleted_at").is_(None),
+        ),
         Index("ix_vat_work_items_status", "status"),
         Index("ix_vat_work_items_period", "period"),
     )

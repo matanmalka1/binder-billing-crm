@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from app.core.exceptions import AppError
-from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE
+from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 
 _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
     2024: [
@@ -88,7 +88,8 @@ def calculate_tax(
     adjusted_income = taxable_income - deduction
 
     credit_points_value = round(credit_points * credit_point_value, 2)
-    donation_credit = round(max(donation_amount, 0.0) * _DONATION_CREDIT_RATE, 2)
+    _donation_amt = max(donation_amount, 0.0)
+    donation_credit = round(_donation_amt * _DONATION_CREDIT_RATE, 2) if _donation_amt >= _DONATION_MINIMUM_ILS else 0.0
     other_credits_val = round(max(other_credits, 0.0), 2)
     total_credits = credit_points_value + donation_credit + other_credits_val
 
