@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.repositories import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 
 

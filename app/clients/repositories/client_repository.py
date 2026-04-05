@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.clients.models.client import Client, IdNumberType
 from app.utils.time_utils import utcnow
 

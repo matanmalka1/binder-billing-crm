@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus
 from app.utils.time_utils import utcnow
 

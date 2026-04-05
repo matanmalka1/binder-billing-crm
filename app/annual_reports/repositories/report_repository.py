@@ -4,8 +4,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.repositories import BaseRepository
-from app.annual_reports.models import AnnualReport, AnnualReportStatus
+from app.common.repositories.base_repository import BaseRepository
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
 
 _SORT_COLUMNS = {

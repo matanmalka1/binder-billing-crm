@@ -39,7 +39,7 @@ class FinancialTaxMixin:
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
 
         tax = calculate_tax(summary.taxable_income, report.tax_year, credit_points, pension_deduction, donation_amount, other_credits)
-        ni = calculate_national_insurance(summary.taxable_income, report.tax_year)
+        ni = calculate_national_insurance(summary.taxable_income, report.tax_year, report.client_type)
         net_profit = tax.taxable_income - tax.tax_after_credits
         vat_balance = self.vat_repo.sum_net_vat_by_business_year(report.business_id, report.tax_year)  # type: ignore[attr-defined]
         advances_paid = self.advance_repo.sum_paid_by_business_year(report.business_id, report.tax_year)  # type: ignore[attr-defined]

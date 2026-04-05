@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.reminders.schemas.reminders import ReminderListResponse, ReminderResponse
-from app.reminders.services import ReminderService
+from app.reminders.services.reminder_service import ReminderService
 
 list_router = APIRouter()
 

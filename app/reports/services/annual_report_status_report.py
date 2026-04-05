@@ -4,7 +4,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models import AnnualReportStatus
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 
 

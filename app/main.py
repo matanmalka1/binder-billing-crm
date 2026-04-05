@@ -5,7 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import config
-from app.core import EnvValidator, get_logger, setup_exception_handlers, setup_logging
+from app.core.env_validator import EnvValidator
+from app.core.exceptions import setup_exception_handlers
+from app.core.logging_config import get_logger, setup_logging
 from app.middleware.request_id import RequestIDMiddleware
 from app.lifespan import lifespan
 from app.router_registry import register_routers

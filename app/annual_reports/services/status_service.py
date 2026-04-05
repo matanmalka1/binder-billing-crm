@@ -2,7 +2,8 @@ from typing import Optional
 from datetime import datetime
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
-from app.annual_reports.models import AnnualReport, AnnualReportStatus, DeadlineType
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus, DeadlineType
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.utils.time_utils import utcnow
 from .constants import VALID_TRANSITIONS

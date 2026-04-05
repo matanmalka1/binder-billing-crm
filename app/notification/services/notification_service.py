@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.binders.models.binder import Binder
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.core import get_logger
+from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger

@@ -1,12 +1,12 @@
 from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError
-from app.annual_reports.models import (
-    AnnualReport,
+from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     ClientTypeForReport,
     DeadlineType,
 )
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.services.business_guards import validate_business_for_create
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP

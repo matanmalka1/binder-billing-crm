@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import User, UserRole
-from app.vat_reports.schemas import SendBackForCorrectionRequest, VatWorkItemResponse
+from app.vat_reports.schemas.vat_report import SendBackForCorrectionRequest, VatWorkItemResponse
 from app.vat_reports.services.vat_report_service import VatReportService
 
 router = APIRouter(prefix="/vat", tags=["vat-reports"])

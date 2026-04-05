@@ -3,9 +3,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.annual_reports.models import AnnualReportDetail
-from app.annual_reports.repositories import AnnualReportDetailRepository
-from app.annual_reports.repositories import AnnualReportRepository
+from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
 
 
 class AnnualReportDetailService:

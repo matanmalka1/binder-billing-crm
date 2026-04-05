@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import String, cast
 from sqlalchemy.orm import Query as SAQuery, Session, joinedload
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.businesses.models.business import Business
 
 

@@ -6,7 +6,7 @@ from app.annual_reports.schemas.annual_report_detail import (
     AnnualReportDetailUpdateRequest,
     ReportDetailResponse,
 )
-from app.annual_reports.services import AnnualReportDetailService
+from app.annual_reports.services.detail_service import AnnualReportDetailService
 from app.annual_reports.services.annual_report_service import AnnualReportService
 
 router = APIRouter(
@@ -17,7 +17,7 @@ router = APIRouter(
 
 
 def _enrich_detail_response(response: ReportDetailResponse, db) -> ReportDetailResponse:
-    from app.annual_reports.repositories import AnnualReportRepository
+    from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
     report = AnnualReportRepository(db).get_by_id(response.report_id)
     if report:
         response.tax_refund_amount = float(report.refund_due) if report.refund_due is not None else None

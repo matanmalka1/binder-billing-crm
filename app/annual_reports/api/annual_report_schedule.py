@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas import (  
+from app.annual_reports.schemas.annual_report_requests import (
     ScheduleAddRequest,
     ScheduleCompleteRequest,
-    ScheduleEntryResponse,
 )
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.schemas.annual_report_responses import ScheduleEntryResponse
+from app.annual_reports.services.annual_report_service import AnnualReportService
 
 
 router = APIRouter(

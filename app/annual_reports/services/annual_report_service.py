@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.annual_reports.repositories import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.repositories.business_repository import BusinessRepository

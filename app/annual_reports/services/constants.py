@@ -1,8 +1,10 @@
-from app.annual_reports.models import (
+from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
+)
+from app.annual_reports.models.annual_report_expense_line import (
     DEFAULT_RECOGNITION_RATE,
     STATUTORY_RECOGNITION_RATES,
 )

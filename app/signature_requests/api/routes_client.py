@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import SignatureRequestListResponse, SignatureRequestResponse
-from app.signature_requests.services import SignatureRequestService
+from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 
 client_router = APIRouter(

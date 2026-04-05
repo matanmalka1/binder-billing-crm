@@ -3,15 +3,17 @@ from fastapi import APIRouter, Depends
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.core.exceptions import NotFoundError
-from app.annual_reports.schemas import (
-    AnnualReportDetailResponse,
-    AnnualReportResponse,
+from app.annual_reports.schemas.annual_report_requests import (
     DeadlineUpdateRequest,
-    StatusHistoryResponse,
     StatusTransitionRequest,
     SubmitRequest,
 )
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.schemas.annual_report_responses import (
+    AnnualReportDetailResponse,
+    AnnualReportResponse,
+    StatusHistoryResponse,
+)
+from app.annual_reports.services.annual_report_service import AnnualReportService
 
 
 router = APIRouter(

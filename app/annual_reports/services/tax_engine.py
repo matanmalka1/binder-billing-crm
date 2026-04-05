@@ -22,12 +22,12 @@ _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
         (576_540, 0.35),
         (None, 0.47),
     ],
-    2026: [  # PLACEHOLDER — update when ITA publishes 2026 brackets
+    2026: [
         (84_120, 0.10),
         (120_720, 0.14),
         (193_800, 0.20),
         (269_280, 0.31),
-        (576_540, 0.35),
+        (560_280, 0.35),
         (None, 0.47),
     ],
 }
@@ -35,7 +35,7 @@ _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
 _CREDIT_POINT_VALUE_BY_YEAR: dict[int, float] = {
     2024: 2_904.0,
     2025: 3_003.0,
-    2026: 3_003.0,
+    2026: 2_904.0,
 }
 
 

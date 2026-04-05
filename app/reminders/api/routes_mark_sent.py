@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderResponse
-from app.reminders.services import ReminderService
+from app.reminders.services.reminder_service import ReminderService
 
 mark_sent_router = APIRouter()
 

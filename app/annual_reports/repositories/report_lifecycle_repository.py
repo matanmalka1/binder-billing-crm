@@ -7,7 +7,8 @@ from typing import Optional
 
 from sqlalchemy import func, case
 
-from app.annual_reports.models import AnnualReport, AnnualReportStatus
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
 
 

@@ -61,7 +61,7 @@ class SignatureRequestService:
     def _auto_advance_annual_report(self, annual_report_id: int, now) -> None:
         try:
             from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-            from app.annual_reports.repositories import AnnualReportDetailRepository
+            from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
             from app.annual_reports.services.annual_report_service import AnnualReportService
 
             svc = AnnualReportService(self.db)

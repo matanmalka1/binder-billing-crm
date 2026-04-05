@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Query as SAQuery, Session
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.utils.time_utils import utcnow
 

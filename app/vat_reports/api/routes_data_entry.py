@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_enums import InvoiceType
-from app.vat_reports.schemas import (
+from app.vat_reports.schemas.vat_invoice_schema import (
     VatInvoiceCreateRequest,
     VatInvoiceListResponse,
     VatInvoiceResponse,
-    VatInvoiceUpdateRequest,
 )
+from app.vat_reports.schemas.vat_invoice_update import VatInvoiceUpdateRequest
 from app.vat_reports.services.vat_report_service import VatReportService
 
 router = APIRouter(prefix="/vat", tags=["vat-reports"])

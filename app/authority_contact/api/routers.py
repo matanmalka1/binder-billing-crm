@@ -1,0 +1,10 @@
+"""Authority contact API router aggregating sub-routers."""
+
+from fastapi import APIRouter
+
+from app.authority_contact.api.authority_contact import router as authority_contact_router
+
+router = APIRouter()
+router.include_router(authority_contact_router)
+
+__all__ = ["router"]

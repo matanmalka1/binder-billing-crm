@@ -1,7 +1,7 @@
 import asyncio
 from typing import TYPE_CHECKING
 
-from app.core import get_logger
+from app.core.logging_config import get_logger
 from app.database import SessionLocal
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.admin_actions import expire_overdue_requests

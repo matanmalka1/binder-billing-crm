@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 
@@ -100,4 +100,3 @@ class UserAuditLogRepository(BaseRepository):
         if to_ts is not None:
             query = query.filter(UserAuditLog.created_at <= to_ts)
         return query
-

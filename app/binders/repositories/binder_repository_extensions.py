@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 
 
 class BinderRepositoryExtensions(BaseRepository):

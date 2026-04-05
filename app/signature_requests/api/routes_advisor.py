@@ -13,7 +13,7 @@ from app.signature_requests.schemas.signature_request import (
     SignatureRequestSentResponse,
     SignatureRequestWithAuditResponse,
 )
-from app.signature_requests.services import SignatureRequestService
+from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 
 advisor_router = APIRouter(

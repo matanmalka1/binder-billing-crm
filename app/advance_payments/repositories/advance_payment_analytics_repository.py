@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import (
     advance_payment_status_text_expr,

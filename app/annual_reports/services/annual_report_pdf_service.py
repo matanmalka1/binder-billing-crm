@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.detail_service import AnnualReportDetailService
-from app.annual_reports.repositories import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.annual_reports.services.annual_report_pdf_builder import build_pdf
 

@@ -2,11 +2,8 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas import (  # FIXED: was app.schemas.annual_report
-    AnnualReportListResponse,
-    SeasonSummaryResponse,
-)
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.schemas.annual_report_responses import AnnualReportListResponse, SeasonSummaryResponse
+from app.annual_reports.services.annual_report_service import AnnualReportService
 
 
 season_router = APIRouter(

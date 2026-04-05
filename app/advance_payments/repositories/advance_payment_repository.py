@@ -12,7 +12,7 @@ from sqlalchemy import String, cast, func
 from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
-from app.common.repositories import BaseRepository
+from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,

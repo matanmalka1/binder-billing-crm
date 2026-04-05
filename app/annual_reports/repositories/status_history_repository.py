@@ -2,7 +2,8 @@
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models import AnnualReportStatus, AnnualReportStatusHistory
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 
 
 class AnnualReportStatusHistoryRepository:

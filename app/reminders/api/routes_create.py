@@ -6,7 +6,7 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.reminders.models.reminder import ReminderType
 from app.reminders.schemas.reminders import ReminderCreateRequest, ReminderResponse
-from app.reminders.services import ReminderService
+from app.reminders.services.reminder_service import ReminderService
 
 create_router = APIRouter()
 

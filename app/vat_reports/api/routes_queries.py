@@ -8,9 +8,8 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services.vat_report_queries import compute_deadline_fields
-from app.vat_reports.schemas import (
-    VatAuditLogResponse,
-    VatAuditTrailResponse,
+from app.vat_reports.schemas.vat_audit import VatAuditLogResponse, VatAuditTrailResponse
+from app.vat_reports.schemas.vat_report import (
     VatPeriodOptionsResponse,
     VatWorkItemListResponse,
     VatWorkItemLookupResponse,

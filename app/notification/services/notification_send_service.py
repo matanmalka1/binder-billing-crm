@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import config
 from app.core.exceptions import AppError
-from app.core import get_logger
+from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.clients.models.client import Client
 from app.businesses.models.business import Business
