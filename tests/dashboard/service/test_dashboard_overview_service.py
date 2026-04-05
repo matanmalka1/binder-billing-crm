@@ -18,7 +18,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(
         service.extended_service,
         "get_attention_items",
-        lambda user_role=None: [{"item_type": "idle_binder"}],
+        lambda user_role=None: [{"item_type": "ready_for_pickup"}],
     )
 
     overview = service.get_overview(
@@ -32,6 +32,6 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     assert overview["vat_due_this_month"] == 4
     assert overview["quick_actions"] == [{"key": "ready", "period": "2026-03"}]
     assert overview["attention"] == {
-        "items": [{"item_type": "idle_binder"}],
+        "items": [{"item_type": "ready_for_pickup"}],
         "total": 1,
     }

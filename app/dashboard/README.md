@@ -3,14 +3,13 @@
 > Last audited: 2026-03-17 (domain-by-domain backend sync).
 
 
-Manages dashboard widgets and operational summaries (overview metrics, work queue, attention items, and tax submission statistics) used by the CRM home/dashboard screens.
+Manages dashboard widgets and operational summaries (overview metrics, attention items, and tax submission statistics) used by the CRM home/dashboard screens.
 
 ## Scope
 
 This module provides:
 - Dashboard summary counters
 - Management overview metrics + quick actions
-- Operational work queue
 - Attention items feed
 - Tax submission widget for annual reports
 - Role-based API access per widget
@@ -22,7 +21,6 @@ Dashboard does not define persistent domain tables.
 It composes data from other domains and returns derived response models:
 - `DashboardSummaryResponse`
 - `DashboardOverviewResponse`
-- `WorkQueueResponse`
 - `AttentionResponse`
 - `TaxSubmissionWidgetResponse`
 
@@ -53,17 +51,6 @@ Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
   - `quick_actions`
   - `attention`
 
-### Work queue
-- `GET /api/v1/dashboard/work-queue`
-- Roles: `ADVISOR`, `SECRETARY`
-- Query params:
-  - `page` (default `1`, min `1`)
-  - `page_size` (default `20`, min `1`, max `100`)
-- Returns operational binder queue with:
-  - `binder_id`, `client_id`, `client_name`
-  - `binder_number`
-  - `days_since_received`
-
 ### Attention
 - `GET /api/v1/dashboard/attention`
 - Roles: `ADVISOR`, `SECRETARY`
@@ -85,7 +72,7 @@ Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
 - Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
 - Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
-- Work queue and attention are computed from active binders and their statuses.
+- Attention is computed from active binders and their statuses.
 - Advisor-only attention enrichment includes unpaid issued charges.
 - Tax-submission widget derives progress buckets from annual-report statuses and active client count.
 - `DashboardExtendedService` has hard in-memory safety limits:

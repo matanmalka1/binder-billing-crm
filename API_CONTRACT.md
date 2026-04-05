@@ -94,7 +94,6 @@
 
 - `GET /api/v1/dashboard/summary` — counts: `binders_in_office`, `binders_ready_for_pickup`, attention items.
 - `GET /api/v1/dashboard/overview` (advisor) — management metrics + quick actions.
-- `GET /api/v1/dashboard/work-queue` — paginated operational queue with `work_state`/signals.
 - `GET /api/v1/dashboard/attention` — attention items; `unpaid_charge` items advisor-only.
 - `GET /api/v1/dashboard/tax-submissions` — optional `tax_year`; submission progress widget.
 

@@ -8,13 +8,10 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.binders.services.signals_service import SignalsService
 from app.users.models.user import UserRole
 from app.dashboard.services.dashboard_extended_builders import (
-    idle_attention_item,
     ready_attention_item,
     unpaid_charge_attention_item,
-    work_queue_item,
 )
 
 # Hard limits for in-memory aggregations.
@@ -24,14 +21,13 @@ _UNPAID_CHARGES_FETCH_LIMIT = 500
 
 
 class DashboardExtendedService:
-    """Extended dashboard: work queue, alerts, and attention items."""
+    """Extended dashboard: alerts, and attention items."""
 
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.business_repo = BusinessRepository(db)
         self.charge_repo = ChargeRepository(db)
-        self.signals_service = SignalsService(db)
         self._cached_active_binders_with_businesses: Optional[list[tuple]] = None
 
     def _active_binders_with_businesses(self) -> list[tuple]:
@@ -56,22 +52,6 @@ class DashboardExtendedService:
             ]
         return self._cached_active_binders_with_businesses
 
-    def get_work_queue(
-        self,
-        page: int = 1,
-        page_size: int = 20,
-        reference_date: Optional[date] = None,
-    ) -> tuple[list[dict], int]:
-        if reference_date is None:
-            reference_date = date.today()
-
-        items = []
-        for binder, business in self._active_binders_with_businesses():
-            items.append(work_queue_item(binder, business, reference_date))
-        total = len(items)
-        offset = (page - 1) * page_size
-        return items[offset : offset + page_size], total
-
     def get_attention_items(
         self,
         user_role: Optional[UserRole] = None,
@@ -82,8 +62,6 @@ class DashboardExtendedService:
 
         items = []
         for binder, business in self._active_binders_with_businesses():
-            if self.signals_service.is_idle_binder(binder, reference_date):
-                items.append(idle_attention_item(binder, business, reference_date))
             if binder.status == BinderStatus.READY_FOR_PICKUP:
                 items.append(ready_attention_item(binder, business))
 

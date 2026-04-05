@@ -44,7 +44,9 @@ def test_build_vat_and_annual_actions_include_due_labels():
             )
         ]
     )
-    business_repo = SimpleNamespace(get_by_id=lambda bid: SimpleNamespace(full_name=f"Business {bid}"))
+    business_repo = SimpleNamespace(
+        get_by_id=lambda bid: SimpleNamespace(id=bid, client_id=bid, full_name=f"Business {bid}")
+    )
 
     vat_actions = helpers.build_vat_actions(vat_repo, business_repo, "2026-01")
     annual_actions = helpers.build_annual_report_actions(annual_repo, business_repo)
@@ -58,7 +60,9 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
     binder_repo = object()
     vat_repo = object()
     annual_repo = object()
-    business_repo = SimpleNamespace(get_by_id=lambda _id: SimpleNamespace(full_name="Charge Client"))
+    business_repo = SimpleNamespace(
+        get_by_id=lambda _id: SimpleNamespace(id=3, client_id=3, full_name="Charge Client")
+    )
     charge_repo = SimpleNamespace(
         list_charges=lambda **kwargs: [SimpleNamespace(business_id=3)],
     )
