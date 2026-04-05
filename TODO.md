@@ -8,12 +8,6 @@
 ## High Priority Focus
 
 Top 10 most urgent tasks based on impact, dependencies, and current development risk.
-
-- [x] **[CRITICAL] Race condition on all status transitions — no row-level lock** (`app/charge/`, `app/vat_reports/`, `app/annual_reports/`, `app/binders/`, `app/signature_requests/`) — Reason: Concurrent requests can corrupt status, timestamps, and reminders across the busiest domains; this is a systemic data integrity failure affecting everything downstream.
-- [x] **[CRITICAL] Osek Patur ceiling check includes deleted VAT periods** (`app/vat_reports/repositories/vat_invoice_aggregation_repository.py:85`) — Reason: Soft-deleted periods inflate the 122,833 ₪ annual income ceiling used to block Osek Patur invoices, causing legitimate invoices to be incorrectly rejected — a one-line fix with direct legal impact.
-- [x] **[HIGH] 2026 income tax brackets are 2025 placeholders** (`app/annual_reports/services/tax_engine.py:25-32`) — Reason: Every annual report computed for tax year 2026 uses wrong brackets and credit point values, producing incorrect tax liability figures that advisors may file.
-- [x] **[HIGH] 2026 National Insurance ceiling is a 2025 placeholder** (`app/annual_reports/services/ni_engine.py:10`) — Reason: NI calculations for 2026 reports use the wrong income ceiling, producing under/over-charged NI contributions for clients.
-- [x] **[HIGH] NI rates are self-employed only — wrong for employee reports** (`app/annual_reports/services/constants.py:77-78`) — Reason: Applying self-employed NI rates to employee clients silently produces wrong NI amounts on annual reports, a direct tax compliance error.
 - [ ] **[HIGH] Advance payment due-date formula wrong for companies (חברות)** (`app/advance_payments/services/advance_payment_generator.py:50-55`) — Reason: Companies are assigned a due date one month too late, causing all advance payment deadlines for חברות clients to be systemically wrong.
 - [ ] **[HIGH] Reminder not canceled when charge is marked paid** (`app/charge/services/billing_service.py:82-86`) — Reason: Advisors receive stale "unpaid charge" reminders for charges already marked paid, eroding trust in the notification system and causing unnecessary follow-up.
 - [ ] **[HIGH] VatWorkItem unique constraint allows re-creation after soft-delete in PostgreSQL** (`app/vat_reports/models/vat_work_item.py:79`) — Reason: In production (PostgreSQL), soft-deleting a VAT period permanently blocks re-creation, silently making that period unfileable without manual DB intervention.
@@ -26,11 +20,14 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [HIGH] Extended VAT deadline (19th) never surfaced to UI
-- **File:** `app/vat_reports/services/vat_report_queries.py:21`
-- **Category:** Wrong Logic
-- **Issue:** `compute_deadline_fields()` returns only the statutory 15th deadline; the digital-filing extension to the 19th (`VAT_ONLINE_EXTENDED_DEADLINE_DAY`) is defined in constants but never returned, making e-filers appear 4 days overdue when they are not.
-- **Fix:** Return both `statutory_deadline` (15th) and `extended_deadline` (19th) in the dict; frontend uses statutory for urgency badges, extended for display.
+## ✅ [RESOLVED] Extended VAT deadline (19th) now respects online filing extension
+- **File:** `app/vat_reports/services/vat_report_queries.py`
+- **Fix:** `compute_deadline_fields()` now accepts optional `submission_method` parameter
+  - Manual filers get submission_deadline = 15th (statutory)
+  - Online filers get submission_deadline = 19th (extended)
+  - Both statutory_deadline (15th) and extended_deadline (19th) always returned
+  - days_until_deadline and is_overdue now use submission_deadline, not always statutory
+- **Impact:** E-filers filing between 16th-19th no longer marked as overdue
 
 ---
 
@@ -82,13 +79,7 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [HIGH] 2026 income tax brackets are 2025 placeholders
-- **File:** `app/annual_reports/services/tax_engine.py:25-32`
-- **Category:** Wrong Logic
-- **Issue:** `_BRACKETS_BY_YEAR[2026]` and `_CREDIT_POINT_VALUE_BY_YEAR[2026]` are identical to 2025 values and marked `# PLACEHOLDER`; any annual report calculated for tax year 2026 uses wrong brackets.
-- **Fix:** Update `_BRACKETS_BY_YEAR[2026]` and `_CREDIT_POINT_VALUE_BY_YEAR[2026]` with the ITA-published 2026 values (indexed to 2025 CPI).
 
----
 
 ## [HIGH] 2026 National Insurance ceiling is a 2025 placeholder
 - **File:** `app/annual_reports/services/ni_engine.py:10`
@@ -243,11 +234,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [CRITICAL] Race condition on all status transitions — no row-level lock
-- **File:** All service files that do fetch → validate → update (charge, vat_reports, annual_reports, binders, signature_requests)
-- **Category:** Race Condition / Data Integrity
-- **Issue:** The pattern `get_by_id()` → `if status != X: raise` → `update_status()` has no lock between read and write; two concurrent requests can both pass the status check and both apply the transition, producing double reminders, double audit entries, and corrupt `issued_at`/`filed_at` timestamps.
-- **Fix:** Use `with_for_update()` on the `get_by_id()` query inside all status-transition paths (PostgreSQL `SELECT FOR UPDATE`), or add an optimistic `version: int` column with a `WHERE version = :v` update guard.
 
 ---
 
