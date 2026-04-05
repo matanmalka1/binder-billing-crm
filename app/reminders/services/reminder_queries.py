@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, TypedDict
 
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderStatus
@@ -9,13 +9,26 @@ from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 
 
+class ReminderBusinessContext(TypedDict):
+    business_name: str
+    client_id: int
+    client_name: str
+
+
 def _build_name_map(
     business_repo: BusinessRepository,
     items: List[Reminder],
-) -> Dict[int, str]:
+) -> Dict[int, ReminderBusinessContext]:
     business_ids = list({r.business_id for r in items})
     businesses = business_repo.list_by_ids(business_ids)
-    return {b.id: b.full_name for b in businesses}
+    return {
+        b.id: {
+            "business_name": b.full_name,
+            "client_id": b.client_id,
+            "client_name": b.client.full_name if b.client else f"לקוח #{b.client_id}",
+        }
+        for b in businesses
+    }
 
 
 def get_reminders(
@@ -25,7 +38,7 @@ def get_reminders(
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
-) -> Tuple[List[Reminder], int, Dict[int, str]]:
+) -> Tuple[List[Reminder], int, Dict[int, ReminderBusinessContext]]:
     if status is None:
         return get_pending_reminders(reminder_repo, business_repo, page=page, page_size=page_size)
 
@@ -49,7 +62,7 @@ def get_pending_reminders(
     reference_date: Optional[date] = None,
     page: int = 1,
     page_size: int = 20,
-) -> Tuple[List[Reminder], int, Dict[int, str]]:
+) -> Tuple[List[Reminder], int, Dict[int, ReminderBusinessContext]]:
     if reference_date is None:
         reference_date = date.today()
 
@@ -69,7 +82,7 @@ def get_reminders_by_business(
     business_id: int,
     page: int = 1,
     page_size: int = 20,
-) -> Tuple[List[Reminder], int, Dict[int, str]]:
+) -> Tuple[List[Reminder], int, Dict[int, ReminderBusinessContext]]:
     items = reminder_repo.list_by_business(business_id=business_id, page=page, page_size=page_size)
     total = reminder_repo.count_by_business(business_id)
     return items, total, _build_name_map(business_repo, items)

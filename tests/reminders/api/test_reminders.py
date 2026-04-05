@@ -184,6 +184,10 @@ def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_
     )
     assert biz_resp.status_code == 200
     assert all(item["business_id"] == business.id for item in biz_resp.json()["items"])
+    first_item = biz_resp.json()["items"][0]
+    assert first_item["client_id"] == crm_client.id
+    assert first_item["client_name"] == crm_client.full_name
+    assert first_item["business_name"] is not None
 
     # Status filter
     status_resp = client.get(

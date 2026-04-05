@@ -43,6 +43,8 @@ class ReminderResponse(BaseModel):
     id: int
     business_id: int
     business_name: Optional[str] = None        # enriched by service
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
     reminder_type: ReminderType
     status: ReminderStatus
     target_date: date

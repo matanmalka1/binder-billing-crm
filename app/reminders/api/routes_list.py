@@ -36,7 +36,11 @@ def list_reminders(
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)
-        resp.business_name = name_map.get(r.business_id)
+        business_context = name_map.get(r.business_id)
+        if business_context:
+            resp.business_name = business_context["business_name"]
+            resp.client_id = business_context["client_id"]
+            resp.client_name = business_context["client_name"]
         return resp
 
     return ReminderListResponse(
