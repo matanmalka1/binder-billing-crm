@@ -98,7 +98,7 @@ Body:
 Behavior:
 - `business_id` present: returns all matching deadlines for that business.
 - `client_name` present: resolves business IDs by name then returns matching deadlines.
-- no business filters: returns pending deadlines only, from today forward, capped at `GLOBAL_DEADLINE_FETCH_LIMIT` before pagination.
+- no business filters: returns paginated pending deadlines only, from today forward.
 
 ### Get deadline
 
@@ -117,6 +117,7 @@ Behavior:
 - Editable in service/repository:
   - `deadline_type`
   - `due_date`
+  - `period`
   - `payment_amount`
   - `description`
 

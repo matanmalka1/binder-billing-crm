@@ -52,6 +52,16 @@ def get_tax_deadline_actions(
         )
     )
 
+    actions.append(
+        build_action(
+            key="delete",
+            label="מחיקה",
+            method="delete",
+            endpoint=f"/tax-deadlines/{deadline.id}",
+            action_id=_generate_action_id("tax_deadline", deadline.id, "delete"),
+        )
+    )
+
     return actions
 
 

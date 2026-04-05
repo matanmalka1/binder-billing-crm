@@ -14,9 +14,10 @@ def test_get_tax_deadline_actions_non_completed_has_complete_and_edit():
 
     actions = get_tax_deadline_actions(deadline)
 
-    assert [action["key"] for action in actions] == ["complete", "edit"]
+    assert [action["key"] for action in actions] == ["complete", "edit", "delete"]
     assert actions[0]["id"] == "tax_deadline-3-complete"
     assert actions[1]["id"] == "tax_deadline-3-edit"
+    assert actions[2]["id"] == "tax_deadline-3-delete"
 
 
 def test_get_tax_deadline_actions_completed_has_only_edit():
@@ -24,8 +25,9 @@ def test_get_tax_deadline_actions_completed_has_only_edit():
 
     actions = get_tax_deadline_actions(deadline)
 
-    assert [action["key"] for action in actions] == ["edit"]
+    assert [action["key"] for action in actions] == ["edit", "delete"]
     assert actions[0]["endpoint"] == "/tax-deadlines/4"
+    assert actions[1]["endpoint"] == "/tax-deadlines/4"
 
 
 def test_get_tax_deadline_actions_secretary_has_no_actions():
