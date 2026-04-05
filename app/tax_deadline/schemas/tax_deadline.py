@@ -46,7 +46,7 @@ class TaxDeadlineResponse(BaseModel):
     description: Optional[str] = None
     completed_at: Optional[ApiDateTime] = None
     completed_by: Optional[int] = None      
-    advance_payment_id: Optional[int] = None  
+    advance_payment_id: Optional[int] = None
     created_at: ApiDateTime
     available_actions: list[dict] = []
 

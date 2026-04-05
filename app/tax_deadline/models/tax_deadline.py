@@ -11,8 +11,8 @@ Design decisions:
 - No currency column — always ILS per project convention.
 - UrgencyLevel enum lives here (used by service layer) but not stored on the model.
 - completed_at + completed_by capture who fulfilled the obligation and when.
-- period ("YYYY-MM") links the deadline to a reporting period — enables
-  deduplication in the generator (exists check by business + type + period).
+- period ("YYYY-MM") links the deadline to a reporting period for display
+  and reporting; generator deduplication currently uses business + type + due_date.
 - advance_payment_id: TaxDeadline knows which AdvancePayment settled it.
   Direction: TaxDeadline → AdvancePayment (not the reverse) to avoid circular FK.
 - Soft delete included — TaxDeadline is a business entity.

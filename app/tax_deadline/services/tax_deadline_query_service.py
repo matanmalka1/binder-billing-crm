@@ -24,20 +24,20 @@ class TaxDeadlineQueryService:
     def list_deadlines(
         self,
         business_id: Optional[int],
-        client_name: Optional[str],
+        business_name: Optional[str],
         status: Optional[str],
         deadline_type: Optional[DeadlineType],
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[TaxDeadline], int]:
-        """Route branching logic: by business, by client name, or all pending."""
+        """Route branching logic: by business, by business name, or all pending."""
         if business_id:
             items = self.deadline_repo.list_by_business(business_id, status, deadline_type)
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
-        if client_name:
-            items = self.get_deadlines_by_client_name(client_name, status, deadline_type)
+        if business_name:
+            items = self.get_deadlines_by_business_name(business_name, status, deadline_type)
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total
@@ -129,18 +129,27 @@ class TaxDeadlineQueryService:
         else:
             return UrgencyLevel.GREEN
 
+    def get_deadlines_by_business_name(
+        self,
+        business_name: str,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+    ) -> list[TaxDeadline]:
+        """Get deadlines filtered by business name substring."""
+        businesses = self.business_repo.list(search=business_name, page=1, page_size=500)
+        if not businesses:
+            return []
+        business_ids = [b.id for b in businesses]
+        return self.deadline_repo.list_by_business_ids(business_ids, status, deadline_type)
+
     def get_deadlines_by_client_name(
         self,
         client_name: str,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        """Get deadlines filtered by business name substring."""
-        businesses = self.business_repo.list(search=client_name, page=1, page_size=500)
-        if not businesses:
-            return []
-        business_ids = [b.id for b in businesses]
-        return self.deadline_repo.list_by_business_ids(business_ids, status, deadline_type)
+        """Backward-compatible alias for legacy callers/tests."""
+        return self.get_deadlines_by_business_name(client_name, status, deadline_type)
 
     def get_timeline(self, business_id: int) -> list:
         """Return deadlines for a business sorted by due_date asc with days_remaining and milestone_label."""

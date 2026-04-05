@@ -42,6 +42,7 @@ def list_tax_deadlines(
     db: DBSession,
     user: CurrentUser,
     business_id: Optional[int] = None,
+    business_name: Optional[str] = Query(None),
     client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
@@ -51,9 +52,10 @@ def list_tax_deadlines(
     """List tax deadlines with optional filters."""
     service = TaxDeadlineQueryService(db)
     type_enum = DeadlineType(deadline_type) if deadline_type else None
+    search_name = business_name or client_name
 
     paginated, total = service.list_deadlines(
-        business_id, client_name, status_filter, type_enum, page=page, page_size=page_size
+        business_id, search_name, status_filter, type_enum, page=page, page_size=page_size
     )
 
     business_name_map = service.build_business_name_map(paginated)

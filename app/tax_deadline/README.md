@@ -89,7 +89,8 @@ Body:
 - `GET /api/v1/tax-deadlines`
 - Query params:
   - `business_id` (optional)
-  - `client_name` (optional business-name substring filter; legacy query-param name)
+  - `business_name` (optional business-name substring filter)
+  - `client_name` (legacy alias for `business_name`)
   - `deadline_type` (optional)
   - `status` (optional)
   - `page` (default `1`, min `1`)
@@ -97,7 +98,8 @@ Body:
 
 Behavior:
 - `business_id` present: returns all matching deadlines for that business.
-- `client_name` present: resolves business IDs by name then returns matching deadlines.
+- `business_name` present: resolves business IDs by name then returns matching deadlines.
+- `client_name` present: same behavior as a legacy alias.
 - no business filters: returns paginated pending deadlines only, from today forward.
 
 ### Get deadline

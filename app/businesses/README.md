@@ -10,7 +10,6 @@ This module provides:
 - CRUD for `businesses` under a client
 - Business status lifecycle (active → frozen → closed) with role enforcement
 - Soft delete and restore with audit fields
-- Bulk status actions (freeze / close / activate) across multiple businesses
 - Business tax profile get/update (VAT type, advance rate, fiscal year)
 - Aggregated business status card (VAT, annual report, charges, advances, binders, documents)
 - `has_signals` filtering with in-memory safety ceiling
@@ -117,7 +116,7 @@ Roles: `ADVISOR` (create), `ADVISOR` + `SECRETARY` (list)
 #### List businesses for client
 - `GET /api/v1/clients/{client_id}/businesses`
 - Roles: `ADVISOR`, `SECRETARY`
-- Returns all active businesses for the client
+- Returns all non-deleted businesses for the client, including `active`, `frozen`, and `closed`
 
 ---
 

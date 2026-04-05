@@ -22,7 +22,7 @@ def generate_deadlines(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Generate all tax deadlines for a client and year. Skips existing (idempotent)."""
+    """Generate all tax deadlines for a business and year. Skips existing (idempotent)."""
     service = DeadlineGeneratorService(db)
     created_count = service.generate_all(request.business_id, request.year)
     return GenerateDeadlinesResponse(created_count=created_count)
