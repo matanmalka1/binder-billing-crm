@@ -21,15 +21,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ## 4. Domain Logic — Tax Deadlines
 ## 5. Domain Logic — Charge / Invoice
 ## 6. Domain Logic — Businesses
-
-## [HIGH] `assert_business_not_closed()` does not block FROZEN businesses
-- **File:** `app/businesses/services/business_guards.py:19-25`
-- **Category:** Business Rule Gap
-- **Issue:** `assert_business_not_closed()` only raises for CLOSED; callers that use this guard instead of `assert_business_allows_create()` silently permit write operations on FROZEN businesses.
-- **Fix:** Audit every call site of `assert_business_not_closed()`; replace with `assert_business_allows_create()` where FROZEN should also be blocked, or document intentional FROZEN-allows-write exceptions per domain.
-
----
-
 ## 7. Domain Logic — Clients
 
 ---
@@ -62,13 +53,7 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [x] [LOW] Service-layer constants file imports from model layer
-- **File:** `app/annual_reports/services/constants.py:83-86`
-- **Category:** Layer Violation
-- **Issue:** `constants.py` imports `DEFAULT_RECOGNITION_RATE` and `STATUTORY_RECOGNITION_RATES` directly from `app.annual_reports.models.annual_report_expense_line` at the bottom of the file.
-- **Fix:** Re-export these constants from `app/annual_reports/models/__init__.py` so services import from the models package boundary, not from a specific model file.
 
----
 
 
 ## 10. Redundant Code
@@ -190,11 +175,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 | MEDIUM | 14 |
 | LOW | 10 |
 | **Total** | **40** |
-
-### Top 3 Priorities
-1. **CRITICAL** — `vat_invoice_aggregation_repository.py:85`: add `deleted_at IS NULL` filter to Osek Patur ceiling query. One line. Ship now.
-2. **CRITICAL** — Race condition on all status transitions: add `with_for_update()` to all fetch-then-transition patterns.
-3. **HIGH** — Update 2026 tax brackets, credit point value, and NI ceiling from placeholders to actual ITA/NII-published values.
 
 ### Most Affected Domains
 1. `annual_reports` — 7 issues

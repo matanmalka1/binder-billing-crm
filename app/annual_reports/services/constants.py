@@ -1,13 +1,12 @@
+from decimal import Decimal
+
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
 )
-from app.annual_reports.models.annual_report_expense_line import (
-    DEFAULT_RECOGNITION_RATE,
-    STATUTORY_RECOGNITION_RATES,
-)
+from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 
 # Which form each client type must use
 FORM_MAP: dict[ClientTypeForReport, AnnualReportForm] = {
@@ -86,6 +85,12 @@ NI_RATE_HIGH = 0.1783
 
 # ── Statutory partial recognition rates — Income Tax Regulations ──────────────
 # Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
+STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
+    ExpenseCategoryType.VEHICLE: Decimal("0.75"),
+    ExpenseCategoryType.COMMUNICATION: Decimal("0.80"),
+}
+DEFAULT_RECOGNITION_RATE = Decimal("1.00")
+
 # ── Stuck-report defaults ──────────────────────────────────────────────────────
 STUCK_REPORT_STALE_DAYS = 7
 STUCK_REPORT_LIMIT = 3
