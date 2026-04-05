@@ -59,7 +59,7 @@ class AdvancePayment(Base):
 
     # ── Amounts ───────────────────────────────────────────────────────────────
     expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
-    paid_amount     = Column(Numeric(10, 2), nullable=True)  # Actually
+    paid_amount     = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")  # Actually
 
     # ── Status & payment ──────────────────────────────────────────────────────
     status         = Column(pg_enum(AdvancePaymentStatus),

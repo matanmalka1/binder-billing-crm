@@ -108,23 +108,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ## 10. Redundant Code
 
----
-
-## [x] [MEDIUM] get_business_or_raise + assert_business_allows_create duplicated across 5+ services
-- **File:** `app/charge/services/billing_service.py:37-38`, `app/advance_payments/services/advance_payment_service.py`, `app/vat_reports/services/intake.py:54-58`, and others
-- **Category:** Redundant Code
-- **Issue:** Every domain service that creates records repeats the same two-line guard sequence without a shared helper.
-- **Fix:** Add `validate_business_for_create(db: Session, business_id: int) -> Business` to `app/businesses/services/business_guards.py` that calls both steps atomically; replace all call sites.
-
----
-
-##  [x] [LOW] `sum_vat_both_types` and `sum_net_both_types` run redundant paired queries
-- **File:** `app/vat_reports/repositories/vat_invoice_aggregation_repository.py:18-72`
-- **Category:** Redundant Code
-- **Issue:** Both methods fire two separate `func.sum` queries filtered by `invoice_type`; this can be one grouped query.
-- **Fix:** Replace each pair with a single query `GROUP BY invoice_type` and unpack both results in one round-trip.
-
----
 
 ## 11. Architectural Violations
 
@@ -140,18 +123,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ## 12. Data Integrity & Edge Cases
 
----
-
-
----
-
-## [HIGH] VatWorkItem unique constraint allows re-creation after soft-delete in PostgreSQL
-- **File:** `app/vat_reports/models/vat_work_item.py:79`
-- **Category:** Data Integrity
-- **Issue:** `UniqueConstraint("business_id", "period")` has no `postgresql_where` predicate; in PostgreSQL, a soft-deleted row for `(business_id=1, period="2025-01")` permanently blocks re-creation of that period.
-- **Fix:** Add `postgresql_where=text("deleted_at IS NULL")` to the constraint, matching the pattern used in `annual_report_model.py`.
-
----
 
 ## [MEDIUM] Binder pickup notification always uses first business for multi-business clients
 - **File:** `app/binders/services/binder_service.py:79-86`
