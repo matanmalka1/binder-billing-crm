@@ -47,7 +47,6 @@ class ExpenseCategory(str, PyEnum):
     POSTAGE_AND_SHIPPING  = "postage_and_shipping"
     BANK_FEES             = "bank_fees"
     MIXED_EXPENSE         = "mixed_expense"
-    OTHER                 = "other"
 
 
 class VatRateType(str, PyEnum):

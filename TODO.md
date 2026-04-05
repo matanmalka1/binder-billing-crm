@@ -19,23 +19,15 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ## 1. Domain Logic — VAT Reports
 
 ---
-
-## ✅ [RESOLVED] Extended VAT deadline (19th) now respects online filing extension
-- **File:** `app/vat_reports/services/vat_report_queries.py`
-- **Fix:** `compute_deadline_fields()` now accepts optional `submission_method` parameter
-  - Manual filers get submission_deadline = 15th (statutory)
-  - Online filers get submission_deadline = 19th (extended)
-  - Both statutory_deadline (15th) and extended_deadline (19th) always returned
-  - days_until_deadline and is_overdue now use submission_deadline, not always statutory
-- **Impact:** E-filers filing between 16th-19th no longer marked as overdue
-
----
-
-## [MEDIUM] "other" expense category silently yields 0% VAT deduction
-- **File:** `app/vat_reports/services/constants.py:97`
+## [x] [MEDIUM] "other" expense category silently yields 0% VAT deduction
+- **File:** `app/vat_reports/services/constants.py` / `app/vat_reports/models/vat_enums.py` / frontend `constants.ts`
 - **Category:** Business Rule Gap
-- **Issue:** `CATEGORY_DEDUCTION_RATES["other"] = 0.0` — any invoice whose category is unrecognized or `None` gets zero input VAT deduction with no warning.
-- **Fix:** Either raise a validation error when an EXPENSE invoice has category `None`/`"other"`, or set a `requires_manual_review` flag and exclude from auto-deduction totals.
+- **Status:** ✅ RESOLVED
+- **Fix Applied:** Removed `ExpenseCategory.OTHER` enum value entirely from backend and frontend. Invoices without a recognized category are now blocked by type validation.
+- **Changes:**
+  - Backend: `app/vat_reports/models/vat_enums.py` — removed `OTHER = "other"` from `ExpenseCategory` enum
+  - Backend: `app/vat_reports/services/constants.py` — removed `"other"` label and `Decimal("0.0000")` deduction rate
+  - Frontend: `src/features/vatReports/constants.ts` — removed `"other"` from `EXPENSE_CATEGORIES` array, `CATEGORY_LABELS`, `CATEGORY_COLORS`, and `DEDUCTION_RATES`
 
 ---
 

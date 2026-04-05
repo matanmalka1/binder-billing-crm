@@ -45,7 +45,6 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
     "vehicle": "רכב פרטי",
     "entertainment": "אירוח וכיבוד",
     "gifts": "מתנות",
-    "other": "אחר",
     "fuel": "דלק",
     "vehicle_maintenance": "תחזוקת רכב",
     "vehicle_leasing": "ליסינג רכב",
@@ -92,9 +91,6 @@ CATEGORY_DEDUCTION_RATES: dict[str, Decimal] = {
     "vehicle_insurance":     Decimal("0.0000"),  # ביטוח — ללא מע"מ
     "insurance":             Decimal("0.0000"),  # ביטוח — ללא מע"מ
     "municipal_tax":         Decimal("0.0000"),  # ארנונה — ללא מע"מ
-
-    # שמרני — לא ידוע
-    "other":                 Decimal("0.0000"),
 }
 
 # VAT submission deadlines
