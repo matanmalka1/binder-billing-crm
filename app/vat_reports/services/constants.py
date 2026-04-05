@@ -102,6 +102,8 @@ VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19  # extension for digital filing only
 # OSEK PATUR annual turnover ceiling (updated annually per tax authority)
 # 2026 value: 122,833 ₪  (2025: 120,000 ₪)
 OSEK_PATUR_CEILING_ILS: Decimal = Decimal("122833")
+# Warn when annual turnover exceeds this fraction of the ceiling (non-blocking)
+OSEK_PATUR_CEILING_WARNING_RATE: Decimal = Decimal("0.80")
 
 # Exceptional invoice threshold — requires special reporting
 EXCEPTIONAL_INVOICE_THRESHOLD: Decimal = Decimal("25000")
@@ -119,6 +121,7 @@ __all__ = [
     "CATEGORY_LABELS_SERVER",
     "EXCEPTIONAL_INVOICE_THRESHOLD",
     "OSEK_PATUR_CEILING_ILS",
+    "OSEK_PATUR_CEILING_WARNING_RATE",
     "VAT_ONLINE_EXTENDED_DEADLINE_DAY",
     "VAT_STATUTORY_DEADLINE_DAY",
     "VALID_TRANSITIONS",

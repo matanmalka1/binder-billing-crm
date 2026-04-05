@@ -32,7 +32,7 @@ def add_invoice(
 ):
     """Add an income or expense invoice to a work item."""
     service = VatReportService(db)
-    invoice = service.add_invoice(
+    invoice, ceiling_warning = service.add_invoice(
         item_id=item_id,
         created_by=current_user.id,
         invoice_type=request.invoice_type,
@@ -47,7 +47,9 @@ def add_invoice(
         rate_type=request.rate_type,
         document_type=request.document_type,
     )
-    return invoice
+    response = VatInvoiceResponse.model_validate(invoice)
+    response.ceiling_warning = ceiling_warning
+    return response
 
 
 @router.get(

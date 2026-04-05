@@ -69,8 +69,11 @@ def add_invoice(
     deduction_rate = derived["deduction_rate"]
     is_exceptional = derived["is_exceptional"]
 
+    ceiling_warning = False
     if invoice_type == InvoiceType.INCOME and business:
-        check_osek_patur_ceiling(business, invoice_repo, item.business_id, item.period, net_amount)
+        ceiling_warning = check_osek_patur_ceiling(
+            business, invoice_repo, item.business_id, item.period, net_amount
+        )
 
     # Auto-fill optional fields when not provided by caller
     if not invoice_number:
@@ -147,4 +150,4 @@ def add_invoice(
         ),
     )
 
-    return invoice
+    return invoice, ceiling_warning

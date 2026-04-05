@@ -66,21 +66,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ## 14. Missing Features (Domain Completeness)
 
-## [MEDIUM] Annual report filing deadline not auto-populated by entity type
-- **File:** `app/annual_reports/services/` (create path)
-- **Category:** Missing Feature
-- **Issue:** `filing_deadline` is a free-write field; the system does not auto-populate it based on `client_type + tax_year` even though statutory deadlines are fixed by law (individuals: April 30; companies: November 30).
-- **Fix:** On `AnnualReport` creation, derive `filing_deadline` from `FORM_MAP[client_type]` + `tax_year` using a `STATUTORY_DEADLINES` constant map; allow override but pre-fill.
-
----
-
-## [MEDIUM] No warning when Osek Patur ceiling is approaching
-- **File:** `app/vat_reports/services/data_entry_common.py:96-117`
-- **Category:** Missing Feature
-- **Issue:** `check_osek_patur_ceiling()` raises only when the ceiling is fully exceeded (100%); advisors have no advance warning to plan reclassification to Osek Murshe.
-- **Fix:** Add a `WARNING` threshold at 80% of `OSEK_PATUR_CEILING_ILS` (≈98,266 ₪ for 2026); return a warning flag in the invoice create response when exceeded without blocking.
-
----
 
 ## [MEDIUM] Withholding tax (ניכוי מס במקור) not modeled
 - **File:** (new domain needed: `app/withholding_tax/`)

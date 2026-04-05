@@ -73,6 +73,8 @@ class VatInvoiceResponse(BaseModel):
     is_exceptional: bool
     created_by: int
     created_at: date                       # Date במודל
+    # Non-null only on create response — True when annual turnover crosses 80% of OSEK PATUR ceiling
+    ceiling_warning: bool = False
 
     model_config = {"from_attributes": True}
 

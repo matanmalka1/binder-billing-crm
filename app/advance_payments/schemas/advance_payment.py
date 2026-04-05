@@ -53,6 +53,16 @@ class AdvancePaymentCreateRequest(BaseModel):
     annual_report_id: Optional[int] = None
     notes: Optional[str] = Field(None, max_length=500)
 
+    @model_validator(mode="after")
+    def validate_period_for_frequency(self) -> "AdvancePaymentCreateRequest":
+        if self.period_months_count != 2:
+            return self
+
+        month = int(self.period.split("-")[1])
+        if month not in {1, 3, 5, 7, 9, 11}:
+            raise ValueError("מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי")
+        return self
+
     model_config = {"json_schema_extra": {"example": {
         "business_id": 123,
         "period": "2026-03",
@@ -133,6 +143,7 @@ class AnnualKPIResponse(BaseModel):
 
 class MonthlyChartRow(BaseModel):
     period: str          # "YYYY-MM"
+    period_months_count: int
     expected_amount: ApiDecimal
     paid_amount: ApiDecimal
     overdue_amount: ApiDecimal

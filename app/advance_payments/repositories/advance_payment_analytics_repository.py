@@ -8,6 +8,9 @@ from app.advance_payments.models.advance_payment import AdvancePayment, AdvanceP
 from app.advance_payments.repositories.advance_payment_repository import (
     advance_payment_status_text_expr,
 )
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    advance_payment_matches_month_expr,
+)
 
 
 class AdvancePaymentAnalyticsRepository(BaseRepository):
@@ -51,7 +54,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
-            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
+            query = query.filter(advance_payment_matches_month_expr(month))
         if statuses:
             normalized = [s.value.lower() for s in statuses]
             query = query.filter(advance_payment_status_text_expr().in_(normalized))
@@ -65,6 +68,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         rows = (
             self.db.query(
                 AdvancePayment.period,
+                AdvancePayment.period_months_count,
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("expected_amount"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("paid_amount"),
                 func.coalesce(
@@ -85,16 +89,17 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
-            .group_by(AdvancePayment.period)
+            .group_by(AdvancePayment.period, AdvancePayment.period_months_count)
+            .order_by(AdvancePayment.period.asc())
             .all()
         )
-        by_period = {r.period: r for r in rows}
         return [
             {
-                "period": f"{year}-{m:02d}",
-                "expected_amount": float(by_period[f"{year}-{m:02d}"].expected_amount) if f"{year}-{m:02d}" in by_period else 0.0,
-                "paid_amount": float(by_period[f"{year}-{m:02d}"].paid_amount) if f"{year}-{m:02d}" in by_period else 0.0,
-                "overdue_amount": float(by_period[f"{year}-{m:02d}"].overdue_amount) if f"{year}-{m:02d}" in by_period else 0.0,
+                "period": r.period,
+                "period_months_count": int(r.period_months_count),
+                "expected_amount": float(r.expected_amount),
+                "paid_amount": float(r.paid_amount),
+                "overdue_amount": float(r.overdue_amount),
             }
-            for m in range(1, 13)
+            for r in rows
         ]

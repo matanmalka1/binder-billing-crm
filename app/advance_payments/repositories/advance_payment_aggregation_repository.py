@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from sqlalchemy import String, case, cast, func
+from sqlalchemy import Integer, String, case, cast, func
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -18,6 +18,16 @@ def advance_payment_status_text_expr():
     case-insensitive matching used for legacy SQLite fixtures.
     """
     return func.lower(cast(AdvancePayment.status, String))
+
+
+def advance_payment_start_month_expr():
+    return cast(func.substr(AdvancePayment.period, 6, 2), Integer)
+
+
+def advance_payment_matches_month_expr(month: int):
+    start_month = advance_payment_start_month_expr()
+    end_month = start_month + AdvancePayment.period_months_count - 1
+    return (start_month <= month) & (end_month >= month)
 
 
 class AdvancePaymentAggregationRepository(BaseRepository):
@@ -38,8 +48,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             )
         )
         if month is not None:
-            month_str = f"{year}-{month:02d}"
-            query = query.filter(AdvancePayment.period == month_str)
+            query = query.filter(advance_payment_matches_month_expr(month))
         if statuses:
             normalized = [s.value.lower() for s in statuses]
             query = query.filter(advance_payment_status_text_expr().in_(normalized))
@@ -91,7 +100,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             )
         )
         if month is not None:
-            query = query.filter(AdvancePayment.period == f"{year}-{month:02d}")
+            query = query.filter(advance_payment_matches_month_expr(month))
         return query.group_by(
             AdvancePayment.business_id,
             Business.client_id,

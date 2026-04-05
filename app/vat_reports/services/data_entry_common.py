@@ -8,7 +8,11 @@ from app.core.exceptions import AppError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import OSEK_PATUR_CEILING_ILS, VALID_TRANSITIONS
+from app.vat_reports.services.constants import (
+    OSEK_PATUR_CEILING_ILS,
+    OSEK_PATUR_CEILING_WARNING_RATE,
+    VALID_TRANSITIONS,
+)
 
 
 def assert_editable(item) -> None:
@@ -99,20 +103,22 @@ def check_osek_patur_ceiling(
     business_id: int,
     period: str,
     new_net_amount: float,
-) -> None:
+) -> bool:
     """Raise AppError if adding this income invoice would exceed the OSEK PATUR ceiling.
-
+    Returns True if the post-add turnover crosses the 80% warning threshold (non-blocking).
     Only enforced for OSEK_PATUR businesses (BusinessType.OSEK_PATUR).
     """
     from app.businesses.models.business import BusinessType
 
     if not hasattr(business, "business_type") or business.business_type != BusinessType.OSEK_PATUR:
-        return
+        return False
     year = int(period[:4])
     current_total = Decimal(str(invoice_repo.sum_income_net_by_business_year(business_id, year)))
-    if current_total + Decimal(str(new_net_amount)) > OSEK_PATUR_CEILING_ILS:
+    new_total = current_total + Decimal(str(new_net_amount))
+    if new_total > OSEK_PATUR_CEILING_ILS:
         raise AppError(
-            f"תקרת עוסק פטור חרגה: סך מחזור {float(current_total + Decimal(str(new_net_amount))):.2f} ₪ "
+            f"תקרת עוסק פטור חרגה: סך מחזור {float(new_total):.2f} ₪ "
             f"עולה על תקרה של {float(OSEK_PATUR_CEILING_ILS):.2f} ₪",
             "VAT.OSEK_PATUR_CEILING_EXCEEDED",
         )
+    return new_total >= OSEK_PATUR_CEILING_ILS * OSEK_PATUR_CEILING_WARNING_RATE

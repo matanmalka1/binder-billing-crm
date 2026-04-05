@@ -85,9 +85,10 @@ def suggest_advance_payment(
     db: DBSession,
     user: CurrentUser,
     year: int = Query(...),
+    period_months_count: int = Query(1, ge=1, le=2),
 ):
     service = AdvancePaymentService(db)
-    suggested = service.suggest_expected_amount(business_id, year)
+    suggested = service.suggest_expected_amount(business_id, year, period_months_count)
     return AdvancePaymentSuggestionResponse(
         business_id=business_id,
         year=year,
