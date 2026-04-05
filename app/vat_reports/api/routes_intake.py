@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.vat_reports.api.serializers import serialize_work_item
 from app.vat_reports.schemas.vat_report import VatWorkItemCreateRequest, VatWorkItemResponse
 from app.vat_reports.services.vat_report_service import VatReportService
 
@@ -35,7 +36,7 @@ def create_work_item(
         mark_pending=request.mark_pending,
         pending_materials_note=request.pending_materials_note,
     )
-    return item
+    return serialize_work_item(service, item.id)
 
 
 @router.post(
@@ -58,4 +59,4 @@ def mark_materials_complete(
         item_id=item_id,
         performed_by=current_user.id,
     )
-    return item
+    return serialize_work_item(service, item.id)

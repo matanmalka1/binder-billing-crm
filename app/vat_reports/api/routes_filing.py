@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import User, UserRole
+from app.vat_reports.api.serializers import serialize_work_item
 from app.vat_reports.schemas.vat_report import FileVatReturnRequest, VatWorkItemResponse
 from app.vat_reports.services.vat_report_service import VatReportService
 
@@ -39,4 +40,4 @@ def file_vat_return(
         is_amendment=request.is_amendment,
         amends_item_id=request.amends_item_id,
     )
-    return item
+    return serialize_work_item(service, item.id)

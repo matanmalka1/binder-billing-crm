@@ -95,3 +95,19 @@ class TestFiling:
         assert data["submission_reference"] == "REF-2025-0001"
         assert data["is_amendment"] is True
         assert data["amends_item_id"] == original_item_id
+
+    def test_file_response_is_enriched(self, client, advisor_headers, vat_client, test_user):
+        item_id = setup_ready_item(client, advisor_headers, vat_client, "2026-08")
+
+        response = client.post(
+            f"/api/v1/vat/work-items/{item_id}/file",
+            headers=advisor_headers,
+            json={"submission_method": "online"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["business_name"] == vat_client.full_name
+        assert data["client_id"] == vat_client.id
+        assert data["filed_by_name"] == test_user.full_name
+        assert data["submission_deadline"] == "2026-09-19"

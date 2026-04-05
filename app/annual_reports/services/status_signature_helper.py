@@ -1,0 +1,32 @@
+"""Signature request helpers for annual report status transitions."""
+
+
+class AnnualReportSignatureHelper:
+    """Mixin: manage signature requests during status transitions."""
+
+    def _cancel_pending_signature_requests(
+        self, report_id: int, actor_id: int, actor_name: str, reason: str
+    ) -> None:
+        from app.signature_requests.services.signature_request_service import SignatureRequestService
+        from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+        sig_repo = SignatureRequestRepository(self.db)  # type: ignore[attr-defined]
+        pending = sig_repo.list_pending_by_annual_report(report_id)
+        if not pending:
+            return
+        svc = SignatureRequestService(self.db)
+        for req in pending:
+            svc.cancel_request(request_id=req.id, canceled_by=actor_id, canceled_by_name=actor_name, reason=reason)
+
+    def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
+        from app.signature_requests.services.signature_request_service import SignatureRequestService
+        business = self.business_repo.get_by_id(report.business_id)  # type: ignore[attr-defined]
+        svc = SignatureRequestService(self.db)
+        svc.create_request(
+            business_id=report.business_id,
+            created_by=created_by,
+            created_by_name=created_by_name,
+            request_type="ANNUAL_REPORT_APPROVAL",
+            title=f"אישור דוח שנתי {report.tax_year}",
+            signer_name=business.full_name if business else str(report.business_id),
+            annual_report_id=report.id,
+        )

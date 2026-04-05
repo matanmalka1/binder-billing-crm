@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.vat_reports.api.serializers import serialize_enriched_work_item
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 from app.vat_reports.schemas.vat_audit import VatAuditLogResponse, VatAuditTrailResponse
 from app.vat_reports.schemas.vat_report import (
     VatPeriodOptionsResponse,
@@ -18,22 +18,6 @@ from app.vat_reports.schemas.vat_report import (
 from app.vat_reports.services.vat_report_service import VatReportService
 
 router = APIRouter(prefix="/vat", tags=["vat-reports"])
-
-
-def _serialize(item, name_map: dict, status_map: dict, user_map: dict, client_map: dict | None = None) -> VatWorkItemResponse:
-    data = VatWorkItemResponse.model_validate(item)
-    data.client_id = client_map.get(item.business_id) if client_map else None
-    data.business_name = name_map.get(item.business_id)
-    data.business_status = status_map.get(item.business_id)
-    deadline = compute_deadline_fields(item, submission_method=item.submission_method)
-    data.submission_deadline = deadline["submission_deadline"]
-    data.statutory_deadline = deadline["statutory_deadline"]
-    data.extended_deadline = deadline["extended_deadline"]
-    data.days_until_deadline = deadline["days_until_deadline"]
-    data.is_overdue = deadline["is_overdue"]
-    data.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None
-    data.filed_by_name = user_map.get(item.filed_by) if item.filed_by else None
-    return data
 
 
 @router.get(
@@ -80,12 +64,12 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     """Get a single work item by ID."""
     service = VatReportService(db)
     enriched = service.get_work_item_enriched(item_id)
-    return _serialize(
+    return serialize_enriched_work_item(
         enriched["item"],
-        enriched["name_map"],
-        enriched["status_map"],
-        enriched["user_map"],
-        enriched.get("client_map"),
+        name_map=enriched["name_map"],
+        status_map=enriched["status_map"],
+        user_map=enriched["user_map"],
+        client_map=enriched.get("client_map"),
     )
 
 
@@ -100,7 +84,13 @@ def list_business_work_items(business_id: int, db: DBSession, current_user: Curr
     enriched = service.get_business_items_enriched(business_id)
     cm = enriched.get("client_map")
     items = [
-        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"], cm)
+        serialize_enriched_work_item(
+            i,
+            name_map=enriched["name_map"],
+            status_map=enriched["status_map"],
+            user_map=enriched["user_map"],
+            client_map=cm,
+        )
         for i in enriched["items"]
     ]
     return VatWorkItemListResponse(items=items, total=len(items))
@@ -128,7 +118,13 @@ def list_work_items(
     )
     cm = enriched.get("client_map")
     items = [
-        _serialize(i, enriched["name_map"], enriched["status_map"], enriched["user_map"], cm)
+        serialize_enriched_work_item(
+            i,
+            name_map=enriched["name_map"],
+            status_map=enriched["status_map"],
+            user_map=enriched["user_map"],
+            client_map=cm,
+        )
         for i in enriched["items"]
     ]
     return VatWorkItemListResponse(items=items, total=enriched["total"])

@@ -1,5 +1,8 @@
+import json
 from typing import Optional
 
+from app.audit.constants import ACTION_CREATED, ENTITY_ANNUAL_REPORT
+from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
@@ -103,4 +106,9 @@ class AnnualReportCreateService(AnnualReportBaseService):
             ),
         )
 
+        EntityAuditLogRepository(self.db).append(
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report.id,
+            performed_by=created_by, action=ACTION_CREATED,
+            new_value=json.dumps({"tax_year": tax_year, "client_type": client_type}),
+        )
         return report

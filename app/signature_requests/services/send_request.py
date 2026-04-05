@@ -44,6 +44,7 @@ def send_request(
         signing_token=signing_token,
         sent_at=now,
         expires_at=expires_at,
+        expiry_days=expiry_days,
     )
 
     repo.append_audit_event(

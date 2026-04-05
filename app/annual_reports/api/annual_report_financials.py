@@ -74,7 +74,7 @@ def get_readiness_check(report_id: int, db: DBSession, user: CurrentUser):
 )
 def add_income_line(report_id: int, body: IncomeLineCreateRequest, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    return svc.add_income(report_id, body.source_type, body.amount, body.description)
+    return svc.add_income(report_id, body.source_type, body.amount, body.description, actor_id=user.id)
 
 
 @router.patch("/{report_id}/income/{line_id}", response_model=IncomeLineResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
@@ -82,7 +82,7 @@ def update_income_line(
     report_id: int, line_id: int, body: IncomeLineUpdateRequest, db: DBSession, user: CurrentUser
 ):
     svc = AnnualReportFinancialService(db)
-    return svc.update_income(report_id, line_id, **body.model_dump(exclude_none=True))
+    return svc.update_income(report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True))
 
 
 @router.delete(
@@ -92,7 +92,7 @@ def update_income_line(
 )
 def delete_income_line(report_id: int, line_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    svc.delete_income(report_id, line_id)
+    svc.delete_income(report_id, line_id, actor_id=user.id)
 
 
 # ── Expense lines ─────────────────────────────────────────────────────────────
@@ -107,6 +107,7 @@ def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSessi
     return svc.add_expense(
         report_id, body.category, body.amount, body.description,
         body.recognition_rate, body.supporting_document_ref, body.supporting_document_id,
+        actor_id=user.id,
     )
 
 
@@ -115,7 +116,7 @@ def update_expense_line(
     report_id: int, line_id: int, body: ExpenseLineUpdateRequest, db: DBSession, user: CurrentUser
 ):
     svc = AnnualReportFinancialService(db)
-    return svc.update_expense(report_id, line_id, **body.model_dump(exclude_none=True))
+    return svc.update_expense(report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True))
 
 
 @router.delete(
@@ -125,7 +126,7 @@ def update_expense_line(
 )
 def delete_expense_line(report_id: int, line_id: int, db: DBSession, user: CurrentUser):
     svc = AnnualReportFinancialService(db)
-    svc.delete_expense(report_id, line_id)
+    svc.delete_expense(report_id, line_id, actor_id=user.id)
 
 
 # ── VAT auto-populate ─────────────────────────────────────────────────────────

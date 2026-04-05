@@ -1,7 +1,9 @@
 from typing import Optional
 from datetime import datetime
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.audit.constants import ACTION_STATUS_CHANGED, ENTITY_ANNUAL_REPORT
+from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.core.exceptions import AppError, NotFoundError
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, DeadlineType
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
@@ -9,17 +11,13 @@ from app.utils.time_utils import utcnow
 from .constants import VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
+from .status_signature_helper import AnnualReportSignatureHelper
 
 
-class AnnualReportStatusService(AnnualReportBaseService):
+class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseService):
 
     def _get_or_raise_for_update(self, report_id: int) -> AnnualReport:
-        """Fetch annual report with a row-level lock for status transitions.
-
-        Lock is held until the first db.commit() in the repository.  Side effects
-        that follow the commit (status history, signature request operations) are
-        outside the lock window — they run in separate commits.
-        """
+        """Fetch annual report with a row-level lock for status transitions."""
         report = self.repo.get_by_id_for_update(report_id)
         if not report:
             raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
@@ -84,50 +82,24 @@ class AnnualReportStatusService(AnnualReportBaseService):
 
         self.repo.append_status_history(
             annual_report_id=report_id,
-            from_status=old_status,
-            to_status=ns,
-            changed_by=changed_by,
-            changed_by_name=changed_by_name,
-            note=note,
+            from_status=old_status, to_status=ns,
+            changed_by=changed_by, changed_by_name=changed_by_name, note=note,
         )
 
-        # Cancel stale PENDING_SIGNATURE requests when leaving PENDING_CLIENT (item 15)
+        EntityAuditLogRepository(self.db).append(
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+            performed_by=changed_by, action=ACTION_STATUS_CHANGED,
+            old_value=old_status.value, new_value=ns.value,
+        )
+
         if old_status == AnnualReportStatus.PENDING_CLIENT and ns != AnnualReportStatus.PENDING_CLIENT:
             self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "מעבר סטטוס — ביטול בקשת חתימה")
 
         if ns == AnnualReportStatus.PENDING_CLIENT:
-            # Cancel any existing requests before creating a new one (item 13)
             self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "כניסה חוזרת ל-PENDING_CLIENT")
             self._trigger_signature_request(updated, changed_by, changed_by_name)
 
         return self._to_responses([updated])[0]
-
-    def _cancel_pending_signature_requests(
-        self, report_id: int, actor_id: int, actor_name: str, reason: str
-    ) -> None:
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
-        from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-        sig_repo = SignatureRequestRepository(self.db)  # type: ignore[attr-defined]
-        pending = sig_repo.list_pending_by_annual_report(report_id)
-        if not pending:
-            return
-        svc = SignatureRequestService(self.db)
-        for req in pending:
-            svc.cancel_request(request_id=req.id, canceled_by=actor_id, canceled_by_name=actor_name, reason=reason)
-
-    def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
-        business = self.business_repo.get_by_id(report.business_id)
-        svc = SignatureRequestService(self.db)
-        svc.create_request(
-            business_id=report.business_id,
-            created_by=created_by,
-            created_by_name=created_by_name,
-            request_type="ANNUAL_REPORT_APPROVAL",
-            title=f"אישור דוח שנתי {report.tax_year}",
-            signer_name=business.full_name if business else str(report.business_id),
-            annual_report_id=report.id,
-        )
 
     def update_deadline(
         self,
@@ -151,19 +123,15 @@ class AnnualReportStatusService(AnnualReportBaseService):
             filing_deadline = None
 
         updated = self.repo.update(
-            report_id,
-            report=report,
-            deadline_type=dt,
-            filing_deadline=filing_deadline,
+            report_id, report=report,
+            deadline_type=dt, filing_deadline=filing_deadline,
             custom_deadline_note=custom_deadline_note,
         )
 
         self.repo.append_status_history(
             annual_report_id=report_id,
-            from_status=updated.status,
-            to_status=updated.status,
-            changed_by=changed_by,
-            changed_by_name=changed_by_name,
+            from_status=updated.status, to_status=updated.status,
+            changed_by=changed_by, changed_by_name=changed_by_name,
             note=(
                 f"המועד האחרון עודכן ל-{dt.value}: "
                 f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'מותאם אישית'}"

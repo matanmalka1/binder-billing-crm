@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+from app.audit.constants import ACTION_DELETED, ENTITY_ANNUAL_REPORT
+from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.core.exceptions import NotFoundError
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
@@ -49,7 +51,13 @@ class AnnualReportService(
         if not report:
             return False
         self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "דוח נמחק")
-        return self.repo.soft_delete(report_id, deleted_by=actor_id)
+        result = self.repo.soft_delete(report_id, deleted_by=actor_id)
+        if result:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_DELETED,
+            )
+        return result
 
 
 __all__ = ["AnnualReportService"]

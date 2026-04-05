@@ -73,7 +73,7 @@ def get_business(business_id: int, db: DBSession, user: CurrentUser):
 def update_business(business_id: int, request: BusinessUpdateRequest, db: DBSession, user: CurrentUser):
     service = BusinessService(db)
     business = service.update_business(
-        business_id, user_role=user.role, **request.model_dump(exclude_unset=True),
+        business_id, user_role=user.role, actor_id=user.id, **request.model_dump(exclude_unset=True),
     )
     return _to_business_response(business, user.role)
 

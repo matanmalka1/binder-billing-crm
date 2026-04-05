@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.advance_payments.api.routers import router as advance_payments_router
+from app.audit.api.routes import router as audit_router
 from app.annual_reports.api.routers import router as annual_reports_router
 from app.authority_contact.api.routers import router as authority_contact_router
 from app.binders.api.routers import router as binders_router
@@ -44,3 +45,4 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(signature_requests_routers.router, prefix="/api/v1")
     app.include_router(signature_requests_routers.signer_router)
     app.include_router(vat_reports_router, prefix="/api/v1")
+    app.include_router(audit_router, prefix="/api/v1")

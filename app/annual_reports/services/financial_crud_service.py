@@ -1,9 +1,15 @@
 """CRUD and summary operations for annual report financial lines."""
 
+import json
 from decimal import Decimal
 from typing import Optional
 
-from app.core.exceptions import AppError, NotFoundError
+from app.audit.constants import (
+    ACTION_EXPENSE_ADDED, ACTION_EXPENSE_DELETED, ACTION_EXPENSE_UPDATED,
+    ACTION_INCOME_ADDED, ACTION_INCOME_DELETED, ACTION_INCOME_UPDATED,
+    ENTITY_ANNUAL_REPORT,
+)
+from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.businesses.services.business_guards import assert_business_allows_create
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
@@ -12,6 +18,7 @@ from app.annual_reports.schemas.annual_report_financials import (
     FinancialSummaryResponse,
     IncomeLineResponse,
 )
+from app.core.exceptions import AppError, NotFoundError
 
 
 class FinancialCrudMixin:
@@ -21,6 +28,7 @@ class FinancialCrudMixin:
         source_type: str,
         amount: Decimal,
         description: Optional[str] = None,
+        actor_id: Optional[int] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
         business = self.business_repo.get_by_id(report.business_id)
@@ -28,14 +36,17 @@ class FinancialCrudMixin:
             assert_business_allows_create(business)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
-            raise AppError(
-                f"סוג הכנסה לא חוקי: '{source_type}'",
-                "ANNUAL_REPORT.INVALID_TYPE",
-            )
+            raise AppError(f"סוג הכנסה לא חוקי: '{source_type}'", "ANNUAL_REPORT.INVALID_TYPE")
         line = self.income_repo.add(report_id, IncomeSourceType(source_type), amount, description)
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_INCOME_ADDED,
+                new_value=json.dumps({"source_type": source_type, "amount": str(amount)}),
+            )
         return IncomeLineResponse.model_validate(line)
 
-    def update_income(self, report_id: int, line_id: int, **fields) -> IncomeLineResponse:
+    def update_income(self, report_id: int, line_id: int, actor_id: Optional[int] = None, **fields) -> IncomeLineResponse:
         self._get_report_or_raise(report_id)
         if "source_type" in fields and fields["source_type"] is not None:
             valid_sources = {e.value for e in IncomeSourceType}
@@ -45,12 +56,24 @@ class FinancialCrudMixin:
         line = self.income_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
             raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_INCOME_UPDATED,
+                new_value=json.dumps({k: str(v) if v is not None else None for k, v in fields.items()}),
+            )
         return IncomeLineResponse.model_validate(line)
 
-    def delete_income(self, report_id: int, line_id: int) -> None:
+    def delete_income(self, report_id: int, line_id: int, actor_id: Optional[int] = None) -> None:
         self._get_report_or_raise(report_id)
         if not self.income_repo.delete(line_id):
             raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_INCOME_DELETED,
+                note=f"line_id={line_id}",
+            )
 
     def add_expense(
         self,
@@ -61,6 +84,7 @@ class FinancialCrudMixin:
         recognition_rate: Optional[Decimal] = None,
         supporting_document_ref: Optional[str] = None,
         supporting_document_id: Optional[int] = None,
+        actor_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
         business = self.business_repo.get_by_id(report.business_id)
@@ -68,22 +92,20 @@ class FinancialCrudMixin:
             assert_business_allows_create(business)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
-            raise AppError(
-                f"קטגוריית הוצאה לא חוקית: '{category}'",
-                "ANNUAL_REPORT.INVALID_TYPE",
-            )
+            raise AppError(f"קטגוריית הוצאה לא חוקית: '{category}'", "ANNUAL_REPORT.INVALID_TYPE")
         line = self.expense_repo.add(
-            report_id,
-            ExpenseCategoryType(category),
-            amount,
-            description,
-            recognition_rate,
-            supporting_document_ref,
-            supporting_document_id,
+            report_id, ExpenseCategoryType(category), amount, description,
+            recognition_rate, supporting_document_ref, supporting_document_id,
         )
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_EXPENSE_ADDED,
+                new_value=json.dumps({"category": category, "amount": str(amount)}),
+            )
         return ExpenseLineResponse.model_validate(line)
 
-    def update_expense(self, report_id: int, line_id: int, **fields) -> ExpenseLineResponse:
+    def update_expense(self, report_id: int, line_id: int, actor_id: Optional[int] = None, **fields) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         if "category" in fields and fields["category"] is not None:
             valid_categories = {e.value for e in ExpenseCategoryType}
@@ -93,12 +115,24 @@ class FinancialCrudMixin:
         line = self.expense_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
             raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_EXPENSE_UPDATED,
+                new_value=json.dumps({k: str(v) if v is not None else None for k, v in fields.items()}),
+            )
         return ExpenseLineResponse.model_validate(line)
 
-    def delete_expense(self, report_id: int, line_id: int) -> None:
+    def delete_expense(self, report_id: int, line_id: int, actor_id: Optional[int] = None) -> None:
         self._get_report_or_raise(report_id)
         if not self.expense_repo.delete(line_id):
             raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+        if actor_id:
+            EntityAuditLogRepository(self.db).append(
+                entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
+                performed_by=actor_id, action=ACTION_EXPENSE_DELETED,
+                note=f"line_id={line_id}",
+            )
 
     def get_financial_summary(self, report_id: int) -> FinancialSummaryResponse:
         self._get_report_or_raise(report_id)

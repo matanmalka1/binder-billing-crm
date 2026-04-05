@@ -1,5 +1,7 @@
 import pytest
 
+from app.users.models.user import User, UserRole
+from app.users.services.auth_service import AuthService
 from tests.vat_reports.api.test_vat_reports_utils import create_work_item
 
 
@@ -38,3 +40,28 @@ class TestCreateWorkItem:
             json={"business_id": vat_client.id, "period": "2026-04"},
         )
         assert response.status_code == 401
+
+    def test_create_work_item_response_is_enriched(self, client, test_db, advisor_headers, vat_client):
+        assignee = User(
+            full_name="VAT Assignee",
+            email="vat.assignee.intake@example.com",
+            password_hash=AuthService.hash_password("pass"),
+            role=UserRole.SECRETARY,
+            is_active=True,
+        )
+        test_db.add(assignee)
+        test_db.commit()
+        test_db.refresh(assignee)
+
+        response = client.post(
+            "/api/v1/vat/work-items",
+            headers=advisor_headers,
+            json={"business_id": vat_client.id, "period": "2026-05", "assigned_to": assignee.id},
+        )
+
+        assert response.status_code == 201
+        body = response.json()
+        assert body["business_name"] == vat_client.full_name
+        assert body["client_id"] == vat_client.id
+        assert body["assigned_to_name"] == "VAT Assignee"
+        assert body["submission_deadline"] == "2026-06-15"

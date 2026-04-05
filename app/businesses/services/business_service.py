@@ -1,15 +1,19 @@
+import json
 from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_BUSINESS
+from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.businesses.services.business_lookup import get_business_or_raise as _get_or_raise
 from app.businesses.services.business_bulk_service import BusinessBulkService
 from app.clients.repositories.client_repository import ClientRepository
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 
 
@@ -21,6 +25,8 @@ class BusinessService:
         self.business_repo = BusinessRepository(db)
         self.client_repo = ClientRepository(db)
         self._bulk = BusinessBulkService(db)
+        self._lifecycle = BusinessLifecycleService(db)
+        self._audit = EntityAuditLogRepository(db)
 
     # ─── Create ───────────────────────────────────────────────────────────────
 
@@ -54,7 +60,7 @@ class BusinessService:
                     )
 
         try:
-            return self.business_repo.create(
+            business = self.business_repo.create(
                 client_id=client_id, business_type=business_type, opened_at=opened_at,
                 business_name=business_name, notes=notes, tax_id_number=tax_id_number,
                 created_by=actor_id,
@@ -63,6 +69,16 @@ class BusinessService:
             raise ConflictError(
                 f"שגיאת כפילות ביצירת עסק ללקוח {client_id}", "BUSINESS.CONFLICT",
             )
+
+        if actor_id:
+            self._audit.append(
+                entity_type=ENTITY_BUSINESS,
+                entity_id=business.id,
+                performed_by=actor_id,
+                action=ACTION_CREATED,
+                new_value=json.dumps({"business_type": business_type, "client_id": client_id}),
+            )
+        return business
 
     # ─── Read ─────────────────────────────────────────────────────────────────
 
@@ -88,7 +104,7 @@ class BusinessService:
 
     # ─── Update ───────────────────────────────────────────────────────────────
 
-    def update_business(self, business_id: int, user_role: UserRole, **fields) -> Business:
+    def update_business(self, business_id: int, user_role: UserRole, actor_id: Optional[int] = None, **fields) -> Business:
         """Update business fields. FROZEN/CLOSED status requires ADVISOR role."""
         business = self.business_repo.get_by_id(business_id)
         if not business:
@@ -110,24 +126,28 @@ class BusinessService:
         if "status" in fields and fields["status"] == BusinessStatus.ACTIVE:
             fields["closed_at"] = None
 
-        return self.business_repo.update(business_id, **fields)
+        old_snapshot = {k: getattr(business, k, None) for k in fields if hasattr(business, k)}
+        updated = self.business_repo.update(business_id, **fields)
+        new_snapshot = {k: getattr(updated, k, None) for k in fields if hasattr(updated, k)}
 
-    # ─── Delete / Restore ─────────────────────────────────────────────────────
+        def _serialize(d):
+            return {k: v.value if hasattr(v, "value") else str(v) if v is not None else None for k, v in d.items()}
+
+        if actor_id:
+            self._audit.append(
+                entity_type=ENTITY_BUSINESS,
+                entity_id=business_id,
+                performed_by=actor_id,
+                action=ACTION_UPDATED,
+                old_value=json.dumps(_serialize(old_snapshot)),
+                new_value=json.dumps(_serialize(new_snapshot)),
+            )
+        return updated
+
+    # ─── Delete / Restore (delegated) ────────────────────────────────────────
 
     def delete_business(self, business_id: int, actor_id: int) -> None:
-        if not self.business_repo.get_by_id(business_id):
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        self.business_repo.soft_delete(business_id, deleted_by=actor_id)
+        self._lifecycle.delete_business(business_id, actor_id)
 
     def restore_business(self, business_id: int, actor_id: int, actor_role: UserRole) -> Business:
-        if actor_role != UserRole.ADVISOR:
-            raise ForbiddenError("רק יועצים יכולים לשחזר עסקים", "BUSINESS.FORBIDDEN")
-        business = self.business_repo.get_by_id_including_deleted(business_id)
-        if not business:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        if business.deleted_at is None:
-            raise ConflictError("עסק זה אינו מחוק", "BUSINESS.NOT_DELETED")
-        restored = self.business_repo.restore(business_id, restored_by=actor_id)
-        if not restored:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        return restored
+        return self._lifecycle.restore_business(business_id, actor_id, actor_role)

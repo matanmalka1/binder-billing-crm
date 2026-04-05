@@ -144,6 +144,7 @@ def update_client(
     service = ClientService(db)
     client = service.update_client(
         client_id,
+        actor_id=user.id,
         **request.model_dump(exclude_unset=True),
     )
     return ClientResponse.model_validate(client)

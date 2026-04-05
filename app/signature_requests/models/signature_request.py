@@ -82,6 +82,7 @@ class SignatureRequest(Base):
     created_at  = Column(DateTime, default=utcnow, nullable=False)
     sent_at     = Column(DateTime, nullable=True)
     expires_at  = Column(DateTime, nullable=True)
+    expiry_days = Column(Integer, nullable=False, default=14, server_default="14")
     signed_at   = Column(DateTime, nullable=True)
     declined_at = Column(DateTime, nullable=True)
     canceled_at = Column(DateTime, nullable=True)

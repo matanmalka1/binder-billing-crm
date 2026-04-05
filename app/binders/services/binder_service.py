@@ -78,6 +78,11 @@ class BinderService(BinderListService):
 
         businesses = self.business_repo.list_by_client(binder.client_id)
         if businesses:
+            # TODO: Binders are client-scoped, not business-scoped (all businesses share one binder).
+            # When a client has multiple businesses, we default to the first one for the notification.
+            # This may reference the wrong business name in the notification message.
+            # Proper fix requires either storing the primary business on the client, or letting the
+            # caller pass a business_id hint. Tracked in TODO.md.
             self.notification_service.notify_ready_for_pickup(updated, businesses[0])
         else:
             _log.warning(
