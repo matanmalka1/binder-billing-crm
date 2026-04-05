@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
-from app.businesses.services.business_guards import assert_business_not_closed
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.schemas.annual_report_financials import (
@@ -25,7 +25,7 @@ class FinancialCrudMixin:
         report = self._get_report_or_raise(report_id)
         business = self.business_repo.get_by_id(report.business_id)
         if business:
-            assert_business_not_closed(business)
+            assert_business_allows_create(business)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(
@@ -65,7 +65,7 @@ class FinancialCrudMixin:
         report = self._get_report_or_raise(report_id)
         business = self.business_repo.get_by_id(report.business_id)
         if business:
-            assert_business_not_closed(business)
+            assert_business_allows_create(business)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(

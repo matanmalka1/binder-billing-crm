@@ -20,26 +20,7 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ## 3. Domain Logic — Annual Reports
 ## 4. Domain Logic — Tax Deadlines
 ## 5. Domain Logic — Charge / Invoice
-
-## [HIGH] Reminder not canceled when charge is marked paid
-- **File:** `app/charge/services/billing_service.py:82-86`
-- **Category:** Missing Logic
-- **Issue:** `issue_charge()` creates an "unpaid charge" reminder with `days_unpaid=30`, but `mark_charge_paid()` never cancels it — advisors keep receiving stale reminders for paid charges indefinitely.
-- **Fix:** In `mark_charge_paid()`, after `update_status()`, call `ReminderService(self.db).cancel_reminders_for_charge(charge_id)` (add this method to `ReminderService` if it doesn't exist).
-
----
-
-## [MEDIUM] No path to soft-delete a canceled charge
-- **File:** `app/charge/services/billing_service.py:148-168`
-- **Category:** Business Rule Gap
-- **Issue:** `delete_charge()` only accepts DRAFT charges; CANCELED charges cannot be removed from lists even if the cancellation was in error, leaving noise in the advisor's charge history.
-- **Fix:** Either extend `delete_charge()` to also allow CANCELED status, or add a dedicated `delete_canceled_charge()` method with appropriate audit.
-
----
-
 ## 6. Domain Logic — Businesses
-
----
 
 ## [HIGH] `assert_business_not_closed()` does not block FROZEN businesses
 - **File:** `app/businesses/services/business_guards.py:19-25`

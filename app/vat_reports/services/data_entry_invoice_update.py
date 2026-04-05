@@ -6,7 +6,7 @@ from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_not_closed
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -55,7 +55,7 @@ def update_invoice(
 
     business = business_repo.get_by_id(item.business_id)
     if business:
-        assert_business_not_closed(business)
+        assert_business_allows_create(business)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_not_closed
+from app.businesses.services.business_guards import assert_business_allows_create
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -61,7 +61,7 @@ def add_invoice(
 
     business = business_repo.get_by_id(item.business_id)
     if business:
-        assert_business_not_closed(business)
+        assert_business_allows_create(business)
 
     derived = resolve_invoice_derived_fields(
         invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount
