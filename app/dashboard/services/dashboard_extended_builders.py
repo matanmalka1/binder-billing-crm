@@ -10,6 +10,7 @@ def _format_ils_amount(amount) -> str:
 def work_queue_item(binder, client, reference_date) -> dict:
     return {
         "binder_id": binder.id,
+        "client_id": client.client_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "binder_number": binder.binder_number,
@@ -21,6 +22,7 @@ def idle_attention_item(binder, client, reference_date) -> dict:
     return {
         "item_type": "idle_binder",
         "binder_id": binder.id,
+        "client_id": client.client_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "description": (
@@ -34,6 +36,7 @@ def ready_attention_item(binder, client) -> dict:
     return {
         "item_type": "ready_for_pickup",
         "binder_id": binder.id,
+        "client_id": client.client_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "description": f"תיק {binder.binder_number} מוכן לאיסוף",
@@ -44,6 +47,7 @@ def unpaid_charge_attention_item(charge, client) -> dict:
     return {
         "item_type": "unpaid_charge",
         "binder_id": None,
+        "client_id": client.client_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "description": f"חיוב לא משולם: {_format_ils_amount(charge.amount)}",

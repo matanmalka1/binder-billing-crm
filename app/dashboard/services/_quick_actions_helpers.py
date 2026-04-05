@@ -102,14 +102,16 @@ def build_vat_actions(
     result: list[dict] = []
     for item in items:
         client = business_repo.get_by_id(item.business_id)
+        if not client:
+            continue
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
             method="get",
-            endpoint=f"/businesses/{item.business_id}/vat",
+            endpoint=f"/clients/{client.client_id}/businesses/{client.id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
-        action["client_name"] = client.full_name if client else None
+        action["client_name"] = client.full_name
         enrich(action, "vat", f"תקופה: {plabel}")
         result.append(action)
     return result
@@ -123,6 +125,8 @@ def build_annual_report_actions(
     result: list[dict] = []
     for report in stuck:
         client = business_repo.get_by_id(report.business_id)
+        if not client:
+            continue
         status_label = _STATUS_LABEL_HE.get(report.status, str(report.status))
         updated = report.updated_at.replace(tzinfo=timezone.utc)
         stale_days = (_dt.datetime.now(timezone.utc) - updated).days
@@ -130,10 +134,10 @@ def build_annual_report_actions(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
             method="get",
-            endpoint=f"/businesses/{report.business_id}/annual-reports",
+            endpoint=f"/clients/{client.client_id}/businesses/{client.id}/annual-reports",
             action_id=f"annual-{report.id}-navigate",
         )
-        action["client_name"] = client.full_name if client else None
+        action["client_name"] = client.full_name
         enrich(action, "annual_reports", f"{status_label} · {stale_days} ימים")
         result.append(action)
     return result
