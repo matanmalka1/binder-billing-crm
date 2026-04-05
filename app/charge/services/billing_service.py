@@ -5,8 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.businesses.services.business_lookup import get_business_or_raise
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.businesses.services.business_guards import validate_business_for_create
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
 
@@ -34,8 +33,7 @@ class BillingService:
             AppError: If client doesn't exist or amount is invalid
         """
         # Validate client exists and allows new work
-        business = get_business_or_raise(self.db, business_id)
-        assert_business_allows_create(business)
+        validate_business_for_create(self.db, business_id)
 
         # Validate amount
         if amount <= 0:

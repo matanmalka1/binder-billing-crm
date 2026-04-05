@@ -3,6 +3,8 @@ from app.annual_reports.models import (
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
+    DEFAULT_RECOGNITION_RATE,
+    STATUTORY_RECOGNITION_RATES,
 )
 
 # Which form each client type must use
@@ -79,12 +81,6 @@ NI_RATE_HIGH = 0.1783
 
 # ── Statutory partial recognition rates — Income Tax Regulations ──────────────
 # Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
-# Re-exported from model to keep service layer free of direct model imports
-from app.annual_reports.models.annual_report_expense_line import (  # noqa: E402
-    DEFAULT_RECOGNITION_RATE,
-    STATUTORY_RECOGNITION_RATES,
-)
-
 # ── Stuck-report defaults ──────────────────────────────────────────────────────
 STUCK_REPORT_STALE_DAYS = 7
 STUCK_REPORT_LIMIT = 3

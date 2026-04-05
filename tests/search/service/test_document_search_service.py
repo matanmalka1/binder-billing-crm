@@ -7,6 +7,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
     docs = [
         SimpleNamespace(
             id=1,
+            client_id=100,
             business_id=10,
             document_type="id_copy",
             original_filename="id.pdf",
@@ -15,6 +16,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
         ),
         SimpleNamespace(
             id=2,
+            client_id=100,
             business_id=10,
             document_type="power_of_attorney",
             original_filename="poa.pdf",
@@ -23,6 +25,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
         ),
         SimpleNamespace(
             id=3,
+            client_id=101,
             business_id=11,
             document_type="engagement_agreement",
             original_filename="ea.pdf",
@@ -45,7 +48,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
 
     results = svc.search_documents("doc")
     assert len(results) == 3
-    assert results[0]["client_name"] == "Client Ten"
-    assert results[1]["client_name"] == "Client Ten"
-    assert results[2]["client_name"] == "לא ידוע"
+    assert results[0]["business_name"] == "Client Ten"
+    assert results[1]["business_name"] == "Client Ten"
+    assert results[2]["business_name"] == "לא ידוע"
     assert calls["count"] == 2

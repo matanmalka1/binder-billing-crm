@@ -14,7 +14,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.businesses.services.business_guards import validate_business_for_create
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
@@ -63,10 +63,13 @@ class AdvancePaymentService:
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> AdvancePayment:
-        business = self._business_repo.get_by_id(business_id)
-        if not business:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
-        assert_business_allows_create(business)
+        try:
+            validate_business_for_create(self.db, business_id)
+        except NotFoundError as exc:
+            raise NotFoundError(
+                f"עסק {business_id} לא נמצא",
+                "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND",
+            ) from exc
 
         if self.repo.exists_for_period(business_id, period):
             raise ConflictError(

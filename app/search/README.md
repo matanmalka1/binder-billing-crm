@@ -54,8 +54,8 @@ This module does not define DB models. It is an orchestration layer over existin
 - `client_status` is currently always `null`
 
 `DocumentSearchResult`:
-- `id`, `business_id`, `client_name`, `document_type`, `original_filename`, `tax_year`, `status`
-- Note: `client_name` here is populated from `Business.full_name` (naming legacy in schema)
+- `id`, `business_id`, `business_name`, `document_type`, `original_filename`, `tax_year`, `status`
+- `business_name` is populated from `Business.full_name`
 
 ## Execution Modes
 

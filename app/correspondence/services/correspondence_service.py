@@ -7,8 +7,7 @@ from app.core.exceptions import ForbiddenError, NotFoundError
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.businesses.services.business_lookup import get_business_or_raise
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.businesses.services.business_guards import validate_business_for_create
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
 _FORBIDDEN_CONTACT = "CORRESPONDENCE.FORBIDDEN_CONTACT"
@@ -38,8 +37,7 @@ class CorrespondenceService:
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
-        business = get_business_or_raise(self.db, business_id)
-        assert_business_allows_create(business)
+        validate_business_for_create(self.db, business_id)
 
         if contact_id is not None:
             self._assert_contact_belongs_to_business(contact_id, business_id)

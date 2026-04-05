@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lookup import get_business_or_raise
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.businesses.services.business_guards import validate_business_for_create
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.utils.time_utils import utcnow
@@ -32,8 +31,7 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        business = get_business_or_raise(self.db, business_id)
-        assert_business_allows_create(business)
+        validate_business_for_create(self.db, business_id)
 
         deadline = self.deadline_repo.create(
             business_id=business_id,

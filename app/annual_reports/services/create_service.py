@@ -7,8 +7,7 @@ from app.annual_reports.models import (
     ClientTypeForReport,
     DeadlineType,
 )
-from app.businesses.services.business_lookup import get_business_or_raise
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.businesses.services.business_guards import validate_business_for_create
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -34,8 +33,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        business = get_business_or_raise(self.db, business_id)
-        assert_business_allows_create(business)
+        validate_business_for_create(self.db, business_id)
 
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:

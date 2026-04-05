@@ -9,8 +9,8 @@
 
 Top 10 most urgent tasks based on impact, dependencies, and current development risk.
 
-- [ ] **[CRITICAL] Race condition on all status transitions — no row-level lock** (`app/charge/`, `app/vat_reports/`, `app/annual_reports/`, `app/binders/`, `app/signature_requests/`) — Reason: Concurrent requests can corrupt status, timestamps, and reminders across the busiest domains; this is a systemic data integrity failure affecting everything downstream.
-- [ ] **[CRITICAL] Osek Patur ceiling check includes deleted VAT periods** (`app/vat_reports/repositories/vat_invoice_aggregation_repository.py:85`) — Reason: Soft-deleted periods inflate the 122,833 ₪ annual income ceiling used to block Osek Patur invoices, causing legitimate invoices to be incorrectly rejected — a one-line fix with direct legal impact.
+- [x] **[CRITICAL] Race condition on all status transitions — no row-level lock** (`app/charge/`, `app/vat_reports/`, `app/annual_reports/`, `app/binders/`, `app/signature_requests/`) — Reason: Concurrent requests can corrupt status, timestamps, and reminders across the busiest domains; this is a systemic data integrity failure affecting everything downstream.
+- [x] **[CRITICAL] Osek Patur ceiling check includes deleted VAT periods** (`app/vat_reports/repositories/vat_invoice_aggregation_repository.py:85`) — Reason: Soft-deleted periods inflate the 122,833 ₪ annual income ceiling used to block Osek Patur invoices, causing legitimate invoices to be incorrectly rejected — a one-line fix with direct legal impact.
 - [ ] **[HIGH] 2026 income tax brackets are 2025 placeholders** (`app/annual_reports/services/tax_engine.py:25-32`) — Reason: Every annual report computed for tax year 2026 uses wrong brackets and credit point values, producing incorrect tax liability figures that advisors may file.
 - [ ] **[HIGH] 2026 National Insurance ceiling is a 2025 placeholder** (`app/annual_reports/services/ni_engine.py:10`) — Reason: NI calculations for 2026 reports use the wrong income ceiling, producing under/over-charged NI contributions for clients.
 - [ ] **[HIGH] NI rates are self-employed only — wrong for employee reports** (`app/annual_reports/services/constants.py:77-78`) — Reason: Applying self-employed NI rates to employee clients silently produces wrong NI amounts on annual reports, a direct tax compliance error.
@@ -23,14 +23,6 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 ---
 
 ## 1. Domain Logic — VAT Reports
-
----
-
-## [CRITICAL] Osek Patur ceiling check includes deleted VAT periods
-- **File:** `app/vat_reports/repositories/vat_invoice_aggregation_repository.py:79-88`
-- **Category:** Wrong Logic / Data Integrity
-- **Issue:** `sum_income_net_by_business_year()` joins `VatWorkItem` without filtering `deleted_at IS NULL`, so soft-deleted periods inflate the running annual income total used for the 122,833 ₪ Osek Patur ceiling check.
-- **Fix:** Add `.filter(VatWorkItem.deleted_at.is_(None))` to the query at line 85 — identical to line 109 in the same file.
 
 ---
 
@@ -206,7 +198,7 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## [LOW] Service-layer constants file imports from model layer
+## [x] [LOW] Service-layer constants file imports from model layer
 - **File:** `app/annual_reports/services/constants.py:83-86`
 - **Category:** Layer Violation
 - **Issue:** `constants.py` imports `DEFAULT_RECOGNITION_RATE` and `STATUTORY_RECOGNITION_RATES` directly from `app.annual_reports.models.annual_report_expense_line` at the bottom of the file.
@@ -214,31 +206,12 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ---
 
-## 9. Dead Code
-
----
-
-## [LOW] Verify `parse_period_to_date` is actually called
-- **File:** `app/binders/services/binder_helpers.py:43-63`
-- **Category:** Dead Code
-- **Issue:** `parse_period_to_date()` and the `import calendar` it depends on may be unused; no confirmed callers found during review.
-- **Fix:** `grep -r "parse_period_to_date"` across the codebase; remove the function and import if unused.
-
----
-
-## [LOW] `DocumentSearchResult.client_name` contains business name, not client name
-- **File:** `app/search/services/document_search_service.py:24` / `app/search/schemas/search.py:12`
-- **Category:** Dead Field / Naming Mismatch
-- **Issue:** The field is labeled `client_name` but is populated with `business.full_name`; consumers expecting a client's personal name will get the wrong value.
-- **Fix:** Rename the field to `business_name` in both the schema and the service, and update any frontend consumers.
-
----
 
 ## 10. Redundant Code
 
 ---
 
-## [MEDIUM] get_business_or_raise + assert_business_allows_create duplicated across 5+ services
+## [x] [MEDIUM] get_business_or_raise + assert_business_allows_create duplicated across 5+ services
 - **File:** `app/charge/services/billing_service.py:37-38`, `app/advance_payments/services/advance_payment_service.py`, `app/vat_reports/services/intake.py:54-58`, and others
 - **Category:** Redundant Code
 - **Issue:** Every domain service that creates records repeats the same two-line guard sequence without a shared helper.

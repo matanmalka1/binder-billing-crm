@@ -20,11 +20,7 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
         lambda db: SimpleNamespace(search_documents=lambda query: [{"id": 10}]),
     )
 
-    items, total, docs = svc.search(
-        query="alpha",
-        page=1,
-        page_size=10,
-    )
+    items, total, docs = svc.search(query="alpha", binder_number="B-", page=1, page_size=10)
     assert docs == [{"id": 10}]
     assert total >= 1
     assert any(i["result_type"] == "binder" for i in items)
