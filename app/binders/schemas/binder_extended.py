@@ -18,9 +18,10 @@ class BinderDetailResponse(BaseModel):
     status: BinderStatus
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
-    # days_active: ימים שחלפו מתחילת תקופת הקלסר (period_start → היום).
-    # נקרא days_active ולא days_in_office כי הוא מחושב גם על קלסרים שהוחזרו.
-    days_active: Optional[int] = None
+    received_at: Optional[date] = None
+    # days_in_office: ימים שחלפו מתחילת תקופת הקלסר (period_start → היום).
+    # מחושב גם על קלסרים שהוחזרו.
+    days_in_office: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
