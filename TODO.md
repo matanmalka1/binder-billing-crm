@@ -8,7 +8,7 @@
 ## High Priority Focus
 
 Top 10 most urgent tasks based on impact, dependencies, and current development risk.
-- [ ] **[HIGH] Advance payment due-date formula wrong for companies (חברות)** (`app/advance_payments/services/advance_payment_generator.py:50-55`) — Reason: Companies are assigned a due date one month too late, causing all advance payment deadlines for חברות clients to be systemically wrong.
+- [x] **[HIGH] Advance payment due-date formula wrong for companies (חברות)** (`app/advance_payments/services/advance_payment_generator.py:50-55`) — Reason: Companies are assigned a due date one month too late, causing all advance payment deadlines for חברות clients to be systemically wrong.
 - [ ] **[HIGH] Reminder not canceled when charge is marked paid** (`app/charge/services/billing_service.py:82-86`) — Reason: Advisors receive stale "unpaid charge" reminders for charges already marked paid, eroding trust in the notification system and causing unnecessary follow-up.
 - [ ] **[HIGH] VatWorkItem unique constraint allows re-creation after soft-delete in PostgreSQL** (`app/vat_reports/models/vat_work_item.py:79`) — Reason: In production (PostgreSQL), soft-deleting a VAT period permanently blocks re-creation, silently making that period unfileable without manual DB intervention.
 - [ ] **[HIGH] Annual report stuck in SUBMITTED if amendment needed** (`app/annual_reports/services/constants.py:17-57`) — Reason: A filed report that requires correction has no valid next state in the transition graph, requiring manual DB writes to proceed — blocking a normal legal workflow.
@@ -18,36 +18,17 @@ Top 10 most urgent tasks based on impact, dependencies, and current development 
 
 ## 1. Domain Logic — VAT Reports
 
----
-## [x] [MEDIUM] "other" expense category silently yields 0% VAT deduction
-- **File:** `app/vat_reports/services/constants.py` / `app/vat_reports/models/vat_enums.py` / frontend `constants.ts`
-- **Category:** Business Rule Gap
-- **Status:** ✅ RESOLVED
-- **Fix Applied:** Removed `ExpenseCategory.OTHER` enum value entirely from backend and frontend. Invoices without a recognized category are now blocked by type validation.
-- **Changes:**
-  - Backend: `app/vat_reports/models/vat_enums.py` — removed `OTHER = "other"` from `ExpenseCategory` enum
-  - Backend: `app/vat_reports/services/constants.py` — removed `"other"` label and `Decimal("0.0000")` deduction rate
-  - Frontend: `src/features/vatReports/constants.ts` — removed `"other"` from `EXPENSE_CATEGORIES` array, `CATEGORY_LABELS`, `CATEGORY_COLORS`, and `DEDUCTION_RATES`
-
----
-
-## [MEDIUM] VAT totals converted to float before DB write — precision loss
-- **File:** `app/vat_reports/repositories/vat_invoice_aggregation_repository.py:35,46`
-- **Category:** Wrong Logic
-- **Issue:** `float(output_row or 0)` and `float(sum(...))` convert Decimal amounts to IEEE-754 floats before the values are written to `Numeric(14,2)` columns, introducing rounding errors (e.g., `1234.56 → 1234.5600000000002`).
-- **Fix:** Return `Decimal` from both methods; remove all `float()` wrappers on monetary values throughout the VAT aggregation path.
-
----
 
 ## 2. Domain Logic — Advance Payments
 
 ---
 
-## [HIGH] Advance payment due-date formula wrong for companies (חברות)
-- **File:** `app/advance_payments/services/advance_payment_generator.py:50-55`
+## [x] [HIGH] Advance payment due-date formula wrong for companies (חברות)
+- **File:** `app/advance_payments/services/advance_payment_generator.py:50-62`
 - **Category:** Wrong Logic
-- **Issue:** Due date is always computed as the 15th of the month following the period end, which is correct for self-employed (עצמאי) but wrong for companies — companies file advances by the 15th of the *same* covered month.
-- **Fix:** Branch on `business.business_type`: if `COMPANY`, set `due_date` to the 15th of the period's own month rather than the following month.
+- **Status:** RESOLVED (2026-04-05)
+- **Issue:** Due date was always computed as the 15th of the month following the period end, which is correct for self-employed (עצמאי) but wrong for companies — companies file advances by the 15th of the *same* covered month.
+- **Fix Applied:** Added branching logic on `business.business_type`: if `COMPANY`, set `due_date` to the 15th of the period's own month; otherwise use the original formula (next month) for self-employed businesses.
 
 ---
 

@@ -25,7 +25,7 @@ class VatInvoiceAggregationRepository:
             else_=column,
         )
 
-    def sum_vat_both_types(self, work_item_id: int) -> tuple[float, float]:
+    def sum_vat_both_types(self, work_item_id: int) -> tuple[Decimal, Decimal]:
         """Return (output_vat, deductible_input_vat).
 
         - Output VAT: sum of vat_amount for INCOME invoices with STANDARD rate only
@@ -67,11 +67,11 @@ class VatInvoiceAggregationRepository:
             row.invoice_type: Decimal(str(row.total or 0))
             for row in rows
         }
-        output_vat = float(grouped.get(InvoiceType.INCOME, Decimal("0")))
-        input_vat = float(grouped.get(InvoiceType.EXPENSE, Decimal("0")))
+        output_vat = grouped.get(InvoiceType.INCOME, Decimal("0"))
+        input_vat = grouped.get(InvoiceType.EXPENSE, Decimal("0"))
         return output_vat, input_vat
 
-    def sum_net_both_types(self, work_item_id: int) -> tuple[float, float]:
+    def sum_net_both_types(self, work_item_id: int) -> tuple[Decimal, Decimal]:
         """Return (output_net, input_net) — sum of net_amount for INCOME and EXPENSE."""
         rows = (
             self.db.query(
@@ -86,15 +86,15 @@ class VatInvoiceAggregationRepository:
             .all()
         )
         grouped = {
-            row.invoice_type: float(row.total or 0)
+            row.invoice_type: Decimal(str(row.total or 0))
             for row in rows
         }
         return (
-            grouped.get(InvoiceType.INCOME, 0.0),
-            grouped.get(InvoiceType.EXPENSE, 0.0),
+            grouped.get(InvoiceType.INCOME, Decimal("0")),
+            grouped.get(InvoiceType.EXPENSE, Decimal("0")),
         )
 
-    def sum_income_net_by_business_year(self, business_id: int, year: int) -> float:
+    def sum_income_net_by_business_year(self, business_id: int, year: int) -> Decimal:
         """Sum net_amount of INCOME invoices for a business across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.
@@ -110,11 +110,11 @@ class VatInvoiceAggregationRepository:
             )
             .scalar()
         )
-        return float(result or 0)
+        return Decimal(str(result or 0))
 
     def sum_expense_net_by_business_year_grouped(
         self, business_id: int, year: int
-    ) -> dict[str, float]:
+    ) -> dict[str, Decimal]:
         """Return {expense_category_value: total_net_amount} for EXPENSE invoices.
 
         Aggregates across all work items for this business in the given tax year.
@@ -136,6 +136,6 @@ class VatInvoiceAggregationRepository:
             .all()
         )
         return {
-            (row.expense_category.value if row.expense_category else "other"): float(row.total or 0)
+            (row.expense_category.value if row.expense_category else "other"): Decimal(str(row.total or 0))
             for row in rows
         }

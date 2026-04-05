@@ -103,19 +103,21 @@ class VatWorkItemWriteRepository:
     def update_vat_totals(
         self,
         item_id: int,
-        total_output_vat: float,
-        total_input_vat: float,
-        total_output_net: float,
-        total_input_net: float,
+        total_output_vat,
+        total_input_vat,
+        total_output_net,
+        total_input_net,
     ) -> Optional[VatWorkItem]:
+        from decimal import Decimal
+
         item = self.get_by_id(item_id)
         if not item:
             return None
-        item.total_output_vat = total_output_vat
-        item.total_input_vat = total_input_vat
-        item.net_vat = total_output_vat - total_input_vat
-        item.total_output_net = total_output_net
-        item.total_input_net = total_input_net
+        item.total_output_vat = Decimal(str(total_output_vat))
+        item.total_input_vat = Decimal(str(total_input_vat))
+        item.net_vat = Decimal(str(total_output_vat)) - Decimal(str(total_input_vat))
+        item.total_output_net = Decimal(str(total_output_net))
+        item.total_input_net = Decimal(str(total_input_net))
         item.updated_at = utcnow()
         self.db.commit()
         self.db.refresh(item)

@@ -31,7 +31,7 @@ def recalculate_totals(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
     item_id: int,
-) -> tuple[float, float]:
+) -> tuple[Decimal, Decimal]:
     """Recompute output / input VAT totals from stored invoices (single query)."""
     output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
     output_net, input_net = invoice_repo.sum_net_both_types(item_id)

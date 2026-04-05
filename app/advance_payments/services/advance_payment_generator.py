@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.businesses.models.business import BusinessType
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.exceptions import NotFoundError
 
@@ -25,7 +26,8 @@ def generate_annual_schedule(
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
     מחזיר (created_records, skipped_count).
     """
-    if not BusinessRepository(db).get_by_id(business_id):
+    business = BusinessRepository(db).get_by_id(business_id)
+    if not business:
         raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
 
     service = AdvancePaymentService(db)
@@ -47,12 +49,17 @@ def generate_annual_schedule(
             skipped += 1
             continue
 
-        # due date = 15th of the month after the period end
-        due_month = month + period_months_count
-        due_year = year
-        if due_month > 12:
-            due_month -= 12
-            due_year += 1
+        # Companies: due date = 15th of the period's own start month
+        # Self-employed: due date = 15th of the month after the period end
+        if business.business_type == BusinessType.COMPANY:
+            due_month = month
+            due_year = year
+        else:
+            due_month = month + period_months_count
+            due_year = year
+            if due_month > 12:
+                due_month -= 12
+                due_year += 1
 
         payment = repo.create(
             business_id=business_id,
