@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Optional
 import re
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.common.enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
@@ -93,7 +93,15 @@ class VatPeriodOptionsResponse(BaseModel):
 # ── Status transitions ────────────────────────────────────────────────────────
 
 class SendBackForCorrectionRequest(BaseModel):
-    correction_note: str
+    correction_note: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("correction_note")
+    @classmethod
+    def validate_correction_note(cls, v: str) -> str:
+        normalized = v.strip()
+        if not normalized:
+            raise ValueError("נדרש טקסט תיקון")
+        return normalized
 
 
 # ── Filing ────────────────────────────────────────────────────────────────────
