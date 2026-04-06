@@ -94,3 +94,12 @@ class BusinessRepository(BusinessRepositoryRead):
             .all()
         )
         return bool(businesses) and all(b.status == BusinessStatus.CLOSED for b in businesses)
+
+    def get_ids_by_client(self, client_id: int) -> list[int]:
+        """Return all non-deleted business IDs for a client."""
+        rows = (
+            self.db.query(Business.id)
+            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .all()
+        )
+        return [r[0] for r in rows]

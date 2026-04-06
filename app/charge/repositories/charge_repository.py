@@ -56,6 +56,7 @@ class ChargeRepository(BaseRepository):
     def list_charges(
         self,
         business_id: Optional[int] = None,
+        business_ids: Optional[list[int]] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
@@ -66,6 +67,10 @@ class ChargeRepository(BaseRepository):
 
         if business_id:
             query = query.filter(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                return []
+            query = query.filter(Charge.business_id.in_(business_ids))
 
         if status:
             query = query.filter(Charge.status == status)
@@ -79,6 +84,7 @@ class ChargeRepository(BaseRepository):
     def count_charges(
         self,
         business_id: Optional[int] = None,
+        business_ids: Optional[list[int]] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
     ) -> int:
@@ -87,6 +93,10 @@ class ChargeRepository(BaseRepository):
 
         if business_id:
             query = query.filter(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                return 0
+            query = query.filter(Charge.business_id.in_(business_ids))
 
         if status:
             query = query.filter(Charge.status == status)

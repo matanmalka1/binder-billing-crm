@@ -109,12 +109,14 @@ class BinderService(BinderListService):
         old_status = binder.status.value
         effective_returned_at = returned_at or date.today()
 
+        extra = {} if binder.period_end is not None else {"period_end": effective_returned_at}
         updated = self.binder_repo.update_status(
             binder_id,
             BinderStatus.RETURNED,
             binder=binder,
             returned_at=effective_returned_at,
             pickup_person_name=pickup_person_name.strip(),
+            **extra,
         )
 
         self.status_log_repo.append(

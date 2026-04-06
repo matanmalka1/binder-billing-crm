@@ -25,6 +25,7 @@ class ChargeQueryService:
     def list_charges(
         self,
         business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
@@ -36,15 +37,20 @@ class ChargeQueryService:
         Returns (items, total, business_name_map) where business_name_map maps
         business_id → full_name for all charges in the page.
         """
+        business_ids: Optional[list[int]] = None
+        if client_id is not None:
+            business_ids = self.business_repo.get_ids_by_client(client_id)
+
         items = self.charge_repo.list_charges(
             business_id=business_id,
+            business_ids=business_ids,
             status=status,
             charge_type=charge_type,
             page=page,
             page_size=page_size,
         )
         total = self.charge_repo.count_charges(
-            business_id=business_id, status=status, charge_type=charge_type
+            business_id=business_id, business_ids=business_ids, status=status, charge_type=charge_type
         )
 
         business_ids = list({c.business_id for c in items})
@@ -57,6 +63,7 @@ class ChargeQueryService:
         self,
         user_role: UserRole,
         business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
         page: int = 1,
@@ -65,6 +72,7 @@ class ChargeQueryService:
         """List charges serialized and role-shaped in one call."""
         items, total, business_name_map = self.list_charges(
             business_id=business_id,
+            client_id=client_id,
             status=status,
             charge_type=charge_type,
             page=page,
