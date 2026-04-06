@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -83,7 +83,7 @@ def update_invoice(
 ):
     """Update an existing invoice. Not allowed after filing."""
     service = VatReportService(db)
-    invoice = service.update_invoice(
+    return service.update_invoice(
         item_id=item_id,
         invoice_id=invoice_id,
         performed_by=current_user.id,
@@ -98,9 +98,6 @@ def update_invoice(
         rate_type=request.rate_type,
         document_type=request.document_type,
     )
-    if not invoice:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")
-    return invoice
 
 
 @router.delete(
@@ -116,11 +113,8 @@ def delete_invoice(
 ):
     """Delete an invoice from a work item. Not allowed after filing."""
     service = VatReportService(db)
-    deleted = service.delete_invoice(
+    service.delete_invoice(
         item_id=item_id,
         invoice_id=invoice_id,
         performed_by=current_user.id,
     )
-
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="החשבונית לא נמצאה")

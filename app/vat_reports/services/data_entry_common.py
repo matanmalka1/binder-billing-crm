@@ -5,10 +5,14 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError
+from app.businesses.models.business import BusinessType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import (
+    CATEGORY_DEDUCTION_RATES,
+    EXCEPTIONAL_INVOICE_THRESHOLD,
     OSEK_PATUR_CEILING_ILS,
     OSEK_PATUR_CEILING_WARNING_RATE,
     VALID_TRANSITIONS,
@@ -63,12 +67,6 @@ def resolve_invoice_derived_fields(
     vat_amount: float,
 ) -> dict:
     """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional."""
-    from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
-    from app.vat_reports.services.constants import (
-        CATEGORY_DEDUCTION_RATES,
-        EXCEPTIONAL_INVOICE_THRESHOLD,
-    )
-
     if vat_amount < 0:
         raise AppError("הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
     if net_amount <= 0:
@@ -108,8 +106,6 @@ def check_osek_patur_ceiling(
     Returns True if the post-add turnover crosses the 80% warning threshold (non-blocking).
     Only enforced for OSEK_PATUR businesses (BusinessType.OSEK_PATUR).
     """
-    from app.businesses.models.business import BusinessType
-
     if not hasattr(business, "business_type") or business.business_type != BusinessType.OSEK_PATUR:
         return False
     year = int(period[:4])

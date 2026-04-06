@@ -1,6 +1,6 @@
 """Status transitions for VAT work items during data entry."""
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_STATUS_CHANGED
@@ -21,11 +21,11 @@ def mark_ready_for_review(
     """
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
-        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     if item.status != VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS:
         raise AppError(
-            f"Cannot mark ready for review: לא ניתן לסמן מוכן לבדיקה מסטטוס {item.status.value}",
+            f"לא ניתן לסמן מוכן לבדיקה מסטטוס {item.status.value}",
             "VAT.INVALID_TRANSITION",
         )
 
@@ -57,13 +57,13 @@ def send_back_for_correction(
     """
     if not correction_note or not correction_note.strip():
         raise AppError(
-            "correction_note: נדרש טקסט תיקון כאשר מחזירים את הפריט לתיקון",
+            "נדרש טקסט תיקון כאשר מחזירים את הפריט לתיקון",
             "VAT.JUSTIFICATION_REQUIRED",
         )
 
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
-        raise NotFoundError(f"not found: פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_transition_allowed(item, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 
