@@ -129,6 +129,14 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
             canceled_by = None
             if status == SignatureRequestStatus.CANCELED:
                 canceled_by = rng.choice(users).id
+            signing_token = f"seed-sign-{serial:010d}"
+            if status in (
+                SignatureRequestStatus.SIGNED,
+                SignatureRequestStatus.DECLINED,
+                SignatureRequestStatus.EXPIRED,
+                SignatureRequestStatus.CANCELED,
+            ):
+                signing_token = None
 
             request = SignatureRequest(
                 business_id=business.id,
@@ -144,7 +152,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 signer_email=client.email,
                 signer_phone=client.phone,
                 status=status,
-                signing_token=f"seed-sign-{serial:010d}",
+                signing_token=signing_token,
                 created_at=timestamps["created_at"],
                 sent_at=timestamps["sent_at"],
                 expires_at=timestamps["expires_at"],
@@ -152,6 +160,16 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 declined_at=timestamps["declined_at"],
                 canceled_at=timestamps["canceled_at"],
                 canceled_by=canceled_by,
+                decline_reason="הלקוח ביקש לעדכן נוסח לפני חתימה"
+                if status == SignatureRequestStatus.DECLINED
+                else None,
+                signer_ip_address="127.0.0.1" if status == SignatureRequestStatus.SIGNED else None,
+                signer_user_agent="seed-browser/1.0" if status == SignatureRequestStatus.SIGNED else None,
+                signed_document_key=(
+                    f"signed/signature_request_{serial}.pdf"
+                    if status == SignatureRequestStatus.SIGNED
+                    else None
+                ),
             )
             db.add(request)
             requests.append(request)

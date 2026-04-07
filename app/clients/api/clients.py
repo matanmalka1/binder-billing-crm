@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.clients.models.client import ClientStatus
 from app.clients.schemas.client import (
     ClientConflictInfo,
     ClientCreateRequest,
@@ -86,13 +87,19 @@ def list_clients(
     db: DBSession,
     user: CurrentUser,
     search: Optional[str] = Query(None),
+    status: Optional[ClientStatus] = Query(None),
+    sort_by: str = Query("full_name", pattern="^(full_name|created_at|status)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List clients with optional search by name or ID number."""
+    """List clients with optional search, status filter, and sorting."""
     service = ClientService(db)
     items, total = service.list_clients(
         search=search or None,
+        status=status,
+        sort_by=sort_by,
+        sort_order=sort_order,
         page=page,
         page_size=page_size,
     )

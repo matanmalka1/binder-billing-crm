@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
-from app.clients.models.client import Client, IdNumberType
+from app.clients.models.client import Client, ClientStatus, IdNumberType
 from app.utils.time_utils import utcnow
 
 
@@ -104,30 +105,48 @@ class ClientRepository(BaseRepository):
         self.db.commit()
         return True
 
+    _SORTABLE_FIELDS = {
+        "full_name": Client.full_name,
+        "created_at": Client.created_at,
+        "status": Client.status,
+    }
+
     def list(
         self,
         search: Optional[str] = None,
+        status: Optional[ClientStatus] = None,
+        sort_by: str = "full_name",
+        sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
     ) -> list[Client]:
-        """List active clients with optional search. search matches full_name or id_number."""
+        """List active clients with optional search, status filter, and sorting."""
         query = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
                 Client.full_name.ilike(term) | Client.id_number.ilike(term)
             )
-        query = query.order_by(Client.full_name.asc())
+        if status:
+            query = query.filter(Client.status == status)
+        col = self._SORTABLE_FIELDS.get(sort_by, Client.full_name)
+        query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
         return self._paginate(query, page, page_size)
 
-    def count(self, search: Optional[str] = None) -> int:
-        """Count active clients with optional search."""
+    def count(
+        self,
+        search: Optional[str] = None,
+        status: Optional[ClientStatus] = None,
+    ) -> int:
+        """Count active clients with optional search and status filter."""
         query = self.db.query(Client).filter(Client.deleted_at.is_(None))
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
                 Client.full_name.ilike(term) | Client.id_number.ilike(term)
             )
+        if status:
+            query = query.filter(Client.status == status)
         return query.count()
 
     def search(

@@ -12,6 +12,11 @@ class IdNumberType(str, PyEnum):
     PASSPORT     = "passport"     # דרכון — לתושבי חוץ
     OTHER        = "other"
 
+class ClientStatus(str, PyEnum):
+    ACTIVE = "active"
+    FROZEN = "frozen"
+    CLOSED = "closed"
+
 class Client(Base):
     """
     Represents a person / legal entity at the identity level only.
@@ -45,6 +50,8 @@ class Client(Base):
     address_zip_code = Column(String, nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
+    status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
+
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)

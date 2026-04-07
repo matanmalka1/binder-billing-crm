@@ -131,8 +131,10 @@ class ClientService:
 
     # ─── Query delegation ────────────────────────────────────────────────────
 
-    def list_clients(self, search=None, page=1, page_size=20):
-        return self._query.list_clients(search=search, page=page, page_size=page_size)
+    def list_clients(self, search=None, status=None, sort_by="full_name", sort_order="asc", page=1, page_size=20):
+        return self._query.list_clients(
+            search=search, status=status, sort_by=sort_by, sort_order=sort_order, page=page, page_size=page_size,
+        )
 
     def list_all_clients(self):
         return self._query.list_all_clients()

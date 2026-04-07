@@ -123,7 +123,6 @@ class Seeder:
             reports.create_annual_report_credit_points(db, self.rng, seeded_reports)
             reports.create_annual_report_status_history(db, self.rng, seeded_reports, seeded_users)
             taxes.create_advance_payments(db, self.rng, seeded_businesses, seeded_deadlines)
-            notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders)
             reminders.create_reminders(db, self.rng, seeded_businesses, seeded_binders, seeded_charges, seeded_deadlines)
             seeded_documents = documents.create_documents(db, self.rng, seeded_clients, seeded_businesses, seeded_users)
             reports.create_annual_report_expense_lines(db, self.rng, seeded_reports, seeded_documents, replace_existing=True)

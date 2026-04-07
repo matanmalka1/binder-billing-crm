@@ -5,6 +5,7 @@ from decimal import Decimal
 from random import Random
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus, PaymentMethod
+from app.businesses.models.business import BusinessType
 from app.tax_deadline.models.tax_deadline import (
     TaxDeadline,
     DeadlineType as TaxDeadlineType,
@@ -42,8 +43,17 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             )
             completed_at = None
             completed_by = None
+            created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 120))
             if status == TaxDeadlineStatus.COMPLETED:
-                completed_at = datetime.now(UTC) - timedelta(days=rng.randint(1, 30))
+                due_datetime = datetime.combine(due_date, datetime.min.time(), tzinfo=UTC)
+                earliest_completion = max(created_at, due_datetime - timedelta(days=14))
+                latest_completion = min(datetime.now(UTC), due_datetime + timedelta(days=14))
+                if latest_completion < earliest_completion:
+                    latest_completion = earliest_completion
+                window_seconds = int((latest_completion - earliest_completion).total_seconds())
+                completed_at = earliest_completion + timedelta(
+                    seconds=rng.randint(0, max(window_seconds, 1))
+                )
                 completed_by = rng.choice(users).id if users else None
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))
             deadline_type = rng.choice(list(TaxDeadlineType))
@@ -57,7 +67,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
                 status=status,
                 payment_amount=payment_amount,
                 description=description,
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
+                created_at=created_at,
                 completed_at=completed_at,
                 completed_by=completed_by,
             )
@@ -69,12 +79,15 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
 
 def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
     payments: list[AdvancePayment] = []
+    eligible_businesses = [
+        business for business in businesses if business.business_type != BusinessType.EMPLOYEE
+    ]
     deadlines_by_business_period = {}
     for dl in deadlines:
         if dl.period:
             deadlines_by_business_period[(dl.business_id, dl.period)] = dl
 
-    for client_businesses in group_businesses_by_client(businesses).values():
+    for client_businesses in group_businesses_by_client(eligible_businesses).values():
         year = date.today().year
         months = sorted(rng.sample(range(1, 13), k=rng.randint(3, 7)))
         for month in months:
@@ -84,13 +97,30 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             deadline = deadlines_by_business_period.get((business.id, period))
             status = rng.choice(list(AdvancePaymentStatus))
             expected_amount = Decimal(str(round(rng.uniform(500, 6000), 2)))
-            paid_amount = None
+            paid_amount = Decimal("0.00")
             if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
                 paid_amount = Decimal(str(round(rng.uniform(200, float(expected_amount)), 2)))
             if status == AdvancePaymentStatus.OVERDUE:
                 due_date = min(due_date, date.today() - timedelta(days=rng.randint(1, 60)))
-            if status == AdvancePaymentStatus.PAID and paid_amount is None:
+            if status == AdvancePaymentStatus.PAID:
                 paid_amount = expected_amount
+            elif status == AdvancePaymentStatus.PARTIAL:
+                paid_amount = min(expected_amount - Decimal("1.00"), paid_amount)
+                if paid_amount <= Decimal("0.00"):
+                    paid_amount = (expected_amount * Decimal("0.5")).quantize(Decimal("0.01"))
+            elif status in (AdvancePaymentStatus.PENDING, AdvancePaymentStatus.OVERDUE):
+                paid_amount = Decimal("0.00")
+
+            created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 200))
+            paid_at = None
+            if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
+                paid_at = datetime.combine(due_date, datetime.min.time(), tzinfo=UTC) - timedelta(
+                    days=rng.randint(0, 20)
+                )
+                if paid_at < created_at:
+                    paid_at = created_at + timedelta(days=rng.randint(0, 3))
+                if paid_at > datetime.now(UTC):
+                    paid_at = datetime.now(UTC)
 
             payment = AdvancePayment(
                 business_id=business.id,
@@ -100,15 +130,13 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
                 expected_amount=expected_amount,
                 paid_amount=paid_amount,
                 status=status,
-                paid_at=datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
-                if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
-                else None,
+                paid_at=paid_at,
                 payment_method=rng.choice(list(PaymentMethod))
                 if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
                 else None,
                 annual_report_id=None,
                 notes=rng.choice([None, "הוזן אוטומטית", "נדרש מעקב מול הבנק"]),
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 200)),
+                created_at=created_at,
                 updated_at=None,
             )
             db.add(payment)

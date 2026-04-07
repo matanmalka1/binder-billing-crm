@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import Client
+from app.clients.models.client import Client, ClientStatus
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -16,12 +16,22 @@ class ClientQueryService:
     def list_clients(
         self,
         search: Optional[str] = None,
+        status: Optional[ClientStatus] = None,
+        sort_by: str = "full_name",
+        sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
-        """List clients with pagination."""
-        items = self.client_repo.list(search=search, page=page, page_size=page_size)
-        total = self.client_repo.count(search=search)
+        """List clients with pagination, optional status filter, and sorting."""
+        items = self.client_repo.list(
+            search=search,
+            status=status,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
+        total = self.client_repo.count(search=search, status=status)
         return items, total
 
     def list_all_clients(self) -> list[Client]:

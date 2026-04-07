@@ -9,6 +9,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 
 def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     contacts = []
+    now = datetime.now(UTC)
     businesses_by_client_id: dict[int, list] = {}
     for business in businesses:
         businesses_by_client_id.setdefault(business.client_id, []).append(business)
@@ -22,8 +23,8 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
             if not businesses_by_client_id.get(client.id):
                 continue
             selected_business = rng.choice(businesses_by_client_id[client.id])
-            created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 300))
-            updated_at = created_at + timedelta(days=rng.randint(0, 90))
+            created_at = now - timedelta(days=rng.randint(0, 300))
+            updated_at = min(now, created_at + timedelta(days=rng.randint(0, 90)))
             contact = AuthorityContact(
                 business_id=selected_business.id,
                 contact_type=rng.choice(list(ContactType)),
@@ -58,6 +59,7 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
 
 
 def create_correspondence(db, rng: Random, businesses, users, authority_contacts):
+    now = datetime.now(UTC)
     contacts_by_business_id: dict[int, list] = {}
     for contact in authority_contacts:
         contacts_by_business_id.setdefault(contact.business_id, []).append(contact)
@@ -65,7 +67,7 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
     for business in businesses:
         num_entries = rng.randint(1, 5)
         for _ in range(num_entries):
-            occurred_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 120))
+            occurred_at = now - timedelta(days=rng.randint(0, 120))
             candidate_contacts = contacts_by_business_id.get(business.id, [])
             contact = rng.choice(candidate_contacts) if candidate_contacts and rng.random() < 0.65 else None
             entry = Correspondence(

@@ -42,6 +42,7 @@ class DashboardOverviewResponse(BaseModel):
     """Dashboard overview for management."""
 
     total_clients: int
+    active_clients: int
     active_binders: int
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0

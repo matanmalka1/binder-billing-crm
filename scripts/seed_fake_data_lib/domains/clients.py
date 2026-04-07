@@ -10,7 +10,7 @@ from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatTy
 from app.clients.models.client import Client, IdNumberType
 
 from ..constants import COMPANY_WORDS
-from ..random_utils import full_name
+from ..random_utils import full_name, generate_valid_israeli_id
 
 STREET_NAMES = [
     "הרצל",
@@ -40,10 +40,15 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
     existing_clients = int(db.execute(select(func.count()).select_from(Client)).scalar_one())
     for i in range(cfg.clients):
         serial = existing_clients + i + 1
-        if rng.random() < 0.25:
+        is_corporation = rng.random() < 0.25
+        if is_corporation:
             full_name_value = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
+            id_number_type = IdNumberType.CORPORATION
+            id_number = generate_valid_israeli_id(serial, prefix="5")
         else:
             full_name_value = full_name(rng)
+            id_number_type = IdNumberType.INDIVIDUAL
+            id_number = generate_valid_israeli_id(serial, prefix=str(rng.choice([0, 1, 2, 3])))
 
         address_street = rng.choice(STREET_NAMES)
         address_building_number = str(rng.randint(1, 220))
@@ -53,8 +58,8 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
 
         client = Client(
             full_name=full_name_value,
-            id_number=f"{100000000 + serial}",
-            id_number_type=rng.choice(list(IdNumberType)),
+            id_number=id_number,
+            id_number_type=id_number_type,
             phone=f"05{rng.randint(10000000, 99999999)}",
             email=f"client{serial}@example.com",
             notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
@@ -104,8 +109,10 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 if closed_at > date.today():
                     closed_at = date.today() - timedelta(days=rng.randint(1, 15))
 
+            preferred_types = [BusinessType.COMPANY, BusinessType.OSEK_MURSHE] if business_index == 0 else available_types
             remaining_types = [
                 bt for bt in available_types
+                if bt in preferred_types
                 if bt not in chosen_types
                 and not (
                     bt in _SOLE_TRADER
@@ -135,7 +142,7 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 client_id=client.id,
                 business_name=business_name,
                 business_type=business_type,
-                tax_id_number=f"{500000000 + serial}",
+                tax_id_number=generate_valid_israeli_id(serial, prefix="5"),
                 status=status,
                 opened_at=opened_at,
                 closed_at=closed_at,
@@ -158,11 +165,21 @@ def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) ->
         elif business.business_type == BusinessType.COMPANY:
             vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY, VatType.MONTHLY])
         elif business.business_type == BusinessType.EMPLOYEE:
-            vat_type = rng.choice([VatType.EXEMPT, VatType.MONTHLY])
+            vat_type = VatType.EXEMPT
         else:
             vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
 
         tax_year_start = rng.choice([1, 1, 1, 4, 7, 10])
+        advance_rate = (
+            None
+            if business.business_type == BusinessType.EMPLOYEE
+            else rng.choice([None, 2.5, 3.0, 4.0, 5.5, 7.0])
+        )
+        advance_rate_updated_at = (
+            None
+            if advance_rate is None
+            else date.today() - timedelta(days=rng.randint(10, 220))
+        )
         profile = BusinessTaxProfile(
             business_id=business.id,
             vat_type=vat_type,
@@ -176,8 +193,8 @@ def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) ->
                 ]
             ),
             vat_exempt_ceiling=rng.choice([None, None, 120000, 132000]) if vat_type == VatType.EXEMPT else None,
-            advance_rate=rng.choice([None, 2.5, 3.0, 4.0, 5.5, 7.0]),
-            advance_rate_updated_at=rng.choice([None, date.today() - timedelta(days=rng.randint(10, 220))]),
+            advance_rate=advance_rate,
+            advance_rate_updated_at=advance_rate_updated_at,
             business_type=business.business_type.value,
             tax_year_start=tax_year_start,
             fiscal_year_start_month=tax_year_start,

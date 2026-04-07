@@ -72,6 +72,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     r_overview = client.get("/api/v1/dashboard/overview", headers=advisor_headers)
     assert r_overview.status_code == 200
     assert "total_clients" in r_overview.json()
+    assert "active_clients" in r_overview.json()
 
     assert test_db.query(Binder).count() == baseline["binders"]
     assert test_db.query(BinderStatusLog).count() == baseline["logs"]

@@ -56,22 +56,40 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
 
 
 def create_binder_logs(db, rng: Random, binders, users) -> None:
+    now = datetime.now(UTC)
     for binder in binders:
         logs = []
-        logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.IN_OFFICE.value, "קבלת קלסר"))
+        intake_time = datetime.combine(binder.period_start, datetime.min.time(), tzinfo=UTC) + timedelta(
+            hours=rng.randint(8, 16)
+        )
+        logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.IN_OFFICE.value, "קבלת קלסר", intake_time))
         if binder.status == BinderStatus.READY_FOR_PICKUP:
-            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "הטיפול הושלם"))
+            ready_time = intake_time + timedelta(days=rng.randint(2, 14), hours=rng.randint(1, 8))
+            if ready_time > now:
+                ready_time = now
+            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "הטיפול הושלם", ready_time))
         elif binder.status == BinderStatus.RETURNED:
-            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "מוכן לאיסוף"))
-            logs.append((BinderStatus.READY_FOR_PICKUP.value, BinderStatus.RETURNED.value, "נמסר ללקוח"))
+            ready_time = intake_time + timedelta(days=rng.randint(2, 14), hours=rng.randint(1, 8))
+            if ready_time > now:
+                ready_time = now
+            returned_base = binder.returned_at or binder.period_end or binder.period_start
+            returned_time = datetime.combine(returned_base, datetime.min.time(), tzinfo=UTC) + timedelta(
+                hours=rng.randint(9, 18)
+            )
+            if returned_time < ready_time:
+                returned_time = ready_time + timedelta(hours=1)
+            if returned_time > now:
+                returned_time = now
+            logs.append((BinderStatus.IN_OFFICE.value, BinderStatus.READY_FOR_PICKUP.value, "מוכן לאיסוף", ready_time))
+            logs.append((BinderStatus.READY_FOR_PICKUP.value, BinderStatus.RETURNED.value, "נמסר ללקוח", returned_time))
 
-        for old_status, new_status, note in logs:
+        for old_status, new_status, note, changed_at in logs:
             log = BinderStatusLog(
                 binder_id=binder.id,
                 old_status=old_status,
                 new_status=new_status,
                 changed_by=rng.choice(users).id,
-                changed_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
+                changed_at=changed_at,
                 notes=note,
             )
             db.add(log)
@@ -95,6 +113,7 @@ def create_binder_intakes(db, binders) -> list[BinderIntake]:
 
 def create_binder_intake_materials(db, rng: Random, binders, businesses, reports, intakes) -> list[BinderIntakeMaterial]:
     materials: list[BinderIntakeMaterial] = []
+    now = datetime.now(UTC)
     businesses_by_client_id: dict[int, list] = {}
     for business in businesses:
         businesses_by_client_id.setdefault(business.client_id, []).append(business)
@@ -131,7 +150,11 @@ def create_binder_intake_materials(db, rng: Random, binders, businesses, reports
                         "אישורי מס וניכויים",
                     ]
                 ),
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
+                created_at=min(
+                    now,
+                    datetime.combine(intake.received_at, datetime.min.time(), tzinfo=UTC)
+                    + timedelta(days=rng.randint(0, 14), hours=rng.randint(1, 10)),
+                ),
             )
             db.add(item)
             materials.append(item)

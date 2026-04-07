@@ -13,6 +13,7 @@ from app.permanent_documents.models.permanent_document import (
 
 def create_documents(db, rng: Random, clients, businesses, users):
     documents: list[PermanentDocument] = []
+    now = datetime.now(UTC)
     businesses_by_client_id: dict[int, list] = {}
     for business in businesses:
         businesses_by_client_id.setdefault(business.client_id, []).append(business)
@@ -22,17 +23,25 @@ def create_documents(db, rng: Random, clients, businesses, users):
         if rng.random() < 0.8:
             docs.append(DocumentType.ENGAGEMENT_AGREEMENT)
         for doc_type in docs:
-            uploaded_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 500))
+            uploaded_at = now - timedelta(days=rng.randint(0, 500))
             status = rng.choices(
                 [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],
                 weights=[10, 20, 60, 10],
                 k=1,
             )[0]
+            is_present = rng.random() > 0.05
+            if not is_present and status in (DocumentStatus.APPROVED, DocumentStatus.RECEIVED):
+                status = DocumentStatus.PENDING
             approved_by = None
             approved_at = None
-            if status == DocumentStatus.APPROVED and rng.random() < 0.7:
+            if status == DocumentStatus.APPROVED and is_present and rng.random() < 0.7:
                 approved_by = rng.choice(users).id
-                approved_at = uploaded_at + timedelta(days=rng.randint(1, 30))
+                approved_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 30)))
+            rejected_at = None
+            rejected_by = None
+            if status == DocumentStatus.REJECTED:
+                rejected_by = rng.choice(users).id
+                rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))
 
             document = PermanentDocument(
                 client_id=client.id,
@@ -48,16 +57,14 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 mime_type="application/pdf",
                 tax_year=None,
                 status=status,
-                is_present=rng.random() > 0.05,
+                is_present=is_present,
                 notes=rng.choice([None, "סריקה באיכות טובה", "נדרש דף ספח", "עודכן לפי מסמך חדש"]),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
                 approved_at=approved_at,
-                rejected_by=rng.choice(users).id if status == DocumentStatus.REJECTED else None,
-                rejected_at=uploaded_at + timedelta(days=rng.randint(1, 10))
-                if status == DocumentStatus.REJECTED
-                else None,
+                rejected_by=rejected_by,
+                rejected_at=rejected_at,
             )
             db.add(document)
             documents.append(document)
@@ -72,17 +79,25 @@ def create_documents(db, rng: Random, clients, businesses, users):
             k=min(remaining_business_doc_slots, len(client_businesses)),
         )
         for business in selected_businesses:
-            uploaded_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 500))
+            uploaded_at = now - timedelta(days=rng.randint(0, 500))
             status = rng.choices(
                 [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],
                 weights=[10, 20, 60, 10],
                 k=1,
             )[0]
+            is_present = rng.random() > 0.05
+            if not is_present and status in (DocumentStatus.APPROVED, DocumentStatus.RECEIVED):
+                status = DocumentStatus.PENDING
             approved_by = None
             approved_at = None
-            if status == DocumentStatus.APPROVED and rng.random() < 0.7:
+            if status == DocumentStatus.APPROVED and is_present and rng.random() < 0.7:
                 approved_by = rng.choice(users).id
-                approved_at = uploaded_at + timedelta(days=rng.randint(1, 30))
+                approved_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 30)))
+            rejected_at = None
+            rejected_by = None
+            if status == DocumentStatus.REJECTED:
+                rejected_by = rng.choice(users).id
+                rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))
 
             document = PermanentDocument(
                 client_id=client.id,
@@ -98,16 +113,14 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 mime_type="application/pdf",
                 tax_year=rng.choice([uploaded_at.year, uploaded_at.year - 1, None]),
                 status=status,
-                is_present=rng.random() > 0.05,
+                is_present=is_present,
                 notes=rng.choice([None, "מסמך מסווג להוצאות", "שייך לשנת המס האחרונה", "נשלח על ידי הלקוח"]),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
                 approved_at=approved_at,
-                rejected_by=rng.choice(users).id if status == DocumentStatus.REJECTED else None,
-                rejected_at=uploaded_at + timedelta(days=rng.randint(1, 10))
-                if status == DocumentStatus.REJECTED
-                else None,
+                rejected_by=rejected_by,
+                rejected_at=rejected_at,
             )
             db.add(document)
             documents.append(document)

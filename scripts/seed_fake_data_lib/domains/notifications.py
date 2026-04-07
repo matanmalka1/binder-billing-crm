@@ -48,8 +48,17 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             weights=[75, 18, 7],
             k=1,
         )[0]
-        sent_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 50)) if status == NotificationStatus.SENT else None
-        failed_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 50)) if status == NotificationStatus.FAILED else None
+        created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 60))
+        sent_at = None
+        failed_at = None
+        if status == NotificationStatus.SENT:
+            sent_at = created_at + timedelta(days=rng.randint(0, 5), hours=rng.randint(0, 12))
+            if sent_at > datetime.now(UTC):
+                sent_at = datetime.now(UTC)
+        elif status == NotificationStatus.FAILED:
+            failed_at = created_at + timedelta(days=rng.randint(0, 3), hours=rng.randint(0, 12))
+            if failed_at > datetime.now(UTC):
+                failed_at = datetime.now(UTC)
         severity = rng.choice(list(NotificationSeverity))
         triggered_by = None
         if trigger == NotificationTrigger.MANUAL_PAYMENT_REMINDER and users:
@@ -68,7 +77,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             failed_at=failed_at,
             error_message=("פסק זמן מול הספק" if status == NotificationStatus.FAILED else None),
             triggered_by=triggered_by,
-            created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 60)),
+            created_at=created_at,
         )
         db.add(notification)
         created_any = True

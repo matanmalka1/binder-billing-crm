@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-from app.clients.models.client import IdNumberType
+from app.clients.models.client import ClientStatus, IdNumberType
 from app.core.api_types import ApiDateTime
 from app.utils.id_validation import validate_israeli_id_checksum
 
@@ -28,16 +28,20 @@ class ClientCreateRequest(BaseModel):
 
     @field_validator("id_number")
     @classmethod
-    def validate_id_number_format(cls, v: str) -> str:
+    def normalize_id_number(cls, v: str) -> str:
         v = v.strip()
-        if not v.isdigit():
-            raise ValueError("מספר זהות/ח.פ חייב להכיל ספרות בלבד")
-        if len(v) != 9:
-            raise ValueError("מספר זהות/ח.פ חייב להכיל בדיוק 9 ספרות")
+        if not v:
+            raise ValueError("יש להזין מספר מזהה")
         return v
 
     @model_validator(mode="after")
     def validate_id_checksum(self) -> "ClientCreateRequest":
+        if self.id_number_type in {IdNumberType.INDIVIDUAL, IdNumberType.CORPORATION}:
+            if not self.id_number.isdigit():
+                raise ValueError("מספר זהות/ח.פ חייב להכיל ספרות בלבד")
+            if len(self.id_number) != 9:
+                raise ValueError("מספר זהות/ח.פ חייב להכיל בדיוק 9 ספרות")
+
         if self.id_number_type == IdNumberType.INDIVIDUAL:
             if not validate_israeli_id_checksum(self.id_number):
                 raise ValueError("מספר זהות אינו תקין")
@@ -47,6 +51,7 @@ class ClientCreateRequest(BaseModel):
 class ClientUpdateRequest(BaseModel):
     """עדכון פרטי זהות בלבד."""
     full_name: Optional[str] = None
+    status: Optional[ClientStatus] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     address_street: Optional[str] = None
@@ -64,6 +69,7 @@ class ClientResponse(BaseModel):
     full_name: str
     id_number: str
     id_number_type: Optional[IdNumberType] = None
+    status: ClientStatus = ClientStatus.ACTIVE
     phone: Optional[str] = None
     email: Optional[str] = None
     address_street: Optional[str] = None

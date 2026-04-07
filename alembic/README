@@ -56,7 +56,8 @@ Notes:
 ## Migration chain
 
 ```
-b2c3d4e5f6a7  ← HEAD (add expiry_days to signature_requests — 2026-04-05)
+9b225dd8ca06  ← HEAD (add status to clients — 2026-04-07)
+b2c3d4e5f6a7         (add expiry_days to signature_requests — 2026-04-05)
 a1b2c3d4e5f6         (add entity_audit_logs table — 2026-04-05)
 71ead2aae8c6         (set advance_payments.paid_amount non-nullable with default 0 — 2026-04-05)
 214426106435         (fix vat_work_item unique constraint with partial index for soft delete — 2026-04-05)
@@ -69,6 +70,17 @@ ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0011 — add_status_to_clients (9b225dd8ca06)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 9b225dd8ca06`
+- What it does:
+  Adds `status` (varchar 10, NOT NULL, server_default `'active'`) to `clients`.
+  Valid values: `active`, `frozen`, `closed`.
+- Important notes:
+  - Existing rows default to `active` via `server_default`.
+  - Downgrade drops the column.
 
 ### 0010 — add_expiry_days_to_signature_requests (b2c3d4e5f6a7)
 

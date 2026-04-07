@@ -22,6 +22,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from ._business_groups import group_businesses_by_client
 from app.businesses.models.business_tax_profile import VatType
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
+from ..random_utils import generate_valid_israeli_id
 
 DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
     ExpenseCategory.TRAVEL: Decimal("0.6667"),
@@ -63,12 +64,27 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
     }
 
     for client_businesses in group_businesses_by_client(businesses).values():
+        eligible_businesses = [
+            business
+            for business in client_businesses
+            if profile_by_business_id.get(business.id, None) is None
+            or profile_by_business_id[business.id].vat_type in (VatType.MONTHLY, VatType.BIMONTHLY)
+        ]
+        if not eligible_businesses:
+            continue
         num_items = rng.randint(cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client)
         periods = _choose_periods(rng, num_items)
 
         for period in periods:
-            business = rng.choice(client_businesses)
+            business = rng.choice(eligible_businesses)
             profile = profile_by_business_id.get(business.id)
+            period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
+            created_at = max(
+                period_start,
+                datetime.now(UTC) - timedelta(days=rng.randint(5, 75)),
+            )
+            if created_at > datetime.now(UTC):
+                created_at = datetime.now(UTC)
             if profile and profile.vat_type in (VatType.MONTHLY, VatType.BIMONTHLY):
                 period_type = profile.vat_type
             else:
@@ -102,6 +118,8 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
                 period=period,
                 period_type=period_type,
                 status=status,
+                created_at=created_at,
+                updated_at=created_at,
                 pending_materials_note="ממתינים לחשבוניות מהלקוח"
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
                 else None,
@@ -109,7 +127,8 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
 
             if status == VatWorkItemStatus.FILED:
                 work_item.submission_method = rng.choice(list(SubmissionMethod))
-                work_item.filed_at = datetime.now(UTC) - timedelta(days=rng.randint(1, 90))
+                filed_at_candidate = max(created_at, datetime.now(UTC) - timedelta(days=rng.randint(1, 90)))
+                work_item.filed_at = min(datetime.now(UTC), filed_at_candidate)
                 work_item.filed_by = work_item.assigned_to or work_item.created_by
                 work_item.submission_reference = f"VAT-{work_item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
 
@@ -160,7 +179,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
         num_invoices = rng.randint(cfg.min_vat_invoices_per_work_item, cfg.max_vat_invoices_per_work_item)
         for _ in range(num_invoices):
             invoice_type = rng.choice(list(InvoiceType))
-            base_amount = Decimal(str(round(rng.uniform(250, 12000), 2)))
+            base_amount = Decimal(str(round(rng.uniform(250, 30000), 2)))
             if invoice_type == InvoiceType.EXPENSE:
                 expense_category = rng.choice(list(ExpenseCategory))
                 document_type = rng.choice(
@@ -199,6 +218,18 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 if document_type == DocumentType.TAX_INVOICE
                 else rng.choice([CounterpartyIdType.IL_BUSINESS, CounterpartyIdType.IL_PERSONAL, CounterpartyIdType.FOREIGN])
             )
+            if counterparty_id_type == CounterpartyIdType.IL_BUSINESS:
+                counterparty_id = generate_valid_israeli_id(
+                    work_item.id * 1000 + invoice_counters[work_item.id],
+                    prefix="5",
+                )
+            elif counterparty_id_type == CounterpartyIdType.IL_PERSONAL:
+                counterparty_id = generate_valid_israeli_id(
+                    work_item.id * 1000 + invoice_counters[work_item.id],
+                    prefix=str(rng.choice([0, 1, 2, 3])),
+                )
+            else:
+                counterparty_id = f"F{rng.randint(1000000, 9999999)}"
 
             invoice = VatInvoice(
                 work_item_id=work_item.id,
@@ -208,7 +239,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 invoice_number=invoice_number,
                 invoice_date=(datetime.now(UTC) - timedelta(days=rng.randint(1, 60))).date(),
                 counterparty_name=rng.choice(["לקוח", "ספק", "סוכנות", "יבואן", "משווק"]) + f" {rng.randint(1, 999)}",
-                counterparty_id=str(rng.randint(100000000, 999999999)),
+                counterparty_id=counterparty_id,
                 counterparty_id_type=counterparty_id_type,
                 net_amount=base_amount,
                 vat_amount=vat_amount,

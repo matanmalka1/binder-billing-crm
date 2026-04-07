@@ -271,7 +271,7 @@ def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
 def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[AnnualReport]:
     reports: list[AnnualReport] = []
     current_year = datetime.now(UTC).year
-    available_years = list(range(current_year - 3, current_year + 1))
+    available_years = list(range(current_year - 4, current_year))
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
     status_cycle = list(SEEDABLE_STATUSES)
@@ -309,7 +309,14 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 custom_deadline_note = "מועד מותאם אישית בסביבת דמו"
             submission_method = (
                 rng.choice(list(SubmissionMethod))
-                if status in (AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED, AnnualReportStatus.CLOSED)
+                if status
+                in (
+                    AnnualReportStatus.SUBMITTED,
+                    AnnualReportStatus.ACCEPTED,
+                    AnnualReportStatus.ASSESSMENT_ISSUED,
+                    AnnualReportStatus.OBJECTION_FILED,
+                    AnnualReportStatus.CLOSED,
+                )
                 else None
             )
             extension_reason = (
@@ -317,22 +324,24 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 if deadline_type == DeadlineType.EXTENDED
                 else None
             )
-            submitted_at = (
-                datetime.now(UTC) - timedelta(days=rng.randint(1, 120))
-                if status
-                in (
-                    AnnualReportStatus.SUBMITTED,
-                    AnnualReportStatus.ACCEPTED,
-                    AnnualReportStatus.ASSESSMENT_ISSUED,
-                    AnnualReportStatus.CLOSED,
-                )
-                else None
-            )
-
             created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 400))
-            updated_at = created_at - timedelta(days=rng.randint(0, 60))
-            if updated_at > created_at:
-                updated_at = created_at
+            updated_at = created_at + timedelta(days=rng.randint(0, 60))
+            now = datetime.now(UTC)
+            if updated_at > now:
+                updated_at = now
+            submitted_at = None
+            if status in (
+                AnnualReportStatus.SUBMITTED,
+                AnnualReportStatus.ACCEPTED,
+                AnnualReportStatus.ASSESSMENT_ISSUED,
+                AnnualReportStatus.OBJECTION_FILED,
+                AnnualReportStatus.CLOSED,
+            ):
+                submitted_at = created_at + timedelta(days=rng.randint(1, 180))
+                if submitted_at > now:
+                    submitted_at = now
+                if updated_at < submitted_at:
+                    updated_at = submitted_at
 
             report = AnnualReport(
                 business_id=business.id,
@@ -381,12 +390,15 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
 
         client_approved_at = None
         if report.status in (
-            AnnualReportStatus.PENDING_CLIENT,
             AnnualReportStatus.SUBMITTED,
+            AnnualReportStatus.ASSESSMENT_ISSUED,
             AnnualReportStatus.ACCEPTED,
+            AnnualReportStatus.OBJECTION_FILED,
             AnnualReportStatus.CLOSED,
         ):
-            client_approved_at = report.created_at + timedelta(days=rng.randint(7, 45))
+            approval_upper_bound = report.submitted_at or report.updated_at or datetime.now(UTC)
+            candidate = report.created_at + timedelta(days=rng.randint(7, 45))
+            client_approved_at = min(candidate, approval_upper_bound)
 
         detail = AnnualReportDetail(
             report_id=report.id,

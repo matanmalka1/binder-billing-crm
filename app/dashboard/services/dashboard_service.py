@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import BinderStatus
+from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -18,6 +19,7 @@ class DashboardService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
+        self.client_repo = ClientRepository(db)
         self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
@@ -29,6 +31,7 @@ class DashboardService:
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
         return {
             "total_clients": self.business_repo.count(),
+            "active_clients": self.client_repo.count(),
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(
                 BinderStatus.READY_FOR_PICKUP
