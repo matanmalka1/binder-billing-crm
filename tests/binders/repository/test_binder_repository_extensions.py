@@ -4,7 +4,7 @@ from itertools import count
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 

@@ -1,6 +1,6 @@
 from io import BytesIO
 
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _create_client(db):

@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.businesses.models.business import Business, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _create_business(test_db) -> Business:

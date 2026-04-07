@@ -1,7 +1,7 @@
 from datetime import date
 
-from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client
+from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.clients.models.client import Client
 
 
 def _client(db) -> Client:

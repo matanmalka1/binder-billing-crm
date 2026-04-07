@@ -2,7 +2,7 @@ from datetime import date
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _seed_binder_and_intakes(db, user_id: int):

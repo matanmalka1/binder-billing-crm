@@ -1,4 +1,4 @@
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.users.models.user import User, UserRole

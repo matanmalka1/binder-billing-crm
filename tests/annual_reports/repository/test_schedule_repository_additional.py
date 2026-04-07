@@ -9,7 +9,7 @@ from app.annual_reports.models.annual_report_enums import (
 )
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
 from app.annual_reports.repositories.schedule_repository import AnnualReportScheduleRepository
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 

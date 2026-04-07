@@ -103,3 +103,42 @@ class BusinessRepository(BusinessRepositoryRead):
             .all()
         )
         return [r[0] for r in rows]
+
+    def has_conflicting_sole_trader(self, client_id: int, new_type: "BusinessType") -> bool:
+        """
+        Returns True if the client has a non-deleted sole-trader of the OPPOSITE type.
+
+        Israeli VAT law: a person holds one VAT status (osek_patur OR osek_murshe).
+        Multiple businesses of the SAME type are allowed (separate activities, one VAT file).
+        Cross-type is illegal — you cannot be both patur and murshe simultaneously.
+        """
+        from app.businesses.models.business import BusinessType
+        _SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
+        opposite_types = list(_SOLE_TRADER_TYPES - {new_type})
+        return (
+            self.db.query(Business)
+            .filter(
+                Business.client_id == client_id,
+                Business.business_type.in_(opposite_types),
+                Business.deleted_at.is_(None),
+            )
+            .first()
+        ) is not None
+
+    def has_conflicting_sole_trader_excluding(
+        self, client_id: int, new_type: "BusinessType", exclude_business_id: int
+    ) -> bool:
+        """Same as has_conflicting_sole_trader but excludes the given business (for update checks)."""
+        from app.businesses.models.business import BusinessType
+        _SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
+        opposite_types = list(_SOLE_TRADER_TYPES - {new_type})
+        return (
+            self.db.query(Business)
+            .filter(
+                Business.client_id == client_id,
+                Business.business_type.in_(opposite_types),
+                Business.deleted_at.is_(None),
+                Business.id != exclude_business_id,
+            )
+            .first()
+        ) is not None

@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _create_client(test_db, suffix: str) -> Client:

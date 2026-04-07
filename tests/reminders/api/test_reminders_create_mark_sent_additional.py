@@ -6,7 +6,7 @@ import pytest
 from app.binders.models.binder import Binder, BinderStatus
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.reminders.api import routes_create
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository

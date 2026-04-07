@@ -3,10 +3,10 @@ from datetime import date, timedelta
 import pytest
 
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.reminders.services import ReminderService
+from app.reminders.services.reminder_service import ReminderService
 from app.core.exceptions import AppError, NotFoundError
 
 

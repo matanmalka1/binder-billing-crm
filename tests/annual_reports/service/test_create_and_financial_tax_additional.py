@@ -3,10 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.annual_reports.models import AnnualReportSchedule
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
+from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
 
 

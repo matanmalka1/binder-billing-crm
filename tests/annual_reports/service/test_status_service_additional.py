@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.services import AnnualReportService
-from app.clients.models import Client
+from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.clients.models.client import Client
 from app.core.exceptions import AppError
 
 

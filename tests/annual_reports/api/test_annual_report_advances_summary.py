@@ -3,10 +3,10 @@ from decimal import Decimal
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.ni_engine import calculate_national_insurance as _calculate_ni
 from app.annual_reports.services.tax_engine import calculate_tax as _calculate_tax
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _create_report(db):

@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_list_service import BinderListService
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.clients.repositories.client_repository import ClientRepository
 
 

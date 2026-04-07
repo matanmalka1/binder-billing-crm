@@ -1,4 +1,4 @@
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _client(db, suffix: str) -> Client:

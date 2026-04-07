@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.signature_requests.models.signature_request import (
     SignatureAuditEvent,
     SignatureRequestStatus,

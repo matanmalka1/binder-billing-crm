@@ -7,7 +7,7 @@ import pytest
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.businesses.models.business import Business, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.reports.services.export_service import ExportService
 from app.reports.services.reports_service import AgingReportService
 

@@ -12,7 +12,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.businesses.models.business import Business, BusinessType
 from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem

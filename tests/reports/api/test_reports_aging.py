@@ -4,7 +4,7 @@ from itertools import count
 
 from app.businesses.models.business import Business, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 _client_seq = count(1)

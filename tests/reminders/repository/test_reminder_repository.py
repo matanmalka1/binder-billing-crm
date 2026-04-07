@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from itertools import count
 
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow

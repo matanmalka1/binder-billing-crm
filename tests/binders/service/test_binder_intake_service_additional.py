@@ -5,7 +5,7 @@ import pytest
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import AppError
 
 

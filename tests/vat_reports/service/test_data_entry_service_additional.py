@@ -11,6 +11,10 @@ from app.vat_reports.services.data_entry_common import (
     check_osek_patur_ceiling,
     resolve_invoice_derived_fields,
 )
+from app.vat_reports.services.constants import (
+    OSEK_PATUR_CEILING_ILS,
+    OSEK_PATUR_CEILING_WARNING_RATE,
+)
 from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
 from app.vat_reports.services.data_entry_invoices import add_invoice
 
@@ -77,7 +81,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
         lambda *args, **kwargs: None,
     )
 
-    income = add_invoice(
+    income, ceiling_warning = add_invoice(
         work_item_repo,
         invoice_repo,
         business_repo,
@@ -92,6 +96,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
     )
     assert income.counterparty_name == "הכנסות"
     assert income.invoice_date == datetime(2026, 3, 1)
+    assert ceiling_warning is False
 
 
 def test_data_entry_common_invalid_transition_and_ceiling():
@@ -117,6 +122,70 @@ def test_data_entry_common_invalid_transition_and_ceiling():
         vat_amount=17,
     )
     assert "deduction_rate" in derived
+
+
+def test_osek_patur_ceiling_uses_2026_threshold_and_boundary_behavior():
+    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
+
+    class _InvoiceRepo:
+        def __init__(self, total):
+            self.total = total
+
+        def sum_income_net_by_business_year(self, business_id, year):
+            assert year == 2026
+            return self.total
+
+    assert OSEK_PATUR_CEILING_ILS == 122833
+
+    warning = check_osek_patur_ceiling(
+        osek_business,
+        _InvoiceRepo(122832),
+        1,
+        "2026-01",
+        1,
+    )
+    assert warning is True
+
+    with pytest.raises(AppError) as exc:
+        check_osek_patur_ceiling(
+            osek_business,
+            _InvoiceRepo(122833),
+            1,
+            "2026-01",
+            0.01,
+        )
+    assert exc.value.code == "VAT.OSEK_PATUR_CEILING_EXCEEDED"
+    assert "122833.00" in str(exc.value.message)
+
+
+def test_osek_patur_ceiling_warning_threshold_is_80_percent():
+    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
+    warning_threshold = OSEK_PATUR_CEILING_ILS * OSEK_PATUR_CEILING_WARNING_RATE
+
+    class _InvoiceRepo:
+        def __init__(self, total):
+            self.total = total
+
+        def sum_income_net_by_business_year(self, business_id, year):
+            return self.total
+
+    below_warning = check_osek_patur_ceiling(
+        osek_business,
+        _InvoiceRepo(warning_threshold - 1),
+        1,
+        "2026-01",
+        0.5,
+    )
+    assert below_warning is False
+
+    at_warning = check_osek_patur_ceiling(
+        osek_business,
+        _InvoiceRepo(warning_threshold - 1),
+        1,
+        "2026-01",
+        1,
+    )
+    assert at_warning is True
 
 
 def test_delete_invoice_not_found_paths():

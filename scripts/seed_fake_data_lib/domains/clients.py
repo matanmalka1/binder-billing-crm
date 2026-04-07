@@ -84,7 +84,11 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
             business_count = rng.randint(2, 3)
 
         chosen_types: list[BusinessType] = []
+        # Israeli VAT law: cannot mix osek_patur and osek_murshe for the same person.
+        # Multiple businesses of the SAME sole-trader type are allowed.
+        sole_trader_type_chosen: BusinessType | None = None
         available_types = list(BusinessType)
+        _SOLE_TRADER = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
         for business_index in range(business_count):
             serial += 1
             open_days_ago = rng.randint(20, 1100)
@@ -100,8 +104,18 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 if closed_at > date.today():
                     closed_at = date.today() - timedelta(days=rng.randint(1, 15))
 
-            remaining_types = [bt for bt in available_types if bt not in chosen_types]
-            business_type = rng.choice(remaining_types or available_types)
+            remaining_types = [
+                bt for bt in available_types
+                if bt not in chosen_types
+                and not (
+                    bt in _SOLE_TRADER
+                    and sole_trader_type_chosen is not None
+                    and bt != sole_trader_type_chosen
+                )
+            ]
+            business_type = rng.choice(remaining_types or [BusinessType.COMPANY, BusinessType.EMPLOYEE])
+            if business_type in _SOLE_TRADER and sole_trader_type_chosen is None:
+                sole_trader_type_chosen = business_type
             chosen_types.append(business_type)
 
             if business_type == BusinessType.COMPANY:

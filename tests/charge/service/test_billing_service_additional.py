@@ -6,7 +6,7 @@ from app.businesses.models.business import Business, BusinessStatus, BusinessTyp
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from app.charge.services.charge_query_service import ChargeQueryService
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 

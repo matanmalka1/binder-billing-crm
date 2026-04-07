@@ -9,8 +9,11 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lookup import get_business_or_raise as _get_or_raise
+from app.businesses.models.business import BusinessType
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
+
+_SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
 
 
 class BusinessLifecycleService:
@@ -38,6 +41,12 @@ class BusinessLifecycleService:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
         if business.deleted_at is None:
             raise ConflictError("עסק זה אינו מחוק", "BUSINESS.NOT_DELETED")
+        if business.business_type in _SOLE_TRADER_TYPES:
+            if self.business_repo.has_conflicting_sole_trader(business.client_id, business.business_type):
+                raise ConflictError(
+                    "לקוח זה רשום בסטטוס עוסק שונה — לא ניתן לשחזר עסק מסוג זה",
+                    "BUSINESS.SOLE_TRADER_CONFLICT",
+                )
         restored = self.business_repo.restore(business_id, restored_by=actor_id)
         if not restored:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")

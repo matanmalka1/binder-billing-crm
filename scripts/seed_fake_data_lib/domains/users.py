@@ -5,6 +5,10 @@ from random import Random
 
 from sqlalchemy import func, select
 
+from app.audit.constants import ACTION_CREATED, ACTION_UPDATED, ENTITY_BUSINESS, ENTITY_CLIENT
+from app.audit.models.entity_audit_log import EntityAuditLog
+from app.businesses.models.business import Business
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
@@ -65,4 +69,31 @@ def create_user_audit_logs(db, rng: Random, users: list[User]) -> None:
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 30)),
             )
             db.add(fail_log)
+    db.flush()
+
+
+def create_entity_audit_logs(
+    db,
+    rng: Random,
+    users: list[User],
+    businesses: list[Business],
+    clients: list[Client],
+) -> None:
+    actor = users[0]
+    for client in clients:
+        db.add(EntityAuditLog(
+            entity_type=ENTITY_CLIENT,
+            entity_id=client.id,
+            performed_by=actor.id,
+            action=ACTION_CREATED,
+            performed_at=datetime.now(UTC) - timedelta(days=rng.randint(30, 365)),
+        ))
+    for business in businesses:
+        db.add(EntityAuditLog(
+            entity_type=ENTITY_BUSINESS,
+            entity_id=business.id,
+            performed_by=rng.choice(users).id,
+            action=rng.choice([ACTION_CREATED, ACTION_UPDATED]),
+            performed_at=datetime.now(UTC) - timedelta(days=rng.randint(1, 180)),
+        ))
     db.flush()

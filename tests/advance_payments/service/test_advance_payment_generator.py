@@ -7,7 +7,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
 from app.businesses.models.business import Business, BusinessType
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 
 

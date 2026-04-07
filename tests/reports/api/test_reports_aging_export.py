@@ -6,7 +6,7 @@ import openpyxl
 
 from app.businesses.models.business import Business, BusinessType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _seed_charges(db):

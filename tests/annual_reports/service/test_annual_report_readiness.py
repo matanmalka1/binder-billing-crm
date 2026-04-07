@@ -1,9 +1,9 @@
 from datetime import UTC, date, datetime
 
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _create_report(db):

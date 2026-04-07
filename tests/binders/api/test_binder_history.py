@@ -2,7 +2,7 @@ from datetime import date
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _seed_binder_with_history(db, user_id: int):

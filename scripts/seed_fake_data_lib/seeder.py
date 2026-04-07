@@ -138,6 +138,7 @@ class Seeder:
             binders.create_binder_logs(db, self.rng, seeded_binders, seeded_users)
             if not self.cfg.preserve_users:
                 users.create_user_audit_logs(db, self.rng, seeded_users)
+            users.create_entity_audit_logs(db, self.rng, seeded_users, seeded_businesses, seeded_clients)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders, seeded_users)
             vat_work_items = vat.create_vat_work_items(
                 db,

@@ -7,7 +7,7 @@ import pytest
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.businesses.models.business import Business, BusinessType
 from app.businesses.models.business import BusinessStatus
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError, ForbiddenError
 
 

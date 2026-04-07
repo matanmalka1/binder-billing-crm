@@ -15,7 +15,7 @@ from app.annual_reports.repositories.detail.repository import AnnualReportDetail
 from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 

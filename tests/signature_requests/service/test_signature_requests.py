@@ -3,10 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.clients.models import Client
+from app.clients.models.client import Client
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services import SignatureRequestService
+from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.signature_requests.services import create_request as create_request_module
 from app.signature_requests.services import signature_request_validations as validations
 from app.signature_requests.services.admin_actions import expire_overdue_requests

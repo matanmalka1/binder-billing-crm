@@ -3,9 +3,9 @@ from datetime import date
 from itertools import count
 
 from app.annual_reports.repositories.detail.repository import AnnualReportDetailRepository
-from app.annual_reports.services import AnnualReportService
+from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.tax_engine import calculate_tax
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 _client_seq = count(1)

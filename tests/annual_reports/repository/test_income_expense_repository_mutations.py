@@ -12,7 +12,7 @@ from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.clients.models import Client
+from app.clients.models.client import Client
 
 
 def _report_id(test_db) -> int:
