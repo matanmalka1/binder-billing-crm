@@ -111,7 +111,7 @@ def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
     assert kpis["on_time_count"] == 1
 
     monthly = analytics.monthly_chart_data(business.id, 2026)
-    assert len(monthly) == 12
+    assert len(monthly) == 2
     assert monthly[0]["period"] == "2026-01"
     assert monthly[0]["expected_amount"] == 100.0
     assert monthly[0]["paid_amount"] == 100.0

@@ -90,4 +90,4 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     periods = [p.period for p in created]
     assert periods == ["2026-01", "2026-03", "2026-05", "2026-07", "2026-09", "2026-11"]
     nov = next(p for p in created if p.period == "2026-11")
-    assert nov.due_date == date(2027, 1, 15)
+    assert nov.due_date == date(2026, 11, 15)

@@ -57,19 +57,7 @@ def test_check_signal_limit_raises_when_exceeding_limit(test_db):
     assert exc.value.code == "BUSINESS.SIGNAL_FILTER_LIMIT"
 
 
-def test_bulk_update_status_collects_success_and_failures(test_db):
+def test_bulk_update_status_is_not_exposed(test_db):
     service = BusinessBulkService(test_db)
-
-    def _update_fn(business_id, **_kwargs):
-        if business_id == 2:
-            raise RuntimeError("boom")
-
-    succeeded, failed = service.bulk_update_status(
-        business_ids=[1, 2, 3],
-        action="freeze",
-        actor_id=7,
-        update_fn=_update_fn,
-    )
-
-    assert succeeded == [1, 3]
-    assert failed == [{"id": 2, "error": "boom"}]
+    assert hasattr(service, "list_businesses")
+    assert not hasattr(service, "bulk_update_status")

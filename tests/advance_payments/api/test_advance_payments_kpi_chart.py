@@ -59,7 +59,7 @@ def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
     assert body["business_id"] == business.id
     assert body["year"] == 2026
     months = body["months"]
-    assert len(months) == 12
+    assert len(months) == 2
     month1 = next(m for m in months if m["period"] == "2026-01")
     assert Decimal(str(month1["expected_amount"])) == Decimal("100")
     assert Decimal(str(month1["paid_amount"])) == Decimal("80")

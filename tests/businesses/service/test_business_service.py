@@ -13,6 +13,7 @@ def test_create_business_rejects_duplicate_name_for_client(test_db):
     service = BusinessService(test_db)
     service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: object())
     service.business_repo = SimpleNamespace(
+        all_non_deleted_are_closed=lambda _client_id: False,
         list_by_client=lambda _client_id, **_kwargs: [SimpleNamespace(business_name="Dup Name")]
     )
 

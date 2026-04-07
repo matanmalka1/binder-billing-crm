@@ -49,7 +49,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
 
     # Verify status log was created
-    from app.binders.repositories import BinderStatusLogRepository
+    from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
@@ -107,7 +107,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     returned_data = return_response.json()
     assert returned_data["status"] == "returned"
 
-    from app.binders.repositories import BinderStatusLogRepository
+    from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)

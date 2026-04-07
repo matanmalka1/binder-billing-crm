@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.businesses.models.business import BusinessStatus
+from app.businesses.models.business import BusinessStatus, BusinessType
 from app.businesses.services.business_service import BusinessService
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
@@ -28,6 +28,7 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
     service = BusinessService(test_db)
     service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: object())
     service.business_repo = SimpleNamespace(
+        all_non_deleted_are_closed=lambda _client_id: False,
         list_by_client=lambda _client_id, **_kwargs: [],
         create=lambda **_kwargs: (_ for _ in ()).throw(IntegrityError("stmt", "params", Exception("db"))),
     )
@@ -78,7 +79,7 @@ def test_restore_business_requires_advisor_role(test_db):
 
 def test_restore_business_not_deleted_raises_conflict(test_db):
     service = BusinessService(test_db)
-    service.business_repo = SimpleNamespace(
+    service._lifecycle.business_repo = SimpleNamespace(
         get_by_id_including_deleted=lambda _business_id: SimpleNamespace(deleted_at=None)
     )
 
@@ -90,8 +91,11 @@ def test_restore_business_not_deleted_raises_conflict(test_db):
 
 def test_restore_business_raises_when_repo_restore_returns_none(test_db):
     service = BusinessService(test_db)
-    service.business_repo = SimpleNamespace(
-        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(deleted_at=date(2026, 1, 1)),
+    service._lifecycle.business_repo = SimpleNamespace(
+        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(
+            deleted_at=date(2026, 1, 1),
+            business_type=BusinessType.COMPANY,
+        ),
         restore=lambda _business_id, restored_by: None,
     )
 
@@ -101,21 +105,10 @@ def test_restore_business_raises_when_repo_restore_returns_none(test_db):
     assert exc.value.code == "BUSINESS.NOT_FOUND"
 
 
-def test_bulk_update_status_delegates_to_bulk_service(test_db):
+def test_bulk_update_status_is_not_exposed(test_db):
     service = BusinessService(test_db)
-    service._bulk = SimpleNamespace(
-        bulk_update_status=lambda **kwargs: ([1], [{"id": 2, "error": "x"}])
-    )
-
-    succeeded, failed = service.bulk_update_status(
-        business_ids=[1, 2],
-        action="freeze",
-        actor_id=10,
-        actor_role=UserRole.ADVISOR,
-    )
-
-    assert succeeded == [1]
-    assert failed == [{"id": 2, "error": "x"}]
+    assert hasattr(service, "list_businesses")
+    assert not hasattr(service, "bulk_update_status")
 
 
 def test_get_business_or_raise_delegates_lookup_function(monkeypatch, test_db):
@@ -145,4 +138,3 @@ def test_list_businesses_delegates_to_bulk_service(test_db):
     service._bulk = SimpleNamespace(list_businesses=lambda **_kwargs: expected)
 
     assert service.list_businesses(status="active") == expected
-

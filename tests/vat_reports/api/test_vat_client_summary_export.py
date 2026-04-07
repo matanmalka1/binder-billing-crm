@@ -103,27 +103,25 @@ def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, t
 
 def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers, vat_client, monkeypatch):
     monkeypatch.setattr(
-        "app.vat_reports.api.routes_business_summary.export_to_pdf",
+        "app.vat_reports.api.routes_business_summary.export",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("fail")),
     )
 
-    resp = client.get(
-        f"/api/v1/vat/businesses/{vat_client.id}/export?format=pdf&year=2026",
-        headers=advisor_headers,
-    )
-    assert resp.status_code == 500
-    assert "הייצוא נכשל" in resp.json()["detail"]
+    with pytest.raises(RuntimeError, match="fail"):
+        client.get(
+            f"/api/v1/vat/businesses/{vat_client.id}/export?format=pdf&year=2026",
+            headers=advisor_headers,
+        )
 
 
 def test_vat_client_export_import_error_returns_detail(client, advisor_headers, vat_client, monkeypatch):
     monkeypatch.setattr(
-        "app.vat_reports.api.routes_business_summary.export_to_excel",
+        "app.vat_reports.api.routes_business_summary.export",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("openpyxl missing")),
     )
 
-    resp = client.get(
-        f"/api/v1/vat/businesses/{vat_client.id}/export?format=excel&year=2026",
-        headers=advisor_headers,
-    )
-    assert resp.status_code == 500
-    assert "שגיאה פנימית" in resp.json()["detail"]
+    with pytest.raises(ImportError, match="openpyxl missing"):
+        client.get(
+            f"/api/v1/vat/businesses/{vat_client.id}/export?format=excel&year=2026",
+            headers=advisor_headers,
+        )

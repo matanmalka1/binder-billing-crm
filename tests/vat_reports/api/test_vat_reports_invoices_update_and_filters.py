@@ -128,7 +128,7 @@ def test_create_invoice_persists_counterparty_identity_fields(client, advisor_he
             **_expense_payload(
                 invoice_number="EXP-ID-1",
                 document_type="tax_invoice",
-                counterparty_id="512345678",
+                counterparty_id="512345679",
             ),
             "counterparty_id_type": "il_business",
         },
@@ -136,7 +136,7 @@ def test_create_invoice_persists_counterparty_identity_fields(client, advisor_he
 
     assert resp.status_code == 201
     body = resp.json()
-    assert body["counterparty_id"] == "512345678"
+    assert body["counterparty_id"] == "512345679"
     assert body["counterparty_id_type"] == "il_business"
 
 
@@ -154,12 +154,12 @@ def test_update_invoice_persists_counterparty_identity_fields(client, advisor_he
         f"/api/v1/vat/work-items/{item_id}/invoices/{invoice_id}",
         headers=advisor_headers,
         json={
-            "counterparty_id": "123456789",
+            "counterparty_id": "123456782",
             "counterparty_id_type": "il_personal",
         },
     )
 
     assert patch_resp.status_code == 200
     body = patch_resp.json()
-    assert body["counterparty_id"] == "123456789"
+    assert body["counterparty_id"] == "123456782"
     assert body["counterparty_id_type"] == "il_personal"

@@ -77,10 +77,12 @@ def test_auto_advance_noop_when_report_not_pending_client(monkeypatch, test_db):
             raise AssertionError("upsert should not be called")
 
     import app.annual_reports.services.annual_report_service as svc_mod
-    import app.annual_reports.repositories as repos_mod
 
     monkeypatch.setattr(svc_mod, "AnnualReportService", _Svc)
-    monkeypatch.setattr(repos_mod, "AnnualReportDetailRepository", _DetailRepo)
+    monkeypatch.setattr(
+        "app.annual_reports.repositories.detail_repository.AnnualReportDetailRepository",
+        _DetailRepo,
+    )
 
     SignatureRequestService(test_db)._auto_advance_annual_report(annual_report_id=10, now=object())
 
@@ -104,10 +106,12 @@ def test_auto_advance_transitions_and_sets_client_approved_at(monkeypatch, test_
             calls["upsert"] = (annual_report_id, kwargs)
 
     import app.annual_reports.services.annual_report_service as svc_mod
-    import app.annual_reports.repositories as repos_mod
 
     monkeypatch.setattr(svc_mod, "AnnualReportService", _Svc)
-    monkeypatch.setattr(repos_mod, "AnnualReportDetailRepository", _DetailRepo)
+    monkeypatch.setattr(
+        "app.annual_reports.repositories.detail_repository.AnnualReportDetailRepository",
+        _DetailRepo,
+    )
 
     now_obj = object()
     SignatureRequestService(test_db)._auto_advance_annual_report(annual_report_id=10, now=now_obj)

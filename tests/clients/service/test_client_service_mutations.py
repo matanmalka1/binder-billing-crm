@@ -80,9 +80,15 @@ def test_update_delete_restore_flow(test_db):
         full_name="Before Update",
         id_number="640000001",
         id_number_type=IdNumberType.CORPORATION,
+        actor_id=10,
     )
 
-    updated = service.update_client(created.id, full_name="After Update", phone="0501234567")
+    updated = service.update_client(
+        created.id,
+        actor_id=10,
+        full_name="After Update",
+        phone="0501234567",
+    )
     assert updated.full_name == "After Update"
     assert updated.phone == "0501234567"
 

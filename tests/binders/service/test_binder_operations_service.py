@@ -88,7 +88,7 @@ def test_enrich_binder_returns_expected_fields(test_db, test_user):
     )
 
     service = BinderOperationsService(test_db)
-    enriched = service.enrich_binder(idle_binder, db=test_db)
+    enriched = service.enrich_binder(idle_binder)
 
     assert enriched["id"] == idle_binder.id
-    assert enriched["days_active"] >= 30
+    assert enriched["days_in_office"] >= 30

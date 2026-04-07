@@ -48,7 +48,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
 
     results = svc.search_documents("doc")
     assert len(results) == 3
-    assert results[0]["business_name"] == "Client Ten"
-    assert results[1]["business_name"] == "Client Ten"
-    assert results[2]["business_name"] == "לא ידוע"
+    assert results[0].business_name == "Client Ten"
+    assert results[1].business_name == "Client Ten"
+    assert results[2].business_name == "לא ידוע"
     assert calls["count"] == 2
