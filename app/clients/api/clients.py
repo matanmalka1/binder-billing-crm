@@ -16,6 +16,7 @@ from app.clients.schemas.client import (
 )
 from app.clients.services.client_service import ClientService
 from app.core.exceptions import ConflictError
+from app.clients.api.client_enrichment import enrich_single, enrich_list
 
 router = APIRouter(
     prefix="/clients",
@@ -52,6 +53,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             address_apartment=request.address_apartment,
             address_city=request.address_city,
             address_zip_code=request.address_zip_code,
+            vat_reporting_frequency=request.vat_reporting_frequency,
             actor_id=user.id,
         )
         return ClientResponse.model_validate(client)
@@ -103,8 +105,9 @@ def list_clients(
         page=page,
         page_size=page_size,
     )
+    enriched = enrich_list([ClientResponse.model_validate(c) for c in items], db)
     return ClientListResponse(
-        items=[ClientResponse.model_validate(c) for c in items],
+        items=enriched,
         page=page,
         page_size=page_size,
         total=total,
@@ -116,7 +119,7 @@ def get_client(client_id: int, db: DBSession, user: CurrentUser):
     """Get client by ID."""
     service = ClientService(db)
     client = service.get_client_or_raise(client_id)
-    return ClientResponse.model_validate(client)
+    return enrich_single(ClientResponse.model_validate(client), db)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)

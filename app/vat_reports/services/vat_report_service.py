@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services import data_entry, filing, intake, period_options, vat_report_queries
@@ -24,6 +25,7 @@ class VatReportService:
         self.invoice_repo = VatInvoiceRepository(db)
         self.business_repo = BusinessRepository(db)
         self.tax_profile_repo = BusinessTaxProfileRepository(db)
+        self.client_repo = ClientRepository(db)
         self.user_repo = UserRepository(db)
 
     # ── Intake ───────────────────────────────────────────────────────────────
@@ -31,7 +33,9 @@ class VatReportService:
     def create_work_item(self, **kwargs):
         return intake.create_work_item(
             self.work_item_repo, self.business_repo,
-            tax_profile_repo=self.tax_profile_repo, **kwargs
+            tax_profile_repo=self.tax_profile_repo,
+            client_repo=self.client_repo,
+            **kwargs,
         )
 
     def mark_materials_complete(self, **kwargs):
@@ -42,6 +46,7 @@ class VatReportService:
             self.work_item_repo,
             self.business_repo,
             tax_profile_repo=self.tax_profile_repo,
+            client_repo=self.client_repo,
             **kwargs,
         )
 

@@ -8,9 +8,11 @@ from app.businesses.models.business_tax_profile import VatType
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
 from app.businesses.services.business_guards import assert_business_allows_create
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED, ACTION_WORK_ITEM_CREATED_PENDING
+from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 
 def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
@@ -37,6 +39,7 @@ def create_work_item(
     period: str,
     created_by: int,
     tax_profile_repo: Optional[BusinessTaxProfileRepository] = None,
+    client_repo: Optional[ClientRepository] = None,
     assigned_to: Optional[int] = None,
     mark_pending: bool = False,
     pending_materials_note: Optional[str] = None,
@@ -60,8 +63,9 @@ def create_work_item(
     profile = None
     if tax_profile_repo is not None:
         profile = tax_profile_repo.get_by_business_id(business_id)
-        if profile and profile.vat_type:
-            _validate_period_for_vat_type(period, profile.vat_type)
+
+    effective_vat_type = resolve_effective_vat_type(business, profile, client_repo)
+    _validate_period_for_vat_type(period, effective_vat_type)
 
     # WARNING: This check only filters for non-deleted items (deleted_at IS NULL).
     # If we ever allow soft-deleting FILED items, this guard must be updated to
@@ -83,7 +87,7 @@ def create_work_item(
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
-    period_type = profile.vat_type if (profile and profile.vat_type) else VatType.MONTHLY
+    period_type = effective_vat_type
 
     item = work_item_repo.create(
         business_id=business_id,

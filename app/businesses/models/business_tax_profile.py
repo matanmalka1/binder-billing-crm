@@ -1,16 +1,11 @@
-from enum import Enum as PyEnum
-
 from sqlalchemy import Column,Date, DateTime, ForeignKey, Integer, Numeric, String
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.common.enums import VatType  # noqa: F401 — re-exported for backwards compatibility
 
-
-class VatType(str, PyEnum):
-    MONTHLY = "monthly"
-    BIMONTHLY = "bimonthly"
-    EXEMPT = "exempt"
+__all__ = ["VatType", "BusinessTaxProfile"]
 
 
 class BusinessTaxProfile(Base):
@@ -25,6 +20,8 @@ class BusinessTaxProfile(Base):
         Integer, ForeignKey("businesses.id"), nullable=False, unique=True, index=True
     )
 
+    # DEPRECATED for OSEK_MURSHE: use Client.vat_reporting_frequency instead.
+    # For COMPANY businesses this remains the authoritative reporting frequency.
     vat_type = Column(pg_enum(VatType), nullable=True)
     vat_start_date = Column(Date, nullable=True)
     accountant_name = Column(String(100), nullable=True)

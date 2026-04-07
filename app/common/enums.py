@@ -9,4 +9,17 @@ class SubmissionMethod(str, PyEnum):
     REPRESENTATIVE = "representative"  # דרך מערכת המייצגים (שע"מ)
 
 
-__all__ = ["SubmissionMethod"]
+class VatType(str, PyEnum):
+    """
+    VAT reporting frequency for a legal entity.
+
+    For OSEK_MURSHE businesses: authoritative value lives on Client.vat_reporting_frequency.
+    For COMPANY businesses: authoritative value lives on BusinessTaxProfile.vat_type.
+    BusinessTaxProfile.vat_type is DEPRECATED for OSEK_MURSHE — do not read it for period resolution.
+    """
+    MONTHLY = "monthly"
+    BIMONTHLY = "bimonthly"
+    EXEMPT = "exempt"
+
+
+__all__ = ["SubmissionMethod", "VatType"]

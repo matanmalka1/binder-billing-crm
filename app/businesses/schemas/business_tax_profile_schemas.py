@@ -11,6 +11,9 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 class BusinessTaxProfileResponse(BaseModel):
     business_id: int
     vat_type: Optional[VatType] = None
+    # Resolved VAT display fields — set by service layer, not from ORM directly
+    business_type_key: Optional[str] = None          # Business.business_type value
+    client_vat_reporting_frequency: Optional[VatType] = None  # Client.vat_reporting_frequency
     vat_start_date: Optional[date] = None           # קיים במודל
     vat_exempt_ceiling: Optional[ApiDecimal] = None    # קיים במודל
     business_type: Optional[str] = None

@@ -56,7 +56,8 @@ Notes:
 ## Migration chain
 
 ```
-9b225dd8ca06  ← HEAD (add status to clients — 2026-04-07)
+c2d3e4f5a6b7  ← HEAD (add vat_reporting_frequency to clients — 2026-04-07)
+9b225dd8ca06         (add status to clients — 2026-04-07)
 b2c3d4e5f6a7         (add expiry_days to signature_requests — 2026-04-05)
 a1b2c3d4e5f6         (add entity_audit_logs table — 2026-04-05)
 71ead2aae8c6         (set advance_payments.paid_amount non-nullable with default 0 — 2026-04-05)
@@ -70,6 +71,20 @@ ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0012 — add_vat_reporting_frequency_to_clients (c2d3e4f5a6b7)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade c2d3e4f5a6b7`
+- What it does:
+  Adds `vat_reporting_frequency` (varchar 20, nullable) to `clients`.
+  Stores the VAT reporting frequency (monthly/bimonthly/exempt) at the client (identity) level.
+  This is the authoritative value for OSEK_MURSHE businesses under the client.
+  COMPANY businesses continue to use `BusinessTaxProfile.vat_type` independently.
+  NULL = not yet configured; service layer defaults to `bimonthly` for OSEK_MURSHE.
+- Important notes:
+  - No data migration needed — NULL falls back gracefully.
+  - Downgrade drops the column.
 
 ### 0011 — add_status_to_clients (9b225dd8ca06)
 

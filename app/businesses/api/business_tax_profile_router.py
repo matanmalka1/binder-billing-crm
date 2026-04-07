@@ -36,5 +36,5 @@ def update_tax_profile(
     """Update (or create) tax profile for a specific business (ADVISOR only)."""
     service = BusinessTaxProfileService(db)
     update_data = request.model_dump(exclude_unset=True)
-    profile = service.update_profile(business_id, actor_id=user.id, **update_data)
-    return BusinessTaxProfileResponse.model_validate(profile)
+    service.update_profile(business_id, actor_id=user.id, **update_data)
+    return service.get_profile_or_empty(business_id)

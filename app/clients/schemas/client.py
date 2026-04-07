@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.clients.models.client import ClientStatus, IdNumberType
+from app.common.enums import VatType
 from app.core.api_types import ApiDateTime
 from app.utils.id_validation import validate_israeli_id_checksum
 
@@ -25,6 +26,7 @@ class ClientCreateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
+    vat_reporting_frequency: Optional[VatType] = None
 
     @field_validator("id_number")
     @classmethod
@@ -59,6 +61,7 @@ class ClientUpdateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
+    vat_reporting_frequency: Optional[VatType] = None
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────
@@ -78,8 +81,12 @@ class ClientResponse(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     notes: Optional[str] = None
+    vat_reporting_frequency: Optional[VatType] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
+    # ── Enriched fields (set by API layer, not stored on Client) ──────────────
+    primary_business_type: Optional[str] = None
+    active_binder_number: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

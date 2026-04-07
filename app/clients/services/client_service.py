@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.clients.models.client import Client, IdNumberType
+from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_binder_helper import create_initial_binder
 from app.clients.services.client_query_service import ClientQueryService
@@ -37,6 +38,7 @@ class ClientService:
         address_apartment: Optional[str] = None,
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
+        vat_reporting_frequency: Optional[VatType] = None,
         actor_id: Optional[int] = None,
     ) -> Client:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
@@ -59,6 +61,7 @@ class ClientService:
                 phone=phone, email=email, address_street=address_street,
                 address_building_number=address_building_number, address_apartment=address_apartment,
                 address_city=address_city, address_zip_code=address_zip_code,
+                vat_reporting_frequency=vat_reporting_frequency,
                 created_by=actor_id,
             )
         except IntegrityError:

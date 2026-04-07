@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
 from app.clients.models.client import Client, ClientStatus, IdNumberType
+from app.common.enums import VatType
 from app.utils.time_utils import utcnow
 
 
@@ -28,6 +29,7 @@ class ClientRepository(BaseRepository):
         address_apartment: Optional[str] = None,
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
+        vat_reporting_frequency: Optional[VatType] = None,
         created_by: Optional[int] = None,
     ) -> Client:
         """Create a new client (identity record only)."""
@@ -42,6 +44,7 @@ class ClientRepository(BaseRepository):
             address_apartment=address_apartment,
             address_city=address_city,
             address_zip_code=address_zip_code,
+            vat_reporting_frequency=vat_reporting_frequency,
             created_by=created_by,
         )
         self.db.add(client)

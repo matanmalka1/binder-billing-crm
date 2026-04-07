@@ -7,7 +7,9 @@ from app.core.exceptions import AppError, NotFoundError
 from app.businesses.models.business_tax_profile import VatType
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 
 def _period_label(period_type: VatType, year: int, month: int) -> str:
@@ -22,6 +24,7 @@ def get_period_options(
     *,
     business_id: int,
     tax_profile_repo: Optional[BusinessTaxProfileRepository] = None,
+    client_repo: Optional[ClientRepository] = None,
     year: Optional[int] = None,
 ):
     """Return period options for UI selection based on business VAT frequency."""
@@ -32,7 +35,7 @@ def get_period_options(
     selected_year = year or date.today().year
 
     profile = tax_profile_repo.get_by_business_id(business_id) if tax_profile_repo else None
-    period_type = profile.vat_type if (profile and profile.vat_type) else VatType.MONTHLY
+    period_type = resolve_effective_vat_type(business, profile, client_repo)
     if period_type == VatType.EXEMPT:
         raise AppError(
             "עסק זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",

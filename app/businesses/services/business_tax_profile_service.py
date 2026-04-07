@@ -26,10 +26,24 @@ class BusinessTaxProfileService:
     def get_profile_or_empty(self, business_id: int):
         """Return the tax profile, or an empty response shell if none exists yet."""
         from app.businesses.schemas.business_tax_profile_schemas import BusinessTaxProfileResponse
-        profile = self.get_profile(business_id)
+        business = self.business_repo.get_by_id(business_id)
+        profile = self.repo.get_by_business_id(business_id)
+        business_type_key = business.business_type.value if business and business.business_type else None
+        client_vat_freq = (
+            business.client.vat_reporting_frequency
+            if business and business.client
+            else None
+        )
         if profile is None:
-            return BusinessTaxProfileResponse(business_id=business_id)
-        return BusinessTaxProfileResponse.model_validate(profile)
+            return BusinessTaxProfileResponse(
+                business_id=business_id,
+                business_type_key=business_type_key,
+                client_vat_reporting_frequency=client_vat_freq,
+            )
+        response = BusinessTaxProfileResponse.model_validate(profile)
+        response.business_type_key = business_type_key
+        response.client_vat_reporting_frequency = client_vat_freq
+        return response
 
     def update_profile(self, business_id: int, actor_id: Optional[int] = None, **fields) -> BusinessTaxProfile:
         if not self.business_repo.get_by_id(business_id):

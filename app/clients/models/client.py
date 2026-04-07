@@ -5,6 +5,7 @@ from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.common.enums import VatType
 
 class IdNumberType(str, PyEnum):
     INDIVIDUAL   = "individual"   # ת"ז — 9 ספרות עם ספרת ביקורת
@@ -48,6 +49,12 @@ class Client(Base):
     address_apartment = Column(String, nullable=True)
     address_city = Column(String, nullable=True)
     address_zip_code = Column(String, nullable=True)
+
+    # ── Tax reporting ─────────────────────────────────────────────────────────
+    # Authoritative VAT reporting frequency for OSEK_MURSHE businesses under this client.
+    # COMPANY businesses use BusinessTaxProfile.vat_type independently (separate legal entity).
+    # NULL means not yet configured; service layer defaults to BIMONTHLY for OSEK_MURSHE.
+    vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
