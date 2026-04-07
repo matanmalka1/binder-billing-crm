@@ -4,6 +4,7 @@ from app.dashboard.schemas.dashboard_extended import AttentionResponse
 
 
 class DashboardSummaryResponse(BaseModel):
+    total_clients: int
     binders_in_office: int
     binders_ready_for_pickup: int
     open_reminders: int = 0

@@ -2,7 +2,7 @@ from datetime import date
 from typing import Optional
 
 from app.actions.action_contracts import get_binder_actions
-from app.binders.models.binder import Binder
+from app.binders.models.binder import Binder, BinderStatus
 from app.binders.schemas.binder import BinderResponse
 
 
@@ -11,6 +11,50 @@ _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
 
 class BinderListService:
     """Read helpers for binder enrichment and listing."""
+
+    def _matches_non_status_filters(
+        self,
+        binder: Binder,
+        *,
+        query: Optional[str],
+        client_name_filter: Optional[str],
+        binder_number: Optional[str],
+        year: Optional[int],
+        client_name: Optional[str],
+    ) -> bool:
+        if query:
+            query_text = query.lower()
+            name_match = bool(client_name and query_text in client_name.lower())
+            number_match = query_text in binder.binder_number.lower()
+            if not name_match and not number_match:
+                return False
+
+        if client_name_filter and (
+            not client_name or client_name_filter.lower() not in client_name.lower()
+        ):
+            return False
+
+        if binder_number and binder_number.lower() not in binder.binder_number.lower():
+            return False
+
+        if year and binder.period_start.year != year:
+            return False
+
+        return True
+
+    def _build_binder_counters(self, binders: list[Binder]) -> dict[str, int]:
+        return {
+            "total": len(binders),
+            BinderStatus.IN_OFFICE.value: sum(
+                1 for binder in binders if binder.status == BinderStatus.IN_OFFICE
+            ),
+            BinderStatus.READY_FOR_PICKUP.value: sum(
+                1 for binder in binders if binder.status == BinderStatus.READY_FOR_PICKUP
+            ),
+            BinderStatus.RETURNED.value: sum(
+                1 for binder in binders if binder.status == BinderStatus.RETURNED
+            ),
+        }
 
     def build_binder_response(
         self,
@@ -51,7 +95,7 @@ class BinderListService:
         page: int = 1,
         page_size: int = 20,
         reference_date: Optional[date] = None,
-    ) -> tuple[list[BinderResponse], int]:
+    ) -> tuple[list[BinderResponse], int, dict[str, int]]:
         if sort_dir not in ("asc", "desc"):
             sort_dir = "desc"
         effective_sort_by = sort_by if sort_by in _ALLOWED_SORT_COLS else "period_start"
@@ -60,39 +104,38 @@ class BinderListService:
         ref_date = reference_date or date.today()
         binders = self.binder_repo.list_active(
             client_id=client_id,
-            status=status,
             sort_by=db_sort_by,
             sort_dir=sort_dir,
-            include_returned=(status == "returned"),
+            include_returned=True,
         )
 
         client_ids = list({binder.client_id for binder in binders})
         clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
         client_name_map = {c.id: c.full_name for c in clients}
 
-        items: list[BinderResponse] = []
+        filtered_binders: list[tuple[Binder, Optional[str]]] = []
         for binder in binders:
             current_client_name = client_name_map.get(binder.client_id)
-
-            if query:
-                query_text = query.lower()
-                name_match = bool(current_client_name and query_text in current_client_name.lower())
-                number_match = query_text in binder.binder_number.lower()
-                if not name_match and not number_match:
-                    continue
-
-            if client_name_filter and (
-                not current_client_name
-                or client_name_filter.lower() not in current_client_name.lower()
+            if not self._matches_non_status_filters(
+                binder,
+                query=query,
+                client_name_filter=client_name_filter,
+                binder_number=binder_number,
+                year=year,
+                client_name=current_client_name,
             ):
                 continue
+            filtered_binders.append((binder, current_client_name))
 
-            if binder_number and binder_number.lower() not in binder.binder_number.lower():
+        counters = self._build_binder_counters([binder for binder, _client_name in filtered_binders])
+
+        items: list[BinderResponse] = []
+        for binder, current_client_name in filtered_binders:
+            if status:
+                if binder.status.value != status:
+                    continue
+            elif binder.status == BinderStatus.RETURNED:
                 continue
-
-            if year and binder.period_start.year != year:
-                continue
-
             items.append(
                 self.build_binder_response(
                     binder,
@@ -109,4 +152,4 @@ class BinderListService:
 
         total = len(items)
         offset = (page - 1) * page_size
-        return items[offset: offset + page_size], total
+        return items[offset: offset + page_size], total, counters

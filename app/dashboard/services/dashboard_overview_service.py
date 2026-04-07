@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.models.binder import BinderStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -41,6 +42,8 @@ class DashboardOverviewService:
         return {
             "total_clients": self.business_repo.count(),
             "active_binders": self.binder_repo.count_active(),
+            "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
+            "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
             "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
             "vat_due_this_month": self.vat_repo.count_by_period_not_filed(current_period),
             "quick_actions": quick_actions,

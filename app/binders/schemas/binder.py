@@ -66,6 +66,7 @@ class BinderListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+    counters: dict[str, int]
 
 
 # ── Intake responses ──────────────────────────────────────────────────────────

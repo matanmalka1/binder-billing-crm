@@ -32,7 +32,7 @@ def list_binders(
 ):
     """List active binders with optional filters, sorting, and pagination."""
     service = BinderService(db)
-    items, total = service.list_binders_enriched(
+    items, total, counters = service.list_binders_enriched(
         client_id=client_id,
         status=status_filter,
         query=query,
@@ -44,7 +44,13 @@ def list_binders(
         page=page,
         page_size=page_size,
     )
-    return BinderListResponse(items=items, page=page, page_size=page_size, total=total)
+    return BinderListResponse(
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        counters=counters,
+    )
 
 
 @router.get("/{binder_id}", response_model=BinderResponse)

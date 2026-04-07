@@ -140,5 +140,7 @@ def test_binder_list_includes_available_actions(client, auth_token, test_db, tes
     assert list_response.status_code == 200
     data = list_response.json()
     assert "items" in data
+    assert "counters" in data
     assert len(data["items"]) >= 1
     assert "available_actions" in data["items"][0]
+    assert set(data["counters"]) == {"total", "in_office", "ready_for_pickup", "returned"}

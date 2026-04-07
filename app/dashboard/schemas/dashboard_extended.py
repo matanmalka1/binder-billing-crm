@@ -43,6 +43,8 @@ class DashboardOverviewResponse(BaseModel):
 
     total_clients: int
     active_binders: int
+    binders_in_office: int = 0
+    binders_ready_for_pickup: int = 0
     open_reminders: int = 0
     vat_due_this_month: int = 0
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)

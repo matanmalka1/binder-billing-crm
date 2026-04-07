@@ -152,6 +152,12 @@ Role access:
 #### List active binders
 - `GET /api/v1/binders`
 - Returns active binders (`status != returned`) with pagination
+- Response also includes `counters` for list pills across all non-deleted binders matching the
+  current non-status filters:
+  - `total`
+  - `in_office`
+  - `ready_for_pickup`
+  - `returned`
 - Query params:
   - `status`
   - `client_id`
