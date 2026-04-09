@@ -13,8 +13,8 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.advance_payments.services.constants import VAT_RATE
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
 from app.businesses.services.business_guards import validate_business_for_create
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
@@ -28,8 +28,8 @@ class AdvancePaymentService:
         return BusinessRepository(self.db)
 
     @property
-    def _tax_profile_repo(self) -> BusinessTaxProfileRepository:
-        return BusinessTaxProfileRepository(self.db)
+    def _client_repo(self) -> ClientRepository:
+        return ClientRepository(self.db)
 
     # ─── List ─────────────────────────────────────────────────────────────────
 
@@ -134,17 +134,23 @@ class AdvancePaymentService:
         self, business_id: int, year: int, period_months_count: int = 1
     ) -> Optional[Decimal]:
         """מחשב הצעה למקדמה לפי מע"מ עסקאות של השנה הקודמת + שיעור המקדמה. מחזיר None אם חסר מידע."""
-        profile = self._tax_profile_repo.get_by_business_id(business_id)
-        if profile is None or profile.advance_rate is None:
+        business = self._business_repo.get_by_id(business_id)
+        if business is None:
+            return None
+        client = self._client_repo.get_by_id(business.client_id)
+        if client is None:
+            return None
+        advance_rate = client.advance_rate
+        if advance_rate is None:
             return None
 
         prior_year_vat = VatClientSummaryRepository(self.db).get_annual_output_vat(
-            business_id, year - 1
+            client_id=business.client_id, year=year - 1
         )
         if prior_year_vat is None:
             return None
 
         annual_income = derive_annual_income_from_vat(prior_year_vat, VAT_RATE)
         return calculate_expected_amount(
-            annual_income, Decimal(str(profile.advance_rate)), period_months_count
+            annual_income, Decimal(str(advance_rate)), period_months_count
         )

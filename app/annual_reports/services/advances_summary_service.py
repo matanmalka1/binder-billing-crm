@@ -23,8 +23,8 @@ class AnnualReportAdvancesSummaryService:
         if not report:
             raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
 
-        payments, count = self.advance_repo.list_by_business_year(
-            report.business_id,
+        payments, count = self.advance_repo.list_by_client_year(
+            report.client_id,
             report.tax_year,
             status=[AdvancePaymentStatus.PAID],
             page=1,

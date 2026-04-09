@@ -22,7 +22,7 @@ class AnnualReport(Base):
     __tablename__ = "annual_reports"
  
     id = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
@@ -58,8 +58,8 @@ class AnnualReport(Base):
  
     __table_args__ = (
         Index(
-            "idx_annual_report_business_year",
-            "business_id",
+            "idx_annual_report_client_year",
+            "client_id",
             "tax_year",
             unique=True,
             postgresql_where=Column("deleted_at").is_(None),
@@ -68,10 +68,10 @@ class AnnualReport(Base):
         Index("idx_annual_report_deadline", "filing_deadline"),
         Index("idx_annual_report_assigned", "assigned_to"),
     )
- 
+
     def __repr__(self):
         return (
-            f"<AnnualReport(id={self.id}, business_id={self.business_id}, "
+            f"<AnnualReport(id={self.id}, client_id={self.client_id}, "
             f"year={self.tax_year}, status='{self.status}')>"
         )
  

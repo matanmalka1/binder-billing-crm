@@ -3,7 +3,7 @@ Advance Payment — tax prepayment (מקדמה) tracked per business per period.
 
 Israeli context:
   Businesses pay advance payments (מקדמות) to the ITA monthly or bi-monthly,
-  calculated as a percentage of prior-year income (advance_rate on BusinessTaxProfile).
+  calculated as a percentage of prior-year income (advance_rate on Client).
   Small/medium businesses typically report bi-monthly; larger ones monthly.
 
   period follows the same "YYYY-MM" convention as VatWorkItem — the first

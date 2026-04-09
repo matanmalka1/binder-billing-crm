@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from app.annual_reports.api.annual_report_annex import router as annex_router
-from app.annual_reports.api.annual_report_business import businesses_router
+from app.annual_reports.api.annual_report_business import businesses_router, clients_router
 from app.annual_reports.api.annual_report_charges import router as charges_router
 from app.annual_reports.api.annual_report_create_read import router as create_read_router
 from app.annual_reports.api.annual_report_detail import router as detail_router
@@ -24,6 +24,7 @@ router.include_router(schedule_router)
 router.include_router(kanban_router)
 router.include_router(status_router)
 router.include_router(businesses_router)
+router.include_router(clients_router)
 router.include_router(season_router)
 router.include_router(export_router)
 router.include_router(tax_router)

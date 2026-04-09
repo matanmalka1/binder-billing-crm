@@ -344,7 +344,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                     updated_at = submitted_at
 
             report = AnnualReport(
-                business_id=business.id,
+                client_id=business.client_id,
                 tax_year=year,
                 client_type=client_type_for_report,
                 form_type=form_type,
@@ -505,12 +505,9 @@ def create_annual_report_expense_lines(
         ExpenseCategoryType.BANK_FEES,
         ExpenseCategoryType.INSURANCE,
     ]
-    documents_by_business_id: dict[int, list] = {}
     documents_by_client_id: dict[int, list] = {}
     if seeded_documents:
         for document in seeded_documents:
-            if getattr(document, "business_id", None):
-                documents_by_business_id.setdefault(document.business_id, []).append(document)
             documents_by_client_id.setdefault(document.client_id, []).append(document)
 
     for report in reports:
@@ -536,9 +533,9 @@ def create_annual_report_expense_lines(
 
         for category in chosen_categories:
             linked_document = None
-            business_docs = documents_by_business_id.get(report.business_id, [])
-            if business_docs and rng.random() < 0.7:
-                linked_document = rng.choice(business_docs)
+            client_docs = documents_by_client_id.get(report.client_id, [])
+            if client_docs and rng.random() < 0.7:
+                linked_document = rng.choice(client_docs)
             expense_line = AnnualReportExpenseLine(
                 annual_report_id=report.id,
                 category=category,

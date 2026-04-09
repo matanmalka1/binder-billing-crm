@@ -31,9 +31,9 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
-        business = self.business_repo.get_by_id(report.business_id)
-        if business:
-            assert_business_allows_create(business)
+        businesses = self.business_repo.list_by_client(report.client_id)
+        if businesses:
+            assert_business_allows_create(businesses[0])
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(f"סוג הכנסה לא חוקי: '{source_type}'", "ANNUAL_REPORT.INVALID_TYPE")
@@ -87,9 +87,9 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
-        business = self.business_repo.get_by_id(report.business_id)
-        if business:
-            assert_business_allows_create(business)
+        businesses = self.business_repo.list_by_client(report.client_id)
+        if businesses:
+            assert_business_allows_create(businesses[0])
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(f"קטגוריית הוצאה לא חוקית: '{category}'", "ANNUAL_REPORT.INVALID_TYPE")

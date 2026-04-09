@@ -17,9 +17,9 @@ from app.annual_reports.models.annual_report_enums import (
 
 
 class AnnualReportCreateRequest(BaseModel):
-    business_id: int
+    client_id: int
     tax_year: int
-    client_type: ClientTypeForReport        # enum — לא str חופשי
+    client_type: ClientTypeForReport     
     deadline_type: DeadlineType = DeadlineType.STANDARD
     assigned_to: Optional[int] = None
     notes: Optional[str] = None

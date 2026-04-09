@@ -67,6 +67,23 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         )
         return float(result)
 
+    def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
+        from app.businesses.models.business import Business
+
+        result = (
+            self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
+            .join(Business, Business.id == AdvancePayment.business_id)
+            .filter(
+                Business.client_id == client_id,
+                Business.deleted_at.is_(None),
+                AdvancePayment.period.like(f"{year}-%"),
+                advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .scalar()
+        )
+        return float(result)
+
     def get_collections_aggregates(self, year: int, month=None) -> list:
         """Per-business aggregates for the collections report."""
         from app.businesses.models.business import Business

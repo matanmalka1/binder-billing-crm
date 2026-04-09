@@ -99,6 +99,35 @@ class AdvancePaymentRepository(BaseRepository):
         items = self._paginate(query, page, page_size)
         return items, total
 
+    def list_by_client_year(
+        self,
+        client_id: int,
+        year: int,
+        status: Optional[list[AdvancePaymentStatus]] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[AdvancePayment], int]:
+        """List payments for all businesses of a client in a given year."""
+        from app.businesses.models.business import Business
+
+        query = (
+            self.db.query(AdvancePayment)
+            .join(Business, Business.id == AdvancePayment.business_id)
+            .filter(
+                Business.client_id == client_id,
+                Business.deleted_at.is_(None),
+                AdvancePayment.period.like(f"{year}-%"),
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .order_by(AdvancePayment.period.asc())
+        )
+        if status:
+            normalized = [s.value.lower() for s in status]
+            query = query.filter(advance_payment_status_text_expr().in_(normalized))
+        total = query.count()
+        items = self._paginate(query, page, page_size)
+        return items, total
+
     def exists_for_period(self, business_id: int, period: str) -> bool:
         """Check if a payment already exists for the given period."""
         return self.db.query(
@@ -135,6 +164,9 @@ class AdvancePaymentRepository(BaseRepository):
 
     def sum_paid_by_business_year(self, business_id: int, year: int) -> float:
         return self._agg.sum_paid_by_business_year(business_id, year)
+
+    def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
+        return self._agg.sum_paid_by_client_year(client_id, year)
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
         return self._agg.get_collections_aggregates(year, month)

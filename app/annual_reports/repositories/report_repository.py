@@ -14,7 +14,8 @@ _SORT_COLUMNS = {
     "status": AnnualReport.status,
     "filing_deadline": AnnualReport.filing_deadline,
     "created_at": AnnualReport.created_at,
-    "business_id": AnnualReport.business_id,
+    "client_id": AnnualReport.client_id,
+    "business_id": AnnualReport.client_id,  # legacy alias
 }
 
 
@@ -50,31 +51,55 @@ class AnnualReportReportRepository(BaseRepository):
             )
         )
 
-    def get_by_business_year(self, business_id: int, tax_year: int) -> Optional[AnnualReport]:
+    def get_by_client_year(self, client_id: int, tax_year: int) -> Optional[AnnualReport]:
         return (
             self.db.query(AnnualReport)
             .filter(
-                AnnualReport.business_id == business_id,
+                AnnualReport.client_id == client_id,
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
             )
             .first()
         )
 
-    def list_by_business(self, business_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
+    def get_by_business_year(self, business_id: int, tax_year: int) -> Optional[AnnualReport]:
+        """Deprecated: resolves business→client then delegates to get_by_client_year."""
+        from app.businesses.models.business import Business
+        business = self.db.query(Business).filter(Business.id == business_id).first()
+        if not business:
+            return None
+        return self.get_by_client_year(business.client_id, tax_year)
+
+    def list_by_client(self, client_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.business_id == business_id, AnnualReport.deleted_at.is_(None))
+            .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
             .order_by(AnnualReport.tax_year.desc())
         )
         return self._paginate(q, page, page_size)
 
-    def count_by_business(self, business_id: int) -> int:
+    def count_by_client(self, client_id: int) -> int:
         return (
             self.db.query(AnnualReport)
-            .filter(AnnualReport.business_id == business_id, AnnualReport.deleted_at.is_(None))
+            .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
             .count()
         )
+
+    def list_by_business(self, business_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
+        """Deprecated: resolves business→client then delegates to list_by_client."""
+        from app.businesses.models.business import Business
+        business = self.db.query(Business).filter(Business.id == business_id).first()
+        if not business:
+            return []
+        return self.list_by_client(business.client_id, page=page, page_size=page_size)
+
+    def count_by_business(self, business_id: int) -> int:
+        """Deprecated: resolves business→client then delegates to count_by_client."""
+        from app.businesses.models.business import Business
+        business = self.db.query(Business).filter(Business.id == business_id).first()
+        if not business:
+            return 0
+        return self.count_by_client(business.client_id)
 
     def list_by_status(
         self,
@@ -149,18 +174,15 @@ class AnnualReportReportRepository(BaseRepository):
         return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:
-        """Return (AnnualReport, Business.client_id, Client.full_name) for status report."""
-        from app.businesses.models.business import Business
+        """Return (AnnualReport, client_id, Client.full_name) for status report."""
         from app.clients.models.client import Client
 
         return (
-            self.db.query(AnnualReport, Business.client_id, Client.full_name)
-            .join(Business, Business.id == AnnualReport.business_id)
-            .join(Client, Client.id == Business.client_id)
+            self.db.query(AnnualReport, AnnualReport.client_id, Client.full_name)
+            .join(Client, Client.id == AnnualReport.client_id)
             .filter(
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
-                Business.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )
             .order_by(AnnualReport.filing_deadline.asc().nulls_last())

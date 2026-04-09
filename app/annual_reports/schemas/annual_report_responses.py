@@ -19,8 +19,7 @@ from app.annual_reports.models.annual_report_enums import (
 
 class AnnualReportResponse(BaseModel):
     id: int
-    business_id: int
-    client_id: Optional[int] = None
+    client_id: int
     client_name: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
@@ -132,7 +131,8 @@ class SeasonSummaryResponse(BaseModel):
 
 class AnnualReportKanbanItemResponse(BaseModel):
     id: int
-    business_id: int
+    client_id: int
+    client_name: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
     days_until_due: Optional[int] = None

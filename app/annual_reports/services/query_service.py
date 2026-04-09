@@ -19,10 +19,17 @@ class AnnualReportQueryService(AnnualReportBaseService):
             return None
         return self._to_responses([report])[0]
 
-    def get_business_reports(self, business_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
-        reports = self.repo.list_by_business(business_id, page=page, page_size=page_size)
-        total = self.repo.count_by_business(business_id)
+    def get_client_reports(self, client_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+        reports = self.repo.list_by_client(client_id, page=page, page_size=page_size)
+        total = self.repo.count_by_client(client_id)
         return self._to_responses(reports), total
+
+    def get_business_reports(self, business_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+        """Deprecated: resolves business→client then delegates to get_client_reports."""
+        business = self.business_repo.get_by_id(business_id)
+        if not business:
+            return [], 0
+        return self.get_client_reports(business.client_id, page=page, page_size=page_size)
 
     def list_reports(
         self,
@@ -94,7 +101,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
         tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         response.profit = tax.net_profit
-        advances_paid = self.advance_repo.sum_paid_by_business_year(orm_report.business_id, orm_report.tax_year)
+        advances_paid = self.advance_repo.sum_paid_by_client_year(orm_report.client_id, orm_report.tax_year)
         response.final_balance = round(float(tax.tax_after_credits) - float(advances_paid), 2)
 
         return response
@@ -124,10 +131,10 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""
+        from app.clients.repositories.client_repository import ClientRepository
         reports = self.repo.list_all_with_businesses()
-        business_ids = {r.business_id for r in reports}
-        businesses = self.business_repo.list_by_ids(list(business_ids)) if business_ids else []
-        id_to_name = {b.id: b.business_name or b.client.full_name for b in businesses}
+        client_ids = {r.client_id for r in reports}
+        clients = {c.id: c for c in ClientRepository(self.db).list_by_ids(list(client_ids))} if client_ids else {}
 
         stages = {stage.value: [] for stage in ReportStage}
         for report in reports:
@@ -145,11 +152,13 @@ class AnnualReportQueryService(AnnualReportBaseService):
             else:  # submitted, accepted, closed
                 stage_key = ReportStage.TRANSMITTED
 
+            client = clients.get(report.client_id)
             stages[stage_key.value].append(
                 {
                     "id": report.id,
-                    "business_id": report.business_id,
-                    "business_name": id_to_name.get(report.business_id),
+                    "client_id": report.client_id,
+                    "client_name": client.full_name if client else None,
+                    "business_name": None,
                     "tax_year": report.tax_year,
                     "days_until_due": (
                         None if not report.filing_deadline
