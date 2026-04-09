@@ -1,5 +1,4 @@
 from app.businesses.models.business import Business
-from app.businesses.models.business_tax_profile import BusinessTaxProfile
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -12,7 +11,6 @@ from app.timeline.services.timeline_client_builders import (
     document_uploaded_event,
     reminder_created_event,
     signature_request_created_event,
-    tax_profile_updated_event,
 )
 
 
@@ -32,12 +30,6 @@ def build_client_events(
         events.append(client_created_event(business))
         if business.updated_at and business.updated_at != business.created_at:
             events.append(client_info_updated_event(business))
-
-    profile = db.query(BusinessTaxProfile).filter(
-        BusinessTaxProfile.business_id == business_id
-    ).first()
-    if profile and profile.updated_at:
-        events.append(tax_profile_updated_event(profile))
 
     reminders = reminder_repo.list_by_business(
         business_id, page=1, page_size=_TIMELINE_BULK_LIMIT

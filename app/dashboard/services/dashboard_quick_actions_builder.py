@@ -10,6 +10,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services._quick_actions_helpers import (
@@ -25,6 +26,7 @@ def build_quick_actions(
     binder_repo: BinderRepository,
     charge_repo: ChargeRepository,
     business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     vat_repo: VatWorkItemRepository,
     annual_report_repo: AnnualReportRepository,
     user_role: Optional[UserRole],
@@ -33,8 +35,8 @@ def build_quick_actions(
     actions: list[dict] = []
 
     actions.extend(build_binder_actions(binder_repo, business_repo))
-    actions.extend(build_vat_actions(vat_repo, business_repo, current_period))
-    actions.extend(build_annual_report_actions(annual_report_repo, business_repo))
+    actions.extend(build_vat_actions(vat_repo, client_repo, current_period))
+    actions.extend(build_annual_report_actions(annual_report_repo, client_repo))
 
     if user_role == UserRole.ADVISOR:
         issued = charge_repo.list_charges(status=ChargeStatus.ISSUED.value, page=1, page_size=1)

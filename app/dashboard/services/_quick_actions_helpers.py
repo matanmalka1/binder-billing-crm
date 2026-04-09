@@ -12,6 +12,7 @@ from app.annual_reports.repositories.annual_report_repository import AnnualRepor
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _MONTH_HE = {
@@ -94,21 +95,21 @@ def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessR
 
 def build_vat_actions(
     vat_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     current_period: str,
 ) -> list[dict]:
     items = vat_repo.list_not_filed_for_period(current_period, limit=3)
     plabel = period_label(current_period)
     result: list[dict] = []
     for item in items:
-        client = business_repo.get_by_id(item.business_id)
+        client = client_repo.get_by_id(item.client_id)
         if not client:
             continue
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
             method="get",
-            endpoint=f"/clients/{client.client_id}/businesses/{client.id}/vat",
+            endpoint=f"/clients/{client.id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
         action["client_name"] = client.full_name
@@ -119,12 +120,12 @@ def build_vat_actions(
 
 def build_annual_report_actions(
     annual_report_repo: AnnualReportRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
 ) -> list[dict]:
     stuck = annual_report_repo.list_stuck_reports(stale_days=7, limit=3)
     result: list[dict] = []
     for report in stuck:
-        client = business_repo.get_by_id(report.business_id)
+        client = client_repo.get_by_id(report.client_id)
         if not client:
             continue
         status_label = _STATUS_LABEL_HE.get(report.status, str(report.status))
@@ -134,7 +135,7 @@ def build_annual_report_actions(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
             method="get",
-            endpoint=f"/clients/{client.client_id}/businesses/{client.id}/annual-reports",
+            endpoint=f"/clients/{client.id}/annual-reports",
             action_id=f"annual-{report.id}-navigate",
         )
         action["client_name"] = client.full_name
