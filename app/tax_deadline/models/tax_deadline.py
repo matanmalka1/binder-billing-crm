@@ -52,8 +52,8 @@ class TaxDeadlineStatus(str, PyEnum):
 class TaxDeadline(Base):
     __tablename__ = "tax_deadlines"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
 
     # ── Deadline identity ─────────────────────────────────────────────────────
     deadline_type = Column(pg_enum(DeadlineType), nullable=False)
@@ -83,13 +83,13 @@ class TaxDeadline(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_tax_deadline_status",          "status"),
-        Index("idx_tax_deadline_type",            "deadline_type"),
-        Index("idx_tax_deadline_business_period", "business_id", "period"),
+        Index("idx_tax_deadline_status",         "status"),
+        Index("idx_tax_deadline_type",           "deadline_type"),
+        Index("idx_tax_deadline_client_period",  "client_id", "period"),
     )
 
     def __repr__(self):
         return (
-            f"<TaxDeadline(id={self.id}, business_id={self.business_id}, "
+            f"<TaxDeadline(id={self.id}, client_id={self.client_id}, "
             f"type='{self.deadline_type}', due='{self.due_date}')>"
         )

@@ -130,18 +130,18 @@ class TaxDeadlineQueryRepository:
             .all()
         )
 
-    def list_by_business_ids(
+    def list_by_client_ids(
         self,
-        business_ids: list[int],
+        client_ids: list[int],
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        """List non-deleted deadlines for multiple businesses with optional filters."""
+        """List non-deleted deadlines for multiple clients with optional filters."""
         query = (
             self.db.query(TaxDeadline)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id.in_(business_ids),
+                TaxDeadline.client_id.in_(client_ids),
             )
         )
         if status:
@@ -150,21 +150,21 @@ class TaxDeadlineQueryRepository:
             query = query.filter(TaxDeadline.deadline_type == deadline_type)
         return query.order_by(TaxDeadline.due_date.asc()).all()
 
-    def list_by_business(
+    def list_by_client(
         self,
-        business_id: int,
+        client_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
         due_to: Optional[date] = None,
         period: Optional[str] = None,
     ) -> list[TaxDeadline]:
-        """List non-deleted deadlines for a business with optional filters."""
+        """List non-deleted deadlines for a client with optional filters."""
         query = (
             self.db.query(TaxDeadline)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id == business_id,
+                TaxDeadline.client_id == client_id,
             )
         )
         if status:
@@ -181,16 +181,16 @@ class TaxDeadlineQueryRepository:
 
     def exists(
         self,
-        business_id: int,
+        client_id: int,
         deadline_type: DeadlineType,
         due_date: date,
     ) -> bool:
-        """Return True if a non-deleted deadline with same business/type/due_date exists."""
+        """Return True if a non-deleted deadline with same client/type/due_date exists."""
         return (
             self.db.query(TaxDeadline.id)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.business_id == business_id,
+                TaxDeadline.client_id == client_id,
                 TaxDeadline.deadline_type == deadline_type,
                 TaxDeadline.due_date == due_date,
             )

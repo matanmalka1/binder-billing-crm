@@ -84,25 +84,25 @@ class TaxDeadlineRepository:
     def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
         return self._q.list_overdue(reference_date)
 
-    def list_by_business_ids(
+    def list_by_client_ids(
         self,
-        business_ids: list[int],
+        client_ids: list[int],
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        return self._q.list_by_business_ids(business_ids, status=status, deadline_type=deadline_type)
+        return self._q.list_by_client_ids(client_ids, status=status, deadline_type=deadline_type)
 
-    def list_by_business(
+    def list_by_client(
         self,
-        business_id: int,
+        client_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
         due_to: Optional[date] = None,
         period: Optional[str] = None,
     ) -> list[TaxDeadline]:
-        return self._q.list_by_business(
-            business_id,
+        return self._q.list_by_client(
+            client_id,
             status=status,
             deadline_type=deadline_type,
             due_from=due_from,
@@ -112,17 +112,17 @@ class TaxDeadlineRepository:
 
     def exists(
         self,
-        business_id: int,
+        client_id: int,
         deadline_type: DeadlineType,
         due_date: date,
     ) -> bool:
-        return self._q.exists(business_id, deadline_type, due_date)
+        return self._q.exists(client_id, deadline_type, due_date)
 
     # ── Write ─────────────────────────────────────────────────────────────────
 
     def create(
         self,
-        business_id: int,
+        client_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
@@ -130,7 +130,7 @@ class TaxDeadlineRepository:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         return self._w.create(
-            business_id=business_id,
+            client_id=client_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,

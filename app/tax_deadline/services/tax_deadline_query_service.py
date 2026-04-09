@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import (
     FAR_FUTURE_DATE,
@@ -20,10 +21,11 @@ class TaxDeadlineQueryService:
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
         self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
 
     def list_deadlines(
         self,
-        business_id: Optional[int],
+        client_id: Optional[int],
         business_name: Optional[str],
         status: Optional[str],
         deadline_type: Optional[DeadlineType],
@@ -33,10 +35,10 @@ class TaxDeadlineQueryService:
         due_to: Optional[date] = None,
         period: Optional[str] = None,
     ) -> tuple[list[TaxDeadline], int]:
-        """Route branching logic: by business, by business name, or all pending."""
-        if business_id:
-            items = self.deadline_repo.list_by_business(
-                business_id, status, deadline_type,
+        """Route branching logic: by client, by business name, or all pending."""
+        if client_id:
+            items = self.deadline_repo.list_by_client(
+                client_id, status, deadline_type,
                 due_from=due_from, due_to=due_to, period=period,
             )
             total = len(items)
@@ -167,34 +169,19 @@ class TaxDeadlineQueryService:
         businesses = self.business_repo.list(search=business_name, page=1, page_size=500)
         if not businesses:
             return []
-        business_ids = [b.id for b in businesses]
-        return self.deadline_repo.list_by_business_ids(business_ids, status, deadline_type)
+        client_ids = list({b.client_id for b in businesses})
+        return self.deadline_repo.list_by_client_ids(client_ids, status, deadline_type)
 
-    def get_deadlines_by_client_name(
-        self,
-        client_name: str,
-        status: Optional[str] = None,
-        deadline_type: Optional[DeadlineType] = None,
-    ) -> list[TaxDeadline]:
-        """Backward-compatible alias for legacy callers/tests."""
-        return self.get_deadlines_by_business_name(client_name, status, deadline_type)
-
-    def get_timeline(self, business_id: int) -> list:
-        """Return deadlines for a business sorted by due_date asc with days_remaining and milestone_label."""
+    def get_timeline(self, client_id: int) -> list:
+        """Return deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
         from app.tax_deadline.services.timeline_service import build_timeline
-        return build_timeline(business_id, self.business_repo, self.deadline_repo)
+        return build_timeline(client_id, self.client_repo, self.deadline_repo)
 
-    def build_business_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
-        """Return {business_id: business_name} for the given deadlines."""
-        business_ids = list({d.business_id for d in deadlines})
-        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
-        return {b.id: b.full_name for b in businesses}
-
-    def build_client_id_map(self, deadlines: list[TaxDeadline]) -> dict[int, int]:
-        """Return {business_id: client_id} for the given deadlines."""
-        business_ids = list({d.business_id for d in deadlines})
-        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
-        return {b.id: b.client_id for b in businesses}
+    def build_client_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
+        """Return {client_id: client_full_name} for the given deadlines."""
+        client_ids = list({d.client_id for d in deadlines})
+        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        return {c.id: c.full_name for c in clients}
 
     def get_urgent_deadlines_summary(
         self,

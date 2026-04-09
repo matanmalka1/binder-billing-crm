@@ -11,7 +11,7 @@ from app.tax_deadline.schemas.tax_deadline import (
     TaxDeadlineUpdateRequest,
 )
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.actions.report_deadline_actions import get_tax_deadline_actions
 
 router = APIRouter(
@@ -28,11 +28,9 @@ def _build_response(
     user_role: UserRole | str | None = None,
 ) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
-    if db is not None:
-        business = BusinessRepository(db).get_by_id(deadline.business_id)
-        r.client_id = business.client_id if business else None
-        if business_name is None:
-            business_name = business.full_name if business else None
+    if db is not None and business_name is None:
+        client = ClientRepository(db).get_by_id(deadline.client_id)
+        business_name = client.full_name if client else None
     if business_name is not None:
         r.business_name = business_name
     r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
@@ -53,7 +51,7 @@ def create_tax_deadline(
     """Create new tax deadline."""
     service = TaxDeadlineService(db)
     deadline = service.create_deadline(
-        business_id=request.business_id,
+        client_id=request.client_id,
         deadline_type=DeadlineType(request.deadline_type),
         due_date=request.due_date,
         period=request.period,

@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.core.exceptions import NotFoundError
 
 
 _MILESTONE_LABELS: dict[str, str] = {
@@ -14,10 +14,12 @@ _MILESTONE_LABELS: dict[str, str] = {
 }
 
 
-def build_timeline(business_id: int, business_repo, deadline_repo) -> list[dict]:
+def build_timeline(client_id: int, client_repo, deadline_repo) -> list[dict]:
     """Return deadlines sorted by due_date asc with days_remaining and milestone_label."""
-    get_business_or_raise(business_repo.db, business_id)
-    deadlines = deadline_repo.list_by_business(business_id)
+    client = client_repo.get_by_id(client_id)
+    if not client:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    deadlines = deadline_repo.list_by_client(client_id)
     today = date.today()
     result = []
     for d in sorted(deadlines, key=lambda x: x.due_date):
@@ -25,7 +27,7 @@ def build_timeline(business_id: int, business_repo, deadline_repo) -> list[dict]
         label = _MILESTONE_LABELS.get(d.deadline_type.value, d.deadline_type.value)
         result.append({
             "id": d.id,
-            "business_id": d.business_id,
+            "client_id": d.client_id,
             "deadline_type": d.deadline_type,
             "period": d.period,
             "due_date": d.due_date,

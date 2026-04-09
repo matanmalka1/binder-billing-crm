@@ -60,7 +60,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             period = f"{due_date.year}-{due_date.month:02d}" if deadline_type != TaxDeadlineType.OTHER else None
             description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(
-                business_id=business.id,
+                client_id=business.client_id,
                 deadline_type=deadline_type,
                 period=period,
                 due_date=due_date,
@@ -82,10 +82,10 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
     eligible_businesses = [
         business for business in businesses if business.business_type != BusinessType.EMPLOYEE
     ]
-    deadlines_by_business_period = {}
+    deadlines_by_client_period = {}
     for dl in deadlines:
         if dl.period:
-            deadlines_by_business_period[(dl.business_id, dl.period)] = dl
+            deadlines_by_client_period[(dl.client_id, dl.period)] = dl
 
     for client_businesses in group_businesses_by_client(eligible_businesses).values():
         year = date.today().year
@@ -94,7 +94,7 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             business = rng.choice(client_businesses)
             period = f"{year}-{month:02d}"
             due_date = date(year, month, min(rng.randint(10, 28), 28))
-            deadline = deadlines_by_business_period.get((business.id, period))
+            deadline = deadlines_by_client_period.get((business.client_id, period))
             status = rng.choice(list(AdvancePaymentStatus))
             expected_amount = Decimal(str(round(rng.uniform(500, 6000), 2)))
             paid_amount = Decimal("0.00")

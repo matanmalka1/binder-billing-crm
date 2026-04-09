@@ -13,7 +13,7 @@ from app.tax_deadline.models.tax_deadline import (
 
 
 class TaxDeadlineCreateRequest(BaseModel):
-    business_id: int
+    client_id: int
     deadline_type: DeadlineType             # enum
     due_date: date
     period: Optional[str] = None            # "YYYY-MM" — קיים במודל
@@ -35,9 +35,8 @@ class TaxDeadlineCreateRequest(BaseModel):
 
 class TaxDeadlineResponse(BaseModel):
     id: int
-    business_id: int
-    client_id: Optional[int] = None         # enriched by service
-    business_name: Optional[str] = None     # enriched by service
+    client_id: int
+    business_name: Optional[str] = None     # enriched by service (client full_name)
     deadline_type: DeadlineType
     period: Optional[str] = None
     due_date: date
@@ -45,7 +44,7 @@ class TaxDeadlineResponse(BaseModel):
     payment_amount: Optional[ApiDecimal] = None
     description: Optional[str] = None
     completed_at: Optional[ApiDateTime] = None
-    completed_by: Optional[int] = None      
+    completed_by: Optional[int] = None
     advance_payment_id: Optional[int] = None
     created_at: ApiDateTime
     available_actions: list[dict] = []
@@ -75,11 +74,11 @@ class TaxDeadlineListResponse(BaseModel):
 
 class DeadlineUrgentItem(BaseModel):
     id: int
-    business_id: int
+    client_id: int
     business_name: str
     deadline_type: DeadlineType
     due_date: date
-    urgency: UrgencyLevel              
+    urgency: UrgencyLevel
     days_remaining: int
     payment_amount: Optional[ApiDecimal] = None
 
@@ -90,8 +89,15 @@ class DashboardDeadlinesResponse(BaseModel):
 
 
 class GenerateDeadlinesRequest(BaseModel):
-    business_id: int
+    client_id: Optional[int] = None
+    business_id: Optional[int] = None       # deprecated bridge — resolved to client_id in API layer
     year: int
+
+    @field_validator("client_id", mode="before")
+    @classmethod
+    def require_client_or_business(cls, v, info):
+        # Validation done in API layer after resolving business_id → client_id
+        return v
 
 
 class GenerateDeadlinesResponse(BaseModel):
@@ -100,7 +106,7 @@ class GenerateDeadlinesResponse(BaseModel):
 
 class TimelineEntry(BaseModel):
     id: int
-    business_id: int
+    client_id: int
     deadline_type: DeadlineType
     period: Optional[str] = None
     due_date: date

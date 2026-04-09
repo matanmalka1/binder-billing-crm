@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import validate_business_for_create
+from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.utils.time_utils import utcnow
@@ -27,11 +27,12 @@ class TaxDeadlineService:
     def __init__(self, db: Session):
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
+        self.client_repo = ClientRepository(db)
         self.business_repo = BusinessRepository(db)
 
     def create_deadline(
         self,
-        business_id: int,
+        client_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
@@ -39,11 +40,13 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        validate_business_for_create(self.db, business_id)
+        client = self.client_repo.get_by_id(client_id)
+        if not client:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = due_date.year - 1
-            report = AnnualReportRepository(self.db).get_by_business_year(business_id, tax_year)
+            report = AnnualReportRepository(self.db).get_by_client_year(client_id, tax_year)
             if report and report.status in _TERMINAL_ANNUAL_REPORT_STATUSES:
                 raise AppError(
                     f"דוח שנתי לשנת {tax_year} כבר הוגש — לא ניתן ליצור מועד הגשה חדש",
@@ -51,7 +54,7 @@ class TaxDeadlineService:
                 )
 
         deadline = self.deadline_repo.create(
-            business_id=business_id,
+            client_id=client_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
@@ -59,12 +62,17 @@ class TaxDeadlineService:
             description=description,
         )
 
-        ReminderService(self.db).create_tax_deadline_reminder(
-            business_id=business_id,
-            tax_deadline_id=deadline.id,
-            target_date=due_date,
-            days_before=7,
-        )
+        # Reminders are linked to a business_id (Reminder model FK → businesses).
+        # Resolve the first active business for this client as a transitional seam.
+        # This will be cleaned up when Reminder pivots to client_id in a later phase.
+        business_ids = self.business_repo.get_ids_by_client(client_id)
+        if business_ids:
+            ReminderService(self.db).create_tax_deadline_reminder(
+                business_id=business_ids[0],
+                tax_deadline_id=deadline.id,
+                target_date=due_date,
+                days_before=7,
+            )
 
         return deadline
 
@@ -135,12 +143,14 @@ class TaxDeadlineService:
         if due_date:
             reminder_service = ReminderService(self.db)
             reminder_service.cancel_reminders_for_tax_deadline(deadline_id)
-            reminder_service.create_tax_deadline_reminder(
-                business_id=deadline.business_id,
-                tax_deadline_id=deadline.id,
-                target_date=deadline.due_date,
-                days_before=7,
-            )
+            business_ids = self.business_repo.get_ids_by_client(deadline.client_id)
+            if business_ids:
+                reminder_service.create_tax_deadline_reminder(
+                    business_id=business_ids[0],
+                    tax_deadline_id=deadline.id,
+                    target_date=deadline.due_date,
+                    days_before=7,
+                )
 
         return deadline
 
@@ -152,7 +162,7 @@ class TaxDeadlineService:
         return deadline
 
     def list_all_pending(self) -> list[TaxDeadline]:
-        """Return all pending deadlines regardless of business."""
+        """Return all pending deadlines regardless of client."""
         return self.deadline_repo.list_pending_due_by_date(date.today(), FAR_FUTURE_DATE)
 
     def delete_deadline(self, deadline_id: int, deleted_by: int) -> None:
@@ -161,11 +171,11 @@ class TaxDeadlineService:
         if not deleted:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
 
-    def get_business_deadlines(
+    def get_client_deadlines(
         self,
-        business_id: int,
+        client_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        """Get deadlines for a specific business."""
-        return self.deadline_repo.list_by_business(business_id, status, deadline_type)
+        """Get deadlines for a specific client."""
+        return self.deadline_repo.list_by_client(client_id, status, deadline_type)
