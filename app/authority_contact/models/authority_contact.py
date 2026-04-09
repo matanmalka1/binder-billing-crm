@@ -27,7 +27,7 @@ Design decisions:
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -44,8 +44,8 @@ class ContactType(str, PyEnum):
 class AuthorityContact(Base):
     __tablename__ = "authority_contacts"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
 
     # ── Contact identity ──────────────────────────────────────────────────────
     contact_type = Column(pg_enum(ContactType), nullable=False)
@@ -64,37 +64,14 @@ class AuthorityContact(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_authority_contact_business", "business_id"),
-        Index("idx_authority_contact_type",     "contact_type"),
+        Index("idx_authority_contact_client", "client_id"),
+        Index("idx_authority_contact_type",   "contact_type"),
     )
 
     def __repr__(self):
         return (
-            f"<AuthorityContact(id={self.id}, business_id={self.business_id}, "
+            f"<AuthorityContact(id={self.id}, client_id={self.client_id}, "
             f"type='{self.contact_type}', name='{self.name}')>"
         )
 
 
-class AuthorityContactLink(Base):
-    """Many-to-many: one contact shared across multiple clients/businesses."""
-    __tablename__ = "authority_contact_links"
-
-    id         = Column(Integer, primary_key=True, autoincrement=True)
-    contact_id  = Column(Integer, ForeignKey("authority_contacts.id"), nullable=False, index=True)
-    client_id   = Column(Integer, ForeignKey("clients.id"),            nullable=False, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"),         nullable=True,  index=True)
-
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint(
-            "contact_id", "client_id", "business_id",
-            name="uq_authority_contact_link",
-        ),
-    )
-
-    def __repr__(self):
-        return (
-            f"<AuthorityContactLink(contact_id={self.contact_id}, "
-            f"client_id={self.client_id}, business_id={self.business_id})>"
-        )

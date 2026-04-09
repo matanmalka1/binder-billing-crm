@@ -30,14 +30,12 @@ class ClientCreateRequest(BaseModel):
     address_zip_code: Optional[str] = None
     # ── Tax reporting ─────────────────────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
-    vat_start_date: Optional[date] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
-    advance_rate_updated_at: Optional[date] = None
     accountant_name: Optional[str] = None
     business_type_label: Optional[str] = None
-    fiscal_year_start_month: Optional[int] = Field(None, ge=1, le=12)
-    tax_year_start: Optional[int] = Field(None, ge=1900, le=2100)
+    # תאריך הקמת העסק — ממנו נגזרים vat_start_date, fiscal_year_start_month ו-tax_year_start אוטומטית
+    business_start_date: Optional[date] = None
 
     @field_validator("id_number")
     @classmethod
@@ -82,6 +80,7 @@ class ClientUpdateRequest(BaseModel):
     advance_rate_updated_at: Optional[date] = None
     accountant_name: Optional[str] = None
     business_type_label: Optional[str] = None
+    business_start_date: Optional[date] = None
     fiscal_year_start_month: Optional[int] = Field(None, ge=1, le=12)
     tax_year_start: Optional[int] = Field(None, ge=1900, le=2100)
 
@@ -114,6 +113,7 @@ class ClientResponse(BaseModel):
     business_type_label: Optional[str] = None
     fiscal_year_start_month: int = 1
     tax_year_start: Optional[int] = None
+    business_start_date: Optional[date] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
     # ── Enriched field (set by API layer, not stored on Client) ───────────────

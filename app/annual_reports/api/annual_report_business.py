@@ -5,32 +5,11 @@ from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_responses import AnnualReportListResponse
 from app.annual_reports.services.annual_report_service import AnnualReportService
 
-
-businesses_router = APIRouter(
-    prefix="/businesses",
-    tags=["annual-reports"],
-    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
-)
-
 clients_router = APIRouter(
     prefix="/clients",
     tags=["annual-reports"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-
-
-@businesses_router.get("/{business_id}/annual-reports", response_model=AnnualReportListResponse)
-def list_business_reports(
-    business_id: int,
-    db: DBSession,
-    user: CurrentUser,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-):
-    """Deprecated: resolves business→client then returns that client's reports."""
-    service = AnnualReportService(db)
-    items, total = service.get_business_reports(business_id, page=page, page_size=page_size)
-    return AnnualReportListResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @clients_router.get("/{client_id}/annual-reports", response_model=AnnualReportListResponse)

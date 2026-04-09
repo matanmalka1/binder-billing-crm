@@ -27,7 +27,7 @@ class AuthorityContactUpdateRequest(BaseModel):
 
 class AuthorityContactResponse(BaseModel):
     id: int
-    business_id: int
+    client_id: int
     contact_type: ContactType
     name: str
     office: Optional[str] = None

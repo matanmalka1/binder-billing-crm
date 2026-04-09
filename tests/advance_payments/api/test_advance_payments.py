@@ -34,7 +34,7 @@ def test_list_advance_payments_paginates(client, test_db, advisor_headers):
     repo.create(business_id=business.id, period="2025-12", period_months_count=1, due_date=date(2026, 1, 15))
 
     response = client.get(
-        f"/api/v1/businesses/{business.id}/advance-payments?year=2026&page=1&page_size=2",
+        f"/api/v1/clients/{business.client_id}/advance-payments?year=2026&page=1&page_size=2",
         headers=advisor_headers,
     )
 
@@ -45,7 +45,7 @@ def test_list_advance_payments_paginates(client, test_db, advisor_headers):
     assert [item["period"] for item in data["items"]] == ["2026-01", "2026-02"]
 
     second_page = client.get(
-        f"/api/v1/businesses/{business.id}/advance-payments?year=2026&page=2&page_size=2",
+        f"/api/v1/clients/{business.client_id}/advance-payments?year=2026&page=2&page_size=2",
         headers=advisor_headers,
     )
     assert second_page.status_code == 200
@@ -64,7 +64,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
     )
 
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/advance-payments/{payment.id}",
+        f"/api/v1/clients/{business.client_id}/advance-payments/{payment.id}",
         headers=advisor_headers,
         json={"paid_amount": 500.0, "status": "paid"},
     )
@@ -87,7 +87,7 @@ def test_update_advance_payment_invalid_status_returns_400(client, test_db, advi
     )
 
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/advance-payments/{payment.id}",
+        f"/api/v1/clients/{business.client_id}/advance-payments/{payment.id}",
         headers=advisor_headers,
         json={"status": "unknown"},
     )
@@ -98,7 +98,7 @@ def test_update_advance_payment_invalid_status_returns_400(client, test_db, advi
 def test_update_advance_payment_not_found_returns_404(client, test_db, advisor_headers):
     business = _create_business(test_db)
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/advance-payments/999",
+        f"/api/v1/clients/{business.client_id}/advance-payments/999",
         headers=advisor_headers,
         json={"status": "paid"},
     )
@@ -110,13 +110,13 @@ def test_update_advance_payment_not_found_returns_404(client, test_db, advisor_h
     assert isinstance(data["error_meta"]["detail"], str)
 
 
-def test_list_advance_payments_missing_business_returns_404(client, advisor_headers):
+def test_list_advance_payments_missing_client_returns_404(client, advisor_headers):
     response = client.get(
-        "/api/v1/businesses/999/advance-payments?year=2026",
+        "/api/v1/clients/999/advance-payments?year=2026",
         headers=advisor_headers,
     )
 
     assert response.status_code == 404
     data = response.json()
-    assert data["error"] == "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND"
-    assert data["error_meta"]["detail"] == "עסק 999 לא נמצא"
+    assert data["error"] == "ADVANCE_PAYMENT.CLIENT_NOT_FOUND"
+    assert data["error_meta"]["detail"] == "לקוח 999 לא נמצא"

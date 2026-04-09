@@ -13,6 +13,7 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
     AdvancePaymentAggregationRepository,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 
 
@@ -25,6 +26,10 @@ class AdvancePaymentAnalyticsService:
     @property
     def _business_repo(self) -> BusinessRepository:
         return BusinessRepository(self.db)
+
+    @property
+    def _client_repo(self) -> ClientRepository:
+        return ClientRepository(self.db)
 
     @staticmethod
     def _collection_rate(total_paid: float, total_expected: float) -> float:
@@ -78,6 +83,17 @@ class AdvancePaymentAnalyticsService:
             "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }
 
+    def get_annual_kpis_for_client(self, client_id: int, year: int) -> dict:
+        if not self._client_repo.get_by_id(client_id):
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        data = self.analytics_repo.get_annual_kpis_for_client(client_id, year)
+        return {
+            **data,
+            "client_id": client_id,
+            "year": year,
+            "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
+        }
+
     def get_overview_kpis(
         self,
         year: int,
@@ -94,3 +110,9 @@ class AdvancePaymentAnalyticsService:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
         months = self.analytics_repo.monthly_chart_data(business_id, year)
         return {"business_id": business_id, "year": year, "months": months}
+
+    def get_chart_data_for_client(self, client_id: int, year: int) -> dict:
+        if not self._client_repo.get_by_id(client_id):
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        months = self.analytics_repo.monthly_chart_data_for_client(client_id, year)
+        return {"client_id": client_id, "year": year, "months": months}

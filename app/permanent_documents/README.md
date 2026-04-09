@@ -85,13 +85,13 @@ Router prefix is `/api/v1/documents` (mounted in `app/main.py`).
   - `notes` (optional)
 
 ### List business documents
-- `GET /api/v1/documents/business/{business_id}`
+- `GET /api/v1/documents/client/{client_id}`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `tax_year` (optional)
 
 ### Get operational signals
-- `GET /api/v1/documents/business/{business_id}/signals`
+- `GET /api/v1/documents/client/{client_id}/signals`
 - Roles: `ADVISOR`, `SECRETARY`
 - Returns missing document types advisory payload.
 
@@ -143,7 +143,7 @@ Router prefix is `/api/v1/documents` (mounted in `app/main.py`).
 ```
 
 ### Get document versions
-- `GET /api/v1/documents/business/{business_id}/versions`
+- `GET /api/v1/documents/client/{client_id}/versions`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `document_type` (required)

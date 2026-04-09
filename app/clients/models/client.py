@@ -69,6 +69,7 @@ class Client(Base):
     business_type_label     = Column(String(100),     nullable=True)   # סוג עסק (טקסט חופשי)
     fiscal_year_start_month = Column(Integer,         nullable=False,  server_default="1")
     tax_year_start          = Column(Integer,         nullable=True)   # שנת מס התחלה
+    business_start_date     = Column(Date,            nullable=True)   # תאריך הקמת העסק
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)

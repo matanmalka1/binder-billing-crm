@@ -27,33 +27,33 @@ def test_client_and_tax_year_list_endpoints(client, test_db, advisor_headers, te
     client_b = _client(test_db)
 
     r1 = service.create_report(
-        business_id=client_a.id,
+        client_id=client_a.id,
         tax_year=2026,
         client_type="corporation",
         created_by=test_user.id,
         created_by_name="Test User",
     )
     r2 = service.create_report(
-        business_id=client_a.id,
+        client_id=client_a.id,
         tax_year=2025,
         client_type="corporation",
         created_by=test_user.id,
         created_by_name="Test User",
     )
     service.create_report(
-        business_id=client_b.id,
+        client_id=client_b.id,
         tax_year=2026,
         client_type="corporation",
         created_by=test_user.id,
         created_by_name="Test User",
     )
 
-    business_reports = client.get(
-        f"/api/v1/businesses/{client_a.id}/annual-reports",
+    client_reports = client.get(
+        f"/api/v1/clients/{client_a.id}/annual-reports",
         headers=advisor_headers,
     )
-    assert business_reports.status_code == 200
-    assert [item["id"] for item in business_reports.json()["items"]] == [r1.id, r2.id]
+    assert client_reports.status_code == 200
+    assert [item["id"] for item in client_reports.json()["items"]] == [r1.id, r2.id]
 
     season_reports = client.get(
         "/api/v1/tax-year/2026/reports",

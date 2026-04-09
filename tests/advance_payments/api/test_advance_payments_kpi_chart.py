@@ -51,12 +51,12 @@ def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
     _seed_payments(test_db, business.id)
 
     resp = client.get(
-        f"/api/v1/businesses/{business.id}/advance-payments/chart?year=2026",
+        f"/api/v1/clients/{business.client_id}/advance-payments/chart?year=2026",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert body["business_id"] == business.id
+    assert body["client_id"] == business.client_id
     assert body["year"] == 2026
     months = body["months"]
     assert len(months) == 2
@@ -73,13 +73,13 @@ def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):
     _seed_payments(test_db, business.id)
 
     resp = client.get(
-        f"/api/v1/businesses/{business.id}/advance-payments/kpi?year=2026",
+        f"/api/v1/clients/{business.client_id}/advance-payments/kpi?year=2026",
         headers=advisor_headers,
     )
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["business_id"] == business.id
+    assert data["client_id"] == business.client_id
     assert data["year"] == 2026
     assert Decimal(str(data["total_expected"])) == Decimal("150")
     assert Decimal(str(data["total_paid"])) == Decimal("80")

@@ -25,6 +25,20 @@ DEADLINE_LABELS = {
 }
 
 
+def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
+    client = business.client
+    types = [
+        TaxDeadlineType.ANNUAL_REPORT,
+        TaxDeadlineType.NATIONAL_INSURANCE,
+        TaxDeadlineType.OTHER,
+    ]
+    if client.vat_reporting_frequency in ("monthly", "bimonthly"):
+        types.append(TaxDeadlineType.VAT)
+    if business.business_type != BusinessType.EMPLOYEE and client.advance_rate is not None:
+        types.append(TaxDeadlineType.ADVANCE_PAYMENT)
+    return types
+
+
 def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     today = date.today()
@@ -36,6 +50,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
         for business in pick_businesses_for_client(rng, client_businesses, num):
             due_offset = rng.randint(-30, 60)
             due_date = today + timedelta(days=due_offset)
+            deadline_type = rng.choice(_eligible_deadline_types(business))
             status = (
                 TaxDeadlineStatus.COMPLETED
                 if due_date < today and rng.random() < 0.5
@@ -56,7 +71,6 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
                 )
                 completed_by = rng.choice(users).id if users else None
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))
-            deadline_type = rng.choice(list(TaxDeadlineType))
             period = f"{due_date.year}-{due_date.month:02d}" if deadline_type != TaxDeadlineType.OTHER else None
             description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(

@@ -41,9 +41,9 @@ class PermanentDocumentActionService:
         return doc
 
     def get_document_versions(
-        self, business_id: int, document_type: str, tax_year: Optional[int] = None
+        self, client_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
-        return self.query_repo.get_all_versions(business_id, document_type, tax_year)
+        return self.query_repo.get_all_versions_by_client(client_id, document_type, tax_year)
 
     def update_notes(self, document_id: int, notes: str) -> PermanentDocument:
         doc = self._get_or_raise(document_id)

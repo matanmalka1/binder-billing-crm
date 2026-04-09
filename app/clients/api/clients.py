@@ -55,14 +55,11 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             address_city=request.address_city,
             address_zip_code=request.address_zip_code,
             vat_reporting_frequency=request.vat_reporting_frequency,
-            vat_start_date=request.vat_start_date,
             vat_exempt_ceiling=request.vat_exempt_ceiling,
             advance_rate=request.advance_rate,
-            advance_rate_updated_at=request.advance_rate_updated_at,
             accountant_name=request.accountant_name,
             business_type_label=request.business_type_label,
-            fiscal_year_start_month=request.fiscal_year_start_month,
-            tax_year_start=request.tax_year_start,
+            business_start_date=request.business_start_date,
             actor_id=user.id,
         )
         return ClientResponse.model_validate(client)

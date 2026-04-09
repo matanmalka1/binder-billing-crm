@@ -129,11 +129,11 @@ Behavior:
 - Soft delete.
 - Returns `204 No Content`.
 
-### Timeline by business
+### Timeline by client
 
 - `GET /api/v1/tax-deadlines/timeline`
 - Query params:
-  - `business_id` (required)
+  - `client_id` (required)
 - Returns due-date sorted entries with:
   - `days_remaining`
   - `milestone_label`

@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, NotFoundError
+from app.clients.services.client_service import ClientService
 from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TYPES, _MAX_FILE_SIZE
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import (
@@ -141,6 +142,21 @@ class PermanentDocumentService:
             status=status,
         )
 
+    def list_client_documents(
+        self,
+        client_id: int,
+        tax_year: Optional[int] = None,
+        document_type: Optional[str] = None,
+        status: Optional[DocumentStatus] = None,
+    ) -> list[PermanentDocument]:
+        ClientService(self.db).get_client_or_raise(client_id)
+        return self.document_repo.list_by_client(
+            client_id,
+            tax_year=tax_year,
+            document_type=document_type,
+            status=status,
+        )
+
     def get_missing_document_types(
         self, business_id: int, required: Optional[list[str]] = None
     ) -> list[str]:
@@ -150,6 +166,13 @@ class PermanentDocumentService:
 
     def get_operational_signals(self, business_id: int) -> dict:
         return SignalsService(self.db).compute_business_operational_signals(business_id)
+
+    def get_client_operational_signals(self, client_id: int) -> dict:
+        ClientService(self.db).get_client_or_raise(client_id)
+        return {
+            "client_id": client_id,
+            "missing_documents": self.query_repo.missing_by_client_type(client_id, _DEFAULT_REQUIRED_TYPES),
+        }
 
     def delete_document(self, document_id: int) -> None:
         doc = self.document_repo.get_by_id(document_id)

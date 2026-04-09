@@ -14,28 +14,27 @@ from app.authority_contact.schemas.authority_contact import (
 from app.authority_contact.services.authority_contact_service import AuthorityContactService
 
 router = APIRouter(
-    prefix="/businesses",
+    prefix="/clients",
     tags=["authority-contacts"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
 
 @router.post(
-    "/{business_id}/authority-contacts",
+    "/{client_id}/authority-contacts",
     response_model=AuthorityContactResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_authority_contact(
-    business_id: int,
+    client_id: int,
     request: AuthorityContactCreateRequest,
     db: DBSession,
     _: CurrentUser,
 ):
-    """Create new authority contact for business."""
+    """Create new authority contact for client."""
     service = AuthorityContactService(db)
-
     contact = service.add_contact(
-        business_id=business_id,
+        client_id=client_id,
         contact_type=request.contact_type,
         name=request.name,
         office=request.office,
@@ -46,25 +45,23 @@ def create_authority_contact(
     return AuthorityContactResponse.model_validate(contact)
 
 
-@router.get("/{business_id}/authority-contacts", response_model=AuthorityContactListResponse)
+@router.get("/{client_id}/authority-contacts", response_model=AuthorityContactListResponse)
 def list_authority_contacts(
-    business_id: int,
+    client_id: int,
     db: DBSession,
     _: CurrentUser,
     contact_type: Optional[ContactType] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List authority contacts for business with pagination."""
+    """List authority contacts for client with pagination."""
     service = AuthorityContactService(db)
-
-    contacts, total = service.list_business_contacts(
-        business_id,
+    contacts, total = service.list_client_contacts(
+        client_id,
         contact_type,
         page=page,
         page_size=page_size,
     )
-
     return AuthorityContactListResponse(
         items=[AuthorityContactResponse.model_validate(c) for c in contacts],
         page=page,
@@ -99,9 +96,7 @@ def update_authority_contact(
 ):
     """Update authority contact."""
     service = AuthorityContactService(db)
-
     update_data = request.model_dump(exclude_unset=True)
-
     contact = service.update_contact(contact_id, **update_data)
     return AuthorityContactResponse.model_validate(contact)
 
@@ -114,5 +109,4 @@ def update_authority_contact(
 def delete_authority_contact(contact_id: int, db: DBSession, user: CurrentUser):
     """Delete authority contact (ADVISOR only)."""
     service = AuthorityContactService(db)
-
     service.delete_contact(contact_id, actor_id=user.id)

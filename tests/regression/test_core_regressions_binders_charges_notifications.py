@@ -73,7 +73,7 @@ def test_document_signals_endpoint_lists_missing_documents(client, advisor_heade
     test_db.refresh(test_client)
 
     response = client.get(
-        f"/api/v1/documents/business/{test_client.id}/signals",
+        f"/api/v1/documents/client/{test_client.id}/signals",
         headers=secretary_headers,
     )
 

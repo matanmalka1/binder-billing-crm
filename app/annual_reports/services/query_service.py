@@ -24,13 +24,6 @@ class AnnualReportQueryService(AnnualReportBaseService):
         total = self.repo.count_by_client(client_id)
         return self._to_responses(reports), total
 
-    def get_business_reports(self, business_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
-        """Deprecated: resolves business→client then delegates to get_client_reports."""
-        business = self.business_repo.get_by_id(business_id)
-        if not business:
-            return [], 0
-        return self.get_client_reports(business.client_id, page=page, page_size=page_size)
-
     def list_reports(
         self,
         tax_year: int | None = None,

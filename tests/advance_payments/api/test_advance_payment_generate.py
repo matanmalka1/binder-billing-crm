@@ -26,7 +26,7 @@ def test_generate_schedule_endpoint_returns_counts(client, test_db, advisor_head
     business = _business(test_db)
 
     resp = client.post(
-        "/api/v1/advance-payments/generate",
+        f"/api/v1/clients/{business.client_id}/advance-payments/generate",
         headers=advisor_headers,
         json={"business_id": business.id, "year": 2026},
     )
@@ -41,7 +41,7 @@ def test_generate_schedule_endpoint_is_advisor_only(client, test_db, secretary_h
     business = _business(test_db)
 
     resp = client.post(
-        "/api/v1/advance-payments/generate",
+        f"/api/v1/clients/{business.client_id}/advance-payments/generate",
         headers=secretary_headers,
         json={"business_id": business.id, "year": 2026},
     )

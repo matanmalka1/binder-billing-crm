@@ -68,7 +68,7 @@ def test_approve_reject_update_notes_and_list_versions(test_db):
     noted = service.update_notes(doc.id, notes="final note")
     assert noted.notes == "final note"
 
-    versions = service.get_document_versions(business.id, DocumentType.ID_COPY)
+    versions = service.get_document_versions(business.client_id, DocumentType.ID_COPY)
     assert len(versions) == 1
     by_report = service.list_by_annual_report(10)
     assert len(by_report) == 1

@@ -28,7 +28,7 @@ def _business(test_db) -> Business:
     return business
 
 
-def test_get_business_timeline_sorts_events_and_applies_pagination(test_db, monkeypatch):
+def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkeypatch):
     service = TimelineService(test_db)
     business = _business(test_db)
 
@@ -94,14 +94,14 @@ def test_get_business_timeline_sorts_events_and_applies_pagination(test_db, monk
     monkeypatch.setattr(
         service,
         "_build_tax_deadline_events",
-        lambda business_id: [
+        lambda client_id, business_ids: [
             {"event_type": "tax_deadline_due", "timestamp": datetime(2025, 12, 31, 9, 0)}
         ],
     )
     monkeypatch.setattr(
         service,
         "_build_annual_report_events",
-        lambda business_id: [
+        lambda client_id: [
             {
                 "event_type": "annual_report_status_changed",
                 "timestamp": datetime(2026, 1, 2, 9, 0),
@@ -110,19 +110,19 @@ def test_get_business_timeline_sorts_events_and_applies_pagination(test_db, monk
     )
     monkeypatch.setattr(
         "app.timeline.services.timeline_service.build_client_events",
-        lambda db, business_id, reminder_repo, sig_repo: [
+        lambda db, client_id, business_ids, reminder_repo, sig_repo: [
             {"event_type": "client_created", "timestamp": datetime(2026, 1, 9, 9, 0)}
         ],
     )
 
-    events, total = service.get_business_timeline(
-        business_id=business.id,
+    events, total = service.get_client_timeline(
+        client_id=business.client_id,
         page=1,
         page_size=3,
     )
 
     assert captured["client_id"] == business.client_id
-    assert total == 11
+    assert total == 12
     assert [event["event_type"] for event in events] == [
         "client_created",
         "invoice_attached",
@@ -130,15 +130,15 @@ def test_get_business_timeline_sorts_events_and_applies_pagination(test_db, monk
     ]
 
 
-def test_get_business_timeline_raises_for_missing_business(test_db):
+def test_get_client_timeline_raises_for_missing_client(test_db):
     service = TimelineService(test_db)
 
     try:
-        service.get_business_timeline(business_id=99999)
+        service.get_client_timeline(client_id=99999)
     except NotFoundError as exc:
-        assert exc.code == "TIMELINE.BUSINESS_NOT_FOUND"
+        assert exc.code == "TIMELINE.CLIENT_NOT_FOUND"
     else:
-        assert False, "Expected NotFoundError for missing business"
+        assert False, "Expected NotFoundError for missing client"
 
 
 def test_append_status_change_events_appends_each_status_log(test_db, monkeypatch):

@@ -34,7 +34,7 @@ def test_delete_advance_payment_success(client, test_db, advisor_headers):
     )
 
     resp = client.delete(
-        f"/api/v1/businesses/{business.id}/advance-payments/{payment.id}",
+        f"/api/v1/clients/{business.client_id}/advance-payments/{payment.id}",
         headers=advisor_headers,
     )
 
@@ -45,7 +45,7 @@ def test_delete_advance_payment_success(client, test_db, advisor_headers):
 def test_delete_advance_payment_not_found(client, test_db, advisor_headers):
     business = _create_business(test_db)
     resp = client.delete(
-        f"/api/v1/businesses/{business.id}/advance-payments/999999",
+        f"/api/v1/clients/{business.client_id}/advance-payments/999999",
         headers=advisor_headers,
     )
 

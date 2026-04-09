@@ -58,17 +58,12 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
     work_items: list[VatWorkItem] = []
-    profile_by_business_id = {
-        profile.business_id: profile
-        for profile in (profiles or [])
-    }
 
     for client_businesses in group_businesses_by_client(businesses).values():
         eligible_businesses = [
             business
             for business in client_businesses
-            if profile_by_business_id.get(business.id, None) is None
-            or profile_by_business_id[business.id].vat_type in (VatType.MONTHLY, VatType.BIMONTHLY)
+            if business.client.vat_reporting_frequency in (VatType.MONTHLY, VatType.BIMONTHLY)
         ]
         if not eligible_businesses:
             continue
@@ -77,7 +72,6 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
 
         for period in periods:
             business = rng.choice(eligible_businesses)
-            profile = profile_by_business_id.get(business.id)
             period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
             created_at = max(
                 period_start,
@@ -85,10 +79,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
             )
             if created_at > datetime.now(UTC):
                 created_at = datetime.now(UTC)
-            if profile and profile.vat_type in (VatType.MONTHLY, VatType.BIMONTHLY):
-                period_type = profile.vat_type
-            else:
-                period_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
+            period_type = business.client.vat_reporting_frequency
             if business.status == BusinessStatus.CLOSED:
                 status = rng.choice([VatWorkItemStatus.FILED, VatWorkItemStatus.READY_FOR_REVIEW])
             elif business.status == BusinessStatus.FROZEN:

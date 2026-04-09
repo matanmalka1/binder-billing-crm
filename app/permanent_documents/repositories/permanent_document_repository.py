@@ -87,6 +87,28 @@ class PermanentDocumentRepository:
             q = q.filter(PermanentDocument.status == status)
         return q.order_by(PermanentDocument.uploaded_at.desc()).all()
 
+    def list_by_client(
+        self,
+        client_id: int,
+        tax_year: Optional[int] = None,
+        document_type: Optional[str] = None,
+        status: Optional[DocumentStatus] = None,
+        include_superseded: bool = False,
+    ) -> list[PermanentDocument]:
+        q = self.db.query(PermanentDocument).filter(
+            PermanentDocument.client_id == client_id,
+            PermanentDocument.is_deleted == False,  # noqa: E712
+        )
+        if not include_superseded:
+            q = q.filter(PermanentDocument.superseded_by == None)  # noqa: E711
+        if tax_year is not None:
+            q = q.filter(PermanentDocument.tax_year == tax_year)
+        if document_type is not None:
+            q = q.filter(PermanentDocument.document_type == document_type)
+        if status is not None:
+            q = q.filter(PermanentDocument.status == status)
+        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+
     def count_by_business(self, business_id: int) -> int:
         return (
             self.db.query(PermanentDocument)

@@ -65,7 +65,7 @@ def test_actions_endpoints_approve_reject_notes_versions_and_list(client, test_d
     assert notes.json()["notes"] == "fixed"
 
     versions = client.get(
-        f"/api/v1/documents/business/{business.id}/versions?document_type=id_copy",
+        f"/api/v1/documents/client/{business.client_id}/versions?document_type=id_copy",
         headers=advisor_headers,
     )
     assert versions.status_code == 200

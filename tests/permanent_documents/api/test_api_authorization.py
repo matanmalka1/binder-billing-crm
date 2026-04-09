@@ -104,13 +104,13 @@ def test_secretary_can_view_operational_signals(client, secretary_headers, test_
     b = _create_business(test_db)
 
     response = client.get(
-        f"/api/v1/documents/business/{b.id}/signals",
+        f"/api/v1/documents/client/{b.client_id}/signals",
         headers=secretary_headers,
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert data["business_id"] == b.id
+    assert data["client_id"] == b.client_id
     assert "missing_documents" in data
 
 
@@ -119,7 +119,7 @@ def test_advisor_can_view_operational_signals(client, advisor_headers, test_db):
     b = _create_business(test_db)
 
     response = client.get(
-        f"/api/v1/documents/business/{b.id}/signals",
+        f"/api/v1/documents/client/{b.client_id}/signals",
         headers=advisor_headers,
     )
 

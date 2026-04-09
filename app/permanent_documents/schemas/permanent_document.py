@@ -48,7 +48,7 @@ class DocumentVersionsResponse(BaseModel):
 
 
 class OperationalSignalsResponse(BaseModel):
-    business_id: int
+    client_id: int
     missing_documents: list[DocumentType]   
 
 

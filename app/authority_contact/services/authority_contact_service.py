@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.clients.repositories.client_repository import ClientRepository
 
 
 class AuthorityContactService:
@@ -15,9 +15,14 @@ class AuthorityContactService:
         self.db = db
         self.contact_repo = AuthorityContactRepository(db)
 
+    def _get_client_or_raise(self, client_id: int) -> None:
+        repo = ClientRepository(self.db)
+        if not repo.get_by_id(client_id):
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+
     def add_contact(
         self,
-        business_id: int,
+        client_id: int,
         contact_type: str,
         name: str,
         office: Optional[str] = None,
@@ -25,12 +30,12 @@ class AuthorityContactService:
         email: Optional[str] = None,
         notes: Optional[str] = None,
     ) -> AuthorityContact:
-        """Add new authority contact for business."""
-        get_business_or_raise(self.db, business_id)
+        """Add new authority contact for client."""
+        self._get_client_or_raise(client_id)
         contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
 
         return self.contact_repo.create(
-            business_id=business_id,
+            client_id=client_id,
             contact_type=contact_type_enum,
             name=name,
             office=office,
@@ -54,20 +59,20 @@ class AuthorityContactService:
             raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
         return updated
 
-    def list_business_contacts(
+    def list_client_contacts(
         self,
-        business_id: int,
+        client_id: int,
         contact_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
-        """List contacts for business with pagination."""
+        """List contacts for client with pagination."""
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
 
-        items = self.contact_repo.list_by_business(
-            business_id, contact_type_enum, page=page, page_size=page_size
+        items = self.contact_repo.list_by_client(
+            client_id, contact_type_enum, page=page, page_size=page_size
         )
-        total = self.contact_repo.count_by_business(business_id, contact_type_enum)
+        total = self.contact_repo.count_by_client(client_id, contact_type_enum)
         return items, total
 
     def delete_contact(self, contact_id: int, actor_id: int) -> None:

@@ -74,6 +74,21 @@ class AdvancePaymentRepository(BaseRepository):
             .first()
         )
 
+    def get_by_id_for_client(self, payment_id: int, client_id: int) -> Optional[AdvancePayment]:
+        from app.businesses.models.business import Business
+
+        return (
+            self.db.query(AdvancePayment)
+            .join(Business, Business.id == AdvancePayment.business_id)
+            .filter(
+                AdvancePayment.id == payment_id,
+                Business.client_id == client_id,
+                Business.deleted_at.is_(None),
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .first()
+        )
+
     def list_by_business_year(
         self,
         business_id: int,

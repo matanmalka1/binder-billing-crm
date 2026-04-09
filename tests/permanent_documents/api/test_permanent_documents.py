@@ -52,7 +52,7 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
     assert doc["is_present"] is True
     doc_id = doc["id"]
 
-    list_resp = client.get(f"/api/v1/documents/business/{business.id}", headers=advisor_headers)
+    list_resp = client.get(f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers)
     assert list_resp.status_code == 200
     items = list_resp.json()["items"]
     assert len(items) == 1
@@ -101,6 +101,6 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     del_resp = client.delete(f"/api/v1/documents/{doc.id}", headers=advisor_headers)
     assert del_resp.status_code == 204
 
-    list_resp = client.get(f"/api/v1/documents/business/{business.id}", headers=advisor_headers)
+    list_resp = client.get(f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers)
     assert list_resp.status_code == 200
     assert list_resp.json()["items"] == []

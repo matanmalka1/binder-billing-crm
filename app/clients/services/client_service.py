@@ -40,14 +40,11 @@ class ClientService:
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
         vat_reporting_frequency: Optional[VatType] = None,
-        vat_start_date=None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        advance_rate_updated_at=None,
         accountant_name: Optional[str] = None,
         business_type_label: Optional[str] = None,
-        fiscal_year_start_month: Optional[int] = None,
-        tax_year_start: Optional[int] = None,
+        business_start_date=None,
         actor_id: Optional[int] = None,
     ) -> Client:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
@@ -72,10 +69,13 @@ class ClientService:
                 address_building_number=address_building_number, address_apartment=address_apartment,
                 address_city=address_city, address_zip_code=address_zip_code,
                 vat_reporting_frequency=vat_reporting_frequency,
-                vat_start_date=vat_start_date, vat_exempt_ceiling=vat_exempt_ceiling,
-                advance_rate=advance_rate, advance_rate_updated_at=advance_rate_updated_at,
+                vat_start_date=business_start_date,
+                vat_exempt_ceiling=vat_exempt_ceiling,
+                advance_rate=advance_rate,
                 accountant_name=accountant_name, business_type_label=business_type_label,
-                fiscal_year_start_month=fiscal_year_start_month, tax_year_start=tax_year_start,
+                business_start_date=business_start_date,
+                fiscal_year_start_month=business_start_date.month if business_start_date else None,
+                tax_year_start=business_start_date.year if business_start_date else None,
                 created_by=actor_id,
             )
         except IntegrityError:

@@ -5,8 +5,8 @@ from itertools import count
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business, BusinessType
-from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
 from app.clients.models.client import Client
+from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -35,21 +35,18 @@ def _business(db) -> Business:
     return business
 
 
-def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -> BusinessTaxProfile:
-    profile = BusinessTaxProfile(
-        business_id=business_id,
-        advance_rate=advance_rate,
-        vat_type=VatType.MONTHLY,
-    )
-    db.add(profile)
+def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -> None:
+    business = db.get(Business, business_id)
+    assert business is not None
+    business.client.advance_rate = advance_rate
     db.commit()
-    db.refresh(profile)
-    return profile
 
 
 def _vat_work_item(db, business_id: int, created_by: int, period: str, output_vat: Decimal):
+    business = db.get(Business, business_id)
+    assert business is not None
     item = VatWorkItem(
-        business_id=business_id,
+        client_id=business.client_id,
         created_by=created_by,
         period=period,
         period_type=VatType.MONTHLY,
@@ -75,7 +72,7 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
         "expected_amount": 1200.0,
     }
     first = client.post(
-        f"/api/v1/businesses/{business.id}/advance-payments",
+        f"/api/v1/clients/{business.client_id}/advance-payments",
         headers=advisor_headers,
         json=payload,
     )
@@ -83,7 +80,7 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert first.json()["period"] == "2026-03"
 
     conflict = client.post(
-        f"/api/v1/businesses/{business.id}/advance-payments",
+        f"/api/v1/clients/{business.client_id}/advance-payments",
         headers=advisor_headers,
         json=payload,
     )
@@ -100,13 +97,13 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
     _vat_work_item(test_db, business.id, test_user.id, "2025-01", Decimal("18000"))
 
     resp = client.get(
-        f"/api/v1/businesses/{business.id}/advance-payments/suggest?year=2026",
+        f"/api/v1/clients/{business.client_id}/advance-payments/suggest?year=2026",
         headers=advisor_headers,
     )
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["business_id"] == business.id
+    assert data["client_id"] == business.client_id
     assert data["year"] == 2026
     assert data["has_data"] is True
     assert Decimal(str(data["suggested_amount"])) == Decimal("500")

@@ -9,7 +9,7 @@ from app.advance_payments.schemas.advance_payment import (
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
 
 router = APIRouter(
-    prefix="/advance-payments",
+    prefix="/clients/{client_id}/advance-payments",
     tags=["advance-payments"],
 )
 
@@ -21,10 +21,14 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def generate_advance_payment_schedule(
+    client_id: int,
     request: GenerateScheduleRequest,
     db: DBSession,
     user: CurrentUser,
 ):
+    from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+
+    AdvancePaymentService(db).validate_business_for_client(client_id, request.business_id)
     created, skipped = generate_annual_schedule(
         request.business_id,
         request.year,

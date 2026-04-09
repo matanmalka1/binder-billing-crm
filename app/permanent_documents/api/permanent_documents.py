@@ -51,19 +51,19 @@ def upload_permanent_document(
 
 
 @router.get(
-    "/business/{business_id}",
+    "/client/{client_id}",
     response_model=PermanentDocumentListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_business_documents(
-    business_id: int,
+def list_client_documents(
+    client_id: int,
     db: DBSession,
     user: CurrentUser,
     tax_year: Optional[int] = Query(default=None),
 ):
     """List permanent documents for a client."""
     service = PermanentDocumentService(db)
-    documents = service.list_business_documents(business_id, tax_year=tax_year)
+    documents = service.list_client_documents(client_id, tax_year=tax_year)
 
     return PermanentDocumentListResponse(
         items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]
@@ -71,17 +71,17 @@ def list_business_documents(
 
 
 @router.get(
-    "/business/{business_id}/signals",
+    "/client/{client_id}/signals",
     response_model=OperationalSignalsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_operational_signals(
-    business_id: int,
+    client_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    signals = PermanentDocumentService(db).get_operational_signals(business_id)
+    signals = PermanentDocumentService(db).get_client_operational_signals(client_id)
     return OperationalSignalsResponse(**signals)
 
 

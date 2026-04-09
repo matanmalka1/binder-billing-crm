@@ -73,7 +73,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(charge)
 
     tax_deadline = TaxDeadline(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         status=TaxDeadlineStatus.PENDING,
@@ -126,7 +126,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.commit()
 
     resp = client.get(
-        f"/api/v1/businesses/{business.id}/timeline?page=1&page_size=5",
+        f"/api/v1/clients/{business.client_id}/timeline?page=1&page_size=5",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
@@ -153,7 +153,7 @@ def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
     test_db.commit()
 
     resp = client.get(
-        f"/api/v1/businesses/{business.id}/timeline?page=1&page_size=200",
+        f"/api/v1/clients/{business.client_id}/timeline?page=1&page_size=200",
         headers=advisor_headers,
     )
     assert resp.status_code == 200

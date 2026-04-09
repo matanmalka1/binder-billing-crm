@@ -5,6 +5,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.businesses.models.business import Business
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -35,7 +36,7 @@ from app.timeline.services.timeline_tax_builders import (
 
 
 class TimelineService:
-    """Unified business timeline aggregation."""
+    """Unified client timeline aggregation."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -47,24 +48,31 @@ class TimelineService:
         self.reminder_repo = ReminderRepository(db)
         self.sig_repo = SignatureRequestRepository(db)
 
-    def get_business_timeline(
+    def get_client_timeline(
         self,
-        business_id: int,
+        client_id: int,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int]:
-        business = (
-            self.db.query(Business)
-            .filter(Business.id == business_id, Business.deleted_at.is_(None))
+        client = (
+            self.db.query(Client)
+            .filter(Client.id == client_id, Client.deleted_at.is_(None))
             .first()
         )
-        if not business:
-            raise NotFoundError(message="עסק לא נמצא", code="TIMELINE.BUSINESS_NOT_FOUND")
+        if not client:
+            raise NotFoundError(message="לקוח לא נמצא", code="TIMELINE.CLIENT_NOT_FOUND")
+
+        businesses = (
+            self.db.query(Business)
+            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .all()
+        )
+        business_ids = [business.id for business in businesses]
 
         events = []
 
         # Bounded: _TIMELINE_BULK_LIMIT — older binders silently excluded if exceeded.
-        binders = self.binder_repo.list_by_client(business.client_id)
+        binders = self.binder_repo.list_by_client(client_id)
         for binder in binders:
             events.append(binder_received_event(binder))
             if binder.returned_at:
@@ -73,14 +81,15 @@ class TimelineService:
 
         # Bounded fetch — clients with more than _TIMELINE_BULK_LIMIT
         # notifications or charges will have older events silently truncated.
-        notifications = self.notification_repo.list_by_business(
-            business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
-        )
-        for notification in notifications:
-            events.append(notification_sent_event(notification))
+        for business_id in business_ids:
+            notifications = self.notification_repo.list_by_business(
+                business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+            )
+            for notification in notifications:
+                events.append(notification_sent_event(notification))
 
         charges = self.charge_repo.list_charges(
-            business_id=business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+            business_ids=business_ids, page=1, page_size=_TIMELINE_BULK_LIMIT
         )
         invoice_map = {
             inv.charge_id: inv
@@ -96,11 +105,11 @@ class TimelineService:
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
-        events.extend(self._build_tax_deadline_events(business_id))
-        events.extend(self._build_annual_report_events(business_id))
+        events.extend(self._build_tax_deadline_events(client_id, business_ids))
+        events.extend(self._build_annual_report_events(client_id))
         events.extend(
             build_client_events(
-                self.db, business_id, self.reminder_repo, self.sig_repo
+                self.db, client_id, business_ids, self.reminder_repo, self.sig_repo
             )
         )
 
@@ -114,12 +123,12 @@ class TimelineService:
         for status_log in logs:
             events.append(binder_status_change_event(binder, status_log))
 
-    def _build_tax_deadline_events(self, business_id: int) -> list[dict]:
+    def _build_tax_deadline_events(self, client_id: int, business_ids: list[int]) -> list[dict]:
         # Tax deadlines are per-client and naturally bounded (months × years).
         deadlines = (
             self.db.query(TaxDeadline)
             .filter(
-                TaxDeadline.business_id == business_id,
+                TaxDeadline.client_id == client_id,
                 TaxDeadline.deleted_at.is_(None),
             )
             .limit(_TIMELINE_BULK_LIMIT)
@@ -127,12 +136,12 @@ class TimelineService:
         )
         return [tax_deadline_due_event(d) for d in deadlines]
 
-    def _build_annual_report_events(self, business_id: int) -> list[dict]:
+    def _build_annual_report_events(self, client_id: int) -> list[dict]:
         # Annual reports are bounded by tax years — limit is a safety net only.
         reports = (
             self.db.query(AnnualReport)
             .filter(
-                AnnualReport.business_id == business_id,
+                AnnualReport.client_id == client_id,
                 AnnualReport.deleted_at.is_(None),
             )
             .limit(_TIMELINE_BULK_LIMIT)
