@@ -3,11 +3,9 @@
 from datetime import date
 from typing import Optional
 
-from app.core.exceptions import AppError, NotFoundError
-from app.businesses.models.business_tax_profile import VatType
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
+from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
+from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
@@ -20,32 +18,31 @@ def _period_label(period_type: VatType, year: int, month: int) -> str:
 
 def get_period_options(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     *,
-    business_id: int,
-    tax_profile_repo: Optional[BusinessTaxProfileRepository] = None,
-    client_repo: Optional[ClientRepository] = None,
+    client_id: int,
     year: Optional[int] = None,
+    period_type_override: Optional[VatType] = None,
 ):
-    """Return period options for UI selection based on business VAT frequency."""
-    business = business_repo.get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
+    """Return period options for UI selection based on client VAT frequency."""
+    client = client_repo.get_by_id(client_id)
+    if not client:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
 
     selected_year = year or date.today().year
 
-    profile = tax_profile_repo.get_by_business_id(business_id) if tax_profile_repo else None
-    period_type = resolve_effective_vat_type(business, profile, client_repo)
+    period_type = period_type_override or resolve_effective_vat_type(client)
     if period_type == VatType.EXEMPT:
         raise AppError(
-            "עסק זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
+            "לקוח זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
             "VAT.CLIENT_EXEMPT",
         )
 
     start_months = range(1, 12, 2) if period_type == VatType.BIMONTHLY else range(1, 13)
     year_prefix = f"{selected_year}-"
     opened_periods = {
-        i.period for i in work_item_repo.list_by_business(business_id) if i.period.startswith(year_prefix)
+        i.period for i in work_item_repo.list_by_client(client_id)
+        if i.period.startswith(year_prefix)
     }
     options = []
     for month in start_months:
@@ -61,7 +58,7 @@ def get_period_options(
         )
 
     return {
-        "business_id": business_id,
+        "client_id": client_id,
         "year": selected_year,
         "period_type": period_type,
         "options": options,

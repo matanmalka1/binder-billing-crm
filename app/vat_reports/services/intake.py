@@ -3,12 +3,10 @@
 import json
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.businesses.models.business_tax_profile import VatType
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.models.client import ClientStatus
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED, ACTION_WORK_ITEM_CREATED_PENDING
@@ -16,64 +14,61 @@ from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_typ
 
 
 def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
-    """Raise AppError if period doesn't match the business's reporting frequency."""
+    """Raise AppError if period doesn't match the client's reporting frequency."""
     if vat_type == VatType.EXEMPT:
         raise AppError(
-            "עסק זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
+            "לקוח זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
             "VAT.CLIENT_EXEMPT",
         )
     if vat_type == VatType.BIMONTHLY:
         month = int(period.split("-")[1])
         if month % 2 == 0:
             raise AppError(
-                f"עסק זה מדווח דו-חודשי — התקופה {period} אינה תקפה (חודשים זוגיים אסורים)",
+                f"לקוח זה מדווח דו-חודשי — התקופה {period} אינה תקפה (חודשים זוגיים אסורים)",
                 "VAT.INVALID_PERIOD_FOR_FREQUENCY",
             )
 
 
 def create_work_item(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     *,
-    business_id: int,
+    client_id: int,
     period: str,
     created_by: int,
-    tax_profile_repo: Optional[BusinessTaxProfileRepository] = None,
-    client_repo: Optional[ClientRepository] = None,
     assigned_to: Optional[int] = None,
     mark_pending: bool = False,
     pending_materials_note: Optional[str] = None,
 ):
     """
-    Create a new VAT work item for a business / period.
+    Create a new VAT work item for a client / period.
 
     Rules:
-    - Business must exist.
-    - Only one work item per (business_id, period) — duplicate raises ConflictError.
-    - If business has a vat_type, the period must match the reporting frequency.
+    - Client must exist and not be CLOSED or FROZEN.
+    - Only one work item per (client_id, period) — duplicate raises ConflictError.
+    - Period must match the client's reporting frequency.
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    business = business_repo.get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
+    client = client_repo.get_by_id(client_id)
+    if not client:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
 
-    assert_business_allows_create(business)
+    if client.status == ClientStatus.CLOSED:
+        raise AppError("לקוח זה סגור — לא ניתן לפתוח דוח מע\"מ", "VAT.CLIENT_CLOSED")
+    if client.status == ClientStatus.FROZEN:
+        raise AppError("לקוח זה מוקפא — לא ניתן לפתוח דוח מע\"מ", "VAT.CLIENT_FROZEN")
 
-    profile = None
-    if tax_profile_repo is not None:
-        profile = tax_profile_repo.get_by_business_id(business_id)
-
-    effective_vat_type = resolve_effective_vat_type(business, profile, client_repo)
+    effective_vat_type = resolve_effective_vat_type(client)
     _validate_period_for_vat_type(period, effective_vat_type)
 
     # WARNING: This check only filters for non-deleted items (deleted_at IS NULL).
     # If we ever allow soft-deleting FILED items, this guard must be updated to
     # also block creation when a FILED item exists for the same period, even if deleted.
-    existing = work_item_repo.get_by_business_period(business_id, period)
+    existing = work_item_repo.get_by_client_period(client_id, period)
     if existing:
         raise ConflictError(
-            f"פריט עבודה למע\"מ כבר קיים עבור עסק {business_id} לתקופה {period}",
+            f"פריט עבודה למע\"מ כבר קיים עבור לקוח {client_id} לתקופה {period}",
             "VAT.CONFLICT",
         )
 
@@ -87,12 +82,10 @@ def create_work_item(
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
-    period_type = effective_vat_type
-
     item = work_item_repo.create(
-        business_id=business_id,
+        client_id=client_id,
         period=period,
-        period_type=period_type,
+        period_type=effective_vat_type,
         created_by=created_by,
         status=status,
         pending_materials_note=pending_materials_note,

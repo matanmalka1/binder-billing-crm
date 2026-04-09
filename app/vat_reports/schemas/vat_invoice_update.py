@@ -23,6 +23,7 @@ from app.vat_reports.schemas.vat_invoice_schema import (
 
 
 class VatInvoiceUpdateRequest(BaseModel):
+    business_activity_id: Optional[int] = None
     net_amount: Optional[ApiDecimal] = None
     vat_amount: Optional[ApiDecimal] = None
     invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)

@@ -2,64 +2,61 @@
 
 from typing import Optional
 
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.vat_report_queries import (
     get_audit_trail,
     get_work_item,
     list_all_work_items,
-    list_business_work_items,
+    list_client_work_items,
     list_work_items_by_status,
 )
 
 
 def get_work_item_enriched(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     user_repo: UserRepository,
     item_id: int,
 ) -> dict:
-    """Return work item + business/user enrichment data."""
+    """Return work item + client/user enrichment data."""
     item = get_work_item(work_item_repo, item_id)
-    business = business_repo.get_by_id(item.business_id)
+    client = client_repo.get_by_id(item.client_id)
     user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid]
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     user_map = {u.id: u.full_name for u in users}
-    display_name = (business.business_name or business.client.full_name) if business else None
+    client_name = client.full_name if client else None
     return {
         "item": item,
-        "name_map": {item.business_id: display_name},
-        "status_map": {item.business_id: business.status if business else None},
-        "client_map": {item.business_id: business.client_id if business else None},
+        "name_map": {item.client_id: client_name},
+        "status_map": {item.client_id: client.status if client else None},
         "user_map": user_map,
     }
 
 
-def get_business_items_enriched(
+def get_client_items_enriched(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     user_repo: UserRepository,
-    business_id: int,
+    client_id: int,
 ) -> dict:
-    """Return business work items + enrichment data."""
-    items = list_business_work_items(work_item_repo, business_id)
-    business = business_repo.get_by_id(business_id)
-    display_name = (business.business_name or business.client.full_name) if business else None
+    """Return client work items + enrichment data."""
+    items = list_client_work_items(work_item_repo, client_id)
+    client = client_repo.get_by_id(client_id)
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
-        "name_map": {business_id: display_name},
-        "status_map": {business_id: business.status if business else None},
-        "client_map": {business_id: business.client_id if business else None},
+        "name_map": {client_id: client.full_name if client else None},
+        "status_map": {client_id: client.status if client else None},
         "user_map": {u.id: u.full_name for u in users},
     }
 
 
 def get_list_enriched(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     user_repo: UserRepository,
     *,
     status_filter,
@@ -69,6 +66,9 @@ def get_list_enriched(
     business_name: Optional[str] = None,
 ) -> dict:
     """Return paginated work items + enrichment data."""
+    from app.businesses.repositories.business_repository import BusinessRepository
+    business_repo = BusinessRepository(client_repo.db)
+
     if status_filter:
         items, total = list_work_items_by_status(
             work_item_repo, business_repo,
@@ -81,18 +81,15 @@ def get_list_enriched(
             page=page, page_size=page_size,
             period=period, business_name=business_name,
         )
-    business_ids = list({item.business_id for item in items})
-    businesses = business_repo.list_by_ids(business_ids)
+    client_ids = list({item.client_id for item in items})
+    clients = client_repo.list_by_ids(client_ids)
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
         "total": total,
-        "name_map": {
-            b.id: (b.business_name or b.client.full_name) for b in businesses
-        },
-        "status_map": {b.id: b.status for b in businesses},
-        "client_map": {b.id: b.client_id for b in businesses},
+        "name_map": {c.id: c.full_name for c in clients},
+        "status_map": {c.id: c.status for c in clients},
         "user_map": {u.id: u.full_name for u in users},
     }
 

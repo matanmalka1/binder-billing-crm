@@ -1,7 +1,7 @@
 """Repository for VatInvoice CRUD operations.
 
 Aggregation queries (sum_vat_both_types, sum_net_both_types,
-sum_income_net_by_business_year) live in VatInvoiceAggregationRepository.
+sum_income_net_by_client_year) live in VatInvoiceAggregationRepository.
 This class re-exposes them via composition for backward compatibility.
 """
 
@@ -47,6 +47,7 @@ class VatInvoiceRepository:
         deduction_rate: float = 1.0,
         document_type: Optional[DocumentType] = None,
         is_exceptional: bool = False,
+        business_activity_id: Optional[int] = None,
     ) -> VatInvoice:
         invoice = VatInvoice(
             work_item_id=work_item_id,
@@ -64,6 +65,7 @@ class VatInvoiceRepository:
             deduction_rate=deduction_rate,
             document_type=document_type,
             is_exceptional=is_exceptional,
+            business_activity_id=business_activity_id,
         )
         self.db.add(invoice)
         self.db.commit()
@@ -123,5 +125,9 @@ class VatInvoiceRepository:
     def sum_net_both_types(self, work_item_id: int) -> tuple[float, float]:
         return self._agg.sum_net_both_types(work_item_id)
 
-    def sum_income_net_by_business_year(self, business_id: int, year: int) -> float:
-        return self._agg.sum_income_net_by_business_year(business_id, year)
+    def sum_income_net_by_client_year(self, client_id: int, year: int) -> float:
+        return self._agg.sum_income_net_by_client_year(client_id, year)
+
+    def sum_expense_net_by_client_year_grouped(self, client_id: int, year: int) -> dict:
+        return self._agg.sum_expense_net_by_client_year_grouped(client_id, year)
+

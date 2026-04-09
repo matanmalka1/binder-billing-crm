@@ -28,31 +28,31 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 def lookup_work_item(
     db: DBSession,
     current_user: CurrentUser,
-    business_id: int = Query(...),
+    client_id: int = Query(...),
     period: str = Query(...),
 ):
-    """Lookup a VAT work item by business + period. Returns null if not found."""
+    """Lookup a VAT work item by client + period. Returns null if not found."""
     service = VatReportService(db)
-    item = service.get_work_item_by_business_period(business_id, period)
+    item = service.get_work_item_by_client_period(client_id, period)
     if not item:
         return None
     return VatWorkItemLookupResponse.model_validate(item)
 
 
 @router.get(
-    "/businesses/{business_id}/period-options",
+    "/clients/{client_id}/period-options",
     response_model=VatPeriodOptionsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_period_options(
-    business_id: int,
+    client_id: int,
     db: DBSession,
     current_user: CurrentUser,
     year: Optional[int] = Query(default=None, ge=2000, le=2100),
 ):
-    """Return selectable VAT periods for a business based on its reporting frequency."""
+    """Return selectable VAT periods for a client based on their reporting frequency."""
     service = VatReportService(db)
-    return service.get_period_options(business_id=business_id, year=year)
+    return service.get_period_options(client_id=client_id, year=year)
 
 
 @router.get(
@@ -69,27 +69,24 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
         name_map=enriched["name_map"],
         status_map=enriched["status_map"],
         user_map=enriched["user_map"],
-        client_map=enriched.get("client_map"),
     )
 
 
 @router.get(
-    "/businesses/{business_id}/work-items",
+    "/clients/{client_id}/work-items",
     response_model=VatWorkItemListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_business_work_items(business_id: int, db: DBSession, current_user: CurrentUser):
-    """List all VAT work items for a business."""
+def list_client_work_items(client_id: int, db: DBSession, current_user: CurrentUser):
+    """List all VAT work items for a client."""
     service = VatReportService(db)
-    enriched = service.get_business_items_enriched(business_id)
-    cm = enriched.get("client_map")
+    enriched = service.get_client_items_enriched(client_id)
     items = [
         serialize_enriched_work_item(
             i,
             name_map=enriched["name_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
-            client_map=cm,
         )
         for i in enriched["items"]
     ]
@@ -116,14 +113,12 @@ def list_work_items(
         status_filter=status_filter, page=page, page_size=page_size,
         period=period, business_name=business_name,
     )
-    cm = enriched.get("client_map")
     items = [
         serialize_enriched_work_item(
             i,
             name_map=enriched["name_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
-            client_map=cm,
         )
         for i in enriched["items"]
     ]

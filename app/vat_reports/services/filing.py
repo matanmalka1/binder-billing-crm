@@ -19,8 +19,8 @@ def _validate_amendment(
     amended_item = work_item_repo.get_by_id(amends_item_id)
     if amended_item is None:
         raise AppError("פריט מתוקן לא נמצא", code="AMENDED_ITEM_NOT_FOUND", status_code=404)
-    if amended_item.business_id != item.business_id:
-        raise AppError("פריט מתוקן שייך לעסק אחר", code="AMENDED_ITEM_WRONG_BUSINESS", status_code=400)
+    if amended_item.client_id != item.client_id:
+        raise AppError("פריט מתוקן שייך ללקוח אחר", code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
     if amended_item.status != VatWorkItemStatus.FILED:
         raise AppError("ניתן לתקן רק פריט שהוגש", code="AMENDED_ITEM_NOT_FILED", status_code=400)
 

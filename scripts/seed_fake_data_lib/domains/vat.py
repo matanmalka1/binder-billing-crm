@@ -20,7 +20,7 @@ from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 from ._business_groups import group_businesses_by_client
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import VatType
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from ..random_utils import generate_valid_israeli_id
 
@@ -112,7 +112,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
             work_item = VatWorkItem(
-                business_id=business.id,
+                client_id=business.client_id,
                 created_by=created_by,
                 assigned_to=rng.choice(advisors) if advisors and rng.random() < 0.7 else None,
                 period=period,
@@ -137,12 +137,12 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
 
     db.flush()
 
-    filed_by_business: dict[int, list[VatWorkItem]] = defaultdict(list)
+    filed_by_client: dict[int, list[VatWorkItem]] = defaultdict(list)
     for work_item in work_items:
         if work_item.status == VatWorkItemStatus.FILED:
-            filed_by_business[work_item.business_id].append(work_item)
+            filed_by_client[work_item.client_id].append(work_item)
 
-    for filed_items in filed_by_business.values():
+    for filed_items in filed_by_client.values():
         filed_items.sort(key=lambda item: item.period)
         for index in range(1, len(filed_items)):
             if rng.random() < 0.2:
@@ -155,7 +155,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
     if not any(item.is_amendment for item in work_items):
         amendment_candidates = [
             filed_items
-            for filed_items in filed_by_business.values()
+            for filed_items in filed_by_client.values()
             if len(filed_items) >= 2
         ]
         if amendment_candidates:

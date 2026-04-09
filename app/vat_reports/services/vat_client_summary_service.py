@@ -5,24 +5,24 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.schemas.vat_client_summary_schema import (
     VatAnnualSummary,
-    VatBusinessSummaryResponse,
+    VatClientSummaryResponse,
     VatPeriodRow,
 )
 
 
-def get_business_summary(db: Session, *, business_id: int) -> VatBusinessSummaryResponse:
+def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
-    business_repo = BusinessRepository(db)
+    client_repo = ClientRepository(db)
 
-    business = business_repo.get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "VAT.NOT_FOUND")
+    client = client_repo.get_by_id(client_id)
+    if not client:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
 
-    raw_periods = summary_repo.get_periods_for_business(business_id)
+    raw_periods = summary_repo.get_periods_for_client(client_id)
     periods = [
         VatPeriodRow(
             work_item_id=r.id,
@@ -39,7 +39,12 @@ def get_business_summary(db: Session, *, business_id: int) -> VatBusinessSummary
         for r, output_net, input_net in raw_periods
     ]
 
-    raw_annual = summary_repo.get_annual_aggregates(business_id)
+    raw_annual = summary_repo.get_annual_aggregates(client_id)
     annual = [VatAnnualSummary.model_validate(row) for row in raw_annual]
 
-    return VatBusinessSummaryResponse(business_id=business_id, periods=periods, annual=annual)
+    return VatClientSummaryResponse(
+        client_id=client_id,
+        business_id=client_id,
+        periods=periods,
+        annual=annual,
+    )

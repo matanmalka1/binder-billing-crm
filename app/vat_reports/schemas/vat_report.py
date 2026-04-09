@@ -7,16 +7,14 @@ import re
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.common.enums import SubmissionMethod
-from app.businesses.models.business import BusinessStatus
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import SubmissionMethod, VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 
 # ── Work Item ─────────────────────────────────────────────────────────────────
 
 class VatWorkItemCreateRequest(BaseModel):
-    business_id: int
+    client_id: int
     period: str                             # "YYYY-MM"
     assigned_to: Optional[int] = None
     mark_pending: bool = False
@@ -32,10 +30,9 @@ class VatWorkItemCreateRequest(BaseModel):
 
 class VatWorkItemResponse(BaseModel):
     id: int
-    business_id: int
-    client_id: Optional[int] = None         # enriched by service
-    business_name: Optional[str] = None    # enriched by service
-    business_status: Optional[BusinessStatus] = None  # enum
+    client_id: int
+    client_name: Optional[str] = None       # enriched by service
+    client_status: Optional[str] = None    # enriched by service
     period: str
     period_type: VatType                   # קיים במודל — snapshot של סוג הדיווח
     status: VatWorkItemStatus
@@ -84,7 +81,7 @@ class VatPeriodOptionResponse(BaseModel):
 
 
 class VatPeriodOptionsResponse(BaseModel):
-    business_id: int
+    client_id: int
     year: int
     period_type: VatType
     options: list[VatPeriodOptionResponse]

@@ -1,4 +1,4 @@
-"""Repository for business-level VAT summary queries."""
+"""Repository for client-level VAT summary queries."""
 
 from sqlalchemy import case, func, Integer, cast
 from sqlalchemy.orm import Session
@@ -12,18 +12,20 @@ class VatClientSummaryRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_annual_output_vat(self, business_id: int, year: int):
-        return (
-            self.db.query(func.sum(VatWorkItem.total_output_vat))
-            .filter(
-                VatWorkItem.business_id == business_id,
-                VatWorkItem.period.like(f"{year}-%"),
-                VatWorkItem.deleted_at.is_(None),
-            )
-            .scalar()
+    def get_annual_output_vat(
+        self,
+        client_id: int,
+        year: int,
+    ):
+        query = self.db.query(func.sum(VatWorkItem.total_output_vat)).filter(
+            VatWorkItem.client_id == client_id
         )
+        return query.filter(
+            VatWorkItem.period.like(f"{year}-%"),
+            VatWorkItem.deleted_at.is_(None),
+        ).scalar()
 
-    def get_periods_for_business(self, business_id: int) -> list[tuple]:
+    def get_periods_for_client(self, client_id: int) -> list[tuple]:
         net_sq = (
             self.db.query(
                 VatInvoice.work_item_id,
@@ -42,14 +44,14 @@ class VatClientSummaryRepository:
             self.db.query(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
             .outerjoin(net_sq, VatWorkItem.id == net_sq.c.work_item_id)
             .filter(
-                VatWorkItem.business_id == business_id,
+                VatWorkItem.client_id == client_id,
                 VatWorkItem.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.period.desc())
             .all()
         )
 
-    def get_annual_aggregates(self, business_id: int) -> list[dict[str, object]]:
+    def get_annual_aggregates(self, client_id: int) -> list[dict[str, object]]:
         year_expr = cast(func.substr(VatWorkItem.period, 1, 4), Integer).label("year")
         rows = (
             self.db.query(
@@ -63,7 +65,7 @@ class VatClientSummaryRepository:
                 ).label("filed_count"),
             )
             .filter(
-                VatWorkItem.business_id == business_id,
+                VatWorkItem.client_id == client_id,
                 VatWorkItem.deleted_at.is_(None),
             )
             .group_by(year_expr)

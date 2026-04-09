@@ -33,10 +33,14 @@ from app.vat_reports.models.vat_enums import (
 class VatInvoice(Base):
     __tablename__ = "vat_invoices"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    work_item_id = Column(Integer, ForeignKey("vat_work_items.id"),
-                          nullable=False, index=True)
-    created_by   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id                   = Column(Integer, primary_key=True, autoincrement=True)
+    work_item_id         = Column(Integer, ForeignKey("vat_work_items.id"),
+                                  nullable=False, index=True)
+    created_by           = Column(Integer, ForeignKey("users.id"), nullable=False)
+    # Optional tag: which BusinessActivity (branch/shop/service) contributed this invoice.
+    # NULL = untagged (valid — e.g. client has only one activity or is a COMPANY_LTD).
+    business_activity_id = Column(Integer, ForeignKey("businesses.id"),
+                                  nullable=True, index=True)
 
     # Document classification
     invoice_type  = Column(pg_enum(InvoiceType), nullable=False)

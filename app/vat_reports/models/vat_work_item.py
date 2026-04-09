@@ -25,13 +25,13 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import VatType
 
 class VatWorkItem(Base):
     __tablename__ = "vat_work_items"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     created_by  = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
@@ -77,8 +77,8 @@ class VatWorkItem(Base):
 
     __table_args__ = (
         Index(
-            "uq_vat_work_item_business_period",
-            "business_id",
+            "uq_vat_work_item_client_period",
+            "client_id",
             "period",
             unique=True,
             postgresql_where=Column("deleted_at").is_(None),
@@ -89,6 +89,6 @@ class VatWorkItem(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<VatWorkItem(id={self.id}, business_id={self.business_id}, "
+            f"<VatWorkItem(id={self.id}, client_id={self.client_id}, "
             f"period={self.period}, status={self.status})>"
         )

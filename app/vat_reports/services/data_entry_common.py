@@ -6,6 +6,7 @@ from typing import Optional
 
 from app.core.exceptions import AppError
 from app.businesses.models.business import BusinessType
+from app.common.enums import EntityType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
@@ -96,20 +97,24 @@ def resolve_invoice_derived_fields(
 
 
 def check_osek_patur_ceiling(
-    business,
+    client,
     invoice_repo: VatInvoiceRepository,
-    business_id: int,
+    client_id: int,
     period: str,
     new_net_amount: float,
 ) -> bool:
     """Raise AppError if adding this income invoice would exceed the OSEK PATUR ceiling.
     Returns True if the post-add turnover crosses the 80% warning threshold (non-blocking).
-    Only enforced for OSEK_PATUR businesses (BusinessType.OSEK_PATUR).
+    Only enforced for OSEK_PATUR clients (EntityType.OSEK_PATUR).
     """
-    if not hasattr(business, "business_type") or business.business_type != BusinessType.OSEK_PATUR:
+    is_osek_patur = (
+        getattr(client, "entity_type", None) == EntityType.OSEK_PATUR
+        or getattr(client, "business_type", None) == BusinessType.OSEK_PATUR
+    )
+    if not is_osek_patur:
         return False
     year = int(period[:4])
-    current_total = Decimal(str(invoice_repo.sum_income_net_by_business_year(business_id, year)))
+    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_id, year)))
     new_total = current_total + Decimal(str(new_net_amount))
     if new_total > OSEK_PATUR_CEILING_ILS:
         raise AppError(

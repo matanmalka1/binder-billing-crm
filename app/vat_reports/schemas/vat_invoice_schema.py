@@ -24,6 +24,7 @@ ANONYMOUS_COUNTERPARTY_ID = "999999999"
 
 class VatInvoiceCreateRequest(BaseModel):
     invoice_type: InvoiceType
+    business_activity_id: Optional[int] = None
     invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
     invoice_date: Optional[date] = None    # Date — לא DateTime
     counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
@@ -89,6 +90,7 @@ class VatInvoiceCreateRequest(BaseModel):
 class VatInvoiceResponse(BaseModel):
     id: int
     work_item_id: int
+    business_activity_id: Optional[int] = None
     invoice_type: InvoiceType
     document_type: Optional[DocumentType] = None
     invoice_number: str

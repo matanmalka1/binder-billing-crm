@@ -5,8 +5,7 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -30,7 +29,7 @@ from app.vat_reports.services.data_entry_common import (
 def update_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     *,
     item_id: int,
     invoice_id: int,
@@ -45,6 +44,7 @@ def update_invoice(
     expense_category: Optional[ExpenseCategory] = None,
     rate_type: Optional[VatRateType] = None,
     document_type: Optional[DocumentType] = None,
+    business_activity_id: Optional[int] = None,
 ):
     """Update an existing invoice. Work item must not be FILED."""
     item = work_item_repo.get_by_id(item_id)
@@ -52,10 +52,6 @@ def update_invoice(
         raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
 
     assert_editable(item)
-
-    business = business_repo.get_by_id(item.business_id)
-    if business:
-        assert_business_allows_create(business)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
@@ -90,6 +86,7 @@ def update_invoice(
         "expense_category": expense_category,
         "rate_type": rate_type,
         "document_type": document_type,
+        "business_activity_id": business_activity_id,
     }
     if expense_category is not None:
         update_fields["deduction_rate"] = float(

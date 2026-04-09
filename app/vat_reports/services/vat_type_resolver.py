@@ -1,26 +1,18 @@
-"""Resolves the effective VAT reporting frequency for a business."""
+"""Resolves the effective VAT reporting frequency for a client (legal entity)."""
 
-from typing import Optional
-
-from app.businesses.models.business import BusinessType
-from app.businesses.models.business_tax_profile import VatType
-from app.clients.repositories.client_repository import ClientRepository
+from app.common.enums import EntityType, VatType
 
 
-def resolve_effective_vat_type(business, profile, client_repo: Optional[ClientRepository]) -> VatType:
+def resolve_effective_vat_type(client) -> VatType:
     """
-    Determine the effective VAT reporting frequency for a business.
+    Determine the effective VAT reporting frequency for a client (legal entity).
 
-    - COMPANY: uses BusinessTaxProfile.vat_type (independent legal entity, own ח"פ)
-    - OSEK_MURSHE: uses Client.vat_reporting_frequency (shared across all businesses under the client)
-      Falls back to BIMONTHLY if Client.vat_reporting_frequency is not yet configured (NULL).
-    - OSEK_PATUR / EMPLOYEE: returns EXEMPT — assert_business_allows_create blocks work item
-      creation before this is reached; this is a safety-net fallback.
+    - OSEK_PATUR / EMPLOYEE: always EXEMPT — no VAT reporting.
+    - OSEK_MURSHE / COMPANY_LTD: use client.vat_reporting_frequency.
+      Falls back to MONTHLY when not yet configured (legacy default).
+    - entity_type not set (NULL): falls back to vat_reporting_frequency or MONTHLY.
     """
-    if business.business_type == BusinessType.COMPANY:
-        return profile.vat_type if (profile and profile.vat_type) else VatType.MONTHLY
-    if business.business_type == BusinessType.OSEK_MURSHE:
-        client = client_repo.get_by_id(business.client_id) if client_repo else None
-        freq = client.vat_reporting_frequency if (client and client.vat_reporting_frequency) else None
-        return freq or VatType.BIMONTHLY
-    return VatType.EXEMPT
+    exempt_types = {EntityType.OSEK_PATUR, EntityType.EMPLOYEE}
+    if client.entity_type in exempt_types:
+        return VatType.EXEMPT
+    return client.vat_reporting_frequency or VatType.MONTHLY

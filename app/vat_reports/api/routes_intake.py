@@ -29,7 +29,7 @@ def create_work_item(
     """
     service = VatReportService(db)
     item = service.create_work_item(
-        business_id=request.business_id,
+        client_id=request.client_id,
         period=request.period,
         created_by=current_user.id,
         assigned_to=request.assigned_to,

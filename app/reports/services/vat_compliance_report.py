@@ -31,14 +31,14 @@ class VatComplianceReportService:
             filed_date = fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
             is_late = filed_date > deadline
             bucket = late_map if is_late else on_time_map
-            bucket[fi.business_id] = bucket.get(fi.business_id, 0) + 1
+            bucket[fi.client_id] = bucket.get(fi.client_id, 0) + 1
 
         items = []
         for r in rows:
             expected = int(r.periods_expected)
             filed = int(r.periods_filed or 0)
-            on_time = on_time_map.get(r.business_id, 0)
-            late = late_map.get(r.business_id, 0)
+            on_time = on_time_map.get(r.client_id, 0)
+            late = late_map.get(r.client_id, 0)
             items.append(
                 {
                     "client_id": r.client_id,

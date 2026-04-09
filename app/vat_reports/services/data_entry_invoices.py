@@ -8,7 +8,8 @@ from uuid import uuid4
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.clients.models.client import ClientStatus
+from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -36,7 +37,7 @@ from app.vat_reports.services.data_entry_common import (
 def add_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
-    business_repo: BusinessRepository,
+    repo_or_client_repo,
     *,
     item_id: int,
     created_by: int,
@@ -51,6 +52,7 @@ def add_invoice(
     expense_category: Optional[ExpenseCategory] = None,
     rate_type: VatRateType = VatRateType.STANDARD,
     document_type: Optional[DocumentType] = None,
+    business_activity_id: Optional[int] = None,
 ):
     """Add an invoice to a work item. Validation delegated to resolve_invoice_derived_fields."""
     item = work_item_repo.get_by_id(item_id)
@@ -59,9 +61,23 @@ def add_invoice(
 
     assert_editable(item)
 
-    business = business_repo.get_by_id(item.business_id)
-    if business:
-        assert_business_allows_create(business)
+    client = None
+    if hasattr(item, "client_id"):
+        client = repo_or_client_repo.get_by_id(item.client_id)
+    elif hasattr(item, "business_id") and hasattr(repo_or_client_repo, "get_by_id"):
+        client = repo_or_client_repo.get_by_id(item.business_id)
+
+    if client and getattr(client, "status", None) == ClientStatus.CLOSED:
+        raise AppError("לקוח זה סגור — לא ניתן להוסיף חשבוניות", "VAT.CLIENT_CLOSED")
+
+    if business_activity_id is not None:
+        db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
+        business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
+        if not business or business.client_id != item.client_id:
+            raise AppError(
+                "פעילות עסקית זו אינה שייכת ללקוח של פריט העבודה",
+                "BUSINESS_ACTIVITY.WRONG_CLIENT",
+            )
 
     derived = resolve_invoice_derived_fields(
         invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount
@@ -70,9 +86,10 @@ def add_invoice(
     is_exceptional = derived["is_exceptional"]
 
     ceiling_warning = False
-    if invoice_type == InvoiceType.INCOME and business:
+    if invoice_type == InvoiceType.INCOME and client:
+        scope_id = getattr(item, "client_id", getattr(item, "business_id", None))
         ceiling_warning = check_osek_patur_ceiling(
-            business, invoice_repo, item.business_id, item.period, net_amount
+            client, invoice_repo, scope_id, item.period, net_amount
         )
 
     # Auto-fill optional fields when not provided by caller
@@ -132,6 +149,7 @@ def add_invoice(
         deduction_rate=float(deduction_rate),
         document_type=document_type,
         is_exceptional=is_exceptional,
+        business_activity_id=business_activity_id,
     )
 
     recalculate_totals(work_item_repo, invoice_repo, item_id)

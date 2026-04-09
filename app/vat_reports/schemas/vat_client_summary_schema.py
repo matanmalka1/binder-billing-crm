@@ -34,7 +34,7 @@ class VatAnnualSummary(BaseModel):
     filed_count: int
 
 
-class VatBusinessSummaryResponse(BaseModel):
-    business_id: int
+class VatClientSummaryResponse(BaseModel):
+    client_id: int
     periods: list[VatPeriodRow]
     annual: list[VatAnnualSummary]

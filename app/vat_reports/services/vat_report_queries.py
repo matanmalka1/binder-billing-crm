@@ -74,23 +74,30 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     return item
 
 
-def list_business_work_items(work_item_repo: VatWorkItemRepository, business_id: int):
-    return work_item_repo.list_by_business(business_id)
+def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int):
+    return work_item_repo.list_by_client(client_id)
 
 
-def _resolve_business_ids(
+def _resolve_client_ids(
     business_repo: BusinessRepository,
-    business_name: Optional[str],
+    client_name: Optional[str],
 ) -> Optional[list[int]]:
-    if not business_name:
+    """Resolve business ids from the shared business/client search query."""
+    if not client_name:
         return None
-    businesses = business_repo.list(search=business_name, page=1, page_size=500)
+    businesses = business_repo.list(search=client_name, page=1, page_size=500)
     if len(businesses) >= 500:
         logger.warning(
-            "Business name search '%s' returned max results, may be truncated",
-            business_name,
+            "Client name search '%s' returned max results, may be truncated",
+            client_name,
         )
-    return [b.id for b in businesses]
+    seen: set[int] = set()
+    ordered_ids: list[int] = []
+    for business in businesses:
+        if business.id not in seen:
+            seen.add(business.id)
+            ordered_ids.append(business.id)
+    return ordered_ids
 
 
 def list_work_items_by_status(
@@ -102,7 +109,7 @@ def list_work_items_by_status(
     period: Optional[str] = None,
     business_name: Optional[str] = None,
 ):
-    business_ids = _resolve_business_ids(business_repo, business_name)
+    business_ids = _resolve_client_ids(business_repo, business_name)
     if business_name and not business_ids:
         return [], 0
     items = work_item_repo.list_by_status(
@@ -120,7 +127,7 @@ def list_all_work_items(
     period: Optional[str] = None,
     business_name: Optional[str] = None,
 ):
-    business_ids = _resolve_business_ids(business_repo, business_name)
+    business_ids = _resolve_client_ids(business_repo, business_name)
     if business_name and not business_ids:
         return [], 0
     items = work_item_repo.list_all(

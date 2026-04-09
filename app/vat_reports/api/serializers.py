@@ -11,12 +11,10 @@ def serialize_enriched_work_item(
     name_map: dict,
     status_map: dict,
     user_map: dict,
-    client_map: dict | None = None,
 ) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
-    data.client_id = client_map.get(item.business_id) if client_map else None
-    data.business_name = name_map.get(item.business_id)
-    data.business_status = status_map.get(item.business_id)
+    data.client_name = name_map.get(item.client_id)
+    data.client_status = status_map.get(item.client_id)
     deadline = compute_deadline_fields(item, submission_method=item.submission_method)
     data.submission_deadline = deadline["submission_deadline"]
     data.statutory_deadline = deadline["statutory_deadline"]
@@ -35,5 +33,4 @@ def serialize_work_item(service: VatReportService, item_id: int) -> VatWorkItemR
         name_map=enriched["name_map"],
         status_map=enriched["status_map"],
         user_map=enriched["user_map"],
-        client_map=enriched.get("client_map"),
     )

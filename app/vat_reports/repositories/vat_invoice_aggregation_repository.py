@@ -94,8 +94,8 @@ class VatInvoiceAggregationRepository:
             grouped.get(InvoiceType.EXPENSE, Decimal("0")),
         )
 
-    def sum_income_net_by_business_year(self, business_id: int, year: int) -> Decimal:
-        """Sum net_amount of INCOME invoices for a business across a tax year.
+    def sum_income_net_by_client_year(self, client_id: int, year: int) -> Decimal:
+        """Sum net_amount of INCOME invoices for a client across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.
         """
@@ -103,7 +103,7 @@ class VatInvoiceAggregationRepository:
             self.db.query(func.sum(self._signed_amount(VatInvoice.net_amount)))
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
-                VatWorkItem.business_id == business_id,
+                VatWorkItem.client_id == client_id,
                 VatInvoice.invoice_type == InvoiceType.INCOME,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),
@@ -112,12 +112,12 @@ class VatInvoiceAggregationRepository:
         )
         return Decimal(str(result or 0))
 
-    def sum_expense_net_by_business_year_grouped(
-        self, business_id: int, year: int
+    def sum_expense_net_by_client_year_grouped(
+        self, client_id: int, year: int
     ) -> dict[str, Decimal]:
         """Return {expense_category_value: total_net_amount} for EXPENSE invoices.
 
-        Aggregates across all work items for this business in the given tax year.
+        Aggregates across all work items for this client in the given tax year.
         Used by annual reports auto-population to map VAT expense categories.
         """
         rows = (
@@ -127,7 +127,7 @@ class VatInvoiceAggregationRepository:
             )
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
-                VatWorkItem.business_id == business_id,
+                VatWorkItem.client_id == client_id,
                 VatInvoice.invoice_type == InvoiceType.EXPENSE,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),
@@ -139,3 +139,4 @@ class VatInvoiceAggregationRepository:
             (row.expense_category.value if row.expense_category else "other"): Decimal(str(row.total or 0))
             for row in rows
         }
+
