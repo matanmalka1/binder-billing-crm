@@ -118,9 +118,9 @@ def create_binder_intake_materials(db, rng: Random, binders, businesses, reports
     for business in businesses:
         businesses_by_client_id.setdefault(business.client_id, []).append(business)
 
-    reports_by_business_id: dict[int, list] = {}
+    reports_by_client_id: dict[int, list] = {}
     for report in reports:
-        reports_by_business_id.setdefault(report.business_id, []).append(report)
+        reports_by_client_id.setdefault(report.client_id, []).append(report)
 
     intake_by_binder_id = {intake.binder_id: intake for intake in intakes}
 
@@ -134,9 +134,9 @@ def create_binder_intake_materials(db, rng: Random, binders, businesses, reports
             business = rng.choice(candidate_businesses) if candidate_businesses else None
             report = None
             if business and rng.random() < 0.45:
-                business_reports = reports_by_business_id.get(business.id, [])
-                if business_reports:
-                    report = rng.choice(business_reports)
+                client_reports = reports_by_client_id.get(business.client_id, [])
+                if client_reports:
+                    report = rng.choice(client_reports)
             item = BinderIntakeMaterial(
                 intake_id=intake.id,
                 business_id=business.id if business else None,

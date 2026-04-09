@@ -8,22 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_BUSINESS
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.businesses.models.business_tax_profile import VatType
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.repositories.business_tax_profile_repository import BusinessTaxProfileRepository
 from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.businesses.services.business_lookup import get_business_or_raise as _get_or_raise
 from app.businesses.services.business_bulk_service import BusinessBulkService
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
-
-_DEFAULT_VAT_TYPE: dict[BusinessType, VatType] = {
-    BusinessType.OSEK_PATUR: VatType.EXEMPT,
-    BusinessType.OSEK_MURSHE: VatType.BIMONTHLY,
-    BusinessType.COMPANY: VatType.MONTHLY,
-    BusinessType.EMPLOYEE: VatType.EXEMPT,
-}
 
 
 class BusinessService:
@@ -36,7 +27,6 @@ class BusinessService:
         self._bulk = BusinessBulkService(db)
         self._lifecycle = BusinessLifecycleService(db)
         self._audit = EntityAuditLogRepository(db)
-        self._tax_profile_repo = BusinessTaxProfileRepository(db)
 
     _SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
 
@@ -89,10 +79,6 @@ class BusinessService:
             raise ConflictError(
                 f"שגיאת כפילות ביצירת עסק ללקוח {client_id}", "BUSINESS.CONFLICT",
             )
-
-        default_vat = _DEFAULT_VAT_TYPE.get(parsed_type)
-        if default_vat is not None:
-            self._tax_profile_repo.upsert(business.id, vat_type=default_vat)
 
         if actor_id:
             self._audit.append(

@@ -56,7 +56,7 @@ class StatusCardService:
             client_id=business.client_id,
             business_id=business_id,
             year=resolved_year,
-            vat=self._vat_card(business_id, resolved_year),
+            vat=self._vat_card(business.client_id, resolved_year),
             annual_report=self._annual_report_card(business_id, resolved_year),
             charges=self._charges_card(business_id),
             advance_payments=self._advance_payments_card(business_id, resolved_year),
@@ -64,10 +64,10 @@ class StatusCardService:
             documents=self._documents_card(business_id),
         )
 
-    def _vat_card(self, business_id: int, year: int) -> VatSummaryCard:
+    def _vat_card(self, client_id: int, year: int) -> VatSummaryCard:
         prefix = f"{year}-"
         rows = [
-            r for r in self._vat_repo.list_by_business(business_id)
+            r for r in self._vat_repo.list_by_client(client_id)
             if r.period and r.period.startswith(prefix)
         ]
         net_total = sum((r.net_vat or Decimal(0)) for r in rows)

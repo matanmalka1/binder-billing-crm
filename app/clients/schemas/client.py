@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.clients.models.client import ClientStatus, IdNumberType
-from app.common.enums import VatType
-from app.core.api_types import ApiDateTime
+from app.common.enums import EntityType, VatType
+from app.core.api_types import ApiDateTime, ApiDecimal
 from app.utils.id_validation import validate_israeli_id_checksum
 
 
@@ -13,12 +14,13 @@ from app.utils.id_validation import validate_israeli_id_checksum
 
 class ClientCreateRequest(BaseModel):
     """
-    יצירת לקוח חדש — פרטי זהות בלבד.
-    שדות עסקיים (client_type, opened_at וכו') נמצאים ב-BusinessCreateRequest.
+    יצירת לקוח חדש — פרטי זהות ופרופיל מס.
+    שדות פעילות עסקית (business_name, opened_at וכו') נמצאים ב-BusinessCreateRequest.
     """
     full_name: str
     id_number: str
     id_number_type: IdNumberType = IdNumberType.INDIVIDUAL
+    entity_type: Optional[EntityType] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     address_street: Optional[str] = None
@@ -26,7 +28,16 @@ class ClientCreateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
+    # ── Tax reporting ─────────────────────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
+    vat_start_date: Optional[date] = None
+    vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
+    advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
+    advance_rate_updated_at: Optional[date] = None
+    accountant_name: Optional[str] = None
+    business_type_label: Optional[str] = None
+    fiscal_year_start_month: Optional[int] = Field(None, ge=1, le=12)
+    tax_year_start: Optional[int] = Field(None, ge=1900, le=2100)
 
     @field_validator("id_number")
     @classmethod
@@ -51,9 +62,10 @@ class ClientCreateRequest(BaseModel):
 
 
 class ClientUpdateRequest(BaseModel):
-    """עדכון פרטי זהות בלבד."""
+    """עדכון פרטי זהות ופרופיל מס."""
     full_name: Optional[str] = None
     status: Optional[ClientStatus] = None
+    entity_type: Optional[EntityType] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     address_street: Optional[str] = None
@@ -61,17 +73,28 @@ class ClientUpdateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
+    notes: Optional[str] = None
+    # ── Tax reporting ─────────────────────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
+    vat_start_date: Optional[date] = None
+    vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
+    advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
+    advance_rate_updated_at: Optional[date] = None
+    accountant_name: Optional[str] = None
+    business_type_label: Optional[str] = None
+    fiscal_year_start_month: Optional[int] = Field(None, ge=1, le=12)
+    tax_year_start: Optional[int] = Field(None, ge=1900, le=2100)
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 class ClientResponse(BaseModel):
-    """תגובת לקוח — פרטי זהות בלבד."""
+    """תגובת לקוח — פרטי זהות ופרופיל מס."""
     id: int
     full_name: str
     id_number: str
     id_number_type: Optional[IdNumberType] = None
+    entity_type: Optional[EntityType] = None
     status: ClientStatus = ClientStatus.ACTIVE
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -81,11 +104,19 @@ class ClientResponse(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     notes: Optional[str] = None
+    # ── Tax reporting ─────────────────────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
+    vat_start_date: Optional[date] = None
+    vat_exempt_ceiling: Optional[ApiDecimal] = None
+    advance_rate: Optional[ApiDecimal] = None
+    advance_rate_updated_at: Optional[date] = None
+    accountant_name: Optional[str] = None
+    business_type_label: Optional[str] = None
+    fiscal_year_start_month: int = 1
+    tax_year_start: Optional[int] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
-    # ── Enriched fields (set by API layer, not stored on Client) ──────────────
-    primary_business_type: Optional[str] = None
+    # ── Enriched field (set by API layer, not stored on Client) ───────────────
     active_binder_number: Optional[str] = None
 
     model_config = {"from_attributes": True}

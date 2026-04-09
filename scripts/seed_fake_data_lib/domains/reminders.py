@@ -20,14 +20,14 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
     charges_by_business = {}
     for charge in charges:
         charges_by_business.setdefault(charge.business_id, []).append(charge)
-    deadlines_by_business = {}
+    deadlines_by_client = {}
     for deadline in deadlines:
-        deadlines_by_business.setdefault(deadline.business_id, []).append(deadline)
+        deadlines_by_client.setdefault(deadline.client_id, []).append(deadline)
 
     for business in businesses:
         business_binders = binders_by_client.get(business.client_id, [])
         business_charges = charges_by_business.get(business.id, [])
-        business_deadlines = deadlines_by_business.get(business.id, [])
+        business_deadlines = deadlines_by_client.get(business.client_id, [])
 
         pending_deadlines = [dl for dl in business_deadlines if dl.status == TaxDeadlineStatus.PENDING]
         if pending_deadlines:

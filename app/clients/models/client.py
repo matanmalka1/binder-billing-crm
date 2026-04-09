@@ -1,11 +1,11 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, column
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, column
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.common.enums import VatType
+from app.common.enums import EntityType, VatType
 
 class IdNumberType(str, PyEnum):
     INDIVIDUAL   = "individual"   # ת"ז — 9 ספרות עם ספרת ביקורת
@@ -50,11 +50,25 @@ class Client(Base):
     address_city = Column(String, nullable=True)
     address_zip_code = Column(String, nullable=True)
 
+    # ── Legal / tax entity classification ────────────────────────────────────
+    # The type of legal entity this client represents.
+    # OSEK_PATUR / OSEK_MURSHE = individual; COMPANY_LTD = separate legal entity; EMPLOYEE = wage earner.
+    entity_type = Column(pg_enum(EntityType), nullable=True)
+
     # ── Tax reporting ─────────────────────────────────────────────────────────
-    # Authoritative VAT reporting frequency for OSEK_MURSHE businesses under this client.
-    # COMPANY businesses use BusinessTaxProfile.vat_type independently (separate legal entity).
+    # Authoritative VAT reporting frequency (monthly/bimonthly/exempt).
     # NULL means not yet configured; service layer defaults to BIMONTHLY for OSEK_MURSHE.
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
+
+    # ── Tax profile (formerly BusinessTaxProfile) ─────────────────────────────
+    vat_start_date          = Column(Date,            nullable=True)
+    vat_exempt_ceiling      = Column(Numeric(12, 0),  nullable=True)   # תקרת פטור ממע"מ
+    advance_rate            = Column(Numeric(5, 2),   nullable=True)   # שיעור מקדמות
+    advance_rate_updated_at = Column(Date,            nullable=True)
+    accountant_name         = Column(String(100),     nullable=True)   # שם רואה החשבון
+    business_type_label     = Column(String(100),     nullable=True)   # סוג עסק (טקסט חופשי)
+    fiscal_year_start_month = Column(Integer,         nullable=False,  server_default="1")
+    tax_year_start          = Column(Integer,         nullable=True)   # שנת מס התחלה
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)

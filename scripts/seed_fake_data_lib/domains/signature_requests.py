@@ -94,7 +94,7 @@ def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict[str, 
 def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, annual_reports, documents):
     requests: list[SignatureRequest] = []
     clients_by_id = {client.id: client for client in clients}
-    reports_by_business = _group_by_attr(annual_reports, "business_id")
+    reports_by_client = _group_by_attr(annual_reports, "client_id")
     documents_by_client = _group_by_attr(documents, "client_id")
     existing_count = int(db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one())
     type_cycle = list(SignatureRequestType)
@@ -111,7 +111,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
             client_businesses,
             cfg.signature_requests_per_client,
         ):
-            report = _pick_related_for_client(rng, reports_by_business, business.id)
+            report = _pick_related_for_client(rng, reports_by_client, client.id)
             document = _pick_related_for_client(rng, documents_by_client, client.id)
             if status_cycle_idx < len(status_cycle):
                 status = status_cycle[status_cycle_idx]

@@ -9,7 +9,6 @@ from app.config import config as app_config
 
 # Import all models so Alembic can detect them for autogenerate
 import app.businesses.models.business          # noqa
-import app.businesses.models.business_tax_profile  # noqa
 import app.clients.models.client               # noqa
 import app.users.models.user                   # noqa
 import app.users.models.user_audit_log         # noqa

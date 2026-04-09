@@ -10,16 +10,25 @@ class SubmissionMethod(str, PyEnum):
 
 
 class VatType(str, PyEnum):
-    """
-    VAT reporting frequency for a legal entity.
-
-    For OSEK_MURSHE businesses: authoritative value lives on Client.vat_reporting_frequency.
-    For COMPANY businesses: authoritative value lives on BusinessTaxProfile.vat_type.
-    BusinessTaxProfile.vat_type is DEPRECATED for OSEK_MURSHE — do not read it for period resolution.
-    """
+    """VAT reporting frequency for a legal entity (Client level)."""
     MONTHLY = "monthly"
     BIMONTHLY = "bimonthly"
     EXEMPT = "exempt"
 
 
-__all__ = ["SubmissionMethod", "VatType"]
+class EntityType(str, PyEnum):
+    """
+    The legal/tax classification of a Client (legal entity).
+
+    OSEK_PATUR  — עוסק פטור: exempt from VAT collection; annual reporting only.
+    OSEK_MURSHE — עוסק מורשה: collects/deducts VAT; monthly or bi-monthly reporting.
+    COMPANY_LTD — חברה בע"מ: separate legal entity with its own ח"פ; monthly/bi-monthly.
+    EMPLOYEE    — שכיר: wage earner; no VAT reporting.
+    """
+    OSEK_PATUR  = "osek_patur"
+    OSEK_MURSHE = "osek_murshe"
+    COMPANY_LTD = "company_ltd"
+    EMPLOYEE    = "employee"
+
+
+__all__ = ["SubmissionMethod", "VatType", "EntityType"]

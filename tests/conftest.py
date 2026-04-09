@@ -32,7 +32,7 @@ def _create_default_business_for_client(mapper, connection, target):
         Business.__table__.insert().values(
             client_id=target.id,
             business_name=target.full_name,
-            business_type=BusinessType.COMPANY,
+            business_type=BusinessType.OSEK_MURSHE,
             status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )

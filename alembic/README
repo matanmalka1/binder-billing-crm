@@ -56,7 +56,10 @@ Notes:
 ## Migration chain
 
 ```
-c2d3e4f5a6b7  ← HEAD (add vat_reporting_frequency to clients — 2026-04-07)
+f5a6b7c8d9e0  ← HEAD (pivot tax_deadlines from business_id to client_id — 2026-04-09)
+e4f5a6b7c8d9         (pivot annual_reports from business_id to client_id — 2026-04-09)
+d3e4f5a6b7c8         (domain_refactor_tax_entity — 2026-04-09)
+c2d3e4f5a6b7         (add vat_reporting_frequency to clients — 2026-04-07)
 9b225dd8ca06         (add status to clients — 2026-04-07)
 b2c3d4e5f6a7         (add expiry_days to signature_requests — 2026-04-05)
 a1b2c3d4e5f6         (add entity_audit_logs table — 2026-04-05)
@@ -71,6 +74,40 @@ ff773718d72e         (initial_schema — fresh start 2026-03-23)
 ```
 
 ## Run instructions
+
+### 0015 — tax_deadline_pivot_client_id (f5a6b7c8d9e0)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade f5a6b7c8d9e0`
+- What it does:
+  Pivots `tax_deadlines.business_id` → `client_id` (FK → clients).
+  Backfills via `businesses.client_id`. Drops `business_id` and its composite index.
+  Adds `idx_tax_deadline_client_period` on `(client_id, period)`.
+- Important notes:
+  - All deadline generation, CRUD, and query APIs now key on `client_id`.
+  - `POST /tax-deadlines/generate` accepts `client_id`; `business_id` still accepted as deprecated bridge.
+  - Reminder creation uses first active business for the client as a transitional seam.
+
+### 0014 — annual_reports_client_pivot (e4f5a6b7c8d9)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade e4f5a6b7c8d9`
+- What it does:
+  Adds `client_id` to `annual_reports`, backfills from `businesses.client_id`, deduplicates
+  `(client_id, tax_year)` by keeping highest `id`, adds unique partial index, makes NOT NULL.
+  Keeps `business_id` as deprecated nullable column.
+
+### 0013 — domain_refactor_tax_entity (d3e4f5a6b7c8)
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade d3e4f5a6b7c8`
+- What it does:
+  Promotes Client as the legal TaxEntity. Adds tax-profile columns to `clients`
+  (`entity_type`, `vat_start_date`, `vat_exempt_ceiling`, `advance_rate`, `accountant_name`, etc.).
+  Copies data from `business_tax_profiles`. Pivots `vat_work_items` from `business_id` to `client_id`.
+  Adds `business_activity_id` to `vat_invoices`.
+- Important notes:
+  - `business_tax_profiles` table is kept (data copied) but all service code treats it as deprecated.
 
 ### 0012 — add_vat_reporting_frequency_to_clients (c2d3e4f5a6b7)
 

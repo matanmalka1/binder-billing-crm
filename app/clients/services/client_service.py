@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.clients.models.client import Client, IdNumberType
-from app.common.enums import VatType
+from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_binder_helper import create_initial_binder
 from app.clients.services.client_query_service import ClientQueryService
@@ -31,6 +31,7 @@ class ClientService:
         full_name: str,
         id_number: str,
         id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
+        entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
         address_street: Optional[str] = None,
@@ -39,6 +40,14 @@ class ClientService:
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
         vat_reporting_frequency: Optional[VatType] = None,
+        vat_start_date=None,
+        vat_exempt_ceiling=None,
+        advance_rate=None,
+        advance_rate_updated_at=None,
+        accountant_name: Optional[str] = None,
+        business_type_label: Optional[str] = None,
+        fiscal_year_start_month: Optional[int] = None,
+        tax_year_start: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> Client:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
@@ -58,10 +67,15 @@ class ClientService:
         try:
             client = self.client_repo.create(
                 full_name=full_name, id_number=id_number, id_number_type=id_number_type,
+                entity_type=entity_type,
                 phone=phone, email=email, address_street=address_street,
                 address_building_number=address_building_number, address_apartment=address_apartment,
                 address_city=address_city, address_zip_code=address_zip_code,
                 vat_reporting_frequency=vat_reporting_frequency,
+                vat_start_date=vat_start_date, vat_exempt_ceiling=vat_exempt_ceiling,
+                advance_rate=advance_rate, advance_rate_updated_at=advance_rate_updated_at,
+                accountant_name=accountant_name, business_type_label=business_type_label,
+                fiscal_year_start_month=fiscal_year_start_month, tax_year_start=tax_year_start,
                 created_by=actor_id,
             )
         except IntegrityError:

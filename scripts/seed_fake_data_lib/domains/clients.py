@@ -6,8 +6,8 @@ from random import Random
 from sqlalchemy import func, select
 
 from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
 from app.clients.models.client import Client, IdNumberType
+from app.common.enums import EntityType, VatType
 
 from ..constants import COMPANY_WORDS
 from ..random_utils import full_name, generate_valid_israeli_id
@@ -45,16 +45,44 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             full_name_value = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
             id_number_type = IdNumberType.CORPORATION
             id_number = generate_valid_israeli_id(serial, prefix="5")
+            entity_type = EntityType.COMPANY_LTD
+            vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
+            vat_exempt_ceiling = None
+            business_type_label = "חברה בע\"מ"
         else:
             full_name_value = full_name(rng)
             id_number_type = IdNumberType.INDIVIDUAL
             id_number = generate_valid_israeli_id(serial, prefix=str(rng.choice([0, 1, 2, 3])))
+            entity_type = rng.choices(
+                population=[EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE, EntityType.EMPLOYEE],
+                weights=[25, 55, 20],
+                k=1,
+            )[0]
+            if entity_type == EntityType.OSEK_PATUR:
+                vat_reporting_frequency = VatType.EXEMPT
+                vat_exempt_ceiling = 120000
+                business_type_label = "עוסק פטור"
+            elif entity_type == EntityType.OSEK_MURSHE:
+                vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
+                vat_exempt_ceiling = None
+                business_type_label = "עוסק מורשה"
+            else:
+                vat_reporting_frequency = VatType.EXEMPT
+                vat_exempt_ceiling = None
+                business_type_label = "שכיר"
 
         address_street = rng.choice(STREET_NAMES)
         address_building_number = str(rng.randint(1, 220))
         address_apartment = str(rng.randint(1, 30)) if rng.random() < 0.75 else None
         address_city = rng.choice(CITY_NAMES)
         address_zip_code = f"{rng.randint(1000000, 9999999)}"
+        vat_start_date = date.today() - timedelta(days=rng.randint(60, 2200))
+        advance_rate = None if entity_type == EntityType.EMPLOYEE else round(rng.uniform(2.0, 12.0), 2)
+        advance_rate_updated_at = (
+            date.today() - timedelta(days=rng.randint(0, 540))
+            if advance_rate is not None
+            else None
+        )
 
         client = Client(
             full_name=full_name_value,
@@ -68,6 +96,15 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             address_apartment=address_apartment,
             address_city=address_city,
             address_zip_code=address_zip_code,
+            entity_type=entity_type,
+            vat_reporting_frequency=vat_reporting_frequency,
+            vat_start_date=vat_start_date,
+            vat_exempt_ceiling=vat_exempt_ceiling,
+            advance_rate=advance_rate,
+            advance_rate_updated_at=advance_rate_updated_at,
+            accountant_name=rng.choice(["רו\"ח דנה לוי", "רו\"ח אמיר כהן", "רו\"ח נטע מזרחי"]),
+            business_type_label=business_type_label,
+            tax_year_start=rng.choice([2022, 2023, 2024, 2025]),
         )
         db.add(client)
         clients.append(client)
@@ -85,7 +122,9 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
     serial = existing_businesses
     for client in clients:
         business_count = 1
-        if client.id in multi_business_client_ids:
+        if client.entity_type == EntityType.EMPLOYEE:
+            business_count = 1
+        elif client.id in multi_business_client_ids:
             business_count = rng.randint(2, 3)
 
         chosen_types: list[BusinessType] = []
@@ -109,7 +148,16 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 if closed_at > date.today():
                     closed_at = date.today() - timedelta(days=rng.randint(1, 15))
 
-            preferred_types = [BusinessType.COMPANY, BusinessType.OSEK_MURSHE] if business_index == 0 else available_types
+            if client.entity_type == EntityType.COMPANY_LTD:
+                default_type = BusinessType.COMPANY
+            elif client.entity_type == EntityType.OSEK_PATUR:
+                default_type = BusinessType.OSEK_PATUR
+            elif client.entity_type == EntityType.OSEK_MURSHE:
+                default_type = BusinessType.OSEK_MURSHE
+            else:
+                default_type = BusinessType.EMPLOYEE
+
+            preferred_types = [default_type] if business_index == 0 else available_types
             remaining_types = [
                 bt for bt in available_types
                 if bt in preferred_types
@@ -129,7 +177,11 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 base_name = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
                 business_name = base_name if business_index == 0 else f"{base_name} {business_index + 1}"
             elif business_type == BusinessType.EMPLOYEE:
-                business_name = None
+                business_name = (
+                    "הכנסת שכר"
+                    if business_count == 1
+                    else f"הכנסת שכר {business_index + 1}"
+                )
             else:
                 label = rng.choice(["עצמאי", "עסק", "פעילות"])
                 business_name = (
@@ -156,50 +208,3 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
     db.flush()
     return businesses
 
-
-def create_business_tax_profiles(db, rng: Random, businesses: list[Business]) -> list[BusinessTaxProfile]:
-    profiles: list[BusinessTaxProfile] = []
-    for business in businesses:
-        if business.business_type == BusinessType.OSEK_PATUR:
-            vat_type = VatType.EXEMPT
-        elif business.business_type == BusinessType.COMPANY:
-            vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY, VatType.MONTHLY])
-        elif business.business_type == BusinessType.EMPLOYEE:
-            vat_type = VatType.EXEMPT
-        else:
-            vat_type = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
-
-        tax_year_start = rng.choice([1, 1, 1, 4, 7, 10])
-        advance_rate = (
-            None
-            if business.business_type == BusinessType.EMPLOYEE
-            else rng.choice([None, 2.5, 3.0, 4.0, 5.5, 7.0])
-        )
-        advance_rate_updated_at = (
-            None
-            if advance_rate is None
-            else date.today() - timedelta(days=rng.randint(10, 220))
-        )
-        profile = BusinessTaxProfile(
-            business_id=business.id,
-            vat_type=vat_type,
-            vat_start_date=business.opened_at,
-            accountant_name=rng.choice(
-                [
-                    None,
-                    "כהן ושות׳ רואי חשבון",
-                    "חשבית פלוס",
-                    "לוי הנהלת חשבונות",
-                ]
-            ),
-            vat_exempt_ceiling=rng.choice([None, None, 120000, 132000]) if vat_type == VatType.EXEMPT else None,
-            advance_rate=advance_rate,
-            advance_rate_updated_at=advance_rate_updated_at,
-            business_type=business.business_type.value,
-            tax_year_start=tax_year_start,
-            fiscal_year_start_month=tax_year_start,
-        )
-        db.add(profile)
-        profiles.append(profile)
-    db.flush()
-    return profiles

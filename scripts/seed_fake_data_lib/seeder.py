@@ -105,7 +105,6 @@ class Seeder:
                 seeded_users = users.create_users(db, self.rng, self.cfg)
             seeded_clients = clients.create_clients(db, self.rng, self.cfg)
             seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
-            seeded_profiles = clients.create_business_tax_profiles(db, self.rng, seeded_businesses)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_businesses, seeded_users)
             binder_intakes = binders.create_binder_intakes(db, seeded_binders)
             seeded_charges = charges.create_charges(db, self.rng, self.cfg, seeded_businesses, seeded_users)
@@ -145,7 +144,6 @@ class Seeder:
                 self.cfg,
                 seeded_businesses,
                 seeded_users,
-                seeded_profiles,
             )
             vat.create_vat_invoices(db, self.rng, self.cfg, vat_work_items, seeded_users)
             vat.create_vat_audit_logs(db, self.rng, vat_work_items, seeded_users)

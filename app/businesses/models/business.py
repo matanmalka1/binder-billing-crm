@@ -9,10 +9,10 @@ from app.utils.time_utils import utcnow
 
 
 class BusinessType(str, PyEnum):
-    OSEK_PATUR = "osek_patur"      # Exempt dealer
-    OSEK_MURSHE = "osek_murshe"    # Authorized dealer
-    COMPANY = "company"            # Limited company
-    EMPLOYEE = "employee"          # Employee
+    OSEK_PATUR  = "osek_patur"   # עוסק פטור — exempt dealer activity
+    OSEK_MURSHE = "osek_murshe"  # עוסק מורשה — authorized dealer activity
+    COMPANY     = "company"      # חברה בע"מ — limited company activity
+    EMPLOYEE    = "employee"     # שכיר — wage-earner activity
 
 
 class BusinessStatus(str, PyEnum):
@@ -43,7 +43,7 @@ class Business(Base):
     client = relationship("Client", foreign_keys=[client_id], lazy="select")
 
     # Business details.
-    business_name = Column(String, nullable=True)   # null = sole proprietor under personal name
+    business_name = Column(String, nullable=False)   # required: every activity must have a name
     business_type = Column(pg_enum(BusinessType), nullable=False)
     tax_id_number   = Column(String(9), nullable=True)
     
