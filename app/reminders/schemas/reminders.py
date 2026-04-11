@@ -8,7 +8,8 @@ from app.core.api_types import ApiDateTime
 
 
 class ReminderCreateRequest(BaseModel):
-    business_id: int = Field(gt=0)
+    business_id: Optional[int] = Field(None, gt=0)
+    client_id: Optional[int] = Field(None, gt=0)
     reminder_type: ReminderType                         # enum — לא str חופשי
     target_date: date
     days_before: int = Field(ge=0)
@@ -24,24 +25,37 @@ class ReminderCreateRequest(BaseModel):
     @model_validator(mode="after")
     def validate_by_type(self) -> "ReminderCreateRequest":
         t = self.reminder_type
-        if t == ReminderType.BINDER_IDLE and not self.binder_id:
-            raise ValueError("binder_id נדרש עבור binder_idle")
-        if t == ReminderType.UNPAID_CHARGE and not self.charge_id:
-            raise ValueError("charge_id נדרש עבור unpaid_charge")
-        if t in (ReminderType.TAX_DEADLINE_APPROACHING, ReminderType.VAT_FILING) and not self.tax_deadline_id:
-            raise ValueError("tax_deadline_id נדרש עבור סוג זה")
-        if t == ReminderType.ANNUAL_REPORT_DEADLINE and not self.annual_report_id:
-            raise ValueError("annual_report_id נדרש עבור annual_report_deadline")
-        if t == ReminderType.ADVANCE_PAYMENT_DUE and not self.advance_payment_id:
-            raise ValueError("advance_payment_id נדרש עבור advance_payment_due")
-        if t == ReminderType.CUSTOM and not self.message:
-            raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
+        # Client-scoped types — derive owner from linked entity, no business_id needed
+        if t == ReminderType.TAX_DEADLINE_APPROACHING:
+            if not self.client_id:
+                raise ValueError("client_id נדרש עבור tax_deadline_approaching")
+            if not self.tax_deadline_id:
+                raise ValueError("tax_deadline_id נדרש עבור סוג זה")
+        elif t == ReminderType.VAT_FILING:
+            if not self.tax_deadline_id:
+                raise ValueError("tax_deadline_id נדרש עבור vat_filing")
+        elif t == ReminderType.BINDER_IDLE:
+            if not self.binder_id:
+                raise ValueError("binder_id נדרש עבור binder_idle")
+        elif t == ReminderType.ANNUAL_REPORT_DEADLINE:
+            if not self.annual_report_id:
+                raise ValueError("annual_report_id נדרש עבור annual_report_deadline")
+        # Business-scoped types — business_id required
+        else:
+            if not self.business_id:
+                raise ValueError("business_id נדרש לסוג תזכורת זה")
+            if t == ReminderType.UNPAID_CHARGE and not self.charge_id:
+                raise ValueError("charge_id נדרש עבור unpaid_charge")
+            if t == ReminderType.ADVANCE_PAYMENT_DUE and not self.advance_payment_id:
+                raise ValueError("advance_payment_id נדרש עבור advance_payment_due")
+            if t == ReminderType.CUSTOM and not self.message:
+                raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
         return self
 
 
 class ReminderResponse(BaseModel):
     id: int
-    business_id: int
+    business_id: Optional[int] = None
     business_name: Optional[str] = None        # enriched by service
     client_id: Optional[int] = None
     client_name: Optional[str] = None

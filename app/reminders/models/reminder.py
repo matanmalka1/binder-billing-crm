@@ -48,7 +48,8 @@ class Reminder(Base):
     __tablename__ = "reminders"
 
     id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    client_id   = Column(Integer, ForeignKey("clients.id"),    nullable=True, index=True)
 
     # ── Type & status ─────────────────────────────────────────────────────────
     reminder_type = Column(pg_enum(ReminderType),   nullable=False)
@@ -86,10 +87,12 @@ class Reminder(Base):
     __table_args__ = (
         Index("idx_reminder_status_send_on", "status", "send_on"),
         Index("idx_reminder_business_type",  "business_id", "reminder_type"),
+        Index("idx_reminder_client_type",    "client_id",   "reminder_type"),
     )
 
     def __repr__(self):
+        owner = f"business_id={self.business_id}" if self.business_id else f"client_id={self.client_id}"
         return (
-            f"<Reminder(id={self.id}, business_id={self.business_id}, "
+            f"<Reminder(id={self.id}, {owner}, "
             f"type='{self.reminder_type}', send_on='{self.send_on}')>"
         )

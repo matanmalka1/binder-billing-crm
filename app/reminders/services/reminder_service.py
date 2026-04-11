@@ -7,6 +7,7 @@ from app.annual_reports.repositories.report_repository import AnnualReportReport
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services import factory, factory_extended, reminder_queries, status_changes
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -19,6 +20,7 @@ class ReminderService:
         self.db = db
         self.reminder_repo = ReminderRepository(db)
         self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.binder_repo = BinderRepository(db)
         self.tax_deadline_repo = TaxDeadlineRepository(db)
@@ -28,12 +30,12 @@ class ReminderService:
     # Creation flows
     def create_tax_deadline_reminder(self, **kwargs):
         return factory.create_tax_deadline_reminder(
-            self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs
+            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
         )
 
     def create_idle_binder_reminder(self, **kwargs):
         return factory.create_idle_binder_reminder(
-            self.reminder_repo, self.business_repo, self.binder_repo, **kwargs
+            self.reminder_repo, self.client_repo, self.binder_repo, **kwargs
         )
 
     def create_unpaid_charge_reminder(self, **kwargs):
@@ -46,12 +48,12 @@ class ReminderService:
 
     def create_vat_filing_reminder(self, **kwargs):
         return factory_extended.create_vat_filing_reminder(
-            self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs
+            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
         )
 
     def create_annual_report_deadline_reminder(self, **kwargs):
         return factory_extended.create_annual_report_deadline_reminder(
-            self.reminder_repo, self.business_repo, self.annual_report_repo, **kwargs
+            self.reminder_repo, self.client_repo, self.annual_report_repo, **kwargs
         )
 
     def create_advance_payment_due_reminder(self, **kwargs):
@@ -73,6 +75,9 @@ class ReminderService:
 
     def get_reminders_by_business(self, **kwargs):
         return reminder_queries.get_reminders_by_business(self.reminder_repo, self.business_repo, **kwargs)
+
+    def get_reminders_by_client(self, **kwargs):
+        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.business_repo, **kwargs)
 
     def get_reminder(self, reminder_id: int):
         return reminder_queries.get_reminder(self.reminder_repo, reminder_id)

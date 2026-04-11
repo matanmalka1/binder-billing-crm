@@ -51,8 +51,9 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
-    binder_id   = Column(Integer, ForeignKey("binders.id"),   nullable=True,  index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    client_id   = Column(Integer, ForeignKey("clients.id"),    nullable=True, index=True)
+    binder_id   = Column(Integer, ForeignKey("binders.id"),    nullable=True, index=True)
 
     # ── Message identity ──────────────────────────────────────────────────────
     trigger          = Column(pg_enum(NotificationTrigger),  nullable=False)
@@ -80,6 +81,7 @@ class Notification(Base):
 
     __table_args__ = (
         Index("idx_notification_business_status", "business_id", "status"),
+        Index("idx_notification_client_status",   "client_id",   "status"),
         Index("idx_notification_created_at",      "created_at"),
     )
 

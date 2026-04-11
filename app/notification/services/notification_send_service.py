@@ -1,6 +1,4 @@
-"""
-NotificationSendService — low-level delivery (email + WhatsApp) and persistence.
-"""
+"""NotificationSendService — low-level delivery (email + WhatsApp) and persistence."""
 from __future__ import annotations
 
 from typing import Optional
@@ -72,18 +70,15 @@ class NotificationSendService:
                 f"לא ניתן לשלוח התראות ליותר מ-{_BULK_NOTIFY_LIMIT} עסקים בבת אחת",
                 "NOTIFICATION.BULK_LIMIT_EXCEEDED",
             )
-        sent = 0
-        failed = 0
-        for business_id in business_ids:
-            ok = self.send_notification(
-                business_id=business_id, trigger=trigger, content=template,
+        results = [
+            self.send_notification(
+                business_id=bid, trigger=trigger, content=template,
                 triggered_by=triggered_by, preferred_channel=channel.value, severity=severity,
             )
-            if ok:
-                sent += 1
-            else:
-                failed += 1
-        return {"sent": sent, "failed": failed}
+            for bid in business_ids
+        ]
+        sent = sum(results)
+        return {"sent": sent, "failed": len(results) - sent}
 
     def send_notification(
         self,
@@ -95,7 +90,6 @@ class NotificationSendService:
         preferred_channel: str = "email",
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
-        """Persist + send. Never raises — always returns True."""
         try:
             row = self._get_business_and_client(business_id)
             if not row:
@@ -109,18 +103,18 @@ class NotificationSendService:
                 subject = "הודעה ממערכת ניהול התיקים"
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
-                notification = self.notification_repo.create(
+                n = self.notification_repo.create(
                     business_id=business_id, binder_id=binder_id, trigger=trigger,
                     channel=NotificationChannel.WHATSAPP, recipient=client.phone,
                     content_snapshot=content, triggered_by=triggered_by, severity=severity,
                 )
-                success, error = self.whatsapp.send(client.phone, content)
-                if success:
-                    self.notification_repo.mark_sent(notification.id)
+                ok, err = self.whatsapp.send(client.phone, content)
+                if ok:
+                    self.notification_repo.mark_sent(n.id)
                     logger.info("WhatsApp sent | business=%s trigger=%s", business_id, trigger.value)
                     return True
-                self.notification_repo.mark_failed(notification.id, error or "whatsapp failed")
-                logger.warning("WhatsApp failed for business=%s, falling back to email: %s", business_id, error)
+                self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
+                logger.warning("WhatsApp failed business=%s, falling back to email: %s", business_id, err)
 
             if not client.email:
                 logger.info(
@@ -129,17 +123,17 @@ class NotificationSendService:
                 )
                 return True
 
-            notification = self.notification_repo.create(
+            n = self.notification_repo.create(
                 business_id=business_id, binder_id=binder_id, trigger=trigger,
                 channel=NotificationChannel.EMAIL, recipient=client.email,
                 content_snapshot=content, triggered_by=triggered_by, severity=severity,
             )
             success, error = self.email.send(client.email, content, subject=subject)
             if success:
-                self.notification_repo.mark_sent(notification.id)
-                logger.info("Notification sent | business=%s trigger=%s email=%s", business_id, trigger.value, client.email)
+                self.notification_repo.mark_sent(n.id)
+                logger.info("Notification sent | business=%s trigger=%s", business_id, trigger.value)
             else:
-                self.notification_repo.mark_failed(notification.id, error or "unknown error")
+                self.notification_repo.mark_failed(n.id, error or "unknown error")
                 logger.error("Notification failed | business=%s trigger=%s error=%s", business_id, trigger.value, error)
 
         except Exception as exc:  # noqa: BLE001
@@ -147,4 +141,29 @@ class NotificationSendService:
                 "Unexpected error in send_notification | business=%s trigger=%s error=%s",
                 business_id, trigger, exc,
             )
+        return True
+
+    def send_client_reminder(self, client_id: int, reminder_text: str) -> bool:
+        """Send reminder email directly to a client. Persists notification row. Never raises."""
+        try:
+            client = self.db.query(Client).filter(
+                Client.id == client_id, Client.deleted_at.is_(None)
+            ).first()
+            if not client or not client.email:
+                logger.info("send_client_reminder: client %s has no email or not found", client_id)
+                return True
+            n = self.notification_repo.create(
+                client_id=client_id, trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                channel=NotificationChannel.EMAIL, recipient=client.email,
+                content_snapshot=reminder_text,
+            )
+            ok, err = self.email.send(client.email, reminder_text, subject="תזכורת מועד מס")
+            if ok:
+                self.notification_repo.mark_sent(n.id)
+                logger.info("Client reminder sent | client=%s", client_id)
+            else:
+                self.notification_repo.mark_failed(n.id, err or "unknown error")
+                logger.error("send_client_reminder failed | client=%s error=%s", client_id, err)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_id, exc)
         return True

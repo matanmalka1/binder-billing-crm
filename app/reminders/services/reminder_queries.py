@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional, Tuple, List, Dict, TypedDict
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError
 from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -19,7 +19,7 @@ def _build_name_map(
     business_repo: BusinessRepository,
     items: List[Reminder],
 ) -> Dict[int, ReminderBusinessContext]:
-    business_ids = list({r.business_id for r in items})
+    business_ids = list({r.business_id for r in items if r.business_id is not None})
     businesses = business_repo.list_by_ids(business_ids)
     return {
         b.id: {
@@ -85,6 +85,19 @@ def get_reminders_by_business(
 ) -> Tuple[List[Reminder], int, Dict[int, ReminderBusinessContext]]:
     items = reminder_repo.list_by_business(business_id=business_id, page=page, page_size=page_size)
     total = reminder_repo.count_by_business(business_id)
+    return items, total, _build_name_map(business_repo, items)
+
+
+def get_reminders_by_client(
+    reminder_repo: ReminderRepository,
+    business_repo: BusinessRepository,
+    *,
+    client_id: int,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[Reminder], int, Dict[int, ReminderBusinessContext]]:
+    items = reminder_repo.list_by_client(client_id=client_id, page=page, page_size=page_size)
+    total = reminder_repo.count_by_client(client_id)
     return items, total, _build_name_map(business_repo, items)
 
 

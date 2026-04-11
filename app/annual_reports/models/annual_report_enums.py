@@ -72,13 +72,22 @@ class ExtensionReason(str, PyEnum):
     GENERAL_REPRESENTATIVE = "general"           # הארכה כללית של המייצג
     WAR_SITUATION          = "war_situation"     # מצב ביטחוני
 
+ANNUAL_REPORT_FILED_STATUSES: frozenset[AnnualReportStatus] = frozenset({
+    AnnualReportStatus.SUBMITTED,
+    AnnualReportStatus.ACCEPTED,
+    AnnualReportStatus.ASSESSMENT_ISSUED,
+    AnnualReportStatus.OBJECTION_FILED,
+    AnnualReportStatus.CLOSED,
+})
+
 __all__ = [
+    "ANNUAL_REPORT_FILED_STATUSES",
     "AnnualReportForm",
     "AnnualReportSchedule",
     "AnnualReportStatus",
     "ClientTypeForReport",
     "DeadlineType",
-    "ExtensionReason",    
+    "ExtensionReason",
     "ReportStage",
-    "SubmissionMethod",   
+    "SubmissionMethod",
 ]

@@ -120,6 +120,14 @@ class AnnualReportQueryService(AnnualReportBaseService):
         )
         AnnualReportDetailRepository(self.db).upsert(report_id, amendment_reason=reason)
         self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "תיקון דוח — ביטול בקשת חתימה")
+
+        from app.annual_reports.services.deadline_sync import sync_annual_report_deadline
+        sync_annual_report_deadline(
+            self.db, report,
+            AnnualReportStatus.SUBMITTED, AnnualReportStatus.AMENDED,
+            actor_id,
+        )
+
         return self.get_detail_report(report_id)
 
     def kanban_view(self) -> list[dict]:

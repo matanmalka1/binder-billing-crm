@@ -26,7 +26,7 @@ def create_reminder(
 
     if request.reminder_type == ReminderType.TAX_DEADLINE_APPROACHING:
         reminder = service.create_tax_deadline_reminder(
-            business_id=request.business_id,
+            client_id=request.client_id,
             tax_deadline_id=request.tax_deadline_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -36,7 +36,6 @@ def create_reminder(
 
     elif request.reminder_type == ReminderType.VAT_FILING:
         reminder = service.create_vat_filing_reminder(
-            business_id=request.business_id,
             tax_deadline_id=request.tax_deadline_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -46,7 +45,6 @@ def create_reminder(
 
     elif request.reminder_type == ReminderType.BINDER_IDLE:
         reminder = service.create_idle_binder_reminder(
-            business_id=request.business_id,
             binder_id=request.binder_id,
             days_idle=request.days_before,
             message=request.message,
@@ -64,7 +62,6 @@ def create_reminder(
 
     elif request.reminder_type == ReminderType.ANNUAL_REPORT_DEADLINE:
         reminder = service.create_annual_report_deadline_reminder(
-            business_id=request.business_id,
             annual_report_id=request.annual_report_id,
             target_date=request.target_date,
             days_before=request.days_before,

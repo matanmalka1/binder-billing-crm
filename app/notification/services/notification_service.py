@@ -1,9 +1,4 @@
-"""
-NotificationService — public facade used by API and cross-domain callers.
-
-Delegates delivery to NotificationSendService.
-Handles read-state and list operations directly.
-"""
+"""NotificationService — public facade used by API and cross-domain callers."""
 from __future__ import annotations
 
 from typing import Optional
@@ -14,12 +9,12 @@ from app.binders.models.binder import Binder
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.logging_config import get_logger
-
-logger = get_logger(__name__)
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import NotificationResponse
 from app.notification.services.notification_send_service import NotificationSendService
+
+logger = get_logger(__name__)
 
 
 def _enrich(notification: object, name_map: dict[int, str]) -> NotificationResponse:
@@ -79,6 +74,9 @@ class NotificationService:
             content=reminder_text,
             triggered_by=triggered_by,
         )
+
+    def notify_client_reminder(self, client_id: int, reminder_text: str) -> bool:
+        return self._send_svc.send_client_reminder(client_id, reminder_text)
 
     def bulk_notify(
         self,

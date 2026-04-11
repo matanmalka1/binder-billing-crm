@@ -1,5 +1,5 @@
 import asyncio
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from app.core.logging_config import get_logger
 from app.database import SessionLocal
@@ -35,64 +35,68 @@ def run_startup_expiry() -> None:
         db.close()
 
 
-async def daily_expiry_job() -> None:
-    """Run signature expiry check once per day in the background."""
+async def _run_job(name: str, task: Callable) -> None:
+    """Shared background job loop: sleep → open session → run task → close session."""
     while True:
         await asyncio.sleep(_INTERVAL)
         db = SessionLocal()
         try:
-            count = expire_overdue_requests(SignatureRequestRepository(db))
-            if count:
-                logger.info("Daily job: expired %d overdue signature request(s)", count)
+            task(db)
         except Exception:
-            logger.exception("Daily expiry job failed")
+            logger.exception("%s failed", name)
         finally:
             db.close()
+
+
+def _expiry_task(db) -> None:
+    count = expire_overdue_requests(SignatureRequestRepository(db))
+    if count:
+        logger.info("Daily job: expired %d overdue signature request(s)", count)
+
+
+async def daily_expiry_job() -> None:
+    """Run signature expiry check once per day in the background."""
+    await _run_job("daily_expiry_job", _expiry_task)
+
+
+def _vat_compliance_task(db) -> None:
+    from datetime import date as _date
+    from app.reminders.models.reminder import ReminderType
+    from app.reminders.repositories.reminder_repository import ReminderRepository
+    from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
+
+    today = _date.today()
+    overdue = VatComplianceRepository(db).get_overdue_unfiled(today)
+    reminder_repo = ReminderRepository(db)
+    created = 0
+    for row in overdue:
+        if reminder_repo.exists_vat_compliance_reminder(row.client_id, row.period):
+            continue
+        year, month = map(int, row.period.split("-"))
+        next_month = month + 1 if month < 12 else 1
+        next_year = year if month < 12 else year + 1
+        deadline = _date(next_year, next_month, 15)
+        reminder_repo.create(
+            client_id=row.client_id,
+            reminder_type=ReminderType.VAT_FILING,
+            target_date=deadline,
+            days_before=0,
+            send_on=today,
+            message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד החוקי ({deadline}) עבר",
+        )
+        created += 1
+        logger.info(
+            "VAT compliance: created overdue reminder client_id=%d period=%s",
+            row.client_id,
+            row.period,
+        )
+    if created:
+        logger.info("VAT compliance job: created %d reminder(s)", created)
 
 
 async def daily_vat_compliance_job() -> None:
     """Create VAT_FILING reminders for overdue unfiled periods (deadline = 15th of following month)."""
-    while True:
-        await asyncio.sleep(_INTERVAL)
-        db = SessionLocal()
-        try:
-            from datetime import date as _date
-            from app.reminders.models.reminder import ReminderType
-            from app.reminders.repositories.reminder_repository import ReminderRepository
-            from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
-
-            today = _date.today()
-            overdue = VatComplianceRepository(db).get_overdue_unfiled(today)
-            reminder_repo = ReminderRepository(db)
-            created = 0
-            for row in overdue:
-                if reminder_repo.exists_vat_compliance_reminder(row.business_id, row.period):
-                    continue
-                year, month = map(int, row.period.split("-"))
-                # Deadline: 15th of the month after the VAT period
-                next_month = month + 1 if month < 12 else 1
-                next_year = year if month < 12 else year + 1
-                deadline = _date(next_year, next_month, 15)
-                reminder_repo.create(
-                    business_id=row.business_id,
-                    reminder_type=ReminderType.VAT_FILING,
-                    target_date=deadline,
-                    days_before=0,
-                    send_on=today,
-                    message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד החוקי ({deadline}) עבר",
-                )
-                created += 1
-                logger.info(
-                    "VAT compliance: created overdue reminder business_id=%d period=%s",
-                    row.business_id,
-                    row.period,
-                )
-            if created:
-                logger.info("VAT compliance job: created %d reminder(s)", created)
-        except Exception:
-            logger.exception("Daily VAT compliance job failed")
-        finally:
-            db.close()
+    await _run_job("daily_vat_compliance_job", _vat_compliance_task)
 
 
 async def daily_reminder_job() -> None:
@@ -120,17 +124,29 @@ async def daily_reminder_job() -> None:
                     claimed = reminder_svc.claim_for_processing(reminder.id)
                     if not claimed:
                         continue
-                    notification_svc.notify_payment_reminder(
-                        business_id=reminder.business_id,
-                        reminder_text=reminder.message,
-                    )
+                    if reminder.business_id is not None:
+                        notification_svc.notify_payment_reminder(
+                            business_id=reminder.business_id,
+                            reminder_text=reminder.message,
+                        )
+                    elif reminder.client_id is not None:
+                        notification_svc.notify_client_reminder(
+                            client_id=reminder.client_id,
+                            reminder_text=reminder.message,
+                        )
+                    else:
+                        logger.warning(
+                            "Reminder id=%d has neither business_id nor client_id — skipping notify",
+                            reminder.id,
+                        )
                     reminder_svc.mark_sent(reminder.id)
                     sent += 1
                     logger.info(
-                        "Reminder dispatched id=%d type=%s business_id=%d",
+                        "Reminder dispatched id=%d type=%s business_id=%s client_id=%s",
                         reminder.id,
                         reminder.reminder_type,
                         reminder.business_id,
+                        reminder.client_id,
                     )
                 except Exception:
                     failed += 1

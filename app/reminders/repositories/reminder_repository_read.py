@@ -80,3 +80,35 @@ class ReminderRepositoryRead(BaseRepository):
             .order_by(Reminder.created_at.desc())
         )
         return self._paginate(query, page, page_size)
+
+    def list_by_client(
+        self,
+        client_id: int,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[Reminder]:
+        query = (
+            self.db.query(Reminder)
+            .filter(Reminder.client_id == client_id, Reminder.deleted_at.is_(None))
+            .order_by(Reminder.created_at.desc())
+        )
+        return self._paginate(query, page, page_size)
+
+    def count_by_client(self, client_id: int) -> int:
+        return (
+            self.db.query(Reminder)
+            .filter(Reminder.client_id == client_id, Reminder.deleted_at.is_(None))
+            .count()
+        )
+
+    def exists_pending_for_tax_deadline(self, tax_deadline_id: int) -> bool:
+        """Return True if a PENDING reminder for this tax deadline already exists."""
+        return (
+            self.db.query(Reminder.id)
+            .filter(
+                Reminder.tax_deadline_id == tax_deadline_id,
+                Reminder.status == ReminderStatus.PENDING,
+                Reminder.deleted_at.is_(None),
+            )
+            .first()
+        ) is not None

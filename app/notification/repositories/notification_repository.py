@@ -2,6 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import AppError
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
@@ -20,18 +21,24 @@ class NotificationRepository:
 
     def create(
         self,
-        business_id: int,
         trigger: NotificationTrigger,
         channel: NotificationChannel,
         recipient: str,
         content_snapshot: str,
+        business_id: Optional[int] = None,
+        client_id: Optional[int] = None,
         binder_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> Notification:
-        """Create new notification record."""
+        if (business_id is None) == (client_id is None):
+            raise AppError(
+                "התראה חייבת לשייך לעסק או ללקוח — לא לשניהם ולא לאף אחד",
+                "NOTIFICATION.INVALID_OWNER",
+            )
         notification = Notification(
             business_id=business_id,
+            client_id=client_id,
             binder_id=binder_id,
             trigger=trigger,
             channel=channel,
@@ -136,7 +143,6 @@ class NotificationRepository:
         return q.order_by(Notification.created_at.desc()).limit(limit).all()
 
     def exists_for_binder_trigger(self, binder_id: int, trigger: NotificationTrigger) -> bool:
-        """Return True if a notification for this binder+trigger already exists (idempotency guard)."""
         return (
             self.db.query(Notification)
             .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)

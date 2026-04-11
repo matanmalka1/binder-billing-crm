@@ -45,6 +45,12 @@ def build_client_events(
         for reminder in reminders:
             events.append(reminder_created_event(reminder))
 
+    client_reminders = reminder_repo.list_by_client(
+        client_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+    )
+    for reminder in client_reminders:
+        events.append(reminder_created_event(reminder))
+
     docs = []
     if business_ids:
         docs = (

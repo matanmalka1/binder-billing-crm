@@ -99,6 +99,9 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
             self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "כניסה חוזרת ל-PENDING_CLIENT")
             self._trigger_signature_request(updated, changed_by, changed_by_name)
 
+        from app.annual_reports.services.deadline_sync import sync_annual_report_deadline
+        sync_annual_report_deadline(self.db, updated, old_status, ns, changed_by)
+
         return self._to_responses([updated])[0]
 
     def update_deadline(
