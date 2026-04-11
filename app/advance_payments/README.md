@@ -1,24 +1,24 @@
 # Advance Payments Module
 
-> Last audited: 2026-03-21 (domain-by-domain backend sync).
+> Last audited: 2026-04-11
 
-Manages advance tax-payment records (מקדמות) per business per period, schedule generation, overview analytics, and KPI/chart endpoints.
+Manages advance tax-payment records (מקדמות) per client per period, schedule generation, overview analytics, and KPI/chart endpoints.
 
 ## Scope
 
 This module provides:
-- CRUD operations for business advance payments
-- Filtering + pagination for business-year payment lists
+- CRUD operations for client advance payments
+- Filtering + pagination for client-year payment lists
 - Bulk annual schedule generation (idempotent, monthly or bi-monthly)
 - Expected amount suggestion based on prior-year VAT + tax profile rate
 - Overview table + KPI aggregation endpoints
-- Annual and monthly chart/KPI endpoints per business
+- Annual and monthly chart/KPI endpoints per client
 
 ## Domain Model
 
 `AdvancePayment` fields:
 - `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
+- `client_id` (FK -> `clients.id`, required)
 - `annual_report_id` (optional FK -> `annual_reports.id`)
 - `period` (`YYYY-MM`, required) — first month of the reporting period
 - `period_months_count` (1=monthly, 2=bi-monthly, required)
@@ -33,7 +33,7 @@ This module provides:
 - `deleted_at`, `deleted_by` (soft delete)
 
 Uniqueness:
-- one row per (`business_id`, `period`)
+- one row per (`client_id`, `period`)
 
 Status enum values:
 - `pending`
@@ -60,12 +60,12 @@ Implementation references:
 
 Routers are mounted in `app/main.py` under `/api/v1`.
 
-### Business-scoped endpoints (`/api/v1/businesses/{business_id}/advance-payments`)
+### Client-scoped endpoints (`/api/v1/clients/{client_id}/advance-payments`)
 
 Roles: `ADVISOR`, `SECRETARY`
 
 #### List advance payments
-- `GET /api/v1/businesses/{business_id}/advance-payments`
+- `GET /api/v1/clients/{client_id}/advance-payments`
 - Query params:
   - `year` (optional; defaults to current year)
   - `status` (optional repeatable enum filter)
@@ -73,13 +73,13 @@ Roles: `ADVISOR`, `SECRETARY`
   - `page_size` (default `20`, min `1`, max `100`)
 
 #### Create advance payment
-- `POST /api/v1/businesses/{business_id}/advance-payments`
+- `POST /api/v1/clients/{client_id}/advance-payments`
 - Role: `ADVISOR` only
 - Body:
 
 ```json
 {
-  "business_id": 123,
+  "client_id": 123,
   "period": "2026-03",
   "period_months_count": 1,
   "due_date": "2026-04-15",
@@ -92,40 +92,40 @@ Roles: `ADVISOR`, `SECRETARY`
 ```
 
 #### Suggest expected amount
-- `GET /api/v1/businesses/{business_id}/advance-payments/suggest`
+- `GET /api/v1/clients/{client_id}/advance-payments/suggest`
 - Query params:
   - `year` (required)
 
 #### Annual KPIs
-- `GET /api/v1/businesses/{business_id}/advance-payments/kpi`
+- `GET /api/v1/clients/{client_id}/advance-payments/kpi`
 - Query params:
   - `year` (required)
 
 #### Monthly chart data
-- `GET /api/v1/businesses/{business_id}/advance-payments/chart`
+- `GET /api/v1/clients/{client_id}/advance-payments/chart`
 - Query params:
   - `year` (required)
 
 #### Update advance payment
-- `PATCH /api/v1/businesses/{business_id}/advance-payments/{payment_id}`
+- `PATCH /api/v1/clients/{client_id}/advance-payments/{payment_id}`
 - Role: `ADVISOR` only
 - Allowed fields: `paid_amount`, `expected_amount`, `status`, `paid_at`, `payment_method`, `notes`
 
 #### Delete advance payment
-- `DELETE /api/v1/businesses/{business_id}/advance-payments/{payment_id}`
+- `DELETE /api/v1/clients/{client_id}/advance-payments/{payment_id}`
 - Role: `ADVISOR` only
 - Returns `204 No Content`
 
 ### Standalone endpoints (`/api/v1/advance-payments`)
 
 #### Generate annual schedule
-- `POST /api/v1/advance-payments/generate`
+- `POST /api/v1/clients/{client_id}/advance-payments/generate`
 - Role: `ADVISOR` only
 - Body:
 
 ```json
 {
-  "business_id": 123,
+  "client_id": 123,
   "year": 2026,
   "period_months_count": 1
 }
@@ -146,8 +146,8 @@ Roles: `ADVISOR`, `SECRETARY`
 
 ## Behavior Notes
 
-- Payment creation validates business existence and status (`CLOSED`/`FROZEN` blocked).
-- Uniqueness enforced on (`business_id`, `period`) — duplicate raises `ADVANCE_PAYMENT.CONFLICT`.
+- Payment creation validates client existence and status (`CLOSED`/`FROZEN` blocked).
+- Uniqueness enforced on (`client_id`, `period`) — duplicate raises `ADVANCE_PAYMENT.CONFLICT`.
 - Update endpoint accepts only whitelisted fields.
 - Empty update payload is rejected by schema validation.
 - Annual schedule generation:
@@ -156,7 +156,7 @@ Roles: `ADVISOR`, `SECRETARY`
   - `due_date` = 15th of the month following the period end
   - Skips periods that already exist (idempotent)
 - Suggestion formula:
-  - Reads `advance_rate` from `BusinessTaxProfile`
+  - Reads `advance_rate` from client tax profile
   - Reads prior-year output VAT from `VatClientSummaryRepository`
   - `annual_income = output_vat / 0.18`
   - `monthly = (annual_income × rate / 100) / 12`, rounded to nearest shekel
@@ -171,15 +171,14 @@ Errors follow the global app format from `app/core/exceptions.py`, including:
 
 Domain errors use stable codes such as:
 - `ADVANCE_PAYMENT.NOT_FOUND`
-- `ADVANCE_PAYMENT.BUSINESS_NOT_FOUND`
+- `ADVANCE_PAYMENT.CLIENT_NOT_FOUND`
 - `ADVANCE_PAYMENT.CONFLICT`
 - `ADVANCE_PAYMENT.RATE_INVALID`
-- `BUSINESS.NOT_FOUND`
+- `CLIENT.NOT_FOUND`
 
 ## Cross-Domain Integration
 
-- `businesses`: validates business existence and status before create.
-- `businesses/tax_profile`: suggestion flow reads `advance_rate` from `BusinessTaxProfile`.
+- `clients`: validates client existence and status before create.
 - `vat_reports`: suggestion flow uses prior-year output VAT totals via `VatClientSummaryRepository`.
 - `annual_reports`: optional FK (`annual_report_id`) links a payment to an annual report.
 

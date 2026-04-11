@@ -1,5 +1,4 @@
-from datetime import date, datetime
-from decimal import Decimal
+from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
@@ -10,7 +9,6 @@ from app.tax_deadline.models.tax_deadline import (
     TaxDeadlineStatus,
     UrgencyLevel,
 )
-
 
 class TaxDeadlineCreateRequest(BaseModel):
     client_id: int
@@ -32,7 +30,6 @@ class TaxDeadlineCreateRequest(BaseModel):
             raise ValueError("period must be in YYYY-MM format")
         return value
 
-
 class TaxDeadlineResponse(BaseModel):
     id: int
     client_id: int
@@ -51,7 +48,6 @@ class TaxDeadlineResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
-
 class TaxDeadlineUpdateRequest(BaseModel):
     deadline_type: Optional[DeadlineType] = None
     due_date: Optional[date] = None
@@ -64,13 +60,11 @@ class TaxDeadlineUpdateRequest(BaseModel):
     def validate_period(cls, value: Optional[str]) -> Optional[str]:
         return TaxDeadlineCreateRequest.validate_period(value)
 
-
 class TaxDeadlineListResponse(BaseModel):
     items: list[TaxDeadlineResponse]
     page: int
     page_size: int
     total: int
-
 
 class DeadlineUrgentItem(BaseModel):
     id: int
@@ -82,27 +76,16 @@ class DeadlineUrgentItem(BaseModel):
     days_remaining: int
     payment_amount: Optional[ApiDecimal] = None
 
-
 class DashboardDeadlinesResponse(BaseModel):
     urgent: list[DeadlineUrgentItem]
     upcoming: list[TaxDeadlineResponse]
 
-
 class GenerateDeadlinesRequest(BaseModel):
-    client_id: Optional[int] = None
-    business_id: Optional[int] = None       # deprecated bridge — resolved to client_id in API layer
+    client_id: int
     year: int
-
-    @field_validator("client_id", mode="before")
-    @classmethod
-    def require_client_or_business(cls, v, info):
-        # Validation done in API layer after resolving business_id → client_id
-        return v
-
 
 class GenerateDeadlinesResponse(BaseModel):
     created_count: int
-
 
 class TimelineEntry(BaseModel):
     id: int

@@ -5,8 +5,6 @@ from fastapi import APIRouter, Depends, Query
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.users.models.user import UserRole
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.schemas.tax_deadline import (
     DashboardDeadlinesResponse,
     DeadlineUrgentItem,
@@ -41,7 +39,6 @@ def list_tax_deadlines(
     db: DBSession,
     user: CurrentUser,
     client_id: Optional[int] = None,
-    business_id: Optional[int] = Query(None, description="deprecated — resolved to client_id"),
     business_name: Optional[str] = Query(None),
     client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
@@ -61,15 +58,8 @@ def list_tax_deadlines(
     due_from_date = date_type.fromisoformat(due_from) if due_from else None
     due_to_date = date_type.fromisoformat(due_to) if due_to else None
 
-    # Resolve deprecated business_id → client_id
-    resolved_client_id = client_id
-    if resolved_client_id is None and business_id is not None:
-        business = BusinessRepository(db).get_by_id(business_id)
-        if business:
-            resolved_client_id = business.client_id
-
     paginated, total = service.list_deadlines(
-        resolved_client_id, search_name, status_filter, type_enum, page=page, page_size=page_size,
+        client_id, search_name, status_filter, type_enum, page=page, page_size=page_size,
         due_from=due_from_date, due_to=due_to_date, period=period,
     )
 

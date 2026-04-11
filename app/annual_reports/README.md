@@ -1,8 +1,8 @@
 # Annual Reports Module
 
-> Last audited: 2026-03-22 (code audit of `app/annual_reports/**`, including routers/services/repositories/models).
+> Last audited: 2026-04-11
 
-Manages annual income-tax report lifecycle per business: creation, workflow statuses, schedules/annex lines, financial lines, tax/readiness calculation, season summary, and PDF export.
+Manages annual income-tax report lifecycle per client: creation, workflow statuses, schedules/annex lines, financial lines, tax/readiness calculation, season summary, and PDF export.
 
 ## Scope
 
@@ -14,14 +14,14 @@ This module provides:
 - Annex data lines per schedule
 - Detail section (deductions/approval/internal notes)
 - Income/expense line CRUD, financial summary, readiness, tax calculation, and advances summary
-- Business-level and tax-year-level listing/summary endpoints
+- Client-level and tax-year-level listing/summary endpoints
 - Working-draft PDF export
 
 ## Domain Model
 
 Primary entity: `AnnualReport` (`app/annual_reports/models/annual_report_model.py`)
 - `id` (PK)
-- `business_id` (FK, required)
+- `client_id` (FK, required)
 - `created_by` (FK, required)
 - `assigned_to` (FK, optional)
 - `tax_year` (required)
@@ -41,7 +41,7 @@ Primary entity: `AnnualReport` (`app/annual_reports/models/annual_report_model.p
 - `deleted_at`, `deleted_by` (soft delete)
 
 Active-record uniqueness:
-- one non-deleted annual report per (`business_id`, `tax_year`) via partial unique index
+- one non-deleted annual report per (`client_id`, `tax_year`) via partial unique index
 
 Related entities:
 - `AnnualReportDetail`
@@ -143,15 +143,15 @@ Routers are mounted in `app/router_registry.py` with `/api/v1` prefix.
 
 ### Cross-prefix views
 
-- `GET /api/v1/businesses/{business_id}/annual-reports` (ADVISOR, SECRETARY)
+- `GET /api/v1/clients/{client_id}/annual-reports` (ADVISOR, SECRETARY)
 - `GET /api/v1/tax-year/{tax_year}/reports` (ADVISOR, SECRETARY)
 - `GET /api/v1/tax-year/{tax_year}/summary` (ADVISOR, SECRETARY)
 
 ## Request/Behavior Notes
 
-- Create payload uses `business_id` (not `client_id`).
+- Create payload uses `client_id`.
 - On create:
-  - validates business existence and business-create guards
+  - validates client existence and client-create guards
   - validates `assigned_to` user when provided
   - maps `client_type -> form_type`
   - computes deadline for `standard`/`extended`; keeps `filing_deadline=None` for `custom`
@@ -194,7 +194,7 @@ Common domain error codes:
 
 ## Cross-Domain Integrations
 
-- `businesses`: existence/guards and business-level report listing
+- `clients`: existence/guards and client-level report listing
 - `users`: RBAC and actor attribution
 - `signature_requests`: auto-create/cancel around `pending_client` workflow
 - `advance_payments`: advances summary/final balance
