@@ -12,14 +12,22 @@ class PermanentDocumentQueryRepository:
         self.db = db
 
     def get_latest_version(
-        self, business_id: int, document_type: str, tax_year: Optional[int] = None
+        self,
+        client_id: int,
+        document_type: str,
+        tax_year: Optional[int] = None,
+        business_id: Optional[int] = None,
     ) -> Optional[PermanentDocument]:
         q = self.db.query(PermanentDocument).filter(
-            PermanentDocument.business_id == business_id,
+            PermanentDocument.client_id == client_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
             PermanentDocument.superseded_by == None,  # noqa: E711
         )
+        if business_id is None:
+            q = q.filter(PermanentDocument.business_id == None)  # noqa: E711
+        else:
+            q = q.filter(PermanentDocument.business_id == business_id)
         if tax_year is not None:
             q = q.filter(PermanentDocument.tax_year == tax_year)
         return q.order_by(PermanentDocument.version.desc()).first()

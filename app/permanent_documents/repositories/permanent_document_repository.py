@@ -15,7 +15,7 @@ class PermanentDocumentRepository:
     def create(
         self,
         client_id: int,
-        business_id: int,
+        business_id: Optional[int],
         scope: DocumentScope,
         document_type: str,
         storage_key: str,

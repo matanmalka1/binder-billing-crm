@@ -10,7 +10,6 @@ from app.clients.services.client_service import ClientService
 from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TYPES, _MAX_FILE_SIZE
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import (
-    CLIENT_SCOPE_TYPES,
     DocumentScope,
     DocumentStatus,
     DocumentType,
@@ -21,7 +20,6 @@ from app.businesses.services.business_lookup import get_business_or_raise
 from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
-from app.utils.time_utils import utcnow
 
 _DEFAULT_REQUIRED_TYPES = [
     DocumentType.ID_COPY.value,
@@ -49,26 +47,44 @@ class PermanentDocumentService:
             )
         return resolved
 
+    def _build_storage_key(
+        self,
+        *,
+        client_id: int,
+        document_type: str,
+        tax_year: Optional[int],
+        version: int,
+        filename: str,
+        business_id: Optional[int] = None,
+    ) -> str:
+        tax_year_str = str(tax_year) if tax_year else "permanent"
+        owner_segment = f"businesses/{business_id}" if business_id is not None else f"clients/{client_id}"
+        return f"{owner_segment}/{document_type}/{tax_year_str}/v{version}_{filename}"
+
     def upload_document(
         self,
-        business_id: int,
+        client_id: int,
         document_type: str,
         file_data: BinaryIO,
         filename: str,
         uploaded_by: int,
+        business_id: Optional[int] = None,
         tax_year: Optional[int] = None,
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
         mime_type: Optional[str] = None,
     ) -> PermanentDocument:
-        try:
-            business = get_business_or_raise(self.db, business_id)
-        except NotFoundError as exc:
-            raise NotFoundError("העסק לא נמצא", "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
+        ClientService(self.db).get_client_or_raise(client_id)
+        if business_id is not None:
+            try:
+                business = get_business_or_raise(self.db, business_id)
+            except NotFoundError as exc:
+                raise NotFoundError("העסק לא נמצא", "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
+            if business.client_id != client_id:
+                raise AppError("העסק אינו שייך ללקוח", "PERMANENT_DOCUMENTS.BUSINESS_CLIENT_MISMATCH", status_code=422)
 
-        client_id = business.client_id
-        doc_type_enum = DocumentType(document_type)
-        scope = DocumentScope.CLIENT if doc_type_enum in CLIENT_SCOPE_TYPES else DocumentScope.BUSINESS
+        scope = DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT
+        DocumentType(document_type)
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
@@ -80,10 +96,21 @@ class PermanentDocumentService:
             )
         resolved_mime = self._resolve_mime(mime_type, filename)
 
-        tax_year_str = str(tax_year) if tax_year else "permanent"
-        existing = self.query_repo.get_latest_version(business_id, document_type, tax_year)
+        existing = self.query_repo.get_latest_version(
+            client_id=client_id,
+            business_id=business_id,
+            document_type=document_type,
+            tax_year=tax_year,
+        )
         next_version = (existing.version + 1) if existing else 1
-        storage_key = f"businesses/{business_id}/{document_type}/{tax_year_str}/v{next_version}_{filename}"
+        storage_key = self._build_storage_key(
+            client_id=client_id,
+            business_id=business_id,
+            document_type=document_type,
+            tax_year=tax_year,
+            version=next_version,
+            filename=filename,
+        )
 
         # Flush DB record first; upload to storage only if flush succeeds.
         # Single commit at the end keeps record + superseded_by atomic.
@@ -207,9 +234,15 @@ class PermanentDocumentService:
             )
         resolved_mime = self._resolve_mime(mime_type, filename)
 
-        tax_year_str = str(doc.tax_year) if doc.tax_year else "permanent"
         next_version = doc.version + 1
-        storage_key = f"businesses/{doc.business_id}/{doc.document_type}/{tax_year_str}/v{next_version}_{filename}"
+        storage_key = self._build_storage_key(
+            client_id=doc.client_id,
+            business_id=doc.business_id,
+            document_type=doc.document_type,
+            tax_year=doc.tax_year,
+            version=next_version,
+            filename=filename,
+        )
         self.storage.upload(storage_key, io.BytesIO(file_bytes), resolved_mime)
         doc.storage_key = storage_key
         doc.mime_type = resolved_mime

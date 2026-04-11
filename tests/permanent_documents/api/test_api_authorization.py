@@ -35,6 +35,7 @@ def test_secretary_can_upload_documents(client, secretary_headers, test_db):
         "/api/v1/documents/upload",
         headers=secretary_headers,
         data={
+            "client_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },
@@ -57,6 +58,7 @@ def test_advisor_can_upload_documents(client, advisor_headers, test_db):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         data={
+            "client_id": b.client_id,
             "business_id": b.id,
             "document_type": "power_of_attorney",
         },
@@ -73,6 +75,7 @@ def test_unauthenticated_cannot_upload_documents(client, test_db):
     response = client.post(
         "/api/v1/documents/upload",
         data={
+            "client_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },
@@ -90,6 +93,7 @@ def test_invalid_token_cannot_upload_documents(client, test_db):
         "/api/v1/documents/upload",
         headers={"Authorization": "Bearer invalid-token"},
         data={
+            "client_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },

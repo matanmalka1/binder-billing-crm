@@ -17,7 +17,6 @@ router = APIRouter(
     tags=["permanent-documents"],
 )
 
-
 @router.post(
     "/upload",
     response_model=PermanentDocumentResponse,
@@ -25,11 +24,12 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def upload_permanent_document(
-    business_id: Annotated[int, Form(...)],
+    client_id: Annotated[int, Form(...)],
     document_type: Annotated[str, Form(...)],
     file: Annotated[UploadFile, File(...)],
     db: DBSession,
     user: CurrentUser,
+    business_id: Annotated[Optional[int], Form()] = None,
     tax_year: Annotated[Optional[int], Form()] = None,
     annual_report_id: Annotated[Optional[int], Form()] = None,
     notes: Annotated[Optional[str], Form()] = None,
@@ -37,18 +37,18 @@ def upload_permanent_document(
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
     document = service.upload_document(
-        business_id=business_id,
+        client_id=client_id,
         document_type=document_type,
         file_data=file.file,
         filename=file.filename or "document",
         uploaded_by=user.id,
+        business_id=business_id,
         tax_year=tax_year,
         annual_report_id=annual_report_id,
         notes=notes,
         mime_type=file.content_type,
     )
     return PermanentDocumentResponse.model_validate(document)
-
 
 @router.get(
     "/client/{client_id}",
@@ -68,7 +68,6 @@ def list_client_documents(
     return PermanentDocumentListResponse(
         items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]
     )
-
 
 @router.get(
     "/client/{client_id}/signals",

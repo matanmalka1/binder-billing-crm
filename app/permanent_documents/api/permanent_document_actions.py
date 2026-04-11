@@ -16,8 +16,6 @@ router = APIRouter(
     tags=["permanent-documents"],
 )
 
-
-
 @router.get(
     "/client/{client_id}/versions",
     response_model=DocumentVersionsResponse,

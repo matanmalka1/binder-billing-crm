@@ -42,7 +42,7 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", file_bytes, "application/pdf")},
-        data={"business_id": business.id, "document_type": "id_copy"},
+        data={"client_id": business.client_id, "business_id": business.id, "document_type": "id_copy"},
     )
     assert resp.status_code == 201
     doc = resp.json()
@@ -104,3 +104,20 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     list_resp = client.get(f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers)
     assert list_resp.status_code == 200
     assert list_resp.json()["items"] == []
+
+
+def test_upload_without_business_id_creates_client_owned_document(client, test_db, advisor_headers):
+    business = _business(test_db)
+
+    resp = client.post(
+        "/api/v1/documents/upload",
+        headers=advisor_headers,
+        files={"file": ("id.pdf", BytesIO(b"content"), "application/pdf")},
+        data={"client_id": business.client_id, "document_type": "id_copy"},
+    )
+
+    assert resp.status_code == 201
+    doc = resp.json()
+    assert doc["client_id"] == business.client_id
+    assert doc["business_id"] is None
+    assert doc["scope"] == "client"
