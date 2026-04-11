@@ -10,7 +10,8 @@ from app.audit.constants import (
     ENTITY_ANNUAL_REPORT,
 )
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.businesses.services.business_guards import assert_business_allows_create
+from app.clients.models.client import ClientStatus
+from app.clients.repositories.client_repository import ClientRepository
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.schemas.annual_report_financials import (
@@ -18,10 +19,17 @@ from app.annual_reports.schemas.annual_report_financials import (
     FinancialSummaryResponse,
     IncomeLineResponse,
 )
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 
 
 class FinancialCrudMixin:
+    def _assert_client_allows_create(self, client_id: int) -> None:
+        client = ClientRepository(self.db).get_by_id(client_id)
+        if client and client.status == ClientStatus.CLOSED:
+            raise ForbiddenError("לקוח סגור — לא ניתן ליצור עבודה חדשה", "CLIENT.CLOSED")
+        if client and client.status == ClientStatus.FROZEN:
+            raise ForbiddenError("לקוח מוקפא — לא ניתן ליצור עבודה חדשה", "CLIENT.FROZEN")
+
     def add_income(
         self,
         report_id: int,
@@ -31,9 +39,7 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
-        businesses = self.business_repo.list_by_client(report.client_id)
-        if businesses:
-            assert_business_allows_create(businesses[0])
+        self._assert_client_allows_create(report.client_id)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(f"סוג הכנסה לא חוקי: '{source_type}'", "ANNUAL_REPORT.INVALID_TYPE")
@@ -87,9 +93,7 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
-        businesses = self.business_repo.list_by_client(report.client_id)
-        if businesses:
-            assert_business_allows_create(businesses[0])
+        self._assert_client_allows_create(report.client_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(f"קטגוריית הוצאה לא חוקית: '{category}'", "ANNUAL_REPORT.INVALID_TYPE")

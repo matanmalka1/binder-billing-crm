@@ -15,7 +15,6 @@ _SORT_COLUMNS = {
     "filing_deadline": AnnualReport.filing_deadline,
     "created_at": AnnualReport.created_at,
     "client_id": AnnualReport.client_id,
-    "business_id": AnnualReport.client_id,  # legacy alias
 }
 
 
@@ -62,14 +61,6 @@ class AnnualReportReportRepository(BaseRepository):
             .first()
         )
 
-    def get_by_business_year(self, business_id: int, tax_year: int) -> Optional[AnnualReport]:
-        """Deprecated: resolves business→client then delegates to get_by_client_year."""
-        from app.businesses.models.business import Business
-        business = self.db.query(Business).filter(Business.id == business_id).first()
-        if not business:
-            return None
-        return self.get_by_client_year(business.client_id, tax_year)
-
     def list_by_client(self, client_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
         q = (
             self.db.query(AnnualReport)
@@ -84,22 +75,6 @@ class AnnualReportReportRepository(BaseRepository):
             .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
             .count()
         )
-
-    def list_by_business(self, business_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
-        """Deprecated: resolves business→client then delegates to list_by_client."""
-        from app.businesses.models.business import Business
-        business = self.db.query(Business).filter(Business.id == business_id).first()
-        if not business:
-            return []
-        return self.list_by_client(business.client_id, page=page, page_size=page_size)
-
-    def count_by_business(self, business_id: int) -> int:
-        """Deprecated: resolves business→client then delegates to count_by_client."""
-        from app.businesses.models.business import Business
-        business = self.db.query(Business).filter(Business.id == business_id).first()
-        if not business:
-            return 0
-        return self.count_by_client(business.client_id)
 
     def list_by_status(
         self,

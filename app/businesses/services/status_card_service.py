@@ -48,7 +48,7 @@ class StatusCardService:
         client_id: int,
         year: Optional[int] = None,
     ) -> BusinessStatusCardResponse:
-        # Use the first non-deleted business for business-scoped data (annual reports, charges, advances, documents).
+        # Charges are still business-scoped; fetch first business for charges + response field.
         business = (
             self._db.query(_Business)
             .filter(_Business.client_id == client_id, _Business.deleted_at.is_(None))
@@ -57,18 +57,17 @@ class StatusCardService:
         if not business:
             raise NotFoundError("לא נמצא עסק עבור לקוח זה", "BUSINESS.NOT_FOUND")
 
-        business_id = business.id
         resolved_year = year or utcnow().year
         return BusinessStatusCardResponse(
             client_id=client_id,
-            business_id=business_id,
+            business_id=business.id,
             year=resolved_year,
             client_vat=self._vat_card(client_id, resolved_year),
-            annual_report=self._annual_report_card(business_id, resolved_year),
-            charges=self._charges_card(business_id),
-            advance_payments=self._advance_payments_card(business_id, resolved_year),
+            annual_report=self._annual_report_card(client_id, resolved_year),
+            charges=self._charges_card(business.id),
+            advance_payments=self._advance_payments_card(client_id, resolved_year),
             binders=self._binders_card(client_id),
-            documents=self._documents_card(business_id),
+            documents=self._documents_card(client_id),
         )
 
     def _vat_card(self, client_id: int, year: int) -> VatSummaryCard:
@@ -87,8 +86,8 @@ class StatusCardService:
             latest_period=latest,
         )
 
-    def _annual_report_card(self, business_id: int, year: int) -> AnnualReportCard:
-        report = self._annual_repo.get_by_business_year(business_id, year)
+    def _annual_report_card(self, client_id: int, year: int) -> AnnualReportCard:
+        report = self._annual_repo.get_by_client_year(client_id, year)
         if not report:
             return AnnualReportCard()
         deadline_str = (
@@ -112,9 +111,9 @@ class StatusCardService:
         total = sum((r.amount or Decimal(0)) for r in rows)
         return ChargesCard(total_outstanding=total, unpaid_count=len(rows))
 
-    def _advance_payments_card(self, business_id: int, year: int) -> AdvancePaymentsCard:
-        rows, _ = self._advance_repo.list_by_business_year(
-            business_id=business_id,
+    def _advance_payments_card(self, client_id: int, year: int) -> AdvancePaymentsCard:
+        rows, _ = self._advance_repo.list_by_client_year(
+            client_id=client_id,
             year=year,
             page=1,
             page_size=10_000,
@@ -128,7 +127,7 @@ class StatusCardService:
         in_office = sum(1 for r in active if r.status == BinderStatus.IN_OFFICE)
         return BindersCard(active_count=len(active), in_office_count=in_office)
 
-    def _documents_card(self, business_id: int) -> DocumentsCard:
-        rows = self._doc_repo.list_by_business(business_id)
+    def _documents_card(self, client_id: int) -> DocumentsCard:
+        rows = self._doc_repo.list_by_client(client_id)
         present = sum(1 for r in rows if r.is_present)
         return DocumentsCard(total_count=len(rows), present_count=present)

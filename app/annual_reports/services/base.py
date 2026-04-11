@@ -40,9 +40,7 @@ class AnnualReportBaseService:
             client = clients.get(r.client_id)
             if client:
                 obj.client_name = client.full_name
-                # Resolve primary business name for display (optional)
-                businesses = self.business_repo.list_by_client(r.client_id) if hasattr(self.business_repo, "list_by_client") else []
-                obj.business_name = businesses[0].business_name if businesses else None
+                obj.business_name = client.full_name
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
             result.append(obj)
         return result
