@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 from sqlalchemy.exc import IntegrityError
+from unittest.mock import patch
 
 from app.businesses.models.business import BusinessStatus, BusinessType
 from app.businesses.services.business_service import BusinessService
@@ -42,6 +43,33 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
         )
 
     assert exc.value.code == "BUSINESS.CONFLICT"
+
+
+def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(test_db):
+    captured = {}
+
+    def _create(**kwargs):
+        captured.update(kwargs)
+        return kwargs
+
+    service = BusinessService(test_db)
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(business_start_date=None))
+    service.business_repo = SimpleNamespace(
+        all_non_deleted_are_closed=lambda _client_id: False,
+        list_by_client=lambda _client_id, **_kwargs: [],
+        create=_create,
+    )
+
+    with patch("app.businesses.services.business_service.date") as mock_date:
+        mock_date.today.return_value = date(2026, 4, 9)
+        result = service.create_business(
+            client_id=1,
+            business_type="company",
+            business_name="Uses Today",
+        )
+
+    assert result["opened_at"] == date(2026, 4, 9)
+    assert captured["opened_at"] == date(2026, 4, 9)
 
 
 def test_update_business_rejects_invalid_status_value(test_db):

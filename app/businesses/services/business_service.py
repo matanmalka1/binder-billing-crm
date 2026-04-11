@@ -36,7 +36,7 @@ class BusinessService:
         self,
         client_id: int,
         business_type: str,
-        opened_at: date,
+        opened_at: Optional[date] = None,
         business_name: Optional[str] = None,
         notes: Optional[str] = None,
         tax_id_number: Optional[str] = None,
@@ -45,6 +45,8 @@ class BusinessService:
         client = self.client_repo.get_by_id(client_id)
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+
+        effective_opened_at = opened_at or getattr(client, "business_start_date", None) or date.today()
 
         parsed_type = BusinessType(business_type)
         if parsed_type in self._SOLE_TRADER_TYPES:
@@ -71,7 +73,7 @@ class BusinessService:
 
         try:
             business = self.business_repo.create(
-                client_id=client_id, business_type=business_type, opened_at=opened_at,
+                client_id=client_id, business_type=business_type, opened_at=effective_opened_at,
                 business_name=business_name, notes=notes, tax_id_number=tax_id_number,
                 created_by=actor_id,
             )

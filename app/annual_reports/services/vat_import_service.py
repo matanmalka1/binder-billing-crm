@@ -31,6 +31,7 @@ _ALLOWED_STATUSES = {
 
 # Maps VAT ExpenseCategory values → annual report ExpenseCategoryType
 _VAT_TO_ANNUAL: dict[str, ExpenseCategoryType] = {
+    "inventory": ExpenseCategoryType.OTHER,
     "office": ExpenseCategoryType.OFFICE_RENT,
     "rent": ExpenseCategoryType.OFFICE_RENT,
     "professional_services": ExpenseCategoryType.PROFESSIONAL_SERVICES,

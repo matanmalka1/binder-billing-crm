@@ -41,7 +41,6 @@ def test_create_list_and_get_business_endpoints(client, test_db, test_user, advi
 
     create_payload = {
         "business_type": "company",
-        "opened_at": "2026-01-01",
         "business_name": "API Biz A",
         "notes": "hello",
     }
@@ -54,6 +53,7 @@ def test_create_list_and_get_business_endpoints(client, test_db, test_user, advi
     created_data = created_resp.json()
     assert created_data["client_id"] == crm_client.id
     assert created_data["business_name"] == "API Biz A"
+    assert created_data["opened_at"] == date.today().isoformat()
     assert created_data["available_actions"][0]["key"] == "freeze"
 
     list_client_resp = client.get(

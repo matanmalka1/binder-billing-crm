@@ -35,6 +35,7 @@ ACTION_OVERRIDE = "vat_override"
 ACTION_FILED = "filed"
 
 CATEGORY_LABELS_SERVER: dict[str, str] = {
+    "inventory": "קניית סחורה / מלאי",
     "office": "משרד",
     "travel": "נסיעות",
     "professional_services": "שירותים מקצועיים",
@@ -64,6 +65,7 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
 # Source: Israeli VAT Law §41
 CATEGORY_DEDUCTION_RATES: dict[str, Decimal] = {
     # 100% קיזוז
+    "inventory":             Decimal("1.0000"),
     "office":                Decimal("1.0000"),
     "professional_services": Decimal("1.0000"),
     "equipment":             Decimal("1.0000"),

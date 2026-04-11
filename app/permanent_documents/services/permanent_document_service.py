@@ -16,6 +16,7 @@ from app.permanent_documents.models.permanent_document import (
     DocumentType,
     PermanentDocument,
 )
+from app.utils.time_utils import utcnow
 from app.businesses.services.business_lookup import get_business_or_raise
 from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
@@ -95,6 +96,7 @@ class PermanentDocumentService:
             uploaded_by=uploaded_by,
             tax_year=tax_year,
             version=next_version,
+            status=DocumentStatus.APPROVED,
             annual_report_id=annual_report_id,
             original_filename=filename,
             file_size_bytes=file_size,
@@ -102,6 +104,8 @@ class PermanentDocumentService:
             notes=notes,
             commit=False,
         )
+        document.approved_by = uploaded_by
+        document.approved_at = utcnow()
         try:
             self.storage.upload(storage_key, io.BytesIO(file_bytes), resolved_mime)
         except Exception as exc:

@@ -16,7 +16,7 @@ class BusinessCreateRequest(BaseModel):
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
     business_type: BusinessType             # enum — לא str חופשי
-    opened_at: date
+    opened_at: Optional[date] = None
     business_name: Optional[str] = None
     notes: Optional[str] = None
     tax_id_number: Optional[str] = None

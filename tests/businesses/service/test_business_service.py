@@ -28,6 +28,33 @@ def test_create_business_rejects_duplicate_name_for_client(test_db):
     assert exc.value.code == "BUSINESS.NAME_CONFLICT"
 
 
+def test_create_business_defaults_opened_at_from_client_business_start_date(test_db):
+    captured = {}
+
+    def _create(**kwargs):
+        captured.update(kwargs)
+        return kwargs
+
+    service = BusinessService(test_db)
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _client_id: SimpleNamespace(business_start_date=date(2025, 3, 4))
+    )
+    service.business_repo = SimpleNamespace(
+        all_non_deleted_are_closed=lambda _client_id: False,
+        list_by_client=lambda _client_id, **_kwargs: [],
+        create=_create,
+    )
+
+    result = service.create_business(
+        client_id=1,
+        business_type="company",
+        business_name="From Client Date",
+    )
+
+    assert result["opened_at"] == date(2025, 3, 4)
+    assert captured["opened_at"] == date(2025, 3, 4)
+
+
 def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
     service = BusinessService(test_db)
     service.business_repo = SimpleNamespace(get_by_id=lambda _business_id: object())

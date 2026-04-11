@@ -37,6 +37,12 @@ def upgrade() -> None:
     needs_recreate = 'business_id' in ac_cols or 'client_id' not in ac_cols
 
     if needs_recreate:
+        # Drop old business_id indexes before batch_alter so recreate='always'
+        # does not attempt to copy them into the new table schema.
+        for old_idx in ('idx_authority_contact_business', 'ix_authority_contacts_business_id'):
+            if old_idx in ac_indexes:
+                op.drop_index(old_idx, table_name='authority_contacts')
+
         with op.batch_alter_table('authority_contacts', recreate='always') as batch_op:
             if 'client_id' not in ac_cols:
                 batch_op.add_column(sa.Column('client_id', sa.Integer(), nullable=True))

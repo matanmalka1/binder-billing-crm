@@ -116,14 +116,22 @@ class SeedCoverageValidator:
             errors,
             label="authority_contacts/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_business_fk(db, AuthorityContact.business_id, business_client_map),
+            per_client_counts=self._count_by_fk(db, AuthorityContact, AuthorityContact.client_id),
             minimum=self.cfg.min_authority_contacts_per_client,
             maximum=self.cfg.max_authority_contacts_per_client,
         )
+        from app.clients.models.client import Client as ClientModel
+        from app.common.enums import VatType
+        vat_eligible_client_ids = [
+            int(cid)
+            for (cid,) in db.execute(
+                select(ClientModel.id).where(ClientModel.vat_reporting_frequency != VatType.EXEMPT)
+            ).all()
+        ]
         self._assert_per_client_bounds(
             errors,
             label="vat_work_items/client",
-            client_ids=client_ids,
+            client_ids=vat_eligible_client_ids,
             per_client_counts=self._count_by_fk(db, VatWorkItem, VatWorkItem.client_id),
             minimum=self.cfg.min_vat_work_items_per_client,
             maximum=self.cfg.max_vat_work_items_per_client,

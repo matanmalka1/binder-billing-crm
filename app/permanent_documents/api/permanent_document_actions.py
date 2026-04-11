@@ -8,7 +8,6 @@ from app.permanent_documents.services.permanent_document_action_service import P
 from app.permanent_documents.schemas.permanent_document import (
     DocumentVersionsResponse,
     PermanentDocumentResponse,
-    RejectDocumentRequest,
     UpdateNotesRequest,
 )
 
@@ -17,34 +16,6 @@ router = APIRouter(
     tags=["permanent-documents"],
 )
 
-
-@router.post(
-    "/{document_id}/approve",
-    response_model=PermanentDocumentResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-def approve_document(
-    document_id: int,
-    db: DBSession,
-    user: CurrentUser,
-):
-    doc = PermanentDocumentActionService(db).approve_document(document_id, user.id)
-    return PermanentDocumentResponse.model_validate(doc)
-
-
-@router.post(
-    "/{document_id}/reject",
-    response_model=PermanentDocumentResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-def reject_document(
-    document_id: int,
-    body: RejectDocumentRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    doc = PermanentDocumentActionService(db).reject_document(document_id, body.notes, user.id)
-    return PermanentDocumentResponse.model_validate(doc)
 
 
 @router.get(

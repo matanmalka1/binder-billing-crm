@@ -24,6 +24,7 @@ class InvoiceType(str, PyEnum):
 
 
 class ExpenseCategory(str, PyEnum):
+    INVENTORY             = "inventory"
     OFFICE                = "office"
     TRAVEL                = "travel"
     PROFESSIONAL_SERVICES = "professional_services"
