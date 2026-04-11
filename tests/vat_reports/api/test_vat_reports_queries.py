@@ -1,5 +1,4 @@
-from app.businesses.models.business import Business
-from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
+from app.common.enums import VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from tests.vat_reports.api.test_vat_reports_utils import create_work_item, income_payload
@@ -18,11 +17,6 @@ def _create_user(test_db, email: str, full_name: str, role: UserRole) -> User:
     test_db.refresh(user)
     return user
 
-
-def _business_for_client(test_db, client_id: int) -> Business:
-    return test_db.query(Business).filter(Business.client_id == client_id).first()
-
-
 def test_get_work_item_includes_user_names_and_deadline_fields(
     client, test_db, advisor_headers, vat_client, test_user
 ):
@@ -36,7 +30,7 @@ def test_get_work_item_includes_user_names_and_deadline_fields(
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,
-        json={"business_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
+        json={"client_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
     )
     assert create_resp.status_code == 201
     item_id = create_resp.json()["id"]
@@ -95,7 +89,7 @@ def test_list_work_items_supports_status_and_client_name_filters(
     ).status_code == 200
 
     list_resp = client.get(
-        f"/api/v1/vat/work-items?status=filed&business_name={vat_client.full_name}",
+        f"/api/v1/vat/work-items?status=filed&client_name={vat_client.full_name}",
         headers=advisor_headers,
     )
     assert list_resp.status_code == 200
@@ -104,23 +98,18 @@ def test_list_work_items_supports_status_and_client_name_filters(
     assert len(body["items"]) == 1
     assert body["items"][0]["id"] == filed_item_id
     assert body["items"][0]["status"] == "filed"
-    assert body["items"][0]["business_name"] == vat_client.full_name
+    assert body["items"][0]["client_name"] == vat_client.full_name
     assert body["items"][0]["id"] != pending_item_id
 
 
-def test_list_work_items_supports_filter_by_client_and_tax_identifiers(
-    client, advisor_headers, vat_client, test_db
+def test_list_work_items_supports_filter_by_client_name_and_id_number(
+    client, advisor_headers, vat_client
 ):
-    business = _business_for_client(test_db, vat_client.id)
-    assert business is not None
-    business.tax_id_number = "514123456"
-    test_db.commit()
-
     target_item_id = create_work_item(client, advisor_headers, vat_client, "2026-11")
     _ = create_work_item(client, advisor_headers, vat_client, "2026-12")
 
     by_client_id = client.get(
-        f"/api/v1/vat/work-items?business_name={vat_client.id}",
+        f"/api/v1/vat/work-items?client_name={vat_client.id_number}",
         headers=advisor_headers,
     )
     assert by_client_id.status_code == 200
@@ -128,24 +117,21 @@ def test_list_work_items_supports_filter_by_client_and_tax_identifiers(
     assert payload_client_id["total"] >= 1
     assert any(item["id"] == target_item_id for item in payload_client_id["items"])
 
-    by_tax_id = client.get(
-        "/api/v1/vat/work-items?business_name=514123456",
+    by_name = client.get(
+        f"/api/v1/vat/work-items?client_name={vat_client.full_name}",
         headers=advisor_headers,
     )
-    assert by_tax_id.status_code == 200
-    payload_tax_id = by_tax_id.json()
-    assert payload_tax_id["total"] >= 1
-    assert any(item["id"] == target_item_id for item in payload_tax_id["items"])
+    assert by_name.status_code == 200
+    payload_name = by_name.json()
+    assert payload_name["total"] >= 1
+    assert any(item["id"] == target_item_id for item in payload_name["items"])
 
 
 def test_period_options_default_monthly_returns_12_periods(
-    client, advisor_headers, vat_client, test_db
+    client, advisor_headers, vat_client
 ):
-    business = _business_for_client(test_db, vat_client.id)
-    assert business is not None
-
     resp = client.get(
-        f"/api/v1/vat/businesses/{business.id}/period-options?year=2026",
+        f"/api/v1/vat/clients/{vat_client.id}/period-options?year=2026",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
@@ -162,22 +148,18 @@ def test_period_options_default_monthly_returns_12_periods(
 def test_period_options_bimonthly_uses_odd_months_and_marks_opened(
     client, advisor_headers, vat_client, test_db
 ):
-    business = _business_for_client(test_db, vat_client.id)
-    assert business is not None
-
-    profile = BusinessTaxProfile(business_id=business.id, vat_type=VatType.BIMONTHLY)
-    test_db.add(profile)
+    vat_client.vat_reporting_frequency = VatType.BIMONTHLY
     test_db.commit()
 
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,
-        json={"business_id": business.id, "period": "2026-03"},
+        json={"client_id": vat_client.id, "period": "2026-03"},
     )
     assert create_resp.status_code == 201
 
     resp = client.get(
-        f"/api/v1/vat/businesses/{business.id}/period-options?year=2026",
+        f"/api/v1/vat/clients/{vat_client.id}/period-options?year=2026",
         headers=advisor_headers,
     )
     assert resp.status_code == 200

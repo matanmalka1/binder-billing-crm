@@ -61,11 +61,7 @@ def add_invoice(
 
     assert_editable(item)
 
-    client = None
-    if hasattr(item, "client_id"):
-        client = repo_or_client_repo.get_by_id(item.client_id)
-    elif hasattr(item, "business_id") and hasattr(repo_or_client_repo, "get_by_id"):
-        client = repo_or_client_repo.get_by_id(item.business_id)
+    client = repo_or_client_repo.get_by_id(item.client_id)
 
     if client and getattr(client, "status", None) == ClientStatus.CLOSED:
         raise AppError("לקוח זה סגור — לא ניתן להוסיף חשבוניות", "VAT.CLIENT_CLOSED")
@@ -87,7 +83,7 @@ def add_invoice(
 
     ceiling_warning = False
     if invoice_type == InvoiceType.INCOME and client:
-        scope_id = getattr(item, "client_id", getattr(item, "business_id", None))
+        scope_id = item.client_id
         ceiling_warning = check_osek_patur_ceiling(
             client, invoice_repo, scope_id, item.period, net_amount
         )

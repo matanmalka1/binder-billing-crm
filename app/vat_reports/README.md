@@ -1,17 +1,17 @@
 # VAT Reports Module
 
-> Last audited: 2026-03-22
+> Last audited: 2026-04-11
 
-Manages VAT work-item lifecycle per business and period: intake, data entry, review, filing, audit trail, and business-level summary/export.
+Manages VAT work-item lifecycle per client and period: intake, data entry, review, filing, audit trail, and client-level summary/export.
 
 ## Scope
 
-- Create one VAT work item per `business_id + period`
+- Create one VAT work item per `client_id + period` (Israeli law: one aggregated VAT return per client, not per business activity)
 - Track lifecycle states until filed (immutable after filing)
 - Add/update/delete invoices and recalculate VAT totals
 - Advisor filing flow with optional override + mandatory justification
 - Query work items, invoices, and audit trail
-- Business summary and yearly export (Excel/PDF)
+- Client summary and yearly export (Excel/PDF)
 
 ## API Base Path
 
@@ -31,7 +31,7 @@ Router is mounted under `/api/v1/vat` (via `app/router_registry.py` + `app/vat_r
 
 Core fields:
 - `id`
-- `business_id` (FK, required)
+- `client_id` (FK → `clients.id`, required) — scope is always at client level
 - `created_by` (FK, required)
 - `assigned_to` (FK, optional)
 - `period` (`YYYY-MM`, required)
@@ -50,7 +50,7 @@ Core fields:
 - soft-delete fields: `deleted_at`, `deleted_by`
 
 Constraint:
-- unique per (`business_id`, `period`)
+- unique per (`client_id`, `period`)
 
 ### `VatInvoice`
 
@@ -65,6 +65,7 @@ Core fields:
 - `rate_type` (`standard`, `exempt`, `zero_rate`)
 - `deduction_rate` (derived from expense category)
 - `is_exceptional` (derived: net amount > 25,000)
+- `business_activity_id` (FK → `businesses.id`, optional) — tags invoice to a specific business activity within the client; does NOT scope the work item
 - `created_at`
 
 Constraint:
@@ -82,7 +83,7 @@ Constraint:
 ### Intake
 
 - `POST /api/v1/vat/work-items`
-  - body: `business_id`, `period`, `assigned_to?`, `mark_pending?`, `pending_materials_note?`
+  - body: `client_id`, `period`, `assigned_to?`, `mark_pending?`, `pending_materials_note?`
 - `POST /api/v1/vat/work-items/{item_id}/materials-complete`
   - transition: `pending_materials -> material_received`
 
@@ -109,18 +110,18 @@ Constraint:
 ### Queries
 
 - `GET /api/v1/vat/work-items/{item_id}`
-- `GET /api/v1/vat/businesses/{business_id}/work-items`
+- `GET /api/v1/vat/clients/{client_id}/work-items`
 - `GET /api/v1/vat/work-items`
-  - query: `status?`, `page` (default `1`), `page_size` (default `20`, max `200`), `period?`, `business_name?`
+  - query: `status?`, `page` (default `1`), `page_size` (default `20`, max `200`), `period?`, `client_name?`
 - `GET /api/v1/vat/work-items/{item_id}/audit`
-- `GET /api/v1/vat/businesses/{business_id}/summary`
-- `GET /api/v1/vat/businesses/{business_id}/export`
+- `GET /api/v1/vat/clients/{client_id}/summary`
+- `GET /api/v1/vat/clients/{client_id}/export`
   - query: `format=excel|pdf`, `year` (`2000-2100`)
 
 ## Business Rules
 
 - `period` must match `YYYY-MM`
-- duplicate work item for the same (`business_id`, `period`) is rejected
+- duplicate work item for the same (`client_id`, `period`) is rejected
 - if `mark_pending=true`, `pending_materials_note` is required
 - VAT-exempt businesses cannot open VAT work items
 - bi-monthly businesses cannot open even-month periods
@@ -134,9 +135,10 @@ Constraint:
 - override filing amount requires `override_justification`
 - invoice changes recalculate totals and append audit records
 
-## Notes From Audit
+## Notes
 
-- API and model are business-scoped (`business_id`), not client-scoped
+- Work items are scoped to `client_id`, not `business_id`. One client may have multiple business activities, but they share one VAT obligation under Israeli law.
+- Individual invoices may optionally carry a `business_activity_id` tag (to associate them with a specific business activity), but this does not affect the scoping of the work item itself.
 - filing field is `submission_method` (not `filing_method`)
 - query endpoints expose deadline enrichment fields on work-item responses: `submission_deadline`, `statutory_deadline`, `extended_deadline`, `days_until_deadline`, `is_overdue`
 

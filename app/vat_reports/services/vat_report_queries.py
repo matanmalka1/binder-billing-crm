@@ -4,7 +4,7 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -78,62 +78,56 @@ def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int
     return work_item_repo.list_by_client(client_id)
 
 
-def _resolve_client_ids(
-    business_repo: BusinessRepository,
+def _resolve_client_ids_by_name(
+    client_repo: ClientRepository,
     client_name: Optional[str],
 ) -> Optional[list[int]]:
-    """Resolve business ids from the shared business/client search query."""
+    """Resolve client IDs from a name/id_number search against the clients table."""
     if not client_name:
         return None
-    businesses = business_repo.list(search=client_name, page=1, page_size=500)
-    if len(businesses) >= 500:
+    clients = client_repo.list(search=client_name, page=1, page_size=500)
+    if len(clients) >= 500:
         logger.warning(
             "Client name search '%s' returned max results, may be truncated",
             client_name,
         )
-    seen: set[int] = set()
-    ordered_ids: list[int] = []
-    for business in businesses:
-        if business.id not in seen:
-            seen.add(business.id)
-            ordered_ids.append(business.id)
-    return ordered_ids
+    return [c.id for c in clients]
 
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     status: VatWorkItemStatus,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
-    business_name: Optional[str] = None,
+    client_name: Optional[str] = None,
 ):
-    business_ids = _resolve_client_ids(business_repo, business_name)
-    if business_name and not business_ids:
+    client_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    if client_name and not client_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, business_ids=business_ids
+        status, page=page, page_size=page_size, period=period, client_ids=client_ids
     )
-    total = work_item_repo.count_by_status(status, period=period, business_ids=business_ids)
+    total = work_item_repo.count_by_status(status, period=period, client_ids=client_ids)
     return items, total
 
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
+    client_repo: ClientRepository,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
-    business_name: Optional[str] = None,
+    client_name: Optional[str] = None,
 ):
-    business_ids = _resolve_client_ids(business_repo, business_name)
-    if business_name and not business_ids:
+    client_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    if client_name and not client_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, business_ids=business_ids
+        page=page, page_size=page_size, period=period, client_ids=client_ids
     )
-    total = work_item_repo.count_all(period=period, business_ids=business_ids)
+    total = work_item_repo.count_all(period=period, client_ids=client_ids)
     return items, total
 
 

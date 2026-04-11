@@ -69,7 +69,7 @@ class VatWorkItemWriteRepository:
         assigned_to: Optional[int] = None,
     ) -> VatWorkItem:
         if client_id is None or period is None or period_type is None or created_by is None:
-            raise TypeError("client_id/business_id, period, period_type, and created_by are required")
+            raise TypeError("client_id, period, period_type, and created_by are required")
         item = VatWorkItem(
             client_id=client_id,
             period=period,

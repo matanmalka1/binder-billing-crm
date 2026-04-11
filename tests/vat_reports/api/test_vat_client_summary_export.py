@@ -5,17 +5,17 @@ import io
 import openpyxl
 import pytest
 
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-def _seed_work_items(db, business_id: int, created_by: int):
+def _seed_work_items(db, client_id: int, created_by: int):
     items = [
         VatWorkItem(
-            business_id=business_id,
+            client_id=client_id,
             created_by=created_by,
             period="2026-02",
             period_type=VatType.MONTHLY,
@@ -28,7 +28,7 @@ def _seed_work_items(db, business_id: int, created_by: int):
             final_vat_amount=None,
         ),
         VatWorkItem(
-            business_id=business_id,
+            client_id=client_id,
             created_by=created_by,
             period="2026-01",
             period_type=VatType.MONTHLY,
@@ -53,10 +53,10 @@ def _seed_work_items(db, business_id: int, created_by: int):
 def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_headers, vat_client, test_user):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
-    resp = client.get(f"/api/v1/vat/businesses/{vat_client.id}/summary", headers=advisor_headers)
+    resp = client.get(f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers)
     assert resp.status_code == 200
     payload = resp.json()
-    assert payload["business_id"] == vat_client.id
+    assert payload["client_id"] == vat_client.id
     assert [row["period"] for row in payload["periods"]] == ["2026-02", "2026-01"]
     assert len(payload["annual"]) == 1
     assert payload["annual"][0]["year"] == 2026
@@ -71,7 +71,7 @@ def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_cl
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
-        f"/api/v1/vat/businesses/{vat_client.id}/work-items",
+        f"/api/v1/vat/clients/{vat_client.id}/work-items",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
@@ -80,7 +80,7 @@ def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_cl
     assert len(payload["items"]) == 2
     assert payload["items"][0]["period"] == "2026-02"
     assert payload["items"][1]["period"] == "2026-01"
-    assert payload["items"][0]["business_name"] == vat_client.full_name
+    assert payload["items"][0]["client_name"] == vat_client.full_name
     assert payload["items"][1]["filed_by_name"] == test_user.full_name
 
 
@@ -88,7 +88,7 @@ def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, t
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
-        f"/api/v1/vat/businesses/{vat_client.id}/export?format=excel&year=2026",
+        f"/api/v1/vat/clients/{vat_client.id}/export?format=excel&year=2026",
         headers=advisor_headers,
     )
 
@@ -109,7 +109,7 @@ def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers
 
     with pytest.raises(RuntimeError, match="fail"):
         client.get(
-            f"/api/v1/vat/businesses/{vat_client.id}/export?format=pdf&year=2026",
+            f"/api/v1/vat/clients/{vat_client.id}/export?format=pdf&year=2026",
             headers=advisor_headers,
         )
 
@@ -122,6 +122,6 @@ def test_vat_client_export_import_error_returns_detail(client, advisor_headers, 
 
     with pytest.raises(ImportError, match="openpyxl missing"):
         client.get(
-            f"/api/v1/vat/businesses/{vat_client.id}/export?format=excel&year=2026",
+            f"/api/v1/vat/clients/{vat_client.id}/export?format=excel&year=2026",
             headers=advisor_headers,
         )

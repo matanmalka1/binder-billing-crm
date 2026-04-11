@@ -63,23 +63,20 @@ def get_list_enriched(
     page: int,
     page_size: int,
     period: Optional[str],
-    business_name: Optional[str] = None,
+    client_name: Optional[str] = None,
 ) -> dict:
     """Return paginated work items + enrichment data."""
-    from app.businesses.repositories.business_repository import BusinessRepository
-    business_repo = BusinessRepository(client_repo.db)
-
     if status_filter:
         items, total = list_work_items_by_status(
-            work_item_repo, business_repo,
+            work_item_repo, client_repo,
             status=status_filter, page=page, page_size=page_size,
-            period=period, business_name=business_name,
+            period=period, client_name=client_name,
         )
     else:
         items, total = list_all_work_items(
-            work_item_repo, business_repo,
+            work_item_repo, client_repo,
             page=page, page_size=page_size,
-            period=period, business_name=business_name,
+            period=period, client_name=client_name,
         )
     client_ids = list({item.client_id for item in items})
     clients = client_repo.list_by_ids(client_ids)

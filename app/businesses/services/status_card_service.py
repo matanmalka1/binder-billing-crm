@@ -56,7 +56,7 @@ class StatusCardService:
             client_id=business.client_id,
             business_id=business_id,
             year=resolved_year,
-            vat=self._vat_card(business.client_id, resolved_year),
+            client_vat=self._vat_card(business.client_id, resolved_year),
             annual_report=self._annual_report_card(business_id, resolved_year),
             charges=self._charges_card(business_id),
             advance_payments=self._advance_payments_card(business_id, resolved_year),

@@ -105,13 +105,13 @@ def list_work_items(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
     period: Optional[str] = Query(None),
-    business_name: Optional[str] = Query(None),
+    client_name: Optional[str] = Query(None),
 ):
     """List work items filtered by status with pagination."""
     service = VatReportService(db)
     enriched = service.get_list_enriched(
         status_filter=status_filter, page=page, page_size=page_size,
-        period=period, business_name=business_name,
+        period=period, client_name=client_name,
     )
     items = [
         serialize_enriched_work_item(

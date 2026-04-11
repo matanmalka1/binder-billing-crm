@@ -44,7 +44,6 @@ def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryRespon
 
     return VatClientSummaryResponse(
         client_id=client_id,
-        business_id=client_id,
         periods=periods,
         annual=annual,
     )

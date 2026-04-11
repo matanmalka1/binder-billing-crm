@@ -6,7 +6,6 @@ from sqlalchemy import or_
 from sqlalchemy import func as sa_func
 from sqlalchemy.orm import Session
 
-from app.businesses.models.business import Business
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -77,7 +76,6 @@ class VatWorkItemQueryRepository:
         page_size: int = 20,
         period: Optional[str] = None,
         client_ids: Optional[list[int]] = None,
-        business_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
         q = self.db.query(VatWorkItem).filter(
@@ -86,11 +84,6 @@ class VatWorkItemQueryRepository:
         )
         if period:
             q = q.filter(VatWorkItem.period == period)
-        if business_ids is not None:
-            q = q.join(Business, Business.client_id == VatWorkItem.client_id).filter(
-                Business.id.in_(business_ids),
-                Business.deleted_at.is_(None),
-            )
         if client_ids is not None:
             q = q.filter(VatWorkItem.client_id.in_(client_ids))
         return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
@@ -100,7 +93,6 @@ class VatWorkItemQueryRepository:
         status: VatWorkItemStatus,
         period: Optional[str] = None,
         client_ids: Optional[list[int]] = None,
-        business_ids: Optional[list[int]] = None,
     ) -> int:
         q = self.db.query(VatWorkItem).filter(
             VatWorkItem.status == status,
@@ -108,11 +100,6 @@ class VatWorkItemQueryRepository:
         )
         if period:
             q = q.filter(VatWorkItem.period == period)
-        if business_ids is not None:
-            q = q.join(Business, Business.client_id == VatWorkItem.client_id).filter(
-                Business.id.in_(business_ids),
-                Business.deleted_at.is_(None),
-            )
         if client_ids is not None:
             q = q.filter(VatWorkItem.client_id.in_(client_ids))
         return q.count()
@@ -123,17 +110,11 @@ class VatWorkItemQueryRepository:
         page_size: int = 20,
         period: Optional[str] = None,
         client_ids: Optional[list[int]] = None,
-        business_ids: Optional[list[int]] = None,
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
         q = self.db.query(VatWorkItem).filter(VatWorkItem.deleted_at.is_(None))
         if period:
             q = q.filter(VatWorkItem.period == period)
-        if business_ids is not None:
-            q = q.join(Business, Business.client_id == VatWorkItem.client_id).filter(
-                Business.id.in_(business_ids),
-                Business.deleted_at.is_(None),
-            )
         if client_ids is not None:
             q = q.filter(VatWorkItem.client_id.in_(client_ids))
         return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
@@ -142,16 +123,10 @@ class VatWorkItemQueryRepository:
         self,
         period: Optional[str] = None,
         client_ids: Optional[list[int]] = None,
-        business_ids: Optional[list[int]] = None,
     ) -> int:
         q = self.db.query(VatWorkItem).filter(VatWorkItem.deleted_at.is_(None))
         if period:
             q = q.filter(VatWorkItem.period == period)
-        if business_ids is not None:
-            q = q.join(Business, Business.client_id == VatWorkItem.client_id).filter(
-                Business.id.in_(business_ids),
-                Business.deleted_at.is_(None),
-            )
         if client_ids is not None:
             q = q.filter(VatWorkItem.client_id.in_(client_ids))
         return q.count()

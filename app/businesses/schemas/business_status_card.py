@@ -45,7 +45,7 @@ class BusinessStatusCardResponse(BaseModel):
     client_id: int
     business_id: int
     year: int
-    vat: VatSummaryCard
+    client_vat: VatSummaryCard  # shared across all businesses of this client
     annual_report: AnnualReportCard
     charges: ChargesCard
     advance_payments: AdvancePaymentsCard
