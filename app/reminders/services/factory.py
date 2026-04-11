@@ -6,7 +6,7 @@ from typing import Optional
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.businesses.services.business_guards import get_business_or_raise
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType

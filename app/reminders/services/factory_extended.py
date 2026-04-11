@@ -6,7 +6,7 @@ from typing import Optional
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository as AnnualReportRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.businesses.services.business_guards import get_business_or_raise
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType

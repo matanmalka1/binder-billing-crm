@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
+from app.businesses.models.business import Business as _Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.schemas.business_status_card import (
     AdvancePaymentsCard,
@@ -28,8 +29,8 @@ from app.permanent_documents.repositories.permanent_document_repository import P
 
 class StatusCardService:
     """
-    Status card לעסק ספציפי.
-    endpoint: GET /businesses/{business_id}/status-card
+    Status card ללקוח ספציפי.
+    endpoint: GET /clients/{client_id}/status-card
     """
 
     def __init__(self, db: Session):
@@ -44,23 +45,29 @@ class StatusCardService:
 
     def get_status_card(
         self,
-        business_id: int,
+        client_id: int,
         year: Optional[int] = None,
     ) -> BusinessStatusCardResponse:
-        business = self._business_repo.get_by_id(business_id)
+        # Use the first non-deleted business for business-scoped data (annual reports, charges, advances, documents).
+        business = (
+            self._db.query(_Business)
+            .filter(_Business.client_id == client_id, _Business.deleted_at.is_(None))
+            .first()
+        )
         if not business:
-            raise NotFoundError("העסק לא נמצא", "BUSINESS.NOT_FOUND")
+            raise NotFoundError("לא נמצא עסק עבור לקוח זה", "BUSINESS.NOT_FOUND")
 
+        business_id = business.id
         resolved_year = year or utcnow().year
         return BusinessStatusCardResponse(
-            client_id=business.client_id,
+            client_id=client_id,
             business_id=business_id,
             year=resolved_year,
-            client_vat=self._vat_card(business.client_id, resolved_year),
+            client_vat=self._vat_card(client_id, resolved_year),
             annual_report=self._annual_report_card(business_id, resolved_year),
             charges=self._charges_card(business_id),
             advance_payments=self._advance_payments_card(business_id, resolved_year),
-            binders=self._binders_card(business.client_id),
+            binders=self._binders_card(client_id),
             documents=self._documents_card(business_id),
         )
 

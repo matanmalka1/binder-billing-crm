@@ -35,17 +35,18 @@ def test_get_binder_actions_ready_for_pickup_returns_return_action_with_input():
 
 
 def test_get_business_actions_active_advisor_returns_freeze_action():
-    business = SimpleNamespace(id=5, status=BusinessStatus.ACTIVE)
+    business = SimpleNamespace(id=5, client_id=12, status=BusinessStatus.ACTIVE)
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
     assert [action["key"] for action in actions] == ["freeze", "close"]
     assert actions[0]["payload"] == {"status": "frozen"}
     assert actions[0]["id"] == "business-5-freeze"
+    assert actions[0]["endpoint"] == "/clients/12/businesses/5"
 
 
 def test_get_business_actions_active_secretary_returns_no_actions():
-    business = SimpleNamespace(id=6, status=BusinessStatus.ACTIVE)
+    business = SimpleNamespace(id=6, client_id=12, status=BusinessStatus.ACTIVE)
 
     actions = get_business_actions(business, user_role=UserRole.SECRETARY)
 
@@ -53,13 +54,14 @@ def test_get_business_actions_active_secretary_returns_no_actions():
 
 
 def test_get_business_actions_frozen_returns_activate_action():
-    business = SimpleNamespace(id=7, status=BusinessStatus.FROZEN)
+    business = SimpleNamespace(id=7, client_id=12, status=BusinessStatus.FROZEN)
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
     assert [action["key"] for action in actions] == ["activate", "close"]
     assert actions[0]["payload"] == {"status": "active"}
     assert actions[0]["id"] == "business-7-activate"
+    assert actions[0]["endpoint"] == "/clients/12/businesses/7"
 
 
 def test_get_charge_actions_draft_returns_issue_and_cancel():

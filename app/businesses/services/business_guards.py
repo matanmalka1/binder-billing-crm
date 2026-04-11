@@ -1,8 +1,16 @@
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ForbiddenError
+from app.core.exceptions import ForbiddenError, NotFoundError
 from app.businesses.models.business import Business, BusinessStatus
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.businesses.repositories.business_repository import BusinessRepository
+
+
+def get_business_or_raise(db: Session, business_id: int) -> Business:
+    """Fetch a business or raise NotFoundError."""
+    business = BusinessRepository(db).get_by_id(business_id)
+    if not business:
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    return business
 
 
 def assert_business_allows_create(business: Business) -> None:
@@ -19,17 +27,10 @@ def assert_business_allows_create(business: Business) -> None:
         )
 
 
-def assert_business_not_closed(business: Business) -> None:
-    """Raise ForbiddenError if business is CLOSED."""
-    if business.status == BusinessStatus.CLOSED:
-        raise ForbiddenError(
-            "עסק סגור — לא ניתן לבצע פעולות כתיבה",
-            "BUSINESS.CLOSED",
-        )
-
-
 def validate_business_for_create(db: Session, business_id: int) -> Business:
     """Fetch business and assert it allows new record creation."""
-    business = get_business_or_raise(db, business_id)
+    business = BusinessRepository(db).get_by_id(business_id)
+    if not business:
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
     assert_business_allows_create(business)
     return business

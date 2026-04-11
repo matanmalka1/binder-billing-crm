@@ -30,6 +30,8 @@ class SignatureAuditEventResponse(BaseModel):
 class SignatureRequestResponse(BaseModel):
     id: int
     business_id: int
+    client_id: Optional[int] = None
+    business_name: Optional[str] = None
     created_by: int
     request_type: SignatureRequestType      # enum
     title: str

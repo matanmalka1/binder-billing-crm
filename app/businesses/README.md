@@ -1,268 +1,90 @@
 # Businesses Module
 
-> Last audited: 2026-03-22 (domain-by-domain backend sync).
+> Last aligned: 2026-04-11
 
-Manages business entities under clients — business type, operational status, tax profile, lifecycle actions, and the aggregated status-card view. A client can hold multiple businesses.
+`businesses` is now an operational domain, not the primary tax-entity domain.
 
-## Scope
+- `Client` is the legal/tax identity.
+- `Business` is a business activity under a client.
+- Tax-entity fields such as VAT reporting frequency, advance rate, and fiscal-year configuration now live on `clients`.
 
-This module provides:
-- CRUD for `businesses` under a client
-- Business status lifecycle (active → frozen → closed) with role enforcement
-- Soft delete and restore with audit fields
-- Business tax profile get/update (VAT type, advance rate, fiscal year)
-- Aggregated business status card (VAT, annual report, charges, advances, binders, documents)
-- `has_signals` filtering with in-memory safety ceiling
-- Business-scoped binder listing (delegates to binders domain)
-- `available_actions` attached to every business response
+## Current Scope
 
-## Domain Model
+This module is responsible for:
 
-### `Business` (`app/businesses/models/business.py`)
+- Creating and listing businesses under a client
+- Updating business identity/status
+- Soft delete and restore
+- Sole-trader consistency rules (`osek_patur` vs `osek_murshe`)
+- Business lifecycle guards used by downstream domains
+- Client status-card aggregation that still needs business-scoped data
 
-Primary fields:
-- `id` (PK)
-- `client_id` (FK -> `clients.id`, required) — the person who owns this business
-- `business_name` (optional) — null means the sole proprietor operates under their personal name
-- `business_type` (enum, required)
-- `tax_id_number` (optional, unique among active non-deleted businesses)
-- `status` (enum, required, default `active`)
-- `opened_at` (date, required)
-- `closed_at` (date, optional)
-- `phone`, `email` (business-specific contact details; properties fall back to client when null)
-- `assigned_to` (FK -> `users.id`, optional)
-- `notes` (optional)
-- `created_by` (FK -> `users.id`, optional)
-- `created_at`, `updated_at`
-- `deleted_at`, `deleted_by`, `restored_at`, `restored_by` (soft delete / restore)
+This module is not responsible for:
 
-Computed properties:
-- `full_name` — returns `business_name` if set, otherwise `client.full_name`
-- `contact_phone` — `phone` with fallback to `client.phone`
-- `contact_email` — `email` with fallback to `client.email`
+- Client tax-profile CRUD
+- Standalone `/api/v1/businesses/*` CRUD routes
+- `BusinessTaxProfile` management
 
-Business type enum values:
-- `osek_patur` — exempt dealer
-- `osek_murshe` — authorized dealer
-- `company` — limited company
-- `employee`
+## Active API
 
-Business status enum values:
-- `active`
-- `frozen`
-- `closed`
+Mounted under `/api/v1`.
 
-Indexes and uniqueness:
-- `ix_business_client_id` on `client_id`
-- `ix_business_status` on `status`
-- `ix_business_assigned` on `assigned_to`
-- Partial unique index `ix_business_tax_id` on `tax_id_number` for non-deleted businesses
-- Partial unique index `ix_business_client_name_active` on `(client_id, business_name)` for non-null, non-deleted businesses
+### Client-scoped business routes
 
-### `BusinessTaxProfile` (`app/businesses/models/business_tax_profile.py`)
+- `POST /clients/{client_id}/businesses`
+- `GET /clients/{client_id}/businesses`
+- `GET /clients/{client_id}/businesses/{business_id}`
+- `PATCH /clients/{client_id}/businesses/{business_id}`
+- `DELETE /clients/{client_id}/businesses/{business_id}`
+- `POST /clients/{client_id}/businesses/{business_id}/restore`
 
-One-to-one with `Business`. Created on first update (upsert).
+### Client status card
 
-Fields:
-- `id` (PK)
-- `business_id` (FK -> `businesses.id`, unique, required)
-- `vat_type` (enum, optional)
-- `vat_start_date` (date, optional)
-- `vat_exempt_ceiling` (Numeric, optional) — current statutory ceiling for OSEK_PATUR
-- `accountant_name` (optional)
-- `advance_rate` (Numeric 5,2, optional) — percentage used to calculate monthly advance payments
-- `advance_rate_updated_at` (date, optional)
-- `fiscal_year_start_month` (integer, default `1`)
-- `created_at`, `updated_at`
+The status-card endpoint is client-scoped and mounted from the `clients` API:
 
-VAT type enum values:
-- `monthly`
-- `bimonthly`
-- `exempt`
+- `GET /clients/{client_id}/status-card`
 
-Implementation references:
-- Models: `app/businesses/models/business.py`, `app/businesses/models/business_tax_profile.py`
-- Schemas: `app/businesses/schemas/business_schemas.py`, `app/businesses/schemas/business_tax_profile_schemas.py`
-- Repositories: `app/businesses/repositories/business_repository.py`, `app/businesses/repositories/business_repository_read.py`, `app/businesses/repositories/business_tax_profile_repository.py`
-- Services: `app/businesses/services/business_service.py`, `app/businesses/services/business_bulk_service.py`, `app/businesses/services/business_tax_profile_service.py`, `app/businesses/services/status_card_service.py`, `app/businesses/services/business_lookup.py`, `app/businesses/services/business_guards.py`
-- APIs: `app/businesses/api/businesses.py`, `app/businesses/api/business_tax_profile_router.py`, `app/businesses/api/business_status_card_router.py`, `app/businesses/api/business_binders_router.py`
+Implementation currently lives in `app/businesses/services/status_card_service.py`
+because it still aggregates business-scoped charges, documents, and advance payments.
 
-## API
+## Core Rules
 
-All routers are mounted in `app/main.py` under `/api/v1`.
+### Sole-trader exclusivity
 
----
+A single client cannot mix:
 
-### Client-scoped business creation (`/api/v1/clients/{client_id}/businesses`)
+- `osek_patur`
+- `osek_murshe`
 
-Roles: `ADVISOR` (create), `ADVISOR` + `SECRETARY` (list)
+Multiple businesses of the same sole-trader type are allowed.
 
-#### Create business
-- `POST /api/v1/clients/{client_id}/businesses`
-- Role: `ADVISOR` only
-- Body:
+### Lifecycle blocking
 
-```json
-{
-  "business_type": "osek_murshe",
-  "opened_at": "2026-01-01",
-  "business_name": "Cohen Consulting",
-  "notes": "Optional"
-}
-```
+Downstream create flows should use `business_guards`:
 
-- Behavior: validates client exists; if `business_name` is provided, enforces case-insensitive uniqueness per client (`BUSINESS.NAME_CONFLICT`)
+- `active` => allowed
+- `frozen` => blocked
+- `closed` => blocked
 
-#### List businesses for client
-- `GET /api/v1/clients/{client_id}/businesses`
-- Roles: `ADVISOR`, `SECRETARY`
-- Returns all non-deleted businesses for the client, including `active`, `frozen`, and `closed`
+### Soft delete semantics
 
----
+Repository default reads exclude soft-deleted rows.
+Restore sets status back to `active`.
 
-### Standalone business routes (`/api/v1/businesses`)
+## Main Files
 
-Roles: `ADVISOR`, `SECRETARY` unless noted
+- Model: `app/businesses/models/business.py`
+- Repository: `app/businesses/repositories/business_repository.py`
+- API: `app/businesses/api/client_businesses_router.py`
+- Service: `app/businesses/services/business_service.py`
+- Guards: `app/businesses/services/business_guards.py`
+- Lifecycle: `app/businesses/services/business_lifecycle_service.py`
+- Status card: `app/businesses/services/status_card_service.py`
 
-#### List businesses
-- `GET /api/v1/businesses`
-- Query params:
-  - `status` (optional)
-  - `business_type` (optional)
-  - `has_signals` (optional boolean — advisory filter; bounded by `_HAS_SIGNALS_FETCH_LIMIT = 1000`)
-  - `search` (optional — matches `business_name`, `client.full_name`, `client.id_number`)
-  - `page` (default `1`, min `1`)
-  - `page_size` (default `20`, min `1`, max `100`)
-- Response: `BusinessListResponse` — items are `BusinessWithClientResponse` (includes `client_full_name`, `client_id_number`)
+## Domain Direction
 
-#### Get business
-- `GET /api/v1/businesses/{business_id}`
-- Response: `BusinessResponse` with `available_actions`
+This domain is mid-refactor.
 
-#### Update business
-- `PATCH /api/v1/businesses/{business_id}`
-- Roles: `ADVISOR`, `SECRETARY`
-- Partial update. Transitioning to `frozen` or `closed` requires `ADVISOR` role (`BUSINESS.FORBIDDEN` otherwise)
-- Setting `status=closed` auto-sets `closed_at=today` if not supplied
-- Setting `status=active` clears `closed_at`
-
-#### Delete business (soft delete)
-- `DELETE /api/v1/businesses/{business_id}`
-- Role: `ADVISOR` only
-- Returns `204 No Content`
-
-#### Restore business
-- `POST /api/v1/businesses/{business_id}/restore`
-- Role: `ADVISOR` only
-- Restores a soft-deleted business; sets `status=active`, records `restored_at`, `restored_by`
-
-### Tax profile (`/api/v1/businesses/{business_id}/tax-profile`)
-
-Roles: `ADVISOR`, `SECRETARY`
-
-#### Get tax profile
-- `GET /api/v1/businesses/{business_id}/tax-profile`
-- Returns empty `BusinessTaxProfileResponse` (with only `business_id`) if no profile exists yet
-
-#### Update tax profile
-- `PATCH /api/v1/businesses/{business_id}/tax-profile`
-- Upserts the profile; creates on first call
-- Updatable fields: `vat_type`, `vat_start_date`, `vat_exempt_ceiling`, `accountant_name`, `advance_rate` (0–100), `advance_rate_updated_at`, `fiscal_year_start_month` (1–12)
-
----
-
-### Status card (`/api/v1/businesses/{business_id}/status-card`)
-
-Roles: `ADVISOR`, `SECRETARY`
-
-#### Get business status card
-- `GET /api/v1/businesses/{business_id}/status-card`
-- Query params:
-  - `year` (optional, default = current year)
-- Returns an aggregated operational snapshot:
-
-| Section | Fields |
-|---|---|
-| `vat` | `net_vat_total`, `periods_filed`, `periods_total`, `latest_period` |
-| `annual_report` | `status`, `form_type`, `filing_deadline`, `refund_due`, `tax_due` |
-| `charges` | `total_outstanding`, `unpaid_count` |
-| `advance_payments` | `total_paid`, `count` |
-| `binders` | `active_count`, `in_office_count` |
-| `documents` | `total_count`, `present_count` |
-
----
-
-### Business binders (`/api/v1/businesses/{business_id}/binders`)
-
-Roles: `ADVISOR`, `SECRETARY`
-
-- `GET /api/v1/businesses/{business_id}/binders`
-- Resolves `business.client_id` and returns that client's binders (paginated), enriched with `signals`
-- See [Binders module](../binders/README.md) for full field reference
-
----
-
-## Behavior Notes
-
-- A client can hold multiple businesses — there is no uniqueness constraint on `(client_id, business_type)`.
-- `business_name` uniqueness is enforced per client among non-deleted businesses, case-insensitive at service level.
-- Businesses in `closed` or `frozen` status block new work creation in downstream domains (VAT, annual reports, binders, charges).
-- The `has_signals` filter fetches up to `_HAS_SIGNALS_FETCH_LIMIT = 1000` businesses in memory; exceeding the limit raises `BUSINESS.SIGNAL_FILTER_LIMIT`.
-- Repository reads (`get_by_id`, list/count) exclude soft-deleted records by default; `get_by_id_including_deleted` and `list_by_client_including_deleted` bypass this.
-- `available_actions` on business responses are role-aware: `freeze` is only included for ADVISOR.
-
-## Error Envelope
-
-Errors follow the global app format from `app/core/exceptions.py`:
-- `detail`
-- `error`
-- `error_meta`
-
-Domain errors:
-- `BUSINESS.NOT_FOUND`
-- `BUSINESS.CONFLICT` — integrity error on create
-- `BUSINESS.NAME_CONFLICT` — duplicate `business_name` for the same client
-- `BUSINESS.FORBIDDEN` — non-advisor attempted a status change to frozen/closed, or restore
-- `BUSINESS.NOT_DELETED` — restore called on a non-deleted business
-- `BUSINESS.INVALID_VAT_TYPE` — invalid value passed to tax profile update
-- `BUSINESS.SIGNAL_FILTER_LIMIT` — `has_signals` filter exceeds in-memory ceiling
-- `BUSINESS.CLOSED` / `BUSINESS.FROZEN` — raised by downstream domain guards when creating new work
-- `CLIENT.NOT_FOUND` — client does not exist on business create
-
-## Cross-Domain Integration
-
-- `clients` — every business is owned by a client; `client_id` is required on create
-- `binders` — business status card and binders endpoint resolve binders via `client_id`
-- `vat_reports` — VAT work items are business-scoped; `vat_type` from `BusinessTaxProfile` drives period validation and deadline generation
-- `annual_reports` — annual reports are business-scoped
-- `advance_payments` — payments are business-scoped; `advance_rate` from tax profile drives suggestion calculation
-- `tax_deadline` — deadline generator reads `vat_type` from `BusinessTaxProfile`
-- `charges` — charges are business-scoped
-- `permanent_documents` — documents are business-scoped
-- `authority_contacts` — contacts are business-scoped (`/businesses/{id}/authority-contacts`)
-- `correspondence` — entries are business-scoped (`/businesses/{id}/correspondence`)
-- `signature_requests` — requests are business-scoped (`/businesses/{id}/signature-requests`)
-- `timeline` — unified timeline is business-scoped (`/businesses/{id}/timeline`)
-- `reminders` — reminders are business-scoped
-- `notifications` — notifications are business-scoped
-- `actions` — `get_business_actions` generates `available_actions` per status/role
-
-## Tests
-
-Business test suites:
-- `tests/businesses/api/test_business_status_card.py`
-- `tests/businesses/api/test_businesses_and_tax_profile_api.py`
-- `tests/businesses/service/test_business_bulk_service.py`
-- `tests/businesses/service/test_business_guards.py`
-- `tests/businesses/service/test_business_lookup.py`
-- `tests/businesses/service/test_business_service.py`
-- `tests/businesses/service/test_business_service_additional.py`
-- `tests/businesses/service/test_business_tax_profile_service.py`
-- `tests/businesses/service/test_status_card_service.py`
-- `tests/businesses/repository/test_business_repositories.py`
-
-Run only this domain:
-
-```bash
-pytest tests/businesses -q
-```
+- Keep new business APIs client-scoped.
+- Prefer `client_id` for new tax-entity flows.
+- Avoid reintroducing standalone `/businesses/{id}` CRUD endpoints.

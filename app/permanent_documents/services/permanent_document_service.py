@@ -16,7 +16,7 @@ from app.permanent_documents.models.permanent_document import (
     PermanentDocument,
 )
 from app.utils.time_utils import utcnow
-from app.businesses.services.business_lookup import get_business_or_raise
+from app.businesses.services.business_guards import get_business_or_raise
 from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository

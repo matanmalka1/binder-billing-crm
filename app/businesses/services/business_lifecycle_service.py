@@ -6,14 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.audit.constants import ACTION_DELETED, ACTION_RESTORED, ENTITY_BUSINESS
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.businesses.constants import _SOLE_TRADER_TYPES
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lookup import get_business_or_raise as _get_or_raise
-from app.businesses.models.business import BusinessType
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
-
-_SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
 
 
 class BusinessLifecycleService:

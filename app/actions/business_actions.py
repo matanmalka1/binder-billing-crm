@@ -13,6 +13,7 @@ def get_business_actions(
 ) -> list[dict[str, Any]]:
     """Return executable actions for a business (role-aware)."""
     status = _value(business.status)
+    endpoint = f"/clients/{business.client_id}/businesses/{business.id}"
     actions: list[dict[str, Any]] = []
 
     if status == BusinessStatus.ACTIVE.value and user_role == UserRole.ADVISOR:
@@ -21,7 +22,7 @@ def get_business_actions(
                 key="freeze",
                 label="הקפאת עסק",
                 method="patch",
-                endpoint=f"/businesses/{business.id}",
+                endpoint=endpoint,
                 payload={"status": "frozen"},
                 action_id=_generate_action_id("business", business.id, "freeze"),
                 confirm={
@@ -37,7 +38,7 @@ def get_business_actions(
                 key="close",
                 label="סגירת עסק",
                 method="patch",
-                endpoint=f"/businesses/{business.id}",
+                endpoint=endpoint,
                 payload={"status": "closed"},
                 action_id=_generate_action_id("business", business.id, "close"),
                 confirm={
@@ -55,7 +56,7 @@ def get_business_actions(
                 key="activate",
                 label="הפעלת עסק",
                 method="patch",
-                endpoint=f"/businesses/{business.id}",
+                endpoint=endpoint,
                 payload={"status": "active"},
                 action_id=_generate_action_id("business", business.id, "activate"),
             )
@@ -66,7 +67,7 @@ def get_business_actions(
                     key="close",
                     label="סגירת עסק",
                     method="patch",
-                    endpoint=f"/businesses/{business.id}",
+                    endpoint=endpoint,
                     payload={"status": "closed"},
                     action_id=_generate_action_id("business", business.id, "close"),
                     confirm={

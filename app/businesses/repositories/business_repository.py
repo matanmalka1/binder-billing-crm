@@ -6,7 +6,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository_read import BusinessRepositoryRead
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.constants import _SOLE_TRADER_TYPES
 from app.utils.time_utils import utcnow
 
 
@@ -104,41 +105,27 @@ class BusinessRepository(BusinessRepositoryRead):
         )
         return [r[0] for r in rows]
 
-    def has_conflicting_sole_trader(self, client_id: int, new_type: "BusinessType") -> bool:
+    def has_conflicting_sole_trader(
+        self,
+        client_id: int,
+        new_type: BusinessType,
+        exclude_business_id: int | None = None,
+    ) -> bool:
         """
         Returns True if the client has a non-deleted sole-trader of the OPPOSITE type.
 
         Israeli VAT law: a person holds one VAT status (osek_patur OR osek_murshe).
         Multiple businesses of the SAME type are allowed (separate activities, one VAT file).
         Cross-type is illegal — you cannot be both patur and murshe simultaneously.
-        """
-        from app.businesses.models.business import BusinessType
-        _SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
-        opposite_types = list(_SOLE_TRADER_TYPES - {new_type})
-        return (
-            self.db.query(Business)
-            .filter(
-                Business.client_id == client_id,
-                Business.business_type.in_(opposite_types),
-                Business.deleted_at.is_(None),
-            )
-            .first()
-        ) is not None
 
-    def has_conflicting_sole_trader_excluding(
-        self, client_id: int, new_type: "BusinessType", exclude_business_id: int
-    ) -> bool:
-        """Same as has_conflicting_sole_trader but excludes the given business (for update checks)."""
-        from app.businesses.models.business import BusinessType
-        _SOLE_TRADER_TYPES = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
+        Pass exclude_business_id to skip a specific business (used during update checks).
+        """
         opposite_types = list(_SOLE_TRADER_TYPES - {new_type})
-        return (
-            self.db.query(Business)
-            .filter(
-                Business.client_id == client_id,
-                Business.business_type.in_(opposite_types),
-                Business.deleted_at.is_(None),
-                Business.id != exclude_business_id,
-            )
-            .first()
-        ) is not None
+        q = self.db.query(Business).filter(
+            Business.client_id == client_id,
+            Business.business_type.in_(opposite_types),
+            Business.deleted_at.is_(None),
+        )
+        if exclude_business_id is not None:
+            q = q.filter(Business.id != exclude_business_id)
+        return q.first() is not None

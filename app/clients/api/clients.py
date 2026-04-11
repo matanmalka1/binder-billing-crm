@@ -38,7 +38,7 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
     - CLIENT.DELETED_EXISTS (409): לקוח עם אותו ת.ז. קיים אך נמחק.
       התגובה כוללת deleted_clients עם רשימת הלקוחות המחוקים.
 
-    לאחר יצירת לקוח, יש ליצור עסק דרך POST /businesses.
+    לאחר יצירת לקוח, יש ליצור עסק דרך POST /clients/{client_id}/businesses.
     """
     service = ClientService(db)
     try:
