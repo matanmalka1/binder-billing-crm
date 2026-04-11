@@ -103,7 +103,7 @@ def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, t
 
 def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers, vat_client, monkeypatch):
     monkeypatch.setattr(
-        "app.vat_reports.api.routes_business_summary.export",
+        "app.vat_reports.api.routes_client_summary.export",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("fail")),
     )
 
@@ -116,7 +116,7 @@ def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers
 
 def test_vat_client_export_import_error_returns_detail(client, advisor_headers, vat_client, monkeypatch):
     monkeypatch.setattr(
-        "app.vat_reports.api.routes_business_summary.export",
+        "app.vat_reports.api.routes_client_summary.export",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("openpyxl missing")),
     )
 
