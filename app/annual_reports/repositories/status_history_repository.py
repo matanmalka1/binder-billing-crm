@@ -15,7 +15,7 @@ class AnnualReportStatusHistoryRepository:
         annual_report_id: int,
         from_status: AnnualReportStatus | None,
         to_status: AnnualReportStatus,
-        changed_by: int,
+        changed_by: int | None,
         changed_by_name: str,
         note: str | None = None,
     ) -> AnnualReportStatusHistory:

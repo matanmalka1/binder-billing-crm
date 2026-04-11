@@ -17,7 +17,7 @@ class AnnualReportStatusHistory(Base):
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
     from_status = Column(pg_enum(AnnualReportStatus), nullable=True)
     to_status = Column(pg_enum(AnnualReportStatus), nullable=False)
-    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     changed_by_name = Column(String(255), nullable=True)
     note = Column(Text, nullable=True)
     occurred_at = Column(DateTime, nullable=False, default=utcnow)

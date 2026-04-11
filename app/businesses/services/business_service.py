@@ -13,6 +13,7 @@ from app.businesses.services.business_lifecycle_service import BusinessLifecycle
 from app.businesses.services.business_lookup import get_business_or_raise as _get_or_raise
 from app.businesses.services.business_bulk_service import BusinessBulkService
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.obligation_orchestrator import generate_client_obligations
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 
@@ -82,6 +83,11 @@ class BusinessService:
                 f"שגיאת כפילות ביצירת עסק ללקוח {client_id}", "BUSINESS.CONFLICT",
             )
 
+        generate_client_obligations(
+            self.db, client_id, actor_id=actor_id,
+            entity_type=getattr(client, "entity_type", None),
+            best_effort=False,
+        )
         if actor_id:
             self._audit.append(
                 entity_type=ENTITY_BUSINESS,

@@ -10,6 +10,7 @@ from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_binder_helper import create_initial_binder
+from app.clients.services.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
 from app.core.exceptions import ConflictError, NotFoundError
 
@@ -82,6 +83,9 @@ class ClientService:
             raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
 
         create_initial_binder(self.db, client, actor_id)
+        generate_client_obligations(
+            self.db, client.id, actor_id=actor_id, entity_type=entity_type, best_effort=False,
+        )
         if actor_id:
             self._audit.append(
                 entity_type=ENTITY_CLIENT, entity_id=client.id,
@@ -104,6 +108,12 @@ class ClientService:
         existing = self.get_client_or_raise(client_id)
         old_snapshot = {k: getattr(existing, k, None) for k in fields if hasattr(existing, k)}
         updated = self.client_repo.update(client_id, **fields)
+        if obligation_fields_changed(fields):
+            generate_client_obligations(
+                self.db, client_id, actor_id=actor_id,
+                entity_type=getattr(updated, "entity_type", None),
+                best_effort=True,
+            )
         new_snapshot = {k: getattr(updated, k, None) for k in fields if hasattr(updated, k)}
         self._audit.append(
             entity_type=ENTITY_CLIENT, entity_id=client_id,
