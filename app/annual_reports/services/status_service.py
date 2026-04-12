@@ -4,7 +4,7 @@ from datetime import datetime
 from app.audit.constants import ACTION_STATUS_CHANGED, ENTITY_ANNUAL_REPORT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.core.exceptions import AppError, NotFoundError
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus, DeadlineType
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus, FilingDeadlineType
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.utils.time_utils import utcnow
@@ -113,14 +113,14 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         custom_deadline_note: Optional[str] = None,
     ) -> AnnualReportResponse:
         report = self._get_or_raise_for_update(report_id)
-        valid_deadline_types = {e.value for e in DeadlineType}
+        valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
             raise AppError(f"סוג מועד אחרון לא חוקי '{deadline_type}'", "ANNUAL_REPORT.INVALID_TYPE")
-        dt = DeadlineType(deadline_type)
+        dt = FilingDeadlineType(deadline_type)
 
-        if dt == DeadlineType.STANDARD:
+        if dt == FilingDeadlineType.STANDARD:
             filing_deadline = standard_deadline(report.tax_year)
-        elif dt == DeadlineType.EXTENDED:
+        elif dt == FilingDeadlineType.EXTENDED:
             filing_deadline = extended_deadline(report.tax_year)
         else:
             filing_deadline = None

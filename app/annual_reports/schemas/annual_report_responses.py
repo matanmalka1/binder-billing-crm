@@ -9,8 +9,9 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
     AnnualReportSchedule,
+    AnnualReportType,
     ClientTypeForReport,
-    DeadlineType,
+    FilingDeadlineType,
     ExtensionReason,
     ReportStage,
     SubmissionMethod,
@@ -23,10 +24,11 @@ class AnnualReportResponse(BaseModel):
     client_name: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
+    report_type: AnnualReportType
     client_type: ClientTypeForReport
     form_type: AnnualReportForm
     status: AnnualReportStatus
-    deadline_type: DeadlineType
+    deadline_type: FilingDeadlineType
     filing_deadline: Optional[ApiDateTime] = None
     custom_deadline_note: Optional[str] = None
     submitted_at: Optional[ApiDateTime] = None

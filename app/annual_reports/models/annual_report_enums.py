@@ -5,6 +5,22 @@ from enum import Enum as PyEnum
 from app.common.enums import SubmissionMethod
 
 
+class AnnualReportType(str, PyEnum):
+    """
+    Identity of the annual report — determines uniqueness per client+year.
+
+    A single client (legal entity) can file multiple reports in the same tax year,
+    one per report type. This is the discriminator used in the unique constraint.
+
+    INDIVIDUAL    → Form 1301 (יחיד)
+    SELF_EMPLOYED → Form 1215 (עצמאי / שותפות)
+    COMPANY       → Form 6111 (חברה בע"מ)
+    """
+    INDIVIDUAL    = "individual"
+    SELF_EMPLOYED = "self_employed"
+    COMPANY       = "company"
+
+
 class ClientTypeForReport(str, PyEnum):
     """Client types that determine which ITA form is required."""
 
@@ -48,7 +64,7 @@ class AnnualReportSchedule(str, PyEnum):
     ANNEX_15        = "annex_15"         # הכנסות מחו"ל מפורט
     ANNEX_867       = "annex_867"        # אישור בנקאי — נתונים כספיים
 
-class DeadlineType(str, PyEnum):
+class FilingDeadlineType(str, PyEnum):
     STANDARD = "standard"   # April 30
     EXTENDED = "extended"   # January 31 following year (מייצגים)
     CUSTOM = "custom"       # ITA granted specific extension
@@ -85,8 +101,9 @@ __all__ = [
     "AnnualReportForm",
     "AnnualReportSchedule",
     "AnnualReportStatus",
+    "AnnualReportType",
     "ClientTypeForReport",
-    "DeadlineType",
+    "FilingDeadlineType",
     "ExtensionReason",
     "ReportStage",
     "SubmissionMethod",

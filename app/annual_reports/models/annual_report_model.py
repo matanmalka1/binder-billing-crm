@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
-    Index, Integer, Numeric, String, Text,
+    Index, Integer, Numeric, String, Text, text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
@@ -9,8 +9,9 @@ from app.utils.time_utils import utcnow
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
+    AnnualReportType,
     ClientTypeForReport,
-    DeadlineType,
+    FilingDeadlineType,
     SubmissionMethod,
     ExtensionReason
 )
@@ -27,11 +28,14 @@ class AnnualReport(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
     tax_year = Column(Integer, nullable=False)
+    # report_type is the uniqueness discriminator: one report per (client, year, report_type).
+    # Explicit input at creation — not derived from client_type. Never changed after creation.
+    report_type = Column(pg_enum(AnnualReportType), nullable=False)
     client_type = Column(pg_enum(ClientTypeForReport), nullable=False)
     form_type = Column(pg_enum(AnnualReportForm), nullable=False)
     status = Column(pg_enum(AnnualReportStatus), default=AnnualReportStatus.NOT_STARTED, nullable=False)
  
-    deadline_type = Column(pg_enum(DeadlineType), default=DeadlineType.STANDARD, nullable=False)
+    deadline_type = Column(pg_enum(FilingDeadlineType), default=FilingDeadlineType.STANDARD, nullable=False)
     filing_deadline = Column(DateTime, nullable=True)
     custom_deadline_note = Column(String, nullable=True)
  
@@ -58,11 +62,13 @@ class AnnualReport(Base):
  
     __table_args__ = (
         Index(
-            "idx_annual_report_client_year",
+            "idx_annual_report_client_year_type",
             "client_id",
             "tax_year",
+            "report_type",
             unique=True,
-            postgresql_where=Column("deleted_at").is_(None),
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("idx_annual_report_status", "status"),
         Index("idx_annual_report_deadline", "filing_deadline"),
@@ -74,4 +80,3 @@ class AnnualReport(Base):
             f"<AnnualReport(id={self.id}, client_id={self.client_id}, "
             f"year={self.tax_year}, status='{self.status}')>"
         )
- 

@@ -21,4 +21,4 @@ class AnnualReportDetailService:
         report = self.report_repo.get_by_id(report_id)
         if not report:
             raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
-        return self.repo.upsert(report_id, **fields)
+        return self.repo.update_meta(report_id, **fields)

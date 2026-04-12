@@ -56,7 +56,6 @@ Notes:
 
 ## Migration chain
 
-- `0c533cccdb56_initial_schema.py` — current base migration. `down_revision = None`.
 
 
 ## Run instructions

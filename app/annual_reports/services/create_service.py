@@ -6,8 +6,9 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
+    AnnualReportType,
     ClientTypeForReport,
-    DeadlineType,
+    FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_repository import ClientRepository
@@ -22,6 +23,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         self,
         client_id: int,
         tax_year: int,
+        report_type: str,
         client_type: str,
         created_by: int,
         created_by_name: str,
@@ -47,31 +49,38 @@ class AnnualReportCreateService(AnnualReportBaseService):
                 f"סוג לקוח לא חוקי: '{client_type}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        valid_report_types = {e.value for e in AnnualReportType}
+        if report_type not in valid_report_types:
+            raise AppError(
+                f"סוג דוח לא חוקי: '{report_type}'",
+                "ANNUAL_REPORT.INVALID_REPORT_TYPE",
+            )
+        rt = AnnualReportType(report_type)
         ct = ClientTypeForReport(client_type)
 
-        valid_deadline_types = {e.value for e in DeadlineType}
+        valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
             raise AppError(
                 f"סוג מועד אחרון לא חוקי: '{deadline_type}'",
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
-        dt = DeadlineType(deadline_type)
+        dt = FilingDeadlineType(deadline_type)
 
         if assigned_to is not None:
             get_user_or_raise(self.user_repo, assigned_to)
 
-        existing = self.repo.get_by_client_year(client_id, tax_year)
+        existing = self.repo.get_by_client_year_type(client_id, tax_year, rt)
         if existing:
             raise ConflictError(
-                f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} כבר קיים "
+                f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} מסוג {rt.value} כבר קיים "
                 f"(id={existing.id}, status={existing.status.value})",
                 "ANNUAL_REPORT.CONFLICT",
             )
 
         form_type = FORM_MAP[ct]
-        if dt == DeadlineType.STANDARD:
+        if dt == FilingDeadlineType.STANDARD:
             filing_deadline = standard_deadline(tax_year)
-        elif dt == DeadlineType.EXTENDED:
+        elif dt == FilingDeadlineType.EXTENDED:
             filing_deadline = extended_deadline(tax_year)
         else:
             filing_deadline = None  # custom — caller can set note
@@ -79,6 +88,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         report = self.repo.create(
             client_id=client_id,
             tax_year=tax_year,
+            report_type=rt,
             client_type=ct,
             form_type=form_type,
             created_by=created_by,

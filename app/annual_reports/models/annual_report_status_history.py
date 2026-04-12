@@ -9,7 +9,17 @@ from app.utils.time_utils import utcnow
 
 
 class AnnualReportStatusHistory(Base):
-    """Audit trail for every status change on an annual report."""
+    """Audit trail for every status change on an annual report.
+
+    Append-only — no soft delete, no updated_at.
+
+    changed_by_name:
+        Intentional denormalization. Stores the user's display name at the
+        moment of the status change. This protects the audit trail from user
+        renames — if a user's name changes later, the historical record still
+        reflects who actually performed the action. Do NOT derive this from
+        the users table at query time; read the stored snapshot.
+    """
 
     __tablename__ = "annual_report_status_history"
 

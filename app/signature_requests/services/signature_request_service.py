@@ -86,7 +86,7 @@ class SignatureRequestService:
             )
 
             detail_repo = AnnualReportDetailRepository(self.db)
-            detail_repo.upsert(annual_report_id, client_approved_at=now)
+            detail_repo.update_meta(annual_report_id, client_approved_at=now)
         except Exception:
             _log.exception("שגיאה בקידום אוטומטי של דוח שנתי %s לאחר חתימה", annual_report_id)
 

@@ -118,7 +118,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
             changed_by_name=actor_name,
             note=reason,
         )
-        AnnualReportDetailRepository(self.db).upsert(report_id, amendment_reason=reason)
+        AnnualReportDetailRepository(self.db).update_meta(report_id, amendment_reason=reason)
         self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "תיקון דוח — ביטול בקשת חתימה")
 
         from app.annual_reports.services.deadline_sync import sync_annual_report_deadline

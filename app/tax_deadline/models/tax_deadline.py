@@ -21,7 +21,7 @@ Design decisions:
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text,
+    CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
@@ -83,6 +83,12 @@ class TaxDeadline(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
+        # If deadline_type is ADVANCE_PAYMENT, advance_payment_id must be set.
+        # All other types must leave advance_payment_id NULL.
+        CheckConstraint(
+            "(deadline_type != 'advance_payment') OR (advance_payment_id IS NOT NULL)",
+            name="ck_tax_deadline_advance_payment_link",
+        ),
         Index("idx_tax_deadline_status",         "status"),
         Index("idx_tax_deadline_type",           "deadline_type"),
         Index("idx_tax_deadline_client_period",  "client_id", "period"),

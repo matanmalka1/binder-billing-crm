@@ -36,8 +36,8 @@ class VatWorkItem(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Period identity
-    period      = Column(String(7), nullable=False)   # "YYYY-MM"
-    period_type = Column(pg_enum(VatType), nullable=False)  # snapshot: monthly/bimonthly
+    period      = Column(String(7), nullable=False)          # "YYYY-MM"
+    period_type = Column(pg_enum(VatType), nullable=False)   # snapshot at creation — immutable
 
     # Status lifecycle
     status                 = Column(pg_enum(VatWorkItemStatus), nullable=False,
@@ -81,7 +81,8 @@ class VatWorkItem(Base):
             "client_id",
             "period",
             unique=True,
-            postgresql_where=Column("deleted_at").is_(None),
+            postgresql_where=VatWorkItem.deleted_at.is_(None),
+            sqlite_where=VatWorkItem.deleted_at.is_(None),
         ),
         Index("ix_vat_work_items_status", "status"),
         Index("ix_vat_work_items_period", "period"),

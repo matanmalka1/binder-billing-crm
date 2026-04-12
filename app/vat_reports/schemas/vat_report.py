@@ -34,7 +34,7 @@ class VatWorkItemResponse(BaseModel):
     client_name: Optional[str] = None       # enriched by service
     client_status: Optional[str] = None    # enriched by service
     period: str
-    period_type: VatType                   # קיים במודל — snapshot של סוג הדיווח
+    period_type: VatType                   # snapshot at creation — immutable historical record
     status: VatWorkItemStatus
     pending_materials_note: Optional[str] = None
     total_output_vat: Decimal
