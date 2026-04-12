@@ -26,11 +26,8 @@ def generate_advance_payment_schedule(
     db: DBSession,
     user: CurrentUser,
 ):
-    from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-
-    AdvancePaymentService(db).validate_business_for_client(client_id, request.business_id)
     created, skipped = generate_annual_schedule(
-        request.business_id,
+        client_id,
         request.year,
         db,
         period_months_count=request.period_months_count,

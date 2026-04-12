@@ -1,6 +1,6 @@
 """CRUD repository for AdvancePayment entities.
 
-Aggregation/overview queries (list_overview_payments, sum_paid_by_business_year,
+Aggregation/overview queries (list_overview_payments, sum_paid_by_client_year,
 get_collections_aggregates) live in AdvancePaymentAggregationRepository.
 This class re-exposes them via composition for backward compatibility.
 """
@@ -29,7 +29,7 @@ class AdvancePaymentRepository(BaseRepository):
 
     def create(
         self,
-        business_id: int,
+        client_id: int,
         period: str,
         period_months_count: int,
         due_date: date,
@@ -40,7 +40,7 @@ class AdvancePaymentRepository(BaseRepository):
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
-            business_id=business_id,
+            client_id=client_id,
             period=period,
             period_months_count=period_months_count,
             due_date=due_date,
@@ -63,56 +63,16 @@ class AdvancePaymentRepository(BaseRepository):
             .first()
         )
 
-    def get_by_id_for_business(self, payment_id: int, business_id: int) -> Optional[AdvancePayment]:
-        return (
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.id == payment_id,
-                AdvancePayment.business_id == business_id,
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .first()
-        )
-
     def get_by_id_for_client(self, payment_id: int, client_id: int) -> Optional[AdvancePayment]:
-        from app.businesses.models.business import Business
-
         return (
             self.db.query(AdvancePayment)
-            .join(Business, Business.id == AdvancePayment.business_id)
             .filter(
                 AdvancePayment.id == payment_id,
-                Business.client_id == client_id,
-                Business.deleted_at.is_(None),
+                AdvancePayment.client_id == client_id,
                 AdvancePayment.deleted_at.is_(None),
             )
             .first()
         )
-
-    def list_by_business_year(
-        self,
-        business_id: int,
-        year: int,
-        status: Optional[list[AdvancePaymentStatus]] = None,
-        page: int = 1,
-        page_size: int = 50,
-    ) -> tuple[list[AdvancePayment], int]:
-        """List payments for a business in a given year, filtered by period prefix."""
-        query = (
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.business_id == business_id,
-                AdvancePayment.period.like(f"{year}-%"),
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .order_by(AdvancePayment.period.asc())
-        )
-        if status:
-            normalized = [s.value.lower() for s in status]
-            query = query.filter(advance_payment_status_text_expr().in_(normalized))
-        total = query.count()
-        items = self._paginate(query, page, page_size)
-        return items, total
 
     def list_by_client_year(
         self,
@@ -122,15 +82,10 @@ class AdvancePaymentRepository(BaseRepository):
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
-        """List payments for all businesses of a client in a given year."""
-        from app.businesses.models.business import Business
-
         query = (
             self.db.query(AdvancePayment)
-            .join(Business, Business.id == AdvancePayment.business_id)
             .filter(
-                Business.client_id == client_id,
-                Business.deleted_at.is_(None),
+                AdvancePayment.client_id == client_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
@@ -143,12 +98,11 @@ class AdvancePaymentRepository(BaseRepository):
         items = self._paginate(query, page, page_size)
         return items, total
 
-    def exists_for_period(self, business_id: int, period: str) -> bool:
-        """Check if a payment already exists for the given period."""
+    def exists_for_period(self, client_id: int, period: str) -> bool:
         return self.db.query(
             self.db.query(AdvancePayment)
             .filter(
-                AdvancePayment.business_id == business_id,
+                AdvancePayment.client_id == client_id,
                 AdvancePayment.period == period,
                 AdvancePayment.deleted_at.is_(None),
             )
@@ -176,9 +130,6 @@ class AdvancePaymentRepository(BaseRepository):
         statuses: list[AdvancePaymentStatus],
     ) -> list[AdvancePayment]:
         return self._agg.list_overview_payments(year, month, statuses)
-
-    def sum_paid_by_business_year(self, business_id: int, year: int) -> float:
-        return self._agg.sum_paid_by_business_year(business_id, year)
 
     def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
         return self._agg.sum_paid_by_client_year(client_id, year)

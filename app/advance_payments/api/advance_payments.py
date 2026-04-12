@@ -63,7 +63,6 @@ def create_advance_payment(
     service = AdvancePaymentService(db)
     payment = service.create_payment_for_client(
         client_id=client_id,
-        business_id=request.business_id,
         period=request.period,
         period_months_count=request.period_months_count,
         due_date=request.due_date,

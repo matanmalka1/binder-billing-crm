@@ -9,6 +9,7 @@ from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
 
+
 def advance_payment_status_text_expr():
     """
     Normalize enum-backed status columns to lowercase text.
@@ -54,28 +55,11 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             query = query.filter(advance_payment_status_text_expr().in_(normalized))
         return query.all()
 
-    def sum_paid_by_business_year(self, business_id: int, year: int) -> float:
-        result = (
-            self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
-            .filter(
-                AdvancePayment.business_id == business_id,
-                AdvancePayment.period.like(f"{year}-%"),
-                advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .scalar()
-        )
-        return float(result)
-
     def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
-        from app.businesses.models.business import Business
-
         result = (
             self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
-            .join(Business, Business.id == AdvancePayment.business_id)
             .filter(
-                Business.client_id == client_id,
-                Business.deleted_at.is_(None),
+                AdvancePayment.client_id == client_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
                 AdvancePayment.deleted_at.is_(None),
@@ -85,15 +69,12 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         return float(result)
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
-        """Per-business aggregates for the collections report."""
-        from app.businesses.models.business import Business
+        """Per-client aggregates for the collections report."""
         from app.clients.models.client import Client
 
         query = (
             self.db.query(
-                AdvancePayment.business_id,
-                Business.client_id,
-                Business.business_name,
+                AdvancePayment.client_id,
                 Client.full_name.label("client_name"),
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
@@ -107,20 +88,16 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                     0,
                 ).label("overdue_count"),
             )
-            .join(Business, Business.id == AdvancePayment.business_id)
-            .join(Client, Client.id == Business.client_id)
+            .join(Client, Client.id == AdvancePayment.client_id)
             .filter(
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
-                Business.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )
         )
         if month is not None:
             query = query.filter(advance_payment_matches_month_expr(month))
         return query.group_by(
-            AdvancePayment.business_id,
-            Business.client_id,
-            Business.business_name,
+            AdvancePayment.client_id,
             Client.full_name,
         ).all()

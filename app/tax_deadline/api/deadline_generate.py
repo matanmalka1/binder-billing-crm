@@ -11,7 +11,6 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 
-
 @router.post(
     "/generate",
     response_model=GenerateDeadlinesResponse,

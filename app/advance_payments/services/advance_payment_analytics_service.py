@@ -1,6 +1,5 @@
 """Analytics, KPI, and overview service for AdvancePayment domain."""
 
-from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -12,7 +11,6 @@ from app.advance_payments.repositories.advance_payment_analytics_repository impo
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
 )
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 
@@ -22,10 +20,6 @@ class AdvancePaymentAnalyticsService:
         self.db = db
         self.analytics_repo = AdvancePaymentAnalyticsRepository(db)
         self.aggregation_repo = AdvancePaymentAggregationRepository(db)
-
-    @property
-    def _business_repo(self) -> BusinessRepository:
-        return BusinessRepository(self.db)
 
     @property
     def _client_repo(self) -> ClientRepository:
@@ -50,16 +44,15 @@ class AdvancePaymentAnalyticsService:
 
         payments = self.aggregation_repo.list_overview_payments(year, month, statuses)
 
-        business_ids = list({p.business_id for p in payments})
-        businesses = {b.id: b for b in self._business_repo.list_by_ids(business_ids)}
+        client_ids = list({p.client_id for p in payments})
+        clients = {c.id: c for c in self._client_repo.list_by_ids(client_ids)}
 
         rows = sorted(
             [
                 (
                     p,
-                    (businesses[p.business_id].business_name or businesses[p.business_id].client.full_name)
-                    if p.business_id in businesses else "",
-                    businesses[p.business_id].client_id if p.business_id in businesses else 0,
+                    clients[p.client_id].full_name if p.client_id in clients else "",
+                    p.client_id,
                 )
                 for p in payments
             ],
@@ -71,17 +64,6 @@ class AdvancePaymentAnalyticsService:
         return rows[offset: offset + page_size], total
 
     # ─── KPIs ─────────────────────────────────────────────────────────────────
-
-    def get_annual_kpis(self, business_id: int, year: int) -> dict:
-        if not self._business_repo.get_by_id(business_id):
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
-        data = self.analytics_repo.get_annual_kpis(business_id, year)
-        return {
-            **data,
-            "business_id": business_id,
-            "year": year,
-            "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
-        }
 
     def get_annual_kpis_for_client(self, client_id: int, year: int) -> dict:
         if not self._client_repo.get_by_id(client_id):
@@ -104,12 +86,6 @@ class AdvancePaymentAnalyticsService:
             statuses = list(AdvancePaymentStatus)
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
         return {**data, "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"])}
-
-    def get_chart_data(self, business_id: int, year: int) -> dict:
-        if not self._business_repo.get_by_id(business_id):
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "ADVANCE_PAYMENT.BUSINESS_NOT_FOUND")
-        months = self.analytics_repo.monthly_chart_data(business_id, year)
-        return {"business_id": business_id, "year": year, "months": months}
 
     def get_chart_data_for_client(self, client_id: int, year: int) -> dict:
         if not self._client_repo.get_by_id(client_id):

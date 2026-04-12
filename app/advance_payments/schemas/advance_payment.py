@@ -10,7 +10,7 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 class AdvancePaymentRow(BaseModel):
     id: int
-    business_id: int
+    client_id: int
     business_name: Optional[str] = None
     period: str                          # "YYYY-MM"
     period_months_count: int             # 1=חודשי, 2=דו-חודשי
@@ -44,7 +44,6 @@ class AdvancePaymentListResponse(BaseModel):
 
 
 class AdvancePaymentCreateRequest(BaseModel):
-    business_id: int
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")  # "YYYY-MM"
     period_months_count: int = Field(1, ge=1, le=2)                 # 1=חודשי, 2=דו-חודשי
     due_date: date
@@ -65,7 +64,6 @@ class AdvancePaymentCreateRequest(BaseModel):
         return self
 
     model_config = {"json_schema_extra": {"example": {
-        "business_id": 123,
         "period": "2026-03",
         "period_months_count": 1,
         "due_date": "2026-04-15",
@@ -102,7 +100,6 @@ class AdvancePaymentSuggestionResponse(BaseModel):
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
     client_id: int
-    business_id: int
     business_name: str
     period: str
     period_months_count: int
@@ -157,7 +154,6 @@ class ChartDataResponse(BaseModel):
 
 
 class GenerateScheduleRequest(BaseModel):
-    business_id: int
     year: int
     period_months_count: int = Field(1, ge=1, le=2)  # 1=חודשי, 2=דו-חודשי
 

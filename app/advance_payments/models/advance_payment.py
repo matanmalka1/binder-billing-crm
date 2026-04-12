@@ -1,22 +1,29 @@
-"""
-Advance Payment — tax prepayment (מקדמה) tracked per business per period.
+"""Advance payment model for Israeli tax prepayments.
 
-Israeli context:
-  Businesses pay advance payments (מקדמות) to the ITA monthly or bi-monthly,
-  calculated as a percentage of prior-year income (advance_rate on Client).
-  Small/medium businesses typically report bi-monthly; larger ones monthly.
+An ``AdvancePayment`` represents a client tax prepayment (``מקדמה``) for a
+given reporting period.
 
-  period follows the same "YYYY-MM" convention as VatWorkItem — the first
-  month of the reporting period. period_months_count distinguishes monthly
-  (1) from bi-monthly (2) without duplicating the period string logic.
+Context:
+    Businesses pay advance payments (``מקדמות``) to the Israeli Tax Authority
+    monthly or bi-monthly, based on a percentage of prior-year income
+    (``advance_rate`` on ``Client``). Small and medium businesses typically
+    report bi-monthly, while larger businesses usually report monthly.
 
-Design decisions:
-- period + period_months_count instead of month/year — consistent with VAT,
-  supports both frequencies, unique constraint still works.
-- paid_at captures the actual payment timestamp for auditing.
-- payment_method is an enum — DIRECT_DEBIT is the most common for מקדמות.
-- No currency column — always ILS per project convention.
-- Soft delete included — AdvancePayment is a business entity.
+Period handling:
+    ``period`` follows the same ``YYYY-MM`` convention as ``VatWorkItem`` and
+    stores the first month of the reporting period. ``period_months_count``
+    distinguishes monthly (1) from bi-monthly (2) periods without duplicating
+    period logic.
+
+Design notes:
+    - ``period`` and ``period_months_count`` are used instead of separate month
+      and year fields for consistency with VAT handling.
+    - ``paid_at`` stores the actual payment timestamp for auditability.
+    - ``payment_method`` is an enum; direct debit is the most common option for
+      advance payments.
+    - Currency is always ILS by project convention, so no currency column is
+      stored.
+    - Soft deletion is enabled because this is a client-owned entity.
 """
 
 from enum import Enum as PyEnum
@@ -31,6 +38,8 @@ from app.utils.time_utils import utcnow
 
 
 class AdvancePaymentStatus(str, PyEnum):
+    """Lifecycle status of an advance payment."""
+
     PENDING = "pending"   # Not yet paid
     PAID    = "paid"      # Paid in full
     PARTIAL = "partial"   # Paid partially
@@ -38,6 +47,8 @@ class AdvancePaymentStatus(str, PyEnum):
 
 
 class PaymentMethod(str, PyEnum):
+    """Supported payment methods for an advance payment."""
+
     BANK_TRANSFER = "bank_transfer"  # Bank transfer
     CREDIT_CARD   = "credit_card"    # Credit card
     CHECK         = "check"          # Check
@@ -47,10 +58,12 @@ class PaymentMethod(str, PyEnum):
 
 
 class AdvancePayment(Base):
+    """SQLAlchemy model for a client's advance tax payment record."""
+
     __tablename__ = "advance_payments"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    id        = Column(Integer, primary_key=True, autoincrement=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
 
     # ── Period ────────────────────────────────────────────────────────────────
     period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period
@@ -83,16 +96,16 @@ class AdvancePayment(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "business_id", "period",
-            name="uq_advance_payment_business_period",
+            "client_id", "period",
+            name="uq_advance_payment_client_period",
         ),
-        Index("idx_advance_payment_business_period", "business_id", "period"),
-        Index("idx_advance_payment_status",          "status"),
-        Index("idx_advance_payment_due_date",        "due_date"),
+        Index("idx_advance_payment_client_period", "client_id", "period"),
+        Index("idx_advance_payment_status",        "status"),
+        Index("idx_advance_payment_due_date",      "due_date"),
     )
 
     def __repr__(self):
         return (
-            f"<AdvancePayment(id={self.id}, business_id={self.business_id}, "
+            f"<AdvancePayment(id={self.id}, client_id={self.client_id}, "
             f"period='{self.period}', status='{self.status}')>"
         )
