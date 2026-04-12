@@ -9,7 +9,7 @@ from app.annual_reports.models.annual_report_enums import (
     DeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.businesses.models.business_tax_profile import VatType
 from app.clients.models.client import Client
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -30,7 +30,7 @@ def _create_client_and_business(test_db, suffix: str) -> tuple[Client, Business]
         business = Business(
             client_id=crm_client.id,
             business_name=crm_client.full_name,
-            business_type=BusinessType.COMPANY,
+            entity_type=EntityType.COMPANY_LTD,
             opened_at=date(2025, 1, 1),
         )
         test_db.add(business)

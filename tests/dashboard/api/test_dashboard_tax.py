@@ -7,7 +7,7 @@ from app.annual_reports.models.annual_report_enums import (
     ClientTypeForReport,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 
 
@@ -28,25 +28,25 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
         Business(
             client_id=clients[0].id,
             business_name="Submitted Corp Biz",
-            business_type=BusinessType.COMPANY,
+            entity_type=EntityType.COMPANY_LTD,
             opened_at=date.today(),
         ),
         Business(
             client_id=clients[1].id,
             business_name="In Prep Biz",
-            business_type=BusinessType.EMPLOYEE,
+            entity_type=EntityType.EMPLOYEE,
             opened_at=date.today(),
         ),
         Business(
             client_id=clients[2].id,
             business_name="Collecting Docs Biz",
-            business_type=BusinessType.OSEK_MURSHE,
+            entity_type=EntityType.OSEK_MURSHE,
             opened_at=date.today(),
         ),
         Business(
             client_id=clients[3].id,
             business_name="Not Started Biz",
-            business_type=BusinessType.OSEK_PATUR,
+            entity_type=EntityType.OSEK_PATUR,
             opened_at=date.today(),
         ),
     ]

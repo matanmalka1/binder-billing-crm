@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import openpyxl
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client
 
@@ -23,7 +23,7 @@ def _seed_charges(db):
         business = Business(
             client_id=client.id,
             business_name=client.full_name,
-            business_type=BusinessType.COMPANY,
+            entity_type=EntityType.COMPANY_LTD,
             opened_at=date.today(),
         )
         db.add(business)

@@ -5,7 +5,7 @@ from itertools import count
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_analytics_repository import AdvancePaymentAnalyticsRepository
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 
 
@@ -25,7 +25,7 @@ def _business(test_db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Advance Repo Missing Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)

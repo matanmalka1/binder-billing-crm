@@ -5,7 +5,7 @@ import pytest
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.authority_contact.services.authority_contact_service import AuthorityContactService
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 
@@ -22,7 +22,7 @@ def _business(db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="AC Service Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

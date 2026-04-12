@@ -2,7 +2,7 @@ from datetime import date
 from io import BytesIO
 from itertools import count
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client, IdNumberType
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
@@ -25,7 +25,7 @@ def _business(db) -> Business:
     b = Business(
         client_id=c.id,
         business_name=f"PermDoc Biz {suffix}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(b)

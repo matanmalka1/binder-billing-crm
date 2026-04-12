@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
@@ -18,7 +18,7 @@ def _create_business(test_db, id_number: str = "111222333") -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Update Business {id_number}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(business)

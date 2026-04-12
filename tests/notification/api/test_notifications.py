@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -20,7 +20,7 @@ def _business(test_db, suffix: str) -> Business:
     b = Business(
         client_id=c.id,
         business_name=f"Notification API Biz {suffix}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(b)

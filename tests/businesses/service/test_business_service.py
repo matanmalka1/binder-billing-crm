@@ -20,7 +20,6 @@ def test_create_business_rejects_duplicate_name_for_client(test_db):
     with pytest.raises(ConflictError) as exc:
         service.create_business(
             client_id=1,
-            business_type="company",
             opened_at=date(2026, 1, 1),
             business_name="Dup Name",
         )
@@ -28,7 +27,7 @@ def test_create_business_rejects_duplicate_name_for_client(test_db):
     assert exc.value.code == "BUSINESS.NAME_CONFLICT"
 
 
-def test_create_business_defaults_opened_at_from_client_business_start_date(test_db):
+def test_create_business_defaults_opened_at_to_today(test_db):
     captured = {}
 
     def _create(**kwargs):
@@ -36,9 +35,7 @@ def test_create_business_defaults_opened_at_from_client_business_start_date(test
         return kwargs
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(
-        get_by_id=lambda _client_id: SimpleNamespace(business_start_date=date(2025, 3, 4))
-    )
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace())
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed=lambda _client_id: False,
         list_by_client=lambda _client_id, **_kwargs: [],
@@ -47,12 +44,11 @@ def test_create_business_defaults_opened_at_from_client_business_start_date(test
 
     result = service.create_business(
         client_id=1,
-        business_type="company",
         business_name="From Client Date",
     )
 
-    assert result["opened_at"] == date(2025, 3, 4)
-    assert captured["opened_at"] == date(2025, 3, 4)
+    assert result["opened_at"] == date.today()
+    assert captured["opened_at"] == date.today()
 
 
 def test_update_business_blocks_non_advisor_freeze_or_close(test_db):

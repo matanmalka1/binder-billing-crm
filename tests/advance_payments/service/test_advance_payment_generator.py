@@ -6,7 +6,7 @@ import pytest
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 
@@ -27,7 +27,7 @@ def _business(db) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Advance Gen Business {idx}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

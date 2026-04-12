@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.businesses.models.business import BusinessType
+from app.businesses.models.business import EntityType
 from app.businesses.models.business_tax_profile import VatType
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.reminders.models.reminder import ReminderType
@@ -24,14 +24,14 @@ def test_client_and_tax_profile_builder_events():
         full_name="Client Builder",
         opened_at=date(2026, 1, 1),
         updated_at=datetime(2026, 1, 2, 8, 0),
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
     )
     profile = SimpleNamespace(id=11, updated_at=datetime(2026, 1, 3, 9, 0), vat_type=VatType.MONTHLY)
 
     created = client_created_event(client)
     assert created["event_type"] == "client_created"
     assert created["description"] == "לקוח נוצר: Client Builder"
-    assert created["metadata"] == {"business_type": "company"}
+    assert created["metadata"] == {"entity_type": "company"}
 
     updated = client_info_updated_event(client)
     assert updated["event_type"] == "client_info_updated"

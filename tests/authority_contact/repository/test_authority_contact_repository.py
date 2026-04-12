@@ -2,7 +2,7 @@ from datetime import date
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -29,7 +29,7 @@ def test_authority_contact_repository_crud_flow(test_db):
     business = Business(
         client_id=client.id,
         business_name="Business A",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)

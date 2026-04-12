@@ -4,7 +4,7 @@ from itertools import count
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -26,7 +26,7 @@ def _business(db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Advance Overview Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

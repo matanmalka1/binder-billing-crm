@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.binders.models.binder import Binder
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business
 from app.clients.models.client import Client, IdNumberType
 
 
@@ -19,7 +19,6 @@ def _seed_client_business_and_binder(test_db, *, user_id: int):
     business = Business(
         client_id=crm_client.id,
         business_name="Binders Biz",
-        business_type=BusinessType.COMPANY,
         opened_at=date(2025, 1, 1),
         created_by=user_id,
     )
@@ -65,4 +64,3 @@ def test_list_business_binders_business_not_found(client, advisor_headers):
 
     assert response.status_code == 404
     assert response.json()["error"] == "BUSINESS.NOT_FOUND"
-

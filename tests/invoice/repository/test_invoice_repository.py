@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.charge.models.charge import ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.models.client import Client
@@ -19,7 +19,7 @@ def _business(test_db):
 
     business = Business(
         client_id=client.id,
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)

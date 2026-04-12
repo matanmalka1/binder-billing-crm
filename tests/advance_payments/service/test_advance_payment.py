@@ -10,7 +10,7 @@ from app.advance_payments.services.advance_payment_calculator import (
     derive_annual_income_from_vat,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
 from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
@@ -34,7 +34,7 @@ def _business(db) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Advance Service Business {idx}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

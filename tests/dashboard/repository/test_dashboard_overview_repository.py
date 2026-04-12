@@ -2,7 +2,7 @@ from datetime import date
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
@@ -27,13 +27,13 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     business_active = Business(
         client_id=client_a.id,
         business_name="Alpha Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     business_other = Business(
         client_id=client_b.id,
         business_name="Beta Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 2, 1),
     )
     test_db.add_all([business_active, business_other])

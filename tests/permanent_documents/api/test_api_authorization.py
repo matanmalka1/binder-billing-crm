@@ -1,7 +1,7 @@
 from datetime import date
 from io import BytesIO
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client, IdNumberType
 
 
@@ -18,7 +18,7 @@ def _create_business(test_db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="API Test Biz",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(business)

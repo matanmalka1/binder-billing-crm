@@ -3,7 +3,7 @@ from decimal import Decimal
 from itertools import count
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.models.business import Business, BusinessStatus, EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -28,7 +28,7 @@ def _client(db) -> Client:
 def _business(db, client_id: int, user_id: int) -> Business:
     business = Business(
         client_id=client_id,
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
         created_by=user_id,

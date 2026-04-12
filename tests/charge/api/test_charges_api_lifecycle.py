@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 
 
@@ -12,7 +12,7 @@ def _create_business(test_db) -> Business:
 
     business = Business(
         client_id=client.id,
-        business_type=BusinessType.OSEK_MURSHE,
+        entity_type=EntityType.OSEK_MURSHE,
         opened_at=date.today(),
     )
     test_db.add(business)

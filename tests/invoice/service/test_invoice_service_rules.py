@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.charge.services.billing_service import BillingService
@@ -20,7 +20,7 @@ def _create_business(test_db) -> Business:
 
     business = Business(
         client_id=client.id,
-        business_type=BusinessType.EMPLOYEE,
+        entity_type=EntityType.EMPLOYEE,
         opened_at=date.today(),
     )
     test_db.add(business)

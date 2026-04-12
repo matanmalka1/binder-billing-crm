@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.businesses.models.business import BusinessType
+from app.businesses.models.business import EntityType
 from app.businesses.models.business_tax_profile import VatType
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -12,7 +12,7 @@ from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 def _mock_osek_murshe_business(client_id=1):
     """Return a mock OSEK_MURSHE business whose client has no vat_reporting_frequency set (defaults to BIMONTHLY)."""
-    return MagicMock(business_type=BusinessType.OSEK_MURSHE, client_id=client_id)
+    return MagicMock(entity_type=EntityType.OSEK_MURSHE, client_id=client_id)
 
 
 class TestCreateWorkItem:
@@ -111,7 +111,7 @@ class TestCreateWorkItem:
         work_item_repo = MagicMock()
         business_repo = MagicMock()
         tax_profile_repo = MagicMock()
-        business_repo.get_by_id.return_value = MagicMock(business_type=BusinessType.COMPANY)
+        business_repo.get_by_id.return_value = MagicMock(entity_type=EntityType.COMPANY_LTD)
         work_item_repo.get_by_business_period.return_value = None
         tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.EXEMPT)
 
@@ -130,7 +130,7 @@ class TestCreateWorkItem:
         work_item_repo = MagicMock()
         business_repo = MagicMock()
         tax_profile_repo = MagicMock()
-        business_repo.get_by_id.return_value = MagicMock(business_type=BusinessType.COMPANY)
+        business_repo.get_by_id.return_value = MagicMock(entity_type=EntityType.COMPANY_LTD)
         work_item_repo.get_by_business_period.return_value = None
         tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.BIMONTHLY)
 

@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from unittest.mock import patch
 
-from app.businesses.models.business import BusinessStatus, BusinessType
+from app.businesses.models.business import BusinessStatus
 from app.businesses.services.business_service import BusinessService
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
@@ -18,7 +18,6 @@ def test_create_business_raises_not_found_when_client_missing(test_db):
     with pytest.raises(NotFoundError) as exc:
         service.create_business(
             client_id=99,
-            business_type="company",
             opened_at=date(2026, 1, 1),
         )
 
@@ -37,7 +36,6 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
     with pytest.raises(ConflictError) as exc:
         service.create_business(
             client_id=1,
-            business_type="company",
             opened_at=date(2026, 1, 1),
             business_name="Dup",
         )
@@ -53,7 +51,7 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(tes
         return kwargs
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(business_start_date=None))
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace())
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed=lambda _client_id: False,
         list_by_client=lambda _client_id, **_kwargs: [],
@@ -64,7 +62,6 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(tes
         mock_date.today.return_value = date(2026, 4, 9)
         result = service.create_business(
             client_id=1,
-            business_type="company",
             business_name="Uses Today",
         )
 
@@ -122,7 +119,6 @@ def test_restore_business_raises_when_repo_restore_returns_none(test_db):
     service._lifecycle.business_repo = SimpleNamespace(
         get_by_id_including_deleted=lambda _business_id: SimpleNamespace(
             deleted_at=date(2026, 1, 1),
-            business_type=BusinessType.COMPANY,
         ),
         restore=lambda _business_id, restored_by: None,
     )

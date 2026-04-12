@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
 from app.clients.models.client import Client
 from app.permanent_documents.models.permanent_document import (
@@ -44,7 +44,7 @@ def _business(test_db, user_id: int) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Timeline Aggregator Business",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2026, 1, 1),
         updated_at=datetime(2026, 1, 2, 8, 0),
         created_by=user_id,

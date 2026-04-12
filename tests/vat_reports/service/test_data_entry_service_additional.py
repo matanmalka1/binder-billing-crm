@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.businesses.models.business import BusinessType
+from app.businesses.models.business import EntityType
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services.data_entry_common import (
@@ -104,7 +104,7 @@ def test_data_entry_common_invalid_transition_and_ceiling():
     with pytest.raises(AppError):
         assert_transition_allowed(item, VatWorkItemStatus.FILED)
 
-    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
+    osek_business = SimpleNamespace(entity_type=EntityType.OSEK_PATUR)
 
     class _InvoiceRepo:
         def sum_income_net_by_business_year(self, business_id, year):
@@ -125,7 +125,7 @@ def test_data_entry_common_invalid_transition_and_ceiling():
 
 
 def test_osek_patur_ceiling_uses_2026_threshold_and_boundary_behavior():
-    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
+    osek_business = SimpleNamespace(entity_type=EntityType.OSEK_PATUR)
 
     class _InvoiceRepo:
         def __init__(self, total):
@@ -159,7 +159,7 @@ def test_osek_patur_ceiling_uses_2026_threshold_and_boundary_behavior():
 
 
 def test_osek_patur_ceiling_warning_threshold_is_80_percent():
-    osek_business = SimpleNamespace(business_type=BusinessType.OSEK_PATUR)
+    osek_business = SimpleNamespace(entity_type=EntityType.OSEK_PATUR)
     warning_threshold = OSEK_PATUR_CEILING_ILS * OSEK_PATUR_CEILING_WARNING_RATE
 
     class _InvoiceRepo:

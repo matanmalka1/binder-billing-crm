@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import String, cast
 from sqlalchemy.dialects import postgresql
 
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client, IdNumberType
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
@@ -44,7 +44,7 @@ def _business(test_db, *, suffix: str) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Permanent Biz {suffix}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)

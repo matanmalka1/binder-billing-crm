@@ -3,7 +3,7 @@ from decimal import Decimal
 from itertools import count
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.businesses.models.business import Business, BusinessType
+from app.businesses.models.business import Business, EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client
 from app.invoice.models.invoice import Invoice
@@ -40,7 +40,7 @@ def _business(db) -> Business:
     business = Business(
         client_id=c.id,
         business_name=f"Timeline Business {idx}",
-        business_type=BusinessType.COMPANY,
+        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)
