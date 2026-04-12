@@ -36,6 +36,7 @@ import app.notification.models.notification    # noqa
 import app.permanent_documents.models.permanent_document  # noqa
 import app.signature_requests.models.signature_request    # noqa
 import app.correspondence.models.correspondence  # noqa
+import app.audit.models.entity_audit_log  # noqa
 import app.authority_contact.models.authority_contact  # noqa
 from app.database import Base
 
