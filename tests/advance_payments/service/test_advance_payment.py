@@ -10,8 +10,8 @@ from app.advance_payments.services.advance_payment_calculator import (
     derive_annual_income_from_vat,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.businesses.models.business import Business, EntityType
-from app.businesses.models.business_tax_profile import BusinessTaxProfile, VatType
+from app.businesses.models.business import Business
+from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -34,7 +34,6 @@ def _business(db) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Advance Service Business {idx}",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)
@@ -47,16 +46,16 @@ def test_create_payment_duplicate_period_raises_conflict(test_db):
     business = _business(test_db)
     service = AdvancePaymentService(test_db)
 
-    service.create_payment(
-        business_id=business.id,
+    service.create_payment_for_client(
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
     )
 
     with pytest.raises(ConflictError):
-        service.create_payment(
-            business_id=business.id,
+        service.create_payment_for_client(
+            client_id=business.client_id,
             period="2026-01",
             period_months_count=1,
             due_date=date(2026, 2, 15),
@@ -67,20 +66,16 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     business = _business(test_db)
     service = AdvancePaymentService(test_db)
 
-    assert service.suggest_expected_amount(business.id, 2026) is None
+    assert service.suggest_expected_amount_for_client(business.client_id, 2026) is None
 
-    profile = BusinessTaxProfile(
-        business_id=business.id,
-        vat_type=VatType.MONTHLY,
-        advance_rate=Decimal("6.0"),
-    )
-    test_db.add(profile)
+    business.client.vat_reporting_frequency = VatType.MONTHLY
+    business.client.advance_rate = Decimal("6.0")
     test_db.commit()
 
-    assert service.suggest_expected_amount(business.id, 2026) is None
+    assert service.suggest_expected_amount_for_client(business.client_id, 2026) is None
 
     vat_item = VatWorkItem(
-        business_id=business.id,
+        client_id=business.client_id,
         created_by=test_user.id,
         period="2025-02",
         period_type=VatType.MONTHLY,
@@ -92,7 +87,7 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     test_db.add(vat_item)
     test_db.commit()
 
-    assert service.suggest_expected_amount(business.id, 2026) == Decimal("500")
+    assert service.suggest_expected_amount_for_client(business.client_id, 2026) == Decimal("500")
 
 
 def test_calculate_expected_amount_rounds_half_up():
@@ -110,28 +105,33 @@ def test_list_payments_filters_by_status(test_db):
     business = _business(test_db)
     service = AdvancePaymentService(test_db)
 
-    first = service.create_payment(
-        business_id=business.id,
+    first = service.create_payment_for_client(
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100"),
     )
-    second = service.create_payment(
-        business_id=business.id,
+    second = service.create_payment_for_client(
+        client_id=business.client_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),
         expected_amount=Decimal("200"),
     )
-    service.update_payment(business.id, second.id, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("200"))
+    service.update_payment_for_client(
+        business.client_id,
+        second.id,
+        status=AdvancePaymentStatus.PAID,
+        paid_amount=Decimal("200"),
+    )
 
-    all_items, total = service.list_payments(business.id, year=2026)
+    all_items, total = service.list_payments_for_client(business.client_id, year=2026)
     assert total == 2
     assert [p.id for p in all_items] == [first.id, second.id]
 
-    paid_items, paid_total = service.list_payments(
-        business.id,
+    paid_items, paid_total = service.list_payments_for_client(
+        business.client_id,
         year=2026,
         status=[AdvancePaymentStatus.PAID],
     )

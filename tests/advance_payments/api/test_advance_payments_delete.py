@@ -1,7 +1,8 @@
 from datetime import date
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -14,7 +15,6 @@ def _create_business(test_db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Advance Delete Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(business)

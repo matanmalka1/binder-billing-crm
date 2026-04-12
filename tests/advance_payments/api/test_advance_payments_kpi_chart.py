@@ -3,7 +3,8 @@ from decimal import Decimal
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -16,7 +17,6 @@ def _business(db) -> Business:
     business = Business(
         client_id=crm_client.id,
         business_name="AP KPI Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

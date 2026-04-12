@@ -10,8 +10,9 @@ from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
     advance_payment_status_text_expr,
 )
-from app.businesses.models.business import Business, EntityType
-from app.businesses.models.business_tax_profile import VatType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
+from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -45,7 +46,6 @@ def _create_business(test_db, name: str, id_number: str):
     business = Business(
         client_id=client.id,
         business_name=f"{name} Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)
