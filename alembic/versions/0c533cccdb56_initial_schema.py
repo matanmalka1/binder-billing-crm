@@ -415,7 +415,8 @@ def upgrade() -> None:
     op.create_index(op.f('ix_binder_status_logs_binder_id'), 'binder_status_logs', ['binder_id'], unique=False)
     op.create_table('charges',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('business_id', sa.Integer(), nullable=False),
+    sa.Column('client_id', sa.Integer(), nullable=False),
+    sa.Column('business_id', sa.Integer(), nullable=True),
     sa.Column('annual_report_id', sa.Integer(), nullable=True),
     sa.Column('charge_type', app.utils.enum_utils._NormalizedEnum('monthly_retainer', 'annual_report_fee', 'vat_filing_fee', 'representation_fee', 'consultation_fee', 'other', name='chargetype'), nullable=False),
     sa.Column('status', app.utils.enum_utils._NormalizedEnum('draft', 'issued', 'paid', 'canceled', name='chargestatus'), nullable=False),
@@ -436,6 +437,7 @@ def upgrade() -> None:
     sa.Column('deleted_by', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['annual_report_id'], ['annual_reports.id'], ),
     sa.ForeignKeyConstraint(['business_id'], ['businesses.id'], ),
+    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['canceled_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
@@ -443,10 +445,11 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['paid_by'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_charge_business_period', 'charges', ['business_id', 'period'], unique=False)
+    op.create_index('idx_charge_client_period', 'charges', ['client_id', 'period'], unique=False)
     op.create_index('idx_charge_status', 'charges', ['status'], unique=False)
     op.create_index(op.f('ix_charges_annual_report_id'), 'charges', ['annual_report_id'], unique=False)
     op.create_index(op.f('ix_charges_business_id'), 'charges', ['business_id'], unique=False)
+    op.create_index(op.f('ix_charges_client_id'), 'charges', ['client_id'], unique=False)
     op.create_index(op.f('ix_charges_period'), 'charges', ['period'], unique=False)
     op.create_table('correspondence_entries',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -842,10 +845,11 @@ def downgrade() -> None:
     op.drop_index('idx_correspondence_business_occurred', table_name='correspondence_entries')
     op.drop_table('correspondence_entries')
     op.drop_index(op.f('ix_charges_period'), table_name='charges')
+    op.drop_index(op.f('ix_charges_client_id'), table_name='charges')
     op.drop_index(op.f('ix_charges_business_id'), table_name='charges')
     op.drop_index(op.f('ix_charges_annual_report_id'), table_name='charges')
     op.drop_index('idx_charge_status', table_name='charges')
-    op.drop_index('idx_charge_business_period', table_name='charges')
+    op.drop_index('idx_charge_client_period', table_name='charges')
     op.drop_table('charges')
     op.drop_index(op.f('ix_binder_status_logs_binder_id'), table_name='binder_status_logs')
     op.drop_table('binder_status_logs')

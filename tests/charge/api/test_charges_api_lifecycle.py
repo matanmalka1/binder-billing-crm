@@ -10,22 +10,14 @@ def _create_business(test_db) -> Business:
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
-        opened_at=date.today(),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
-    return business
+    return test_db.query(Business).filter(Business.client_id == client.id).first()
 
 
-def _create_charge_via_api(client, advisor_headers, business_id: int) -> int:
+def _create_charge_via_api(client, advisor_headers, business) -> int:
     res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"business_id": business_id, "amount": 120.0, "charge_type": "consultation_fee"},
+        json={"client_id": business.client_id, "business_id": business.id, "amount": 120.0, "charge_type": "consultation_fee"},
     )
     assert res.status_code == 201
     return res.json()["id"]
@@ -33,7 +25,7 @@ def _create_charge_via_api(client, advisor_headers, business_id: int) -> int:
 
 def test_charge_lifecycle_draft_to_issued_to_paid(client, advisor_headers, test_db):
     business = _create_business(test_db)
-    charge_id = _create_charge_via_api(client, advisor_headers, business.id)
+    charge_id = _create_charge_via_api(client, advisor_headers, business)
 
     issue_res = client.post(f"/api/v1/charges/{charge_id}/issue", headers=advisor_headers)
     assert issue_res.status_code == 200
@@ -53,7 +45,7 @@ def test_charge_lifecycle_draft_to_issued_to_paid(client, advisor_headers, test_
 
 def test_charge_lifecycle_issued_to_canceled(client, advisor_headers, test_db):
     business = _create_business(test_db)
-    charge_id = _create_charge_via_api(client, advisor_headers, business.id)
+    charge_id = _create_charge_via_api(client, advisor_headers, business)
     assert client.post(f"/api/v1/charges/{charge_id}/issue", headers=advisor_headers).status_code == 200
 
     cancel_res = client.post(f"/api/v1/charges/{charge_id}/cancel", headers=advisor_headers)
@@ -63,7 +55,7 @@ def test_charge_lifecycle_issued_to_canceled(client, advisor_headers, test_db):
 
 def test_invalid_transitions_return_400(client, advisor_headers, test_db):
     business = _create_business(test_db)
-    charge_id = _create_charge_via_api(client, advisor_headers, business.id)
+    charge_id = _create_charge_via_api(client, advisor_headers, business)
 
     pay_draft = client.post(f"/api/v1/charges/{charge_id}/mark-paid", headers=advisor_headers)
     assert pay_draft.status_code == 400
@@ -74,7 +66,7 @@ def test_invalid_transitions_return_400(client, advisor_headers, test_db):
     assert issue_canceled.status_code == 400
     assert issue_canceled.json()["error"] == "CHARGE.INVALID_STATUS"
 
-    charge_id_2 = _create_charge_via_api(client, advisor_headers, business.id)
+    charge_id_2 = _create_charge_via_api(client, advisor_headers, business)
     assert client.post(f"/api/v1/charges/{charge_id_2}/issue", headers=advisor_headers).status_code == 200
     assert client.post(f"/api/v1/charges/{charge_id_2}/mark-paid", headers=advisor_headers).status_code == 200
     cancel_paid = client.post(f"/api/v1/charges/{charge_id_2}/cancel", headers=advisor_headers)

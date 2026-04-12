@@ -10,7 +10,8 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 
 class ChargeCreateRequest(BaseModel):
-    business_id: int
+    client_id: int
+    business_id: Optional[int] = None
     amount: ApiDecimal = Field(gt=0)
     charge_type: ChargeType                     # enum — לא str חופשי
     period: Optional[str] = None                # "YYYY-MM"
@@ -28,7 +29,8 @@ class ChargeCreateRequest(BaseModel):
 
 class ChargeResponse(BaseModel):
     id: int
-    business_id: int
+    client_id: int
+    business_id: Optional[int] = None
     business_name: Optional[str] = None        # enriched by service
     annual_report_id: Optional[int] = None
     charge_type: ChargeType
@@ -53,7 +55,8 @@ class ChargeResponse(BaseModel):
 class ChargeResponseSecretary(BaseModel):
     """תגובה מצומצמת לסקרטרית — ללא נתונים פיננסיים."""
     id: int
-    business_id: int
+    client_id: int
+    business_id: Optional[int] = None
     business_name: Optional[str] = None
     charge_type: ChargeType
     status: ChargeStatus

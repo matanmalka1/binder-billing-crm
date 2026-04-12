@@ -24,27 +24,23 @@ def _business(db):
     db.add(client)
     db.commit()
     db.refresh(client)
-    business = Business(
-        client_id=client.id,
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
-    )
-    db.add(business)
+    business = db.query(Business).filter(Business.client_id == client.id).first()
+    business.status = BusinessStatus.ACTIVE
     db.commit()
     db.refresh(business)
     return business
 
 
-def _draft_charge(db, business_id):
+def _draft_charge(db, business):
     repo = ChargeRepository(db)
-    return repo.create(business_id=business_id, amount=100.0, charge_type=ChargeType.OTHER)
+    return repo.create(client_id=business.client_id, business_id=business.id, amount=100.0, charge_type=ChargeType.OTHER)
 
 
 # ── Code-path verification ────────────────────────────────────────────────────
 
 def test_issue_charge_uses_locked_fetch(test_db, monkeypatch):
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     svc = BillingService(test_db)
 
     calls = []
@@ -60,7 +56,7 @@ def test_issue_charge_uses_locked_fetch(test_db, monkeypatch):
 
 def test_mark_charge_paid_uses_locked_fetch(test_db, monkeypatch):
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     repo = ChargeRepository(test_db)
     repo.update_status(charge.id, ChargeStatus.ISSUED)
     svc = BillingService(test_db)
@@ -78,7 +74,7 @@ def test_mark_charge_paid_uses_locked_fetch(test_db, monkeypatch):
 
 def test_cancel_charge_uses_locked_fetch(test_db, monkeypatch):
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     svc = BillingService(test_db)
 
     calls = []
@@ -98,7 +94,7 @@ def test_issue_charge_already_issued_raises(test_db):
     """Second issue on an already-ISSUED charge must fail — simulates the guard
     that prevents a race-winner's commit from being applied twice."""
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     svc = BillingService(test_db)
     svc.issue_charge(charge.id, actor_id=1)
 
@@ -109,7 +105,7 @@ def test_issue_charge_already_issued_raises(test_db):
 
 def test_mark_paid_already_paid_raises(test_db):
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     repo = ChargeRepository(test_db)
     repo.update_status(charge.id, ChargeStatus.ISSUED)
     svc = BillingService(test_db)
@@ -122,7 +118,7 @@ def test_mark_paid_already_paid_raises(test_db):
 
 def test_cancel_already_canceled_raises(test_db):
     business = _business(test_db)
-    charge = _draft_charge(test_db, business.id)
+    charge = _draft_charge(test_db, business)
     svc = BillingService(test_db)
     svc.cancel_charge(charge.id, actor_id=1)
 

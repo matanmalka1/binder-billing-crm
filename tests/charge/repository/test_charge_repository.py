@@ -29,14 +29,7 @@ def _business(test_db, name: str, id_number: str):
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
-        opened_at=date(2024, 1, 1),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
+    business = test_db.query(Business).filter(Business.client_id == client.id).first()
     return business
 
 
@@ -47,12 +40,14 @@ def test_list_count_and_soft_delete(test_db):
     other_business = _business(test_db, "Other Client", "CH002")
 
     draft = repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
         created_by=user.id,
     )
     paid = repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("200.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -61,6 +56,7 @@ def test_list_count_and_soft_delete(test_db):
     repo.update_status(paid.id, ChargeStatus.PAID)
 
     other = repo.create(
+        client_id=other_business.client_id,
         business_id=other_business.id,
         amount=Decimal("50.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
@@ -68,10 +64,10 @@ def test_list_count_and_soft_delete(test_db):
     )
     repo.update_status(other.id, ChargeStatus.ISSUED)
 
-    assert repo.count_charges(business_id=business.id) == 2
+    assert repo.count_charges(client_id=business.client_id) == 2
     assert repo.count_charges(status=ChargeStatus.PAID) == 1
 
-    business_charges = repo.list_charges(business_id=business.id)
+    business_charges = repo.list_charges(client_id=business.client_id)
     assert {c.id for c in business_charges} == {draft.id, paid.id}
 
     paid_list = repo.list_charges(status=ChargeStatus.PAID)
@@ -82,8 +78,8 @@ def test_list_count_and_soft_delete(test_db):
 
     deleted = repo.soft_delete(draft.id, deleted_by=user.id)
     assert deleted is True
-    assert {c.id for c in repo.list_charges(business_id=business.id)} == {paid.id}
-    assert repo.count_charges(business_id=business.id) == 1
+    assert {c.id for c in repo.list_charges(client_id=business.client_id)} == {paid.id}
+    assert repo.count_charges(client_id=business.client_id) == 1
     assert repo.soft_delete(999999, deleted_by=user.id) is False
 
 
@@ -92,16 +88,19 @@ def test_get_aging_buckets_includes_only_issued_and_not_deleted(test_db):
     business = _business(test_db, "Aging Client", "CH003")
 
     current = repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
     )
     old = repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("250.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
     )
     draft = repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("999.00"),
         charge_type=ChargeType.OTHER,
@@ -115,7 +114,7 @@ def test_get_aging_buckets_includes_only_issued_and_not_deleted(test_db):
     assert len(rows) == 1
 
     row = rows[0]
-    assert row.business_id == business.id
+    assert row.client_id == business.client_id
     assert float(row.current) == 100.0
     assert float(row.days_30) == 0.0
     assert float(row.days_60) == 0.0

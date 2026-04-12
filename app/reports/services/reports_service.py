@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 
 _AGING_CHARGE_FETCH_LIMIT = 2000
 
@@ -15,7 +15,7 @@ class AgingReportService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
 
     def generate_aging_report(
         self,
@@ -37,23 +37,23 @@ class AgingReportService:
         capped = len(all_rows) > _AGING_CHARGE_FETCH_LIMIT
         rows = all_rows[:_AGING_CHARGE_FETCH_LIMIT]
 
-        business_ids = [row.business_id for row in rows]
-        business_map = {b.id: b for b in self.business_repo.list_by_ids(business_ids)}
+        client_ids = [row.client_id for row in rows]
+        client_map = {c.id: c for c in self.client_repo.list_by_ids(client_ids)}
 
         items = []
         total_outstanding = 0.0
 
         for row in rows:
-            business = business_map.get(row.business_id)
-            if not business:
+            client = client_map.get(row.client_id)
+            if not client:
                 continue
 
             oldest_date = row.oldest_issued_at.date() if row.oldest_issued_at else None
             oldest_days = (as_of_date - oldest_date).days if oldest_date else None
 
             items.append({
-                "client_id": business.client_id,
-                "client_name": business.business_name,
+                "client_id": client.id,
+                "client_name": client.full_name,
                 "total_outstanding": round(float(row.total), 2),
                 "current": round(float(row.current), 2),
                 "days_30": round(float(row.days_30), 2),

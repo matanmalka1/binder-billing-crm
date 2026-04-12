@@ -107,7 +107,7 @@
 
 ## Charges (billing)
 
-- `POST /api/v1/charges` (advisor) — create (`client_id`, `amount` >0, `charge_type` retainer|one_time, `period?`, `currency` default ILS).
+- `POST /api/v1/charges` (advisor) — create (`client_id`, `business_id?`, `amount` >0, `charge_type` retainer|one_time, `period?`, `currency` default ILS).
 - `POST /api/v1/charges/{id}/issue` (advisor) — from `draft` only.
 - `POST /api/v1/charges/{id}/mark-paid` (advisor) — from `issued` only.
 - `POST /api/v1/charges/{id}/cancel` (advisor) — body: `reason?`; invalid from `paid` or `canceled`.

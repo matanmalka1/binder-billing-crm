@@ -63,6 +63,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(binder)
 
     charge = Charge(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("500.00"),
         charge_type=ChargeType.CONSULTATION_FEE,

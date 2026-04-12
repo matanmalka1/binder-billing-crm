@@ -34,6 +34,7 @@ def test_invoice_repository_getters(test_db):
     invoice_repo = InvoiceRepository(test_db)
 
     charge = charge_repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("123.45"),
         charge_type=ChargeType.MONTHLY_RETAINER,
@@ -62,11 +63,13 @@ def test_invoice_repository_list_by_charge_ids(test_db):
     invoice_repo = InvoiceRepository(test_db)
 
     charge_a = charge_repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("10.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
     )
     charge_b = charge_repo.create(
+        client_id=business.client_id,
         business_id=business.id,
         amount=Decimal("20.00"),
         charge_type=ChargeType.OTHER,

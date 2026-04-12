@@ -25,6 +25,7 @@ router = APIRouter(
 def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser):
     """Create new charge (ADVISOR only)."""
     charge = BillingService(db).create_charge(
+        client_id=request.client_id,
         business_id=request.business_id,
         amount=request.amount,
         charge_type=request.charge_type,

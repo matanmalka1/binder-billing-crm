@@ -66,9 +66,10 @@ def _binder(db, client_id: int, user_id: int) -> Binder:
     return binder
 
 
-def _charge(db, business_id: int) -> Charge:
+def _charge(db, business: Business) -> Charge:
     charge = Charge(
-        business_id=business_id,
+        client_id=business.client_id,
+        business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.OTHER,
         status=ChargeStatus.ISSUED,

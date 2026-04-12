@@ -72,7 +72,7 @@ class DashboardExtendedService:
                 page_size=_UNPAID_CHARGES_FETCH_LIMIT,
             )
             if unpaid_charges:
-                charge_business_ids = list({c.business_id for c in unpaid_charges})
+                charge_business_ids = list({c.business_id for c in unpaid_charges if c.business_id is not None})
                 charge_businesses = self.business_repo.list_by_ids(charge_business_ids)
                 charge_business_map = {c.id: c for c in charge_businesses}
                 for charge in unpaid_charges:

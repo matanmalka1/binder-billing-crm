@@ -10,15 +10,7 @@ def _create_business(test_db) -> Business:
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
-        opened_at=date.today(),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
-    return business
+    return test_db.query(Business).filter(Business.client_id == client.id).first()
 
 
 def test_advisor_can_create_charge(client, advisor_headers, test_db):
@@ -27,6 +19,7 @@ def test_advisor_can_create_charge(client, advisor_headers, test_db):
         "/api/v1/charges",
         headers=advisor_headers,
         json={
+            "client_id": business.client_id,
             "business_id": business.id,
             "amount": 100.0,
             "charge_type": "consultation_fee",
@@ -49,7 +42,7 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"business_id": business.id, "amount": 50.0, "charge_type": "monthly_retainer"},
+        json={"client_id": business.client_id, "business_id": business.id, "amount": 50.0, "charge_type": "monthly_retainer"},
     )
     charge_id = create_res.json()["id"]
 
@@ -57,7 +50,7 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
         client.post(
             "/api/v1/charges",
             headers=secretary_headers,
-            json={"business_id": business.id, "amount": 1, "charge_type": "other"},
+            json={"client_id": business.client_id, "business_id": business.id, "amount": 1, "charge_type": "other"},
         ).status_code
         == 403
     )
@@ -71,7 +64,7 @@ def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, 
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"business_id": business.id, "amount": 75.0, "charge_type": "consultation_fee"},
+        json={"client_id": business.client_id, "business_id": business.id, "amount": 75.0, "charge_type": "consultation_fee"},
     )
     charge_id = create_res.json()["id"]
 

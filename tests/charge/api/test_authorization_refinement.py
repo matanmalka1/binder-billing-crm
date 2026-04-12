@@ -14,19 +14,13 @@ def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
-
-    test_business = Business(
-        client_id=test_client.id,
-        opened_at=date.today(),
-    )
-    test_db.add(test_business)
-    test_db.commit()
-    test_db.refresh(test_business)
+    test_business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
 
     create_response = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
         json={
+            "client_id": test_business.client_id,
             "business_id": test_business.id,
             "amount": 500.0,
             "charge_type": "monthly_retainer",

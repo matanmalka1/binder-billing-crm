@@ -48,7 +48,6 @@ class StatusCardService:
         client_id: int,
         year: Optional[int] = None,
     ) -> BusinessStatusCardResponse:
-        # Charges are still business-scoped; fetch first business for charges + response field.
         business = (
             self._db.query(_Business)
             .filter(_Business.client_id == client_id, _Business.deleted_at.is_(None))
@@ -64,7 +63,7 @@ class StatusCardService:
             year=resolved_year,
             client_vat=self._vat_card(client_id, resolved_year),
             annual_report=self._annual_report_card(client_id, resolved_year),
-            charges=self._charges_card(business.id),
+            charges=self._charges_card(client_id),
             advance_payments=self._advance_payments_card(client_id, resolved_year),
             binders=self._binders_card(client_id),
             documents=self._documents_card(client_id),
@@ -101,9 +100,9 @@ class StatusCardService:
             tax_due=report.tax_due,
         )
 
-    def _charges_card(self, business_id: int) -> ChargesCard:
+    def _charges_card(self, client_id: int) -> ChargesCard:
         rows = self._charge_repo.list_charges(
-            business_id=business_id,
+            client_id=client_id,
             status=ChargeStatus.ISSUED,
             page=1,
             page_size=10_000,

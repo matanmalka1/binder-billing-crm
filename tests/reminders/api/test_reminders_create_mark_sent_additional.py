@@ -243,6 +243,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         created_by=test_user.id,
     )
     charge = Charge(
+        client_id=crm_client.id,
         business_id=business.id,
         amount=10,
         charge_type=ChargeType.OTHER,

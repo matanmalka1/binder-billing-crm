@@ -6,6 +6,7 @@ from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 
 
@@ -16,11 +17,16 @@ class ChargeQueryService:
         self.db = db
         self.charge_repo = ChargeRepository(db)
         self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
 
     def enrich_business_name(self, charge: Charge) -> str | None:
-        """Return the business full_name for a single charge."""
-        businesses = self.business_repo.list_by_ids([charge.business_id])
-        return businesses[0].full_name if businesses else None
+        """Return the operational business name or fallback to the client name."""
+        if charge.business_id is not None:
+            businesses = self.business_repo.list_by_ids([charge.business_id])
+            if businesses:
+                return businesses[0].full_name
+        client = self.client_repo.get_by_id(charge.client_id)
+        return client.full_name if client else None
 
     def list_charges(
         self,
@@ -35,27 +41,33 @@ class ChargeQueryService:
         List charges with pagination.
 
         Returns (items, total, business_name_map) where business_name_map maps
-        business_id → full_name for all charges in the page.
+        charge_id → display name for all charges in the page.
         """
-        business_ids: Optional[list[int]] = None
-        if client_id is not None:
-            business_ids = self.business_repo.get_ids_by_client(client_id)
-
         items = self.charge_repo.list_charges(
+            client_id=client_id,
             business_id=business_id,
-            business_ids=business_ids,
             status=status,
             charge_type=charge_type,
             page=page,
             page_size=page_size,
         )
         total = self.charge_repo.count_charges(
-            business_id=business_id, business_ids=business_ids, status=status, charge_type=charge_type
+            client_id=client_id,
+            business_id=business_id,
+            status=status,
+            charge_type=charge_type,
         )
 
-        business_ids = list({c.business_id for c in items})
-        businesses = self.business_repo.list_by_ids(business_ids)
-        business_name_map: dict[int, str] = {c.id: c.full_name for c in businesses}
+        business_ids = list({c.business_id for c in items if c.business_id is not None})
+        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
+        business_name_by_id: dict[int, str] = {c.id: c.full_name for c in businesses}
+        client_ids = list({c.client_id for c in items})
+        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        client_name_by_id = {c.id: c.full_name for c in clients}
+        business_name_map: dict[int, str] = {
+            c.id: business_name_by_id.get(c.business_id) or client_name_by_id.get(c.client_id)
+            for c in items
+        }
 
         return items, total, business_name_map
 
@@ -82,7 +94,7 @@ class ChargeQueryService:
 
         def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
             data = schema.model_validate(charge).model_dump()
-            data["business_name"] = business_name_map.get(charge.business_id)
+            data["business_name"] = business_name_map.get(charge.id)
             return schema(**data)
 
         return ChargeListResponse(

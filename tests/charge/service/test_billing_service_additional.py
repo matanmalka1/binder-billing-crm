@@ -17,13 +17,8 @@ def _business(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE):
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
-        status=status,
-        opened_at=date.today(),
-    )
-    test_db.add(business)
+    business = test_db.query(Business).filter(Business.client_id == client.id).first()
+    business.status = status
     test_db.commit()
     test_db.refresh(business)
     return business
@@ -34,11 +29,11 @@ def test_billing_service_validation_and_not_found_paths(test_db):
     service = BillingService(test_db)
 
     with pytest.raises(AppError) as amount_exc:
-        service.create_charge(business_id=business.id, amount=0, charge_type=ChargeType.OTHER)
+        service.create_charge(client_id=business.client_id, business_id=business.id, amount=0, charge_type=ChargeType.OTHER)
     assert amount_exc.value.code == "CHARGE.AMOUNT_INVALID"
 
     with pytest.raises(NotFoundError):
-        service.create_charge(business_id=999999, amount=10, charge_type=ChargeType.OTHER)
+        service.create_charge(client_id=business.client_id, business_id=999999, amount=10, charge_type=ChargeType.OTHER)
 
     with pytest.raises(NotFoundError):
         service.mark_charge_paid(999999)
@@ -52,6 +47,7 @@ def test_billing_service_cancel_and_delete_status_guards(test_db):
     business = _business(test_db)
     service = BillingService(test_db)
     charge = service.create_charge(
+        client_id=business.client_id,
         business_id=business.id,
         amount=50,
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -74,6 +70,7 @@ def test_create_charge_blocked_for_closed_and_frozen_business(test_db):
 
     with pytest.raises(ForbiddenError) as closed_exc:
         service.create_charge(
+            client_id=closed.client_id,
             business_id=closed.id,
             amount=10,
             charge_type=ChargeType.MONTHLY_RETAINER,
@@ -82,6 +79,7 @@ def test_create_charge_blocked_for_closed_and_frozen_business(test_db):
 
     with pytest.raises(ForbiddenError) as frozen_exc:
         service.create_charge(
+            client_id=frozen.client_id,
             business_id=frozen.id,
             amount=10,
             charge_type=ChargeType.MONTHLY_RETAINER,
@@ -92,6 +90,7 @@ def test_create_charge_blocked_for_closed_and_frozen_business(test_db):
 def test_list_charges_for_role_secretary_hides_amount(test_db):
     business = _business(test_db)
     BillingService(test_db).create_charge(
+        client_id=business.client_id,
         business_id=business.id,
         amount=77,
         charge_type=ChargeType.CONSULTATION_FEE,

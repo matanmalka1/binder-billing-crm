@@ -91,15 +91,20 @@ def create_unpaid_charge_reminder(
     business_repo: BusinessRepository,
     charge_repo: ChargeRepository,
     *,
-    business_id: int,
+    client_id: int,
+    business_id: Optional[int] = None,
     charge_id: int,
     days_unpaid: int,
     message: Optional[str] = None,
     created_by: Optional[int] = None,
 ) -> Reminder:
-    get_business_or_raise(business_repo.db, business_id)
-    if not charge_repo.get_by_id(charge_id):
+    if business_id is not None:
+        get_business_or_raise(business_repo.db, business_id)
+    charge = charge_repo.get_by_id(charge_id)
+    if not charge:
         raise NotFoundError(f"חיוב {charge_id} לא נמצא", "REMINDER.NOT_FOUND")
+    if charge.client_id != client_id or charge.business_id != business_id:
+        raise AppError("החיוב לא תואם להקשר שנשלח", "REMINDER.CHARGE_SCOPE_MISMATCH")
     _require_non_negative_days(days_unpaid)
 
     target_date = date.today()
@@ -107,8 +112,9 @@ def create_unpaid_charge_reminder(
     if message is None:
         message = f"תזכורת: חשבונית לא שולמה {days_unpaid} ימים"
 
+    owner_kwargs = {"business_id": business_id} if business_id is not None else {"client_id": client_id}
+
     return reminder_repo.create(
-        business_id=business_id,
         reminder_type=ReminderType.UNPAID_CHARGE,
         target_date=target_date,
         days_before=0,
@@ -116,6 +122,7 @@ def create_unpaid_charge_reminder(
         message=message,
         charge_id=charge_id,
         created_by=created_by,
+        **owner_kwargs,
     )
 
 def create_custom_reminder(

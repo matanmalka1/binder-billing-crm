@@ -10,6 +10,7 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.businesses.services.business_guards import validate_business_for_create
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.reminders.services.reminder_service import ReminderService
 from app.utils.time_utils import utcnow
@@ -21,22 +22,38 @@ class BillingService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
+        self.client_repo = ClientRepository(db)
         self._audit = EntityAuditLogRepository(db)
+
+    def _validate_charge_scope(self, client_id: int, business_id: Optional[int]) -> Optional[int]:
+        client = self.client_repo.get_by_id(client_id)
+        if not client:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CHARGE.CLIENT_NOT_FOUND")
+        if business_id is None:
+            return None
+        business = validate_business_for_create(self.db, business_id)
+        if business.client_id != client_id:
+            raise AppError(
+                "העסק שנבחר אינו שייך ללקוח שסופק",
+                "CHARGE.BUSINESS_CLIENT_MISMATCH",
+            )
+        return business.id
 
     def create_charge(
         self,
-        business_id: int,
+        client_id: int,
         amount: float,
         charge_type: str,
+        business_id: Optional[int] = None,
         actor_id: Optional[int] = None,
         period: Optional[str] = None,
         months_covered: int = 1,
     ) -> Charge:
-        validate_business_for_create(self.db, business_id)
+        business_id = self._validate_charge_scope(client_id, business_id)
         if amount <= 0:
             raise AppError("הסכום חייב להיות חיובי", "CHARGE.AMOUNT_INVALID")
         charge = self.charge_repo.create(
-            business_id=business_id, amount=amount, charge_type=charge_type,
+            client_id=client_id, business_id=business_id, amount=amount, charge_type=charge_type,
             period=period, months_covered=months_covered, created_by=actor_id,
         )
         if actor_id:
@@ -60,7 +77,7 @@ class BillingService:
             issued_at=utcnow(), issued_by=actor_id,
         )
         ReminderService(self.db).create_unpaid_charge_reminder(
-            business_id=charge.business_id, charge_id=charge_id, days_unpaid=30,
+            client_id=charge.client_id, business_id=charge.business_id, charge_id=charge_id, days_unpaid=30,
         )
         if actor_id:
             self._audit.append(

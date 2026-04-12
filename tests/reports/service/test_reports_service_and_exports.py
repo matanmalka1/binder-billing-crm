@@ -35,9 +35,10 @@ def _client_and_business(db, suffix: str) -> tuple[Client, Business]:
     return c, b
 
 
-def _charge(db, business_id: int, amount: str, issued_days_ago: int):
+def _charge(db, client_id: int, business_id: int, amount: str, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
+        client_id=client_id,
         business_id=business_id,
         amount=Decimal(amount),
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -52,11 +53,11 @@ def _charge(db, business_id: int, amount: str, issued_days_ago: int):
 
 
 def test_aging_report_service_calculates_buckets(test_db):
-    _, b = _client_and_business(test_db, "1")
-    _charge(test_db, b.id, "100.00", 5)
-    _charge(test_db, b.id, "200.00", 40)
-    _charge(test_db, b.id, "300.00", 70)
-    _charge(test_db, b.id, "400.00", 120)
+    c, b = _client_and_business(test_db, "1")
+    _charge(test_db, c.id, b.id, "100.00", 5)
+    _charge(test_db, c.id, b.id, "200.00", 40)
+    _charge(test_db, c.id, b.id, "300.00", 70)
+    _charge(test_db, c.id, b.id, "400.00", 120)
 
     report = AgingReportService(test_db).generate_aging_report()
 
@@ -68,8 +69,8 @@ def test_aging_report_service_calculates_buckets(test_db):
 
 
 def test_export_service_generates_excel_and_pdf_files(test_db):
-    _, b = _client_and_business(test_db, "2")
-    _charge(test_db, b.id, "150.00", 20)
+    c, b = _client_and_business(test_db, "2")
+    _charge(test_db, c.id, b.id, "150.00", 20)
 
     report_data = AgingReportService(test_db).generate_aging_report()
     exporter = ExportService()
@@ -89,7 +90,7 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
     service.charge_repo = SimpleNamespace(
         get_aging_buckets=lambda as_of_date: [
             SimpleNamespace(
-                business_id=999_999,
+                client_id=999_999,
                 total=100,
                 current=100,
                 days_30=0,
@@ -99,7 +100,7 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
             )
         ]
     )
-    service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
+    service.client_repo = SimpleNamespace(list_by_ids=lambda ids: [])
 
     report = service.generate_aging_report(as_of_date=date(2026, 3, 1))
 

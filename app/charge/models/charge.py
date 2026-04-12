@@ -30,7 +30,8 @@ class Charge(Base):
     __tablename__ = "charges"
 
     id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
+    client_id   = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
 
     # Optional link to annual report (for "paid" indicator in reports list)
     annual_report_id = Column(
@@ -69,12 +70,12 @@ class Charge(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_charge_business_period", "business_id", "period"),
+        Index("idx_charge_client_period", "client_id", "period"),
         Index("idx_charge_status", "status"),
     )
 
     def __repr__(self):
         return (
-            f"<Charge(id={self.id}, business_id={self.business_id}, "
+            f"<Charge(id={self.id}, client_id={self.client_id}, business_id={self.business_id}, "
             f"type='{self.charge_type}', amount={self.amount}, status='{self.status}')>"
         )

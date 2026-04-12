@@ -91,6 +91,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     assert "5" in idle.message
 
     charge = Charge(
+        client_id=crm_client.id,
         business_id=business.id,
         amount=10,
         charge_type=ChargeType.OTHER,
@@ -104,6 +105,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
         reminder_repo,
         business_repo,
         ChargeRepository(test_db),
+        client_id=crm_client.id,
         business_id=business.id,
         charge_id=charge.id,
         days_unpaid=7,
@@ -238,12 +240,14 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
             reminder_repo,
             business_repo,
             charge_repo,
+            client_id=crm_client.id,
             business_id=business.id,
             charge_id=999999,
             days_unpaid=1,
         )
 
     charge = Charge(
+        client_id=crm_client.id,
         business_id=business.id,
         amount=55,
         charge_type=ChargeType.OTHER,
@@ -258,6 +262,7 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
             reminder_repo,
             business_repo,
             charge_repo,
+            client_id=crm_client.id,
             business_id=business.id,
             charge_id=charge.id,
             days_unpaid=-2,

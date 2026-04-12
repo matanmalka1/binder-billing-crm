@@ -32,6 +32,7 @@ def _seed_charges(db):
 
     issued_at = date.today() - timedelta(days=40)
     charge = Charge(
+        client_id=client.id,
         business_id=business.id,
         amount=Decimal("250.00"),
         charge_type=ChargeType.CONSULTATION_FEE,

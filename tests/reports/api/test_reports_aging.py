@@ -33,9 +33,10 @@ def _client_and_business(db) -> tuple[Client, Business]:
     return client, business
 
 
-def _charge(db, business_id: int, amount: Decimal, issued_days_ago: int):
+def _charge(db, client_id: int, business_id: int, amount: Decimal, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
+        client_id=client_id,
         business_id=business_id,
         amount=amount,
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -54,13 +55,13 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
     client_b, business_b = _client_and_business(test_db)
 
     # Client A: mix across buckets
-    _charge(test_db, business_a.id, Decimal("100"), issued_days_ago=10)   # current
-    _charge(test_db, business_a.id, Decimal("200"), issued_days_ago=45)   # 30
-    _charge(test_db, business_a.id, Decimal("300"), issued_days_ago=75)   # 60
-    _charge(test_db, business_a.id, Decimal("400"), issued_days_ago=120)  # 90+
+    _charge(test_db, client_a.id, business_a.id, Decimal("100"), issued_days_ago=10)   # current
+    _charge(test_db, client_a.id, business_a.id, Decimal("200"), issued_days_ago=45)   # 30
+    _charge(test_db, client_a.id, business_a.id, Decimal("300"), issued_days_ago=75)   # 60
+    _charge(test_db, client_a.id, business_a.id, Decimal("400"), issued_days_ago=120)  # 90+
 
     # Client B: single 90+ should sort below A because total is smaller
-    _charge(test_db, business_b.id, Decimal("150"), issued_days_ago=200)
+    _charge(test_db, client_b.id, business_b.id, Decimal("150"), issued_days_ago=200)
 
     resp = client.get("/api/v1/reports/aging", headers=advisor_headers)
     assert resp.status_code == 200
@@ -87,8 +88,8 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
 def test_aging_report_no_cap_with_large_dataset(client, test_db, advisor_headers):
     # Service caps to a fixed number of businesses.
     for _ in range(2001):
-        _, b = _client_and_business(test_db)
-        _charge(test_db, b.id, Decimal("1"), issued_days_ago=5)
+        seeded_client, b = _client_and_business(test_db)
+        _charge(test_db, seeded_client.id, b.id, Decimal("1"), issued_days_ago=5)
 
     resp = client.get("/api/v1/reports/aging", headers=advisor_headers)
     assert resp.status_code == 200

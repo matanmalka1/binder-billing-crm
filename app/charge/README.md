@@ -8,7 +8,7 @@ Manages client billing charges (draft, issue, payment, cancellation) used by the
 
 This module provides:
 - CRUD-like lifecycle for `charges` (create, read, status transitions, soft delete)
-- Filtering + pagination by business/status/type
+- Filtering + pagination by client/business/status/type
 - Role-based API access and role-based response shaping
 - Bulk charge actions (`issue`, `mark-paid`, `cancel`) with idempotency key enforcement
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
@@ -17,7 +17,8 @@ This module provides:
 
 `Charge` fields:
 - `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
+- `client_id` (FK -> `clients.id`, required, source of truth)
+- `business_id` (FK -> `businesses.id`, optional, operational affiliation only)
 - `annual_report_id` (optional FK -> `annual_reports.id`)
 - `charge_type` (enum, required)
 - `status` (enum, default `draft`)
@@ -77,6 +78,7 @@ Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
 
 ```json
 {
+  "client_id": 456,
   "business_id": 123,
   "amount": 1500.00,
   "charge_type": "monthly_retainer",
@@ -91,6 +93,7 @@ Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `business_id` (optional)
+  - `client_id` (optional)
   - `status` (optional)
   - `charge_type` (optional)
   - `page` (default `1`, min `1`)
@@ -149,7 +152,7 @@ Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
 
 ## Behavior Notes
 
-- Creating a charge validates that the business exists and is not closed/frozen (`BUSINESS.NOT_FOUND`, `BUSINESS.CLOSED`, `BUSINESS.FROZEN`).
+- Creating a charge validates that the client exists. If `business_id` is provided, it must belong to that client and must not be closed/frozen (`CHARGE.CLIENT_NOT_FOUND`, `CHARGE.BUSINESS_CLIENT_MISMATCH`, `BUSINESS.NOT_FOUND`, `BUSINESS.CLOSED`, `BUSINESS.FROZEN`).
 - Amount must be positive (`CHARGE.AMOUNT_INVALID` on invalid amount). All charges are always in ILS — no currency field.
 - Lifecycle rules:
   - Only `draft` can be issued.
