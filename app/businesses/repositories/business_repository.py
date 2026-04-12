@@ -6,8 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository_read import BusinessRepositoryRead
-from app.businesses.models.business import Business, BusinessStatus, BusinessType
-from app.businesses.constants import _SOLE_TRADER_TYPES
+from app.businesses.models.business import Business, BusinessStatus
 from app.utils.time_utils import utcnow
 
 
@@ -22,20 +21,16 @@ class BusinessRepository(BusinessRepositoryRead):
     def create(
         self,
         client_id: int,
-        business_type: str,
         opened_at: date,
         business_name: Optional[str] = None,
         notes: Optional[str] = None,
-        tax_id_number: Optional[str] = None,
         created_by: Optional[int] = None,
     ) -> Business:
         business = Business(
             client_id=client_id,
             business_name=business_name,
-            business_type=business_type,
             opened_at=opened_at,
             notes=notes,
-            tax_id_number=tax_id_number,
             created_by=created_by,
         )
         self.db.add(business)
@@ -108,24 +103,7 @@ class BusinessRepository(BusinessRepositoryRead):
     def has_conflicting_sole_trader(
         self,
         client_id: int,
-        new_type: BusinessType,
+        new_type,
         exclude_business_id: int | None = None,
     ) -> bool:
-        """
-        Returns True if the client has a non-deleted sole-trader of the OPPOSITE type.
-
-        Israeli VAT law: a person holds one VAT status (osek_patur OR osek_murshe).
-        Multiple businesses of the SAME type are allowed (separate activities, one VAT file).
-        Cross-type is illegal — you cannot be both patur and murshe simultaneously.
-
-        Pass exclude_business_id to skip a specific business (used during update checks).
-        """
-        opposite_types = list(_SOLE_TRADER_TYPES - {new_type})
-        q = self.db.query(Business).filter(
-            Business.client_id == client_id,
-            Business.business_type.in_(opposite_types),
-            Business.deleted_at.is_(None),
-        )
-        if exclude_business_id is not None:
-            q = q.filter(Business.id != exclude_business_id)
-        return q.first() is not None
+        return False

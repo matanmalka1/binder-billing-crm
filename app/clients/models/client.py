@@ -1,6 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, column
+from sqlalchemy.orm import relationship, foreign
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -61,15 +62,10 @@ class Client(Base):
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
 
     # ── Tax profile (formerly BusinessTaxProfile) ─────────────────────────────
-    vat_start_date          = Column(Date,            nullable=True)
     vat_exempt_ceiling      = Column(Numeric(12, 0),  nullable=True)   # תקרת פטור ממע"מ
     advance_rate            = Column(Numeric(5, 2),   nullable=True)   # שיעור מקדמות
     advance_rate_updated_at = Column(Date,            nullable=True)
     accountant_name         = Column(String(100),     nullable=True)   # שם רואה החשבון
-    business_type_label     = Column(String(100),     nullable=True)   # סוג עסק (טקסט חופשי)
-    fiscal_year_start_month = Column(Integer,         nullable=False,  server_default="1")
-    tax_year_start          = Column(Integer,         nullable=True)   # שנת מס התחלה
-    business_start_date     = Column(Date,            nullable=True)   # תאריך הקמת העסק
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
@@ -78,6 +74,14 @@ class Client(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    # Centralized notes attached to this client.
+    entity_notes = relationship(
+        "EntityNote",
+        primaryjoin="and_(foreign(EntityNote.entity_id) == Client.id, EntityNote.entity_type == 'client')",
+        viewonly=True,
+        lazy="select",
+    )
 
     # ── Soft delete ────────────────────────────────────────────────────────────
     deleted_at = Column(DateTime, nullable=True)

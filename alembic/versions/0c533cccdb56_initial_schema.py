@@ -1,19 +1,19 @@
 """initial_schema
 
-Revision ID: b6f4102e089c
+Revision ID: 0c533cccdb56
 Revises: 
-Create Date: 2026-04-12 10:04:52.533498
+Create Date: 2026-04-12 11:20:01.012826
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+
 import app.utils.enum_utils  # noqa
 
-
 # revision identifiers, used by Alembic.
-revision: str = 'b6f4102e089c'
+revision: str = '0c533cccdb56'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -50,15 +50,10 @@ def upgrade() -> None:
     sa.Column('address_zip_code', sa.String(), nullable=True),
     sa.Column('entity_type', app.utils.enum_utils._NormalizedEnum('osek_patur', 'osek_murshe', 'company_ltd', 'employee', name='entitytype'), nullable=True),
     sa.Column('vat_reporting_frequency', app.utils.enum_utils._NormalizedEnum('monthly', 'bimonthly', 'exempt', name='vattype'), nullable=True),
-    sa.Column('vat_start_date', sa.Date(), nullable=True),
     sa.Column('vat_exempt_ceiling', sa.Numeric(precision=12, scale=0), nullable=True),
     sa.Column('advance_rate', sa.Numeric(precision=5, scale=2), nullable=True),
     sa.Column('advance_rate_updated_at', sa.Date(), nullable=True),
     sa.Column('accountant_name', sa.String(length=100), nullable=True),
-    sa.Column('business_type_label', sa.String(length=100), nullable=True),
-    sa.Column('fiscal_year_start_month', sa.Integer(), server_default='1', nullable=False),
-    sa.Column('tax_year_start', sa.Integer(), nullable=True),
-    sa.Column('business_start_date', sa.Date(), nullable=True),
     sa.Column('status', app.utils.enum_utils._NormalizedEnum('active', 'frozen', 'closed', name='clientstatus'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -92,6 +87,23 @@ def upgrade() -> None:
     op.create_index('idx_entity_audit_type_id', 'entity_audit_logs', ['entity_type', 'entity_id'], unique=False)
     op.create_index(op.f('ix_entity_audit_logs_entity_id'), 'entity_audit_logs', ['entity_id'], unique=False)
     op.create_index(op.f('ix_entity_audit_logs_entity_type'), 'entity_audit_logs', ['entity_type'], unique=False)
+    op.create_table('entity_notes',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('entity_type', sa.String(), nullable=False),
+    sa.Column('entity_id', sa.Integer(), nullable=False),
+    sa.Column('note', sa.Text(), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('deleted_at', sa.DateTime(), nullable=True),
+    sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('idx_entity_notes_type_id', 'entity_notes', ['entity_type', 'entity_id'], unique=False)
+    op.create_index(op.f('ix_entity_notes_entity_id'), 'entity_notes', ['entity_id'], unique=False)
+    op.create_index(op.f('ix_entity_notes_entity_type'), 'entity_notes', ['entity_type'], unique=False)
     op.create_table('user_audit_logs',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('action', app.utils.enum_utils._NormalizedEnum('login_success', 'login_failure', 'logout', 'user_created', 'user_updated', 'user_activated', 'user_deactivated', 'password_reset', name='auditaction'), nullable=False),
@@ -201,13 +213,11 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('client_id', sa.Integer(), nullable=False),
     sa.Column('business_name', sa.String(), nullable=False),
-    sa.Column('business_type', app.utils.enum_utils._NormalizedEnum('osek_patur', 'osek_murshe', 'company', 'employee', name='businesstype'), nullable=False),
-    sa.Column('tax_id_number', sa.String(length=9), nullable=True),
     sa.Column('status', app.utils.enum_utils._NormalizedEnum('active', 'frozen', 'closed', name='businessstatus'), nullable=False),
     sa.Column('opened_at', sa.Date(), nullable=False),
     sa.Column('closed_at', sa.Date(), nullable=True),
-    sa.Column('phone', sa.String(length=20), nullable=True),
-    sa.Column('email', sa.String(length=254), nullable=True),
+    sa.Column('phone_override', sa.String(length=20), nullable=True),
+    sa.Column('email_override', sa.String(length=254), nullable=True),
     sa.Column('assigned_to', sa.Integer(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
@@ -228,7 +238,6 @@ def upgrade() -> None:
     op.create_index('ix_business_client_id', 'businesses', ['client_id'], unique=False)
     op.create_index('ix_business_client_name_active', 'businesses', ['client_id', 'business_name'], unique=True, postgresql_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'))
     op.create_index('ix_business_status', 'businesses', ['status'], unique=False)
-    op.create_index('ix_business_tax_id', 'businesses', ['tax_id_number'], unique=True, postgresql_where=sa.text('tax_id_number IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('tax_id_number IS NOT NULL AND deleted_at IS NULL'))
     op.create_index(op.f('ix_businesses_client_id'), 'businesses', ['client_id'], unique=False)
     op.create_table('vat_work_items',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -868,7 +877,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_vat_work_items_client_id'), table_name='vat_work_items')
     op.drop_table('vat_work_items')
     op.drop_index(op.f('ix_businesses_client_id'), table_name='businesses')
-    op.drop_index('ix_business_tax_id', table_name='businesses', postgresql_where=sa.text('tax_id_number IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('tax_id_number IS NOT NULL AND deleted_at IS NULL'))
     op.drop_index('ix_business_status', table_name='businesses')
     op.drop_index('ix_business_client_name_active', table_name='businesses', postgresql_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'))
     op.drop_index('ix_business_client_id', table_name='businesses')
@@ -897,6 +905,10 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_audit_logs_actor_user_id'), table_name='user_audit_logs')
     op.drop_index(op.f('ix_user_audit_logs_action'), table_name='user_audit_logs')
     op.drop_table('user_audit_logs')
+    op.drop_index(op.f('ix_entity_notes_entity_type'), table_name='entity_notes')
+    op.drop_index(op.f('ix_entity_notes_entity_id'), table_name='entity_notes')
+    op.drop_index('idx_entity_notes_type_id', table_name='entity_notes')
+    op.drop_table('entity_notes')
     op.drop_index(op.f('ix_entity_audit_logs_entity_type'), table_name='entity_audit_logs')
     op.drop_index(op.f('ix_entity_audit_logs_entity_id'), table_name='entity_audit_logs')
     op.drop_index('idx_entity_audit_type_id', table_name='entity_audit_logs')

@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError
-from app.businesses.models.business import BusinessType
 from app.common.enums import EntityType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
@@ -109,7 +108,6 @@ def check_osek_patur_ceiling(
     """
     is_osek_patur = (
         getattr(client, "entity_type", None) == EntityType.OSEK_PATUR
-        or getattr(client, "business_type", None) == BusinessType.OSEK_PATUR
     )
     if not is_osek_patur:
         return False

@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.audit.constants import ACTION_UPDATED, ENTITY_BUSINESS
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.businesses.constants import _SOLE_TRADER_TYPES
-from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
@@ -59,15 +58,7 @@ class BusinessUpdateService:
         if new_status == BusinessStatus.ACTIVE:
             fields["closed_at"] = None
 
-        new_type = BusinessType(fields["business_type"]) if "business_type" in fields else None
-        if new_type in _SOLE_TRADER_TYPES:
-            if self._repo.has_conflicting_sole_trader(
-                business.client_id, new_type, exclude_business_id=business_id
-            ):
-                raise ConflictError(
-                    "לקוח זה רשום בסטטוס עוסק שונה — לא ניתן לשלב עוסק פטור ועוסק מורשה",
-                    "BUSINESS.SOLE_TRADER_CONFLICT",
-                )
+        fields.pop("entity_type", None)
 
         old_snapshot = {k: getattr(business, k, None) for k in fields if hasattr(business, k)}
         updated = self._repo.update(business_id, **fields)

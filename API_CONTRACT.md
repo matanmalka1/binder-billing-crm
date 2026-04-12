@@ -57,7 +57,7 @@
 ### Sub-resources
 
 - `GET /api/v1/clients/{id}/tax-profile` — empty shell if none; 404 if client missing.
-- `PATCH /api/v1/clients/{id}/tax-profile` — fields: `vat_type`, `business_type`, `tax_year_start`, `accountant_name`.
+- `PATCH /api/v1/clients/{id}/tax-profile` — fields: `entity_type`, `vat_reporting_frequency`, `vat_exempt_ceiling`, `advance_rate`, `accountant_name`.
 - `GET /api/v1/clients/{id}/binders` — paginated extended binder list; 404 if client missing.
 - `GET /api/v1/clients/{id}/timeline` — paginated event feed (default page_size 50, max 200).
 - `GET /api/v1/clients/{id}/correspondence` — paginated list ordered by `occurred_at` desc.

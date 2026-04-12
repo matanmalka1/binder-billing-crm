@@ -20,7 +20,7 @@ from app.signature_requests.models.signature_request import SignatureAuditEvent,
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.client import Client
-from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.models.business import Business, BusinessStatus, EntityType
 
 
 @event.listens_for(Client, "after_insert")
@@ -32,7 +32,7 @@ def _create_default_business_for_client(mapper, connection, target):
         Business.__table__.insert().values(
             client_id=target.id,
             business_name=target.full_name,
-            business_type=BusinessType.OSEK_MURSHE,
+            entity_type=EntityType.OSEK_MURSHE,
             status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )

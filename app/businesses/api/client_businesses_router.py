@@ -35,11 +35,9 @@ def create_business(client_id: int, request: BusinessCreateRequest, db: DBSessio
     """יצירת עסק חדש תחת לקוח קיים (ADVISOR only)."""
     business = BusinessService(db).create_business(
         client_id=client_id,
-        business_type=request.business_type,
         opened_at=request.opened_at,
         business_name=request.business_name,
         notes=request.notes,
-        tax_id_number=request.tax_id_number,
         actor_id=user.id,
     )
     return _to_business_response(business, user.role)

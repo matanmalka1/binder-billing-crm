@@ -5,7 +5,7 @@ from random import Random
 
 from sqlalchemy import func, select
 
-from app.businesses.models.business import Business, BusinessStatus, BusinessType
+from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 
@@ -48,7 +48,6 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             entity_type = EntityType.COMPANY_LTD
             vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
             vat_exempt_ceiling = None
-            business_type_label = "חברה בע\"מ"
         else:
             full_name_value = full_name(rng)
             id_number_type = IdNumberType.INDIVIDUAL
@@ -61,22 +60,18 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             if entity_type == EntityType.OSEK_PATUR:
                 vat_reporting_frequency = VatType.EXEMPT
                 vat_exempt_ceiling = 120000
-                business_type_label = "עוסק פטור"
             elif entity_type == EntityType.OSEK_MURSHE:
                 vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
                 vat_exempt_ceiling = None
-                business_type_label = "עוסק מורשה"
             else:
                 vat_reporting_frequency = VatType.EXEMPT
                 vat_exempt_ceiling = None
-                business_type_label = "שכיר"
 
         address_street = rng.choice(STREET_NAMES)
         address_building_number = str(rng.randint(1, 220))
         address_apartment = str(rng.randint(1, 30)) if rng.random() < 0.75 else None
         address_city = rng.choice(CITY_NAMES)
         address_zip_code = f"{rng.randint(1000000, 9999999)}"
-        vat_start_date = date.today() - timedelta(days=rng.randint(60, 2200))
         advance_rate = None if entity_type == EntityType.EMPLOYEE else round(rng.uniform(2.0, 12.0), 2)
         advance_rate_updated_at = (
             date.today() - timedelta(days=rng.randint(0, 540))
@@ -98,13 +93,10 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             address_zip_code=address_zip_code,
             entity_type=entity_type,
             vat_reporting_frequency=vat_reporting_frequency,
-            vat_start_date=vat_start_date,
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
             advance_rate_updated_at=advance_rate_updated_at,
             accountant_name=rng.choice(["רו\"ח דנה לוי", "רו\"ח אמיר כהן", "רו\"ח נטע מזרחי"]),
-            business_type_label=business_type_label,
-            tax_year_start=rng.choice([2022, 2023, 2024, 2025]),
         )
         db.add(client)
         clients.append(client)
@@ -122,17 +114,9 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
     serial = existing_businesses
     for client in clients:
         business_count = 1
-        if client.entity_type == EntityType.EMPLOYEE:
-            business_count = 1
-        elif client.id in multi_business_client_ids:
+        if client.id in multi_business_client_ids and client.entity_type != EntityType.EMPLOYEE:
             business_count = rng.randint(2, 3)
 
-        chosen_types: list[BusinessType] = []
-        # Israeli VAT law: cannot mix osek_patur and osek_murshe for the same person.
-        # Multiple businesses of the SAME sole-trader type are allowed.
-        sole_trader_type_chosen: BusinessType | None = None
-        available_types = list(BusinessType)
-        _SOLE_TRADER = {BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE}
         for business_index in range(business_count):
             serial += 1
             open_days_ago = rng.randint(20, 1100)
@@ -149,34 +133,18 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                     closed_at = date.today() - timedelta(days=rng.randint(1, 15))
 
             if client.entity_type == EntityType.COMPANY_LTD:
-                default_type = BusinessType.COMPANY
+                default_type = EntityType.COMPANY_LTD
             elif client.entity_type == EntityType.OSEK_PATUR:
-                default_type = BusinessType.OSEK_PATUR
+                default_type = EntityType.OSEK_PATUR
             elif client.entity_type == EntityType.OSEK_MURSHE:
-                default_type = BusinessType.OSEK_MURSHE
+                default_type = EntityType.OSEK_MURSHE
             else:
-                default_type = BusinessType.EMPLOYEE
+                default_type = EntityType.EMPLOYEE
 
-            preferred_types = [default_type] if business_index == 0 else available_types
-            remaining_types = [
-                bt for bt in available_types
-                if bt in preferred_types
-                if bt not in chosen_types
-                and not (
-                    bt in _SOLE_TRADER
-                    and sole_trader_type_chosen is not None
-                    and bt != sole_trader_type_chosen
-                )
-            ]
-            business_type = rng.choice(remaining_types or [BusinessType.COMPANY, BusinessType.EMPLOYEE])
-            if business_type in _SOLE_TRADER and sole_trader_type_chosen is None:
-                sole_trader_type_chosen = business_type
-            chosen_types.append(business_type)
-
-            if business_type == BusinessType.COMPANY:
+            if default_type == EntityType.COMPANY_LTD:
                 base_name = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
                 business_name = base_name if business_index == 0 else f"{base_name} {business_index + 1}"
-            elif business_type == BusinessType.EMPLOYEE:
+            elif default_type == EntityType.EMPLOYEE:
                 business_name = (
                     "הכנסת שכר"
                     if business_count == 1
@@ -193,8 +161,6 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
             business = Business(
                 client_id=client.id,
                 business_name=business_name,
-                business_type=business_type,
-                tax_id_number=generate_valid_israeli_id(serial, prefix="5"),
                 status=status,
                 opened_at=opened_at,
                 closed_at=closed_at,
@@ -207,4 +173,3 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
             businesses.append(business)
     db.flush()
     return businesses
-

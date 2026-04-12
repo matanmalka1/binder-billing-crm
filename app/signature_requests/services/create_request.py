@@ -47,10 +47,10 @@ def create_request(
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
 
-    if not signer_email and business.email:
-        signer_email = business.email
-    if not signer_phone and business.phone:
-        signer_phone = business.phone
+    if not signer_email and business.contact_email:
+        signer_email = business.contact_email
+    if not signer_phone and business.contact_phone:
+        signer_phone = business.contact_phone
 
     req = repo.create(
         business_id=business_id,

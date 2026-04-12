@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from app.businesses.models.business import BusinessType, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.core.api_types import ApiDateTime
 
 
@@ -15,17 +15,14 @@ class BusinessCreateRequest(BaseModel):
     יצירת עסק חדש תחת לקוח קיים.
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
-    business_type: BusinessType             # enum — לא str חופשי
     opened_at: Optional[date] = None
     business_name: Optional[str] = None
     notes: Optional[str] = None
-    tax_id_number: Optional[str] = None
 
 
 class BusinessUpdateRequest(BaseModel):
     """עדכון פרטי עסק."""
     business_name: Optional[str] = None
-    business_type: Optional[BusinessType] = None    # enum
     status: Optional[BusinessStatus] = None         # enum
     notes: Optional[str] = None
     closed_at: Optional[date] = None
@@ -38,7 +35,6 @@ class BusinessResponse(BaseModel):
     id: int
     client_id: int
     business_name: Optional[str] = None
-    business_type: BusinessType
     status: BusinessStatus
     opened_at: date
     closed_at: Optional[date] = None

@@ -58,8 +58,6 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
             vat_exempt_ceiling=request.vat_exempt_ceiling,
             advance_rate=request.advance_rate,
             accountant_name=request.accountant_name,
-            business_type_label=request.business_type_label,
-            business_start_date=request.business_start_date,
             actor_id=user.id,
         )
         return ClientResponse.model_validate(client)

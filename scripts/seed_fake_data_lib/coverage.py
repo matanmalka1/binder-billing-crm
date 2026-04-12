@@ -73,9 +73,9 @@ class SeedCoverageValidator:
             errors.append(
                 f"expected {self.cfg.clients} clients for coverage checks, found {len(client_ids)}"
             )
-        from app.businesses.models.business import BusinessType
-        business_rows = db.execute(select(Business.id, Business.client_id, Business.business_type)).all()
-        business_client_map = {int(business_id): int(client_id) for business_id, client_id, _ in business_rows}
+        from app.businesses.models.business import EntityType
+        business_rows = db.execute(select(Business.id, Business.client_id)).all()
+        business_client_map = {int(business_id): int(client_id) for business_id, client_id in business_rows}
         if len(business_client_map) < len(client_ids):
             errors.append(
                 f"business coverage mismatch: expected at least {len(client_ids)} businesses, got {len(business_client_map)}"
@@ -84,7 +84,10 @@ class SeedCoverageValidator:
         non_employee_client_ids = [
             int(client_id)
             for client_id, in db.execute(
-                select(Business.client_id).where(Business.business_type != BusinessType.EMPLOYEE).distinct()
+                select(Business.client_id)
+                .join(Client, Client.id == Business.client_id)
+                .where(Client.entity_type != EntityType.EMPLOYEE)
+                .distinct()
             ).all()
         ]
 

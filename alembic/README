@@ -4,12 +4,13 @@
 
 - All schema changes must go through Alembic. Never modify DB schema manually and never use `Base.metadata.create_all()`.
 - Migration files live in `alembic/versions/`.
-- New migration filename convention: `NNNN_<description>.py` (sequential numeric prefix).
+- New migration filename convention: `<revision_id>_<description>.py` (Alembic revision id prefix).
 - After any SQLAlchemy model change:
   1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
   2. Review the generated migration — fix any `sqlite_where`/`postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
+- The repository currently uses a single fresh base migration; the current head is the initial schema.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Known autogenerate quirk — partial index `where` clauses
@@ -55,20 +56,22 @@ Notes:
 
 ## Migration chain
 
+- `0c533cccdb56_initial_schema.py` — current base migration. `down_revision = None`.
+
 
 ## Run instructions
-### 0001 — initial_schema (ff773718d72e)
+### initial_schema (0c533cccdb56)
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
   Full initial schema — all tables, indexes, constraints, and enums from scratch.
-  Covers: users, clients, businesses, business_tax_profiles, binders, annual_reports,
+  Covers: users, clients, businesses, entity_notes, entity_audit_logs, binders, annual_reports,
   vat_work_items, vat_invoices, vat_audit_logs, charges, invoices, advance_payments,
   tax_deadlines, reminders, notifications, permanent_documents, signature_requests,
-  signature_audit_events, correspondence_entries, authority_contacts, authority_contact_links,
-  binder_intakes, binder_intake_materials, binder_status_logs, annual_report_* sub-tables.
-- Important notes:
+  signature_audit_events, correspondence_entries, authority_contacts, binder_intakes,
+  binder_intake_materials, binder_status_logs, annual_report_* sub-tables.
+  Important notes:
   - After autogenerate, manually wrap all partial-index `where` args with `sa.text(...)`.
   - SQLite and PostgreSQL both supported via dual `sqlite_where` / `postgresql_where` args.
 
@@ -99,7 +102,7 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision
 3. Edit the generated file:
    - Add the required top docstring.
    - Wrap all partial-index `where` strings with `sa.text(...)`.
-   - Ensure `down_revision` points to `ff773718d72e` (or the current HEAD).
+   - Ensure `down_revision` points to `0c533cccdb56` (or the current HEAD).
 4. Apply:
    `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 

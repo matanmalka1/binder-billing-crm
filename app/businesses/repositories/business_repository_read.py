@@ -19,7 +19,7 @@ class BusinessRepositoryRead(BaseRepository):
     def _build_base_query(
         self,
         status: Optional[str] = None,
-        business_type: Optional[str] = None,
+        entity_type: Optional[str] = None,
         search: Optional[str] = None,
     ) -> SAQuery:
         """Shared filter chain for list() and count()."""
@@ -35,15 +35,14 @@ class BusinessRepositoryRead(BaseRepository):
         )
         if status:
             query = query.filter(Business.status == status)
-        if business_type:
-            query = query.filter(Business.business_type == business_type)
+        if entity_type:
+            query = query.filter(Client.entity_type == entity_type)
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
                 Business.business_name.ilike(term)
                 | Client.full_name.ilike(term)
                 | Client.id_number.ilike(term)
-                | Business.tax_id_number.ilike(term)
                 | cast(Client.id, String).ilike(term)
                 | cast(Business.id, String).ilike(term)
             )
@@ -76,21 +75,21 @@ class BusinessRepositoryRead(BaseRepository):
     def list(
         self,
         status: Optional[str] = None,
-        business_type: Optional[str] = None,
+        entity_type: Optional[str] = None,
         search: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Business]:
-        query = self._build_base_query(status, business_type, search)
+        query = self._build_base_query(status, entity_type, search)
         return self._paginate(query.order_by(Business.opened_at.desc()), page, page_size)
 
     def count(
         self,
         status: Optional[str] = None,
-        business_type: Optional[str] = None,
+        entity_type: Optional[str] = None,
         search: Optional[str] = None,
     ) -> int:
-        return self._build_base_query(status, business_type, search).count()
+        return self._build_base_query(status, entity_type, search).count()
 
     def list_by_client_ids(self, client_ids: list[int]) -> list[Business]:
         if not client_ids:

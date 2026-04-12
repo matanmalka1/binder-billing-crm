@@ -31,7 +31,7 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import BusinessType
+from app.businesses.models.business import EntityType
 from app.users.models.user import UserRole
 
 from ._business_groups import group_businesses_by_client
@@ -283,10 +283,10 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
         )
         for year in years:
             business = rng.choice(client_businesses)
-            if business.business_type == BusinessType.COMPANY:
+            if business.client.entity_type == EntityType.COMPANY_LTD:
                 client_type_for_report = ClientTypeForReport.CORPORATION
                 form_type = AnnualReportForm.FORM_6111
-            elif business.business_type in (BusinessType.OSEK_PATUR, BusinessType.OSEK_MURSHE):
+            elif business.client.entity_type in (EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE):
                 client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
                 form_type = AnnualReportForm.FORM_1215
             else:

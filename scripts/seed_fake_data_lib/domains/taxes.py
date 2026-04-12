@@ -5,7 +5,7 @@ from decimal import Decimal
 from random import Random
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus, PaymentMethod
-from app.businesses.models.business import BusinessType
+from app.businesses.models.business import EntityType
 from app.tax_deadline.models.tax_deadline import (
     TaxDeadline,
     DeadlineType as TaxDeadlineType,
@@ -34,7 +34,7 @@ def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
     ]
     if client.vat_reporting_frequency in ("monthly", "bimonthly"):
         types.append(TaxDeadlineType.VAT)
-    if business.business_type != BusinessType.EMPLOYEE and client.advance_rate is not None:
+    if client.entity_type != EntityType.EMPLOYEE and client.advance_rate is not None:
         types.append(TaxDeadlineType.ADVANCE_PAYMENT)
     return types
 
@@ -94,7 +94,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
 def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
     payments: list[AdvancePayment] = []
     eligible_businesses = [
-        business for business in businesses if business.business_type != BusinessType.EMPLOYEE
+        business for business in businesses if business.client.entity_type != EntityType.EMPLOYEE
     ]
     deadlines_by_client_period = {}
     for dl in deadlines:

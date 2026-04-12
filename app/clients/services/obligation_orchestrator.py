@@ -26,10 +26,6 @@ _ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[Optional[EntityType], ClientTypeForRepo
 _OBLIGATION_FIELDS = frozenset({
     "entity_type",
     "vat_reporting_frequency",
-    "vat_start_date",
-    "business_start_date",
-    "fiscal_year_start_month",
-    "tax_year_start",
 })
 
 
