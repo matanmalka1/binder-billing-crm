@@ -1,8 +1,7 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.businesses.models.business import EntityType
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import EntityType
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.reminders.models.reminder import ReminderType
 from app.signature_requests.models.signature_request import (
@@ -15,31 +14,25 @@ from app.timeline.services.timeline_client_builders import (
     document_uploaded_event,
     reminder_created_event,
     signature_request_created_event,
-    tax_profile_updated_event,
 )
 
 
-def test_client_and_tax_profile_builder_events():
+def test_client_builder_events():
     client = SimpleNamespace(
         full_name="Client Builder",
         opened_at=date(2026, 1, 1),
         updated_at=datetime(2026, 1, 2, 8, 0),
         entity_type=EntityType.COMPANY_LTD,
     )
-    profile = SimpleNamespace(id=11, updated_at=datetime(2026, 1, 3, 9, 0), vat_type=VatType.MONTHLY)
 
     created = client_created_event(client)
     assert created["event_type"] == "client_created"
     assert created["description"] == "לקוח נוצר: Client Builder"
-    assert created["metadata"] == {"entity_type": "company"}
+    assert created["metadata"] == {"entity_type": "company_ltd"}
 
     updated = client_info_updated_event(client)
     assert updated["event_type"] == "client_info_updated"
     assert updated["timestamp"] == datetime(2026, 1, 2, 8, 0)
-
-    tax = tax_profile_updated_event(profile)
-    assert tax["event_type"] == "tax_profile_updated"
-    assert tax["metadata"] == {"tax_profile_id": 11}
 
 
 def test_reminder_document_and_signature_builder_events():

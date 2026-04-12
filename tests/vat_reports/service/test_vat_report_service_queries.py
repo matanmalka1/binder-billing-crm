@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from app.businesses.models.business import Business
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService

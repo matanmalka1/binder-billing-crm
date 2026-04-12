@@ -1,7 +1,8 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.models.client import Client
@@ -31,7 +32,6 @@ def _business(test_db, name: str, id_number: str):
 
     business = Business(
         client_id=client.id,
-        entity_type=EntityType.OSEK_MURSHE,
         opened_at=date(2024, 1, 1),
     )
     test_db.add(business)

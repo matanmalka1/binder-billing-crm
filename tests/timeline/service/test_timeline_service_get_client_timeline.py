@@ -3,7 +3,8 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from app.binders.models.binder import BinderStatus
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.notification.models.notification import NotificationChannel, NotificationTrigger
@@ -19,7 +20,6 @@ def _business(test_db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Timeline Service Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date(2026, 1, 1),
     )
     test_db.add(business)

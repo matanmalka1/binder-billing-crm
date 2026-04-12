@@ -1,6 +1,7 @@
 from datetime import date
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.binders.services.signals_service import SignalsService
 
@@ -18,7 +19,6 @@ def test_operational_signals_missing_documents(test_db, test_user):
     business = Business(
         client_id=client.id,
         business_name="Signals Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
         created_by=test_user.id,
     )

@@ -2,7 +2,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessStatus, EntityType
+from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -24,7 +25,6 @@ def _client(db) -> Client:
 def _business(db, client_id: int) -> Business:
     business = Business(
         client_id=client_id,
-        entity_type=EntityType.COMPANY_LTD,
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )

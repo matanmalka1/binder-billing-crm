@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.businesses.models.business import EntityType
+from app.common.enums import EntityType
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services.data_entry_common import (

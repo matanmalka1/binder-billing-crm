@@ -1,7 +1,8 @@
 from datetime import date, datetime, timedelta
 from itertools import count
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
@@ -25,7 +26,6 @@ def _business(db) -> Business:
     b = Business(
         client_id=c.id,
         business_name=f"Correspondence Repo Business {idx}",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(b)

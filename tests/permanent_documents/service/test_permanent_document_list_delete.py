@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
@@ -43,7 +44,6 @@ def _business(test_db) -> Business:
     business = Business(
         client_id=client.id,
         business_name="Permanent Service Biz",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(business)

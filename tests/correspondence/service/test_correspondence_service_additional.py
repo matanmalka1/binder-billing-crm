@@ -3,7 +3,8 @@ from datetime import date, datetime
 import pytest
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
-from app.businesses.models.business import Business, BusinessStatus, EntityType
+from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.correspondence.models.correspondence import CorrespondenceType
@@ -22,7 +23,6 @@ def _business(db, id_number: str) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Business {id_number}",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

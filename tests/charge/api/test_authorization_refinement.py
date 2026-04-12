@@ -1,6 +1,7 @@
 from datetime import date
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -16,7 +17,6 @@ def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_
 
     test_business = Business(
         client_id=test_client.id,
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(test_business)

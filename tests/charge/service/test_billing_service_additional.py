@@ -2,7 +2,8 @@ from datetime import date
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessStatus, EntityType
+from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import EntityType
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from app.charge.services.charge_query_service import ChargeQueryService
@@ -19,7 +20,6 @@ def _business(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE):
 
     business = Business(
         client_id=client.id,
-        entity_type=EntityType.COMPANY_LTD,
         status=status,
         opened_at=date.today(),
     )

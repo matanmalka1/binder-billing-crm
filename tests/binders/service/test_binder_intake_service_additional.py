@@ -4,7 +4,8 @@ import pytest
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
-from app.businesses.models.business import Business, BusinessStatus, EntityType
+from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.core.exceptions import AppError
 
@@ -23,7 +24,6 @@ def _client(db, id_number: str) -> Client:
 def _business(db, client_id: int, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
     biz = Business(
         client_id=client_id,
-        entity_type=EntityType.OSEK_PATUR,
         status=status,
         opened_at=date.today(),
     )

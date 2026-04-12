@@ -1,7 +1,8 @@
 from io import BytesIO
 from datetime import date
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -20,7 +21,6 @@ def _create_business(db, client_id: int):
     business = Business(
         client_id=client_id,
         business_name="Docs Client Business",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     db.add(business)

@@ -6,7 +6,8 @@ from decimal import Decimal
 import pytest
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.reports.services.export_service import ExportService
 from app.reports.services.reports_service import AgingReportService
@@ -26,7 +27,6 @@ def _client_and_business(db, suffix: str) -> tuple[Client, Business]:
         b = Business(
             client_id=c.id,
             business_name=c.full_name,
-            entity_type=EntityType.COMPANY_LTD,
             opened_at=date.today(),
         )
         db.add(b)

@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.businesses.models.business import EntityType
-from app.businesses.models.business_tax_profile import VatType
+from app.common.enums import EntityType
+from app.common.enums import VatType
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake

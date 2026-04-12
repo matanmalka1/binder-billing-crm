@@ -2,8 +2,9 @@ from datetime import date, timedelta
 from itertools import count
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
-from app.businesses.models.business import Business, EntityType
-from app.businesses.models.business_tax_profile import VatType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
+from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService

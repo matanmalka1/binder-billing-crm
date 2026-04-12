@@ -3,7 +3,8 @@ from io import BytesIO
 
 import pytest
 
-from app.businesses.models.business import Business, EntityType
+from app.businesses.models.business import Business
+from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentType
@@ -25,7 +26,6 @@ def _business(test_db, *, suffix: str) -> Business:
     business = Business(
         client_id=client.id,
         business_name=f"Doc Test Biz {suffix}",
-        entity_type=EntityType.COMPANY_LTD,
         opened_at=date.today(),
     )
     test_db.add(business)

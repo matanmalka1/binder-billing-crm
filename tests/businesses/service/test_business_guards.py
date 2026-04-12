@@ -1,12 +1,11 @@
 import pytest
-from types import SimpleNamespace
 
-from app.businesses.models.business import BusinessStatus
+from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.services.business_guards import (
     assert_business_allows_create,
-    assert_business_not_closed,
     validate_business_for_create,
 )
+from app.clients.models.client import Client
 from app.core.exceptions import ForbiddenError, NotFoundError
 
 
@@ -29,22 +28,28 @@ def test_assert_business_allows_create_blocks_closed_and_frozen():
     assert frozen.value.code == "BUSINESS.FROZEN"
 
 
-def test_assert_business_not_closed():
-    assert_business_not_closed(_Business(BusinessStatus.ACTIVE))
+def _create_business(test_db, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
+    client = Client(full_name="Business Guard Client", id_number="BG-001")
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
 
-    with pytest.raises(ForbiddenError) as exc:
-        assert_business_not_closed(_Business(BusinessStatus.CLOSED))
-    assert exc.value.code == "BUSINESS.CLOSED"
-
-
-def test_validate_business_for_create_returns_business(monkeypatch, test_db):
-    expected = SimpleNamespace(id=123, status=BusinessStatus.ACTIVE)
-    monkeypatch.setattr(
-        "app.businesses.services.business_guards.get_business_or_raise",
-        lambda db, business_id: expected,
+    business = Business(
+        client_id=client.id,
+        business_name="Business Guard Business",
+        opened_at=client.created_at.date(),
+        status=status,
     )
-    business = validate_business_for_create(test_db, expected.id)
-    assert business.id == expected.id
+    test_db.add(business)
+    test_db.commit()
+    test_db.refresh(business)
+    return business
+
+
+def test_validate_business_for_create_returns_business(test_db):
+    business = _create_business(test_db)
+    validated = validate_business_for_create(test_db, business.id)
+    assert validated.id == business.id
 
 
 def test_validate_business_for_create_raises_not_found(test_db):
@@ -53,12 +58,8 @@ def test_validate_business_for_create_raises_not_found(test_db):
     assert exc.value.code == "BUSINESS.NOT_FOUND"
 
 
-def test_validate_business_for_create_blocks_frozen(monkeypatch, test_db):
-    monkeypatch.setattr(
-        "app.businesses.services.business_guards.get_business_or_raise",
-        lambda db, business_id: SimpleNamespace(status=BusinessStatus.FROZEN),
-    )
-
+def test_validate_business_for_create_blocks_frozen(test_db):
+    business = _create_business(test_db, status=BusinessStatus.FROZEN)
     with pytest.raises(ForbiddenError) as exc:
-        validate_business_for_create(test_db, 1)
+        validate_business_for_create(test_db, business.id)
     assert exc.value.code == "BUSINESS.FROZEN"
