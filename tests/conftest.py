@@ -15,12 +15,12 @@ os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 
 from app.database import Base, get_db
-from app.main import app
+import app.notes.models.entity_note  # noqa: F401
 from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.client import Client
-from app.businesses.models.business import Business, BusinessStatus, EntityType
+from app.businesses.models.business import Business, BusinessStatus
 
 
 @event.listens_for(Client, "after_insert")
@@ -32,7 +32,6 @@ def _create_default_business_for_client(mapper, connection, target):
         Business.__table__.insert().values(
             client_id=target.id,
             business_name=target.full_name,
-            entity_type=EntityType.OSEK_MURSHE,
             status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )
@@ -71,14 +70,14 @@ def client(test_db):
         finally:
             pass
     
-    app.dependency_overrides[get_db] = override_get_db
+    main_module.app.dependency_overrides[get_db] = override_get_db
     original_expire = background_jobs_module.expire_overdue_requests
     background_jobs_module.expire_overdue_requests = lambda repo: 0
 
-    with TestClient(app) as test_client:
+    with TestClient(main_module.app) as test_client:
         yield test_client
 
-    app.dependency_overrides.clear()
+    main_module.app.dependency_overrides.clear()
     background_jobs_module.expire_overdue_requests = original_expire
 
 

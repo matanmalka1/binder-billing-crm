@@ -1,8 +1,5 @@
-from datetime import date
-
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.businesses.models.business import Business, EntityType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -26,33 +23,23 @@ def test_authority_contact_repository_crud_flow(test_db):
     test_db.commit()
     test_db.refresh(client)
 
-    business = Business(
-        client_id=client.id,
-        business_name="Business A",
-        entity_type=EntityType.COMPANY_LTD,
-        opened_at=date(2024, 1, 1),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
-
     contact_a = repo.create(
-        business_id=business.id,
+        client_id=client.id,
         contact_type=ContactType.ASSESSING_OFFICER,
         name="Officer One",
         phone="111",
     )
     contact_b = repo.create(
-        business_id=business.id,
+        client_id=client.id,
         contact_type=ContactType.VAT_BRANCH,
         name="Officer Two",
         phone="222",
     )
 
-    contacts = repo.list_by_business(business_id=business.id, page=1, page_size=10)
+    contacts = repo.list_by_client(client_id=client.id, page=1, page_size=10)
     assert [c.id for c in contacts] == [contact_b.id, contact_a.id]
-    assert repo.count_by_business(business_id=business.id) == 2
-    assert repo.count_by_business(business_id=business.id, contact_type=ContactType.VAT_BRANCH) == 1
+    assert repo.count_by_client(client_id=client.id) == 2
+    assert repo.count_by_client(client_id=client.id, contact_type=ContactType.VAT_BRANCH) == 1
 
     updated = repo.update(contact_a.id, phone="999")
     assert updated.phone == "999"
@@ -63,4 +50,4 @@ def test_authority_contact_repository_crud_flow(test_db):
     assert contact_a.deleted_at is not None
     assert contact_a.deleted_by == user.id
     assert repo.get_by_id(contact_a.id) is None
-    assert repo.count_by_business(business_id=business.id) == 1
+    assert repo.count_by_client(client_id=client.id) == 1
