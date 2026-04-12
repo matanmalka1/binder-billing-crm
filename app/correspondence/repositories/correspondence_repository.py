@@ -14,15 +14,17 @@ class CorrespondenceRepository:
 
     def create(
         self,
-        business_id: int,
+        client_id: int,                          # PRIMARY anchor — always required
         correspondence_type: CorrespondenceType,
         subject: str,
         occurred_at: datetime,
         created_by: int,
+        business_id: Optional[int] = None,       # OPTIONAL — UI grouping only
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
         entry = Correspondence(
+            client_id=client_id,
             business_id=business_id,
             contact_id=contact_id,
             correspondence_type=correspondence_type,
@@ -36,12 +38,13 @@ class CorrespondenceRepository:
         self.db.refresh(entry)
         return entry
 
-    def list_by_business_paginated(
+    def list_paginated(
         self,
-        business_id: int,
         *,
         page: int,
         page_size: int,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
         correspondence_type: Optional[CorrespondenceType] = None,
         contact_id: Optional[int] = None,
         from_date: Optional[datetime] = None,
@@ -49,10 +52,14 @@ class CorrespondenceRepository:
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         base = self.db.query(Correspondence).filter(
-            Correspondence.business_id == business_id,
             Correspondence.deleted_at.is_(None),
         )
 
+        # At least one of client_id / business_id should always be provided
+        if client_id is not None:
+            base = base.filter(Correspondence.client_id == client_id)
+        if business_id is not None:
+            base = base.filter(Correspondence.business_id == business_id)
         if correspondence_type is not None:
             base = base.filter(Correspondence.correspondence_type == correspondence_type)
         if contact_id is not None:

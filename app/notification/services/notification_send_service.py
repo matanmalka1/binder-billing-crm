@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 _BULK_NOTIFY_LIMIT = 500
 
 _SUBJECTS: dict[NotificationTrigger, str] = {
-    NotificationTrigger.BINDER_RECEIVED: "התיק שלך התקבל במשרד",
+    NotificationTrigger.BINDER_RECEIVED:         "התיק שלך התקבל במשרד",
     NotificationTrigger.BINDER_READY_FOR_PICKUP: "התיק שלך מוכן לאיסוף",
     NotificationTrigger.MANUAL_PAYMENT_REMINDER: "תזכורת תשלום",
 }
@@ -104,9 +104,15 @@ class NotificationSendService:
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
-                    business_id=business_id, binder_id=binder_id, trigger=trigger,
-                    channel=NotificationChannel.WHATSAPP, recipient=client.phone,
-                    content_snapshot=content, triggered_by=triggered_by, severity=severity,
+                    client_id=client.id,        # PRIMARY anchor
+                    business_id=business_id,    # optional context
+                    binder_id=binder_id,
+                    trigger=trigger,
+                    channel=NotificationChannel.WHATSAPP,
+                    recipient=client.phone,
+                    content_snapshot=content,
+                    triggered_by=triggered_by,
+                    severity=severity,
                 )
                 ok, err = self.whatsapp.send(client.phone, content)
                 if ok:
@@ -124,9 +130,15 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                business_id=business_id, binder_id=binder_id, trigger=trigger,
-                channel=NotificationChannel.EMAIL, recipient=client.email,
-                content_snapshot=content, triggered_by=triggered_by, severity=severity,
+                client_id=client.id,        # PRIMARY anchor
+                business_id=business_id,    # optional context
+                binder_id=binder_id,
+                trigger=trigger,
+                channel=NotificationChannel.EMAIL,
+                recipient=client.email,
+                content_snapshot=content,
+                triggered_by=triggered_by,
+                severity=severity,
             )
             success, error = self.email.send(client.email, content, subject=subject)
             if success:
@@ -134,7 +146,10 @@ class NotificationSendService:
                 logger.info("Notification sent | business=%s trigger=%s", business_id, trigger.value)
             else:
                 self.notification_repo.mark_failed(n.id, error or "unknown error")
-                logger.error("Notification failed | business=%s trigger=%s error=%s", business_id, trigger.value, error)
+                logger.error(
+                    "Notification failed | business=%s trigger=%s error=%s",
+                    business_id, trigger.value, error,
+                )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
@@ -153,8 +168,10 @@ class NotificationSendService:
                 logger.info("send_client_reminder: client %s has no email or not found", client_id)
                 return True
             n = self.notification_repo.create(
-                client_id=client_id, trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-                channel=NotificationChannel.EMAIL, recipient=client.email,
+                client_id=client_id,        # PRIMARY anchor; no business_id (client-direct)
+                trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                channel=NotificationChannel.EMAIL,
+                recipient=client.email,
                 content_snapshot=reminder_text,
             )
             ok, err = self.email.send(client.email, reminder_text, subject="תזכורת מועד מס")

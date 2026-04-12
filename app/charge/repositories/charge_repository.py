@@ -55,6 +55,43 @@ class ChargeRepository(BaseRepository):
             self.db.query(Charge).filter(Charge.id == charge_id, Charge.deleted_at.is_(None))
         )
 
+    def _base_filter(
+        self,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+        business_ids: Optional[list[int]] = None,
+        status: Optional[str] = None,
+        charge_type: Optional[str] = None,
+    ):
+        """
+        Shared filter builder for list and count queries.
+
+        Filter priority:
+        - client_id  → always applied when provided (primary anchor)
+        - business_id → narrows to a single business within the client
+        - business_ids → narrows to a set of businesses (used by bulk/overview queries)
+          Note: business_id and business_ids are mutually exclusive; business_id wins.
+        """
+        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
+
+        if client_id is not None:
+            query = query.filter(Charge.client_id == client_id)
+
+        if business_id is not None:
+            query = query.filter(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                # Explicit empty list → caller wants zero results
+                return None
+            query = query.filter(Charge.business_id.in_(business_ids))
+
+        if status:
+            query = query.filter(Charge.status == status)
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
+
+        return query
+
     def list_charges(
         self,
         client_id: Optional[int] = None,
@@ -66,23 +103,9 @@ class ChargeRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Charge]:
         """List charges with optional filters and pagination."""
-        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
-
-        if client_id is not None:
-            query = query.filter(Charge.client_id == client_id)
-        if business_id:
-            query = query.filter(Charge.business_id == business_id)
-        elif business_ids is not None:
-            if not business_ids:
-                return []
-            query = query.filter(Charge.business_id.in_(business_ids))
-
-        if status:
-            query = query.filter(Charge.status == status)
-
-        if charge_type:
-            query = query.filter(Charge.charge_type == charge_type)
-
+        query = self._base_filter(client_id, business_id, business_ids, status, charge_type)
+        if query is None:
+            return []
         query = query.order_by(Charge.created_at.desc())
         return self._paginate(query, page, page_size)
 
@@ -95,23 +118,9 @@ class ChargeRepository(BaseRepository):
         charge_type: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
-        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
-
-        if client_id is not None:
-            query = query.filter(Charge.client_id == client_id)
-        if business_id:
-            query = query.filter(Charge.business_id == business_id)
-        elif business_ids is not None:
-            if not business_ids:
-                return 0
-            query = query.filter(Charge.business_id.in_(business_ids))
-
-        if status:
-            query = query.filter(Charge.status == status)
-
-        if charge_type:
-            query = query.filter(Charge.charge_type == charge_type)
-
+        query = self._base_filter(client_id, business_id, business_ids, status, charge_type)
+        if query is None:
+            return 0
         return query.count()
 
     def update_status(

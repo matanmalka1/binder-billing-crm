@@ -17,15 +17,19 @@ from app.correspondence.services.correspondence_service import CorrespondenceSer
 _DEFAULT_PAGE_SIZE = 20
 _MAX_PAGE_SIZE = 100
 
-router = APIRouter(
+_AUTH = [Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))]
+_ADVISOR_ONLY = [Depends(require_role(UserRole.ADVISOR))]
+
+# ── Business-scoped router (existing, unchanged URL shape) ─────────────────────
+business_router = APIRouter(
     prefix="/businesses",
     tags=["correspondence"],
-    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+    dependencies=_AUTH,
 )
 
 
-@router.get("/{business_id}/correspondence", response_model=CorrespondenceListResponse)
-def list_correspondence(
+@business_router.get("/{business_id}/correspondence", response_model=CorrespondenceListResponse)
+def list_correspondence_by_business(
     business_id: int,
     db: DBSession,
     page: int = Query(1, ge=1),
@@ -55,7 +59,7 @@ def list_correspondence(
     )
 
 
-@router.get(
+@business_router.get(
     "/{business_id}/correspondence/{correspondence_id}",
     response_model=CorrespondenceResponse,
 )
@@ -64,12 +68,11 @@ def get_correspondence(
     correspondence_id: int,
     db: DBSession,
 ):
-    service = CorrespondenceService(db)
-    entry = service.get_entry(correspondence_id, business_id)
+    entry = CorrespondenceService(db).get_entry(correspondence_id, business_id)
     return CorrespondenceResponse.model_validate(entry)
 
 
-@router.post(
+@business_router.post(
     "/{business_id}/correspondence",
     response_model=CorrespondenceResponse,
     status_code=status.HTTP_201_CREATED,
@@ -80,8 +83,7 @@ def create_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    service = CorrespondenceService(db)
-    entry = service.add_entry(
+    entry = CorrespondenceService(db).add_entry(
         business_id=business_id,
         correspondence_type=request.correspondence_type,
         subject=request.subject,
@@ -93,7 +95,7 @@ def create_correspondence(
     return CorrespondenceResponse.model_validate(entry)
 
 
-@router.patch(
+@business_router.patch(
     "/{business_id}/correspondence/{correspondence_id}",
     response_model=CorrespondenceResponse,
 )
@@ -104,16 +106,18 @@ def update_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    update_data = request.model_dump(exclude_unset=True)
-    service = CorrespondenceService(db)
-    entry = service.update_entry(correspondence_id, business_id, **update_data)
+    entry = CorrespondenceService(db).update_entry(
+        correspondence_id,
+        business_id,
+        **request.model_dump(exclude_unset=True),
+    )
     return CorrespondenceResponse.model_validate(entry)
 
 
-@router.delete(
+@business_router.delete(
     "/{business_id}/correspondence/{correspondence_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=_ADVISOR_ONLY,
 )
 def delete_correspondence(
     business_id: int,
@@ -121,5 +125,44 @@ def delete_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
+    CorrespondenceService(db).delete_entry(correspondence_id, business_id, actor_id=user.id)
+
+
+# ── Client-scoped router (new — full view across all businesses) ───────────────
+client_router = APIRouter(
+    prefix="/clients",
+    tags=["correspondence"],
+    dependencies=_AUTH,
+)
+
+
+@client_router.get("/{client_id}/correspondence", response_model=CorrespondenceListResponse)
+def list_correspondence_by_client(
+    client_id: int,
+    db: DBSession,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(_DEFAULT_PAGE_SIZE, ge=1, le=_MAX_PAGE_SIZE),
+    correspondence_type: Optional[CorrespondenceType] = Query(None),
+    contact_id: Optional[int] = Query(None),
+    from_date: Optional[datetime] = Query(None),
+    to_date: Optional[datetime] = Query(None),
+    sort_dir: Literal["asc", "desc"] = Query("desc"),
+):
+    """All correspondence for a client across all businesses."""
     service = CorrespondenceService(db)
-    service.delete_entry(correspondence_id, business_id, actor_id=user.id)
+    entries, total = service.list_client_entries(
+        client_id,
+        page=page,
+        page_size=page_size,
+        correspondence_type=correspondence_type,
+        contact_id=contact_id,
+        from_date=from_date,
+        to_date=to_date,
+        sort_dir=sort_dir,
+    )
+    return CorrespondenceListResponse.build(
+        items=[CorrespondenceResponse.model_validate(e) for e in entries],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )

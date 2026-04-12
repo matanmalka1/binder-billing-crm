@@ -5,8 +5,26 @@ from typing import Optional
 
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.signature_request_validations import assert_signable, get_by_token_or_raise, get_by_token_or_raise_for_update
+from app.signature_requests.services.signature_request_validations import (
+    assert_pending,
+    check_not_expired,
+    get_by_token_or_raise,
+    get_by_token_or_raise_for_update,
+)
 from app.utils.time_utils import utcnow
+
+
+def _expire_and_raise(repo: SignatureRequestRepository, req: SignatureRequest) -> None:
+    """Transition to EXPIRED and raise. Called only when expiry is detected at signing time."""
+    repo.update(req.id, req=req, status=SignatureRequestStatus.EXPIRED, signing_token=None)
+    repo.append_audit_event(
+        signature_request_id=req.id,
+        event_type="expired",
+        actor_type="system",
+        notes=f"פג תוקף בקשת החתימה ({req.expires_at.date().isoformat()}).",
+    )
+    from app.core.exceptions import AppError
+    raise AppError("בקשת החתימה הזו פג תוקף", "SIGNATURE_REQUEST.EXPIRED")
 
 
 def record_view(
@@ -17,7 +35,9 @@ def record_view(
     user_agent: Optional[str] = None,
 ) -> SignatureRequest:
     req = get_by_token_or_raise(repo, token)
-    assert_signable(repo, req)
+    assert_pending(req)
+    if check_not_expired(req):
+        _expire_and_raise(repo, req)
 
     repo.append_audit_event(
         signature_request_id=req.id,
@@ -39,7 +59,9 @@ def sign_request(
 ) -> tuple[SignatureRequest, Optional[int], Optional[datetime]]:
     """Returns (req, annual_report_id, signed_at) so the façade can handle cross-domain side-effects."""
     req = get_by_token_or_raise_for_update(repo, token)
-    assert_signable(repo, req)
+    assert_pending(req)
+    if check_not_expired(req):
+        _expire_and_raise(repo, req)
 
     now = utcnow()
     req = repo.update(
@@ -74,7 +96,9 @@ def decline_request(
     user_agent: Optional[str] = None,
 ) -> SignatureRequest:
     req = get_by_token_or_raise_for_update(repo, token)
-    assert_signable(repo, req)
+    assert_pending(req)
+    if check_not_expired(req):
+        _expire_and_raise(repo, req)
 
     now = utcnow()
     req = repo.update(

@@ -29,17 +29,17 @@ class SignatureAuditEventResponse(BaseModel):
 
 class SignatureRequestResponse(BaseModel):
     id: int
-    business_id: int
-    client_id: Optional[int] = None
-    business_name: Optional[str] = None
+    client_id: int                              # PRIMARY anchor — always present
+    business_id: Optional[int] = None          # OPTIONAL context
+    business_name: Optional[str] = None        # enriched by route layer when business_id set
     created_by: int
-    request_type: SignatureRequestType      # enum
+    request_type: SignatureRequestType
     title: str
     description: Optional[str] = None
     signer_name: str
     signer_email: Optional[str] = None
     signer_phone: Optional[str] = None
-    status: SignatureRequestStatus          # enum
+    status: SignatureRequestStatus
     content_hash: Optional[str] = None
     storage_key: Optional[str] = None
     annual_report_id: Optional[int] = None
@@ -50,8 +50,8 @@ class SignatureRequestResponse(BaseModel):
     signed_at: Optional[ApiDateTime] = None
     declined_at: Optional[ApiDateTime] = None
     canceled_at: Optional[ApiDateTime] = None
-    canceled_by: Optional[int] = None      # קיים במודל, חסר בגרסה הישנה
-    signer_ip_address: Optional[str] = None
+    canceled_by: Optional[int] = None
+    # signer_ip_address intentionally excluded — PII, available only in audit trail
     decline_reason: Optional[str] = None
     signed_document_key: Optional[str] = None
 
@@ -69,11 +69,12 @@ class SignatureRequestWithAuditResponse(SignatureRequestResponse):
     audit_trail: list[SignatureAuditEventResponse] = []
 
 
-# ── Advisor requests ──────────────────────────────────────────────────────────
+# ── Advisor create request ────────────────────────────────────────────────────
 
 class SignatureRequestCreateRequest(BaseModel):
-    business_id: int = Field(gt=0)
-    request_type: SignatureRequestType      # enum
+    client_id: int = Field(gt=0)                        # PRIMARY anchor — always required
+    business_id: Optional[int] = Field(None, gt=0)     # OPTIONAL; validated server-side for ownership
+    request_type: SignatureRequestType
     title: str = Field(min_length=3, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     signer_name: str = Field(min_length=2, max_length=100)
@@ -81,7 +82,7 @@ class SignatureRequestCreateRequest(BaseModel):
     signer_phone: Optional[str] = None
     annual_report_id: Optional[int] = Field(None, gt=0)
     document_id: Optional[int] = Field(None, gt=0)
-    content_to_hash: Optional[str] = None  # service יחשב SHA-256
+    content_to_hash: Optional[str] = None  # service computes SHA-256
 
 
 class SignatureRequestSendRequest(BaseModel):
@@ -89,7 +90,7 @@ class SignatureRequestSendRequest(BaseModel):
 
 
 class SignatureRequestSentResponse(SignatureRequestResponse):
-    """מוחזר פעם אחת בלבד — token לא נשמר בצד שרת."""
+    """Returned once only — token is not persisted server-side after this response."""
     signing_token: Optional[str] = None
     signing_url_hint: Optional[str] = None
 
@@ -98,15 +99,15 @@ class CancelRequest(BaseModel):
     reason: Optional[str] = Field(None, max_length=500)
 
 
-# ── Signer-facing (public, ללא JWT) ──────────────────────────────────────────
+# ── Signer-facing (public, no JWT) ───────────────────────────────────────────
 
 class SignerViewResponse(BaseModel):
-    """מינימלי — ללא מזהים פנימיים או נתונים פיננסיים."""
+    """Minimal — no internal IDs or financial data."""
     request_id: int
     title: str
     description: Optional[str] = None
     signer_name: str
-    status: SignatureRequestStatus          # enum
+    status: SignatureRequestStatus
     content_hash: Optional[str] = None
     expires_at: Optional[ApiDateTime] = None
 

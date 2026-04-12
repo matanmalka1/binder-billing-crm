@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Optional
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -16,7 +16,8 @@ def create_request(
     repo: SignatureRequestRepository,
     business_repo: BusinessRepository,
     *,
-    business_id: int,
+    client_id: int,
+    business_id: Optional[int] = None,
     created_by: int,
     created_by_name: str,
     request_type: str,
@@ -30,10 +31,26 @@ def create_request(
     storage_key: Optional[str] = None,
     content_to_hash: Optional[str] = None,
 ) -> SignatureRequest:
-    """Create a new signature request in DRAFT status."""
-    business = business_repo.get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    """Create a new signature request in DRAFT status.
+
+    client_id is always required — it is the primary anchor.
+    business_id is optional; when provided it must belong to the given client_id.
+    """
+    # Validate business ownership when business_id is supplied
+    if business_id is not None:
+        business = business_repo.get_by_id(business_id)
+        if not business:
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        if business.client_id != client_id:
+            raise AppError(
+                f"עסק {business_id} אינו שייך ללקוח {client_id}",
+                "BUSINESS.CLIENT_MISMATCH",
+            )
+        # Fall back to business contact details when caller omits them
+        if not signer_email and business.contact_email:
+            signer_email = business.contact_email
+        if not signer_phone and business.contact_phone:
+            signer_phone = business.contact_phone
 
     valid_types = {e.value for e in SignatureRequestType}
     if request_type not in valid_types:
@@ -47,12 +64,8 @@ def create_request(
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
 
-    if not signer_email and business.contact_email:
-        signer_email = business.contact_email
-    if not signer_phone and business.contact_phone:
-        signer_phone = business.contact_phone
-
     req = repo.create(
+        client_id=client_id,
         business_id=business_id,
         created_by=created_by,
         request_type=req_type,

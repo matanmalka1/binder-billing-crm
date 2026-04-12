@@ -3,7 +3,6 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository_flush import ReminderRepositoryFlush
 from app.utils.time_utils import utcnow
@@ -22,8 +21,8 @@ class ReminderRepository(ReminderRepositoryFlush):
         days_before: int,
         send_on: date,
         message: str,
-        business_id: Optional[int] = None,
-        client_id: Optional[int] = None,
+        client_id: int,                          # always required — legal entity anchor
+        business_id: Optional[int] = None,       # optional context
         binder_id: Optional[int] = None,
         charge_id: Optional[int] = None,
         tax_deadline_id: Optional[int] = None,
@@ -31,14 +30,9 @@ class ReminderRepository(ReminderRepositoryFlush):
         advance_payment_id: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Reminder:
-        if (business_id is None) == (client_id is None):
-            raise AppError(
-                "תזכורת חייבת לשייך לעסק או ללקוח — לא לשניהם ולא לאף אחד",
-                "REMINDER.INVALID_OWNER",
-            )
         reminder = Reminder(
-            business_id=business_id,
             client_id=client_id,
+            business_id=business_id,
             reminder_type=reminder_type,
             target_date=target_date,
             days_before=days_before,
@@ -83,14 +77,17 @@ class ReminderRepository(ReminderRepositoryFlush):
         reminder = self.get_by_id(reminder_id)
         return self._update_status(reminder, new_status, **additional_fields)
 
-    def exists_vat_compliance_reminder(self, client_id: int, period: str) -> bool:
-        """True if a VAT_FILING reminder for this client+period is already PENDING or SENT."""
+    def exists_vat_compliance_reminder(self, client_id: int, tax_deadline_id: int) -> bool:
+        """True if a VAT_FILING reminder for this client+deadline is already PENDING or SENT.
+
+        Uses tax_deadline_id (a proper FK) instead of message text search.
+        """
         return (
-            self.db.query(Reminder)
+            self.db.query(Reminder.id)
             .filter(
                 Reminder.client_id == client_id,
                 Reminder.reminder_type == ReminderType.VAT_FILING,
-                Reminder.message.contains(period),
+                Reminder.tax_deadline_id == tax_deadline_id,
                 Reminder.status.in_([ReminderStatus.PENDING, ReminderStatus.SENT]),
                 Reminder.deleted_at.is_(None),
             )

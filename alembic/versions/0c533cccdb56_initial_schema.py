@@ -295,9 +295,10 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['annual_report_id'], ['annual_reports.id'], ),
     sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('client_id', 'period', name='uq_advance_payment_client_period')
+    sa.PrimaryKeyConstraint('id')
     )
+    # Partial unique: soft-deleted rows never block recreation of the same period
+    op.create_index('uq_advance_payment_client_period_active', 'advance_payments', ['client_id', 'period'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.create_index('idx_advance_payment_client_period', 'advance_payments', ['client_id', 'period'], unique=False)
     op.create_index('idx_advance_payment_due_date', 'advance_payments', ['due_date'], unique=False)
     op.create_index('idx_advance_payment_status', 'advance_payments', ['status'], unique=False)
@@ -453,7 +454,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_charges_period'), 'charges', ['period'], unique=False)
     op.create_table('correspondence_entries',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('business_id', sa.Integer(), nullable=False),
+    # PRIMARY anchor — legal entity; always required
+    sa.Column('client_id', sa.Integer(), nullable=False),
+    # OPTIONAL context — set when scoped to a specific business activity
+    sa.Column('business_id', sa.Integer(), nullable=True),
     sa.Column('contact_id', sa.Integer(), nullable=True),
     sa.Column('correspondence_type', app.utils.enum_utils._NormalizedEnum('call', 'letter', 'email', 'meeting', 'fax', name='correspondencetype'), nullable=False),
     sa.Column('subject', sa.String(), nullable=False),
@@ -463,20 +467,25 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('deleted_by', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['business_id'], ['businesses.id'], ),
     sa.ForeignKeyConstraint(['contact_id'], ['authority_contacts.id'], ),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('idx_correspondence_client_id', 'correspondence_entries', ['client_id'], unique=False)
     op.create_index('idx_correspondence_business_occurred', 'correspondence_entries', ['business_id', 'occurred_at'], unique=False)
     op.create_index('idx_correspondence_occurred', 'correspondence_entries', ['occurred_at'], unique=False)
+    op.create_index(op.f('ix_correspondence_entries_client_id'), 'correspondence_entries', ['client_id'], unique=False)
     op.create_index(op.f('ix_correspondence_entries_business_id'), 'correspondence_entries', ['business_id'], unique=False)
     op.create_index(op.f('ix_correspondence_entries_contact_id'), 'correspondence_entries', ['contact_id'], unique=False)
     op.create_table('notifications',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    # PRIMARY anchor — legal entity; always required
+    sa.Column('client_id', sa.Integer(), nullable=False),
+    # OPTIONAL context
     sa.Column('business_id', sa.Integer(), nullable=True),
-    sa.Column('client_id', sa.Integer(), nullable=True),
     sa.Column('binder_id', sa.Integer(), nullable=True),
     sa.Column('trigger', app.utils.enum_utils._NormalizedEnum('binder_received', 'binder_ready_for_pickup', 'manual_payment_reminder', name='notificationtrigger'), nullable=False),
     sa.Column('channel', app.utils.enum_utils._NormalizedEnum('whatsapp', 'email', name='notificationchannel'), nullable=False),
@@ -621,7 +630,10 @@ def upgrade() -> None:
     op.create_index(op.f('ix_invoices_charge_id'), 'invoices', ['charge_id'], unique=True)
     op.create_table('signature_requests',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('business_id', sa.Integer(), nullable=False),
+    # PRIMARY anchor — legal entity (the signer); always required
+    sa.Column('client_id', sa.Integer(), nullable=False),
+    # OPTIONAL context — set when scoped to a specific business activity
+    sa.Column('business_id', sa.Integer(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=False),
     sa.Column('annual_report_id', sa.Integer(), nullable=True),
     sa.Column('document_id', sa.Integer(), nullable=True),
@@ -650,6 +662,7 @@ def upgrade() -> None:
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.Column('deleted_by', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['annual_report_id'], ['annual_reports.id'], ),
+    sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['business_id'], ['businesses.id'], ),
     sa.ForeignKeyConstraint(['canceled_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
@@ -657,10 +670,12 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['document_id'], ['permanent_documents.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_index('idx_sig_request_client', 'signature_requests', ['client_id'], unique=False)
     op.create_index('idx_sig_request_annual_report', 'signature_requests', ['annual_report_id'], unique=False)
     op.create_index('idx_sig_request_business', 'signature_requests', ['business_id'], unique=False)
     op.create_index('idx_sig_request_status', 'signature_requests', ['status'], unique=False)
-    op.create_index('idx_sig_request_token', 'signature_requests', ['signing_token'], unique=False)
+    op.create_index('idx_sig_request_token', 'signature_requests', ['signing_token'], unique=True)
+    op.create_index(op.f('ix_signature_requests_client_id'), 'signature_requests', ['client_id'], unique=False)
     op.create_index(op.f('ix_signature_requests_annual_report_id'), 'signature_requests', ['annual_report_id'], unique=False)
     op.create_index(op.f('ix_signature_requests_business_id'), 'signature_requests', ['business_id'], unique=False)
     op.create_index(op.f('ix_signature_requests_signing_token'), 'signature_requests', ['signing_token'], unique=True)
@@ -740,6 +755,8 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['tax_deadline_id'], ['tax_deadlines.id'], ),
+    # At least one of client_id / business_id must be set
+    sa.CheckConstraint('client_id IS NOT NULL OR business_id IS NOT NULL', name='ck_reminder_has_target'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_reminder_business_type', 'reminders', ['business_id', 'reminder_type'], unique=False)
@@ -803,10 +820,12 @@ def downgrade() -> None:
     op.drop_index('idx_tax_deadline_client_period', table_name='tax_deadlines')
     op.drop_table('tax_deadlines')
     op.drop_index(op.f('ix_signature_requests_signing_token'), table_name='signature_requests')
+    op.drop_index(op.f('ix_signature_requests_client_id'), table_name='signature_requests')
     op.drop_index(op.f('ix_signature_requests_business_id'), table_name='signature_requests')
     op.drop_index(op.f('ix_signature_requests_annual_report_id'), table_name='signature_requests')
     op.drop_index('idx_sig_request_token', table_name='signature_requests')
     op.drop_index('idx_sig_request_status', table_name='signature_requests')
+    op.drop_index('idx_sig_request_client', table_name='signature_requests')
     op.drop_index('idx_sig_request_business', table_name='signature_requests')
     op.drop_index('idx_sig_request_annual_report', table_name='signature_requests')
     op.drop_table('signature_requests')
@@ -840,8 +859,10 @@ def downgrade() -> None:
     op.drop_index('idx_notification_business_status', table_name='notifications')
     op.drop_table('notifications')
     op.drop_index(op.f('ix_correspondence_entries_contact_id'), table_name='correspondence_entries')
+    op.drop_index(op.f('ix_correspondence_entries_client_id'), table_name='correspondence_entries')
     op.drop_index(op.f('ix_correspondence_entries_business_id'), table_name='correspondence_entries')
     op.drop_index('idx_correspondence_occurred', table_name='correspondence_entries')
+    op.drop_index('idx_correspondence_client_id', table_name='correspondence_entries')
     op.drop_index('idx_correspondence_business_occurred', table_name='correspondence_entries')
     op.drop_table('correspondence_entries')
     op.drop_index(op.f('ix_charges_period'), table_name='charges')
@@ -868,6 +889,7 @@ def downgrade() -> None:
     op.drop_table('annual_report_annex_data')
     op.drop_index(op.f('ix_advance_payments_client_id'), table_name='advance_payments')
     op.drop_index(op.f('ix_advance_payments_annual_report_id'), table_name='advance_payments')
+    op.drop_index('uq_advance_payment_client_period_active', table_name='advance_payments', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.drop_index('idx_advance_payment_status', table_name='advance_payments')
     op.drop_index('idx_advance_payment_due_date', table_name='advance_payments')
     op.drop_index('idx_advance_payment_client_period', table_name='advance_payments')
@@ -881,7 +903,6 @@ def downgrade() -> None:
     op.drop_index('ix_business_status', table_name='businesses')
     op.drop_index('ix_business_client_name_active', table_name='businesses', postgresql_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'))
     op.drop_index('ix_business_client_id', table_name='businesses')
-    op.drop_index('ix_business_assigned', table_name='businesses')
     op.drop_table('businesses')
     op.drop_index(op.f('ix_binders_client_id'), table_name='binders')
     op.drop_index('idx_binder_status', table_name='binders')

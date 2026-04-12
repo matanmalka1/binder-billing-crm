@@ -1,4 +1,4 @@
-"""Notification center HTTP endpoints (8.3 + 8.6)."""
+"""Notification center HTTP endpoints."""
 
 from typing import Optional
 
@@ -32,21 +32,29 @@ advisor_router = APIRouter(
 )
 
 
-# ── Endpoints ────────────────────────────────────────────────────────────────
-
 @router.get("", response_model=NotificationListResponse)
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
-    business_id: Optional[int] = None,
+    client_id: Optional[int] = None,      # PRIMARY filter — all notifications for a legal entity
+    business_id: Optional[int] = None,    # SECONDARY filter — narrow to one business
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """Return paginated notifications ordered by created_at desc."""
+    """Return paginated notifications ordered by created_at desc.
+
+    Use client_id to get all notifications for a legal entity.
+    Optionally combine with business_id to scope to a specific business.
+    """
     svc = NotificationService(db)
-    items, total = svc.list_paginated(page=page, page_size=page_size, business_id=business_id)
+    items, total = svc.list_paginated(
+        page=page,
+        page_size=page_size,
+        client_id=client_id,
+        business_id=business_id,
+    )
     return NotificationListResponse(
-        items=[NotificationResponse.model_validate(n) for n in items],
+        items=items,   # already NotificationResponse from service enrichment
         total=total,
         page=page,
         page_size=page_size,
@@ -57,11 +65,13 @@ def list_notifications(
 def get_unread_count(
     db: DBSession,
     user: CurrentUser,
+    client_id: Optional[int] = None,
     business_id: Optional[int] = None,
 ):
-    """Return count of unread notifications."""
     svc = NotificationService(db)
-    return UnreadCountResponse(unread_count=svc.count_unread(business_id=business_id))
+    return UnreadCountResponse(
+        unread_count=svc.count_unread(client_id=client_id, business_id=business_id)
+    )
 
 
 @router.post("/mark-read", response_model=MarkReadResponse)
@@ -76,11 +86,12 @@ def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
 def mark_all_read(
     db: DBSession,
     user: CurrentUser,
+    client_id: Optional[int] = None,
     business_id: Optional[int] = None,
 ):
-    """Mark all unread notifications (optionally scoped to business)."""
+    """Mark all unread notifications as read (optionally scoped to client or business)."""
     svc = NotificationService(db)
-    updated = svc.mark_all_read(business_id)
+    updated = svc.mark_all_read(client_id=client_id, business_id=business_id)
     return MarkReadResponse(updated=updated)
 
 

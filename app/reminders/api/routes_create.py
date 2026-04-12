@@ -51,20 +51,23 @@ def create_reminder(
             created_by=user.id,
         )
 
-    elif request.reminder_type == ReminderType.UNPAID_CHARGE:
-        reminder = service.create_unpaid_charge_reminder(
-            business_id=request.business_id,
-            charge_id=request.charge_id,
-            days_unpaid=request.days_before,
-            message=request.message,
-            created_by=user.id,
-        )
-
     elif request.reminder_type == ReminderType.ANNUAL_REPORT_DEADLINE:
         reminder = service.create_annual_report_deadline_reminder(
             annual_report_id=request.annual_report_id,
             target_date=request.target_date,
             days_before=request.days_before,
+            message=request.message,
+            created_by=user.id,
+        )
+
+    elif request.reminder_type == ReminderType.UNPAID_CHARGE:
+        # client_id is required by the schema validator for this type.
+        # business_id is optional context — may be None for client-level charges.
+        reminder = service.create_unpaid_charge_reminder(
+            client_id=request.client_id,
+            business_id=request.business_id,
+            charge_id=request.charge_id,
+            days_unpaid=request.days_before,
             message=request.message,
             created_by=user.id,
         )

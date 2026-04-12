@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.utils.time_utils import utcnow
@@ -36,19 +36,22 @@ def get_by_token_or_raise_for_update(repo: SignatureRequestRepository, token: st
     return req
 
 
-def assert_signable(repo: SignatureRequestRepository, req: SignatureRequest) -> None:
-    """Raise if request is not in a state that allows signer actions."""
+def assert_pending(req: SignatureRequest) -> None:
+    """Pure guard — raises if the request cannot receive signer actions.
+
+    Does NOT write to the DB. Callers that detect expiry at signing time must
+    handle the EXPIRED transition themselves (see signer_actions.py).
+    """
     if req.status != SignatureRequestStatus.PENDING_SIGNATURE:
         raise AppError(
             f"בקשה זו נמצאת בסטטוס '{req.status.value}' ולא ניתן לאשר או לדחות אותה.",
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
-    if req.expires_at and utcnow() > req.expires_at:
-        repo.update(req.id, status=SignatureRequestStatus.EXPIRED, signing_token=None)
-        repo.append_audit_event(
-            signature_request_id=req.id,
-            event_type="expired",
-            actor_type="system",
-            notes="Expired detected at signing time.",
-        )
-        raise AppError("בקשת החתימה הזו פג תוקף", "SIGNATURE_REQUEST.EXPIRED")
+
+
+def check_not_expired(req: SignatureRequest) -> bool:
+    """Return True if the request is expired (expires_at has passed).
+
+    Does NOT raise — callers decide how to handle it.
+    """
+    return bool(req.expires_at and utcnow() > req.expires_at)

@@ -9,7 +9,7 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.reminders.services import factory, factory_extended, reminder_queries, status_changes
+from app.reminders.services import reminder_factory, reminder_queries, status_changes
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 
@@ -27,70 +27,75 @@ class ReminderService:
         self.annual_report_repo = AnnualReportRepository(db)
         self.advance_payment_repo = AdvancePaymentRepository(db)
 
-    # Creation flows
+    # ── Creation flows ────────────────────────────────────────────────────────
+
     def create_tax_deadline_reminder(self, **kwargs):
-        return factory.create_tax_deadline_reminder(
+        return reminder_factory.create_tax_deadline_reminder(
+            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
+        )
+
+    def create_vat_filing_reminder(self, **kwargs):
+        return reminder_factory.create_vat_filing_reminder(
             self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
         )
 
     def create_idle_binder_reminder(self, **kwargs):
-        return factory.create_idle_binder_reminder(
+        return reminder_factory.create_idle_binder_reminder(
             self.reminder_repo, self.client_repo, self.binder_repo, **kwargs
         )
 
-    def create_unpaid_charge_reminder(self, **kwargs):
-        return factory.create_unpaid_charge_reminder(
-            self.reminder_repo, self.business_repo, self.charge_repo, **kwargs
-        )
-
-    def create_custom_reminder(self, **kwargs):
-        return factory.create_custom_reminder(self.reminder_repo, self.business_repo, **kwargs)
-
-    def create_vat_filing_reminder(self, **kwargs):
-        return factory_extended.create_vat_filing_reminder(
-            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
-        )
-
     def create_annual_report_deadline_reminder(self, **kwargs):
-        return factory_extended.create_annual_report_deadline_reminder(
+        return reminder_factory.create_annual_report_deadline_reminder(
             self.reminder_repo, self.client_repo, self.annual_report_repo, **kwargs
         )
 
+    def create_unpaid_charge_reminder(self, **kwargs):
+        return reminder_factory.create_unpaid_charge_reminder(
+            self.reminder_repo, self.business_repo, self.charge_repo, **kwargs
+        )
+
     def create_advance_payment_due_reminder(self, **kwargs):
-        return factory_extended.create_advance_payment_due_reminder(
+        return reminder_factory.create_advance_payment_due_reminder(
             self.reminder_repo, self.business_repo, self.advance_payment_repo, **kwargs
         )
 
     def create_document_missing_reminder(self, **kwargs):
-        return factory_extended.create_document_missing_reminder(
+        return reminder_factory.create_document_missing_reminder(
             self.reminder_repo, self.business_repo, **kwargs
         )
 
-    # Queries
+    def create_custom_reminder(self, **kwargs):
+        return reminder_factory.create_custom_reminder(
+            self.reminder_repo, self.business_repo, **kwargs
+        )
+
+    # ── Queries ───────────────────────────────────────────────────────────────
+
     def get_reminders(self, **kwargs):
-        return reminder_queries.get_reminders(self.reminder_repo, self.business_repo, **kwargs)
+        return reminder_queries.get_reminders(self.reminder_repo, self.client_repo, self.business_repo, **kwargs)
 
     def get_pending_reminders(self, **kwargs):
-        return reminder_queries.get_pending_reminders(self.reminder_repo, self.business_repo, **kwargs)
+        return reminder_queries.get_pending_reminders(self.reminder_repo, self.client_repo, self.business_repo, **kwargs)
 
     def get_reminders_by_business(self, **kwargs):
-        return reminder_queries.get_reminders_by_business(self.reminder_repo, self.business_repo, **kwargs)
+        return reminder_queries.get_reminders_by_business(self.reminder_repo, self.client_repo, self.business_repo, **kwargs)
 
     def get_reminders_by_client(self, **kwargs):
-        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.business_repo, **kwargs)
+        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.client_repo, self.business_repo, **kwargs)
 
     def get_reminder(self, reminder_id: int):
         return reminder_queries.get_reminder(self.reminder_repo, reminder_id)
 
-    # Status changes
+    # ── Status changes ────────────────────────────────────────────────────────
+
     def claim_for_processing(self, reminder_id: int):
         return self.reminder_repo.claim_for_processing(reminder_id)
 
-    def mark_sent(self, reminder_id: int):
-        return status_changes.mark_sent(self.reminder_repo, reminder_id)
+    def mark_sent(self, reminder_id: int, actor_id: int):
+        return status_changes.mark_sent(self.reminder_repo, reminder_id, actor_id=actor_id)
 
-    def cancel_reminder(self, reminder_id: int):
-        return status_changes.cancel_reminder(self.reminder_repo, reminder_id)
+    def cancel_reminder(self, reminder_id: int, actor_id: int):
+        return status_changes.cancel_reminder(self.reminder_repo, reminder_id, actor_id=actor_id)
 
     def cancel_reminders_for_charge(self, charge_id: int) -> int:
         return self.reminder_repo.cancel_pending_by_charge(charge_id)

@@ -46,7 +46,8 @@ class CorrespondenceUpdateRequest(BaseModel):
 
 class CorrespondenceResponse(BaseModel):
     id: int
-    business_id: int
+    client_id: int                          # always present — primary anchor
+    business_id: Optional[int] = None      # optional — present when scoped to a business
     contact_id: Optional[int] = None
     correspondence_type: CorrespondenceType
     subject: str

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple, List
+from typing import List, Optional, Tuple
 
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import (
@@ -19,6 +19,33 @@ def get_by_token(repo: SignatureRequestRepository, token: str) -> Optional[Signa
     return repo.get_by_token(token)
 
 
+def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
+    if not status:
+        return None
+    valid_statuses = {e.value for e in SignatureRequestStatus}
+    if status not in valid_statuses:
+        raise AppError(
+            f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {sorted(valid_statuses)}",
+            "SIGNATURE_REQUEST.INVALID_STATUS",
+        )
+    return SignatureRequestStatus(status)
+
+
+def list_client_requests(
+    repo: SignatureRequestRepository,
+    *,
+    client_id: int,
+    status: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> Tuple[List[SignatureRequest], int]:
+    """All signature requests for a legal entity (primary query path)."""
+    status_enum = _parse_status(status)
+    items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
+    total = repo.count_by_client(client_id, status=status_enum)
+    return items, total
+
+
 def list_business_requests(
     repo: SignatureRequestRepository,
     *,
@@ -27,23 +54,18 @@ def list_business_requests(
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[SignatureRequest], int]:
-    status_enum = None
-    if status:
-        valid_statuses = {e.value for e in SignatureRequestStatus}
-        if status not in valid_statuses:
-            raise AppError(
-                f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {sorted(valid_statuses)}",
-                "SIGNATURE_REQUEST.INVALID_STATUS",
-            )
-        status_enum = SignatureRequestStatus(status)
-
+    """Signature requests scoped to a specific business (secondary / filtered view)."""
+    status_enum = _parse_status(status)
     items = repo.list_by_business(business_id, status=status_enum, page=page, page_size=page_size)
     total = repo.count_by_business(business_id, status=status_enum)
     return items, total
 
 
 def list_pending_requests(
-    repo: SignatureRequestRepository, *, page: int = 1, page_size: int = 20
+    repo: SignatureRequestRepository,
+    *,
+    page: int = 1,
+    page_size: int = 20,
 ) -> Tuple[List[SignatureRequest], int]:
     items = repo.list_pending(page=page, page_size=page_size)
     total = repo.count_pending()

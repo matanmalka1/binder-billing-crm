@@ -15,11 +15,12 @@ class SignatureRequestCrudMixin:
 
     def create(
         self,
-        business_id: int,
+        client_id: int,                          # PRIMARY anchor — always required
         created_by: int,
         request_type: SignatureRequestType,
         title: str,
         signer_name: str,
+        business_id: Optional[int] = None,       # OPTIONAL context
         description: Optional[str] = None,
         signer_email: Optional[str] = None,
         signer_phone: Optional[str] = None,
@@ -29,6 +30,7 @@ class SignatureRequestCrudMixin:
         content_hash: Optional[str] = None,
     ) -> SignatureRequest:
         req = SignatureRequest(
+            client_id=client_id,
             business_id=business_id,
             created_by=created_by,
             request_type=request_type,
@@ -80,6 +82,45 @@ class SignatureRequestCrudMixin:
             .first()
         )
 
+    # ── List by client (primary) ──────────────────────────────────────────────
+
+    def list_by_client(
+        self,
+        client_id: int,
+        status: Optional[SignatureRequestStatus] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[SignatureRequest]:
+        """All requests for a legal entity, regardless of business."""
+        query = self.db.query(SignatureRequest).filter(
+            SignatureRequest.client_id == client_id,
+            SignatureRequest.deleted_at.is_(None),
+        )
+        if status:
+            query = query.filter(SignatureRequest.status == status)
+        offset = (page - 1) * page_size
+        return (
+            query.order_by(SignatureRequest.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_by_client(
+        self,
+        client_id: int,
+        status: Optional[SignatureRequestStatus] = None,
+    ) -> int:
+        query = self.db.query(SignatureRequest).filter(
+            SignatureRequest.client_id == client_id,
+            SignatureRequest.deleted_at.is_(None),
+        )
+        if status:
+            query = query.filter(SignatureRequest.status == status)
+        return query.count()
+
+    # ── List by business (scoped view) ────────────────────────────────────────
+
     def list_by_business(
         self,
         business_id: int,
@@ -101,7 +142,11 @@ class SignatureRequestCrudMixin:
             .all()
         )
 
-    def count_by_business(self, business_id: int, status: Optional[SignatureRequestStatus] = None) -> int:
+    def count_by_business(
+        self,
+        business_id: int,
+        status: Optional[SignatureRequestStatus] = None,
+    ) -> int:
         query = self.db.query(SignatureRequest).filter(
             SignatureRequest.business_id == business_id,
             SignatureRequest.deleted_at.is_(None),
@@ -109,6 +154,8 @@ class SignatureRequestCrudMixin:
         if status:
             query = query.filter(SignatureRequest.status == status)
         return query.count()
+
+    # ── Pending (global advisor view) ─────────────────────────────────────────
 
     def list_pending(self, page: int = 1, page_size: int = 20) -> list[SignatureRequest]:
         offset = (page - 1) * page_size
@@ -134,7 +181,12 @@ class SignatureRequestCrudMixin:
             .count()
         )
 
-    def update(self, request_id: int, req: Optional[SignatureRequest] = None, **fields) -> Optional[SignatureRequest]:
+    def update(
+        self,
+        request_id: int,
+        req: Optional[SignatureRequest] = None,
+        **fields,
+    ) -> Optional[SignatureRequest]:
         """Update fields on a signature request.
 
         Pass a pre-fetched (optionally locked) ``req`` entity to avoid a second

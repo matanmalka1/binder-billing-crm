@@ -1,13 +1,17 @@
-# app/charge/models/charge.py
-from enum import Enum as PyEnum
+from __future__ import annotations
 
-from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey,
-    Integer, Numeric, String, Text, Index,
-)
+from decimal import Decimal
+from enum import Enum as PyEnum
+from typing import Optional
+
+from sqlalchemy import ForeignKey, Index, Numeric, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
+
+import datetime
 
 
 class ChargeType(str, PyEnum):
@@ -29,53 +33,75 @@ class ChargeStatus(str, PyEnum):
 class Charge(Base):
     __tablename__ = "charges"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    client_id   = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    # Optional link to annual report (for "paid" indicator in reports list)
-    annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
+    # ── Anchors ───────────────────────────────────────────────────────────────
+    # PRIMARY: always required — billing belongs to the legal entity
+    client_id: Mapped[int] = mapped_column(
+        ForeignKey("clients.id"), nullable=False, index=True
+    )
+    # OPTIONAL: set only when the charge is specific to one business
+    business_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("businesses.id"), nullable=True, index=True
+    )
+    # OPTIONAL: link to annual report (paid indicator in reports list)
+    annual_report_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("annual_reports.id"), nullable=True, index=True
     )
 
-    charge_type = Column(pg_enum(ChargeType), nullable=False)
-    status      = Column(
+    # ── Core fields ───────────────────────────────────────────────────────────
+    charge_type: Mapped[ChargeType] = mapped_column(
+        pg_enum(ChargeType), nullable=False
+    )
+    status: Mapped[ChargeStatus] = mapped_column(
         pg_enum(ChargeStatus), default=ChargeStatus.DRAFT, nullable=False
     )
+    amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False  # Always ₪, no currency column
+    )
 
-    amount = Column(Numeric(10, 2), nullable=False)  # Always ₪, no currency
+    # ── Period ────────────────────────────────────────────────────────────────
+    period: Mapped[Optional[str]] = mapped_column(
+        String(7), nullable=True, index=True  # "YYYY-MM" — first month of coverage
+    )
+    months_covered: Mapped[int] = mapped_column(
+        default=1, nullable=False  # How many months this charge covers
+    )
 
-    # The period to which the charge refers
-    period         = Column(String(7), nullable=True, index=True)  # "YYYY-MM" — the first month
-    months_covered = Column(Integer, default=1, nullable=False)    # How many months covered
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    description = Column(Text, nullable=True)  # Free text for the charge line
+    # ── Lifecycle timestamps + actors ─────────────────────────────────────────
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
+    created_by: Mapped[Optional[int]]     = mapped_column(ForeignKey("users.id"), nullable=True)
 
-    # Lifecycle timestamps + actors
-    created_at  = Column(DateTime, default=utcnow, nullable=False)
-    created_by  = Column(Integer, ForeignKey("users.id"), nullable=True)
+    issued_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    issued_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
-    issued_at   = Column(DateTime, nullable=True)
-    issued_by   = Column(Integer, ForeignKey("users.id"), nullable=True)
+    paid_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    paid_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
-    paid_at     = Column(DateTime, nullable=True)
-    paid_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
+    canceled_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    canceled_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    cancellation_reason: Mapped[Optional[str]]        = mapped_column(Text, nullable=True)
 
-    canceled_at          = Column(DateTime, nullable=True)
-    canceled_by          = Column(Integer, ForeignKey("users.id"), nullable=True)
-    cancellation_reason  = Column(Text, nullable=True)
+    # ── Soft delete ───────────────────────────────────────────────────────────
+    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
-    # Soft delete
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # ── Relationships ─────────────────────────────────────────────────────────
+    client        = relationship("Client",       back_populates="charges")
+    business      = relationship("Business",     back_populates="charges")
+    annual_report = relationship("AnnualReport", back_populates="charges")
+    invoice       = relationship("Invoice",      back_populates="charge", uselist=False)
 
     __table_args__ = (
         Index("idx_charge_client_period", "client_id", "period"),
-        Index("idx_charge_status", "status"),
+        Index("idx_charge_status",        "status"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
-            f"<Charge(id={self.id}, client_id={self.client_id}, business_id={self.business_id}, "
-            f"type='{self.charge_type}', amount={self.amount}, status='{self.status}')>"
+            f"<Charge(id={self.id}, client_id={self.client_id}, "
+            f"business_id={self.business_id}, type='{self.charge_type}', "
+            f"amount={self.amount}, status='{self.status}')>"
         )

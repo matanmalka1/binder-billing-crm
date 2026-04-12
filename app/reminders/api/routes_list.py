@@ -29,25 +29,26 @@ def list_reminders(
     service = ReminderService(db)
 
     if business_id is not None:
-        items, total, name_map = service.get_reminders_by_business(
+        items, total, context_map = service.get_reminders_by_business(
             business_id=business_id, page=page, page_size=page_size
         )
     elif client_id is not None:
-        items, total, name_map = service.get_reminders_by_client(
+        items, total, context_map = service.get_reminders_by_client(
             client_id=client_id, page=page, page_size=page_size
         )
     else:
-        items, total, name_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
+        items, total, context_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)
-        business_context = name_map.get(r.business_id) if r.business_id is not None else None
-        if business_context:
-            resp.business_name = business_context["business_name"]
-            resp.client_id = business_context["client_id"]
-            resp.client_name = business_context["client_name"]
-        elif r.client_id is not None:
-            resp.client_id = r.client_id
+        ctx = context_map.get(r.id)
+        if ctx:
+            # client_id and client_name are always present (client_id is never null)
+            resp.client_id = ctx["client_id"]
+            resp.client_name = ctx["client_name"]
+            # business context is present only when the reminder is business-scoped
+            resp.business_id = ctx["business_id"]
+            resp.business_name = ctx["business_name"]
         return resp
 
     return ReminderListResponse(

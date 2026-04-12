@@ -13,8 +13,8 @@ mark_sent_router = APIRouter()
 def mark_reminder_sent(
     reminder_id: int,
     db: DBSession,
-    _user: CurrentUser,
+    user: CurrentUser,
 ):
     service = ReminderService(db)
-    reminder = service.mark_sent(reminder_id)
+    reminder = service.mark_sent(reminder_id, actor_id=user.id)
     return ReminderResponse.model_validate(reminder)

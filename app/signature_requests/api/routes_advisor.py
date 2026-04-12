@@ -18,20 +18,21 @@ from app.signature_requests.services.signature_request_service import SignatureR
 from app.users.api.deps import CurrentUser, DBSession, require_role
 
 
-def _business_lookup(db: DBSession, business_ids: set[int]) -> dict[int, object]:
-    return {
-        business.id: business
-        for business in BusinessRepository(db).list_by_ids(sorted(business_ids))
-    }
+def _enrich_business_name(
+    response: SignatureRequestResponse,
+    db: DBSession,
+) -> SignatureRequestResponse:
+    """Attach business_name when the request is scoped to a business.
 
-
-def _to_signature_response(req, business_lookup: dict[int, object] | None = None) -> SignatureRequestResponse:
-    response = SignatureRequestResponse.model_validate(req)
-    business = business_lookup.get(req.business_id) if business_lookup else None
-    if business is not None:
-        response.client_id = business.client_id
+    client_id is already on the DB row — no need to derive it from a join.
+    """
+    if response.business_id is None:
+        return response
+    business = BusinessRepository(db).get_by_id(response.business_id)
+    if business:
         response.business_name = business.business_name
     return response
+
 
 advisor_router = APIRouter(
     prefix="/signature-requests",
@@ -48,6 +49,7 @@ def create_signature_request(
 ):
     service = SignatureRequestService(db)
     req = service.create_request(
+        client_id=request.client_id,
         business_id=request.business_id,
         created_by=user.id,
         created_by_name=user.full_name,
@@ -61,7 +63,8 @@ def create_signature_request(
         document_id=request.document_id,
         content_to_hash=request.content_to_hash,
     )
-    return _to_signature_response(req, _business_lookup(db, {req.business_id}))
+    response = SignatureRequestResponse.model_validate(req)
+    return _enrich_business_name(response, db)
 
 
 @advisor_router.get("/pending", response_model=SignatureRequestListResponse)
@@ -73,9 +76,20 @@ def list_pending_requests(
 ):
     service = SignatureRequestService(db)
     items, total = service.list_pending_requests(page=page, page_size=page_size)
-    lookup = _business_lookup(db, {item.business_id for item in items})
+    business_repo = BusinessRepository(db)
+    business_ids = {item.business_id for item in items if item.business_id is not None}
+    name_map = {
+        b.id: b.business_name
+        for b in business_repo.list_by_ids(sorted(business_ids))
+    }
+    responses = []
+    for r in items:
+        resp = SignatureRequestResponse.model_validate(r)
+        if r.business_id:
+            resp.business_name = name_map.get(r.business_id)
+        responses.append(resp)
     return SignatureRequestListResponse(
-        items=[_to_signature_response(r, lookup) for r in items],
+        items=responses,
         page=page,
         page_size=page_size,
         total=total,
@@ -98,10 +112,7 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
 
     audit_events = service.get_audit_trail(request_id)
     response = SignatureRequestWithAuditResponse.model_validate(req)
-    business = _business_lookup(db, {req.business_id}).get(req.business_id)
-    if business is not None:
-        response.client_id = business.client_id
-        response.business_name = business.business_name
+    _enrich_business_name(response, db)
     response.audit_trail = [SignatureAuditEventResponse.model_validate(e) for e in audit_events]
     return response
 
@@ -121,10 +132,7 @@ def send_signature_request(
         expiry_days=body.expiry_days,
     )
     response = SignatureRequestSentResponse.model_validate(req)
-    business = _business_lookup(db, {req.business_id}).get(req.business_id)
-    if business is not None:
-        response.client_id = business.client_id
-        response.business_name = business.business_name
+    _enrich_business_name(response, db)
     response.signing_token = req.signing_token
     response.signing_url_hint = f"/sign/{req.signing_token}"
     return response
@@ -144,4 +152,5 @@ def cancel_signature_request(
         canceled_by_name=user.full_name,
         reason=body.reason,
     )
-    return _to_signature_response(req, _business_lookup(db, {req.business_id}))
+    response = SignatureRequestResponse.model_validate(req)
+    return _enrich_business_name(response, db)

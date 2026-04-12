@@ -19,7 +19,8 @@ logger = get_logger(__name__)
 
 def _enrich(notification: object, name_map: dict[int, str]) -> NotificationResponse:
     resp = NotificationResponse.model_validate(notification)
-    resp.business_name = name_map.get(notification.business_id)
+    if notification.business_id is not None:
+        resp.business_name = name_map.get(notification.business_id)
     return resp
 
 
@@ -119,29 +120,62 @@ class NotificationService:
     # ── Read / list ───────────────────────────────────────────────────────────
 
     def list_paginated(
-        self, page: int = 1, page_size: int = 20, business_id: Optional[int] = None
+        self,
+        page: int = 1,
+        page_size: int = 20,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
     ) -> tuple:
         items, total = self.notification_repo.list_paginated(
-            page=page, page_size=page_size, business_id=business_id
+            page=page,
+            page_size=page_size,
+            client_id=client_id,
+            business_id=business_id,
         )
         name_map = self._build_name_map(items)
         return [_enrich(n, name_map) for n in items], total
 
-    def list_recent(self, limit: int = 20, business_id: Optional[int] = None):
-        items = self.notification_repo.list_recent(limit=limit, business_id=business_id)
+    def list_recent(
+        self,
+        limit: int = 20,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+    ):
+        items = self.notification_repo.list_recent(
+            limit=limit,
+            client_id=client_id,
+            business_id=business_id,
+        )
         name_map = self._build_name_map(items)
         return [_enrich(n, name_map) for n in items]
 
     def _build_name_map(self, notifications: list) -> dict[int, str]:
-        ids = list({n.business_id for n in notifications})
-        businesses = self.business_repo.list_by_ids(ids)
-        return {b.id: b.full_name for b in businesses}
+        """Build business_id → business_name map. Skips client-only notifications (business_id=None)."""
+        ids = [n.business_id for n in notifications if n.business_id is not None]
+        if not ids:
+            return {}
+        businesses = self.business_repo.list_by_ids(list(set(ids)))
+        return {b.id: b.business_name for b in businesses}
 
-    def count_unread(self, business_id: Optional[int] = None) -> int:
-        return self.notification_repo.count_unread(business_id=business_id)
+    def count_unread(
+        self,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+    ) -> int:
+        return self.notification_repo.count_unread(
+            client_id=client_id,
+            business_id=business_id,
+        )
 
     def mark_read(self, notification_ids: list[int]) -> int:
         return self.notification_repo.mark_read(notification_ids)
 
-    def mark_all_read(self, business_id: Optional[int] = None) -> int:
-        return self.notification_repo.mark_all_read(business_id)
+    def mark_all_read(
+        self,
+        client_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+    ) -> int:
+        return self.notification_repo.mark_all_read(
+            client_id=client_id,
+            business_id=business_id,
+        )

@@ -1,7 +1,6 @@
 """Flush-only (no commit) write helpers — used by deadline sync to batch mutations."""
 from typing import Optional
 
-from app.core.exceptions import AppError
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository_read import ReminderRepositoryRead
 from app.utils.time_utils import utcnow
@@ -36,20 +35,15 @@ class ReminderRepositoryFlush(ReminderRepositoryRead):
         days_before: int,
         send_on,
         message: str,
-        business_id: Optional[int] = None,
-        client_id: Optional[int] = None,
+        client_id: int,                     # always required — legal entity anchor
+        business_id: Optional[int] = None,  # optional context
         tax_deadline_id: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Reminder:
         """Insert a new reminder and flush (no commit). Use only inside a sync transaction."""
-        if (business_id is None) == (client_id is None):
-            raise AppError(
-                "תזכורת חייבת לשייך לעסק או ללקוח — לא לשניהם ולא לאף אחד",
-                "REMINDER.INVALID_OWNER",
-            )
         reminder = Reminder(
-            business_id=business_id,
             client_id=client_id,
+            business_id=business_id,
             reminder_type=reminder_type,
             target_date=target_date,
             days_before=days_before,

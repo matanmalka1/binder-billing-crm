@@ -31,15 +31,18 @@ class SignatureRequestService:
         self.repo = SignatureRequestRepository(db)
         self.business_repo = BusinessRepository(db)
 
-    # Create
+    # ── Create ────────────────────────────────────────────────────────────────
+
     def create_request(self, **kwargs):
         return create_request.create_request(self.repo, self.business_repo, **kwargs)
 
-    # Send
+    # ── Send ──────────────────────────────────────────────────────────────────
+
     def send_request(self, **kwargs):
         return send_request.send_request(self.repo, **kwargs)
 
-    # Signer actions
+    # ── Signer actions ────────────────────────────────────────────────────────
+
     def record_view(self, **kwargs):
         return signer_actions.record_view(self.repo, **kwargs)
 
@@ -87,21 +90,28 @@ class SignatureRequestService:
         except Exception:
             _log.exception("שגיאה בקידום אוטומטי של דוח שנתי %s לאחר חתימה", annual_report_id)
 
-    # Advisor/system actions
+    # ── Advisor / system actions ──────────────────────────────────────────────
+
     def cancel_request(self, **kwargs):
         return admin_actions.cancel_request(self.repo, **kwargs)
 
     def expire_overdue_requests(self):
         return admin_actions.expire_overdue_requests(self.repo)
 
-    # Queries
+    # ── Queries ───────────────────────────────────────────────────────────────
+
     def get_request(self, request_id: int):
         return signature_request_queries.get_request(self.repo, request_id)
 
     def get_by_token(self, token: str):
         return signature_request_queries.get_by_token(self.repo, token)
 
+    def list_client_requests(self, **kwargs):
+        """Primary query path — all requests for a legal entity."""
+        return signature_request_queries.list_client_requests(self.repo, **kwargs)
+
     def list_business_requests(self, **kwargs):
+        """Secondary / filtered view — requests scoped to one business."""
         return signature_request_queries.list_business_requests(self.repo, **kwargs)
 
     def list_pending_requests(self, **kwargs):

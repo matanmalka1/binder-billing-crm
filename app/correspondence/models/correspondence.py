@@ -1,5 +1,5 @@
 """
-Correspondence — log of all interactions with a business or authority contact.
+Correspondence — log of all interactions with a client, business, or authority contact.
 
 Israeli context:
   Tax advisors maintain detailed correspondence logs for audit purposes and
@@ -7,6 +7,9 @@ Israeli context:
   meetings with clients, and email exchanges.
 
 Design decisions:
+- client_id is the PRIMARY anchor (legal entity). Always required.
+- business_id is OPTIONAL context — set when the correspondence is scoped
+  to a specific business activity (UI grouping only).
 - occurred_at is DateTime(timezone=True) — stored as UTC, frontend converts to Asia/Jerusalem.
 - contact_id links to AuthorityContact (רשות המסים, ביטוח לאומי, etc.) —
   nullable because not all correspondence involves an authority contact.
@@ -15,11 +18,16 @@ Design decisions:
 - Soft delete included — business entity.
 """
 
+from __future__ import annotations
+
+import datetime
 from enum import Enum as PyEnum
+from typing import Optional
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.utils.enum_utils import pg_enum
-
 from app.database import Base
 from app.utils.time_utils import utcnow_aware
 
@@ -35,31 +43,56 @@ class CorrespondenceType(str, PyEnum):
 class Correspondence(Base):
     __tablename__ = "correspondence_entries"
 
-    id          = Column(Integer, primary_key=True, autoincrement=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=False, index=True)
-    contact_id  = Column(Integer, ForeignKey("authority_contacts.id"), nullable=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    # ── Content ───────────────────────────────────────────────────────────────
-    correspondence_type = Column(pg_enum(CorrespondenceType), nullable=False)
-    subject             = Column(String, nullable=False)
-    notes               = Column(Text, nullable=True)
-    occurred_at         = Column(DateTime(timezone=True), nullable=False)  # UTC; מתי התרחש האירוע בפועל
-
-    # ── Metadata ──────────────────────────────────────────────────────────────
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow_aware, nullable=False)
-
-    # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    __table_args__ = (
-        Index("idx_correspondence_occurred",          "occurred_at"),
-        Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
+    # ── Anchors ───────────────────────────────────────────────────────────────
+    # PRIMARY: always required — correspondence belongs to the legal entity
+    client_id: Mapped[int] = mapped_column(
+        ForeignKey("clients.id"), nullable=False, index=True
+    )
+    # OPTIONAL: set when the correspondence is scoped to a specific business
+    business_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("businesses.id"), nullable=True, index=True
+    )
+    # OPTIONAL: authority contact involved (רשות המסים, ביטוח לאומי, etc.)
+    contact_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("authority_contacts.id"), nullable=True, index=True
     )
 
-    def __repr__(self):
+    # ── Content ───────────────────────────────────────────────────────────────
+    correspondence_type: Mapped[CorrespondenceType] = mapped_column(
+        pg_enum(CorrespondenceType), nullable=False
+    )
+    subject: Mapped[str] = mapped_column(String, nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime.datetime] = mapped_column(
+        nullable=False  # UTC; מתי התרחש האירוע בפועל — frontend converts to Asia/Jerusalem
+    )
+
+    # ── Metadata ──────────────────────────────────────────────────────────────
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        default=utcnow_aware, nullable=False
+    )
+
+    # ── Soft delete ───────────────────────────────────────────────────────────
+    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    deleted_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    # ── Relationships ─────────────────────────────────────────────────────────
+    client   = relationship("Client",           back_populates="correspondence_entries")
+    business = relationship("Business",         back_populates="correspondence_entries")
+    contact  = relationship("AuthorityContact", back_populates="correspondence_entries")
+
+    __table_args__ = (
+        Index("idx_correspondence_client_id",         "client_id"),
+        Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
+        Index("idx_correspondence_occurred",          "occurred_at"),
+    )
+
+    def __repr__(self) -> str:
         return (
-            f"<Correspondence(id={self.id}, business_id={self.business_id}, "
-            f"type='{self.correspondence_type}', occurred='{self.occurred_at}')>"
+            f"<Correspondence(id={self.id}, client_id={self.client_id}, "
+            f"business_id={self.business_id}, type='{self.correspondence_type}', "
+            f"occurred='{self.occurred_at}')>"
         )

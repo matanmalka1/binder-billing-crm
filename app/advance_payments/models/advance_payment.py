@@ -24,13 +24,15 @@ Design notes:
     - Currency is always ILS by project convention, so no currency column is
       stored.
     - Soft deletion is enabled because this is a client-owned entity.
+    - Uniqueness of (client_id, period) is enforced via a partial index
+      (WHERE deleted_at IS NULL) — not a hard UniqueConstraint — so that a
+      soft-deleted record never blocks recreation of the same period.
 """
 
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String,
-    UniqueConstraint,
+    Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
@@ -72,13 +74,13 @@ class AdvancePayment(Base):
 
     # ── Amounts ───────────────────────────────────────────────────────────────
     expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
-    paid_amount     = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")  # Actually
+    paid_amount     = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
 
     # ── Status & payment ──────────────────────────────────────────────────────
     status         = Column(pg_enum(AdvancePaymentStatus),
                             default=AdvancePaymentStatus.PENDING, nullable=False)
-    paid_at        = Column(DateTime, nullable=True)              # When actually paid
-    payment_method = Column(pg_enum(PaymentMethod), nullable=True)  # Payment method
+    paid_at        = Column(DateTime, nullable=True)
+    payment_method = Column(pg_enum(PaymentMethod), nullable=True)
 
     # ── Cross-domain links ────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
@@ -95,9 +97,14 @@ class AdvancePayment(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint(
+        # Partial unique: a soft-deleted row never blocks a new record for the
+        # same (client_id, period). Mirrors the pattern used in vat_work_items.
+        Index(
+            "uq_advance_payment_client_period_active",
             "client_id", "period",
-            name="uq_advance_payment_client_period",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("idx_advance_payment_client_period", "client_id", "period"),
         Index("idx_advance_payment_status",        "status"),
