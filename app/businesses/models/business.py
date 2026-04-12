@@ -51,8 +51,6 @@ class Business(Base):
     phone_override = Column(String(20), nullable=True)
     email_override = Column(String(254), nullable=True)
 
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
-
     # Metadata.
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -104,7 +102,6 @@ class Business(Base):
     __table_args__ = (
         Index("ix_business_client_id", "client_id"),
         Index("ix_business_status", "status"),
-        Index("ix_business_assigned",  "assigned_to"),
         Index(
             "ix_business_client_name_active",
             "client_id",

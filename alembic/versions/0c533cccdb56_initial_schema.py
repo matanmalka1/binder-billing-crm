@@ -218,7 +218,6 @@ def upgrade() -> None:
     sa.Column('closed_at', sa.Date(), nullable=True),
     sa.Column('phone_override', sa.String(length=20), nullable=True),
     sa.Column('email_override', sa.String(length=254), nullable=True),
-    sa.Column('assigned_to', sa.Integer(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_by', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
@@ -227,14 +226,12 @@ def upgrade() -> None:
     sa.Column('deleted_by', sa.Integer(), nullable=True),
     sa.Column('restored_at', sa.DateTime(), nullable=True),
     sa.Column('restored_by', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['assigned_to'], ['users.id'], ),
     sa.ForeignKeyConstraint(['client_id'], ['clients.id'], ),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['restored_by'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('ix_business_assigned', 'businesses', ['assigned_to'], unique=False)
     op.create_index('ix_business_client_id', 'businesses', ['client_id'], unique=False)
     op.create_index('ix_business_client_name_active', 'businesses', ['client_id', 'business_name'], unique=True, postgresql_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'), sqlite_where=sa.text('business_name IS NOT NULL AND deleted_at IS NULL'))
     op.create_index('ix_business_status', 'businesses', ['status'], unique=False)
