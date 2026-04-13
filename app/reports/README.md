@@ -22,7 +22,7 @@ This module currently does not define its own persistent domain tables.
 Reports are computed from other domains and returned as derived payloads (dict-based responses):
 - Aging report payload (`report_date`, `items`, `summary`, `capped`, etc.)
 - VAT compliance payload (`items`, `stale_pending`)
-- Advance-payment collections payload (`collection_rate`, `items`, etc.)
+- Advance-payment collections payload (`collection_rate`, `items`, etc.; client-scoped aggregates)
 - Annual-report status payload (`statuses[]` grouped by annual-report status)
 
 Implementation references:
@@ -38,7 +38,7 @@ Implementation references:
 
 ## API
 
-Router prefix is `/api/v1/reports` (mounted in `app/main.py`).
+Router prefix is `/api/v1/reports` (mounted in `app/router_registry.py`).
 
 All endpoints require role: `ADVISOR`.
 
@@ -46,12 +46,14 @@ All endpoints require role: `ADVISOR`.
 - `GET /api/v1/reports/vat-compliance`
 - Query params:
   - `year` (required)
+- `stale_pending` includes only items from the requested year.
 
 ### Advance-payments collections report
 - `GET /api/v1/reports/advance-payments`
 - Query params:
   - `year` (required)
   - `month` (optional)
+- Aggregation is client-scoped and returns `client_id` / `client_name` per row.
 
 ### Annual-reports status report
 - `GET /api/v1/reports/annual-reports`

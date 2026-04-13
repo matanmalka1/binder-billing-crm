@@ -3,6 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict
 
+from app.reports.constants import (
+    AGING_EXPORT_FILENAME_PREFIX,
+    AGING_EXPORT_HEADER_COLOR,
+    AGING_REPORT_HEADERS,
+    AGING_REPORT_TITLE,
+)
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 
@@ -19,9 +25,13 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Aging Report"
+    ws.title = AGING_REPORT_TITLE
 
-    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_fill = PatternFill(
+        start_color=AGING_EXPORT_HEADER_COLOR,
+        end_color=AGING_EXPORT_HEADER_COLOR,
+        fill_type="solid",
+    )
     header_font = Font(bold=True, color="FFFFFF")
     header_alignment = Alignment(horizontal="center", vertical="center")
 
@@ -31,17 +41,7 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
     title_cell.font = Font(bold=True, size=14)
     title_cell.alignment = header_alignment
 
-    headers = [
-        "שם לקוח",
-        "סה\"כ חוב",
-        "שוטף (0-30)",
-        "30-60 ימים",
-        "60-90 ימים",
-        "90+ ימים",
-        "תאריך עתיק",
-        "ימים",
-    ]
-    for col, header in enumerate(headers, start=1):
+    for col, header in enumerate(AGING_REPORT_HEADERS, start=1):
         cell = ws.cell(row=3, column=col)
         cell.value = header
         cell.fill = header_fill
@@ -75,7 +75,7 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
 
     return save_workbook_to_temp(
         wb,
-        prefix="aging_report",
+        prefix=AGING_EXPORT_FILENAME_PREFIX,
         export_dir=export_dir,
         extra_meta={"format": "excel", "generated_at": datetime.now()},
     )

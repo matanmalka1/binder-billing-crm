@@ -75,8 +75,9 @@ class VatComplianceRepository:
             .all()
         )
 
-    def get_stale_pending(self) -> list:
-        """All PENDING_MATERIALS items across all years, ordered by updated_at."""
+    def get_stale_pending(self, year: int) -> list:
+        """All PENDING_MATERIALS items for a year, ordered by updated_at."""
+        year_str = str(year)
         return (
             self.db.query(
                 VatWorkItem.client_id,
@@ -87,6 +88,7 @@ class VatComplianceRepository:
             .join(Client, Client.id == VatWorkItem.client_id)
             .filter(
                 VatWorkItem.status == VatWorkItemStatus.PENDING_MATERIALS,
+                func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )

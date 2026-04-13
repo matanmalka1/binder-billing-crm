@@ -4,10 +4,9 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from app.reports.constants import VAT_STALE_PENDING_DAYS
 from app.utils.time_utils import utcnow
 from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
-
-_STALE_DAYS = 30
 
 
 class VatComplianceReportService:
@@ -55,9 +54,9 @@ class VatComplianceReportService:
         # ── Stale PENDING_MATERIALS ───────────────────────────────────────────
         threshold = utcnow().replace(tzinfo=None)
         stale_pending = []
-        for sr in self.repo.get_stale_pending():
+        for sr in self.repo.get_stale_pending(year):
             days_pending = (threshold - sr.updated_at).days
-            if days_pending >= _STALE_DAYS:
+            if days_pending >= VAT_STALE_PENDING_DAYS:
                 stale_pending.append(
                     {
                         "client_id": sr.client_id,

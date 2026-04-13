@@ -4,6 +4,11 @@ import os
 from datetime import datetime
 from typing import Dict
 
+from app.reports.constants import (
+    AGING_EXPORT_FILENAME_PREFIX,
+    AGING_EXPORT_HEADER_COLOR,
+    AGING_REPORT_HEADERS,
+)
 
 def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, object]:
     """
@@ -19,7 +24,7 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     except ImportError:
         raise ImportError("הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab")
 
-    filename = f"aging_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))
@@ -30,9 +35,7 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     elements.append(title)
     elements.append(Spacer(1, 0.5 * cm))
 
-    table_data = [
-        ["שם לקוח", "סה\"כ חוב", "שוטף (0-30)", "30-60 ימים", "60-90 ימים", "90+ ימים", "תאריך עתיק", "ימים"]
-    ]
+    table_data = [AGING_REPORT_HEADERS]
 
     for item in report_data["items"]:
         table_data.append(
@@ -65,7 +68,7 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#366092")),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(f"#{AGING_EXPORT_HEADER_COLOR}")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),

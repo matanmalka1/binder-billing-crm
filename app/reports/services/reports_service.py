@@ -5,15 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_repository import ClientRepository
-
-_AGING_CHARGE_FETCH_LIMIT = 2000
+from app.reports.constants import AGING_CHARGE_FETCH_LIMIT
 
 
 class AgingReportService:
     """Aging report and financial reporting service."""
 
     def __init__(self, db: Session):
-        self.db = db
         self.charge_repo = ChargeRepository(db)
         self.client_repo = ClientRepository(db)
 
@@ -34,8 +32,8 @@ class AgingReportService:
             as_of_date = date.today()
 
         all_rows = self.charge_repo.get_aging_buckets(as_of_date)
-        capped = len(all_rows) > _AGING_CHARGE_FETCH_LIMIT
-        rows = all_rows[:_AGING_CHARGE_FETCH_LIMIT]
+        capped = len(all_rows) > AGING_CHARGE_FETCH_LIMIT
+        rows = all_rows[:AGING_CHARGE_FETCH_LIMIT]
 
         client_ids = [row.client_id for row in rows]
         client_map = {c.id: c for c in self.client_repo.list_by_ids(client_ids)}
@@ -81,5 +79,5 @@ class AgingReportService:
             "items": items,
             "summary": summary,
             "capped": capped,
-            "cap_limit": _AGING_CHARGE_FETCH_LIMIT,
+            "cap_limit": AGING_CHARGE_FETCH_LIMIT,
         }

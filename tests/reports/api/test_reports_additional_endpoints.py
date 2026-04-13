@@ -5,12 +5,12 @@ from app.advance_payments.models.advance_payment import AdvancePayment, AdvanceP
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
+    AnnualReportType,
     ClientTypeForReport,
-    DeadlineType,
+    FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -44,7 +44,7 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
     now = datetime.now(UTC)
 
     filed = VatWorkItem(
-        business_id=business.id,
+        client_id=crm_client.id,
         created_by=test_user.id,
         period="2026-01",
         period_type=VatType.MONTHLY,
@@ -53,14 +53,22 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
         updated_at=now,
     )
     stale_pending = VatWorkItem(
-        business_id=business.id,
+        client_id=crm_client.id,
         created_by=test_user.id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         status=VatWorkItemStatus.PENDING_MATERIALS,
         updated_at=now - timedelta(days=40),
     )
-    test_db.add_all([filed, stale_pending])
+    stale_pending_other_year = VatWorkItem(
+        client_id=crm_client.id,
+        created_by=test_user.id,
+        period="2025-12",
+        period_type=VatType.MONTHLY,
+        status=VatWorkItemStatus.PENDING_MATERIALS,
+        updated_at=now - timedelta(days=45),
+    )
+    test_db.add_all([filed, stale_pending, stale_pending_other_year])
     test_db.commit()
 
     response = client.get("/api/v1/reports/vat-compliance?year=2026", headers=advisor_headers)
@@ -72,15 +80,16 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
     assert payload["items"][0]["periods_expected"] == 2
     assert payload["items"][0]["periods_filed"] == 1
     assert payload["items"][0]["late_count"] == 1
+    assert len(payload["stale_pending"]) == 1
     assert payload["stale_pending"][0]["period"] == "2026-02"
     assert payload["stale_pending"][0]["days_pending"] >= 40
 
 
 def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor_headers):
-    _, business = _create_client_and_business(test_db, "ADV")
+    crm_client, _ = _create_client_and_business(test_db, "ADV")
 
     jan = AdvancePayment(
-        business_id=business.id,
+        client_id=crm_client.id,
         period="2026-01",
         period_months_count=1,
         expected_amount=Decimal("1000.00"),
@@ -89,7 +98,7 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
         due_date=date(2026, 1, 15),
     )
     feb = AdvancePayment(
-        business_id=business.id,
+        client_id=crm_client.id,
         period="2026-02",
         period_months_count=1,
         expected_amount=Decimal("700.00"),
@@ -112,19 +121,22 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
     assert payload["total_expected"] == 1000.0
     assert payload["total_paid"] == 500.0
     assert payload["total_gap"] == 500.0
+    assert "business_id" not in payload["items"][0]
+    assert "business_name" not in payload["items"][0]
     assert payload["items"][0]["overdue_count"] == 1
 
 
 def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_user):
     crm_client, business = _create_client_and_business(test_db, "ANR")
     report = AnnualReport(
-        business_id=business.id,
+        client_id=crm_client.id,
         created_by=test_user.id,
         tax_year=2026,
+        report_type=AnnualReportType.COMPANY,
         client_type=ClientTypeForReport.CORPORATION,
         form_type=AnnualReportForm.FORM_6111,
         status=AnnualReportStatus.SUBMITTED,
-        deadline_type=DeadlineType.STANDARD,
+        deadline_type=FilingDeadlineType.STANDARD,
         filing_deadline=datetime(2027, 4, 30, 0, 0, 0),
     )
     test_db.add(report)

@@ -18,9 +18,7 @@ class AdvancePaymentReportService:
 
         items = [
             {
-                "business_id": r.client_id,
                 "client_id": r.client_id,
-                "business_name": clients[r.client_id].full_name if r.client_id in clients else None,
                 "client_name": clients[r.client_id].full_name if r.client_id in clients else f"לקוח #{r.client_id}",
                 "total_expected": float(r.total_expected),
                 "total_paid": float(r.total_paid),
