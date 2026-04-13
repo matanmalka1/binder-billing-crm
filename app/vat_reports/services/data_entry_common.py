@@ -17,12 +17,21 @@ from app.vat_reports.services.constants import (
     OSEK_PATUR_CEILING_WARNING_RATE,
     VALID_TRANSITIONS,
 )
+from app.vat_reports.services.messages import (
+    VAT_EXPENSE_CATEGORY_REQUIRED,
+    VAT_FILED_ITEM_IMMUTABLE,
+    VAT_INVALID_TRANSITION,
+    VAT_NEGATIVE_AMOUNT,
+    VAT_NET_AMOUNT_POSITIVE_REQUIRED,
+    VAT_OSEK_PATUR_CEILING_EXCEEDED,
+    VAT_SUPPLIER_ID_REQUIRED,
+)
 
 
 def assert_editable(item) -> None:
     """Raise if the work item is FILED (immutable)."""
     if item.status == VatWorkItemStatus.FILED:
-        raise AppError("לא ניתן לערוך פריט עבודה שלמע\"מ שכבר הוגש", "VAT.FILED_IMMUTABLE")
+        raise AppError(VAT_FILED_ITEM_IMMUTABLE, "VAT.FILED_IMMUTABLE")
 
 
 def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
@@ -30,7 +39,10 @@ def assert_transition_allowed(item, target_status: VatWorkItemStatus) -> None:
     allowed = VALID_TRANSITIONS.get(item.status, set())
     if target_status not in allowed:
         raise AppError(
-            f"לא ניתן לעבור מ-{item.status.value} ל-{target_status.value}",
+            VAT_INVALID_TRANSITION.format(
+                current_status=item.status.value,
+                target_status=target_status.value,
+            ),
             "VAT.INVALID_TRANSITION",
         )
 
@@ -68,12 +80,12 @@ def resolve_invoice_derived_fields(
 ) -> dict:
     """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional."""
     if vat_amount < 0:
-        raise AppError("הסכום של המע\"מ לא יכול להיות שלילי", "VAT.NEGATIVE_VAT")
+        raise AppError(VAT_NEGATIVE_AMOUNT, "VAT.NEGATIVE_VAT")
     if net_amount <= 0:
-        raise AppError("הסכום נטו חייב להיות חיובי", "VAT.NET_NOT_POSITIVE")
+        raise AppError(VAT_NET_AMOUNT_POSITIVE_REQUIRED, "VAT.NET_NOT_POSITIVE")
     if invoice_type == InvoiceType.EXPENSE and not expense_category:
         raise AppError(
-            "חובה לציין קטגוריית הוצאה עבור חשבוניות הוצאה",
+            VAT_EXPENSE_CATEGORY_REQUIRED,
             "VAT.EXPENSE_CATEGORY_REQUIRED",
         )
     if (
@@ -82,7 +94,7 @@ def resolve_invoice_derived_fields(
         and not counterparty_id
     ):
         raise AppError(
-            "חשבונית מס לתשומות חייבת לכלול מספר עוסק של הספק",
+            VAT_SUPPLIER_ID_REQUIRED,
             "VAT.COUNTERPARTY_ID_REQUIRED",
         )
 
@@ -116,8 +128,10 @@ def check_osek_patur_ceiling(
     new_total = current_total + Decimal(str(new_net_amount))
     if new_total > OSEK_PATUR_CEILING_ILS:
         raise AppError(
-            f"תקרת עוסק פטור חרגה: סך מחזור {float(new_total):.2f} ₪ "
-            f"עולה על תקרה של {float(OSEK_PATUR_CEILING_ILS):.2f} ₪",
+            VAT_OSEK_PATUR_CEILING_EXCEEDED.format(
+                new_total=float(new_total),
+                ceiling=float(OSEK_PATUR_CEILING_ILS),
+            ),
             "VAT.OSEK_PATUR_CEILING_EXCEEDED",
         )
     return new_total >= OSEK_PATUR_CEILING_ILS * OSEK_PATUR_CEILING_WARNING_RATE

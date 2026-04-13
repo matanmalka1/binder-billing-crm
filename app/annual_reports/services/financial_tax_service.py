@@ -12,6 +12,9 @@ from app.annual_reports.schemas.annual_report_financials import (
     TaxCalculationSaveResponse,
 )
 from app.annual_reports.services.messages import (
+    CLIENT_NOT_APPROVED_REPORT_ISSUE,
+    INCOMPLETE_REQUIRED_SCHEDULE_ISSUE,
+    MISSING_REPORT_INCOME_ISSUE,
     MISSING_TAX_CALCULATION_ISSUE,
     TAX_CONFLICT_ERROR,
 )
@@ -90,7 +93,7 @@ class FinancialTaxMixin:
             if incomplete:
                 for schedule in incomplete:
                     label = self._SCHEDULE_LABELS.get(schedule.schedule.value, schedule.schedule.value)
-                    issues.append(f"נספח נדרש לא הושלם: {label}")
+                    issues.append(INCOMPLETE_REQUIRED_SCHEDULE_ISSUE.format(label=label))
             else:
                 passed += 1
         else:
@@ -98,7 +101,7 @@ class FinancialTaxMixin:
 
         total_income = self.income_repo.total_income(report_id)
         if total_income == 0:
-            issues.append("לא הוזנו נתוני הכנסה לדוח")
+            issues.append(MISSING_REPORT_INCOME_ISSUE)
         else:
             passed += 1
 
@@ -110,7 +113,7 @@ class FinancialTaxMixin:
             passed += 1
 
         if not detail or not detail.client_approved_at:
-            issues.append("הדוח לא אושר על ידי הלקוח")
+            issues.append(CLIENT_NOT_APPROVED_REPORT_ISSUE)
         else:
             passed += 1
 

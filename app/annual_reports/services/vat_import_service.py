@@ -20,6 +20,13 @@ from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.repositories.vat_invoice_aggregation_repository import (
     VatInvoiceAggregationRepository,
 )
+from app.annual_reports.services.messages import (
+    ANNUAL_REPORT_NOT_FOUND,
+    AUTOPOPULATE_INVALID_STATUS,
+    AUTOPOPULATE_LINES_ALREADY_EXIST,
+    VAT_IMPORTED_BUSINESS_INCOME_DESCRIPTION,
+    VAT_IMPORTED_EXPENSE_DESCRIPTION,
+)
 
 # Statuses in which auto-population is permitted
 _ALLOWED_STATUSES = {
@@ -75,11 +82,11 @@ class VatImportService:
         """
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
         if report.status not in _ALLOWED_STATUSES:
             raise AppError(
-                "ניתן למלא נתוני מע\"מ אוטומטית רק לדוח בשלבים הראשונים",
+                AUTOPOPULATE_INVALID_STATUS,
                 "ANNUAL_REPORT.INVALID_STATUS_FOR_AUTOPOPULATE",
             )
 
@@ -89,7 +96,7 @@ class VatImportService:
 
         if (existing_income or existing_expenses) and not force:
             raise ConflictError(
-                "קיימים נתוני הכנסות/הוצאות בדוח. יש לשלוח force=true למחיקה ומילוי מחדש",
+                AUTOPOPULATE_LINES_ALREADY_EXIST,
                 "ANNUAL_REPORT.LINES_ALREADY_EXIST",
             )
 
@@ -112,7 +119,7 @@ class VatImportService:
                 report_id,
                 IncomeSourceType.BUSINESS,
                 income_total,
-                "הכנסות עסקיות — יובא ממע\"מ",
+                VAT_IMPORTED_BUSINESS_INCOME_DESCRIPTION,
             )
             income_lines_created = 1
 
@@ -131,7 +138,7 @@ class VatImportService:
                 report_id,
                 cat,
                 total,
-                f"הוצאות {cat.value} — יובא ממע\"מ",
+                VAT_IMPORTED_EXPENSE_DESCRIPTION.format(category=cat.value),
             )
             expense_lines_created += 1
             expense_total += total

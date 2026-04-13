@@ -16,6 +16,7 @@ from .schedule_service import AnnualReportScheduleService
 from .status_service import AnnualReportStatusService
 from .kanban_service import AnnualReportKanbanService
 from .annex_service import AnnualReportAnnexService
+from .messages import ANNUAL_REPORT_DELETED_REASON, ANNUAL_REPORT_NOT_FOUND
 
 
 class AnnualReportService(
@@ -43,14 +44,14 @@ class AnnualReportService(
     def assert_report_exists(self, report_id: int) -> None:
         """Raise NotFoundError if the report does not exist."""
         if not self.repo.get_by_id(report_id):
-            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
     def delete_report(self, report_id: int, actor_id: int, actor_name: str) -> bool:
         """Soft-delete an annual report. Returns False if not found."""
         report = self.repo.get_by_id(report_id)
         if not report:
             return False
-        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "דוח נמחק")
+        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, ANNUAL_REPORT_DELETED_REASON)
         result = self.repo.soft_delete(report_id, deleted_by=actor_id)
         if result:
             EntityAuditLogRepository(self.db).append(

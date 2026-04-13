@@ -5,6 +5,7 @@ from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceReposi
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_INVOICE_DELETED
 from app.vat_reports.services.data_entry_common import audit_invoice_snapshot, assert_editable, recalculate_totals
+from app.vat_reports.services.messages import VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM, VAT_ITEM_NOT_FOUND
 
 
 def delete_invoice(
@@ -24,14 +25,14 @@ def delete_invoice(
     """
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
 
     assert_editable(item)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
         raise NotFoundError(
-            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}",
+            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(invoice_id=invoice_id, item_id=item_id),
             "VAT.NOT_FOUND",
         )
 

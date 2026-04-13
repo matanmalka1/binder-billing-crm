@@ -5,6 +5,11 @@ from typing import Optional
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.services.messages import (
+    CANCELED_BY_ADVISOR_NOTE,
+    CANCEL_REQUEST_INVALID_STATUS,
+    SIGNATURE_REQUEST_EXPIRED_NOTE,
+)
 from app.signature_requests.services.signature_request_validations import get_or_raise_for_update
 from app.utils.time_utils import utcnow
 
@@ -22,7 +27,7 @@ def cancel_request(
     cancelable = {SignatureRequestStatus.DRAFT, SignatureRequestStatus.PENDING_SIGNATURE}
     if req.status not in cancelable:
         raise AppError(
-            f"לא ניתן לבטל בקשה במצב '{req.status.value}'",
+            CANCEL_REQUEST_INVALID_STATUS.format(status=req.status.value),
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
 
@@ -41,7 +46,7 @@ def cancel_request(
         actor_type="advisor",
         actor_id=canceled_by,
         actor_name=canceled_by_name,
-        notes=reason or "בוטל על ידי יועץ.",
+        notes=reason or CANCELED_BY_ADVISOR_NOTE,
     )
 
     return req
@@ -61,7 +66,7 @@ def expire_overdue_requests(repo: SignatureRequestRepository) -> int:
             signature_request_id=req.id,
             event_type="expired",
             actor_type="system",
-            notes=f"פג תוקף בקשת החתימה ({req.expires_at.date().isoformat()}).",
+            notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(expires_at=req.expires_at.date().isoformat()),
         )
         count += 1
     return count

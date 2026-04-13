@@ -10,6 +10,7 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
+from app.annual_reports.services.messages import ANNUAL_REPORT_DETAILED_NOT_FOUND
 
 
 class AnnualReportAdvancesSummaryService:
@@ -21,7 +22,7 @@ class AnnualReportAdvancesSummaryService:
     def get_advances_summary(self, report_id: int) -> AdvancesSummary:
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
         payments, count = self.advance_repo.list_by_client_year(
             report.client_id,

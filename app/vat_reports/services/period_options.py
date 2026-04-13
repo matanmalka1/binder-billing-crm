@@ -7,6 +7,7 @@ from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.services.messages import VAT_CLIENT_EXEMPT, VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 
@@ -27,14 +28,14 @@ def get_period_options(
     """Return period options for UI selection based on client VAT frequency."""
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
 
     selected_year = year or date.today().year
 
     period_type = period_type_override or resolve_effective_vat_type(client)
     if period_type == VatType.EXEMPT:
         raise AppError(
-            "לקוח זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
+            VAT_CLIENT_EXEMPT,
             "VAT.CLIENT_EXEMPT",
         )
 

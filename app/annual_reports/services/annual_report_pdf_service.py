@@ -10,6 +10,7 @@ from app.annual_reports.services.detail_service import AnnualReportDetailService
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.annual_reports.services.annual_report_pdf_builder import build_pdf
+from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND, CLIENT_FALLBACK_NAME
 
 
 class AnnualReportPdfService:
@@ -20,11 +21,11 @@ class AnnualReportPdfService:
         repo = AnnualReportRepository(self.db)
         report = repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
         from app.clients.repositories.client_repository import ClientRepository
         _client = ClientRepository(self.db).get_by_id(report.client_id)
-        client_name = _client.full_name if _client else f"לקוח #{report.client_id}"
+        client_name = _client.full_name if _client else CLIENT_FALLBACK_NAME.format(client_id=report.client_id)
 
         fin_svc = AnnualReportFinancialService(self.db)
         summary = fin_svc.get_financial_summary(report_id)

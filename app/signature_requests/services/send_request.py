@@ -9,6 +9,10 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.services.messages import (
+    SEND_REQUEST_INVALID_STATUS,
+    SIGNATURE_REQUEST_SENT_NOTE,
+)
 from app.utils.time_utils import utcnow
 from app.signature_requests.services.signature_request_validations import get_or_raise_for_update
 
@@ -29,7 +33,7 @@ def send_request(
 
     if req.status != SignatureRequestStatus.DRAFT:
         raise AppError(
-            f"לא ניתן לשלוח בקשה בסטטוס '{req.status.value}'. ניתן לשלוח רק בקשות במצב טיוטה.",
+            SEND_REQUEST_INVALID_STATUS.format(status=req.status.value),
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
 
@@ -53,7 +57,7 @@ def send_request(
         actor_type="advisor",
         actor_id=sent_by,
         actor_name=sent_by_name,
-        notes=f"בקשת חתימה נשלחה. תוקף עד: {expires_at.date().isoformat()}.",
+        notes=SIGNATURE_REQUEST_SENT_NOTE.format(expires_at=expires_at.date().isoformat()),
     )
 
     return req

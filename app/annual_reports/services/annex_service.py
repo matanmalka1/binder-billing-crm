@@ -7,6 +7,7 @@ from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.schemas.annual_report_annex import AnnexDataLineResponse
 from app.annual_reports.schemas.annex_schemas import SCHEDULE_VALIDATORS
 from .base import AnnualReportBaseService
+from .messages import ANNEX_LINE_NOT_FOUND, ANNEX_VALIDATION_ERROR
 
 
 class AnnualReportAnnexService(AnnualReportBaseService):
@@ -32,7 +33,7 @@ class AnnualReportAnnexService(AnnualReportBaseService):
             }
         except Exception as exc:
             raise AppError(
-                f"נתוני הנספח אינם תקינים: {exc}",
+                ANNEX_VALIDATION_ERROR.format(error=exc),
                 "ANNUAL_REPORT.ANNEX_VALIDATION_ERROR",
             ) from exc
 
@@ -66,17 +67,17 @@ class AnnualReportAnnexService(AnnualReportBaseService):
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
         if not existing:
-            raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         data = self._validate_annex_data(existing.schedule, data)
         row = self.annex_repo.update_line(line_id, data, notes)  # type: ignore[attr-defined]
         if not row:
-            raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         return AnnexDataLineResponse.model_validate(row)
 
     def delete_annex_line(self, report_id: int, line_id: int) -> None:
         self._get_or_raise(report_id)
         if not self.annex_repo.delete_line(line_id):  # type: ignore[attr-defined]
-            raise NotFoundError(f"שורת נספח {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
 
 
 __all__ = ["AnnualReportAnnexService"]

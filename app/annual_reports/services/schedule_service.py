@@ -5,6 +5,7 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportSchedule
 from .base import AnnualReportBaseService
 from .constants import SCHEDULE_FLAGS
+from .messages import INVALID_SCHEDULE_ERROR, SCHEDULE_NOT_FOUND
 
 
 class AnnualReportScheduleService(AnnualReportBaseService):
@@ -19,7 +20,7 @@ class AnnualReportScheduleService(AnnualReportBaseService):
         entry = self.repo.mark_schedule_complete(report_id, s)
         if not entry:
             raise NotFoundError(
-                f"נספח '{schedule}' לא נמצא בדוח {report_id}",
+                SCHEDULE_NOT_FOUND.format(schedule=schedule, report_id=report_id),
                 "ANNUAL_REPORT.LINE_NOT_FOUND",
             )
         return entry
@@ -29,7 +30,7 @@ class AnnualReportScheduleService(AnnualReportBaseService):
             return AnnualReportSchedule(schedule)
         except ValueError:
             raise AppError(
-                f"נספח לא חוקי: '{schedule}'",
+                INVALID_SCHEDULE_ERROR.format(schedule=schedule),
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
 

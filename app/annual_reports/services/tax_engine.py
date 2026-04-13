@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from app.core.exceptions import AppError
 from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
+from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 
 _BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
     2024: [
@@ -77,7 +78,7 @@ def calculate_tax(
     other_credits = float(other_credits)
     if tax_year not in _BRACKETS_BY_YEAR:
         raise AppError(
-            f"שנת מס {tax_year} אינה נתמכת. שנים נתמכות: {sorted(_BRACKETS_BY_YEAR)}",
+            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=sorted(_BRACKETS_BY_YEAR)),
             "TAX_ENGINE.INVALID_INPUT",
             status_code=400,
         )

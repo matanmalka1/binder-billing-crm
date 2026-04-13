@@ -10,6 +10,17 @@ from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_MATERIAL_RECEIVED, ACTION_STATUS_CHANGED, ACTION_WORK_ITEM_CREATED_PENDING
+from app.vat_reports.services.messages import (
+    VAT_CLIENT_CLOSED_CREATE_ITEM,
+    VAT_CLIENT_EXEMPT,
+    VAT_CLIENT_FROZEN_CREATE_ITEM,
+    VAT_CLIENT_NOT_FOUND,
+    VAT_INVALID_BIMONTHLY_PERIOD,
+    VAT_ITEM_NOT_FOUND,
+    VAT_MATERIALS_COMPLETE_INVALID_STATUS,
+    VAT_PENDING_MATERIALS_NOTE_REQUIRED,
+    VAT_WORK_ITEM_CONFLICT,
+)
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 
@@ -17,14 +28,14 @@ def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
     """Raise AppError if period doesn't match the client's reporting frequency."""
     if vat_type == VatType.EXEMPT:
         raise AppError(
-            "לקוח זה פטור ממע\"מ ולא ניתן לפתוח עבורו דוח",
+            VAT_CLIENT_EXEMPT,
             "VAT.CLIENT_EXEMPT",
         )
     if vat_type == VatType.BIMONTHLY:
         month = int(period.split("-")[1])
         if month % 2 == 0:
             raise AppError(
-                f"לקוח זה מדווח דו-חודשי — התקופה {period} אינה תקפה (חודשים זוגיים אסורים)",
+                VAT_INVALID_BIMONTHLY_PERIOD.format(period=period),
                 "VAT.INVALID_PERIOD_FOR_FREQUENCY",
             )
 
@@ -52,12 +63,12 @@ def create_work_item(
     """
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
 
     if client.status == ClientStatus.CLOSED:
-        raise AppError("לקוח זה סגור — לא ניתן לפתוח דוח מע\"מ", "VAT.CLIENT_CLOSED")
+        raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
     if client.status == ClientStatus.FROZEN:
-        raise AppError("לקוח זה מוקפא — לא ניתן לפתוח דוח מע\"מ", "VAT.CLIENT_FROZEN")
+        raise AppError(VAT_CLIENT_FROZEN_CREATE_ITEM, "VAT.CLIENT_FROZEN")
 
     effective_vat_type = resolve_effective_vat_type(client)
     _validate_period_for_vat_type(period, effective_vat_type)
@@ -68,14 +79,14 @@ def create_work_item(
     existing = work_item_repo.get_by_client_period(client_id, period)
     if existing:
         raise ConflictError(
-            f"פריט עבודה למע\"מ כבר קיים עבור לקוח {client_id} לתקופה {period}",
+            VAT_WORK_ITEM_CONFLICT.format(client_id=client_id, period=period),
             "VAT.CONFLICT",
         )
 
     if mark_pending:
         if not pending_materials_note:
             raise AppError(
-                "pending_materials_note: נדרש תיאור החומרים כאשר הפריט מסומן כמצב המתנה",
+                VAT_PENDING_MATERIALS_NOTE_REQUIRED,
                 "VAT.PENDING_NOTE_REQUIRED",
             )
         status = VatWorkItemStatus.PENDING_MATERIALS
@@ -117,11 +128,11 @@ def mark_materials_complete(
     """
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
 
     if item.status != VatWorkItemStatus.PENDING_MATERIALS:
         raise AppError(
-            f"לא ניתן לסמן חומרים כהושלמו מסטטוס {item.status.value}",
+            VAT_MATERIALS_COMPLETE_INVALID_STATUS.format(status=item.status.value),
             "VAT.INVALID_TRANSITION",
         )
 

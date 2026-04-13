@@ -14,6 +14,7 @@ from app.vat_reports.services.constants import (
     VAT_ONLINE_EXTENDED_DEADLINE_DAY,
     VAT_STATUTORY_DEADLINE_DAY,
 )
+from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
     return item
 
 

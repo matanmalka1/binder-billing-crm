@@ -10,6 +10,10 @@ from app.annual_reports.schemas.annual_report_responses import (
 )
 from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
+from .messages import (
+    REPORT_AMEND_CANCEL_SIGNATURE_REASON,
+    REPORT_AMEND_ONLY_SUBMITTED_ERROR,
+)
 
 
 class AnnualReportQueryService(AnnualReportBaseService):
@@ -106,7 +110,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
         report = self._get_or_raise(report_id)
         if report.status != AnnualReportStatus.SUBMITTED:
             raise ConflictError(
-                f"ניתן לתקן רק דוח בסטטוס 'הוגש'. הסטטוס הנוכחי: {report.status.value}",
+                REPORT_AMEND_ONLY_SUBMITTED_ERROR.format(status=report.status.value),
                 "ANNUAL_REPORT.INVALID_STATUS_FOR_AMEND",
             )
         self.repo.update(report_id, status=AnnualReportStatus.AMENDED)
@@ -119,7 +123,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
             note=reason,
         )
         AnnualReportDetailRepository(self.db).update_meta(report_id, amendment_reason=reason)
-        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, "תיקון דוח — ביטול בקשת חתימה")
+        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, REPORT_AMEND_CANCEL_SIGNATURE_REASON)
 
         from app.annual_reports.services.deadline_sync import sync_annual_report_deadline
         sync_annual_report_deadline(

@@ -24,6 +24,13 @@ from app.vat_reports.services.data_entry_common import (
     assert_editable,
     recalculate_totals,
 )
+from app.vat_reports.services.messages import (
+    VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM,
+    VAT_INVOICE_NUMBER_CONFLICT,
+    VAT_ITEM_NOT_FOUND,
+    VAT_NEGATIVE_AMOUNT,
+    VAT_NET_AMOUNT_POSITIVE_REQUIRED,
+)
 
 
 def update_invoice(
@@ -49,14 +56,14 @@ def update_invoice(
     """Update an existing invoice. Work item must not be FILED."""
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
 
     assert_editable(item)
 
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
         raise NotFoundError(
-            f"החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}",
+            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(invoice_id=invoice_id, item_id=item_id),
             "VAT.NOT_FOUND",
         )
 
@@ -64,14 +71,14 @@ def update_invoice(
         existing = invoice_repo.get_by_number(item_id, invoice.invoice_type, invoice_number)
         if existing:
             raise ConflictError(
-                f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
+                VAT_INVOICE_NUMBER_CONFLICT.format(invoice_number=invoice_number),
                 "VAT.CONFLICT",
             )
 
     if net_amount is not None and net_amount <= 0:
-        raise AppError("סכום נטו חייב להיות חיובי", code="INVALID_NET_AMOUNT", status_code=400)
+        raise AppError(VAT_NET_AMOUNT_POSITIVE_REQUIRED, code="INVALID_NET_AMOUNT", status_code=400)
     if vat_amount is not None and vat_amount < 0:
-        raise AppError("סכום מע״מ לא יכול להיות שלילי", code="INVALID_VAT_AMOUNT", status_code=400)
+        raise AppError(VAT_NEGATIVE_AMOUNT, code="INVALID_VAT_AMOUNT", status_code=400)
 
     snapshot_before = audit_invoice_snapshot(invoice)
 

@@ -20,15 +20,23 @@ from app.annual_reports.schemas.annual_report_financials import (
     IncomeLineResponse,
 )
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
+from app.annual_reports.services.messages import (
+    CLIENT_CLOSED_CREATE_WORK_ERROR,
+    CLIENT_FROZEN_CREATE_WORK_ERROR,
+    EXPENSE_LINE_NOT_FOUND,
+    INCOME_LINE_NOT_FOUND,
+    INVALID_EXPENSE_CATEGORY_ERROR,
+    INVALID_INCOME_SOURCE_ERROR,
+)
 
 
 class FinancialCrudMixin:
     def _assert_client_allows_create(self, client_id: int) -> None:
         client = ClientRepository(self.db).get_by_id(client_id)
         if client and client.status == ClientStatus.CLOSED:
-            raise ForbiddenError("לקוח סגור — לא ניתן ליצור עבודה חדשה", "CLIENT.CLOSED")
+            raise ForbiddenError(CLIENT_CLOSED_CREATE_WORK_ERROR, "CLIENT.CLOSED")
         if client and client.status == ClientStatus.FROZEN:
-            raise ForbiddenError("לקוח מוקפא — לא ניתן ליצור עבודה חדשה", "CLIENT.FROZEN")
+            raise ForbiddenError(CLIENT_FROZEN_CREATE_WORK_ERROR, "CLIENT.FROZEN")
 
     def add_income(
         self,
@@ -42,7 +50,7 @@ class FinancialCrudMixin:
         self._assert_client_allows_create(report.client_id)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
-            raise AppError(f"סוג הכנסה לא חוקי: '{source_type}'", "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(INVALID_INCOME_SOURCE_ERROR.format(source_type=source_type), "ANNUAL_REPORT.INVALID_TYPE")
         line = self.income_repo.add(report_id, IncomeSourceType(source_type), amount, description)
         if actor_id:
             EntityAuditLogRepository(self.db).append(
@@ -57,11 +65,11 @@ class FinancialCrudMixin:
         if "source_type" in fields and fields["source_type"] is not None:
             valid_sources = {e.value for e in IncomeSourceType}
             if fields["source_type"] not in valid_sources:
-                raise AppError(f"סוג הכנסה לא חוקי: '{fields['source_type']}'", "ANNUAL_REPORT.INVALID_TYPE")
+                raise AppError(INVALID_INCOME_SOURCE_ERROR.format(source_type=fields["source_type"]), "ANNUAL_REPORT.INVALID_TYPE")
             fields["source_type"] = IncomeSourceType(fields["source_type"])
         line = self.income_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
-            raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(INCOME_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         if actor_id:
             EntityAuditLogRepository(self.db).append(
                 entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
@@ -73,7 +81,7 @@ class FinancialCrudMixin:
     def delete_income(self, report_id: int, line_id: int, actor_id: Optional[int] = None) -> None:
         self._get_report_or_raise(report_id)
         if not self.income_repo.delete(line_id):
-            raise NotFoundError(f"שורת הכנסה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(INCOME_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         if actor_id:
             EntityAuditLogRepository(self.db).append(
                 entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
@@ -96,7 +104,7 @@ class FinancialCrudMixin:
         self._assert_client_allows_create(report.client_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
-            raise AppError(f"קטגוריית הוצאה לא חוקית: '{category}'", "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(INVALID_EXPENSE_CATEGORY_ERROR.format(category=category), "ANNUAL_REPORT.INVALID_TYPE")
         line = self.expense_repo.add(
             report_id, ExpenseCategoryType(category), amount, description,
             recognition_rate, supporting_document_ref, supporting_document_id,
@@ -114,11 +122,11 @@ class FinancialCrudMixin:
         if "category" in fields and fields["category"] is not None:
             valid_categories = {e.value for e in ExpenseCategoryType}
             if fields["category"] not in valid_categories:
-                raise AppError(f"קטגוריית הוצאה לא חוקית: '{fields['category']}'", "ANNUAL_REPORT.INVALID_TYPE")
+                raise AppError(INVALID_EXPENSE_CATEGORY_ERROR.format(category=fields["category"]), "ANNUAL_REPORT.INVALID_TYPE")
             fields["category"] = ExpenseCategoryType(fields["category"])
         line = self.expense_repo.update(line_id, **{k: v for k, v in fields.items() if v is not None})
         if not line:
-            raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(EXPENSE_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         if actor_id:
             EntityAuditLogRepository(self.db).append(
                 entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,
@@ -130,7 +138,7 @@ class FinancialCrudMixin:
     def delete_expense(self, report_id: int, line_id: int, actor_id: Optional[int] = None) -> None:
         self._get_report_or_raise(report_id)
         if not self.expense_repo.delete(line_id):
-            raise NotFoundError(f"שורת הוצאה {line_id} לא נמצאה", "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(EXPENSE_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         if actor_id:
             EntityAuditLogRepository(self.db).append(
                 entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id,

@@ -3,8 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
+from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.services.messages import (
+    DECLINED_WITHOUT_REASON_NOTE,
+    DOCUMENT_SIGNED_BY_SIGNER_NOTE,
+    SIGNATURE_REQUEST_EXPIRED_ERROR,
+    SIGNATURE_REQUEST_EXPIRED_NOTE,
+)
 from app.signature_requests.services.signature_request_validations import (
     assert_pending,
     check_not_expired,
@@ -21,10 +28,9 @@ def _expire_and_raise(repo: SignatureRequestRepository, req: SignatureRequest) -
         signature_request_id=req.id,
         event_type="expired",
         actor_type="system",
-        notes=f"פג תוקף בקשת החתימה ({req.expires_at.date().isoformat()}).",
+        notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(expires_at=req.expires_at.date().isoformat()),
     )
-    from app.core.exceptions import AppError
-    raise AppError("בקשת החתימה הזו פג תוקף", "SIGNATURE_REQUEST.EXPIRED")
+    raise AppError(SIGNATURE_REQUEST_EXPIRED_ERROR, "SIGNATURE_REQUEST.EXPIRED")
 
 
 def record_view(
@@ -81,7 +87,7 @@ def sign_request(
         actor_name=req.signer_name,
         ip_address=ip_address,
         user_agent=user_agent,
-        notes="מסמך אושר ונחתם על ידי החותם.",
+        notes=DOCUMENT_SIGNED_BY_SIGNER_NOTE,
     )
 
     return req, req.annual_report_id, now
@@ -119,7 +125,7 @@ def decline_request(
         actor_name=req.signer_name,
         ip_address=ip_address,
         user_agent=user_agent,
-        notes=reason or "החותם דחה את הבקשה ללא הסבר.",
+        notes=reason or DECLINED_WITHOUT_REASON_NOTE,
     )
 
     return req

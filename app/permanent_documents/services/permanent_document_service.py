@@ -20,6 +20,15 @@ from app.businesses.services.business_guards import get_business_or_raise
 from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
+from app.permanent_documents.services.messages import (
+    BUSINESS_CLIENT_MISMATCH_ERROR,
+    BUSINESS_NOT_FOUND_ERROR,
+    DOCUMENT_NOT_FOUND_ERROR,
+    FILE_TOO_LARGE_ERROR,
+    INVALID_FILE_TYPE_ERROR,
+    UPLOAD_FAILED_ERROR,
+    VERSION_CONFLICT_ERROR,
+)
 
 _DEFAULT_REQUIRED_TYPES = [
     DocumentType.ID_COPY.value,
@@ -41,7 +50,7 @@ class PermanentDocumentService:
         resolved = mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
         if resolved not in ALLOWED_MIME_TYPES:
             raise AppError(
-                "סוג הקובץ אינו נתמך. מותר: PDF, Word, Excel, תמונות",
+                INVALID_FILE_TYPE_ERROR,
                 "DOCUMENT.INVALID_FILE_TYPE",
                 status_code=422,
             )
@@ -79,9 +88,9 @@ class PermanentDocumentService:
             try:
                 business = get_business_or_raise(self.db, business_id)
             except NotFoundError as exc:
-                raise NotFoundError("העסק לא נמצא", "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
+                raise NotFoundError(BUSINESS_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
             if business.client_id != client_id:
-                raise AppError("העסק אינו שייך ללקוח", "PERMANENT_DOCUMENTS.BUSINESS_CLIENT_MISMATCH", status_code=422)
+                raise AppError(BUSINESS_CLIENT_MISMATCH_ERROR, "PERMANENT_DOCUMENTS.BUSINESS_CLIENT_MISMATCH", status_code=422)
 
         scope = DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT
         DocumentType(document_type)
@@ -90,7 +99,7 @@ class PermanentDocumentService:
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                f"גודל הקובץ חורג מהמותר (מקסימום {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB)",
+                FILE_TOO_LARGE_ERROR.format(max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)),
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )
@@ -136,7 +145,7 @@ class PermanentDocumentService:
             self.storage.upload(storage_key, io.BytesIO(file_bytes), resolved_mime)
         except Exception as exc:
             self.db.rollback()
-            raise AppError("העלאת הקובץ נכשלה", "DOCUMENT.UPLOAD_FAILED", status_code=500) from exc
+            raise AppError(UPLOAD_FAILED_ERROR, "DOCUMENT.UPLOAD_FAILED", status_code=500) from exc
 
         if existing:
             existing.superseded_by = document.id
@@ -145,7 +154,7 @@ class PermanentDocumentService:
         except IntegrityError:
             self.db.rollback()
             raise AppError(
-                "גרסה זו של המסמך כבר קיימת, נסה שוב",
+                VERSION_CONFLICT_ERROR,
                 "DOCUMENT.VERSION_CONFLICT",
                 status_code=409,
             )
@@ -155,7 +164,7 @@ class PermanentDocumentService:
     def get_download_url(self, document_id: int, expires_in: int = 3600) -> str:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
         return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
 
     def list_business_documents(
@@ -207,7 +216,7 @@ class PermanentDocumentService:
     def delete_document(self, document_id: int) -> None:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
         doc.is_deleted = True
         self.db.flush()
 
@@ -221,13 +230,13 @@ class PermanentDocumentService:
     ) -> PermanentDocument:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                f"גודל הקובץ חורג מהמותר (מקסימום {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB)",
+                FILE_TOO_LARGE_ERROR.format(max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)),
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )

@@ -16,6 +16,15 @@ from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
+from .messages import (
+    ANNUAL_REPORT_ALREADY_EXISTS,
+    ANNUAL_REPORT_CLIENT_NOT_FOUND,
+    ANNUAL_REPORT_CREATED_NOTE,
+    DEADLINE_NOT_SET,
+    INVALID_CLIENT_TYPE_ERROR,
+    INVALID_DEADLINE_TYPE_ERROR,
+    INVALID_REPORT_TYPE_ERROR,
+)
 
 
 class AnnualReportCreateService(AnnualReportBaseService):
@@ -41,29 +50,20 @@ class AnnualReportCreateService(AnnualReportBaseService):
         client_repo = ClientRepository(self.db)
         if not client_repo.get_by_id(client_id):
             from app.core.exceptions import NotFoundError
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
 
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:
-            raise AppError(
-                f"סוג לקוח לא חוקי: '{client_type}'",
-                "ANNUAL_REPORT.INVALID_TYPE",
-            )
+            raise AppError(INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type), "ANNUAL_REPORT.INVALID_TYPE")
         valid_report_types = {e.value for e in AnnualReportType}
         if report_type not in valid_report_types:
-            raise AppError(
-                f"סוג דוח לא חוקי: '{report_type}'",
-                "ANNUAL_REPORT.INVALID_REPORT_TYPE",
-            )
+            raise AppError(INVALID_REPORT_TYPE_ERROR.format(report_type=report_type), "ANNUAL_REPORT.INVALID_REPORT_TYPE")
         rt = AnnualReportType(report_type)
         ct = ClientTypeForReport(client_type)
 
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
-            raise AppError(
-                f"סוג מועד אחרון לא חוקי: '{deadline_type}'",
-                "ANNUAL_REPORT.INVALID_TYPE",
-            )
+            raise AppError(INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type), "ANNUAL_REPORT.INVALID_TYPE")
         dt = FilingDeadlineType(deadline_type)
 
         if assigned_to is not None:
@@ -71,11 +71,13 @@ class AnnualReportCreateService(AnnualReportBaseService):
 
         existing = self.repo.get_by_client_year_type(client_id, tax_year, rt)
         if existing:
-            raise ConflictError(
-                f"דוח שנתי ללקוח {client_id} לשנת מס {tax_year} מסוג {rt.value} כבר קיים "
-                f"(id={existing.id}, status={existing.status.value})",
-                "ANNUAL_REPORT.CONFLICT",
-            )
+            raise ConflictError(ANNUAL_REPORT_ALREADY_EXISTS.format(
+                client_id=client_id,
+                tax_year=tax_year,
+                report_type=rt.value,
+                existing_id=existing.id,
+                status=existing.status.value,
+            ), "ANNUAL_REPORT.CONFLICT")
 
         form_type = FORM_MAP[ct]
         if dt == FilingDeadlineType.STANDARD:
@@ -113,9 +115,9 @@ class AnnualReportCreateService(AnnualReportBaseService):
             to_status=AnnualReportStatus.NOT_STARTED,
             changed_by=created_by,
             changed_by_name=created_by_name,
-            note=(
-                f"הדוח נוצר. טופס: {form_type.value}, מועד אחרון: "
-                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'לא נקבע'}"
+            note=ANNUAL_REPORT_CREATED_NOTE.format(
+                form_type=form_type.value,
+                filing_deadline=filing_deadline.strftime('%d/%m/%Y') if filing_deadline else DEADLINE_NOT_SET,
             ),
         )
 

@@ -13,15 +13,22 @@ from app.clients.models.client import Client
 from app.businesses.models.business import Business
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.notification.services.constants import BULK_NOTIFY_LIMIT
+from app.notification.services.messages import (
+    BINDER_READY_FOR_PICKUP_SUBJECT,
+    BINDER_RECEIVED_SUBJECT,
+    BULK_NOTIFY_LIMIT_EXCEEDED,
+    CLIENT_REMINDER_SUBJECT,
+    DEFAULT_NOTIFICATION_SUBJECT,
+    MANUAL_PAYMENT_REMINDER_SUBJECT,
+)
 
 logger = get_logger(__name__)
 
-_BULK_NOTIFY_LIMIT = 500
-
 _SUBJECTS: dict[NotificationTrigger, str] = {
-    NotificationTrigger.BINDER_RECEIVED:         "התיק שלך התקבל במשרד",
-    NotificationTrigger.BINDER_READY_FOR_PICKUP: "התיק שלך מוכן לאיסוף",
-    NotificationTrigger.MANUAL_PAYMENT_REMINDER: "תזכורת תשלום",
+    NotificationTrigger.BINDER_RECEIVED: BINDER_RECEIVED_SUBJECT,
+    NotificationTrigger.BINDER_READY_FOR_PICKUP: BINDER_READY_FOR_PICKUP_SUBJECT,
+    NotificationTrigger.MANUAL_PAYMENT_REMINDER: MANUAL_PAYMENT_REMINDER_SUBJECT,
 }
 
 
@@ -65,9 +72,9 @@ class NotificationSendService:
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> dict:
-        if len(business_ids) > _BULK_NOTIFY_LIMIT:
+        if len(business_ids) > BULK_NOTIFY_LIMIT:
             raise AppError(
-                f"לא ניתן לשלוח התראות ליותר מ-{_BULK_NOTIFY_LIMIT} עסקים בבת אחת",
+                BULK_NOTIFY_LIMIT_EXCEEDED.format(limit=BULK_NOTIFY_LIMIT),
                 "NOTIFICATION.BULK_LIMIT_EXCEEDED",
             )
         results = [
@@ -100,7 +107,7 @@ class NotificationSendService:
             subject = _SUBJECTS.get(trigger)
             if subject is None:
                 logger.warning("No subject mapping for trigger=%s, using default", trigger)
-                subject = "הודעה ממערכת ניהול התיקים"
+                subject = DEFAULT_NOTIFICATION_SUBJECT
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
@@ -174,7 +181,7 @@ class NotificationSendService:
                 recipient=client.email,
                 content_snapshot=reminder_text,
             )
-            ok, err = self.email.send(client.email, reminder_text, subject="תזכורת מועד מס")
+            ok, err = self.email.send(client.email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client reminder sent | client=%s", client_id)

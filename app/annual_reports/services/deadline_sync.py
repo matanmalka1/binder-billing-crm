@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import ANNUAL_REPORT_FILED_STATUSES, AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.services.constants import ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE
+from app.annual_reports.services.messages import ANNUAL_DEADLINE_REMINDER_MESSAGE
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.repositories.tax_deadline_query_repository import TaxDeadlineQueryRepository
 from app.reminders.models.reminder import ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow
-
-_REMINDER_DAYS_BEFORE = 7
 
 
 def sync_annual_report_deadline(
@@ -55,13 +55,16 @@ def sync_annual_report_deadline(
             deadline.completed_by = None
             db.flush()
             if not reminder_repo.exists_pending_for_tax_deadline(deadline.id):
-                send_on = deadline.due_date - timedelta(days=_REMINDER_DAYS_BEFORE)
+                send_on = deadline.due_date - timedelta(days=ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE)
                 reminder_repo.create_flush(
                     reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
                     target_date=deadline.due_date,
-                    days_before=_REMINDER_DAYS_BEFORE,
+                    days_before=ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE,
                     send_on=send_on,
-                    message=f"תזכורת: מועד מס בעוד {_REMINDER_DAYS_BEFORE} ימים ({deadline.due_date})",
+                    message=ANNUAL_DEADLINE_REMINDER_MESSAGE.format(
+                        days_before=ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE,
+                        due_date=deadline.due_date,
+                    ),
                     client_id=deadline.client_id,
                     tax_deadline_id=deadline.id,
                     created_by=changed_by,

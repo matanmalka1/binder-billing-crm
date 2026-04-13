@@ -11,6 +11,7 @@ from app.annual_reports.repositories.expense_repository import AnnualReportExpen
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.annual_reports.services.labels import SCHEDULE_LABELS
+from app.annual_reports.services.messages import ANNUAL_REPORT_DETAILED_NOT_FOUND
 
 
 class FinancialBaseService:
@@ -29,7 +30,7 @@ class FinancialBaseService:
     def _get_report_or_raise(self, report_id: int):
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(f"הדוח השנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
         return report
 
 

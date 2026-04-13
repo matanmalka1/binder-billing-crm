@@ -12,6 +12,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import (
     VatClientSummaryResponse,
     VatPeriodRow,
 )
+from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 
 
 def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryResponse:
@@ -20,7 +21,7 @@ def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryRespon
 
     client = client_repo.get_by_id(client_id)
     if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
 
     raw_periods = summary_repo.get_periods_for_client(client_id)
     periods = [

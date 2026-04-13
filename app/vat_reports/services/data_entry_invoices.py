@@ -32,6 +32,16 @@ from app.vat_reports.services.data_entry_common import (
     recalculate_totals,
     resolve_invoice_derived_fields,
 )
+from app.vat_reports.services.messages import (
+    VAT_ADD_INVOICE_INVALID_STATUS,
+    VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE,
+    VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
+    VAT_CLIENT_CLOSED_ADD_INVOICES,
+    VAT_INCOME_COUNTERPARTY_NAME,
+    VAT_INVOICE_NUMBER_CONFLICT,
+    VAT_ITEM_NOT_FOUND,
+    VAT_UNKNOWN_COUNTERPARTY_NAME,
+)
 
 
 def add_invoice(
@@ -57,21 +67,21 @@ def add_invoice(
     """Add an invoice to a work item. Validation delegated to resolve_invoice_derived_fields."""
     item = work_item_repo.get_by_id(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
 
     assert_editable(item)
 
     client = repo_or_client_repo.get_by_id(item.client_id)
 
     if client and getattr(client, "status", None) == ClientStatus.CLOSED:
-        raise AppError("לקוח זה סגור — לא ניתן להוסיף חשבוניות", "VAT.CLIENT_CLOSED")
+        raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
 
     if business_activity_id is not None:
         db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
         business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
         if not business or business.client_id != item.client_id:
             raise AppError(
-                "פעילות עסקית זו אינה שייכת ללקוח של פריט העבודה",
+                VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
             )
 
@@ -95,16 +105,16 @@ def add_invoice(
         invoice_date = datetime.strptime(f"{item.period}-01", "%Y-%m-%d")
     if not counterparty_name:
         if invoice_type == InvoiceType.INCOME:
-            counterparty_name = "הכנסות"
+            counterparty_name = VAT_INCOME_COUNTERPARTY_NAME
         else:
             counterparty_name = CATEGORY_LABELS_SERVER.get(
-                expense_category.value if expense_category else "", "לא ידוע"
+                expense_category.value if expense_category else "", VAT_UNKNOWN_COUNTERPARTY_NAME
             )
 
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)
     if existing:
         raise ConflictError(
-            f"מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה",
+            VAT_INVOICE_NUMBER_CONFLICT.format(invoice_number=invoice_number),
             "VAT.CONFLICT",
         )
 
@@ -118,14 +128,14 @@ def add_invoice(
             action=ACTION_STATUS_CHANGED,
             old_value=VatWorkItemStatus.MATERIAL_RECEIVED.value,
             new_value=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS.value,
-            note="מעבר אוטומטי בעת הוספת חשבונית ראשונה",
+            note=VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE,
         )
     elif original_status not in (
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
         VatWorkItemStatus.READY_FOR_REVIEW,
     ):
         raise AppError(
-            f"לא ניתן להוסיף חשבוניות לפריט עבודה במצב {original_status.value}",
+            VAT_ADD_INVOICE_INVALID_STATUS.format(status=original_status.value),
             "VAT.INVALID_STATUS",
         )
 

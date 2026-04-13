@@ -1,5 +1,7 @@
 """Signature request helpers for annual report status transitions."""
 
+from app.annual_reports.services.messages import ANNUAL_REPORT_APPROVAL_TITLE
+
 
 class AnnualReportSignatureHelper:
     """Mixin: manage signature requests during status transitions."""
@@ -29,7 +31,7 @@ class AnnualReportSignatureHelper:
             created_by=created_by,
             created_by_name=created_by_name,
             request_type="ANNUAL_REPORT_APPROVAL",
-            title=f"אישור דוח שנתי {report.tax_year}",
+            title=ANNUAL_REPORT_APPROVAL_TITLE.format(tax_year=report.tax_year),
             signer_name=business.full_name,
             annual_report_id=report.id,
         )

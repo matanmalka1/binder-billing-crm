@@ -12,6 +12,7 @@ from app.core.exceptions import NotFoundError
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
+from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_export_excel import export_vat_to_excel
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
 
@@ -25,7 +26,7 @@ def _get_export_dir() -> str:
 def _load(db: Session, client_id: int, year: int):
     client = ClientRepository(db).get_by_id(client_id)
     if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
     display_name = client.full_name
     all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_id)
     periods = [

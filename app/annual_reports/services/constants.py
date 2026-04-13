@@ -94,6 +94,7 @@ DEFAULT_RECOGNITION_RATE = Decimal("1.00")
 # ── Stuck-report defaults ──────────────────────────────────────────────────────
 STUCK_REPORT_STALE_DAYS = 7
 STUCK_REPORT_LIMIT = 3
+ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE = 7
 
 # Which schedules are triggered by income flags
 SCHEDULE_FLAGS = [
@@ -108,6 +109,7 @@ __all__ = [
     "DEFAULT_RECOGNITION_RATE",
     "DONATION_CREDIT_RATE",
     "FORM_MAP",
+    "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
     "NI_RATE_BASE",
     "NI_RATE_HIGH",
     "SCHEDULE_FLAGS",

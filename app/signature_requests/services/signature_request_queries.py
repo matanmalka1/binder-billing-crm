@@ -8,6 +8,7 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.services.messages import INVALID_FILTER_STATUS
 from app.signature_requests.services.signature_request_validations import get_or_raise
 
 
@@ -25,7 +26,7 @@ def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
     valid_statuses = {e.value for e in SignatureRequestStatus}
     if status not in valid_statuses:
         raise AppError(
-            f"סטטוס '{status}' אינו חוקי. ערכים חוקיים: {sorted(valid_statuses)}",
+            INVALID_FILTER_STATUS.format(status=status, valid_statuses=sorted(valid_statuses)),
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
     return SignatureRequestStatus(status)

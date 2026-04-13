@@ -13,11 +13,17 @@ from app.signature_requests.services import (
     signature_request_queries,
     signer_actions,
 )
+from app.signature_requests.services.messages import (
+    AUTO_ADVANCE_ANNUAL_REPORT_ERROR,
+    ANNUAL_REPORT_SIGNED_NOTE,
+    AUTO_SUBMITTED_AFTER_SIGNATURE_NOTE,
+    SYSTEM_USER_NAME,
+)
 
 _log = logging.getLogger(__name__)
 
 _SYSTEM_USER_ID = 0
-_SYSTEM_USER_NAME = "מערכת"
+_SYSTEM_USER_NAME = SYSTEM_USER_NAME
 
 
 class SignatureRequestService:
@@ -53,7 +59,7 @@ class SignatureRequestService:
                 signature_request_id=req.id,
                 event_type="annual_report_signed",
                 actor_type="system",
-                notes=f"אישור לקוח נרשם לדוח שנתי מספר {annual_report_id}.",
+                notes=ANNUAL_REPORT_SIGNED_NOTE.format(annual_report_id=annual_report_id),
             )
             self._auto_advance_annual_report(annual_report_id, signed_at)
         return req
@@ -82,13 +88,13 @@ class SignatureRequestService:
                 new_status=AnnualReportStatus.SUBMITTED.value,
                 changed_by=_SYSTEM_USER_ID,
                 changed_by_name=_SYSTEM_USER_NAME,
-                note="הדוח הוגש אוטומטית לאחר אישור לקוח",
+                note=AUTO_SUBMITTED_AFTER_SIGNATURE_NOTE,
             )
 
             detail_repo = AnnualReportDetailRepository(self.db)
             detail_repo.update_meta(annual_report_id, client_approved_at=now)
         except Exception:
-            _log.exception("שגיאה בקידום אוטומטי של דוח שנתי %s לאחר חתימה", annual_report_id)
+            _log.exception(AUTO_ADVANCE_ANNUAL_REPORT_ERROR, annual_report_id)
 
     # ── Advisor / system actions ──────────────────────────────────────────────
 

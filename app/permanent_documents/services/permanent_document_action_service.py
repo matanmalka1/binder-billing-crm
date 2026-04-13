@@ -6,6 +6,7 @@ from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
+from app.permanent_documents.services.messages import DOCUMENT_NOT_FOUND_ERROR
 
 
 class PermanentDocumentActionService:
@@ -17,7 +18,7 @@ class PermanentDocumentActionService:
     def _get_or_raise(self, document_id: int) -> PermanentDocument:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
         return doc
 
     def get_document_versions(

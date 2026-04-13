@@ -11,6 +11,17 @@ from app.utils.time_utils import utcnow
 from .constants import VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
+from .messages import (
+    CUSTOM_DEADLINE_LABEL,
+    DEADLINE_UPDATED_NOTE,
+    INVALID_ANNUAL_REPORT_STATUS,
+    INVALID_DEADLINE_TYPE_ERROR,
+    INVALID_STATUS_TRANSITION,
+    REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON,
+    REPORT_NOT_READY_FOR_SUBMISSION,
+    STATUS_CHANGE_CANCEL_SIGNATURE_REASON,
+    ANNUAL_REPORT_NOT_FOUND,
+)
 from .status_signature_helper import AnnualReportSignatureHelper
 
 
@@ -20,7 +31,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         """Fetch annual report with a row-level lock for status transitions."""
         report = self.repo.get_by_id_for_update(report_id)
         if not report:
-            raise NotFoundError(f"דוח שנתי {report_id} לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
         return report
 
     def _assert_filing_readiness(self, report_id: int) -> None:
@@ -30,7 +41,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         result = svc.get_readiness_check(report_id)
         if not result.is_ready:
             issues_str = "; ".join(result.issues)
-            raise AppError(f"הדוח אינו מוכן להגשה: {issues_str}", "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(REPORT_NOT_READY_FOR_SUBMISSION.format(issues=issues_str), "ANNUAL_REPORT.INVALID_STATUS")
 
     def transition_status(
         self,
@@ -48,14 +59,17 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         report = self._get_or_raise_for_update(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
         if new_status not in valid_statuses:
-            raise AppError(f"סטטוס לא חוקי: '{new_status}'", "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(INVALID_ANNUAL_REPORT_STATUS.format(new_status=new_status), "ANNUAL_REPORT.INVALID_STATUS")
         ns = AnnualReportStatus(new_status)
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
             raise AppError(
-                f"לא ניתן לעבור מ-'{report.status.value}' ל-'{ns.value}'. "
-                f"סטטוסים הבאים מותרים: {allowed}",
+                INVALID_STATUS_TRANSITION.format(
+                    current_status=report.status.value,
+                    new_status=ns.value,
+                    allowed=allowed,
+                ),
                 "ANNUAL_REPORT.INVALID_STATUS",
             )
 
@@ -93,10 +107,10 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         )
 
         if old_status == AnnualReportStatus.PENDING_CLIENT and ns != AnnualReportStatus.PENDING_CLIENT:
-            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "מעבר סטטוס — ביטול בקשת חתימה")
+            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, STATUS_CHANGE_CANCEL_SIGNATURE_REASON)
 
         if ns == AnnualReportStatus.PENDING_CLIENT:
-            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, "כניסה חוזרת ל-PENDING_CLIENT")
+            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON)
             self._trigger_signature_request(updated, changed_by, changed_by_name)
 
         from app.annual_reports.services.deadline_sync import sync_annual_report_deadline
@@ -115,7 +129,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         report = self._get_or_raise_for_update(report_id)
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
-            raise AppError(f"סוג מועד אחרון לא חוקי '{deadline_type}'", "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type), "ANNUAL_REPORT.INVALID_TYPE")
         dt = FilingDeadlineType(deadline_type)
 
         if dt == FilingDeadlineType.STANDARD:
@@ -136,8 +150,10 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
             from_status=updated.status, to_status=updated.status,
             changed_by=changed_by, changed_by_name=changed_by_name,
             note=(
-                f"המועד האחרון עודכן ל-{dt.value}: "
-                f"{filing_deadline.strftime('%d/%m/%Y') if filing_deadline else 'מותאם אישית'}"
+                DEADLINE_UPDATED_NOTE.format(
+                    deadline_type=dt.value,
+                    filing_deadline=filing_deadline.strftime('%d/%m/%Y') if filing_deadline else CUSTOM_DEADLINE_LABEL,
+                )
                 + (f" — {custom_deadline_note}" if custom_deadline_note else "")
             ),
         )
