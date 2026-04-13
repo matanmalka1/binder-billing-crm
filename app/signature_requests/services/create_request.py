@@ -61,7 +61,10 @@ def create_request(
     valid_types = {e.value for e in SignatureRequestType}
     if request_type not in valid_types:
         raise AppError(
-            f"סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {sorted(valid_types)}",
+            INVALID_REQUEST_TYPE.format(
+                request_type=request_type,
+                valid_types=sorted(valid_types),
+            ),
             "SIGNATURE_REQUEST.INVALID_TYPE",
         )
     req_type = SignatureRequestType(request_type)
@@ -92,7 +95,7 @@ def create_request(
         actor_type="advisor",
         actor_id=created_by,
         actor_name=created_by_name,
-        notes=f"בקשת חתימה נוצרה: {title}",
+        notes=SIGNATURE_REQUEST_CREATED_NOTE.format(title=title),
     )
 
     return req

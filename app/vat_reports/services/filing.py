@@ -9,6 +9,16 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.constants import ACTION_FILED, ACTION_OVERRIDE
 from app.vat_reports.services.data_entry_common import assert_transition_allowed
+from app.vat_reports.services.messages import (
+    AMENDED_ITEM_NOT_FILED,
+    AMENDED_ITEM_NOT_FOUND,
+    AMENDED_ITEM_WRONG_CLIENT,
+    AMENDMENT_CYCLE_DETECTED,
+    FINAL_VAT_AMOUNT_REQUIRED,
+    OVERRIDE_AMOUNT_MUST_BE_POSITIVE,
+    OVERRIDE_JUSTIFICATION_REQUIRED,
+    VAT_ITEM_NOT_FOUND,
+)
 
 
 def _validate_amendment(
@@ -18,16 +28,16 @@ def _validate_amendment(
 ) -> None:
     amended_item = work_item_repo.get_by_id(amends_item_id)
     if amended_item is None:
-        raise AppError("פריט מתוקן לא נמצא", code="AMENDED_ITEM_NOT_FOUND", status_code=404)
+        raise AppError(AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404)
     if amended_item.client_id != item.client_id:
-        raise AppError("פריט מתוקן שייך ללקוח אחר", code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
+        raise AppError(AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
     if amended_item.status != VatWorkItemStatus.FILED:
-        raise AppError("ניתן לתקן רק פריט שהוגש", code="AMENDED_ITEM_NOT_FILED", status_code=400)
+        raise AppError(AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400)
 
     current_item = amended_item
     while current_item is not None:
         if current_item.id == item.id:
-            raise AppError("זוהתה שרשרת תיקונים מעגלית", code="AMENDMENT_CYCLE", status_code=400)
+            raise AppError(AMENDMENT_CYCLE_DETECTED, code="AMENDMENT_CYCLE", status_code=400)
         if current_item.amends_item_id is None:
             break
         current_item = work_item_repo.get_by_id(current_item.amends_item_id)
@@ -47,7 +57,7 @@ def file_vat_return(
 ):
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
-        raise NotFoundError(f"פריט עבודה {item_id} למע\"מ לא נמצא", "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")
 
     assert_transition_allowed(item, VatWorkItemStatus.FILED)
 
@@ -57,13 +67,13 @@ def file_vat_return(
     is_overridden = override_amount is not None
 
     if is_overridden and override_amount <= 0:
-        raise AppError("סכום דריסה חייב להיות חיובי", code="INVALID_OVERRIDE_AMOUNT", status_code=400)
+        raise AppError(OVERRIDE_AMOUNT_MUST_BE_POSITIVE, code="INVALID_OVERRIDE_AMOUNT", status_code=400)
 
     if is_overridden and not override_justification:
-        raise AppError("נדרש נימוק כאשר מחליפים את הסכום", "VAT.JUSTIFICATION_REQUIRED")
+        raise AppError(OVERRIDE_JUSTIFICATION_REQUIRED, "VAT.JUSTIFICATION_REQUIRED")
 
     if item.net_vat is None and override_amount is None:
-        raise AppError("סכום מע״מ סופי חייב להיות מוגדר", code="MISSING_FINAL_AMOUNT", status_code=400)
+        raise AppError(FINAL_VAT_AMOUNT_REQUIRED, code="MISSING_FINAL_AMOUNT", status_code=400)
 
     if is_overridden:
         final_amount = override_amount

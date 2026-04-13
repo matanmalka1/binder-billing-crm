@@ -12,6 +12,11 @@ from app.core.logging_config import get_logger
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import NotificationResponse
+from app.notification.services.messages import (
+    BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT,
+    BINDER_RECEIVED_NOTIFICATION_CONTENT,
+    FALLBACK_CLIENT_NAME,
+)
 from app.notification.services.notification_send_service import NotificationSendService
 
 logger = get_logger(__name__)
@@ -36,11 +41,11 @@ class NotificationService:
     # ── Named trigger helpers ─────────────────────────────────────────────────
 
     def notify_binder_received(self, binder: Binder, business: Business) -> bool:
-        name = business.business_name or "לקוח"
-        content = (
-            f"שלום {name},\n\n"
-            f"תיק מספר {binder.binder_number} התקבל במשרד בתאריך {binder.period_start}.\n\n"
-            f"בברכה"
+        name = business.business_name or FALLBACK_CLIENT_NAME
+        content = BINDER_RECEIVED_NOTIFICATION_CONTENT.format(
+            name=name,
+            binder_number=binder.binder_number,
+            period_start=binder.period_start,
         )
         return self._send_svc.send_notification(
             business_id=business.id,
@@ -50,11 +55,10 @@ class NotificationService:
         )
 
     def notify_ready_for_pickup(self, binder: Binder, business: Business) -> bool:
-        name = business.business_name or "לקוח"
-        content = (
-            f"שלום {name},\n\n"
-            f"תיק מספר {binder.binder_number} מוכן לאיסוף מהמשרד.\n\n"
-            f"בברכה"
+        name = business.business_name or FALLBACK_CLIENT_NAME
+        content = BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT.format(
+            name=name,
+            binder_number=binder.binder_number,
         )
         return self._send_svc.send_notification(
             business_id=business.id,

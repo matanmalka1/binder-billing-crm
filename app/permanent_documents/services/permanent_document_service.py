@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, NotFoundError
 from app.clients.services.client_service import ClientService
-from app.permanent_documents.services.upload_constraints import _ALLOWED_MIME_TYPES, _MAX_FILE_SIZE
+from app.permanent_documents.services.constants import ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
@@ -39,7 +39,7 @@ class PermanentDocumentService:
 
     def _resolve_mime(self, mime_type: Optional[str], filename: str) -> str:
         resolved = mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
-        if resolved not in _ALLOWED_MIME_TYPES:
+        if resolved not in ALLOWED_MIME_TYPES:
             raise AppError(
                 "סוג הקובץ אינו נתמך. מותר: PDF, Word, Excel, תמונות",
                 "DOCUMENT.INVALID_FILE_TYPE",
@@ -88,9 +88,9 @@ class PermanentDocumentService:
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
-        if file_size > _MAX_FILE_SIZE:
+        if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                f"גודל הקובץ חורג מהמותר (מקסימום {_MAX_FILE_SIZE // (1024 * 1024)}MB)",
+                f"גודל הקובץ חורג מהמותר (מקסימום {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB)",
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )
@@ -225,9 +225,9 @@ class PermanentDocumentService:
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
-        if file_size > _MAX_FILE_SIZE:
+        if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                f"גודל הקובץ חורג מהמותר (מקסימום {_MAX_FILE_SIZE // (1024 * 1024)}MB)",
+                f"גודל הקובץ חורג מהמותר (מקסימום {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB)",
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )

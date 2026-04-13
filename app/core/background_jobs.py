@@ -1,6 +1,7 @@
 import asyncio
 from typing import TYPE_CHECKING, Callable
 
+from app.core.messages import VAT_OVERDUE_REMINDER_MESSAGE
 from app.core.logging_config import get_logger
 from app.database import SessionLocal
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -21,7 +22,7 @@ except Exception:  # guard against import-time failures in tests
 
 # Maximum reminders to dispatch per job run.
 # Keeps the DB session short-lived even when many reminders accumulate.
-_REMINDER_BATCH_SIZE = 200
+REMINDER_BATCH_SIZE = 200
 
 
 def run_startup_expiry() -> None:
@@ -97,7 +98,10 @@ def _vat_compliance_task(db) -> None:
             target_date=tax_deadline.due_date,
             days_before=0,
             send_on=today,
-            message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד ({tax_deadline.due_date}) עבר",
+            message=VAT_OVERDUE_REMINDER_MESSAGE.format(
+                period=row.period,
+                due_date=tax_deadline.due_date,
+            ),
             tax_deadline_id=tax_deadline.id,
         )
         created += 1
@@ -116,7 +120,7 @@ async def daily_vat_compliance_job() -> None:
 
 
 async def daily_reminder_job() -> None:
-    """Dispatch pending reminders once per day. Processed in batches of _REMINDER_BATCH_SIZE."""
+    """Dispatch pending reminders once per day. Processed in batches of REMINDER_BATCH_SIZE."""
     while True:
         await asyncio.sleep(_INTERVAL)
         db = SessionLocal()
@@ -129,7 +133,7 @@ async def daily_reminder_job() -> None:
             notification_svc = NotificationService(db)
 
             items, _total, _names = reminder_svc.get_pending_reminders(
-                page=1, page_size=_REMINDER_BATCH_SIZE
+                page=1, page_size=REMINDER_BATCH_SIZE
             )
 
             sent = failed = 0

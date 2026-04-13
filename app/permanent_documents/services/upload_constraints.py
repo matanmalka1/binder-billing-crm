@@ -1,11 +1,3 @@
-_MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+from app.permanent_documents.services.constants import ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES
 
-_ALLOWED_MIME_TYPES = {
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "image/jpeg",
-    "image/png",
-}
+__all__ = ["ALLOWED_MIME_TYPES", "MAX_FILE_SIZE_BYTES"]

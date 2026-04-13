@@ -11,6 +11,10 @@ from app.annual_reports.schemas.annual_report_financials import (
     TaxCalculationResponse,
     TaxCalculationSaveResponse,
 )
+from app.annual_reports.services.messages import (
+    MISSING_TAX_CALCULATION_ISSUE,
+    TAX_CONFLICT_ERROR,
+)
 from app.annual_reports.services.ni_engine import calculate_national_insurance
 from app.annual_reports.services.tax_engine import calculate_tax
 from app.core.exceptions import AppError
@@ -101,7 +105,7 @@ class FinancialTaxMixin:
         detail = self.detail_repo.get_by_report_id(report_id)
         report = self._get_report_or_raise(report_id)
         if report.tax_due is None and report.refund_due is None:
-            issues.append("חסר חישוב מס — יש לשמור את תוצאת חישוב המס")
+            issues.append(MISSING_TAX_CALCULATION_ISSUE)
         else:
             passed += 1
 
@@ -128,7 +132,7 @@ class FinancialTaxMixin:
         """Persist computed tax_due / refund_due to the annual report record."""
         if tax_due is not None and refund_due is not None:
             raise AppError(
-                "לא ניתן לשמור גם חוב מס וגם החזר מס בו-זמנית",
+                TAX_CONFLICT_ERROR,
                 "ANNUAL_REPORT.TAX_CONFLICT",
             )
         report = self._get_report_or_raise(report_id)
