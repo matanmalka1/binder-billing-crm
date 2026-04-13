@@ -3,7 +3,7 @@
 > Last audited: 2026-03-17 (domain-by-domain backend sync).
 
 
-Manages per-client correspondence entries (calls, letters, emails, meetings) used by the CRM timeline/context and linked to optional authority contacts.
+Manages per-client correspondence entries (calls, letters, emails, meetings, faxes) used by the CRM timeline/context and linked to optional business context and authority contacts.
 
 ## Scope
 
@@ -13,6 +13,7 @@ This module provides:
 - Descending timeline ordering by `occurred_at`
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
 - Role-based API access
+- Optional business scoping via `business_id`
 - Validation of contact ownership when `contact_id` is provided
 
 ## Domain Model
@@ -20,6 +21,7 @@ This module provides:
 `Correspondence` fields:
 - `id` (PK)
 - `client_id` (FK -> `clients.id`, required)
+- `business_id` (FK -> `businesses.id`, optional)
 - `contact_id` (FK -> `authority_contacts.id`, optional)
 - `correspondence_type` (enum, required)
 - `subject` (required)
@@ -34,6 +36,7 @@ Correspondence type enum values:
 - `letter`
 - `email`
 - `meeting`
+- `fax`
 
 Implementation references:
 - Model: `app/correspondence/models/correspondence.py`
@@ -67,6 +70,11 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `business_id` (optional; filter client entries to one business context)
+  - `correspondence_type` (optional)
+  - `contact_id` (optional)
+  - `from_date` (optional)
+  - `to_date` (optional)
+  - `sort_dir` (`asc` or `desc`, default `desc`)
   - `page` (default `1`, min `1`)
   - `page_size` (default `20`, min `1`, max `100`)
 
@@ -77,7 +85,8 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 ### Update correspondence entry
 - `PATCH /api/v1/clients/{client_id}/correspondence/{correspondence_id}`
 - Roles: `ADVISOR`, `SECRETARY`
-- Partial update supported, including optional `business_id` reassignment within the same client.
+- Partial update supported for `business_id`, `contact_id`, `correspondence_type`, `subject`, `notes`, and `occurred_at`.
+- `business_id` can be reassigned within the same client.
 
 ### Delete correspondence entry (soft delete)
 - `DELETE /api/v1/clients/{client_id}/correspondence/{correspondence_id}`
@@ -90,8 +99,10 @@ Router prefix is `/api/v1/clients` (mounted in `app/main.py`).
 - If `business_id` is provided, it must belong to the same client (`BUSINESS.NOT_FOUND` / `CORRESPONDENCE.FORBIDDEN_BUSINESS` on mismatch).
 - `correspondence_type` is validated against enum values; invalid values return `400`.
 - If `contact_id` is provided, service enforces contact belongs to the same client (`CORRESPONDENCE.FORBIDDEN_CONTACT` on mismatch/missing).
+- `occurred_at` cannot be in the future; schema validation rejects future timestamps.
 - Get/update/delete for unknown or cross-client entries return `CORRESPONDENCE.NOT_FOUND`.
 - Repository reads (`get_by_id`, list/count) exclude soft-deleted records.
+- List supports filtering by `business_id`, `correspondence_type`, `contact_id`, and date range (`from_date`, `to_date`).
 - List is ordered by `occurred_at` descending (latest first), unless `sort_dir=asc`.
 
 ## Error Envelope
