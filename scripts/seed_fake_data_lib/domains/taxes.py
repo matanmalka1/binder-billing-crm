@@ -34,8 +34,7 @@ def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
     ]
     if client.vat_reporting_frequency in ("monthly", "bimonthly"):
         types.append(TaxDeadlineType.VAT)
-    if client.entity_type != EntityType.EMPLOYEE and client.advance_rate is not None:
-        types.append(TaxDeadlineType.ADVANCE_PAYMENT)
+    # ADVANCE_PAYMENT deadlines are created via create_advance_payments, not here
     return types
 
 
@@ -137,7 +136,7 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
                     paid_at = datetime.now(UTC)
 
             payment = AdvancePayment(
-                business_id=business.id,
+                client_id=business.client_id,
                 period=period,
                 period_months_count=rng.choice([1, 1, 2]),
                 due_date=due_date,
@@ -156,7 +155,23 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             db.add(payment)
             payments.append(payment)
             db.flush()
-            if deadline and deadline.deadline_type == TaxDeadlineType.ADVANCE_PAYMENT:
-                deadline.advance_payment_id = payment.id
+            # Create a matching ADVANCE_PAYMENT tax deadline linked to this payment
+            adv_deadline = TaxDeadline(
+                client_id=business.client_id,
+                deadline_type=TaxDeadlineType.ADVANCE_PAYMENT,
+                period=period,
+                due_date=due_date,
+                status=(
+                    TaxDeadlineStatus.COMPLETED
+                    if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
+                    else TaxDeadlineStatus.PENDING
+                ),
+                payment_amount=expected_amount,
+                description=f"מקדמה {period}",
+                created_at=created_at,
+                advance_payment_id=payment.id,
+            )
+            db.add(adv_deadline)
+            db.flush()
     db.flush()
     return payments

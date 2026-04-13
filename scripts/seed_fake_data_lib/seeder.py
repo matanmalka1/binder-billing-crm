@@ -105,6 +105,7 @@ class Seeder:
                 seeded_users = users.create_users(db, self.rng, self.cfg)
             seeded_clients = clients.create_clients(db, self.rng, self.cfg)
             seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
+            clients.create_entity_notes(db, self.rng, seeded_clients, seeded_users)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_businesses, seeded_users)
             binder_intakes = binders.create_binder_intakes(db, seeded_binders)
             seeded_charges = charges.create_charges(db, self.rng, self.cfg, seeded_businesses, seeded_users)

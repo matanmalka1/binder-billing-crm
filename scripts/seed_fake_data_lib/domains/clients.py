@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
+from app.notes.models.entity_note import EntityNote
 
 from ..constants import COMPANY_WORDS
 from ..random_utils import full_name, generate_valid_israeli_id
@@ -164,8 +165,8 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 status=status,
                 opened_at=opened_at,
                 closed_at=closed_at,
-                phone=client.phone,
-                email=client.email,
+                phone_override=client.phone,
+                email_override=client.email,
                 created_by=rng.choice(users).id if users else None,
                 notes=rng.choice(["", "עסק ותיק", "מעקב חודשי", "לקוח חשוב"]),
             )
@@ -173,3 +174,24 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
             businesses.append(business)
     db.flush()
     return businesses
+
+
+NOTE_TEXTS = [
+    "לקוח ותיק, מעדיף תקשורת בווטסאפ",
+    "יש לבדוק מסמכים לפני הגשה",
+    "מחכה לאישור מהלקוח",
+    "נפתחה תיק חדש ב-2024",
+    "הלקוח ביקש עדכון שוטף",
+]
+
+
+def create_entity_notes(db, rng: Random, clients: list[Client], users) -> None:
+    for client in rng.sample(clients, min(len(clients), max(1, len(clients) // 2))):
+        note = EntityNote(
+            entity_type="client",
+            entity_id=client.id,
+            note=rng.choice(NOTE_TEXTS),
+            created_by=rng.choice(users).id if users else None,
+        )
+        db.add(note)
+    db.flush()

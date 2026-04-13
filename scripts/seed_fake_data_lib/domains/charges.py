@@ -56,6 +56,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 canceled_by = rng.choice(users).id if users else None
 
             charge = Charge(
+                client_id=business.client_id,
                 business_id=business.id,
                 amount=amount,
                 charge_type=charge_type,

@@ -25,8 +25,9 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
+    AnnualReportType,
     ClientTypeForReport,
-    DeadlineType,
+    FilingDeadlineType as DeadlineType,
     ExtensionReason,
     SubmissionMethod,
 )
@@ -284,12 +285,15 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
         for year in years:
             business = rng.choice(client_businesses)
             if business.client.entity_type == EntityType.COMPANY_LTD:
+                report_type = AnnualReportType.COMPANY
                 client_type_for_report = ClientTypeForReport.CORPORATION
                 form_type = AnnualReportForm.FORM_6111
             elif business.client.entity_type in (EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE):
+                report_type = AnnualReportType.SELF_EMPLOYED
                 client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
                 form_type = AnnualReportForm.FORM_1215
             else:
+                report_type = AnnualReportType.INDIVIDUAL
                 client_type_for_report = ClientTypeForReport.INDIVIDUAL
                 form_type = AnnualReportForm.FORM_1301
 
@@ -346,6 +350,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             report = AnnualReport(
                 client_id=business.client_id,
                 tax_year=year,
+                report_type=report_type,
                 client_type=client_type_for_report,
                 form_type=form_type,
                 status=status,

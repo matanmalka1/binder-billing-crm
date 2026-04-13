@@ -107,11 +107,20 @@ class SeedCoverageValidator:
             minimum=self.cfg.min_charges_per_client,
             maximum=self.cfg.max_charges_per_client,
         )
+        non_advance_deadline_counts = {
+            int(fk_id): int(count)
+            for fk_id, count in db.execute(
+                select(TaxDeadline.client_id, func.count())
+                .where(TaxDeadline.deadline_type != "advance_payment")
+                .group_by(TaxDeadline.client_id)
+            ).all()
+            if fk_id is not None
+        }
         self._assert_per_client_bounds(
             errors,
             label="tax_deadlines/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, TaxDeadline, TaxDeadline.client_id),
+            per_client_counts=non_advance_deadline_counts,
             minimum=self.cfg.min_tax_deadlines_per_client,
             maximum=self.cfg.max_tax_deadlines_per_client,
         )
@@ -167,7 +176,7 @@ class SeedCoverageValidator:
             errors,
             label="advance_payments/client",
             client_ids=non_employee_client_ids,
-            per_client_counts=self._count_by_business_fk(db, AdvancePayment.business_id, business_client_map),
+            per_client_counts=self._count_by_fk(db, AdvancePayment, AdvancePayment.client_id),
             minimum=3,
             maximum=7,
         )

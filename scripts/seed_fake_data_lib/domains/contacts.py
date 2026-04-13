@@ -59,6 +59,7 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
             candidate_contacts = contacts_by_client_id.get(business.client_id, [])
             contact = rng.choice(candidate_contacts) if candidate_contacts and rng.random() < 0.65 else None
             entry = Correspondence(
+                client_id=business.client_id,
                 business_id=business.id,
                 contact_id=contact.id if contact else None,
                 correspondence_type=rng.choice(list(CorrespondenceType)),

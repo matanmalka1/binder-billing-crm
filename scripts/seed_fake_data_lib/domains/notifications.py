@@ -65,6 +65,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             triggered_by = rng.choice(users).id
 
         notification = Notification(
+            client_id=business.client_id,
             business_id=business.id,
             binder_id=binder.id,
             trigger=trigger,
@@ -91,6 +92,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             if client:
                 db.add(
                     Notification(
+                        client_id=business.client_id,
                         business_id=business.id,
                         binder_id=fallback_binder.id,
                         trigger=NotificationTrigger.BINDER_RECEIVED,
