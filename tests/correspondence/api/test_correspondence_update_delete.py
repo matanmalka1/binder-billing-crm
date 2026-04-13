@@ -1,7 +1,6 @@
 from datetime import date, datetime
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
@@ -27,9 +26,10 @@ def _create_business(test_db, id_number: str = "111222333") -> Business:
     return business
 
 
-def _add_entry(test_db, business_id: int, user_id: int):
+def _add_entry(test_db, client_id: int, business_id: int, user_id: int):
     svc = CorrespondenceService(test_db)
     return svc.add_entry(
+        client_id=client_id,
         business_id=business_id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Original subject",
@@ -40,10 +40,10 @@ def _add_entry(test_db, business_id: int, user_id: int):
 
 def test_update_correspondence(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
-    entry = _add_entry(test_db, business.id, test_user.id)
+    entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{entry.id}",
         headers=advisor_headers,
         json={"subject": "Updated subject", "correspondence_type": "meeting"},
     )
@@ -57,10 +57,10 @@ def test_update_correspondence(client, test_db, advisor_headers, test_user):
 
 def test_update_correspondence_invalid_type(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
-    entry = _add_entry(test_db, business.id, test_user.id)
+    entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{entry.id}",
         headers=advisor_headers,
         json={"correspondence_type": "invalid_type"},
     )
@@ -72,7 +72,7 @@ def test_update_correspondence_not_found(client, test_db, advisor_headers):
     business = _create_business(test_db)
 
     response = client.patch(
-        f"/api/v1/businesses/{business.id}/correspondence/99999",
+        f"/api/v1/clients/{business.client_id}/correspondence/99999",
         headers=advisor_headers,
         json={"subject": "x"},
     )
@@ -82,10 +82,10 @@ def test_update_correspondence_not_found(client, test_db, advisor_headers):
 
 def test_delete_correspondence(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
-    entry = _add_entry(test_db, business.id, test_user.id)
+    entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
     response = client.delete(
-        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{entry.id}",
         headers=advisor_headers,
     )
 
@@ -94,15 +94,15 @@ def test_delete_correspondence(client, test_db, advisor_headers, test_user):
 
 def test_deleted_not_returned_in_list(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
-    entry = _add_entry(test_db, business.id, test_user.id)
+    entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
     client.delete(
-        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{entry.id}",
         headers=advisor_headers,
     )
 
     response = client.get(
-        f"/api/v1/businesses/{business.id}/correspondence",
+        f"/api/v1/clients/{business.client_id}/correspondence",
         headers=advisor_headers,
     )
     assert response.status_code == 200
@@ -114,10 +114,10 @@ def test_delete_correspondence_secretary_forbidden(
     client, test_db, secretary_headers, test_user
 ):
     business = _create_business(test_db)
-    entry = _add_entry(test_db, business.id, test_user.id)
+    entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
     response = client.delete(
-        f"/api/v1/businesses/{business.id}/correspondence/{entry.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{entry.id}",
         headers=secretary_headers,
     )
 

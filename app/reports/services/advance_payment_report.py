@@ -3,21 +3,25 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.clients.repositories.client_repository import ClientRepository
 
 
 class AdvancePaymentReportService:
     def __init__(self, db: Session):
         self.repo = AdvancePaymentRepository(db)
+        self.client_repo = ClientRepository(db)
 
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
         rows = self.repo.get_collections_aggregates(year, month)
+        client_ids = [row.client_id for row in rows]
+        clients = {client.id: client for client in self.client_repo.list_by_ids(client_ids)}
 
         items = [
             {
-                "business_id": r.business_id,
+                "business_id": r.client_id,
                 "client_id": r.client_id,
-                "business_name": r.business_name,
-                "client_name": r.client_name,
+                "business_name": clients[r.client_id].full_name if r.client_id in clients else None,
+                "client_name": clients[r.client_id].full_name if r.client_id in clients else f"לקוח #{r.client_id}",
                 "total_expected": float(r.total_expected),
                 "total_paid": float(r.total_paid),
                 "overdue_count": int(r.overdue_count),

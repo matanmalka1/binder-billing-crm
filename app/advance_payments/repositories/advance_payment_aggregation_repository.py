@@ -70,12 +70,9 @@ class AdvancePaymentAggregationRepository(BaseRepository):
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
         """Per-client aggregates for the collections report."""
-        from app.clients.models.client import Client
-
         query = (
             self.db.query(
                 AdvancePayment.client_id,
-                Client.full_name.label("client_name"),
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                 func.coalesce(
@@ -88,16 +85,11 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                     0,
                 ).label("overdue_count"),
             )
-            .join(Client, Client.id == AdvancePayment.client_id)
             .filter(
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
-                Client.deleted_at.is_(None),
             )
         )
         if month is not None:
             query = query.filter(advance_payment_matches_month_expr(month))
-        return query.group_by(
-            AdvancePayment.client_id,
-            Client.full_name,
-        ).all()
+        return query.group_by(AdvancePayment.client_id).all()

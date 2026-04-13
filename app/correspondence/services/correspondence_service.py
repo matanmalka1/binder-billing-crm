@@ -8,6 +8,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
 _FORBIDDEN_CONTACT = "CORRESPONDENCE.FORBIDDEN_CONTACT"
@@ -19,13 +20,24 @@ class CorrespondenceService:
         self.repo = CorrespondenceRepository(db)
         self.contact_repo = AuthorityContactRepository(db)
         self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRepository(db)
 
-    def _resolve_client_id(self, business_id: int) -> int:
-        """Fetch the client_id from the business. Raises if business not found."""
+    def _get_client_or_raise(self, client_id: int):
+        client = self.client_repo.get_by_id(client_id)
+        if not client:
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+        return client
+
+    def _assert_business_belongs_to_client(self, business_id: int, client_id: int) -> None:
+        """Validate optional business context belongs to the same client."""
         business = self.business_repo.get_by_id(business_id)
-        if not business or business.deleted_at is not None:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "CORRESPONDENCE.BUSINESS_NOT_FOUND")
-        return business.client_id
+        if not business:
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        if business.client_id != client_id:
+            raise ForbiddenError(
+                f"עסק {business_id} אינו שייך ללקוח {client_id}",
+                "CORRESPONDENCE.FORBIDDEN_BUSINESS",
+            )
 
     def _assert_contact_belongs_to_client(self, contact_id: int, client_id: int) -> None:
         """
@@ -53,16 +65,18 @@ class CorrespondenceService:
 
     def add_entry(
         self,
-        business_id: int,                        # UI entry point — always via business
+        client_id: int,
         correspondence_type: CorrespondenceType,
         subject: str,
         occurred_at: datetime,
         created_by: int,
+        business_id: Optional[int] = None,
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
-        # Derive client_id from business — the legal entity is always the anchor
-        client_id = self._resolve_client_id(business_id)
+        self._get_client_or_raise(client_id)
+        if business_id is not None:
+            self._assert_business_belongs_to_client(business_id, client_id)
 
         if contact_id is not None:
             self._assert_contact_belongs_to_client(contact_id, client_id)
@@ -78,13 +92,17 @@ class CorrespondenceService:
             notes=notes,
         )
 
-    def get_entry(self, entry_id: int, business_id: int) -> Correspondence:
-        client_id = self._resolve_client_id(business_id)
+    def get_entry(self, entry_id: int, client_id: int) -> Correspondence:
+        self._get_client_or_raise(client_id)
         return self._get_entry_or_raise(entry_id, client_id)
 
-    def update_entry(self, entry_id: int, business_id: int, **fields) -> Correspondence:
-        client_id = self._resolve_client_id(business_id)
+    def update_entry(self, entry_id: int, client_id: int, **fields) -> Correspondence:
+        self._get_client_or_raise(client_id)
         entry = self._get_entry_or_raise(entry_id, client_id)
+
+        business_id = fields.get("business_id", entry.business_id)
+        if business_id is not None:
+            self._assert_business_belongs_to_client(business_id, client_id)
 
         contact_id = fields.get("contact_id", entry.contact_id)
         if contact_id is not None:
@@ -98,37 +116,10 @@ class CorrespondenceService:
             )
         return updated
 
-    def delete_entry(self, entry_id: int, business_id: int, actor_id: int) -> None:
-        client_id = self._resolve_client_id(business_id)
+    def delete_entry(self, entry_id: int, client_id: int, actor_id: int) -> None:
+        self._get_client_or_raise(client_id)
         self._get_entry_or_raise(entry_id, client_id)
         self.repo.soft_delete(entry_id, deleted_by=actor_id)
-
-    # ── Read operations ───────────────────────────────────────────────────────
-
-    def list_business_entries(
-        self,
-        business_id: int,
-        *,
-        page: int,
-        page_size: int,
-        correspondence_type: Optional[CorrespondenceType] = None,
-        contact_id: Optional[int] = None,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
-        sort_dir: str = "desc",
-    ) -> tuple[list[Correspondence], int]:
-        client_id = self._resolve_client_id(business_id)
-        return self.repo.list_paginated(
-            client_id=client_id,
-            business_id=business_id,
-            page=page,
-            page_size=page_size,
-            correspondence_type=correspondence_type,
-            contact_id=contact_id,
-            from_date=from_date,
-            to_date=to_date,
-            sort_dir=sort_dir,
-        )
 
     def list_client_entries(
         self,
@@ -136,15 +127,20 @@ class CorrespondenceService:
         *,
         page: int,
         page_size: int,
+        business_id: Optional[int] = None,
         correspondence_type: Optional[CorrespondenceType] = None,
         contact_id: Optional[int] = None,
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
         sort_dir: str = "desc",
     ) -> tuple[list[Correspondence], int]:
-        """All correspondence for a client regardless of which business."""
+        """All correspondence for a client, optionally filtered by business context."""
+        self._get_client_or_raise(client_id)
+        if business_id is not None:
+            self._assert_business_belongs_to_client(business_id, client_id)
         return self.repo.list_paginated(
             client_id=client_id,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             correspondence_type=correspondence_type,

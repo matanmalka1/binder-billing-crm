@@ -19,6 +19,7 @@ def _validate_occurred_at(v: Optional[datetime]) -> Optional[datetime]:
 
 
 class CorrespondenceCreateRequest(BaseModel):
+    business_id: Optional[int] = None
     contact_id: Optional[int] = None
     correspondence_type: CorrespondenceType
     subject: str
@@ -32,6 +33,7 @@ class CorrespondenceCreateRequest(BaseModel):
 
 
 class CorrespondenceUpdateRequest(BaseModel):
+    business_id: Optional[int] = None
     contact_id: Optional[int] = None
     correspondence_type: Optional[CorrespondenceType] = None
     subject: Optional[str] = None

@@ -79,6 +79,31 @@ class CorrespondenceRepository:
         items = base.order_by(order).offset(offset).limit(page_size).all()
         return items, total
 
+    def list_by_client_paginated(
+        self,
+        client_id: int,
+        *,
+        page: int,
+        page_size: int,
+        business_id: Optional[int] = None,
+        correspondence_type: Optional[CorrespondenceType] = None,
+        contact_id: Optional[int] = None,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
+        sort_dir: Literal["asc", "desc"] = "desc",
+    ) -> tuple[list[Correspondence], int]:
+        return self.list_paginated(
+            client_id=client_id,
+            business_id=business_id,
+            page=page,
+            page_size=page_size,
+            correspondence_type=correspondence_type,
+            contact_id=contact_id,
+            from_date=from_date,
+            to_date=to_date,
+            sort_dir=sort_dir,
+        )
+
     def get_by_id(self, entry_id: int) -> Optional[Correspondence]:
         return (
             self.db.query(Correspondence)

@@ -2,7 +2,6 @@ from datetime import date, datetime
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
@@ -28,9 +27,9 @@ def _create_business(test_db, id_number: str = "777777777") -> Business:
     return business
 
 
-def _create_contact(test_db, business: Business) -> AuthorityContact:
+def _create_contact(test_db, client_id: int) -> AuthorityContact:
     contact = AuthorityContact(
-        business_id=business.id,
+        client_id=client_id,
         contact_type=ContactType.ASSESSING_OFFICER,
         name="Assessing Officer",
         phone="0501234567",
@@ -41,14 +40,15 @@ def _create_contact(test_db, business: Business) -> AuthorityContact:
     return contact
 
 
-def test_create_correspondence_with_contact(client, test_db, advisor_headers, test_user):
+def test_create_correspondence_with_business_context(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
-    contact = _create_contact(test_db, business)
+    contact = _create_contact(test_db, business.client_id)
 
     response = client.post(
-        f"/api/v1/businesses/{business.id}/correspondence",
+        f"/api/v1/clients/{business.client_id}/correspondence",
         headers=advisor_headers,
         json={
+            "business_id": business.id,
             "contact_id": contact.id,
             "correspondence_type": "call",
             "subject": "Status check",
@@ -59,6 +59,7 @@ def test_create_correspondence_with_contact(client, test_db, advisor_headers, te
 
     assert response.status_code == 201
     data = response.json()
+    assert data["client_id"] == business.client_id
     assert data["business_id"] == business.id
     assert data["contact_id"] == contact.id
     assert data["correspondence_type"] == "call"
@@ -70,9 +71,10 @@ def test_create_correspondence_invalid_type_returns_422(client, test_db, advisor
     business = _create_business(test_db)
 
     response = client.post(
-        f"/api/v1/businesses/{business.id}/correspondence",
+        f"/api/v1/clients/{business.client_id}/correspondence",
         headers=advisor_headers,
         json={
+            "business_id": business.id,
             "correspondence_type": "invalid_type",
             "subject": "Invalid type attempt",
             "occurred_at": "2026-02-10T10:00:00",
@@ -86,12 +88,13 @@ def test_create_correspondence_invalid_type_returns_422(client, test_db, advisor
 def test_create_correspondence_contact_mismatch_returns_403(client, test_db, advisor_headers):
     owner_business = _create_business(test_db, id_number="777777777")
     other_business = _create_business(test_db, id_number="888888888")
-    contact = _create_contact(test_db, owner_business)
+    contact = _create_contact(test_db, owner_business.client_id)
 
     response = client.post(
-        f"/api/v1/businesses/{other_business.id}/correspondence",
+        f"/api/v1/clients/{other_business.client_id}/correspondence",
         headers=advisor_headers,
         json={
+            "business_id": other_business.id,
             "contact_id": contact.id,
             "correspondence_type": "email",
             "subject": "Wrong business contact",
@@ -108,6 +111,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
     service = CorrespondenceService(test_db)
 
     earlier = service.add_entry(
+        client_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Earlier entry",
@@ -115,6 +119,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
         created_by=test_user.id,
     )
     later = service.add_entry(
+        client_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.MEETING,
         subject="Later entry",
@@ -123,7 +128,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
     )
 
     list_response = client.get(
-        f"/api/v1/businesses/{business.id}/correspondence",
+        f"/api/v1/clients/{business.client_id}/correspondence",
         headers=advisor_headers,
     )
 
@@ -134,7 +139,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
     assert items[1]["id"] == earlier.id
 
     get_response = client.get(
-        f"/api/v1/businesses/{business.id}/correspondence/{later.id}",
+        f"/api/v1/clients/{business.client_id}/correspondence/{later.id}",
         headers=advisor_headers,
     )
     assert get_response.status_code == 200
