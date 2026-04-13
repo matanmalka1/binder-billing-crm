@@ -1,4 +1,4 @@
-from app.businesses.models.business import Business
+from app.clients.models.client import Client
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -23,20 +23,11 @@ def build_client_events(
 ) -> list[dict]:
     events = []
 
-    client_businesses = (
-        db.query(Business)
-        .filter(
-            Business.client_id == client_id,
-            Business.deleted_at.is_(None),
-        )
-        .order_by(Business.opened_at.asc(), Business.id.asc())
-        .all()
-    )
-    if client_businesses:
-        primary_business = client_businesses[0]
-        events.append(client_created_event(primary_business))
-        if primary_business.updated_at and primary_business.updated_at != primary_business.created_at:
-            events.append(client_info_updated_event(primary_business))
+    client = db.query(Client).filter(Client.id == client_id, Client.deleted_at.is_(None)).first()
+    if client:
+        events.append(client_created_event(client))
+        if client.updated_at and client.updated_at != client.created_at:
+            events.append(client_info_updated_event(client))
 
     for business_id in business_ids:
         reminders = reminder_repo.list_by_business(

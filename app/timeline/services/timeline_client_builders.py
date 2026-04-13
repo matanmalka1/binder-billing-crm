@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from app.timeline.labels import (
     DOCUMENT_TYPE_HE,
     REMINDER_TYPE_HE,
@@ -10,7 +8,7 @@ from app.timeline.labels import (
 def client_created_event(client) -> dict:
     return {
         "event_type": "client_created",
-        "timestamp": datetime.combine(client.opened_at, datetime.min.time()),
+        "timestamp": client.created_at,
         "binder_id": None,
         "charge_id": None,
         "description": f"לקוח נוצר: {client.full_name}",
