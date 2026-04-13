@@ -12,6 +12,14 @@ from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_binder_helper import create_initial_binder
 from app.clients.services.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
+from app.clients.services.messages import (
+    CLIENT_ID_NUMBER_ACTIVE_EXISTS,
+    CLIENT_ID_NUMBER_CONFLICT,
+    CLIENT_ID_NUMBER_DELETED,
+    CLIENT_ID_NUMBER_EXISTS,
+    CLIENT_NOT_DELETED,
+    CLIENT_NOT_FOUND,
+)
 from app.core.exceptions import ConflictError, NotFoundError
 
 
@@ -49,14 +57,14 @@ class ClientService:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
         if active_clients:
             raise ConflictError(
-                f"לקוח עם מספר ת.ז. {id_number} כבר קיים במערכת",
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number),
                 "CLIENT.CONFLICT",
             )
 
         deleted_clients = self.client_repo.get_deleted_by_id_number(id_number)
         if deleted_clients:
             raise ConflictError(
-                f"לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק",
+                CLIENT_ID_NUMBER_DELETED.format(id_number=id_number),
                 "CLIENT.DELETED_EXISTS",
             )
 
@@ -74,7 +82,7 @@ class ClientService:
                 created_by=actor_id,
             )
         except IntegrityError:
-            raise ConflictError(f"לקוח עם מספר ת.ז. {id_number} כבר קיים", "CLIENT.CONFLICT")
+            raise ConflictError(CLIENT_ID_NUMBER_CONFLICT.format(id_number=id_number), "CLIENT.CONFLICT")
 
         create_initial_binder(self.db, client, actor_id)
         generate_client_obligations(
@@ -91,7 +99,7 @@ class ClientService:
     def get_client_or_raise(self, client_id: int) -> Client:
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         return client
 
     def update_client(self, client_id: int, actor_id: Optional[int] = None, **fields) -> Client:
@@ -117,7 +125,7 @@ class ClientService:
     def delete_client(self, client_id: int, actor_id: int) -> None:
         client = self.client_repo.get_by_id_including_deleted(client_id)
         if not client or client.deleted_at is not None:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         self.client_repo.soft_delete(client_id, deleted_by=actor_id)
         self._audit.append(
             entity_type=ENTITY_CLIENT, entity_id=client_id,
@@ -127,20 +135,20 @@ class ClientService:
     def restore_client(self, client_id: int, actor_id: int) -> Client:
         client = self.client_repo.get_by_id_including_deleted(client_id)
         if not client:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         if client.deleted_at is None:
-            raise ConflictError("לקוח זה אינו מחוק", "CLIENT.NOT_DELETED")
+            raise ConflictError(CLIENT_NOT_DELETED, "CLIENT.NOT_DELETED")
 
         active = self.client_repo.get_active_by_id_number(client.id_number)
         if active:
             raise ConflictError(
-                f"לקוח עם מספר ת.ז. {client.id_number} כבר קיים ופעיל במערכת",
+                CLIENT_ID_NUMBER_ACTIVE_EXISTS.format(id_number=client.id_number),
                 "CLIENT.CONFLICT",
             )
 
         restored = self.client_repo.restore(client_id, restored_by=actor_id)
         if not restored:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         self._audit.append(
             entity_type=ENTITY_CLIENT, entity_id=client_id,
             performed_by=actor_id, action=ACTION_RESTORED,

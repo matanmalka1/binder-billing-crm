@@ -1,0 +1,6 @@
+CLIENT_ID_NUMBER_EXISTS = "לקוח עם מספר ת.ז. {id_number} כבר קיים במערכת"
+CLIENT_ID_NUMBER_DELETED = "לקוח עם מספר ת.ז. {id_number} קיים במערכת אך נמחק"
+CLIENT_ID_NUMBER_CONFLICT = "לקוח עם מספר ת.ז. {id_number} כבר קיים"
+CLIENT_NOT_FOUND = "לקוח {client_id} לא נמצא"
+CLIENT_NOT_DELETED = "לקוח זה אינו מחוק"
+CLIENT_ID_NUMBER_ACTIVE_EXISTS = "לקוח עם מספר ת.ז. {id_number} כבר קיים ופעיל במערכת"

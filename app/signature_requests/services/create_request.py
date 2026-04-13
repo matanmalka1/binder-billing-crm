@@ -4,6 +4,12 @@ import hashlib
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
+from app.signature_requests.services.messages import (
+    BUSINESS_CLIENT_MISMATCH,
+    BUSINESS_NOT_FOUND,
+    INVALID_REQUEST_TYPE,
+    SIGNATURE_REQUEST_CREATED_NOTE,
+)
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -40,10 +46,10 @@ def create_request(
     if business_id is not None:
         business = business_repo.get_by_id(business_id)
         if not business:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+            raise NotFoundError(BUSINESS_NOT_FOUND.format(business_id=business_id), "BUSINESS.NOT_FOUND")
         if business.client_id != client_id:
             raise AppError(
-                f"עסק {business_id} אינו שייך ללקוח {client_id}",
+                BUSINESS_CLIENT_MISMATCH.format(business_id=business_id, client_id=client_id),
                 "BUSINESS.CLIENT_MISMATCH",
             )
         # Fall back to business contact details when caller omits them

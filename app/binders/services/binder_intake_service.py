@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError
+from app.binders.services.messages import BINDER_CLIENT_LOCKED, BINDER_RECEIVED
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
@@ -60,10 +61,7 @@ class BinderIntakeService:
         businesses = self.business_repo.list_by_client(client_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
-            raise AppError(
-                "לא ניתן לקלוט קלסר ללקוח מוקפא או סגור",
-                "BINDER.CLIENT_LOCKED",
-            )
+            raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
 
         existing = self.binder_repo.get_active_by_client(client_id)
 
@@ -90,7 +88,7 @@ class BinderIntakeService:
                 old_status="null",
                 new_status=BinderStatus.IN_OFFICE.value,
                 changed_by=received_by,
-                notes="קלסר התקבל",
+                notes=BINDER_RECEIVED,
             )
             is_new_binder = True
 

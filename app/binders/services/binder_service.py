@@ -6,6 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.binders.models.binder import Binder, BinderStatus
+from app.binders.services.messages import (
+    BINDER_MARKED_READY,
+    BINDER_NOT_FOUND,
+    BINDER_PICKED_UP_BY,
+    BINDER_READY_REVERTED,
+)
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
@@ -59,7 +65,7 @@ class BinderService(BinderListService):
         """Mark binder as ready for pickup."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
+            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
 
         binder_helpers.validate_ready_transition(binder)
 
@@ -73,7 +79,7 @@ class BinderService(BinderListService):
             old_status=old_status,
             new_status=BinderStatus.READY_FOR_PICKUP.value,
             changed_by=user_id,
-            notes="סומן כמוכן לאיסוף",
+            notes=BINDER_MARKED_READY,
         )
 
         businesses = self.business_repo.list_by_client(binder.client_id)
@@ -102,7 +108,7 @@ class BinderService(BinderListService):
         """Return binder to client."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
+            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
 
         binder_helpers.validate_return_transition(binder, pickup_person_name)
 
@@ -124,7 +130,7 @@ class BinderService(BinderListService):
             old_status=old_status,
             new_status=BinderStatus.RETURNED.value,
             changed_by=returned_by,
-            notes=f"נאסף על ידי {pickup_person_name}",
+            notes=BINDER_PICKED_UP_BY.format(pickup_person_name=pickup_person_name),
         )
 
         return updated
@@ -133,7 +139,7 @@ class BinderService(BinderListService):
         """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(f"הקלסר {binder_id} לא נמצא", "BINDER.NOT_FOUND")
+            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
 
         binder_helpers.validate_revert_ready_transition(binder)
 
@@ -145,7 +151,7 @@ class BinderService(BinderListService):
             old_status=old_status,
             new_status=BinderStatus.IN_OFFICE.value,
             changed_by=user_id,
-            notes="בוטל סטטוס מוכן לאיסוף",
+            notes=BINDER_READY_REVERTED,
         )
 
         return updated

@@ -23,12 +23,30 @@ from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.reminders.services.messages import (
+    ADVANCE_PAYMENT_NOT_FOUND,
+    ADVANCE_PAYMENT_REMINDER_DEFAULT,
+    ANNUAL_REPORT_NOT_FOUND,
+    ANNUAL_REPORT_REMINDER_DEFAULT,
+    BINDER_NOT_FOUND,
+    CHARGE_NOT_FOUND,
+    CHARGE_SCOPE_MISMATCH,
+    CLIENT_NOT_FOUND,
+    CUSTOM_REMINDER_MESSAGE_REQUIRED,
+    DOCUMENT_MISSING_MESSAGE_REQUIRED,
+    IDLE_BINDER_REMINDER_DEFAULT,
+    NEGATIVE_DAYS,
+    TAX_DEADLINE_NOT_FOUND,
+    TAX_DEADLINE_REMINDER_DEFAULT,
+    UNPAID_CHARGE_REMINDER_DEFAULT,
+    VAT_FILING_REMINDER_DEFAULT,
+)
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 
 def _require_non_negative_days(days_before: int) -> None:
     if days_before < 0:
-        raise AppError("המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי", "REMINDER.NEGATIVE_DAYS")
+        raise AppError(NEGATIVE_DAYS, "REMINDER.NEGATIVE_DAYS")
 
 
 # ── Client-scoped reminders ───────────────────────────────────────────────────
@@ -48,14 +66,14 @@ def create_tax_deadline_reminder(
     created_by: Optional[int] = None,
 ) -> Reminder:
     if not client_repo.get_by_id(client_id):
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "REMINDER.CLIENT_NOT_FOUND")
+        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "REMINDER.CLIENT_NOT_FOUND")
     if not tax_deadline_repo.get_by_id(tax_deadline_id):
-        raise NotFoundError(f"מועד מס {tax_deadline_id} לא נמצא", "REMINDER.NOT_FOUND")
+        raise NotFoundError(TAX_DEADLINE_NOT_FOUND.format(tax_deadline_id=tax_deadline_id), "REMINDER.NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
-        message = f"תזכורת: מועד מס בעוד {days_before} ימים ({target_date})"
+        message = TAX_DEADLINE_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
 
     return reminder_repo.create(
         client_id=client_id,
@@ -82,14 +100,14 @@ def create_vat_filing_reminder(
 ) -> Reminder:
     deadline = tax_deadline_repo.get_by_id(tax_deadline_id)
     if not deadline:
-        raise NotFoundError(f"מועד מס {tax_deadline_id} לא נמצא", "REMINDER.NOT_FOUND")
+        raise NotFoundError(TAX_DEADLINE_NOT_FOUND.format(tax_deadline_id=tax_deadline_id), "REMINDER.NOT_FOUND")
     if not client_repo.get_by_id(deadline.client_id):
-        raise NotFoundError(f"לקוח {deadline.client_id} לא נמצא", "REMINDER.CLIENT_NOT_FOUND")
+        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=deadline.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
-        message = f"תזכורת: מועד הגשת דוח מע\"מ בעוד {days_before} ימים ({target_date})"
+        message = VAT_FILING_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
 
     return reminder_repo.create(
         client_id=deadline.client_id,
@@ -115,15 +133,15 @@ def create_idle_binder_reminder(
 ) -> Reminder:
     binder = binder_repo.get_by_id(binder_id)
     if not binder:
-        raise NotFoundError(f"תיק {binder_id} לא נמצא", "REMINDER.NOT_FOUND")
+        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "REMINDER.NOT_FOUND")
     if not client_repo.get_by_id(binder.client_id):
-        raise NotFoundError(f"לקוח {binder.client_id} לא נמצא", "REMINDER.CLIENT_NOT_FOUND")
+        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=binder.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_idle)
 
     target_date = date.today() + timedelta(days=days_idle)
     send_on = date.today()
     if message is None:
-        message = f"תזכורת: תיק לא טופל {days_idle} ימים"
+        message = IDLE_BINDER_REMINDER_DEFAULT.format(days_idle=days_idle)
 
     return reminder_repo.create(
         client_id=binder.client_id,
@@ -150,14 +168,14 @@ def create_annual_report_deadline_reminder(
 ) -> Reminder:
     report = annual_report_repo.get_by_id(annual_report_id)
     if not report:
-        raise NotFoundError(f"דוח שנתי {annual_report_id} לא נמצא", "REMINDER.NOT_FOUND")
+        raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(annual_report_id=annual_report_id), "REMINDER.NOT_FOUND")
     if not client_repo.get_by_id(report.client_id):
-        raise NotFoundError(f"לקוח {report.client_id} לא נמצא", "REMINDER.CLIENT_NOT_FOUND")
+        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=report.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
-        message = f"תזכורת: מועד הגשת הדוח השנתי בעוד {days_before} ימים ({target_date})"
+        message = ANNUAL_REPORT_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
 
     return reminder_repo.create(
         client_id=report.client_id,
@@ -190,15 +208,15 @@ def create_unpaid_charge_reminder(
         get_business_or_raise(business_repo.db, business_id)
     charge = charge_repo.get_by_id(charge_id)
     if not charge:
-        raise NotFoundError(f"חיוב {charge_id} לא נמצא", "REMINDER.NOT_FOUND")
+        raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "REMINDER.NOT_FOUND")
     if charge.client_id != client_id or charge.business_id != business_id:
-        raise AppError("החיוב לא תואם להקשר שנשלח", "REMINDER.CHARGE_SCOPE_MISMATCH")
+        raise AppError(CHARGE_SCOPE_MISMATCH, "REMINDER.CHARGE_SCOPE_MISMATCH")
     _require_non_negative_days(days_unpaid)
 
     target_date = date.today()
     send_on = date.today()
     if message is None:
-        message = f"תזכורת: חשבונית לא שולמה {days_unpaid} ימים"
+        message = UNPAID_CHARGE_REMINDER_DEFAULT.format(days_unpaid=days_unpaid)
 
     return reminder_repo.create(
         client_id=client_id,
@@ -227,12 +245,12 @@ def create_advance_payment_due_reminder(
 ) -> Reminder:
     business = get_business_or_raise(business_repo.db, business_id)
     if not advance_payment_repo.get_by_id(advance_payment_id):
-        raise NotFoundError(f"מקדמה {advance_payment_id} לא נמצאה", "REMINDER.NOT_FOUND")
+        raise NotFoundError(ADVANCE_PAYMENT_NOT_FOUND.format(advance_payment_id=advance_payment_id), "REMINDER.NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
-        message = f"תזכורת: מועד תשלום מקדמה בעוד {days_before} ימים ({target_date})"
+        message = ADVANCE_PAYMENT_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
 
     return reminder_repo.create(
         client_id=business.client_id,     # resolved from business — always set
@@ -260,7 +278,7 @@ def create_document_missing_reminder(
     business = get_business_or_raise(business_repo.db, business_id)
     _require_non_negative_days(days_before)
     if not message or not message.strip():
-        raise AppError("נדרש טקסט עבור תזכורת מסמך חסר", "REMINDER.MESSAGE_REQUIRED")
+        raise AppError(DOCUMENT_MISSING_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
 
@@ -289,7 +307,7 @@ def create_custom_reminder(
     business = get_business_or_raise(business_repo.db, business_id)
     _require_non_negative_days(days_before)
     if not message or not message.strip():
-        raise AppError("נדרש טקסט עבור תזכורות מותאמות אישית", "REMINDER.MESSAGE_REQUIRED")
+        raise AppError(CUSTOM_REMINDER_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
 

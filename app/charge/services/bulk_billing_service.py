@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError
 from app.charge.schemas.charge import BulkChargeFailedItem
 from app.charge.services.billing_service import BillingService
+from app.charge.services.messages import BULK_ACTION_INTERNAL_ERROR
 
 
 class BulkBillingService:
@@ -44,6 +45,6 @@ class BulkBillingService:
             except AppError as exc:
                 failed.append(BulkChargeFailedItem(id=charge_id, error=exc.message))
             except Exception:
-                failed.append(BulkChargeFailedItem(id=charge_id, error="אירעה שגיאה פנימית"))
+                failed.append(BulkChargeFailedItem(id=charge_id, error=BULK_ACTION_INTERNAL_ERROR))
 
         return succeeded, failed

@@ -1,6 +1,12 @@
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, ConflictError, ForbiddenError
+from app.users.services.messages import (
+    USER_CANNOT_DEACTIVATE_SELF,
+    USER_EMAIL_EXISTS,
+    USER_IMMUTABLE_FIELDS,
+    USER_NO_FIELDS_PROVIDED,
+)
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User, UserRole
 from app.users.repositories.user_repository import UserRepository
@@ -35,7 +41,7 @@ class UserManagementService:
         validate_password(password)
 
         if self.user_repo.get_by_email(email):
-            raise ConflictError(f"כבר קיים משתמש עם המייל {email}", "USER.CONFLICT")
+            raise ConflictError(USER_EMAIL_EXISTS.format(email=email), "USER.CONFLICT")
 
         user = self.user_repo.create(
             full_name=full_name,
@@ -79,18 +85,15 @@ class UserManagementService:
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
-                raise ConflictError(f"כבר קיים משתמש עם המייל {fields['email']}", "USER.CONFLICT")
+                raise ConflictError(USER_EMAIL_EXISTS.format(email=fields["email"]), "USER.CONFLICT")
 
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))
-            raise AppError(
-                f"לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}",
-                "USER.INVALID_UPDATE",
-            )
+            raise AppError(USER_IMMUTABLE_FIELDS.format(disallowed=disallowed), "USER.INVALID_UPDATE")
 
         if not fields:
-            raise AppError("חובה לספק לפחות שדה אחד הניתן לשינוי", "USER.NO_FIELDS_PROVIDED")
+            raise AppError(USER_NO_FIELDS_PROVIDED, "USER.NO_FIELDS_PROVIDED")
 
         get_user_or_raise(self.user_repo, user_id)
         user = self.user_repo.update(user_id, **fields)
@@ -126,7 +129,7 @@ class UserManagementService:
     ) -> User:
         ensure_advisor(actor_role)
         if actor_user_id == target_user_id:
-            raise ForbiddenError("אינך יכול להשבית את החשבון שלך", "USER.FORBIDDEN")
+            raise ForbiddenError(USER_CANNOT_DEACTIVATE_SELF, "USER.FORBIDDEN")
 
         get_user_or_raise(self.user_repo, target_user_id)
         user = self.user_repo.deactivate_and_bump_token(target_user_id)
