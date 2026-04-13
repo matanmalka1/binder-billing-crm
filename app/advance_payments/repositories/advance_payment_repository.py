@@ -1,14 +1,8 @@
-"""CRUD repository for AdvancePayment entities.
-
-Aggregation/overview queries (list_overview_payments, sum_paid_by_client_year,
-get_collections_aggregates) live in AdvancePaymentAggregationRepository.
-This class re-exposes them via composition for backward compatibility.
-"""
+"""CRUD repository for AdvancePayment entities."""
 
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import String, cast, func
 from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
@@ -121,14 +115,6 @@ class AdvancePaymentRepository(BaseRepository):
         return True
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────
-
-    def list_overview_payments(
-        self,
-        year: int,
-        month: Optional[int],
-        statuses: list[AdvancePaymentStatus],
-    ) -> list[AdvancePayment]:
-        return self._agg.list_overview_payments(year, month, statuses)
 
     def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
         return self._agg.sum_paid_by_client_year(client_id, year)

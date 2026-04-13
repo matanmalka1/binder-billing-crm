@@ -1,4 +1,3 @@
-from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -6,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.services.constants import build_due_date, get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
@@ -35,7 +35,7 @@ def generate_annual_schedule(
         client_id, year, period_months_count
     )
 
-    start_months = [1, 3, 5, 7, 9, 11] if period_months_count == 2 else list(range(1, 13))
+    start_months = get_period_start_months(period_months_count)
 
     created: list[AdvancePayment] = []
     skipped = 0
@@ -46,17 +46,11 @@ def generate_annual_schedule(
             skipped += 1
             continue
 
-        due_month = month + period_months_count
-        due_year = year
-        if due_month > 12:
-            due_month -= 12
-            due_year += 1
-
         payment = repo.create(
             client_id=client_id,
             period=period,
             period_months_count=period_months_count,
-            due_date=date(due_year, due_month, 15),
+            due_date=build_due_date(year, month, period_months_count),
             expected_amount=suggested,
         )
         created.append(payment)

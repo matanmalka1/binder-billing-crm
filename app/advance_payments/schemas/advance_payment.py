@@ -5,6 +5,11 @@ from typing import Optional
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus, PaymentMethod
+from app.advance_payments.services.constants import (
+    BIMONTHLY_START_MONTHS,
+    SUPPORTED_PERIOD_MONTH_COUNTS,
+    parse_period_month,
+)
 from app.core.api_types import ApiDateTime, ApiDecimal
 
 
@@ -55,11 +60,13 @@ class AdvancePaymentCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_period_for_frequency(self) -> "AdvancePaymentCreateRequest":
+        if self.period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:
+            raise ValueError("period_months_count לא נתמך")
         if self.period_months_count != 2:
             return self
 
-        month = int(self.period.split("-")[1])
-        if month not in {1, 3, 5, 7, 9, 11}:
+        month = parse_period_month(self.period)
+        if month not in BIMONTHLY_START_MONTHS:
             raise ValueError("מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי")
         return self
 

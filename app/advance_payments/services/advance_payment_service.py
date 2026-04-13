@@ -11,7 +11,7 @@ from app.advance_payments.services.advance_payment_calculator import (
     calculate_expected_amount,
     derive_annual_income_from_vat,
 )
-from app.advance_payments.services.constants import VAT_RATE
+from app.advance_payments.services.constants import ADVANCE_PAYMENT_VAT_RATE
 from app.clients.models.client import ClientStatus
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
@@ -142,7 +142,7 @@ class AdvancePaymentService:
         )
         if prior_year_vat is None:
             return None
-        annual_income = derive_annual_income_from_vat(prior_year_vat, VAT_RATE)
+        annual_income = derive_annual_income_from_vat(prior_year_vat, ADVANCE_PAYMENT_VAT_RATE)
         return calculate_expected_amount(
             annual_income, Decimal(str(client.advance_rate)), period_months_count
         )

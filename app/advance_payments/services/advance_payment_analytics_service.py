@@ -52,7 +52,6 @@ class AdvancePaymentAnalyticsService:
                 (
                     p,
                     clients[p.client_id].full_name if p.client_id in clients else "",
-                    p.client_id,
                 )
                 for p in payments
             ],

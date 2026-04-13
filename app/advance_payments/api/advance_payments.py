@@ -14,6 +14,7 @@ from app.advance_payments.schemas.advance_payment import (
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
+from app.advance_payments.services.constants import parse_period_year
 
 router = APIRouter(
     prefix="/clients/{client_id}/advance-payments",
@@ -139,7 +140,7 @@ def update_advance_payment(
     # for the same client+year so the advisor is prompted to re-save after recalculation.
     if payment.status == AdvancePaymentStatus.PAID and payment.period:
         try:
-            tax_year = int(payment.period.split("-")[0])
+            tax_year = parse_period_year(payment.period)
             from app.annual_reports.services.financial_service import AnnualReportFinancialService
             AnnualReportFinancialService(db).invalidate_tax_if_open(client_id, tax_year)
         except Exception:

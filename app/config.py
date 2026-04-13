@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Literal
+from decimal import Decimal
 
 from app.core.exceptions import AppError
 
@@ -50,6 +51,7 @@ class Config:
         raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
     
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
+    ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
 
     CORS_ALLOWED_ORIGINS: list[str] = [
         origin.strip()
