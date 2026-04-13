@@ -1,11 +1,11 @@
-from datetime import datetime
-from decimal import Decimal
 from typing import Literal, Optional
 import re
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.charge.models.charge import ChargeType, ChargeStatus
+from app.charge.services.constants import MONTHS_COVERED_MAX, PERIOD_REGEX
+from app.charge.services.messages import PERIOD_INVALID_FORMAT
 from app.core.api_types import ApiDateTime, ApiDecimal
 
 
@@ -13,17 +13,15 @@ class ChargeCreateRequest(BaseModel):
     client_id: int
     business_id: Optional[int] = None
     amount: ApiDecimal = Field(gt=0)
-    charge_type: ChargeType                     # enum — לא str חופשי
-    period: Optional[str] = None                # "YYYY-MM"
-    months_covered: int = Field(1, ge=1, le=2)  # monthly or bimonthly
-    description: Optional[str] = None          # קיים במודל
-    annual_report_id: Optional[int] = None     # קיים במודל
+    charge_type: ChargeType                                              # enum — לא str חופשי
+    period: Optional[str] = None                                        # "YYYY-MM"
+    months_covered: int = Field(1, ge=1, le=MONTHS_COVERED_MAX)        # monthly or bimonthly
 
     @field_validator("period")
     @classmethod
     def validate_period(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", v):
-            raise ValueError("period חייב להיות בפורמט YYYY-MM")
+        if v is not None and not re.fullmatch(PERIOD_REGEX, v):
+            raise ValueError(PERIOD_INVALID_FORMAT)
         return v
 
 

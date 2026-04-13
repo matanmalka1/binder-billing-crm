@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Annotated, Any
 
 from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
@@ -24,7 +24,7 @@ def _normalize_utc_datetime(value: Any) -> Any:
 
 
 def _serialize_decimal(value: Decimal) -> str:
-    return format(value, "f")
+    return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def _serialize_datetime(value: datetime) -> str:

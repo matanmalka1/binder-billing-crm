@@ -1,33 +1,18 @@
 # Authority Contact Module
 
-> Last audited: 2026-03-22 (domain-by-domain backend sync).
+> Last audited: 2026-04-13
 
-Manages per-business authority contacts (tax office, VAT branch, national insurance, etc.) used by the CRM and referenced by other domains (for example correspondence entries).
+Manages government-authority contacts for a client, such as tax office, VAT branch, and national insurance contacts. These records are used directly by the CRM and can be referenced by other domains such as `correspondence`.
 
 ## Scope
 
 This module provides:
 - CRUD for `authority_contacts`
-- Filtering + pagination by business and contact type
+- Filtering and pagination by client and contact type
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
 - Role-based API access
 
 ## Domain Model
-
-`AuthorityContact` fields:
-- `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
-- `contact_type` (enum, required)
-- `name` (required)
-- `office`, `phone`, `email`, `notes` (optional)
-- `created_at`, `updated_at`
-- `deleted_at`, `deleted_by` (for soft delete)
-
-Contact type enum values:
-- `assessing_officer`
-- `vat_branch`
-- `national_insurance`
-- `other`
 
 Implementation references:
 - Model: `app/authority_contact/models/authority_contact.py`
@@ -36,12 +21,32 @@ Implementation references:
 - Service: `app/authority_contact/services/authority_contact_service.py`
 - API: `app/authority_contact/api/authority_contact.py`
 
+`AuthorityContact` fields:
+- `id` (PK)
+- `client_id` (FK -> `clients.id`, required)
+- `contact_type` (enum, required)
+- `name` (required)
+- `office`, `phone`, `email`, `notes` (optional)
+- `created_at`, `updated_at`
+- `deleted_at`, `deleted_by` (soft delete audit fields)
+
+Contact type enum values:
+- `assessing_officer`
+- `vat_branch`
+- `national_insurance`
+- `other`
+
+Notes:
+- Contacts are client-scoped in the current implementation.
+- The model does not currently include `business_id`.
+- Reads exclude soft-deleted rows.
+
 ## API
 
-Router prefix is `/api/v1/businesses` (mounted in `app/main.py`).
+The router is mounted under `/api/v1` and uses a local router prefix of `/clients`, so the effective paths are:
 
 ### Create contact
-- `POST /api/v1/businesses/{business_id}/authority-contacts`
+- `POST /api/v1/clients/{client_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Body:
 
@@ -56,35 +61,48 @@ Router prefix is `/api/v1/businesses` (mounted in `app/main.py`).
 }
 ```
 
-### List contacts by business
-- `GET /api/v1/businesses/{business_id}/authority-contacts`
+### List contacts by client
+- `GET /api/v1/clients/{client_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `contact_type` (optional enum)
   - `page` (default `1`, min `1`)
   - `page_size` (default `20`, min `1`, max `100`)
 
+Response shape:
+
+```json
+{
+  "items": [],
+  "page": 1,
+  "page_size": 20,
+  "total": 0
+}
+```
+
 ### Get contact
-- `GET /api/v1/businesses/authority-contacts/{contact_id}`
+- `GET /api/v1/clients/authority-contacts/{contact_id}`
 - Roles: `ADVISOR`, `SECRETARY`
 
 ### Update contact
-- `PATCH /api/v1/businesses/authority-contacts/{contact_id}`
+- `PATCH /api/v1/clients/authority-contacts/{contact_id}`
 - Roles: `ADVISOR`, `SECRETARY`
-- Partial update supported.
+- Partial update supported via `AuthorityContactUpdateRequest`
 
-### Delete contact (soft delete)
-- `DELETE /api/v1/businesses/authority-contacts/{contact_id}`
+### Delete contact
+- `DELETE /api/v1/clients/authority-contacts/{contact_id}`
 - Role: `ADVISOR` only
+- Soft delete
 - Returns `204 No Content`
 
 ## Behavior Notes
 
-- Creating a contact validates that the business exists (`BUSINESS.NOT_FOUND` on missing business).
-- `contact_type` is validated against the enum; invalid values return a validation error.
+- Creating a contact validates that the client exists and raises `CLIENT.NOT_FOUND` if it does not.
+- `contact_type` is validated against the enum in both request parsing and service-level conversion.
 - Get, update, and delete for unknown or soft-deleted contacts raise `AUTHORITY_CONTACT.NOT_FOUND`.
-- Repository reads (`get_by_id`, list/count) exclude soft-deleted records.
-- Delete does not remove rows; it sets `deleted_at` + `deleted_by`.
+- Repository list and count operations are client-scoped and exclude soft-deleted records.
+- Delete does not remove rows; it sets `deleted_at` and `deleted_by`.
+- Results are ordered by `created_at DESC`.
 
 ## Error Envelope
 
@@ -93,22 +111,27 @@ Errors follow the global app format from `app/core/exceptions.py`, including:
 - `error`
 - `error_meta`
 
-Domain errors use stable codes such as:
-- `BUSINESS.NOT_FOUND`
+Domain errors used here include:
+- `CLIENT.NOT_FOUND`
 - `AUTHORITY_CONTACT.NOT_FOUND`
 
 ## Cross-Domain Integration
 
 `correspondence` can reference an authority contact via `contact_id` (`authority_contacts.id`).
-When used, correspondence service enforces that the contact belongs to the same business.
+
+That integration validates client ownership, not business ownership:
+- the contact must exist
+- the contact's `client_id` must match the correspondence `client_id`
+
+Reference:
+- `app/correspondence/services/correspondence_service.py`
 
 ## Tests
 
-Authority-contact test suites:
+Authority-contact test suites currently present in the repository:
 - `tests/authority_contact/api/test_authority_contact.py`
 - `tests/authority_contact/service/test_authority_contact.py`
 - `tests/authority_contact/repository/test_authority_contact_repository.py`
-- `tests/authority_contact/model/test_authority_contact_model.py`
 
 Run only this domain:
 
