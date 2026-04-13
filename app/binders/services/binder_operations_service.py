@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
-from app.binders.repositories.binder_repository_extensions import BinderRepositoryExtensions
+from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -13,7 +13,7 @@ class BinderOperationsService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.repo = BinderRepositoryExtensions(db)
+        self.repo = BinderRepository(db)
         self.client_repo = ClientRepository(db)
 
     def get_open_binders(
@@ -33,12 +33,16 @@ class BinderOperationsService:
         page_size: int = 20,
     ) -> tuple[list[Binder], int]:
         """Get all binders for a client with pagination."""
-        items = self.repo.list_by_client(client_id=client_id, page=page, page_size=page_size)
+        items = self.repo.list_by_client_paginated(
+            client_id=client_id,
+            page=page,
+            page_size=page_size,
+        )
         total = self.repo.count_by_client(client_id)
         return items, total
 
     def client_exists(self, client_id: int) -> bool:
-        """Check client existence for client-binders route."""
+        """Compatibility helper for callers that still query client existence here."""
         return self.client_repo.get_by_id(client_id) is not None
 
     def enrich_binder(

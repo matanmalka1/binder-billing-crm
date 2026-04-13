@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.binders.schemas.binder_extended import BinderHistoryEntry, BinderHistoryResponse
-from app.binders.schemas.binder import BinderIntakeListResponse
+from app.binders.schemas.binder import BinderHistoryResponse, BinderIntakeListResponse
 from app.binders.services.binder_history_service import BinderHistoryService
+from app.binders.services.messages import BINDER_NOT_FOUND
 
 router = APIRouter(
     prefix="/binders",
@@ -19,7 +19,10 @@ def get_binder_history(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderHistoryService(db)
     result = service.get_binder_history(binder_id)
     if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="הקלסר לא נמצא")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=BINDER_NOT_FOUND.format(binder_id=binder_id),
+        )
 
     binder, logs = result
     return BinderHistoryResponse(

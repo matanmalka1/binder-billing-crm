@@ -24,6 +24,7 @@ def _client(db, id_number: str) -> Client:
 def _business(db, client_id: int, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
     biz = Business(
         client_id=client_id,
+        business_name=f"Business {client_id}",
         status=status,
         opened_at=date.today(),
     )

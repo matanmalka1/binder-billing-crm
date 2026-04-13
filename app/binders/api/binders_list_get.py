@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from app.binders.schemas.binder import BinderListResponse, BinderResponse
 from app.binders.services.binder_service import BinderService
 from app.core.exceptions import NotFoundError
+from app.binders.services.messages import BINDER_NOT_FOUND
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 
@@ -59,7 +60,7 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderService(db)
     binder_response = service.get_binder_with_client_name(binder_id)
     if not binder_response:
-        raise NotFoundError("הקלסר לא נמצא", "BINDER.NOT_FOUND")
+        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
     return binder_response
 
 
@@ -73,5 +74,5 @@ def delete_binder(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderService(db)
     deleted = service.delete_binder(binder_id, actor_id=user.id)
     if not deleted:
-        raise NotFoundError("הקלסר לא נמצא", "BINDER.NOT_FOUND")
+        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

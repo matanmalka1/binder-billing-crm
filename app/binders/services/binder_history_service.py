@@ -10,6 +10,7 @@ from app.binders.repositories.binder_intake_repository import BinderIntakeReposi
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.binders.schemas.binder import BinderHistoryEntry, BinderIntakeMaterialResponse, BinderIntakeResponse
 from app.core.exceptions import NotFoundError
+from app.binders.services.messages import BINDER_NOT_FOUND
 from app.users.repositories.user_repository import UserRepository
 
 
@@ -53,7 +54,10 @@ class BinderHistoryService:
     def get_binder_intakes(self, binder_id: int) -> list[BinderIntakeResponse]:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise NotFoundError("הקלסר לא נמצא", "BINDER.NOT_FOUND")
+            raise NotFoundError(
+                BINDER_NOT_FOUND.format(binder_id=binder_id),
+                "BINDER.NOT_FOUND",
+            )
 
         intakes = self.intake_repo.list_by_binder(binder_id)
 

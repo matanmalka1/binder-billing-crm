@@ -16,6 +16,9 @@ class BinderStatus(str, PyEnum):
     RETURNED = "returned"
 
 
+RETURNED_STATUS_VALUE = BinderStatus.RETURNED.value
+
+
 class Binder(Base):
     """
     Physical binder belonging to a client.
@@ -78,8 +81,14 @@ class Binder(Base):
             "idx_active_binder_unique",
             "binder_number",
             unique=True,
-            postgresql_where=and_(column("status") != "returned", column("deleted_at").is_(None)),
-            sqlite_where=and_(column("status") != "returned", column("deleted_at").is_(None)),
+            postgresql_where=and_(
+                column("status") != RETURNED_STATUS_VALUE,
+                column("deleted_at").is_(None),
+            ),
+            sqlite_where=and_(
+                column("status") != RETURNED_STATUS_VALUE,
+                column("deleted_at").is_(None),
+            ),
         ),
     )
     def __repr__(self):

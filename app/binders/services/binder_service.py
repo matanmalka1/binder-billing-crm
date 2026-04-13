@@ -157,7 +157,7 @@ class BinderService(BinderListService):
         return updated
 
     def get_binder(self, binder_id: int) -> Optional[Binder]:
-        """Get binder by ID."""
+        """Compatibility helper for callers that still fetch raw binder entities."""
         return self.binder_repo.get_by_id(binder_id)
 
     def delete_binder(self, binder_id: int, actor_id: int) -> bool:
@@ -174,7 +174,7 @@ class BinderService(BinderListService):
         sort_by: str = "period_start",
         sort_dir: str = "desc",
     ) -> list[Binder]:
-        """List active binders with optional filters."""
+        """Compatibility helper for callers that still use the old service method."""
         return self.binder_repo.list_active(
             client_id=client_id,
             status=status,

@@ -5,7 +5,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError
-from app.binders.services.messages import BINDER_CLIENT_LOCKED, BINDER_RECEIVED
+from app.binders.services.messages import (
+    BINDER_CLIENT_LOCKED,
+    BINDER_CREATED_OLD_STATUS,
+    BINDER_RECEIVED,
+)
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
@@ -14,7 +18,6 @@ from app.binders.repositories.binder_intake_repository import BinderIntakeReposi
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 from app.binders.services.binder_helpers import parse_period_to_date
@@ -31,7 +34,6 @@ class BinderIntakeService:
         self.status_log_repo = BinderStatusLogRepository(db)
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
-        self.client_repo = ClientRepository(db)
         # Used to resolve a Business for NotificationService, which expects
         # (Binder, Business) — not (Binder, Client).
         self.business_repo = BusinessRepository(db)
@@ -76,16 +78,15 @@ class BinderIntakeService:
             is_new_binder = False
         else:
             seq = self.binder_repo.count_all_by_client(client_id) + 1
-            binder_number = f"{client_id}/{seq}"
             binder = self.binder_repo.create(
                 client_id=client_id,
-                binder_number=binder_number,
+                binder_number=self._build_binder_number(client_id, seq),
                 period_start=period_start,
                 created_by=received_by,
             )
             self.status_log_repo.append(
                 binder_id=binder.id,
-                old_status="null",
+                old_status=BINDER_CREATED_OLD_STATUS,
                 new_status=BinderStatus.IN_OFFICE.value,
                 changed_by=received_by,
                 notes=BINDER_RECEIVED,
@@ -125,3 +126,7 @@ class BinderIntakeService:
         if not last_mat or not last_mat.description:
             return fallback
         return parse_period_to_date(last_mat.description) or fallback
+
+    @staticmethod
+    def _build_binder_number(client_id: int, sequence: int) -> str:
+        return f"{client_id}/{sequence}"
