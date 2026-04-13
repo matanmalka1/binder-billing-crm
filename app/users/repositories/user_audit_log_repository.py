@@ -34,8 +34,7 @@ class UserAuditLogRepository(BaseRepository):
             metadata_json=json.dumps(metadata) if metadata is not None else None,
         )
         self.db.add(log)
-        self.db.commit()
-        self.db.refresh(log)
+        self.db.flush()
         return log
 
     def list(

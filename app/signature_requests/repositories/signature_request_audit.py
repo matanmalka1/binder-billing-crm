@@ -32,8 +32,7 @@ class SignatureRequestAuditMixin:
             occurred_at=utcnow(),
         )
         self.db.add(event)
-        self.db.commit()
-        self.db.refresh(event)
+        self.db.flush()
         return event
 
     def list_audit_events(self, signature_request_id: int) -> list[SignatureAuditEvent]:

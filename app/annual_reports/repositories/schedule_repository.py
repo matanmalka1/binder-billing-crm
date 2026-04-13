@@ -27,8 +27,7 @@ class AnnualReportScheduleRepository:
             notes=notes,
         )
         self.db.add(entry)
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def get_schedules(self, annual_report_id: int) -> list[AnnualReportScheduleEntry]:
@@ -54,8 +53,7 @@ class AnnualReportScheduleRepository:
             return None
         entry.is_complete = True
         entry.completed_at = utcnow()
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def schedules_complete(self, annual_report_id: int) -> bool:

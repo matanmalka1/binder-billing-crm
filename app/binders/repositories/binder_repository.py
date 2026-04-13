@@ -32,8 +32,7 @@ class BinderRepository(BaseRepository):
             notes=notes,
         )
         self.db.add(binder)
-        self.db.commit()
-        self.db.refresh(binder)
+        self.db.flush()
         return binder
 
     def get_by_id(self, binder_id: int) -> Optional[Binder]:
@@ -202,5 +201,5 @@ class BinderRepository(BaseRepository):
             binder.returned_at = date.today()
         binder.deleted_at = utcnow()
         binder.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

@@ -31,8 +31,7 @@ class VatAuditLogRepository:
             invoice_id=invoice_id,
         )
         self.db.add(entry)
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def get_audit_trail(self, work_item_id: int) -> list[VatAuditLog]:

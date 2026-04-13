@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.invoice.models.invoice import Invoice
 
 import datetime
 
@@ -91,7 +92,7 @@ class Charge(Base):
     # ── Relationships ─────────────────────────────────────────────────────────
     client        = relationship("Client",       foreign_keys="[Charge.client_id]")
     annual_report = relationship("AnnualReport", foreign_keys="[Charge.annual_report_id]")
-    invoice       = relationship("Invoice",      foreign_keys="[Invoice.charge_id]", uselist=False)
+    invoice       = relationship(Invoice,        foreign_keys=[Invoice.charge_id],   uselist=False)
 
     __table_args__ = (
         Index("idx_charge_client_period", "client_id", "period"),

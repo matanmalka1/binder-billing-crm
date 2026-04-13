@@ -27,8 +27,7 @@ class BinderIntakeRepository:
             notes=notes,
         )
         self.db.add(intake)
-        self.db.commit()
-        self.db.refresh(intake)
+        self.db.flush()
         return intake
 
     def get_first_by_binder(self, binder_id: int) -> Optional[BinderIntake]:

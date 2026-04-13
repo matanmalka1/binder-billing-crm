@@ -9,6 +9,7 @@ from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.permanent_documents.models.permanent_document import PermanentDocument
 
 class ExpenseCategoryType(str, PyEnum):
     OFFICE_RENT = "office_rent"               # שכירות משרד
@@ -56,7 +57,7 @@ class AnnualReportExpenseLine(Base):
     supporting_document_id = Column(
         Integer, ForeignKey("permanent_documents.id"), nullable=True, index=True
     )
-    supporting_document = relationship("PermanentDocument", lazy="select")
+    supporting_document = relationship(PermanentDocument, lazy="select")
     description = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

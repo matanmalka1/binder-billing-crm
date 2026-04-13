@@ -80,8 +80,7 @@ class VatWorkItemWriteRepository:
             assigned_to=assigned_to,
         )
         self.db.add(item)
-        self.db.commit()
-        self.db.refresh(item)
+        self.db.flush()
         return item
 
     def update_status(
@@ -101,8 +100,7 @@ class VatWorkItemWriteRepository:
         for key, value in extra_fields.items():
             if hasattr(item, key):
                 setattr(item, key, value)
-        self.db.commit()
-        self.db.refresh(item)
+        self.db.flush()
         return item
 
     def update_vat_totals(
@@ -124,8 +122,7 @@ class VatWorkItemWriteRepository:
         item.total_output_net = Decimal(str(total_output_net))
         item.total_input_net = Decimal(str(total_input_net))
         item.updated_at = utcnow()
-        self.db.commit()
-        self.db.refresh(item)
+        self.db.flush()
         return item
 
     def mark_filed(
@@ -157,8 +154,7 @@ class VatWorkItemWriteRepository:
         item.is_amendment = is_amendment
         item.amends_item_id = amends_item_id
         item.updated_at = utcnow()
-        self.db.commit()
-        self.db.refresh(item)
+        self.db.flush()
         return item
 
     def append_audit(self, **kwargs) -> VatAuditLog:

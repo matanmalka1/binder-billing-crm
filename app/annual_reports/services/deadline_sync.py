@@ -69,4 +69,5 @@ def sync_annual_report_deadline(
             dirty = True
 
     if dirty:
+        # explicit commit: this service owns the batch sync transaction boundary
         db.commit()

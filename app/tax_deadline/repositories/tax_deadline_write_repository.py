@@ -38,8 +38,7 @@ class TaxDeadlineWriteRepository:
             status=TaxDeadlineStatus.PENDING,
         )
         self.db.add(deadline)
-        self.db.commit()
-        self.db.refresh(deadline)
+        self.db.flush()
         return deadline
 
     _UNSET = object()
@@ -59,8 +58,7 @@ class TaxDeadlineWriteRepository:
             deadline.completed_at = completed_at
         if completed_by is not self._UNSET:
             deadline.completed_by = completed_by
-        self.db.commit()
-        self.db.refresh(deadline)
+        self.db.flush()
         return deadline
 
     def update(
@@ -86,8 +84,7 @@ class TaxDeadlineWriteRepository:
             deadline.payment_amount = payment_amount
         if description is not None:
             deadline.description = description
-        self.db.commit()
-        self.db.refresh(deadline)
+        self.db.flush()
         return deadline
 
     def delete(self, deadline_id: int, deleted_by: int) -> bool:
@@ -96,5 +93,5 @@ class TaxDeadlineWriteRepository:
             return False
         deadline.deleted_at = utcnow()
         deadline.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

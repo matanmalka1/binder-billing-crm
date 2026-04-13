@@ -34,8 +34,7 @@ class CorrespondenceRepository:
             created_by=created_by,
         )
         self.db.add(entry)
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def list_paginated(
@@ -118,8 +117,7 @@ class CorrespondenceRepository:
         for key, value in fields.items():
             if hasattr(entry, key):
                 setattr(entry, key, value)
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def soft_delete(self, entry_id: int, deleted_by: int) -> bool:
@@ -128,5 +126,5 @@ class CorrespondenceRepository:
             return False
         entry.deleted_at = utcnow_aware()
         entry.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

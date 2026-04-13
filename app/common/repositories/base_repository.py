@@ -24,7 +24,8 @@ class BaseRepository:
         Apply field updates, optionally touching an `updated_at` timestamp.
 
         The caller is responsible for fetching the entity (e.g., via get_by_id).
-        Returns the refreshed entity or None if entity is falsy.
+        Returns the flushed entity (in-session object) or None if entity is falsy.
+        Commit is deferred to the service layer or the get_db() safety net.
         """
         if not entity:
             return None
@@ -36,8 +37,7 @@ class BaseRepository:
         if touch_updated_at and hasattr(entity, "updated_at"):
             entity.updated_at = utcnow()
 
-        self.db.commit()
-        self.db.refresh(entity)
+        self.db.flush()
         return entity
 
     def _update_status(

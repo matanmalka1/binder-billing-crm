@@ -37,8 +37,7 @@ class ChargeRepository(BaseRepository):
             created_by=created_by,
         )
         self.db.add(charge)
-        self.db.commit()
-        self.db.refresh(charge)
+        self.db.flush()
         return charge
 
     def get_by_id(self, charge_id: int) -> Optional[Charge]:
@@ -187,5 +186,5 @@ class ChargeRepository(BaseRepository):
             return False
         charge.deleted_at = utcnow()
         charge.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

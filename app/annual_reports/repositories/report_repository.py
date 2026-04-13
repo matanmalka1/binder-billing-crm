@@ -31,8 +31,7 @@ class AnnualReportReportRepository(BaseRepository):
     def create(self, **kwargs) -> AnnualReport:
         report = AnnualReport(**kwargs)
         self.db.add(report)
-        self.db.commit()
-        self.db.refresh(report)
+        self.db.flush()
         return report
 
     def get_by_id(self, report_id: int) -> Optional[AnnualReport]:
@@ -192,5 +191,5 @@ class AnnualReportReportRepository(BaseRepository):
             return False
         report.deleted_at = utcnow()
         report.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

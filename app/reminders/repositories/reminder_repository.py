@@ -47,8 +47,7 @@ class ReminderRepository(ReminderRepositoryFlush):
             created_by=created_by,
         )
         self.db.add(reminder)
-        self.db.commit()
-        self.db.refresh(reminder)
+        self.db.flush()
         return reminder
 
     def get_by_id(self, reminder_id: int) -> Optional[Reminder]:
@@ -64,8 +63,7 @@ class ReminderRepository(ReminderRepositoryFlush):
         if not reminder or reminder.status != ReminderStatus.PENDING:
             return None
         reminder.status = ReminderStatus.PROCESSING
-        self.db.commit()
-        self.db.refresh(reminder)
+        self.db.flush()
         return reminder
 
     def update_status(
@@ -105,7 +103,7 @@ class ReminderRepository(ReminderRepositoryFlush):
             r.status = ReminderStatus.CANCELED
             r.canceled_at = now
         if rows:
-            self.db.commit()
+            self.db.flush()
         return len(rows)
 
     def cancel_pending_by_tax_deadline(self, tax_deadline_id: int) -> int:

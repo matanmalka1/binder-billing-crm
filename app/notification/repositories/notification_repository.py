@@ -49,8 +49,7 @@ class NotificationRepository:
             triggered_by=triggered_by,
         )
         self.db.add(notification)
-        self.db.commit()
-        self.db.refresh(notification)
+        self.db.flush()
         return notification
 
     def mark_sent(self, notification_id: int) -> Optional[Notification]:
@@ -59,8 +58,7 @@ class NotificationRepository:
             return None
         notification.status = NotificationStatus.SENT
         notification.sent_at = utcnow()
-        self.db.commit()
-        self.db.refresh(notification)
+        self.db.flush()
         return notification
 
     def mark_failed(self, notification_id: int, error_message: str) -> Optional[Notification]:
@@ -70,8 +68,7 @@ class NotificationRepository:
         notification.status = NotificationStatus.FAILED
         notification.failed_at = utcnow()
         notification.error_message = error_message
-        self.db.commit()
-        self.db.refresh(notification)
+        self.db.flush()
         return notification
 
     def get_by_id(self, notification_id: int) -> Optional[Notification]:
@@ -170,7 +167,7 @@ class NotificationRepository:
             .filter(Notification.id.in_(notification_ids), Notification.is_read == False)  # noqa: E712
             .update({"is_read": True, "read_at": now}, synchronize_session=False)
         )
-        self.db.commit()
+        self.db.flush()
         return count
 
     def mark_all_read(
@@ -186,7 +183,7 @@ class NotificationRepository:
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)
         count = q.update({"is_read": True, "read_at": now}, synchronize_session=False)
-        self.db.commit()
+        self.db.flush()
         return count
 
     def count_unread(

@@ -27,8 +27,7 @@ class BinderIntakeMaterialRepository:
             description=description,
         )
         self.db.add(material)
-        self.db.commit()
-        self.db.refresh(material)
+        self.db.flush()
         return material
 
     def list_by_intake(self, intake_id: int) -> list[BinderIntakeMaterial]:

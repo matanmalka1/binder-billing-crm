@@ -52,8 +52,7 @@ class AdvancePaymentRepository(BaseRepository):
             status=AdvancePaymentStatus.PENDING,
         )
         self.db.add(payment)
-        self.db.commit()
-        self.db.refresh(payment)
+        self.db.flush()
         return payment
 
     def get_by_id(self, payment_id: int) -> Optional[AdvancePayment]:
@@ -118,7 +117,7 @@ class AdvancePaymentRepository(BaseRepository):
             return False
         payment.deleted_at = utcnow()
         payment.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────

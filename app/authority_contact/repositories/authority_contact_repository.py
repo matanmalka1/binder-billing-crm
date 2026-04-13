@@ -34,8 +34,7 @@ class AuthorityContactRepository(BaseRepository):
             notes=notes,
         )
         self.db.add(contact)
-        self.db.commit()
-        self.db.refresh(contact)
+        self.db.flush()
         return contact
 
     def get_by_id(self, contact_id: int) -> Optional[AuthorityContact]:
@@ -85,5 +84,5 @@ class AuthorityContactRepository(BaseRepository):
 
         contact.deleted_at = utcnow()
         contact.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True

@@ -22,9 +22,19 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency for FastAPI routes to get DB session."""
+    """Dependency for FastAPI routes to get DB session.
+
+    Commits on clean exit; rolls back on any exception.
+    Services that coordinate external I/O (e.g. storage uploads) may call
+    db.commit() / db.rollback() themselves — the safety net here is a no-op
+    on top of an already-committed session.
+    """
     db = SessionLocal()
     try:
         yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()

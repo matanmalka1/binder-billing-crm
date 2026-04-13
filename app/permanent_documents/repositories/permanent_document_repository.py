@@ -28,7 +28,6 @@ class PermanentDocumentRepository:
         file_size_bytes: Optional[int] = None,
         mime_type: Optional[str] = None,
         notes: Optional[str] = None,
-        commit: bool = True,
     ) -> PermanentDocument:
         document = PermanentDocument(
             client_id=client_id,
@@ -48,11 +47,7 @@ class PermanentDocumentRepository:
             notes=notes,
         )
         self.db.add(document)
-        if commit:
-            self.db.commit()
-            self.db.refresh(document)
-        else:
-            self.db.flush()
+        self.db.flush()
         return document
 
     def get_by_id(self, document_id: int) -> Optional[PermanentDocument]:

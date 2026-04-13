@@ -34,8 +34,7 @@ class BusinessRepository(BusinessRepositoryRead):
             created_by=created_by,
         )
         self.db.add(business)
-        self.db.commit()
-        self.db.refresh(business)
+        self.db.flush()
         return business
 
     def update(self, business_id: int, **fields) -> Optional[Business]:
@@ -48,7 +47,7 @@ class BusinessRepository(BusinessRepositoryRead):
             return False
         business.deleted_at = utcnow()
         business.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True
 
     def restore(self, business_id: int, restored_by: int) -> Optional[Business]:
@@ -59,8 +58,7 @@ class BusinessRepository(BusinessRepositoryRead):
         business.restored_at = utcnow()
         business.restored_by = restored_by
         business.status = BusinessStatus.ACTIVE
-        self.db.commit()
-        self.db.refresh(business)
+        self.db.flush()
         return business
 
     # ─── Read (single) ───────────────────────────────────────────────────────

@@ -129,7 +129,6 @@ class PermanentDocumentService:
             file_size_bytes=file_size,
             mime_type=resolved_mime,
             notes=notes,
-            commit=False,
         )
         document.approved_by = uploaded_by
         document.approved_at = utcnow()
@@ -210,7 +209,7 @@ class PermanentDocumentService:
         if not doc:
             raise NotFoundError("המסמך לא נמצא", "PERMANENT_DOCUMENTS.NOT_FOUND")
         doc.is_deleted = True
-        self.db.commit()
+        self.db.flush()
 
     def replace_document(
         self,
@@ -252,6 +251,6 @@ class PermanentDocumentService:
         doc.uploaded_by = uploaded_by
         doc.is_present = True
         doc.version = next_version
+        # explicit commit: storage upload already succeeded above
         self.db.commit()
-        self.db.refresh(doc)
         return doc

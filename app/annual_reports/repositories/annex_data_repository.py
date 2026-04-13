@@ -45,8 +45,7 @@ class AnnexDataRepository:
             notes=notes,
         )
         self.db.add(row)
-        self.db.commit()
-        self.db.refresh(row)
+        self.db.flush()
         return row
 
     def get_by_id(self, line_id: int) -> Optional[AnnualReportAnnexData]:
@@ -65,8 +64,7 @@ class AnnexDataRepository:
         row.data = data
         if notes is not None:
             row.notes = notes
-        self.db.commit()
-        self.db.refresh(row)
+        self.db.flush()
         return row
 
     def delete_line(self, line_id: int) -> bool:
@@ -76,7 +74,7 @@ class AnnexDataRepository:
         if not row:
             return False
         self.db.delete(row)
-        self.db.commit()
+        self.db.flush()
         return True
 
     def count_by_report_and_schedule(

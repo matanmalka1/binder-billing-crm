@@ -28,8 +28,7 @@ class PermanentDocumentActionService:
     def update_notes(self, document_id: int, notes: str) -> PermanentDocument:
         doc = self._get_or_raise(document_id)
         doc.notes = notes
-        self.db.commit()
-        self.db.refresh(doc)
+        self.db.flush()
         return doc
 
     def list_by_annual_report(self, annual_report_id: int) -> list[PermanentDocument]:

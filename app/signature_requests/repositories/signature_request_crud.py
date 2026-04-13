@@ -46,8 +46,7 @@ class SignatureRequestCrudMixin:
             status=SignatureRequestStatus.DRAFT,
         )
         self.db.add(req)
-        self.db.commit()
-        self.db.refresh(req)
+        self.db.flush()
         return req
 
     def get_by_id(self, request_id: int) -> Optional[SignatureRequest]:
@@ -198,8 +197,7 @@ class SignatureRequestCrudMixin:
         for key, value in fields.items():
             if hasattr(entity, key):
                 setattr(entity, key, value)
-        self.db.commit()
-        self.db.refresh(entity)
+        self.db.flush()
         return entity
 
     def list_pending_by_annual_report(self, annual_report_id: int) -> list[SignatureRequest]:

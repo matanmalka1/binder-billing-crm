@@ -68,23 +68,24 @@ def generate_client_obligations(
     מחזירה את מספר הישויות שנוצרו.
 
     best_effort=False (ברירת מחדל — לשימוש בזרימות עדכון):
-        שגיאות נרשמות בלוג, מבוצע rollback לניקוי ה-session, והפונקציה מחזירה.
-        מתאים לזרימות שבהן הישות כבר בוצעה commit ואין טעם להכשיל את הקריאה.
+        שגיאות נרשמות בלוג, ה-savepoint מבוצע rollback, והפונקציה מחזירה.
+        הטרנזקציה הראשית נשמרת — הישות המעדכנת כבר flushed ותבוצע commit בסיום הבקשה.
 
     best_effort=True — לשימוש בזרימות יצירה:
-        שגיאות מועלות מיד לאחר rollback.
-        הישות עצמה כבר committed (מגבלת ארכיטקטורת ה-repo), אך הכשל גלוי למשתמש
-        ומאפשר ריצה חוזרת של POST /tax-deadlines/generate ו-POST /annual-reports לתיקון.
+        שגיאות מועלות מיד לאחר rollback של ה-savepoint.
+        הכשל מתגלגל למעלה, get_db() מבצע rollback לטרנזקציה הראשית — אין נתונים עצומים.
     """
     years = _years_to_generate(reference_date)
     total = 0
 
     deadline_generator = DeadlineGeneratorService(db)
     for year in years:
+        sp = db.begin_nested()  # SAVEPOINT — חוסם rollback של הטרנזקציה הראשית
         try:
             total += deadline_generator.generate_all(client_id, year)
+            sp.commit()  # RELEASE SAVEPOINT
         except Exception:
-            db.rollback()
+            sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
             _log.exception("שגיאה ביצירת מועדי מס ללקוח %s שנה %s", client_id, year)
             if not best_effort:
                 raise
@@ -94,6 +95,7 @@ def generate_client_obligations(
     report_type = _derive_report_type(entity_type).value
     _actor_name = actor_name or ""
     for year in years:
+        sp = db.begin_nested()  # SAVEPOINT
         try:
             report_service.create_report(
                 client_id=client_id,
@@ -104,10 +106,11 @@ def generate_client_obligations(
                 created_by_name=_actor_name,
             )
             total += 1
+            sp.commit()  # RELEASE SAVEPOINT
         except ConflictError:
-            pass  # דוח קיים — מדלגים
+            sp.rollback()  # דוח קיים — מדלגים; חייבים לסיים את ה-savepoint
         except Exception:
-            db.rollback()
+            sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
             _log.exception("שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_id, year)
             if not best_effort:
                 raise

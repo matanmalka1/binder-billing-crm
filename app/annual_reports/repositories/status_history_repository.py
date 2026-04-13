@@ -28,8 +28,7 @@ class AnnualReportStatusHistoryRepository:
             note=note,
         )
         self.db.add(entry)
-        self.db.commit()
-        self.db.refresh(entry)
+        self.db.flush()
         return entry
 
     def get_status_history(self, annual_report_id: int) -> list[AnnualReportStatusHistory]:

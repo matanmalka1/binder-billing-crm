@@ -38,8 +38,7 @@ class AnnualReportExpenseRepository:
             description=description,
         )
         self.db.add(line)
-        self.db.commit()
-        self.db.refresh(line)
+        self.db.flush()
         return line
 
     def list_by_report(self, annual_report_id: int) -> list[AnnualReportExpenseLine]:
@@ -64,8 +63,7 @@ class AnnualReportExpenseRepository:
         for k, v in fields.items():
             if hasattr(line, k):
                 setattr(line, k, v)
-        self.db.commit()
-        self.db.refresh(line)
+        self.db.flush()
         return line
 
     def delete(self, line_id: int) -> bool:
@@ -75,7 +73,7 @@ class AnnualReportExpenseRepository:
         if not line:
             return False
         self.db.delete(line)
-        self.db.commit()
+        self.db.flush()
         return True
 
     def total_expenses(self, annual_report_id: int) -> Decimal:

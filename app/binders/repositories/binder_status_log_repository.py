@@ -28,8 +28,7 @@ class BinderStatusLogRepository:
             notes=notes,
         )
         self.db.add(log)
-        self.db.commit()
-        self.db.refresh(log)
+        self.db.flush()
         return log
 
     def list_by_binder(self, binder_id: int) -> list[BinderStatusLog]:

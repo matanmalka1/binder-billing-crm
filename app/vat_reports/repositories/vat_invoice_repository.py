@@ -68,8 +68,7 @@ class VatInvoiceRepository:
             business_activity_id=business_activity_id,
         )
         self.db.add(invoice)
-        self.db.commit()
-        self.db.refresh(invoice)
+        self.db.flush()
         return invoice
 
     def get_by_id(self, invoice_id: int) -> Optional[VatInvoice]:
@@ -105,8 +104,7 @@ class VatInvoiceRepository:
         for key, value in fields.items():
             if value is not None:
                 setattr(invoice, key, value)
-        self.db.commit()
-        self.db.refresh(invoice)
+        self.db.flush()
         return invoice
 
     def delete(self, invoice_id: int) -> bool:
@@ -114,7 +112,7 @@ class VatInvoiceRepository:
         if not invoice:
             return False
         self.db.delete(invoice)
-        self.db.commit()
+        self.db.flush()
         return True
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────

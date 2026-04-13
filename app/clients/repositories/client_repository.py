@@ -58,8 +58,7 @@ class ClientRepository(BaseRepository):
             created_by=created_by,
         )
         self.db.add(client)
-        self.db.commit()
-        self.db.refresh(client)
+        self.db.flush()
         return client
 
     def get_by_id(self, client_id: int) -> Optional[Client]:
@@ -104,8 +103,7 @@ class ClientRepository(BaseRepository):
         client.deleted_by = None
         client.restored_at = utcnow()
         client.restored_by = restored_by
-        self.db.commit()
-        self.db.refresh(client)
+        self.db.flush()
         return client
 
     def soft_delete(self, client_id: int, deleted_by: int) -> bool:
@@ -115,7 +113,7 @@ class ClientRepository(BaseRepository):
             return False
         client.deleted_at = utcnow()
         client.deleted_by = deleted_by
-        self.db.commit()
+        self.db.flush()
         return True
 
     _SORTABLE_FIELDS = {

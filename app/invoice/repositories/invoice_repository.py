@@ -29,8 +29,7 @@ class InvoiceRepository:
             issued_at=issued_at,
         )
         self.db.add(invoice)
-        self.db.commit()
-        self.db.refresh(invoice)
+        self.db.flush()
         return invoice
 
     def get_by_id(self, invoice_id: int) -> Optional[Invoice]:

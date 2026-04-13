@@ -69,8 +69,7 @@ class AnnualReportDetailRepository:
         else:
             for key, value in fields.items():
                 setattr(detail, key, value)
-        self.db.commit()
-        self.db.refresh(detail)
+        self.db.flush()
         return detail
 
 

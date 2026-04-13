@@ -83,10 +83,10 @@ class TaxDeadline(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        # If deadline_type is ADVANCE_PAYMENT, advance_payment_id must be set.
-        # All other types must leave advance_payment_id NULL.
+        # If advance_payment_id is set, deadline_type must be ADVANCE_PAYMENT.
+        # ADVANCE_PAYMENT deadlines may exist without a linked advance_payment_id (auto-generated).
         CheckConstraint(
-            "(deadline_type != 'advance_payment') OR (advance_payment_id IS NOT NULL)",
+            "(advance_payment_id IS NULL) OR (deadline_type = 'advance_payment')",
             name="ck_tax_deadline_advance_payment_link",
         ),
         Index("idx_tax_deadline_status",         "status"),

@@ -65,8 +65,7 @@ class UserRepository(BaseRepository):
             phone=phone,
         )
         self.db.add(user)
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
 
     def update_last_login(self, user_id: int) -> None:
@@ -74,7 +73,7 @@ class UserRepository(BaseRepository):
         self.db.query(User).filter(User.id == user_id).update(
             {"last_login_at": utcnow()}
         )
-        self.db.commit()
+        self.db.flush()
 
     def update(self, user_id: int, **fields) -> Optional[User]:
         """Update user fields."""
@@ -92,8 +91,7 @@ class UserRepository(BaseRepository):
             return None
 
         user.token_version += 1
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
 
     def deactivate_and_bump_token(self, user_id: int) -> Optional[User]:
@@ -104,8 +102,7 @@ class UserRepository(BaseRepository):
 
         user.is_active = False
         user.token_version += 1
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
 
     def set_password_and_bump_token(self, user_id: int, password_hash: str) -> Optional[User]:
@@ -116,6 +113,5 @@ class UserRepository(BaseRepository):
 
         user.password_hash = password_hash
         user.token_version += 1
-        self.db.commit()
-        self.db.refresh(user)
+        self.db.flush()
         return user
