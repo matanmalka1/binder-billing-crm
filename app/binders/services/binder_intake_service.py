@@ -18,6 +18,7 @@ from app.binders.repositories.binder_intake_repository import BinderIntakeReposi
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 from app.binders.services.binder_helpers import parse_period_to_date
@@ -34,8 +35,9 @@ class BinderIntakeService:
         self.status_log_repo = BinderStatusLogRepository(db)
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
+        self.client_repo = ClientRepository(db)
         # Used to resolve a Business for NotificationService, which expects
-        # (Binder, Business) — not (Binder, Client).
+        # client contact details directly for binder-scoped notifications.
         self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
 
@@ -110,11 +112,12 @@ class BinderIntakeService:
             )
 
         if is_new_binder:
-            if businesses:
-                self.notification_service.notify_binder_received(binder, businesses[0])
+            client = self.client_repo.get_by_id(client_id)
+            if client:
+                self.notification_service.notify_binder_received(binder, client)
             else:
                 _log.warning(
-                    "notify_binder_received skipped: client %s has no businesses (binder %s)",
+                    "notify_binder_received skipped: client %s not found (binder %s)",
                     client_id, binder.id,
                 )
 

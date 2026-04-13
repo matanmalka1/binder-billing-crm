@@ -34,12 +34,12 @@ def test_notify_ready_for_pickup_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    service._send_svc = SimpleNamespace(send_notification=_fake_send_notification)
+    service._send_svc = SimpleNamespace(send_client_notification=_fake_send_notification)
     binder = SimpleNamespace(id=3, binder_number="BN-3")
-    business = SimpleNamespace(id=9, business_name="Pickup Biz")
+    client = SimpleNamespace(id=9, full_name="Pickup Client")
 
-    assert service.notify_ready_for_pickup(binder, business) is True
-    assert captured["business_id"] == 9
+    assert service.notify_ready_for_pickup(binder, client) is True
+    assert captured["client_id"] == 9
     assert captured["binder_id"] == 3
     assert captured["trigger"] == NotificationTrigger.BINDER_READY_FOR_PICKUP
 
@@ -52,12 +52,12 @@ def test_notify_binder_received_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    service._send_svc = SimpleNamespace(send_notification=_fake_send_notification)
+    service._send_svc = SimpleNamespace(send_client_notification=_fake_send_notification)
     binder = SimpleNamespace(id=11, binder_number="BND-001", period_start="2026-03")
-    business = SimpleNamespace(id=1, business_name="Acme Biz")
+    client = SimpleNamespace(id=1, full_name="Acme Client")
 
-    assert service.notify_binder_received(binder, business) is True
-    assert captured["business_id"] == 1
+    assert service.notify_binder_received(binder, client) is True
+    assert captured["client_id"] == 1
     assert captured["binder_id"] == 11
     assert captured["trigger"] == NotificationTrigger.BINDER_RECEIVED
     assert "BND-001" in captured["content"]
@@ -112,6 +112,7 @@ def test_list_and_read_delegation_methods(test_db):
     service = NotificationService(test_db)
     n1 = SimpleNamespace(
         id=1,
+        client_id=8,
         business_id=4,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,
@@ -136,7 +137,7 @@ def test_list_and_read_delegation_methods(test_db):
         list_recent=lambda **kwargs: [n2],
         count_unread=lambda **kwargs: 3,
         mark_read=lambda ids: len(ids),
-        mark_all_read=lambda business_id=None: 5,
+        mark_all_read=lambda **kwargs: 5,
     )
     service.business_repo = SimpleNamespace(
         list_by_ids=lambda ids: [SimpleNamespace(id=4, full_name="Biz 4")],

@@ -15,7 +15,6 @@ from app.binders.services.messages import (
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
 
@@ -32,11 +31,7 @@ class BinderService(BinderListService):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
-        # Binders belong to clients, but notifications use Business objects.
-        # BusinessRepository is used here to look up the primary business
-        # for the client so NotificationService receives the correct type.
         self.client_repo = ClientRepository(db)
-        self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
 
@@ -82,19 +77,11 @@ class BinderService(BinderListService):
             notes=BINDER_MARKED_READY,
         )
 
-        businesses = self.business_repo.list_by_client(binder.client_id)
-        if businesses:
-            # TODO: Binders are client-scoped, not business-scoped (all businesses share one binder).
-            # When a client has multiple businesses, we default to the first one for the notification.
-            # This may reference the wrong business name in the notification message.
-            # Proper fix requires either storing the primary business on the client, or letting the
-            # caller pass a business_id hint. Tracked in TODO.md.
-            self.notification_service.notify_ready_for_pickup(updated, businesses[0])
+        client = self.client_repo.get_by_id(binder.client_id)
+        if client:
+            self.notification_service.notify_ready_for_pickup(updated, client)
         else:
-            _log.warning(
-                "notify_ready_for_pickup skipped: client %s has no businesses (binder %s)",
-                binder.client_id, binder_id,
-            )
+            _log.warning("notify_ready_for_pickup skipped: client %s not found (binder %s)", binder.client_id, binder_id)
 
         return updated
 

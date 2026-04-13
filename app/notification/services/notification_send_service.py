@@ -63,6 +63,13 @@ class NotificationSendService:
         )
         return row or None
 
+    def _get_client(self, client_id: int) -> Client | None:
+        return (
+            self.db.query(Client)
+            .filter(Client.id == client_id, Client.deleted_at.is_(None))
+            .first()
+        )
+
     def bulk_notify(
         self,
         business_ids: list[int],
@@ -162,6 +169,83 @@ class NotificationSendService:
             logger.error(
                 "Unexpected error in send_notification | business=%s trigger=%s error=%s",
                 business_id, trigger, exc,
+            )
+        return True
+
+    def send_client_notification(
+        self,
+        client_id: int,
+        trigger: NotificationTrigger,
+        content: str,
+        binder_id: Optional[int] = None,
+        triggered_by: Optional[int] = None,
+        preferred_channel: str = "email",
+        severity: NotificationSeverity = NotificationSeverity.INFO,
+    ) -> bool:
+        try:
+            client = self._get_client(client_id)
+            if not client:
+                logger.warning("send_client_notification: client %s not found", client_id)
+                return True
+
+            subject = _SUBJECTS.get(trigger)
+            if subject is None:
+                logger.warning("No subject mapping for trigger=%s, using default", trigger)
+                subject = DEFAULT_NOTIFICATION_SUBJECT
+
+            if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
+                n = self.notification_repo.create(
+                    client_id=client.id,
+                    business_id=None,
+                    binder_id=binder_id,
+                    trigger=trigger,
+                    channel=NotificationChannel.WHATSAPP,
+                    recipient=client.phone,
+                    content_snapshot=content,
+                    triggered_by=triggered_by,
+                    severity=severity,
+                )
+                ok, err = self.whatsapp.send(client.phone, content)
+                if ok:
+                    self.notification_repo.mark_sent(n.id)
+                    logger.info("Client notification sent via WhatsApp | client=%s trigger=%s", client_id, trigger.value)
+                    return True
+                self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
+                logger.warning("WhatsApp failed client=%s, falling back to email: %s", client_id, err)
+
+            if not client.email:
+                logger.info(
+                    "send_client_notification: client %s has no email, skipping trigger=%s",
+                    client_id, trigger.value,
+                )
+                return True
+
+            n = self.notification_repo.create(
+                client_id=client.id,
+                business_id=None,
+                binder_id=binder_id,
+                trigger=trigger,
+                channel=NotificationChannel.EMAIL,
+                recipient=client.email,
+                content_snapshot=content,
+                triggered_by=triggered_by,
+                severity=severity,
+            )
+            success, error = self.email.send(client.email, content, subject=subject)
+            if success:
+                self.notification_repo.mark_sent(n.id)
+                logger.info("Client notification sent | client=%s trigger=%s", client_id, trigger.value)
+            else:
+                self.notification_repo.mark_failed(n.id, error or "unknown error")
+                logger.error(
+                    "Client notification failed | client=%s trigger=%s error=%s",
+                    client_id, trigger.value, error,
+                )
+
+        except Exception as exc:  # noqa: BLE001
+            logger.error(
+                "Unexpected error in send_client_notification | client=%s trigger=%s error=%s",
+                client_id, trigger, exc,
             )
         return True
 
