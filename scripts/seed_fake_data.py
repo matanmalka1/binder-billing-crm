@@ -6,6 +6,7 @@ Local quick start:
    APP_ENV=development ENV_FILE=.env.development alembic upgrade head
 2) Run seed:
    APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
+   APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --users-only --reset
 3) Run backend:
    APP_ENV=development ENV_FILE=.env.development python -m app.main
 """

@@ -76,10 +76,7 @@ class ReminderRepository(ReminderRepositoryFlush):
         return self._update_status(reminder, new_status, **additional_fields)
 
     def exists_vat_compliance_reminder(self, client_id: int, tax_deadline_id: int) -> bool:
-        """True if a VAT_FILING reminder for this client+deadline is already PENDING or SENT.
-
-        Uses tax_deadline_id (a proper FK) instead of message text search.
-        """
+        """True if a VAT_FILING reminder linked to this tax_deadline_id is already PENDING or SENT."""
         return (
             self.db.query(Reminder.id)
             .filter(

@@ -2,6 +2,8 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+_today = date.today  # injectable for tests
+
 from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
@@ -49,8 +51,11 @@ class DeadlineGeneratorService:
                 period = f"{year}-{period_start:02d}"
                 due_dates.append((date(filing_year, filing_month, VAT_FILING_DUE_DAY), period))
 
+        today = _today()
         created = []
         for due_date, period in due_dates:
+            if due_date < today:
+                continue
             if not self.deadline_repo.exists(client_id, DeadlineType.VAT, due_date):
                 deadline = self.deadline_service.create_deadline(
                     client_id=client_id,
@@ -70,9 +75,12 @@ class DeadlineGeneratorService:
         if self._resolve_vat_type(client_id) == VatType.EXEMPT:
             return []
 
+        today = _today()
         created = []
         for month in range(1, 13):
             due_date = date(year, month, ADVANCE_PAYMENT_DUE_DAY)
+            if due_date < today:
+                continue
             period = f"{year}-{month:02d}"
             if not self.deadline_repo.exists(client_id, DeadlineType.ADVANCE_PAYMENT, due_date):
                 deadline = self.deadline_service.create_deadline(

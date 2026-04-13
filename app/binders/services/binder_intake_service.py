@@ -84,7 +84,6 @@ class BinderIntakeService:
                 binder_number=binder_number,
                 period_start=period_start,
                 created_by=received_by,
-                notes=notes,
             )
             self.status_log_repo.append(
                 binder_id=binder.id,

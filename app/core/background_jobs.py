@@ -63,26 +63,42 @@ def _vat_compliance_task(db) -> None:
     from datetime import date as _date
     from app.reminders.models.reminder import ReminderType
     from app.reminders.repositories.reminder_repository import ReminderRepository
+    from app.tax_deadline.models.tax_deadline import DeadlineType
+    from app.tax_deadline.repositories.tax_deadline_query_repository import TaxDeadlineQueryRepository
     from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
 
     today = _date.today()
     overdue = VatComplianceRepository(db).get_overdue_unfiled(today)
     reminder_repo = ReminderRepository(db)
+    deadline_repo = TaxDeadlineQueryRepository(db)
     created = 0
     for row in overdue:
-        if reminder_repo.exists_vat_compliance_reminder(row.client_id, row.period):
+        # Resolve the existing TaxDeadline record for this client+period.
+        # due_date on that record is the authoritative deadline (19th for online filers).
+        # Using tax_deadline_id as the idempotency key prevents duplicate reminders.
+        existing = deadline_repo.list_by_client(
+            row.client_id,
+            deadline_type=DeadlineType.VAT,
+            period=row.period,
+        )
+        if not existing:
+            logger.warning(
+                "VAT compliance: no TaxDeadline found for client_id=%d period=%s — skipping",
+                row.client_id,
+                row.period,
+            )
             continue
-        year, month = map(int, row.period.split("-"))
-        next_month = month + 1 if month < 12 else 1
-        next_year = year if month < 12 else year + 1
-        deadline = _date(next_year, next_month, 15)
+        tax_deadline = existing[0]
+        if reminder_repo.exists_vat_compliance_reminder(row.client_id, tax_deadline.id):
+            continue
         reminder_repo.create(
             client_id=row.client_id,
             reminder_type=ReminderType.VAT_FILING,
-            target_date=deadline,
+            target_date=tax_deadline.due_date,
             days_before=0,
             send_on=today,
-            message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד החוקי ({deadline}) עבר",
+            message=f"דוח מע\"מ לתקופה {row.period} לא הוגש — המועד ({tax_deadline.due_date}) עבר",
+            tax_deadline_id=tax_deadline.id,
         )
         created += 1
         logger.info(
@@ -95,7 +111,7 @@ def _vat_compliance_task(db) -> None:
 
 
 async def daily_vat_compliance_job() -> None:
-    """Create VAT_FILING reminders for overdue unfiled periods (deadline = 15th of following month)."""
+    """Create VAT_FILING reminders for overdue unfiled periods."""
     await _run_job("daily_vat_compliance_job", _vat_compliance_task)
 
 

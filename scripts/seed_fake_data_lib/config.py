@@ -25,6 +25,7 @@ class SeedConfig:
     seed: int
     reset: bool
     preserve_users: bool
+    users_only: bool
 
 
 def parse_args() -> SeedConfig:
@@ -102,43 +103,57 @@ def parse_args() -> SeedConfig:
         action="store_true",
         help="Reuse existing users and keep the users tables untouched during reset",
     )
+    parser.add_argument(
+        "--users-only",
+        action="store_true",
+        help="Seed only users and user audit logs",
+    )
 
     args = parser.parse_args()
     if args.users < 1:
         raise ValueError("חובה להגדיר לפחות משתמש אחד")
-    if args.clients < 1:
+    if not args.users_only and args.clients < 1:
         raise ValueError("חובה להגדיר לפחות לקוח אחד")
-    if args.annual_reports_per_client < 1:
+    if not args.users_only and args.annual_reports_per_client < 1:
         raise ValueError("מספר הדוחות השנתיים ללקוח חייב להיות לפחות 1")
-    if args.signature_requests_per_client < 0:
+    if not args.users_only and args.signature_requests_per_client < 0:
         raise ValueError("מספר בקשות החתימה ללקוח לא יכול להיות שלילי")
-    if args.min_binders_per_client < 0 or args.max_binders_per_client < 0:
+    if not args.users_only and (args.min_binders_per_client < 0 or args.max_binders_per_client < 0):
         raise ValueError("מספר הקלסרים ללקוח לא יכול להיות שלילי")
-    if args.min_charges_per_client < 0 or args.max_charges_per_client < 0:
+    if not args.users_only and (args.min_charges_per_client < 0 or args.max_charges_per_client < 0):
         raise ValueError("מספר החיובים ללקוח לא יכול להיות שלילי")
-    if args.min_tax_deadlines_per_client < 0 or args.max_tax_deadlines_per_client < 0:
+    if not args.users_only and (args.min_tax_deadlines_per_client < 0 or args.max_tax_deadlines_per_client < 0):
         raise ValueError("מספר מועדי המס ללקוח לא יכול להיות שלילי")
-    if args.min_authority_contacts_per_client < 0 or args.max_authority_contacts_per_client < 0:
+    if not args.users_only and (
+        args.min_authority_contacts_per_client < 0 or args.max_authority_contacts_per_client < 0
+    ):
         raise ValueError("מספר אנשי הקשר המוסמכים ללקוח לא יכול להיות שלילי")
-    if args.min_vat_work_items_per_client < 0 or args.max_vat_work_items_per_client < 0:
+    if not args.users_only and (
+        args.min_vat_work_items_per_client < 0 or args.max_vat_work_items_per_client < 0
+    ):
         raise ValueError("מספר פריטי העבודה למע\"מ ללקוח לא יכול להיות שלילי")
-    if args.min_vat_invoices_per_work_item < 0 or args.max_vat_invoices_per_work_item < 0:
+    if not args.users_only and (
+        args.min_vat_invoices_per_work_item < 0 or args.max_vat_invoices_per_work_item < 0
+    ):
         raise ValueError("מספר חשבוניות המע\"מ לא יכול להיות שלילי")
-    if args.min_binders_per_client > args.max_binders_per_client:
+    if not args.users_only and args.min_binders_per_client > args.max_binders_per_client:
         raise ValueError("המינימום של קלסרים ללקוח לא יכול להיות גבוה מהמרבי")
-    if args.min_charges_per_client > args.max_charges_per_client:
+    if not args.users_only and args.min_charges_per_client > args.max_charges_per_client:
         raise ValueError("המינימום של חיובים ללקוח לא יכול להיות גבוה מהמרבי")
-    if args.min_tax_deadlines_per_client > args.max_tax_deadlines_per_client:
+    if not args.users_only and args.min_tax_deadlines_per_client > args.max_tax_deadlines_per_client:
         raise ValueError(
             "המספר המינימלי של מועדי מס ללקוח לא יכול להיות גבוה מהמרבי"
         )
-    if args.min_authority_contacts_per_client > args.max_authority_contacts_per_client:
+    if (
+        not args.users_only
+        and args.min_authority_contacts_per_client > args.max_authority_contacts_per_client
+    ):
         raise ValueError(
             "המספר המינימלי של אנשי קשר מוסמכים ללקוח לא יכול להיות גבוה מהמרבי"
         )
-    if args.min_vat_work_items_per_client > args.max_vat_work_items_per_client:
+    if not args.users_only and args.min_vat_work_items_per_client > args.max_vat_work_items_per_client:
         raise ValueError("המינימום של פריטי עבודה למע\"מ ללקוח לא יכול להיות גבוה מהמרבי")
-    if args.min_vat_invoices_per_work_item > args.max_vat_invoices_per_work_item:
+    if not args.users_only and args.min_vat_invoices_per_work_item > args.max_vat_invoices_per_work_item:
         raise ValueError(
             "המספר המינימלי של חשבוניות מע\"מ לכל פריט עבודה לא יכול להיות גבוה מהמרבי"
         )
@@ -163,4 +178,5 @@ def parse_args() -> SeedConfig:
         seed=args.seed,
         reset=args.reset,
         preserve_users=args.preserve_users,
+        users_only=args.users_only,
     )

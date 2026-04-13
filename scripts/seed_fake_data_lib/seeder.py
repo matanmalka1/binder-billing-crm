@@ -94,15 +94,12 @@ class Seeder:
             if self.cfg.reset:
                 self._reset(db)
 
-            if self.cfg.preserve_users:
-                seeded_users = users.get_existing_users(db)
-                if not seeded_users:
-                    raise RuntimeError(
-                        "No existing users found for --preserve-users mode. "
-                        "Create users first or run without --preserve-users after approval."
-                    )
-            else:
-                seeded_users = users.create_users(db, self.rng, self.cfg)
+            seeded_users = self._seed_users(db)
+            if self.cfg.users_only:
+                db.commit()
+                self._print_counts(self._collect_counts(db))
+                return
+
             seeded_clients = clients.create_clients(db, self.rng, self.cfg)
             seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
             clients.create_entity_notes(db, self.rng, seeded_clients, seeded_users)
@@ -135,8 +132,6 @@ class Seeder:
                 binder_intakes,
             )
             binders.create_binder_logs(db, self.rng, seeded_binders, seeded_users)
-            if not self.cfg.preserve_users:
-                users.create_user_audit_logs(db, self.rng, seeded_users)
             users.create_entity_audit_logs(db, self.rng, seeded_users, seeded_businesses, seeded_clients)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders, seeded_users)
             vat_work_items = vat.create_vat_work_items(
@@ -172,6 +167,16 @@ class Seeder:
             db.close()
 
     def _reset(self, db) -> None:
+        if self.cfg.users_only:
+            for table in reversed(Base.metadata.sorted_tables):
+                if table.name not in {"users", "user_audit_logs"}:
+                    continue
+                if self.cfg.preserve_users and table.name in {"users", "user_audit_logs"}:
+                    continue
+                db.execute(table.delete())
+            db.commit()
+            return
+
         for table in reversed(Base.metadata.sorted_tables):
             if self.cfg.preserve_users and table.name in {"users", "user_audit_logs"}:
                 continue
@@ -180,9 +185,26 @@ class Seeder:
 
     def _collect_counts(self, db) -> Dict[str, int]:
         counts: Dict[str, int] = {}
+        table_names = {"users", "user_audit_logs"} if self.cfg.users_only else None
         for table in Base.metadata.sorted_tables:
+            if table_names is not None and table.name not in table_names:
+                continue
             counts[table.name] = int(db.execute(select(func.count()).select_from(table)).scalar_one())
         return counts
+
+    def _seed_users(self, db):
+        if self.cfg.preserve_users:
+            seeded_users = users.get_existing_users(db)
+            if not seeded_users:
+                raise RuntimeError(
+                    "No existing users found for --preserve-users mode. "
+                    "Create users first or run without --preserve-users after approval."
+                )
+            return seeded_users
+
+        seeded_users = users.create_users(db, self.rng, self.cfg)
+        users.create_user_audit_logs(db, self.rng, seeded_users)
+        return seeded_users
 
     def _assert_full_seed(self, counts: Dict[str, int]) -> None:
         empty_tables = [table for table, count in counts.items() if count == 0]
