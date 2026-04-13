@@ -45,7 +45,8 @@ The status-card endpoint is client-scoped and mounted from the `clients` API:
 - `GET /clients/{client_id}/status-card`
 
 Implementation currently lives in `app/businesses/services/status_card_service.py`
-because it still aggregates business-scoped charges, documents, and advance payments.
+for historical reasons, but the response itself is client-scoped and does not require
+or expose a synthetic `business_id`.
 
 ## Core Rules
 

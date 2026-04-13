@@ -5,7 +5,7 @@ from decimal import Decimal
 from random import Random
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus, PaymentMethod
-from app.businesses.models.business import EntityType
+from app.common.enums import EntityType
 from app.tax_deadline.models.tax_deadline import (
     TaxDeadline,
     DeadlineType as TaxDeadlineType,

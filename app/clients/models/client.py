@@ -7,6 +7,7 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.common.enums import EntityType, VatType
+from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures EntityNote is registered with SQLAlchemy before Client relationships are configured
 
 class IdNumberType(str, PyEnum):
     INDIVIDUAL   = "individual"   # ת"ז — 9 ספרות עם ספרת ביקורת

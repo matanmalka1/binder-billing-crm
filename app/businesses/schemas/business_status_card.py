@@ -1,4 +1,3 @@
-from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -41,11 +40,10 @@ class DocumentsCard(BaseModel):
     present_count: int
 
 
-class BusinessStatusCardResponse(BaseModel):
+class ClientStatusCardResponse(BaseModel):
     client_id: int
-    business_id: int
     year: int
-    client_vat: VatSummaryCard  # shared across all businesses of this client
+    client_vat: VatSummaryCard
     annual_report: AnnualReportCard
     charges: ChargesCard
     advance_payments: AdvancePaymentsCard

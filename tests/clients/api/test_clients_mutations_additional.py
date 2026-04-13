@@ -1,4 +1,5 @@
 from app.clients.models.client import IdNumberType
+from app.businesses.models.business import Business
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -153,3 +154,36 @@ def test_list_clients_respects_search_and_pagination(client, advisor_headers):
     assert data["total"] == 1
     assert len(data["items"]) == 1
     assert data["items"][0]["full_name"] == "Alpha Client"
+
+
+def test_client_status_card_is_client_scoped_without_business_id(client, advisor_headers):
+    created = _create_client(client, advisor_headers, full_name="Status Client", id_number="700000071")
+    client_id = created.json()["id"]
+
+    response = client.get(f"/api/v1/clients/{client_id}/status-card", headers=advisor_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["client_id"] == client_id
+    assert "business_id" not in data
+    assert "client_vat" in data
+    assert "annual_report" in data
+    assert "charges" in data
+    assert "advance_payments" in data
+    assert "binders" in data
+    assert "documents" in data
+
+
+def test_client_status_card_does_not_require_existing_business(client, advisor_headers, test_db):
+    created = _create_client(client, advisor_headers, full_name="No Business Client", id_number="700000072")
+    client_id = created.json()["id"]
+
+    test_db.query(Business).filter(Business.client_id == client_id).delete()
+    test_db.commit()
+
+    response = client.get(f"/api/v1/clients/{client_id}/status-card", headers=advisor_headers)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["client_id"] == client_id
+    assert "business_id" not in data

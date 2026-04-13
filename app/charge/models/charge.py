@@ -89,10 +89,9 @@ class Charge(Base):
     deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client        = relationship("Client",       back_populates="charges")
-    business      = relationship("Business",     back_populates="charges")
-    annual_report = relationship("AnnualReport", back_populates="charges")
-    invoice       = relationship("Invoice",      back_populates="charge", uselist=False)
+    client        = relationship("Client",       foreign_keys="[Charge.client_id]")
+    annual_report = relationship("AnnualReport", foreign_keys="[Charge.annual_report_id]")
+    invoice       = relationship("Invoice",      foreign_keys="[Invoice.charge_id]", uselist=False)
 
     __table_args__ = (
         Index("idx_charge_client_period", "client_id", "period"),

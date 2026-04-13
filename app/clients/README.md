@@ -83,7 +83,7 @@ Comments:
 ## Cross-Domain Notes
 
 - A client can have multiple businesses (`app/businesses/`).
-- Binders are client-scoped (`client_id`) and are reused in business status-card aggregation.
+- Binders are client-scoped (`client_id`) and are reused in client status-card aggregation.
 - Business guard helpers (`assert_business_allows_create`, `assert_business_not_closed`) are defined in `app/businesses/services/business_guards.py` and used by several domains.
 
 Comments:

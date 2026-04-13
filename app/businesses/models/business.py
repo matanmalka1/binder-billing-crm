@@ -6,6 +6,7 @@ from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures EntityNote is registered with SQLAlchemy before Business relationships are configured
 
 
 class BusinessStatus(str, PyEnum):

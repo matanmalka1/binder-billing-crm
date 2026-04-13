@@ -73,7 +73,7 @@ class SeedCoverageValidator:
             errors.append(
                 f"expected {self.cfg.clients} clients for coverage checks, found {len(client_ids)}"
             )
-        from app.businesses.models.business import EntityType
+        from app.common.enums import EntityType
         business_rows = db.execute(select(Business.id, Business.client_id)).all()
         business_client_map = {int(business_id): int(client_id) for business_id, client_id in business_rows}
         if len(business_client_map) < len(client_ids):

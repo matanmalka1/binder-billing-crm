@@ -2,7 +2,7 @@
 
 > Last audited: 2026-03-22.
 
-Manages business tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and yearly deadline generation.
+Manages client tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and yearly deadline generation.
 
 ## Scope
 
@@ -11,8 +11,8 @@ This module provides:
 - Deadline completion tracking
 - `completed` is terminal in the current implementation; there is no reopen action/API
 - Dashboard urgent/upcoming summary
-- Business timeline endpoint
-- Idempotent yearly deadline generation by business tax profile
+- Client timeline endpoint
+- Idempotent yearly deadline generation by client tax profile
 - Automatic reminder creation on deadline creation (`days_before=7`)
 - Role-based API access
 
@@ -20,7 +20,7 @@ This module provides:
 
 `TaxDeadline` (`app/tax_deadline/models/tax_deadline.py`) fields:
 - `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
+- `client_id` (FK -> `clients.id`, required)
 - `deadline_type` (enum, required)
 - `period` (`YYYY-MM`, optional)
 - `due_date` (required)
@@ -75,7 +75,7 @@ Body:
 
 ```json
 {
-  "business_id": 123,
+  "client_id": 123,
   "deadline_type": "vat",
   "due_date": "2026-04-19",
   "period": "2026-03",
@@ -88,19 +88,21 @@ Body:
 
 - `GET /api/v1/tax-deadlines`
 - Query params:
-  - `business_id` (optional)
-  - `business_name` (optional business-name substring filter)
+  - `client_id` (optional)
+  - `business_name` (optional client-name substring filter)
   - `client_name` (legacy alias for `business_name`)
   - `deadline_type` (optional)
   - `status` (optional)
+  - `due_from` (optional, `YYYY-MM-DD`)
+  - `due_to` (optional, `YYYY-MM-DD`)
+  - `period` (optional, `YYYY-MM`)
   - `page` (default `1`, min `1`)
   - `page_size` (default `20`, min `1`, max `100`)
 
 Behavior:
-- `business_id` present: returns all matching deadlines for that business.
-- `business_name` present: resolves business IDs by name then returns matching deadlines.
-- `client_name` present: same behavior as a legacy alias.
-- no business filters: returns paginated pending deadlines only, from today forward.
+- `client_id` present: returns all matching deadlines for that client.
+- `business_name` / `client_name` present: resolves client IDs by name then returns matching deadlines.
+- no filters: returns paginated pending deadlines only, from today forward.
 
 ### Get deadline
 
@@ -153,7 +155,7 @@ Body:
 
 ```json
 {
-  "business_id": 123,
+  "client_id": 123,
   "year": 2026
 }
 ```
@@ -177,7 +179,7 @@ Response:
 - Annual report deadline once (`April 30` of `year + 1`)
 - National-insurance deadlines are not auto-generated.
 
-Generation is idempotent via repository `exists(business_id, deadline_type, due_date)` checks.
+Generation is idempotent via repository `exists(client_id, deadline_type, due_date)` checks.
 
 ## Urgency Rules
 
@@ -197,13 +199,13 @@ Error envelope follows the app-wide exception format.
 
 ## Integration Points
 
-- `businesses`:
-  - business existence + create guards
-  - business-name lookup for list enrichment
+- `clients`:
+  - client existence + create guards
+  - client-name lookup for list enrichment
 - `reminders`:
   - auto-reminder on create
 - `business_tax_profile`:
-  - VAT frequency for generator
+  - VAT frequency for generator (looked up via client's associated business)
 - `actions`:
   - `available_actions` via `app/actions/report_deadline_actions.py`
 

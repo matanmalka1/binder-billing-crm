@@ -17,7 +17,7 @@ Israeli context:
 
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
-    Index, Integer, Numeric, String, Text,
+    Index, Integer, Numeric, String, Text, text,
 )
 from app.common.enums import SubmissionMethod
 from app.utils.enum_utils import pg_enum
@@ -81,8 +81,8 @@ class VatWorkItem(Base):
             "client_id",
             "period",
             unique=True,
-            postgresql_where=VatWorkItem.deleted_at.is_(None),
-            sqlite_where=VatWorkItem.deleted_at.is_(None),
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("ix_vat_work_items_status", "status"),
         Index("ix_vat_work_items_period", "period"),

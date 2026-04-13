@@ -31,7 +31,7 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import EntityType
+from app.common.enums import EntityType
 from app.users.models.user import UserRole
 
 from ._business_groups import group_businesses_by_client

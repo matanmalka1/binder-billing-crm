@@ -3,15 +3,12 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
-from app.businesses.models.business import Business as _Business
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.schemas.business_status_card import (
     AdvancePaymentsCard,
     AnnualReportCard,
     BindersCard,
-    BusinessStatusCardResponse,
     ChargesCard,
+    ClientStatusCardResponse,
     DocumentsCard,
     VatSummaryCard,
 )
@@ -34,8 +31,6 @@ class StatusCardService:
     """
 
     def __init__(self, db: Session):
-        self._db = db
-        self._business_repo = BusinessRepository(db)
         self._vat_repo = VatWorkItemRepository(db)
         self._annual_repo = AnnualReportRepository(db)
         self._charge_repo = ChargeRepository(db)
@@ -47,19 +42,10 @@ class StatusCardService:
         self,
         client_id: int,
         year: Optional[int] = None,
-    ) -> BusinessStatusCardResponse:
-        business = (
-            self._db.query(_Business)
-            .filter(_Business.client_id == client_id, _Business.deleted_at.is_(None))
-            .first()
-        )
-        if not business:
-            raise NotFoundError("לא נמצא עסק עבור לקוח זה", "BUSINESS.NOT_FOUND")
-
+    ) -> ClientStatusCardResponse:
         resolved_year = year or utcnow().year
-        return BusinessStatusCardResponse(
+        return ClientStatusCardResponse(
             client_id=client_id,
-            business_id=business.id,
             year=resolved_year,
             client_vat=self._vat_card(client_id, resolved_year),
             annual_report=self._annual_report_card(client_id, resolved_year),
