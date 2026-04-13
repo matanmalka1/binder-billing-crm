@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
 from app.binders.schemas.binder_extended import (
     BinderDetailResponse,
@@ -20,7 +20,6 @@ router = APIRouter(
 def list_client_binders(
     client_id: int,
     db: DBSession,
-    user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

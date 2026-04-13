@@ -88,9 +88,6 @@ class ClientService:
             )
         return client
 
-    def get_client(self, client_id: int) -> Optional[Client]:
-        return self.client_repo.get_by_id(client_id)
-
     def get_client_or_raise(self, client_id: int) -> Client:
         client = self.client_repo.get_by_id(client_id)
         if not client:

@@ -91,7 +91,6 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
 @router.get("", response_model=ClientListResponse)
 def list_clients(
     db: DBSession,
-    user: CurrentUser,
     search: Optional[str] = Query(None),
     status: Optional[ClientStatus] = Query(None),
     sort_by: str = Query("full_name", pattern="^(full_name|created_at|status)$"),
@@ -102,7 +101,7 @@ def list_clients(
     """List clients with optional search, status filter, and sorting."""
     service = ClientService(db)
     items, total = service.list_clients(
-        search=search or None,
+        search=search,
         status=status,
         sort_by=sort_by,
         sort_order=sort_order,
@@ -119,7 +118,7 @@ def list_clients(
 
 
 @router.get("/{client_id}", response_model=ClientResponse)
-def get_client(client_id: int, db: DBSession, user: CurrentUser):
+def get_client(client_id: int, db: DBSession):
     """Get client by ID."""
     service = ClientService(db)
     client = service.get_client_or_raise(client_id)
@@ -130,7 +129,6 @@ def get_client(client_id: int, db: DBSession, user: CurrentUser):
 def get_conflict_info(
     id_number: str,
     db: DBSession,
-    user: CurrentUser,
 ):
     """
     מחזיר מידע על קונפליקטים לת.ז. נתונה.

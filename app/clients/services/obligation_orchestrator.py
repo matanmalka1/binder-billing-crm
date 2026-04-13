@@ -8,49 +8,31 @@ from app.annual_reports.models.annual_report_enums import AnnualReportType, Clie
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.common.enums import EntityType
 from app.core.exceptions import ConflictError
+from app.clients.constants import (
+    CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH,
+    CLIENT_OBLIGATION_TRIGGER_FIELDS,
+    ENTITY_TYPE_TO_REPORT_CLIENT_TYPE,
+    ENTITY_TYPE_TO_REPORT_TYPE,
+)
 from app.tax_deadline.services.deadline_generator import DeadlineGeneratorService
 
 _log = logging.getLogger(__name__)
-_Q4_START_MONTH = 10  # אוקטובר — מרבעון ד׳ מייצרים גם שנה הבאה
-
-_ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[Optional[EntityType], ClientTypeForReport] = {
-    EntityType.OSEK_PATUR: ClientTypeForReport.SELF_EMPLOYED,
-    EntityType.OSEK_MURSHE: ClientTypeForReport.SELF_EMPLOYED,
-    EntityType.COMPANY_LTD: ClientTypeForReport.CORPORATION,
-    EntityType.EMPLOYEE: ClientTypeForReport.INDIVIDUAL,
-    None: ClientTypeForReport.INDIVIDUAL,
-}
-
-_ENTITY_TYPE_TO_REPORT_TYPE: dict[Optional[EntityType], AnnualReportType] = {
-    EntityType.OSEK_PATUR: AnnualReportType.SELF_EMPLOYED,
-    EntityType.OSEK_MURSHE: AnnualReportType.SELF_EMPLOYED,
-    EntityType.COMPANY_LTD: AnnualReportType.COMPANY,
-    EntityType.EMPLOYEE: AnnualReportType.INDIVIDUAL,
-    None: AnnualReportType.INDIVIDUAL,
-}
-
-# שדות בפרופיל הלקוח שמשפיעים על סוג/היקף החובות שנוצרות.
-# שינוי בכל אחד מהם מפעיל regeneration.
-_OBLIGATION_FIELDS = frozenset({
-    "entity_type",
-    "vat_reporting_frequency",
-})
 
 
 def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
     today = reference_date or date.today()
     years = [today.year]
-    if today.month >= _Q4_START_MONTH:
+    if today.month >= CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH:
         years.append(today.year + 1)
     return years
 
 
 def _derive_client_type(entity_type: Optional[EntityType]) -> ClientTypeForReport:
-    return _ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type, ClientTypeForReport.INDIVIDUAL)
+    return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type, ClientTypeForReport.INDIVIDUAL)
 
 
 def _derive_report_type(entity_type: Optional[EntityType]) -> AnnualReportType:
-    return _ENTITY_TYPE_TO_REPORT_TYPE.get(entity_type, AnnualReportType.INDIVIDUAL)
+    return ENTITY_TYPE_TO_REPORT_TYPE.get(entity_type, AnnualReportType.INDIVIDUAL)
 
 
 def generate_client_obligations(
@@ -120,4 +102,4 @@ def generate_client_obligations(
 
 def obligation_fields_changed(fields: dict) -> bool:
     """Return True if any key in fields affects obligation generation."""
-    return bool(_OBLIGATION_FIELDS.intersection(fields))
+    return bool(CLIENT_OBLIGATION_TRIGGER_FIELDS.intersection(fields))

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Optional
 
 from sqlalchemy import asc, desc
-from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
 from app.clients.models.client import Client, ClientStatus, IdNumberType
@@ -13,9 +12,6 @@ from app.utils.time_utils import utcnow
 
 class ClientRepository(BaseRepository):
     """Data access layer for Client entities — identity only, no business logic."""
-
-    def __init__(self, db: Session):
-        super().__init__(db)
 
     def create(
         self,

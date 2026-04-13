@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.clients.constants import EXCEL_MEDIA_TYPE, MAX_CLIENT_IMPORT_UPLOAD_SIZE
 from app.clients.schemas.client import ClientImportResponse
 from app.clients.services.client_service import ClientService
 from app.clients.services.client_excel_service import ClientExcelService
@@ -15,11 +16,8 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
-EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-
 @router.get("/export")
-def export_clients(db: DBSession, user: CurrentUser):
+def export_clients(db: DBSession):
     """Return all clients as an Excel workbook."""
     client_service = ClientService(db)
     excel_service = ClientExcelService(db)
@@ -39,7 +37,7 @@ def export_clients(db: DBSession, user: CurrentUser):
 
 
 @router.get("/template")
-def download_client_template(db: DBSession, user: CurrentUser):
+def download_client_template(db: DBSession):
     """Download a starter Excel template for client imports."""
     excel_service = ClientExcelService(db)
     try:
@@ -57,9 +55,6 @@ def download_client_template(db: DBSession, user: CurrentUser):
     )
 
 
-MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
-
-
 @router.post(
     "/import",
     response_model=ClientImportResponse,
@@ -73,7 +68,7 @@ async def import_clients_from_excel(
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
     content_length = request.headers.get("Content-Length")
-    if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
+    if content_length is not None and int(content_length) > MAX_CLIENT_IMPORT_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",
@@ -87,8 +82,8 @@ async def import_clients_from_excel(
             detail="הספרייה openpyxl נדרשת לצורך ייבוא לקוחות",
         ) from exc
 
-    contents = await file.read(MAX_UPLOAD_SIZE + 1)
-    if len(contents) > MAX_UPLOAD_SIZE:
+    contents = await file.read(MAX_CLIENT_IMPORT_UPLOAD_SIZE + 1)
+    if len(contents) > MAX_CLIENT_IMPORT_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",

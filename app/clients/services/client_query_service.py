@@ -10,7 +10,6 @@ from app.clients.repositories.client_repository import ClientRepository
 
 class ClientQueryService:
     def __init__(self, db: Session):
-        self.db = db
         self.client_repo = ClientRepository(db)
 
     def list_clients(
