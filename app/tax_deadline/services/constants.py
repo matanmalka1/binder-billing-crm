@@ -4,7 +4,7 @@ Constants for the tax_deadline domain.
 Israeli fiscal due dates:
 - VAT (מע"מ): filed on the 19th of the month following the reporting period.
 - Advance payments (מקדמות מס הכנסה): due on the 15th of each month.
-- Annual report (דוח שנתי): April 30 of the year following the tax year.
+- Annual report (דוח שנתי): varies by filing profile and channel.
 """
 
 from datetime import date
@@ -12,9 +12,6 @@ from datetime import date
 # ── Israeli fiscal due-day constants ─────────────────────────────────────────
 VAT_FILING_DUE_DAY = 19        # 19th of following month — applies to both MONTHLY and BIMONTHLY VAT
 ADVANCE_PAYMENT_DUE_DAY = 15   # 15th of each month (מקדמות)
-ANNUAL_REPORT_DUE_MONTH = 4    # April
-ANNUAL_REPORT_DUE_DAY = 30     # April 30 of year+1
-
 # ── Urgency thresholds ────────────────────────────────────────────────────────
 # MUST MATCH frontend src/features/taxDeadlines/utils.ts urgency thresholds
 URGENCY_RED_DAYS = 2           # ≤ 2 days remaining → RED

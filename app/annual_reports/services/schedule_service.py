@@ -1,6 +1,7 @@
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
+from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportSchedule
 from .base import AnnualReportBaseService
@@ -43,6 +44,15 @@ class AnnualReportScheduleService(AnnualReportBaseService):
 
     # internal
     def _generate_schedules(self, report: AnnualReport) -> None:
+        if report.client_type in {
+            ClientTypeForReport.SELF_EMPLOYED,
+            ClientTypeForReport.PARTNERSHIP,
+        }:
+            self.repo.add_schedule(
+                annual_report_id=report.id,
+                schedule=AnnualReportSchedule.SCHEDULE_A,
+                is_required=True,
+            )
         for flag_attr, schedule in SCHEDULE_FLAGS:
             if getattr(report, flag_attr, False):
                 self.repo.add_schedule(

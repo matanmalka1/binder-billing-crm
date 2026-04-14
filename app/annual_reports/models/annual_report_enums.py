@@ -7,35 +7,39 @@ from app.common.enums import SubmissionMethod
 
 class AnnualReportType(str, PyEnum):
     """
-    Identity of the annual report — determines uniqueness per client+year.
+    Filing profile of the main annual return for a client.
 
-    A single client (legal entity) can file multiple reports in the same tax year,
-    one per report type. This is the discriminator used in the unique constraint.
-
-    INDIVIDUAL    → Form 1301 (יחיד)
-    SELF_EMPLOYED → Form 1215 (עצמאי / שותפות)
-    COMPANY       → Form 6111 (חברה בע"מ)
+    The source-of-truth business rule is one main annual return per legal entity
+    per tax year. ``report_type`` describes the filing profile, but is not meant
+    to permit multiple primary annual returns for the same client and year.
     """
     INDIVIDUAL    = "individual"
     SELF_EMPLOYED = "self_employed"
     COMPANY       = "company"
+    PUBLIC_INSTITUTION = "public_institution"
+    EXEMPT_DEALER = "exempt_dealer"
 
 
 class ClientTypeForReport(str, PyEnum):
     """Client types that determine which ITA form is required."""
 
     INDIVIDUAL = "individual"          # יחיד → form 1301
-    SELF_EMPLOYED = "self_employed"    # עצמאי → form 1215
-    CORPORATION = "corporation"        # חברה → form 6111
-    PARTNERSHIP = "partnership"        # שותפות → form 1215 variant
+    SELF_EMPLOYED = "self_employed"    # עצמאי → form 1301 + נספח א'
+    CORPORATION = "corporation"        # חברה → form 1214
+    PUBLIC_INSTITUTION = "public_institution"  # מלכ"ר / מוסד ציבורי → form 1215
+    PARTNERSHIP = "partnership"        # שותף בשותפות → usually form 1301 + 1504
+    CONTROL_HOLDER = "control_holder"  # בעל שליטה → 1301 with company-like deadline
+    EXEMPT_DEALER = "exempt_dealer"    # עוסק פטור / זעיר → may file 0135 when eligible
 
 
 class AnnualReportForm(str, PyEnum):
     """The ITA form number for the annual return."""
 
+    FORM_0135 = "0135"  # Short refund request for taxpayers not required to file a full annual return
     FORM_1301 = "1301"  # Individual
-    FORM_1215 = "1215"  # Self-employed / partnership
-    FORM_6111 = "6111"  # Corporation
+    FORM_1214 = "1214"  # Company / cooperative
+    FORM_1215 = "1215"  # Public institution / nonprofit (when relevant)
+    FORM_6111 = "6111"  # Financial statement coding annex; not a primary return form
 
 
 class AnnualReportStatus(str, PyEnum):
@@ -54,18 +58,24 @@ class AnnualReportStatus(str, PyEnum):
 
 class AnnualReportSchedule(str, PyEnum):
     """Annexes / schedules that may be required alongside the main form."""
-    SCHEDULE_B      = "schedule_b"       # שכירות
-    SCHEDULE_BET    = "schedule_bet"     # רווחי הון
-    SCHEDULE_GIMMEL = "schedule_gimmel"  # הכנסות מחו"ל
-    SCHEDULE_DALET  = "schedule_dalet"   # פחת
-    SCHEDULE_HEH    = "schedule_heh"     # שכר דירה פטור
-    SCHEDULE_A      = "schedule_a"       # חישוב הכנסה מעסק
-    SCHEDULE_VAV    = "schedule_vav"     # מכירת ניירות ערך
-    ANNEX_15        = "annex_15"         # הכנסות מחו"ל מפורט
-    ANNEX_867       = "annex_867"        # אישור בנקאי — נתונים כספיים
+    SCHEDULE_A      = "schedule_a"       # 1320 — הכנסה מעסק או משלח יד
+    SCHEDULE_B      = "schedule_b"       # 1321 — הכנסות מרכוש / עסקאות אקראיות
+    SCHEDULE_GIMMEL = "schedule_gimmel"  # 1322 — רווח הון מניירות ערך סחירים
+    SCHEDULE_DALET  = "schedule_dalet"   # 1324 — הכנסות מחו"ל ומס זר
+    FORM_150        = "form_150"         # החזקה בחבר בני אדם תושב חוץ
+    FORM_1504       = "form_1504"        # שותף בשותפות
+    FORM_6111       = "form_6111"        # קידוד דוחות כספיים
+    FORM_1344       = "form_1344"        # דיווח על הפסדים רלוונטיים
+    FORM_1399       = "form_1399"        # הודעה על מכירת נכס ורווח הון
+    FORM_1350       = "form_1350"        # משיכות בעל מניות מהותי
+    FORM_1327       = "form_1327"        # דוח לנאמן בנאמנות
+    FORM_1342       = "form_1342"        # פירוט נכסים שנתבע בגינם פחת
+    FORM_1343       = "form_1343"        # ניכוי נוסף בשל פחת
+    FORM_1348       = "form_1348"        # טענת אי-תושבות ישראל
+    FORM_858        = "form_858"         # יחידות השתתפות בשותפות נפט
 
 class FilingDeadlineType(str, PyEnum):
-    STANDARD = "standard"   # April 30
+    STANDARD = "standard"   # Statutory by client type + submission channel
     EXTENDED = "extended"   # January 31 following year (מייצגים)
     CUSTOM = "custom"       # ITA granted specific extension
 

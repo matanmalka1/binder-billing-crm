@@ -176,7 +176,10 @@ Response:
   - `bimonthly` -> 6 deadlines
   - `exempt`/missing profile -> none
 - Advance-payment deadlines monthly (12)
-- Annual report deadline once (`April 30` of `year + 1`)
+- Annual report deadline once, derived by filing profile:
+  - individual/manual: `May 29` of `year + 1`
+  - individual/online: `June 30` of `year + 1`
+  - corporation/control-holder: `July 31` of `year + 1`
 - National-insurance deadlines are not auto-generated.
 
 Generation is idempotent via repository `exists(client_id, deadline_type, due_date)` checks.

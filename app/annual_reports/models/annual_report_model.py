@@ -28,8 +28,10 @@ class AnnualReport(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
     tax_year = Column(Integer, nullable=False)
-    # report_type is the uniqueness discriminator: one report per (client, year, report_type).
-    # Explicit input at creation — not derived from client_type. Never changed after creation.
+    # Filing profile of the main annual return.
+    # Domain rule: one primary annual report per legal entity per tax year.
+    # ``report_type`` is descriptive and captured at creation, but does not widen
+    # uniqueness beyond ``(client_id, tax_year)``.
     report_type = Column(pg_enum(AnnualReportType), nullable=False)
     client_type = Column(pg_enum(ClientTypeForReport), nullable=False)
     form_type = Column(pg_enum(AnnualReportForm), nullable=False)
@@ -49,7 +51,6 @@ class AnnualReport(Base):
     has_capital_gains = Column(Boolean, default=False, nullable=False)
     has_foreign_income = Column(Boolean, default=False, nullable=False)
     has_depreciation = Column(Boolean, default=False, nullable=False)
-    has_exempt_rental = Column(Boolean, default=False, nullable=False)
   
     submission_method = Column(pg_enum(SubmissionMethod), nullable=True)
     extension_reason  = Column(pg_enum(ExtensionReason),  nullable=True)
@@ -65,7 +66,6 @@ class AnnualReport(Base):
             "idx_annual_report_client_year_type",
             "client_id",
             "tax_year",
-            "report_type",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),

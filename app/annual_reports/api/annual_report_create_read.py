@@ -27,7 +27,6 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
     orm_report = service.create_report(
         client_id=body.client_id,
         tax_year=body.tax_year,
-        report_type=body.report_type,
         client_type=body.client_type,
         created_by=user.id,
         created_by_name=user.full_name,
@@ -40,7 +39,6 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
         has_capital_gains=body.has_capital_gains,
         has_foreign_income=body.has_foreign_income,
         has_depreciation=body.has_depreciation,
-        has_exempt_rental=body.has_exempt_rental,
     )
     return service.get_detail_report(orm_report.id)
 

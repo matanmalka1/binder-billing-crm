@@ -3,8 +3,10 @@ from decimal import Decimal
 
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
+    AnnualReportType,
     AnnualReportStatus,
     ClientTypeForReport,
+    FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.models.business import Business
@@ -54,42 +56,50 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
 
     reports = [
         AnnualReport(
-            business_id=businesses[0].id,
+            client_id=clients[0].id,
             created_by=creator_id,
             tax_year=tax_year,
+            report_type=AnnualReportType.COMPANY,
             client_type=ClientTypeForReport.CORPORATION,
-            form_type=AnnualReportForm.FORM_6111,
+            form_type=AnnualReportForm.FORM_1214,
             status=AnnualReportStatus.SUBMITTED,
+            deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("100.00"),
             tax_due=Decimal("50.00"),
         ),
         AnnualReport(
-            business_id=businesses[1].id,
+            client_id=clients[1].id,
             created_by=creator_id,
             tax_year=tax_year,
+            report_type=AnnualReportType.INDIVIDUAL,
             client_type=ClientTypeForReport.INDIVIDUAL,
             form_type=AnnualReportForm.FORM_1301,
             status=AnnualReportStatus.IN_PREPARATION,
+            deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("20.00"),
             tax_due=Decimal("75.00"),
         ),
         AnnualReport(
-            business_id=businesses[2].id,
+            client_id=clients[2].id,
             created_by=creator_id,
             tax_year=tax_year,
+            report_type=AnnualReportType.SELF_EMPLOYED,
             client_type=ClientTypeForReport.SELF_EMPLOYED,
-            form_type=AnnualReportForm.FORM_1215,
+            form_type=AnnualReportForm.FORM_1301,
             status=AnnualReportStatus.COLLECTING_DOCS,
+            deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("0.00"),
             tax_due=Decimal("0.00"),
         ),
         AnnualReport(
-            business_id=businesses[3].id,
+            client_id=clients[3].id,
             created_by=creator_id,
             tax_year=tax_year,
+            report_type=AnnualReportType.INDIVIDUAL,
             client_type=ClientTypeForReport.INDIVIDUAL,
             form_type=AnnualReportForm.FORM_1301,
             status=AnnualReportStatus.NOT_STARTED,
+            deadline_type=FilingDeadlineType.STANDARD,
         ),
     ]
     db.add_all(reports)

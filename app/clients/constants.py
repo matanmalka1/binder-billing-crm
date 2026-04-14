@@ -44,7 +44,7 @@ CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({
 })
 
 ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] = {
-    EntityType.OSEK_PATUR: ClientTypeForReport.SELF_EMPLOYED,
+    EntityType.OSEK_PATUR: ClientTypeForReport.EXEMPT_DEALER,
     EntityType.OSEK_MURSHE: ClientTypeForReport.SELF_EMPLOYED,
     EntityType.COMPANY_LTD: ClientTypeForReport.CORPORATION,
     EntityType.EMPLOYEE: ClientTypeForReport.INDIVIDUAL,
@@ -52,7 +52,7 @@ ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] 
 }
 
 ENTITY_TYPE_TO_REPORT_TYPE: dict[EntityType | None, AnnualReportType] = {
-    EntityType.OSEK_PATUR: AnnualReportType.SELF_EMPLOYED,
+    EntityType.OSEK_PATUR: AnnualReportType.EXEMPT_DEALER,
     EntityType.OSEK_MURSHE: AnnualReportType.SELF_EMPLOYED,
     EntityType.COMPANY_LTD: AnnualReportType.COMPANY,
     EntityType.EMPLOYEE: AnnualReportType.INDIVIDUAL,

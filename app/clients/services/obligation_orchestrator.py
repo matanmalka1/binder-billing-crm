@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models.annual_report_enums import AnnualReportType, ClientTypeForReport
+from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.common.enums import EntityType
 from app.core.exceptions import ConflictError
@@ -12,7 +12,6 @@ from app.clients.constants import (
     CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH,
     CLIENT_OBLIGATION_TRIGGER_FIELDS,
     ENTITY_TYPE_TO_REPORT_CLIENT_TYPE,
-    ENTITY_TYPE_TO_REPORT_TYPE,
 )
 from app.tax_deadline.services.deadline_generator import DeadlineGeneratorService
 
@@ -29,10 +28,6 @@ def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
 
 def _derive_client_type(entity_type: Optional[EntityType]) -> ClientTypeForReport:
     return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type, ClientTypeForReport.INDIVIDUAL)
-
-
-def _derive_report_type(entity_type: Optional[EntityType]) -> AnnualReportType:
-    return ENTITY_TYPE_TO_REPORT_TYPE.get(entity_type, AnnualReportType.INDIVIDUAL)
 
 
 def generate_client_obligations(
@@ -74,7 +69,6 @@ def generate_client_obligations(
 
     report_service = AnnualReportService(db)
     client_type = _derive_client_type(entity_type).value
-    report_type = _derive_report_type(entity_type).value
     _actor_name = actor_name or ""
     for year in years:
         sp = db.begin_nested()  # SAVEPOINT
@@ -82,7 +76,6 @@ def generate_client_obligations(
             report_service.create_report(
                 client_id=client_id,
                 tax_year=year,
-                report_type=report_type,
                 client_type=client_type,
                 created_by=actor_id,
                 created_by_name=_actor_name,

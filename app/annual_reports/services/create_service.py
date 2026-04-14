@@ -6,7 +6,6 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
-    AnnualReportType,
     ClientTypeForReport,
     ExtensionReason,
     FilingDeadlineType,
@@ -16,6 +15,7 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_repository import ClientRepository
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
+from .constants import REPORT_TYPE_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
 from .messages import (
@@ -25,7 +25,6 @@ from .messages import (
     DEADLINE_NOT_SET,
     INVALID_CLIENT_TYPE_ERROR,
     INVALID_DEADLINE_TYPE_ERROR,
-    INVALID_REPORT_TYPE_ERROR,
 )
 
 
@@ -34,7 +33,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
         self,
         client_id: int,
         tax_year: int,
-        report_type: str,
         client_type: str,
         created_by: int,
         created_by_name: str,
@@ -48,7 +46,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_capital_gains: bool = False,
         has_foreign_income: bool = False,
         has_depreciation: bool = False,
-        has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
@@ -59,11 +56,8 @@ class AnnualReportCreateService(AnnualReportBaseService):
         valid_client_types = {e.value for e in ClientTypeForReport}
         if client_type not in valid_client_types:
             raise AppError(INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type), "ANNUAL_REPORT.INVALID_TYPE")
-        valid_report_types = {e.value for e in AnnualReportType}
-        if report_type not in valid_report_types:
-            raise AppError(INVALID_REPORT_TYPE_ERROR.format(report_type=report_type), "ANNUAL_REPORT.INVALID_REPORT_TYPE")
-        rt = AnnualReportType(report_type)
         ct = ClientTypeForReport(client_type)
+        rt = REPORT_TYPE_MAP[ct]
 
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
@@ -73,19 +67,22 @@ class AnnualReportCreateService(AnnualReportBaseService):
         if assigned_to is not None:
             get_user_or_raise(self.user_repo, assigned_to)
 
-        existing = self.repo.get_by_client_year_type(client_id, tax_year, rt)
+        existing = self.repo.get_by_client_year(client_id, tax_year)
         if existing:
             raise ConflictError(ANNUAL_REPORT_ALREADY_EXISTS.format(
                 client_id=client_id,
                 tax_year=tax_year,
-                report_type=rt.value,
                 existing_id=existing.id,
                 status=existing.status.value,
             ), "ANNUAL_REPORT.CONFLICT")
 
         form_type = FORM_MAP[ct]
         if dt == FilingDeadlineType.STANDARD:
-            filing_deadline = standard_deadline(tax_year)
+            filing_deadline = standard_deadline(
+                tax_year,
+                client_type=ct,
+                submission_method=SubmissionMethod(submission_method) if submission_method else None,
+            )
         elif dt == FilingDeadlineType.EXTENDED:
             filing_deadline = extended_deadline(tax_year)
         else:
@@ -109,7 +106,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
             has_depreciation=has_depreciation,
-            has_exempt_rental=has_exempt_rental,
         )
 
         # Auto-generate required schedules

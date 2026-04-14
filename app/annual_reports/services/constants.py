@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
+    AnnualReportType,
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
@@ -11,9 +12,22 @@ from app.annual_reports.models.annual_report_expense_line import ExpenseCategory
 # Which form each client type must use
 FORM_MAP: dict[ClientTypeForReport, AnnualReportForm] = {
     ClientTypeForReport.INDIVIDUAL: AnnualReportForm.FORM_1301,
-    ClientTypeForReport.SELF_EMPLOYED: AnnualReportForm.FORM_1215,
-    ClientTypeForReport.PARTNERSHIP: AnnualReportForm.FORM_1215,
-    ClientTypeForReport.CORPORATION: AnnualReportForm.FORM_6111,
+    ClientTypeForReport.SELF_EMPLOYED: AnnualReportForm.FORM_1301,
+    ClientTypeForReport.PARTNERSHIP: AnnualReportForm.FORM_1301,
+    ClientTypeForReport.CONTROL_HOLDER: AnnualReportForm.FORM_1301,
+    ClientTypeForReport.CORPORATION: AnnualReportForm.FORM_1214,
+    ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportForm.FORM_1215,
+    ClientTypeForReport.EXEMPT_DEALER: AnnualReportForm.FORM_0135,
+}
+
+REPORT_TYPE_MAP: dict[ClientTypeForReport, AnnualReportType] = {
+    ClientTypeForReport.INDIVIDUAL: AnnualReportType.INDIVIDUAL,
+    ClientTypeForReport.SELF_EMPLOYED: AnnualReportType.SELF_EMPLOYED,
+    ClientTypeForReport.PARTNERSHIP: AnnualReportType.SELF_EMPLOYED,
+    ClientTypeForReport.CONTROL_HOLDER: AnnualReportType.INDIVIDUAL,
+    ClientTypeForReport.CORPORATION: AnnualReportType.COMPANY,
+    ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportType.PUBLIC_INSTITUTION,
+    ClientTypeForReport.EXEMPT_DEALER: AnnualReportType.EXEMPT_DEALER,
 }
 
 # Valid status transitions (from → set of allowed next statuses)
@@ -99,10 +113,8 @@ ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE = 7
 # Which schedules are triggered by income flags
 SCHEDULE_FLAGS = [
     ("has_rental_income", AnnualReportSchedule.SCHEDULE_B),
-    ("has_capital_gains", AnnualReportSchedule.SCHEDULE_BET),
-    ("has_foreign_income", AnnualReportSchedule.SCHEDULE_GIMMEL),
-    ("has_depreciation", AnnualReportSchedule.SCHEDULE_DALET),
-    ("has_exempt_rental", AnnualReportSchedule.SCHEDULE_HEH),
+    ("has_capital_gains", AnnualReportSchedule.SCHEDULE_GIMMEL),
+    ("has_foreign_income", AnnualReportSchedule.SCHEDULE_DALET),
 ]
 
 __all__ = [
@@ -112,6 +124,7 @@ __all__ = [
     "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
     "NI_RATE_BASE",
     "NI_RATE_HIGH",
+    "REPORT_TYPE_MAP",
     "SCHEDULE_FLAGS",
     "STAGE_TO_STATUS",
     "STATUTORY_RECOGNITION_RATES",

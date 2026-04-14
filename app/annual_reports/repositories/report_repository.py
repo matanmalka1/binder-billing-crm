@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus, AnnualReportType
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
 
@@ -49,23 +49,8 @@ class AnnualReportReportRepository(BaseRepository):
             )
         )
 
-    def get_by_client_year_type(
-        self, client_id: int, tax_year: int, report_type: AnnualReportType
-    ) -> Optional[AnnualReport]:
-        return (
-            self.db.query(AnnualReport)
-            .filter(
-                AnnualReport.client_id == client_id,
-                AnnualReport.tax_year == tax_year,
-                AnnualReport.report_type == report_type,
-                AnnualReport.deleted_at.is_(None),
-            )
-            .first()
-        )
-
     def get_by_client_year(self, client_id: int, tax_year: int) -> Optional[AnnualReport]:
-        """Returns the first report for client+year. Use get_by_client_year_type for
-        conflict checks — a client may have multiple reports per year."""
+        """Return the primary annual report for a client and tax year."""
         return (
             self.db.query(AnnualReport)
             .filter(

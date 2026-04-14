@@ -5,17 +5,14 @@ from sqlalchemy.orm import Session
 _today = date.today  # injectable for tests
 
 from app.common.enums import VatType
+from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.clients.repositories.client_repository import ClientRepository
+from app.annual_reports.services.deadlines import standard_deadline
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-from app.tax_deadline.services.constants import (
-    VAT_FILING_DUE_DAY,
-    ADVANCE_PAYMENT_DUE_DAY,
-    ANNUAL_REPORT_DUE_MONTH,
-    ANNUAL_REPORT_DUE_DAY,
-)
+from app.tax_deadline.services.constants import VAT_FILING_DUE_DAY, ADVANCE_PAYMENT_DUE_DAY
 
 
 class DeadlineGeneratorService:
@@ -94,8 +91,12 @@ class DeadlineGeneratorService:
         return created
 
     def generate_annual_report_deadline(self, client_id: int, year: int) -> list:
-        """Generate the annual report deadline (April 30 of year+1)."""
-        due_date = date(year + 1, ANNUAL_REPORT_DUE_MONTH, ANNUAL_REPORT_DUE_DAY)
+        """Generate the annual report deadline using the filing profile."""
+        client = self.client_repo.get_by_id(client_id)
+        client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(
+            client.entity_type if client else None
+        )
+        due_date = standard_deadline(year, client_type=client_type).date()
         if self.deadline_repo.exists(client_id, DeadlineType.ANNUAL_REPORT, due_date):
             return []
         deadline = self.deadline_service.create_deadline(

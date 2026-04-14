@@ -9,7 +9,6 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
     AnnualReportSchedule,
-    AnnualReportType,
     ClientTypeForReport,
     FilingDeadlineType,
     ExtensionReason,
@@ -24,7 +23,6 @@ class AnnualReportResponse(BaseModel):
     client_name: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
-    report_type: AnnualReportType
     client_type: ClientTypeForReport
     form_type: AnnualReportForm
     status: AnnualReportStatus
@@ -40,7 +38,6 @@ class AnnualReportResponse(BaseModel):
     has_capital_gains: bool = False
     has_foreign_income: bool = False
     has_depreciation: bool = False
-    has_exempt_rental: bool = False
     submission_method: Optional[SubmissionMethod] = None
     extension_reason: Optional[ExtensionReason] = None
     notes: Optional[str] = None

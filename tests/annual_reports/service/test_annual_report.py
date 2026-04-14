@@ -33,11 +33,11 @@ class AnnualReportService:
         deadline_type="standard",
         assigned_to=None,
         notes=None,
+        submission_method=None,
         has_rental_income=False,
         has_capital_gains=False,
         has_foreign_income=False,
         has_depreciation=False,
-        has_exempt_rental=False,
     ):
         client = self.client_repo.get_by_id(client_id)
         if not client:
@@ -62,7 +62,7 @@ class AnnualReportService:
 
         form_type = FORM_MAP[ct]
         filing_deadline = (
-            standard_deadline(tax_year)
+            standard_deadline(tax_year, client_type=ct, submission_method=submission_method)
             if dt == DeadlineType.STANDARD
             else extended_deadline(tax_year)
             if dt == DeadlineType.EXTENDED
@@ -84,8 +84,10 @@ class AnnualReportService:
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
             has_depreciation=has_depreciation,
-            has_exempt_rental=has_exempt_rental,
         )
+
+        if ct in {ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.PARTNERSHIP}:
+            self.repo.add_schedule(report.id, AnnualReportSchedule.SCHEDULE_A, is_required=True)
 
         for flag_attr, schedule in SCHEDULE_FLAGS:
             if getattr(report, flag_attr, False):

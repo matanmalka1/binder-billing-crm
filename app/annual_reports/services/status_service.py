@@ -84,7 +84,14 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
             if ita_reference:
                 update_fields["ita_reference"] = ita_reference
             if submission_method:
-                update_fields["submission_method"] = SubmissionMethod(submission_method)
+                sm = SubmissionMethod(submission_method)
+                update_fields["submission_method"] = sm
+                if report.deadline_type == FilingDeadlineType.STANDARD:
+                    update_fields["filing_deadline"] = standard_deadline(
+                        report.tax_year,
+                        client_type=report.client_type,
+                        submission_method=sm,
+                    )
 
         if ns == AnnualReportStatus.ASSESSMENT_ISSUED:
             if assessment_amount is not None:
@@ -136,7 +143,11 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         dt = FilingDeadlineType(deadline_type)
 
         if dt == FilingDeadlineType.STANDARD:
-            filing_deadline = standard_deadline(report.tax_year)
+            filing_deadline = standard_deadline(
+                report.tax_year,
+                client_type=report.client_type,
+                submission_method=report.submission_method,
+            )
         elif dt == FilingDeadlineType.EXTENDED:
             filing_deadline = extended_deadline(report.tax_year)
         else:

@@ -26,7 +26,7 @@ Covers:
 
 | Entity | Table | Notes |
 |---|---|---|
-| `AnnualReport` | `annual_reports` | Root aggregate. One per `(client_id, tax_year, report_type)`. Soft-deleted. |
+| `AnnualReport` | `annual_reports` | Root aggregate. One main annual return per `(client_id, tax_year)`. Soft-deleted. |
 | `AnnualReportDetail` | `annual_report_details` | 1:1 extension. Two write paths: cache (credit points) and metadata (approval, notes). |
 | `AnnualReportIncomeLine` | `annual_report_income_lines` | Income line items. Multiple types per report. |
 | `AnnualReportExpenseLine` | `annual_report_expense_lines` | Expense lines with statutory recognition rates. |
@@ -53,27 +53,29 @@ NOT_STARTED → COLLECTING_DOCS → DOCS_COMPLETE → IN_PREPARATION → PENDING
 
 Valid transitions are enforced in `services/constants.py::VALID_TRANSITIONS`. All transitions go through `transition_status()` which holds a row-level lock.
 
-### `AnnualReportType` — uniqueness discriminator
+### `AnnualReportType` — filing profile of the main annual return
 
 | Value | Form | Description |
 |---|---|---|
 | `INDIVIDUAL` | 1301 | יחיד |
-| `SELF_EMPLOYED` | 1215 | עצמאי / שותפות |
-| `COMPANY` | 6111 | חברה בע"מ |
+| `SELF_EMPLOYED` | 1301 + נספח א' | עצמאי |
+| `COMPANY` | 1214 | חברה בע"מ |
+| `PUBLIC_INSTITUTION` | 1215 | מלכ"ר / מוסד ציבורי |
+| `EXEMPT_DEALER` | 0135 / 1301 | עוסק פטור / זעיר לפי מסלול הדיווח |
 
-A client may have multiple reports for the same tax year if they have different `report_type` values.
+The domain rule is one primary annual report per client and tax year. Supporting forms and annexes are tracked within the report rather than as separate primary reports.
 
 ### `FilingDeadlineType`
 
 | Value | Date | Notes |
 |---|---|---|
-| `STANDARD` | April 30 of `tax_year + 1` | Statutory default |
+| `STANDARD` | Varies by profile | Individuals manual: 29.05, individuals online: 30.06, corporations/control holders: 31.07 |
 | `EXTENDED` | January 31 of `tax_year + 2` | מייצגים — authorized representative extension |
 | `CUSTOM` | None (free text note) | ITA-granted individual extension |
 
 ### `AnnualReportSchedule` — ITA annex codes
 
-`SCHEDULE_B` (rental), `SCHEDULE_BET` (capital gains), `SCHEDULE_GIMMEL` (foreign income), `SCHEDULE_DALET` (depreciation), `SCHEDULE_HEH` (exempt rental), `SCHEDULE_A` (business income), `SCHEDULE_VAV` (securities), `ANNEX_15`, `ANNEX_867`
+`SCHEDULE_A` (1320 business / profession), `SCHEDULE_B` (1321 property / rent / interest / dividends / occasional transactions), `SCHEDULE_GIMMEL` (1322 securities gains), `SCHEDULE_DALET` (1323/1324 foreign income / foreign tax), `FORM_150`, `FORM_1504`, `FORM_6111`, `FORM_1344`, plus additional supported forms `FORM_1399`, `FORM_1350`, `FORM_1327`, `FORM_1342`, `FORM_1343`, `FORM_1348`, `FORM_858`
 
 ---
 
@@ -82,13 +84,13 @@ A client may have multiple reports for the same tax year if they have different 
 ### Creation flow
 
 1. Validate `client_id` exists
-2. Validate `client_type`, `report_type`, `deadline_type`
+2. Validate `client_type` and `deadline_type`
 3. Validate `assigned_to` user exists (if provided)
-4. Check uniqueness: `(client_id, tax_year, report_type)` — raises `ConflictError` if exists
+4. Check uniqueness: `(client_id, tax_year)` — raises `ConflictError` if a main annual return already exists
 5. Derive `form_type` from `client_type` via `FORM_MAP`
 6. Compute `filing_deadline` from `deadline_type` and `tax_year`
 7. Persist `AnnualReport`
-8. Auto-generate `AnnualReportScheduleEntry` rows from income flags (`has_rental_income → SCHEDULE_B`, etc.)
+8. Auto-generate `AnnualReportScheduleEntry` rows from filing profile and income flags (`SELF_EMPLOYED/PARTNERSHIP → SCHEDULE_A`, `has_rental_income → SCHEDULE_B`, etc.)
 9. Append initial status history entry (`NOT_STARTED`)
 10. Write entity audit log
 11. Return full detail response
@@ -147,7 +149,7 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 
 ## Invariants (non-negotiable rules)
 
-- **One report per `(client_id, tax_year, report_type)`** — enforced by partial unique index and `ConflictError` in service. Soft-deleted reports are excluded from the constraint.
+- **One main annual report per `(client_id, tax_year)`** — enforced by partial unique index and `ConflictError` in service. Soft-deleted reports are excluded from the constraint.
 - **Status transitions are strictly gated** — no direct status writes outside `transition_status()`. All transitions use `VALID_TRANSITIONS`. Exception: `amend_report()` currently bypasses this (known bug — see Open Tasks).
 - **Submission requires readiness** — `transition_status(SUBMITTED)` always calls `_assert_filing_readiness()`.
 - **Row-level lock on status transitions** — `get_by_id_for_update()` prevents concurrent status changes.
@@ -185,8 +187,8 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 - **VAT is a separate obligation** — VAT net balance is informational in the tax summary, not part of the income-tax liability.
 - **Donation credit (Section 46 ITO)**: 35% of qualifying donations. Minimum donation threshold applies before credit is granted.
 - **Statutory recognition rates**: Vehicle expenses 75%, communication expenses 80% (Income Tax Regulations 28, 22).
-- **ITA forms**: 1301 (individual), 1215 (self-employed/partnership), 6111 (corporation).
-- **Standard filing deadline**: April 30 of the following year. Extended (for authorized representatives): January 31 of the year after that.
+- **ITA forms**: 0135 (short refund request for taxpayers who are not required to file a full annual return), 1301 (individual / self-employed main return), 1214 (corporation main return), 1215 (public institution / nonprofit when relevant), 6111 (financial-statement coding annex, not a primary return).
+- **Standard filing deadline**: Individuals manual 29.05, individuals online 30.06, corporations and control holders 31.07 of the following year. Extended (for authorized representatives): January 31 of the year after that.
 
 ---
 

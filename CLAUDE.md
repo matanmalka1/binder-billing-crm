@@ -142,21 +142,6 @@ Some UX-oriented values, especially `signals` and `urgency`, are derived in the 
 
 This is one cause of certain in-memory filtering and fetch limits in the codebase, especially where filtering depends on computed cross-entity state.
 
-
-## Known Architectural Debt (Sprint 10+)
-
-These are intentional, documented constraints — not bugs. Do not work around them without a plan.
-
-| Location                        | Limit                                               | Behavior when exceeded                   |
-| ------------------------------- | --------------------------------------------------- | ---------------------------------------- |
-| `dashboard_extended_service.py` | `_ACTIVE_BINDERS_FETCH_LIMIT = 1000` active binders | Raises `AppError` (HTTP 500)             |
-| `dashboard_extended_service.py` | `_UNPAID_CHARGES_FETCH_LIMIT = 500` charges         | Raises `AppError` (HTTP 500)             |
-| `search_service.py`             | `_MIXED_SEARCH_BINDER_LIMIT = 1000` binders         | Results silently capped                  |
-| `search_service.py`             | `_MIXED_SEARCH_CLIENT_LIMIT = 500` clients          | Results silently capped                  |
-| `timeline_service.py`           | `_TIMELINE_BULK_LIMIT = 500` per entity             | Older events silently truncated          |
-| `reports_service.py`            | `_AGING_CHARGE_FETCH_LIMIT = 2000` charges          | Charges beyond ceiling silently excluded |
-|                                 |
-
 ---
 
 ## Infrastructure

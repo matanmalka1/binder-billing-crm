@@ -11,22 +11,34 @@ def test_individual_gets_1301():
     assert report.form_type == AnnualReportForm.FORM_1301
 
 
-def test_self_employed_gets_1215():
+def test_self_employed_gets_1301():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "self_employed", 1, "Advisor")
-    assert report.form_type == AnnualReportForm.FORM_1215
+    assert report.form_type == AnnualReportForm.FORM_1301
 
 
-def test_partnership_gets_1215():
+def test_partnership_gets_1301():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "partnership", 1, "Advisor")
+    assert report.form_type == AnnualReportForm.FORM_1301
+
+
+def test_corporation_gets_1214():
+    service = AnnualReportService()
+    report = service.create_report(1, 2023, "corporation", 1, "Advisor")
+    assert report.form_type == AnnualReportForm.FORM_1214
+
+
+def test_public_institution_gets_1215():
+    service = AnnualReportService()
+    report = service.create_report(1, 2023, "public_institution", 1, "Advisor")
     assert report.form_type == AnnualReportForm.FORM_1215
 
 
-def test_corporation_gets_6111():
+def test_exempt_dealer_gets_0135():
     service = AnnualReportService()
-    report = service.create_report(1, 2023, "corporation", 1, "Advisor")
-    assert report.form_type == AnnualReportForm.FORM_6111
+    report = service.create_report(1, 2023, "exempt_dealer", 1, "Advisor")
+    assert report.form_type == AnnualReportForm.FORM_0135
 
 
 def test_invalid_client_type_raises():
@@ -39,7 +51,28 @@ def test_invalid_client_type_raises():
 def test_standard_deadline():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "individual", 1, "Advisor", deadline_type="standard")
-    assert report.filing_deadline.year == 2024 and report.filing_deadline.month == 4 and report.filing_deadline.day == 30
+    assert report.filing_deadline.year == 2024 and report.filing_deadline.month == 5 and report.filing_deadline.day == 29
+
+
+def test_standard_deadline_online_individual():
+    service = AnnualReportService()
+    report = service.create_report(
+        1, 2023, "individual", 1, "Advisor",
+        deadline_type="standard", submission_method="online",
+    )
+    assert report.filing_deadline.year == 2024 and report.filing_deadline.month == 6 and report.filing_deadline.day == 30
+
+
+def test_standard_deadline_corporation():
+    service = AnnualReportService()
+    report = service.create_report(1, 2023, "corporation", 1, "Advisor", deadline_type="standard")
+    assert report.filing_deadline.year == 2024 and report.filing_deadline.month == 7 and report.filing_deadline.day == 31
+
+
+def test_standard_deadline_public_institution():
+    service = AnnualReportService()
+    report = service.create_report(1, 2023, "public_institution", 1, "Advisor", deadline_type="standard")
+    assert report.filing_deadline.year == 2024 and report.filing_deadline.month == 7 and report.filing_deadline.day == 31
 
 
 def test_extended_deadline():
@@ -66,6 +99,14 @@ def test_duplicate_same_client_year():
     service.create_report(1, 2023, "individual", 1, "Advisor")
     with pytest.raises(ConflictError) as exc_info:
         service.create_report(1, 2023, "individual", 1, "Advisor")
+    assert exc_info.value.code == "ANNUAL_REPORT.CONFLICT"
+
+
+def test_duplicate_same_client_year_different_profile_still_conflicts():
+    service = AnnualReportService()
+    service.create_report(1, 2023, "individual", 1, "Advisor")
+    with pytest.raises(ConflictError) as exc_info:
+        service.create_report(1, 2023, "self_employed", 1, "Advisor")
     assert exc_info.value.code == "ANNUAL_REPORT.CONFLICT"
 
 

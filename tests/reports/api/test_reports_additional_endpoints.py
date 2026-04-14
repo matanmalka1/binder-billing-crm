@@ -134,7 +134,7 @@ def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_
         tax_year=2026,
         report_type=AnnualReportType.COMPANY,
         client_type=ClientTypeForReport.CORPORATION,
-        form_type=AnnualReportForm.FORM_6111,
+        form_type=AnnualReportForm.FORM_1214,
         status=AnnualReportStatus.SUBMITTED,
         deadline_type=FilingDeadlineType.STANDARD,
         filing_deadline=datetime(2027, 4, 30, 0, 0, 0),
