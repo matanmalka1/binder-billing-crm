@@ -14,20 +14,10 @@ class ClientTypeForReport(str, PyEnum):
     EXEMPT_DEALER = "exempt_dealer"
 
 
-class AnnualReportType(str, PyEnum):
-    INDIVIDUAL = "individual"
-    SELF_EMPLOYED = "self_employed"
-    COMPANY = "company"
-    PUBLIC_INSTITUTION = "public_institution"
-    EXEMPT_DEALER = "exempt_dealer"
-
-
 class AnnualReportForm(str, PyEnum):
-    FORM_0135 = "0135"
     FORM_1301 = "1301"
     FORM_1214 = "1214"
     FORM_1215 = "1215"
-    FORM_6111 = "6111"
 
 
 class AnnualReportStatus(str, PyEnum):

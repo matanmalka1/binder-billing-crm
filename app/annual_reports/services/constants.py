@@ -2,7 +2,6 @@ from decimal import Decimal
 
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
-    AnnualReportType,
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientTypeForReport,
@@ -23,16 +22,6 @@ FORM_MAP: dict[ClientTypeForReport, AnnualReportForm] = {
     ClientTypeForReport.CORPORATION: AnnualReportForm.FORM_1214,
     ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportForm.FORM_1215,
     ClientTypeForReport.EXEMPT_DEALER: AnnualReportForm.FORM_1301,
-}
-
-REPORT_TYPE_MAP: dict[ClientTypeForReport, AnnualReportType] = {
-    ClientTypeForReport.INDIVIDUAL: AnnualReportType.INDIVIDUAL,
-    ClientTypeForReport.SELF_EMPLOYED: AnnualReportType.SELF_EMPLOYED,
-    ClientTypeForReport.PARTNERSHIP: AnnualReportType.SELF_EMPLOYED,
-    ClientTypeForReport.CONTROL_HOLDER: AnnualReportType.INDIVIDUAL,
-    ClientTypeForReport.CORPORATION: AnnualReportType.COMPANY,
-    ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportType.PUBLIC_INSTITUTION,
-    ClientTypeForReport.EXEMPT_DEALER: AnnualReportType.EXEMPT_DEALER,
 }
 
 # Valid status transitions (from → set of allowed next statuses)
@@ -129,7 +118,6 @@ __all__ = [
     "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
     "NI_RATE_BASE",
     "NI_RATE_HIGH",
-    "REPORT_TYPE_MAP",
     "SCHEDULE_FLAGS",
     "STAGE_TO_STATUS",
     "STATUTORY_RECOGNITION_RATES",

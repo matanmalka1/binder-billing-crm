@@ -1,4 +1,3 @@
-from enum import Enum as PyEnum
 from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
     Index, Integer, Numeric, String, Text, text,
@@ -9,7 +8,6 @@ from app.utils.time_utils import utcnow
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
-    AnnualReportType,
     ClientTypeForReport,
     FilingDeadlineType,
     SubmissionMethod,
@@ -28,12 +26,8 @@ class AnnualReport(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
     tax_year = Column(Integer, nullable=False)
-    # Filing profile of the main annual return.
-    # Domain rule: one primary annual report per legal entity per tax year.
-    # ``report_type`` is descriptive and captured at creation, but does not widen
-    # uniqueness beyond ``(client_id, tax_year)``.
-    report_type = Column(pg_enum(AnnualReportType), nullable=False)
     client_type = Column(pg_enum(ClientTypeForReport), nullable=False)
+    # Snapshot of the main annual-return form derived from client_type at creation.
     form_type = Column(pg_enum(AnnualReportForm), nullable=False)
     status = Column(pg_enum(AnnualReportStatus), default=AnnualReportStatus.NOT_STARTED, nullable=False)
  

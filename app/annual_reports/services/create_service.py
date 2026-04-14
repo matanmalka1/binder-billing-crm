@@ -15,7 +15,6 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_repository import ClientRepository
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
-from .constants import REPORT_TYPE_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
 from .messages import (
@@ -57,7 +56,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
         if client_type not in valid_client_types:
             raise AppError(INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type), "ANNUAL_REPORT.INVALID_TYPE")
         ct = ClientTypeForReport(client_type)
-        rt = REPORT_TYPE_MAP[ct]
 
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
@@ -91,7 +89,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
         report = self.repo.create(
             client_id=client_id,
             tax_year=tax_year,
-            report_type=rt,
             client_type=ct,
             form_type=form_type,
             created_by=created_by,

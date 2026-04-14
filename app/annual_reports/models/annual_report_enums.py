@@ -5,21 +5,6 @@ from enum import Enum as PyEnum
 from app.common.enums import SubmissionMethod
 
 
-class AnnualReportType(str, PyEnum):
-    """
-    Filing profile of the main annual return for a client.
-
-    The source-of-truth business rule is one main annual return per legal entity
-    per tax year. ``report_type`` describes the filing profile, but is not meant
-    to permit multiple primary annual returns for the same client and year.
-    """
-    INDIVIDUAL    = "individual"
-    SELF_EMPLOYED = "self_employed"
-    COMPANY       = "company"
-    PUBLIC_INSTITUTION = "public_institution"
-    EXEMPT_DEALER = "exempt_dealer"
-
-
 class ClientTypeForReport(str, PyEnum):
     """Client types that determine which ITA form is required."""
 
@@ -33,13 +18,11 @@ class ClientTypeForReport(str, PyEnum):
 
 
 class AnnualReportForm(str, PyEnum):
-    """The ITA form number for the annual return."""
+    """Main ITA annual-return forms only."""
 
-    FORM_0135 = "0135"  # Short refund request for taxpayers not required to file a full annual return
     FORM_1301 = "1301"  # Individual
     FORM_1214 = "1214"  # Company / cooperative
     FORM_1215 = "1215"  # Public institution / nonprofit (when relevant)
-    FORM_6111 = "6111"  # Financial statement coding annex; not a primary return form
 
 
 class AnnualReportStatus(str, PyEnum):
@@ -111,7 +94,6 @@ __all__ = [
     "AnnualReportForm",
     "AnnualReportSchedule",
     "AnnualReportStatus",
-    "AnnualReportType",
     "ClientTypeForReport",
     "FilingDeadlineType",
     "ExtensionReason",

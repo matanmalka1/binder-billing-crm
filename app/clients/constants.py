@@ -1,9 +1,6 @@
 from app.binders.models.binder import BinderStatus
 from app.common.enums import EntityType
-from app.annual_reports.models.annual_report_enums import (
-    AnnualReportType,
-    ClientTypeForReport,
-)
+from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_CLIENT_IMPORT_UPLOAD_SIZE = 10 * 1024 * 1024
@@ -49,12 +46,4 @@ ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] 
     EntityType.COMPANY_LTD: ClientTypeForReport.CORPORATION,
     EntityType.EMPLOYEE: ClientTypeForReport.INDIVIDUAL,
     None: ClientTypeForReport.INDIVIDUAL,
-}
-
-ENTITY_TYPE_TO_REPORT_TYPE: dict[EntityType | None, AnnualReportType] = {
-    EntityType.OSEK_PATUR: AnnualReportType.EXEMPT_DEALER,
-    EntityType.OSEK_MURSHE: AnnualReportType.SELF_EMPLOYED,
-    EntityType.COMPANY_LTD: AnnualReportType.COMPANY,
-    EntityType.EMPLOYEE: AnnualReportType.INDIVIDUAL,
-    None: AnnualReportType.INDIVIDUAL,
 }
