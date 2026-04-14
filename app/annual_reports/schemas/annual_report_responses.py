@@ -6,10 +6,10 @@ from pydantic import BaseModel
 
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    ClientAnnualFilingType,
+    PrimaryAnnualReportForm,
     AnnualReportStatus,
     AnnualReportSchedule,
-    ClientTypeForReport,
     FilingDeadlineType,
     ExtensionReason,
     ReportStage,
@@ -23,8 +23,8 @@ class AnnualReportResponse(BaseModel):
     client_name: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
-    client_type: ClientTypeForReport
-    form_type: AnnualReportForm
+    client_type: ClientAnnualFilingType
+    form_type: PrimaryAnnualReportForm
     status: AnnualReportStatus
     deadline_type: FilingDeadlineType
     filing_deadline: Optional[ApiDateTime] = None

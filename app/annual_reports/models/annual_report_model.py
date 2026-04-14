@@ -6,9 +6,9 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    ClientAnnualFilingType,
+    PrimaryAnnualReportForm,
     AnnualReportStatus,
-    ClientTypeForReport,
     FilingDeadlineType,
     SubmissionMethod,
     ExtensionReason
@@ -26,9 +26,9 @@ class AnnualReport(Base):
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
     tax_year = Column(Integer, nullable=False)
-    client_type = Column(pg_enum(ClientTypeForReport), nullable=False)
+    client_type = Column(pg_enum(ClientAnnualFilingType), nullable=False)
     # Snapshot of the main annual-return form derived from client_type at creation.
-    form_type = Column(pg_enum(AnnualReportForm), nullable=False)
+    form_type = Column(pg_enum(PrimaryAnnualReportForm), nullable=False)
     status = Column(pg_enum(AnnualReportStatus), default=AnnualReportStatus.NOT_STARTED, nullable=False)
  
     deadline_type = Column(pg_enum(FilingDeadlineType), default=FilingDeadlineType.STANDARD, nullable=False)

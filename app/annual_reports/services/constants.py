@@ -1,10 +1,10 @@
 from decimal import Decimal
 
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
-    ClientTypeForReport,
+    ClientAnnualFilingType,
+    PrimaryAnnualReportForm,
 )
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 
@@ -14,14 +14,14 @@ from app.annual_reports.models.annual_report_expense_line import ExpenseCategory
 # supported ITA form value for reference, but it is not the primary workflow
 # here because it is a short refund request for taxpayers who are not required
 # to file a full annual return.
-FORM_MAP: dict[ClientTypeForReport, AnnualReportForm] = {
-    ClientTypeForReport.INDIVIDUAL: AnnualReportForm.FORM_1301,
-    ClientTypeForReport.SELF_EMPLOYED: AnnualReportForm.FORM_1301,
-    ClientTypeForReport.PARTNERSHIP: AnnualReportForm.FORM_1301,
-    ClientTypeForReport.CONTROL_HOLDER: AnnualReportForm.FORM_1301,
-    ClientTypeForReport.CORPORATION: AnnualReportForm.FORM_1214,
-    ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportForm.FORM_1215,
-    ClientTypeForReport.EXEMPT_DEALER: AnnualReportForm.FORM_1301,
+FORM_MAP: dict[ClientAnnualFilingType, PrimaryAnnualReportForm] = {
+    ClientAnnualFilingType.INDIVIDUAL: PrimaryAnnualReportForm.FORM_1301,
+    ClientAnnualFilingType.SELF_EMPLOYED: PrimaryAnnualReportForm.FORM_1301,
+    ClientAnnualFilingType.PARTNERSHIP: PrimaryAnnualReportForm.FORM_1301,
+    ClientAnnualFilingType.CONTROL_HOLDER: PrimaryAnnualReportForm.FORM_1301,
+    ClientAnnualFilingType.CORPORATION: PrimaryAnnualReportForm.FORM_1214,
+    ClientAnnualFilingType.PUBLIC_INSTITUTION: PrimaryAnnualReportForm.FORM_1215,
+    ClientAnnualFilingType.EXEMPT_DEALER: PrimaryAnnualReportForm.FORM_1301,
 }
 
 # Valid status transitions (from → set of allowed next statuses)

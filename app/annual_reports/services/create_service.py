@@ -6,7 +6,7 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
-    ClientTypeForReport,
+    ClientAnnualFilingType,
     ExtensionReason,
     FilingDeadlineType,
     SubmissionMethod,
@@ -52,10 +52,10 @@ class AnnualReportCreateService(AnnualReportBaseService):
             from app.core.exceptions import NotFoundError
             raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
 
-        valid_client_types = {e.value for e in ClientTypeForReport}
+        valid_client_types = {e.value for e in ClientAnnualFilingType}
         if client_type not in valid_client_types:
             raise AppError(INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type), "ANNUAL_REPORT.INVALID_TYPE")
-        ct = ClientTypeForReport(client_type)
+        ct = ClientAnnualFilingType(client_type)
 
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:

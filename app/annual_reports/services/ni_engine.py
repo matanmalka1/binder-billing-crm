@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from app.annual_reports.models.annual_report_enums import ClientTypeForReport
+from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.annual_reports.services.constants import NI_RATE_BASE as _NI_RATE_BASE, NI_RATE_HIGH as _NI_RATE_HIGH
 
 _NI_CEILING_BY_YEAR: dict[int, float] = {
@@ -13,7 +13,7 @@ _NI_CEILING_BY_YEAR: dict[int, float] = {
 
 # NI is not calculated for INDIVIDUAL (employee) or CORPORATION client types
 # — INDIVIDUAL: employer deducts directly; CORPORATION: entity-level NI not applicable
-_NI_EXEMPT_TYPES = {ClientTypeForReport.INDIVIDUAL, ClientTypeForReport.CORPORATION}
+_NI_EXEMPT_TYPES = {ClientAnnualFilingType.INDIVIDUAL, ClientAnnualFilingType.CORPORATION}
 
 
 @dataclass
@@ -26,7 +26,7 @@ class NationalInsuranceResult:
 def calculate_national_insurance(
     income: float,
     tax_year: int = 2024,
-    client_type: ClientTypeForReport | None = None,
+    client_type: ClientAnnualFilingType | None = None,
 ) -> NationalInsuranceResult:
     """Calculate Israeli National Insurance for the given tax year.
 

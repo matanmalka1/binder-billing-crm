@@ -5,8 +5,13 @@ from enum import Enum as PyEnum
 from app.common.enums import SubmissionMethod
 
 
-class ClientTypeForReport(str, PyEnum):
-    """Client types that determine which ITA form is required."""
+class ClientAnnualFilingType(str, PyEnum):
+    """Filing profile of the annual return inside this domain.
+
+    This is not a general CRM/legal-entity classification. It is the filing
+    profile that drives primary form selection, deadline rules, and annex
+    generation for the annual-report workflow.
+    """
 
     INDIVIDUAL = "individual"          # יחיד → form 1301
     SELF_EMPLOYED = "self_employed"    # עצמאי → form 1301 + נספח א'
@@ -17,8 +22,8 @@ class ClientTypeForReport(str, PyEnum):
     EXEMPT_DEALER = "exempt_dealer"    # עוסק פטור / זעיר שחייב בדוח מלא; 0135 נשאר מחוץ לזרימת הדוח הראשי
 
 
-class AnnualReportForm(str, PyEnum):
-    """Main ITA annual-return forms only."""
+class PrimaryAnnualReportForm(str, PyEnum):
+    """Primary ITA annual-return forms handled by this domain."""
 
     FORM_1301 = "1301"  # Individual
     FORM_1214 = "1214"  # Company / cooperative
@@ -89,14 +94,20 @@ ANNUAL_REPORT_FILED_STATUSES: frozenset[AnnualReportStatus] = frozenset({
     AnnualReportStatus.CLOSED,
 })
 
+# Backward-compatible aliases. Keep these until all imports migrate.
+ClientTypeForReport = ClientAnnualFilingType
+AnnualReportForm = PrimaryAnnualReportForm
+
 __all__ = [
     "ANNUAL_REPORT_FILED_STATUSES",
     "AnnualReportForm",
     "AnnualReportSchedule",
     "AnnualReportStatus",
+    "ClientAnnualFilingType",
     "ClientTypeForReport",
     "FilingDeadlineType",
     "ExtensionReason",
+    "PrimaryAnnualReportForm",
     "ReportStage",
     "SubmissionMethod",
 ]

@@ -306,7 +306,7 @@ Issues found during 2026-04-13 audit, ordered by severity:
 - [ ] **[MEDIUM]** `business_name` field in `AnnualReportResponse` is always set to `client.full_name` — remove the field or set to `None`; annual reports are client-scoped
 - [ ] **[MEDIUM]** `advances_summary_service.py` and `get_detail_report` both compute final balance independently and can diverge — consolidate
 - [ ] **[MEDIUM]** `invalidate_tax_if_open` calls `get_by_client_year()` which returns only one report — for clients with multiple report types per year, only one is invalidated; use `list_by_client` and iterate
-- [ ] **[MEDIUM]** `AnnualReportScheduleEntry` has no unique constraint on `(annual_report_id, schedule)` — duplicate schedules block submission; add `UniqueConstraint` and migration
+- [x] **[MEDIUM]** `AnnualReportScheduleEntry` uniqueness on `(annual_report_id, schedule)` is enforced in model + `0006_fix_annual_report_line_integrity`; duplicate schedules are deduplicated during migration and blocked at DB level
 - [ ] **[MEDIUM]** `AnnualReportAnnexData.line_number` has no unique constraint per `(annual_report_id, schedule, line_number)` — concurrent inserts can collide; add constraint
 - [ ] **[MEDIUM]** `deadline_sync.py` searches only in `tax_year + 1` for matching deadlines — EXTENDED deadline falls in `tax_year + 2`; expand range
 - [ ] **[MEDIUM]** `DONATION_MINIMUM_ILS = 190` may be wrong — verify against current ITA Section 46 indexed amount (likely 180 ILS for 2024)

@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from app.annual_reports.models.annual_report_enums import ClientTypeForReport
+from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.common.enums import SubmissionMethod
 
 
 def standard_deadline(
     tax_year: int,
-    client_type: ClientTypeForReport | None = None,
+    client_type: ClientAnnualFilingType | None = None,
     submission_method: SubmissionMethod | None = None,
 ) -> datetime:
     """Statutory standard deadline by filing profile.
@@ -17,9 +17,9 @@ def standard_deadline(
       31.07
     """
     if client_type in {
-        ClientTypeForReport.CORPORATION,
-        ClientTypeForReport.PUBLIC_INSTITUTION,
-        ClientTypeForReport.CONTROL_HOLDER,
+        ClientAnnualFilingType.CORPORATION,
+        ClientAnnualFilingType.PUBLIC_INSTITUTION,
+        ClientAnnualFilingType.CONTROL_HOLDER,
     }:
         return datetime(tax_year + 1, 7, 31, 23, 59, 59)
     if submission_method in {SubmissionMethod.ONLINE, SubmissionMethod.REPRESENTATIVE}:

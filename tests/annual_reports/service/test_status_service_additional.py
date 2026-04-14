@@ -20,7 +20,7 @@ def _create_report(db):
     db.refresh(crm_client)
 
     report = AnnualReportService(db).create_report(
-        business_id=crm_client.id,
+        client_id=crm_client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
