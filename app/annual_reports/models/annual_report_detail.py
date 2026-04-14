@@ -8,14 +8,8 @@ class AnnualReportDetail(Base):
     """
     Supplementary detail record for an annual report (1:1 with AnnualReport).
 
-    Two distinct write paths — never mix them:
-
-    CACHE columns (credit_points, pension_credit_points, life_insurance_credit_points,
-    tuition_credit_points):
-        Computed aggregates sourced from AnnualReportCreditPoint rows.
-        Written ONLY via AnnualReportDetailRepository.refresh_credit_cache().
-        NULL until first computed. Service layer applies statutory defaults when NULL.
-        Never set these directly.
+    Metadata columns only. Derived credit-point values are sourced directly from
+    AnnualReportCreditPoint rows and are not persisted here.
 
     METADATA columns (client_approved_at, internal_notes, amendment_reason,
     pension_contribution, donation_amount, other_credits):
@@ -27,14 +21,6 @@ class AnnualReportDetail(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, unique=True)
-
-    # ── Credit points breakdown (cache — written only by refresh_credit_cache) ──
-    # NULL until computed from AnnualReportCreditPoint rows. Service layer falls
-    # back to statutory defaults when NULL. Do NOT set these directly.
-    credit_points = Column(Numeric(5, 2), nullable=True)
-    pension_credit_points = Column(Numeric(5, 2), nullable=True)
-    life_insurance_credit_points = Column(Numeric(5, 2), nullable=True)
-    tuition_credit_points = Column(Numeric(5, 2), nullable=True)
 
     # ── Deductions ────────────────────────────────────────────────────────
     pension_contribution = Column(Numeric(12, 2), nullable=True, default=0)

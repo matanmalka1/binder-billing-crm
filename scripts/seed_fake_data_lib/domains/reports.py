@@ -383,16 +383,6 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
 
 def create_annual_report_details(db, rng: Random, reports) -> None:
     for report in reports:
-        credit_points = Decimal("2.25")
-        pension_credit_points = Decimal(str(rng.choice([0, 0.25, 0.5, 0.75, 1.0])))
-        life_insurance_credit_points = Decimal(str(rng.choice([0, 0.25, 0.5])))
-        tuition_credit_points = Decimal(str(rng.choice([0, 0, 0.5, 1.0])))
-        if report.client_type == ClientTypeForReport.CORPORATION:
-            credit_points = Decimal("0.00")
-            pension_credit_points = Decimal("0.00")
-            life_insurance_credit_points = Decimal("0.00")
-            tuition_credit_points = Decimal("0.00")
-
         client_approved_at = None
         if report.status in (
             AnnualReportStatus.SUBMITTED,
@@ -407,10 +397,6 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
 
         detail = AnnualReportDetail(
             report_id=report.id,
-            credit_points=credit_points,
-            pension_credit_points=pension_credit_points,
-            life_insurance_credit_points=life_insurance_credit_points,
-            tuition_credit_points=tuition_credit_points,
             pension_contribution=_random_decimal(rng, 0, 15_000),
             donation_amount=_random_decimal(rng, 0, 6_000),
             other_credits=_random_decimal(rng, 0, 3_500),

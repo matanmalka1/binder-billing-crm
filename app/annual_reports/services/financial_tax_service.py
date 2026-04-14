@@ -36,11 +36,7 @@ class FinancialTaxMixin:
         report = self._get_report_or_raise(report_id)
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
-        base_cp = float(detail.credit_points) if (detail and detail.credit_points is not None) else 2.25
-        pension_cp = float(detail.pension_credit_points) if (detail and detail.pension_credit_points is not None) else 0.0
-        life_ins_cp = float(detail.life_insurance_credit_points) if (detail and detail.life_insurance_credit_points is not None) else 0.0
-        tuition_cp = float(detail.tuition_credit_points) if (detail and detail.tuition_credit_points is not None) else 0.0
-        credit_points = base_cp + pension_cp + life_ins_cp + tuition_cp
+        credit_points = float(self.credit_point_repo.total_points_by_report_id(report_id))
         pension_deduction = float(detail.pension_contribution) if (detail and detail.pension_contribution is not None) else 0.0
         donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
         other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0

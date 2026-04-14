@@ -27,13 +27,13 @@ Covers:
 | Entity | Table | Notes |
 |---|---|---|
 | `AnnualReport` | `annual_reports` | Root aggregate. One main annual return per `(client_id, tax_year)`. Soft-deleted. |
-| `AnnualReportDetail` | `annual_report_details` | 1:1 extension. Two write paths: cache (credit points) and metadata (approval, notes). |
+| `AnnualReportDetail` | `annual_report_details` | 1:1 extension. Metadata only: approval, notes, deductions, amendment reason. |
 | `AnnualReportIncomeLine` | `annual_report_income_lines` | Income line items. Multiple types per report. |
 | `AnnualReportExpenseLine` | `annual_report_expense_lines` | Expense lines with statutory recognition rates. |
 | `AnnualReportScheduleEntry` | `annual_report_schedules` | Required ITA annexes (schedule B/Bet/Gimmel etc). Tracked for completion. |
 | `AnnualReportAnnexData` | `annual_report_annex_data` | Flexible JSON data rows per schedule. |
 | `AnnualReportStatusHistory` | `annual_report_status_history` | Append-only audit trail. |
-| `AnnualReportCreditPoint` | `annual_report_credit_points` | Per-reason credit point records. Aggregated into `AnnualReportDetail` cache. |
+| `AnnualReportCreditPoint` | `annual_report_credit_points` | Per-reason credit point records. Source of truth for credit-point aggregation. |
 
 ---
 
@@ -131,7 +131,7 @@ Four checks, each worth 25% completion:
 1. Aggregate income lines → `total_income`
 2. Aggregate expense lines with recognition rates → `recognized_expenses`
 3. `taxable_income = total_income - recognized_expenses`
-4. Fetch credit point details from `AnnualReportDetail`
+4. Aggregate credit points from `AnnualReportCreditPoint`
 5. Run `tax_engine.calculate_tax()` — bracket-based Israeli income tax
 6. Run `ni_engine.calculate_national_insurance()` — NI by client type
 7. Fetch VAT balance (informational) and advance payments paid
@@ -163,7 +163,7 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 - **Submission requires readiness** — `transition_status(SUBMITTED)` always calls `_assert_filing_readiness()`.
 - **Row-level lock on status transitions** — `get_by_id_for_update()` prevents concurrent status changes.
 - **Annual reports are client-scoped** — `client_id` is the primary ownership key. Business references (for signature requests) are resolved dynamically, never stored on the report.
-- **Credit point cache vs metadata separation** — `AnnualReportDetail` has two write paths. Cache columns (`credit_points`, `pension_*`, etc.) are written only via `refresh_credit_cache()`. Metadata columns are written only via `update_meta()`. Never mix these.
+- **Credit points come from rows, not cached columns** — aggregate from `AnnualReportCreditPoint` whenever tax or detail responses need them. `AnnualReportDetail` stores only metadata and deduction inputs.
 - **Tax calculation is never auto-persisted** — `get_tax_calculation()` is always on-demand. `save_tax_calculation()` requires explicit advisor action.
 - **Status history is append-only** — no updates or deletes on `AnnualReportStatusHistory`.
 - **`changed_by_name` is a snapshot** — stored at transition time. Do not derive from users table retrospectively.

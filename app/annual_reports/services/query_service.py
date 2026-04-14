@@ -55,6 +55,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
     def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
         """Return report with schedules, history, financial summary, and detail fields. None if not found."""
         from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
+        from app.annual_reports.repositories.credit_point_repository import AnnualReportCreditPointRepository
         from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
         from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
 
@@ -70,6 +71,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
         total_expenses = expense_repo.total_expenses(report_id)
         recognized_expenses = expense_repo.total_recognized_expenses(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
+        credit_breakdown = AnnualReportCreditPointRepository(self.db).aggregate_breakdown(report_id)
 
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
@@ -83,10 +85,10 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes
             response.amendment_reason = detail.amendment_reason
-            response.credit_points = detail.credit_points
-            response.pension_credit_points = detail.pension_credit_points
-            response.life_insurance_credit_points = detail.life_insurance_credit_points
-            response.tuition_credit_points = detail.tuition_credit_points
+        response.credit_points = credit_breakdown["credit_points"]
+        response.pension_credit_points = credit_breakdown["pension_credit_points"]
+        response.life_insurance_credit_points = credit_breakdown["life_insurance_credit_points"]
+        response.tuition_credit_points = credit_breakdown["tuition_credit_points"]
         if orm_report:
             response.tax_refund_amount = float(orm_report.refund_due) if orm_report.refund_due is not None else None
             response.tax_due_amount = float(orm_report.tax_due) if orm_report.tax_due is not None else None

@@ -1,16 +1,8 @@
-from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
-
-_CACHE_COLUMNS = frozenset({
-    "credit_points",
-    "pension_credit_points",
-    "life_insurance_credit_points",
-    "tuition_credit_points",
-})
 
 _META_COLUMNS = frozenset({
     "client_approved_at",
@@ -32,22 +24,6 @@ class AnnualReportDetailRepository:
             .filter(AnnualReportDetail.report_id == report_id)
             .first()
         )
-
-    def refresh_credit_cache(
-        self,
-        report_id: int,
-        credit_points: Optional[Decimal],
-        pension_credit_points: Optional[Decimal],
-        life_insurance_credit_points: Optional[Decimal],
-        tuition_credit_points: Optional[Decimal],
-    ) -> AnnualReportDetail:
-        """Update only the computed credit point cache columns."""
-        return self._upsert(report_id, {
-            "credit_points": credit_points,
-            "pension_credit_points": pension_credit_points,
-            "life_insurance_credit_points": life_insurance_credit_points,
-            "tuition_credit_points": tuition_credit_points,
-        }, allowed=_CACHE_COLUMNS)
 
     def update_meta(self, report_id: int, **fields) -> AnnualReportDetail:
         """Update only business metadata columns (approval, notes, amendment reason, deductions)."""

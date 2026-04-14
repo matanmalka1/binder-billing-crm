@@ -6,6 +6,7 @@ from app.core.exceptions import NotFoundError
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.annual_reports.repositories.credit_point_repository import AnnualReportCreditPointRepository
 from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
 from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
 from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
@@ -23,6 +24,7 @@ class FinancialBaseService:
         self.expense_repo = AnnualReportExpenseRepository(db)
         self.report_repo = AnnualReportRepository(db)
         self.detail_repo = AnnualReportDetailRepository(db)
+        self.credit_point_repo = AnnualReportCreditPointRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.advance_repo = AdvancePaymentRepository(db)
         self.business_repo = BusinessRepository(db)

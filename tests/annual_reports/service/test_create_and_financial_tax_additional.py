@@ -3,6 +3,10 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.annual_reports.models.annual_report_credit_point_reason import (
+    AnnualReportCreditPoint,
+    CreditPointReason,
+)
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
@@ -40,7 +44,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
     c = _client(test_db, "B")
     service = AnnualReportService(test_db)
     report = service.create_report(
-        business_id=c.id,
+        client_id=c.id,
         tax_year=2025,
         client_type="corporation",
         created_by=1,
@@ -51,7 +55,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
 
     with pytest.raises(Exception):
         service.create_report(
-            business_id=c.id,
+            client_id=c.id,
             tax_year=2024,
             client_type="corporation",
             created_by=1,
@@ -80,19 +84,27 @@ def test_tax_calculation_uses_detail_credit_components(monkeypatch, test_db):
 
     # ensure summary has taxable income
     financial.add_income(report.id, "salary", 1000)
-    detail_repo = financial.detail_repo
-    detail_repo.upsert(
+    financial.detail_repo.update_meta(
         report.id,
-        credit_points=2.0,
-        pension_credit_points=0.25,
-        life_insurance_credit_points=0.5,
-        tuition_credit_points=0.25,
         pension_contribution=100.0,
         donation_amount=50.0,
         other_credits=20.0,
     )
+    test_db.add_all([
+        AnnualReportCreditPoint(
+            annual_report_id=report.id,
+            reason=CreditPointReason.RESIDENT,
+            points=2.0,
+        ),
+        AnnualReportCreditPoint(
+            annual_report_id=report.id,
+            reason=CreditPointReason.ACADEMIC_DEGREE,
+            points=1.0,
+        ),
+    ])
+    test_db.flush()
 
-    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_business_year", lambda *args, **kwargs: 0.0)
-    monkeypatch.setattr(financial.advance_repo, "sum_paid_by_business_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_client_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0)
     out = financial.get_tax_calculation(report.id)
     assert out.total_credit_points == 3.0
