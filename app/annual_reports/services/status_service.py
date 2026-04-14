@@ -4,7 +4,7 @@ from datetime import datetime
 from app.audit.constants import ACTION_STATUS_CHANGED, ENTITY_ANNUAL_REPORT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.core.exceptions import AppError, NotFoundError
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus, FilingDeadlineType
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus, FilingDeadlineType, SubmissionMethod
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.utils.time_utils import utcnow
@@ -55,6 +55,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         refund_due: Optional[float] = None,
         tax_due: Optional[float] = None,
         submitted_at: Optional[datetime] = None,
+        submission_method: Optional[str] = None,
     ) -> AnnualReportResponse:
         report = self._get_or_raise_for_update(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
@@ -82,6 +83,8 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
             update_fields["submitted_at"] = submitted_at or utcnow()
             if ita_reference:
                 update_fields["ita_reference"] = ita_reference
+            if submission_method:
+                update_fields["submission_method"] = SubmissionMethod(submission_method)
 
         if ns == AnnualReportStatus.ASSESSMENT_ISSUED:
             if assessment_amount is not None:

@@ -64,7 +64,7 @@ Indexes:
 | `AdvancePaymentCreateRequest` | Request | Validates `period` format, `period_months_count`, non-negative amounts, max `notes=500` |
 | `AdvancePaymentUpdateRequest` | Request | Partial update payload; rejects empty body |
 | `AdvancePaymentSuggestionResponse` | Response | Suggested amount + `has_data` |
-| `AdvancePaymentOverviewRow` | Response | Uses `from_attributes=True`; couples directly to ORM objects |
+| `AdvancePaymentOverviewRow` | Response | Constructed manually in the router (not from ORM attributes directly) |
 | `AdvancePaymentOverviewResponse` | Response | Overview list + KPI totals |
 | `AnnualKPIResponse` | Response | Client-level yearly KPI payload |
 | `MonthlyChartRow` | Response | Monthly chart point |
@@ -251,41 +251,3 @@ Dependency direction:
 - `advance_payments -> core/common`
 
 ---
-
-## Tasks
-
-- [ ] **[ARCH]** Move tax invalidation logic out of the router  
-  _File_: `app/advance_payments/api/advance_payments.py:138`  
-  _Problem_: The router derives the tax year from `period`, calls `AnnualReportFinancialService` directly, and swallows exceptions instead of keeping the HTTP layer thin.  
-  _Fix_: Move the decision and cross-domain call into an `advance_payments` service or event hook, and keep the router limited to HTTP coordination.
-
-- [ ] **[ARCH]** Remove cross-domain model import from the repository layer  
-  _File_: `app/advance_payments/repositories/advance_payment_aggregation_repository.py:73`  
-  _Problem_: The repository imports `Client` from the `clients` domain and joins against it, which breaks the rule against cross-domain dependencies in the model/repository layers.  
-  _Fix_: Move client-name enrichment to a service-level aggregation flow or expose it through a `clients` service.
-
-- [ ] **[ARCH]** Replace direct cross-domain repository access with service-to-service boundaries  
-  _File_: `app/advance_payments/services/advance_payment_service.py:16`  
-  _Problem_: The service depends directly on `ClientRepository` and `VatClientSummaryRepository`, bypassing the service boundaries of `clients` and `vat_reports`.  
-  _Fix_: Consume public services from those domains or add a dedicated facade instead of calling their repositories directly.
-
-- [ ] **[ARCH]** Remove direct `ClientRepository` access from schedule generation  
-  _File_: `app/advance_payments/services/advance_payment_generator.py:28`  
-  _Problem_: The generation flow checks client existence through another domain’s repository instead of going through a service boundary.  
-  _Fix_: Move the client validation into a dedicated service or obtain the client through a public `clients` service API.
-
-- [ ] **[PERF]** Eliminate queries inside the annual schedule generation loop  
-  _File_: `app/advance_payments/services/advance_payment_generator.py:43`  
-  _Problem_: Each month runs `exists_for_period()` and then `create()` with its own `commit`, producing repeated queries and writes inside the loop.  
-  _Fix_: Preload the existing periods, compute the missing ones in memory, and insert them in a single transaction.
-
-- [ ] **[CODE]** Split the oversized schema module  
-  _File_: `app/advance_payments/schemas/advance_payment.py:1`  
-  _Problem_: The file is 163 lines long and exceeds the 150-line threshold used in this domain review.  
-  _Fix_: Split the schemas into request/response modules or by use case so each file stays focused and below the threshold.
-
-- [ ] **[CODE]** Split the oversized API router  
-  _File_: `app/advance_payments/api/advance_payments.py:1`  
-  _Problem_: The file is 161 lines long and combines CRUD, suggestion, KPI, and chart endpoints in one module.  
-  _Fix_: Split the router by responsibility, for example CRUD versus analytics, to stay within the size limit and reduce responsibility mixing.
-

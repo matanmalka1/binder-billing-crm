@@ -38,7 +38,6 @@ def sync_annual_report_deadline(
         return
 
     reminder_repo = ReminderRepository(db)
-    dirty = False
 
     for deadline in deadlines:
         if entering_filed and deadline.status == TaxDeadlineStatus.PENDING:
@@ -47,7 +46,6 @@ def sync_annual_report_deadline(
             deadline.completed_by = changed_by
             db.flush()
             reminder_repo.cancel_pending_by_tax_deadline_flush(deadline.id)
-            dirty = True
 
         elif leaving_filed and deadline.status == TaxDeadlineStatus.COMPLETED:
             deadline.status = TaxDeadlineStatus.PENDING
@@ -69,8 +67,3 @@ def sync_annual_report_deadline(
                     tax_deadline_id=deadline.id,
                     created_by=changed_by,
                 )
-            dirty = True
-
-    if dirty:
-        # explicit commit: this service owns the batch sync transaction boundary
-        db.commit()

@@ -67,6 +67,7 @@ def submit_report(
         note=body.note,
         ita_reference=body.ita_reference,
         submitted_at=body.submitted_at,
+        submission_method=body.submission_method.value if body.submission_method else None,
     )
     detail = service.get_detail_report(report_id)
     if detail is None:

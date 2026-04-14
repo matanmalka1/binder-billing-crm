@@ -34,6 +34,8 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
         deadline_type=body.deadline_type,
         assigned_to=body.assigned_to,
         notes=body.notes,
+        submission_method=body.submission_method.value if body.submission_method else None,
+        extension_reason=body.extension_reason.value if body.extension_reason else None,
         has_rental_income=body.has_rental_income,
         has_capital_gains=body.has_capital_gains,
         has_foreign_income=body.has_foreign_income,

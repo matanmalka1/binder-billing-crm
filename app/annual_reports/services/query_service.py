@@ -10,10 +10,7 @@ from app.annual_reports.schemas.annual_report_responses import (
 )
 from app.core.exceptions import ConflictError
 from .base import AnnualReportBaseService
-from .messages import (
-    REPORT_AMEND_CANCEL_SIGNATURE_REASON,
-    REPORT_AMEND_ONLY_SUBMITTED_ERROR,
-)
+from .messages import REPORT_AMEND_ONLY_SUBMITTED_ERROR
 
 
 class AnnualReportQueryService(AnnualReportBaseService):
@@ -113,24 +110,15 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 REPORT_AMEND_ONLY_SUBMITTED_ERROR.format(status=report.status.value),
                 "ANNUAL_REPORT.INVALID_STATUS_FOR_AMEND",
             )
-        self.repo.update(report_id, status=AnnualReportStatus.AMENDED)
-        self.repo.append_status_history(
-            annual_report_id=report_id,
-            from_status=AnnualReportStatus.SUBMITTED,
-            to_status=AnnualReportStatus.AMENDED,
+
+        self.transition_status(
+            report_id=report_id,
+            new_status=AnnualReportStatus.AMENDED.value,
             changed_by=actor_id,
             changed_by_name=actor_name,
             note=reason,
         )
         AnnualReportDetailRepository(self.db).update_meta(report_id, amendment_reason=reason)
-        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, REPORT_AMEND_CANCEL_SIGNATURE_REASON)
-
-        from app.annual_reports.services.deadline_sync import sync_annual_report_deadline
-        sync_annual_report_deadline(
-            self.db, report,
-            AnnualReportStatus.SUBMITTED, AnnualReportStatus.AMENDED,
-            actor_id,
-        )
 
         return self.get_detail_report(report_id)
 

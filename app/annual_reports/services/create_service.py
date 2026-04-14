@@ -8,7 +8,9 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     AnnualReportType,
     ClientTypeForReport,
+    ExtensionReason,
     FilingDeadlineType,
+    SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_repository import ClientRepository
@@ -39,6 +41,8 @@ class AnnualReportCreateService(AnnualReportBaseService):
         deadline_type: str = "standard",
         assigned_to: Optional[int] = None,
         notes: Optional[str] = None,
+        submission_method: Optional[str] = None,
+        extension_reason: Optional[str] = None,
         # Income flags for schedule auto-generation
         has_rental_income: bool = False,
         has_capital_gains: bool = False,
@@ -99,6 +103,8 @@ class AnnualReportCreateService(AnnualReportBaseService):
             deadline_type=dt,
             filing_deadline=filing_deadline,
             notes=notes,
+            submission_method=SubmissionMethod(submission_method) if submission_method else None,
+            extension_reason=ExtensionReason(extension_reason) if extension_reason else None,
             has_rental_income=has_rental_income,
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
