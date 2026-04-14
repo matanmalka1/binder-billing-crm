@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus, ReportStage
@@ -76,9 +77,9 @@ class AnnualReportQueryService(AnnualReportBaseService):
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
         response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
-        response.total_income = float(total_income)
-        response.total_expenses = float(total_expenses)
-        response.taxable_income = float(total_income) - float(recognized_expenses)
+        response.total_income = total_income
+        response.total_expenses = total_expenses
+        response.taxable_income = total_income - recognized_expenses
 
         orm_report = self.repo.get_by_id(report_id)
         if detail:
@@ -97,8 +98,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
         tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         response.profit = tax.net_profit
-        advances_paid = self.advance_repo.sum_paid_by_client_year(orm_report.client_id, orm_report.tax_year)
-        response.final_balance = round(float(tax.tax_after_credits) - float(advances_paid), 2)
+        advances_paid = Decimal(str(self.advance_repo.sum_paid_by_client_year(orm_report.client_id, orm_report.tax_year)))
+        response.final_balance = tax.tax_after_credits - advances_paid
 
         return response
 

@@ -168,6 +168,11 @@ def upgrade() -> None:
             ["annual_report_id", "schedule"],
         )
 
+    op.drop_index(
+        op.f("ix_annual_report_annex_data_annual_report_id"),
+        table_name="annual_report_annex_data",
+    )
+
     with op.batch_alter_table("annual_report_annex_data", schema=None) as batch_op:
         batch_op.alter_column("schedule_entry_id", existing_type=sa.Integer(), nullable=False)
         batch_op.create_foreign_key(
@@ -199,6 +204,13 @@ def downgrade() -> None:
         batch_op.drop_constraint("fk_annual_report_annex_data_schedule_entry_id", type_="foreignkey")
         batch_op.drop_index("ix_annual_report_annex_data_schedule_entry_id")
         batch_op.drop_column("schedule_entry_id")
+
+    op.create_index(
+        op.f("ix_annual_report_annex_data_annual_report_id"),
+        "annual_report_annex_data",
+        ["annual_report_id"],
+        unique=False,
+    )
 
     with op.batch_alter_table("annual_report_schedules", schema=None) as batch_op:
         batch_op.drop_constraint("uq_annual_report_schedules_report_schedule", type_="unique")
