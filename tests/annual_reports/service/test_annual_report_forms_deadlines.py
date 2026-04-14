@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.exceptions import AppError, ConflictError
-from tests.annual_reports.service.test_annual_report_enums import AnnualReportForm, DeadlineType
+from tests.annual_reports.service.test_annual_report_enums import AnnualReportForm, AnnualReportSchedule, DeadlineType
 from tests.annual_reports.service.test_annual_report import AnnualReportService
 
 
@@ -35,10 +35,18 @@ def test_public_institution_gets_1215():
     assert report.form_type == AnnualReportForm.FORM_1215
 
 
-def test_exempt_dealer_gets_0135():
+def test_exempt_dealer_gets_1301_in_main_annual_report_flow():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "exempt_dealer", 1, "Advisor")
-    assert report.form_type == AnnualReportForm.FORM_0135
+    assert report.form_type == AnnualReportForm.FORM_1301
+
+
+def test_partnership_auto_generates_form_1504_schedule():
+    service = AnnualReportService()
+    report = service.create_report(1, 2023, "partnership", 1, "Advisor")
+    schedules = {entry.schedule for entry in service.get_schedules(report.id)}
+    assert AnnualReportSchedule.SCHEDULE_A in schedules
+    assert AnnualReportSchedule.FORM_1504 in schedules
 
 
 def test_invalid_client_type_raises():

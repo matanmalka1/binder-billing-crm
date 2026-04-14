@@ -53,6 +53,12 @@ class AnnualReportScheduleService(AnnualReportBaseService):
                 schedule=AnnualReportSchedule.SCHEDULE_A,
                 is_required=True,
             )
+        if report.client_type == ClientTypeForReport.PARTNERSHIP:
+            self.repo.add_schedule(
+                annual_report_id=report.id,
+                schedule=AnnualReportSchedule.FORM_1504,
+                is_required=True,
+            )
         for flag_attr, schedule in SCHEDULE_FLAGS:
             if getattr(report, flag_attr, False):
                 self.repo.add_schedule(

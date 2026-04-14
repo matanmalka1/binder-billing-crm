@@ -88,6 +88,8 @@ class AnnualReportService:
 
         if ct in {ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.PARTNERSHIP}:
             self.repo.add_schedule(report.id, AnnualReportSchedule.SCHEDULE_A, is_required=True)
+        if ct == ClientTypeForReport.PARTNERSHIP:
+            self.repo.add_schedule(report.id, AnnualReportSchedule.FORM_1504, is_required=True)
 
         for flag_attr, schedule in SCHEDULE_FLAGS:
             if getattr(report, flag_attr, False):

@@ -22,7 +22,7 @@ router = APIRouter(
 
 @router.post("", response_model=AnnualReportDetailResponse, status_code=status.HTTP_201_CREATED)
 def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: CurrentUser):
-    """Create a new annual income tax report for a business."""
+    """Create a new annual income tax report for a client legal entity."""
     service = AnnualReportService(db)
     orm_report = service.create_report(
         client_id=body.client_id,

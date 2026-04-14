@@ -74,7 +74,7 @@ FORM_MAP = {
     ClientTypeForReport.CONTROL_HOLDER: AnnualReportForm.FORM_1301,
     ClientTypeForReport.CORPORATION: AnnualReportForm.FORM_1214,
     ClientTypeForReport.PUBLIC_INSTITUTION: AnnualReportForm.FORM_1215,
-    ClientTypeForReport.EXEMPT_DEALER: AnnualReportForm.FORM_0135,
+    ClientTypeForReport.EXEMPT_DEALER: AnnualReportForm.FORM_1301,
 }
 
 VALID_TRANSITIONS = {

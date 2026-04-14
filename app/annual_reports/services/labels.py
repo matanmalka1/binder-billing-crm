@@ -50,9 +50,9 @@ CLIENT_TYPE_LABELS: dict[str, str] = {
     "self_employed": "עצמאי (1301 + נספח א')",
     "corporation": "חברה (1214, ובמקרים רלוונטיים גם 6111)",
     "public_institution": "מלכ\"ר / מוסד ציבורי (1215)",
-    "partnership": "שותפות / שותף (1301 ובדרך כלל 1504)",
+    "partnership": "שותף בשותפות (1301 ובדרך כלל 1504)",
     "control_holder": "בעל שליטה (1301, מועד הגשה של חברות)",
-    "exempt_dealer": "עוסק פטור / זעיר (0135 או 1301 לפי החובה)",
+    "exempt_dealer": "עוסק פטור / זעיר החייב בדוח מלא (1301; 0135 אינו דוח ראשי בדומיין זה)",
 }
 
 STATUS_LABELS: dict[str, str] = {

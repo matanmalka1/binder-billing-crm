@@ -61,9 +61,15 @@ Valid transitions are enforced in `services/constants.py::VALID_TRANSITIONS`. Al
 | `SELF_EMPLOYED` | 1301 + נספח א' | עצמאי |
 | `COMPANY` | 1214 | חברה בע"מ |
 | `PUBLIC_INSTITUTION` | 1215 | מלכ"ר / מוסד ציבורי |
-| `EXEMPT_DEALER` | 0135 / 1301 | עוסק פטור / זעיר לפי מסלול הדיווח |
+| `EXEMPT_DEALER` | 1301 | עוסק פטור / זעיר שנמצא בתוך זרימת דוח מלא |
 
 The domain rule is one primary annual report per client and tax year. Supporting forms and annexes are tracked within the report rather than as separate primary reports.
+
+Important scope clarification:
+- This domain models full annual returns only.
+- `0135` is kept as a known ITA form for legal/tax vocabulary, but it is not a primary annual-report workflow here because it is a short refund request for taxpayers who are not required to file a full annual return.
+- `control_holder` and `exempt_dealer` are filing profiles that affect deadline/obligation analysis; they are not separate legal entities.
+- `partnership` should be read operationally as "partner with partnership income", not as a partnership entity filing its own primary income-tax return.
 
 ### `FilingDeadlineType`
 
@@ -90,7 +96,7 @@ The domain rule is one primary annual report per client and tax year. Supporting
 5. Derive `form_type` from `client_type` via `FORM_MAP`
 6. Compute `filing_deadline` from `deadline_type` and `tax_year`
 7. Persist `AnnualReport`
-8. Auto-generate `AnnualReportScheduleEntry` rows from filing profile and income flags (`SELF_EMPLOYED/PARTNERSHIP → SCHEDULE_A`, `has_rental_income → SCHEDULE_B`, etc.)
+8. Auto-generate `AnnualReportScheduleEntry` rows from filing profile and income flags (`SELF_EMPLOYED/PARTNERSHIP → SCHEDULE_A`, `PARTNERSHIP → FORM_1504`, `has_rental_income → SCHEDULE_B`, etc.)
 9. Append initial status history entry (`NOT_STARTED`)
 10. Write entity audit log
 11. Return full detail response
@@ -187,7 +193,7 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 - **VAT is a separate obligation** — VAT net balance is informational in the tax summary, not part of the income-tax liability.
 - **Donation credit (Section 46 ITO)**: 35% of qualifying donations. Minimum donation threshold applies before credit is granted.
 - **Statutory recognition rates**: Vehicle expenses 75%, communication expenses 80% (Income Tax Regulations 28, 22).
-- **ITA forms**: 0135 (short refund request for taxpayers who are not required to file a full annual return), 1301 (individual / self-employed main return), 1214 (corporation main return), 1215 (public institution / nonprofit when relevant), 6111 (financial-statement coding annex, not a primary return).
+- **ITA forms**: 0135 (short refund request for taxpayers who are not required to file a full annual return; outside the main workflow of this domain), 1301 (individual / self-employed main return), 1214 (corporation main return), 1215 (public institution / nonprofit when relevant), 6111 (financial-statement coding annex, not a primary return).
 - **Standard filing deadline**: Individuals manual 29.05, individuals online 30.06, corporations and control holders 31.07 of the following year. Extended (for authorized representatives): January 31 of the year after that.
 
 ---
