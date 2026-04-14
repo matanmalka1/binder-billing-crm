@@ -53,8 +53,9 @@ class AnnualReportAnnexService(AnnualReportBaseService):
     ) -> AnnexDataLineResponse:
         self._get_or_raise(report_id)
         data = self._validate_annex_data(schedule, data)
-        line_number = self.annex_repo.next_line_number(report_id, schedule)  # type: ignore[attr-defined]
-        row = self.annex_repo.add_line(report_id, schedule, line_number, data, notes)  # type: ignore[attr-defined]
+        schedule_entry = self.annex_repo.get_or_create_schedule_entry(report_id, schedule)  # type: ignore[attr-defined]
+        line_number = self.annex_repo.next_line_number(schedule_entry.id)  # type: ignore[attr-defined]
+        row = self.annex_repo.add_line(schedule_entry.id, line_number, data, notes)  # type: ignore[attr-defined]
         return AnnexDataLineResponse.model_validate(row)
 
     def update_annex_line(
@@ -66,7 +67,7 @@ class AnnualReportAnnexService(AnnualReportBaseService):
     ) -> AnnexDataLineResponse:
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
-        if not existing:
+        if not existing or existing.annual_report_id != report_id:
             raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         data = self._validate_annex_data(existing.schedule, data)
         row = self.annex_repo.update_line(line_id, data, notes)  # type: ignore[attr-defined]
@@ -76,6 +77,9 @@ class AnnualReportAnnexService(AnnualReportBaseService):
 
     def delete_annex_line(self, report_id: int, line_id: int) -> None:
         self._get_or_raise(report_id)
+        existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
+        if not existing or existing.annual_report_id != report_id:
+            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         if not self.annex_repo.delete_line(line_id):  # type: ignore[attr-defined]
             raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
 

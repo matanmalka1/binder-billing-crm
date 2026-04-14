@@ -108,3 +108,56 @@ def test_tax_calculation_uses_detail_credit_components(monkeypatch, test_db):
     monkeypatch.setattr(financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0)
     out = financial.get_tax_calculation(report.id)
     assert out.total_credit_points == 3.0
+
+
+def test_income_line_allows_zero_amount(test_db):
+    c = _client(test_db, "E")
+    service = AnnualReportService(test_db)
+    financial = AnnualReportFinancialService(test_db)
+    report = service.create_report(c.id, 2026, "corporation", 1, "A")
+
+    line = financial.add_income(report.id, "salary", 0)
+
+    assert float(line.amount) == 0.0
+    summary = financial.get_financial_summary(report.id)
+    assert float(summary.total_income) == 0.0
+
+
+def test_expense_line_uses_external_document_reference(test_db):
+    c = _client(test_db, "F")
+    service = AnnualReportService(test_db)
+    financial = AnnualReportFinancialService(test_db)
+    report = service.create_report(c.id, 2026, "corporation", 1, "A")
+
+    line = financial.add_expense(
+        report.id,
+        "office_rent",
+        250,
+        external_document_reference="INV-2026-001",
+    )
+
+    assert line.external_document_reference == "INV-2026-001"
+    assert line.supporting_document_id is None
+
+
+def test_annex_line_creates_schedule_owner_when_missing(test_db):
+    c = _client(test_db, "G")
+    service = AnnualReportService(test_db)
+    report = service.create_report(c.id, 2026, "corporation", 1, "A")
+
+    assert service.get_annex_lines(report.id, AnnualReportSchedule.SCHEDULE_B) == []
+
+    line = service.add_annex_line(
+        report.id,
+        AnnualReportSchedule.SCHEDULE_B,
+        {"rental_income": 12000},
+        notes="auto owner",
+    )
+
+    assert line.schedule == AnnualReportSchedule.SCHEDULE_B
+    assert line.annual_report_id == report.id
+    schedules = service.get_schedules(report.id)
+    assert any(
+        entry.schedule == AnnualReportSchedule.SCHEDULE_B and entry.is_required is False
+        for entry in schedules
+    )

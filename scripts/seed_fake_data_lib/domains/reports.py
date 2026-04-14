@@ -532,7 +532,7 @@ def create_annual_report_expense_lines(
                 category=category,
                 amount=_random_decimal(rng, 200, 40_000),
                 recognition_rate=default_recognition_rate(category),
-                supporting_document_ref=(
+                external_document_reference=(
                     (linked_document.original_filename or linked_document.storage_key.split("/")[-1])
                     if linked_document
                     else (f"EXP-{report.tax_year}-{rng.randint(1000, 9999)}" if rng.random() < 0.35 else None)
@@ -549,11 +549,19 @@ def create_annual_report_expense_lines(
 
 def create_annual_report_annex_data(db, rng: Random, reports) -> None:
     for report in reports:
+        schedule_entries = {
+            entry.schedule: entry
+            for entry in db.query(AnnualReportScheduleEntry)
+            .filter(AnnualReportScheduleEntry.annual_report_id == report.id)
+            .all()
+        }
         applicable_schedules = _annex_schedules_for_report(report, rng)
         for line_number, schedule in enumerate(applicable_schedules, start=1):
+            schedule_entry = schedule_entries.get(schedule)
+            if schedule_entry is None:
+                continue
             annex_line = AnnualReportAnnexData(
-                annual_report_id=report.id,
-                schedule=schedule,
+                schedule_entry_id=schedule_entry.id,
                 line_number=line_number,
                 data=_build_annex_payload(rng, report, schedule),
                 notes=rng.choice([None, "אומת מול טפסי 867", "נדרש מסמך תומך", "נבדק מול הנהלת חשבונות"]),

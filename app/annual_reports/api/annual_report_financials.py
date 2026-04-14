@@ -106,7 +106,7 @@ def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSessi
     svc = AnnualReportFinancialService(db)
     return svc.add_expense(
         report_id, body.category, body.amount, body.description,
-        body.recognition_rate, body.supporting_document_ref, body.supporting_document_id,
+        body.recognition_rate, body.external_document_reference, body.supporting_document_id,
         actor_id=user.id,
     )
 

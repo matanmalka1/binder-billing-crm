@@ -1,10 +1,10 @@
 """Annex (schedule) data lines for an annual report."""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, Text
-from app.utils.enum_utils import pg_enum
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, Text, UniqueConstraint
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.utils.time_utils import utcnow
 
 
@@ -12,16 +12,32 @@ class AnnualReportAnnexData(Base):
     """Flexible per-schedule data line attached to an annual report."""
 
     __tablename__ = "annual_report_annex_data"
+    __table_args__ = (
+        UniqueConstraint("schedule_entry_id", "line_number", name="uq_annual_report_annex_data_schedule_entry_line"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
-    schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
+    schedule_entry_id = Column(
+        Integer,
+        ForeignKey("annual_report_schedules.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     line_number = Column(Integer, nullable=False)
     data = Column(JSON, nullable=False)
     data_version = Column(Integer, nullable=False, default=1)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines", lazy="joined")
+
+    @hybrid_property
+    def annual_report_id(self):
+        return self.schedule_entry.annual_report_id
+
+    @hybrid_property
+    def schedule(self):
+        return self.schedule_entry.schedule
 
     def __repr__(self):
         return (

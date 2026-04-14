@@ -24,7 +24,7 @@ class AnnualReportExpenseRepository:
         amount: Decimal,
         description: Optional[str] = None,
         recognition_rate: Optional[Decimal] = None,
-        supporting_document_ref: Optional[str] = None,
+        external_document_reference: Optional[str] = None,
         supporting_document_id: Optional[int] = None,
     ) -> AnnualReportExpenseLine:
         rate = recognition_rate if recognition_rate is not None else default_recognition_rate(category)
@@ -33,7 +33,7 @@ class AnnualReportExpenseRepository:
             category=category,
             amount=amount,
             recognition_rate=rate,
-            supporting_document_ref=supporting_document_ref,
+            external_document_reference=external_document_reference,
             supporting_document_id=supporting_document_id,
             description=description,
         )

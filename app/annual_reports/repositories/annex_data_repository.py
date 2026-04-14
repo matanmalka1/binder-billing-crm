@@ -3,9 +3,11 @@
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
+from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 
 
 class AnnexDataRepository:
@@ -17,29 +19,59 @@ class AnnexDataRepository:
     ) -> list[AnnualReportAnnexData]:
         return (
             self.db.query(AnnualReportAnnexData)
+            .join(AnnualReportAnnexData.schedule_entry)
             .filter(
-                AnnualReportAnnexData.annual_report_id == report_id,
-                AnnualReportAnnexData.schedule == schedule,
+                AnnualReportScheduleEntry.annual_report_id == report_id,
+                AnnualReportScheduleEntry.schedule == schedule,
             )
             .order_by(AnnualReportAnnexData.line_number.asc())
             .all()
         )
 
-    def next_line_number(self, report_id: int, schedule: AnnualReportSchedule) -> int:
-        rows = self.list_by_report_and_schedule(report_id, schedule)
-        return (max((r.line_number for r in rows), default=0)) + 1
+    def get_schedule_entry(
+        self, report_id: int, schedule: AnnualReportSchedule
+    ) -> Optional[AnnualReportScheduleEntry]:
+        return (
+            self.db.query(AnnualReportScheduleEntry)
+            .filter(
+                AnnualReportScheduleEntry.annual_report_id == report_id,
+                AnnualReportScheduleEntry.schedule == schedule,
+            )
+            .first()
+        )
+
+    def get_or_create_schedule_entry(
+        self, report_id: int, schedule: AnnualReportSchedule
+    ) -> AnnualReportScheduleEntry:
+        entry = self.get_schedule_entry(report_id, schedule)
+        if entry:
+            return entry
+        entry = AnnualReportScheduleEntry(
+            annual_report_id=report_id,
+            schedule=schedule,
+            is_required=False,
+        )
+        self.db.add(entry)
+        self.db.flush()
+        return entry
+
+    def next_line_number(self, schedule_entry_id: int) -> int:
+        current_max = (
+            self.db.query(func.max(AnnualReportAnnexData.line_number))
+            .filter(AnnualReportAnnexData.schedule_entry_id == schedule_entry_id)
+            .scalar()
+        )
+        return int(current_max or 0) + 1
 
     def add_line(
         self,
-        report_id: int,
-        schedule: AnnualReportSchedule,
+        schedule_entry_id: int,
         line_number: int,
         data: dict,
         notes: Optional[str] = None,
     ) -> AnnualReportAnnexData:
         row = AnnualReportAnnexData(
-            annual_report_id=report_id,
-            schedule=schedule,
+            schedule_entry_id=schedule_entry_id,
             line_number=line_number,
             data=data,
             notes=notes,
@@ -82,9 +114,10 @@ class AnnexDataRepository:
     ) -> int:
         return (
             self.db.query(AnnualReportAnnexData)
+            .join(AnnualReportAnnexData.schedule_entry)
             .filter(
-                AnnualReportAnnexData.annual_report_id == report_id,
-                AnnualReportAnnexData.schedule == schedule,
+                AnnualReportScheduleEntry.annual_report_id == report_id,
+                AnnualReportScheduleEntry.schedule == schedule,
             )
             .count()
         )

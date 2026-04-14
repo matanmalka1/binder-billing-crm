@@ -2,7 +2,7 @@
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, Numeric, String
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -28,6 +28,9 @@ class AnnualReportIncomeLine(Base):
     """
 
     __tablename__ = "annual_report_income_lines"
+    __table_args__ = (
+        CheckConstraint("amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"),
+    )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Literal, Optional
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
@@ -15,13 +15,13 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 class IncomeLineCreateRequest(BaseModel):
     source_type: IncomeSourceType           # enum — לא str חופשי
-    amount: ApiDecimal = Field(gt=0)
+    amount: ApiDecimal = Field(ge=0)
     description: Optional[str] = None
 
 
 class IncomeLineUpdateRequest(BaseModel):
     source_type: Optional[IncomeSourceType] = None
-    amount: Optional[ApiDecimal] = Field(None, gt=0)
+    amount: Optional[ApiDecimal] = Field(None, ge=0)
     description: Optional[str] = None
 
 
@@ -44,7 +44,10 @@ class ExpenseLineCreateRequest(BaseModel):
     amount: ApiDecimal = Field(gt=0)
     description: Optional[str] = None
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    supporting_document_ref: Optional[str] = None
+    external_document_reference: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
+    )
     supporting_document_id: Optional[int] = None
 
 
@@ -53,7 +56,10 @@ class ExpenseLineUpdateRequest(BaseModel):
     amount: Optional[ApiDecimal] = Field(None, gt=0)
     description: Optional[str] = None
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    supporting_document_ref: Optional[str] = None
+    external_document_reference: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
+    )
     supporting_document_id: Optional[int] = None
 
 
@@ -64,7 +70,7 @@ class ExpenseLineResponse(BaseModel):
     amount: ApiDecimal
     recognition_rate: ApiDecimal
     recognized_amount: ApiDecimal = Decimal("0")
-    supporting_document_ref: Optional[str] = None
+    external_document_reference: Optional[str] = None
     supporting_document_id: Optional[int] = None
     supporting_document_filename: Optional[str] = None
     description: Optional[str] = None

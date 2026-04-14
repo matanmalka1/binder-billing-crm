@@ -96,7 +96,7 @@ class FinancialCrudMixin:
         amount: Decimal,
         description: Optional[str] = None,
         recognition_rate: Optional[Decimal] = None,
-        supporting_document_ref: Optional[str] = None,
+        external_document_reference: Optional[str] = None,
         supporting_document_id: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
@@ -107,7 +107,7 @@ class FinancialCrudMixin:
             raise AppError(INVALID_EXPENSE_CATEGORY_ERROR.format(category=category), "ANNUAL_REPORT.INVALID_TYPE")
         line = self.expense_repo.add(
             report_id, ExpenseCategoryType(category), amount, description,
-            recognition_rate, supporting_document_ref, supporting_document_id,
+            recognition_rate, external_document_reference, supporting_document_id,
         )
         if actor_id:
             EntityAuditLogRepository(self.db).append(
