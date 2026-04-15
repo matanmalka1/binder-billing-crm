@@ -29,7 +29,7 @@ class AnnualReportAnnexData(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines", lazy="joined")
+    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines")
 
     @hybrid_property
     def annual_report_id(self):

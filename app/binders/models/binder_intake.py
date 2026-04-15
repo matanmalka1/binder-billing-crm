@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Text
- 
+from sqlalchemy.orm import relationship
+
 from app.database import Base
 from app.utils.time_utils import utcnow
  
@@ -15,7 +16,9 @@ class BinderIntake(Base):
     __tablename__ = "binder_intakes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    binder_id = Column(Integer, ForeignKey("binders.id"), nullable=False, index=True)
+    binder_id = Column(Integer, ForeignKey("binders.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    binder = relationship("Binder", back_populates="intakes")
 
     # When the material was received.
     received_at = Column(Date, nullable=False)

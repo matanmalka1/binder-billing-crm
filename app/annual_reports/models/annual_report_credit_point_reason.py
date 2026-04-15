@@ -18,7 +18,7 @@ class AnnualReportCreditPoint(Base):
     __tablename__ = "annual_report_credit_points"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True)
     reason = Column(pg_enum(CreditPointReason), nullable=False)
     points = Column(Numeric(5, 2), nullable=False)
     notes  = Column(String, nullable=True)

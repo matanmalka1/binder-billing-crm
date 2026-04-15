@@ -34,7 +34,7 @@ class AnnualReportIncomeLine(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id"), nullable=False, index=True
+        Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True
     )
     source_type = Column(pg_enum(IncomeSourceType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)

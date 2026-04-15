@@ -20,7 +20,7 @@ class AnnualReportScheduleEntry(Base):
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True)
 
     schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
     is_required = Column(Boolean, default=True, nullable=False)
@@ -30,6 +30,7 @@ class AnnualReportScheduleEntry(Base):
     created_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
     completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    annual_report = relationship("AnnualReport", back_populates="schedule_entries")
     annex_lines = relationship(
         "AnnualReportAnnexData",
         back_populates="schedule_entry",

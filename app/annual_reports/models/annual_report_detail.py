@@ -1,4 +1,5 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -20,7 +21,9 @@ class AnnualReportDetail(Base):
     __tablename__ = "annual_report_details"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, unique=True)
+    report_id = Column(Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    report = relationship("AnnualReport", back_populates="detail", uselist=False)
 
     # ── Deductions ────────────────────────────────────────────────────────
     pension_contribution = Column(Numeric(12, 2), nullable=True, default=0)

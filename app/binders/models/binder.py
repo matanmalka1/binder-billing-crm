@@ -5,6 +5,7 @@ from sqlalchemy import (
     Index, Integer, String, Text,
     column, and_,
 )
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -71,6 +72,9 @@ class Binder(Base):
     # Soft delete
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # ── Relationships ─────────────────────────────────────────────────────────
+    intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_binder_client", "client_id"),

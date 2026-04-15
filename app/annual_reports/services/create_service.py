@@ -45,6 +45,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_capital_gains: bool = False,
         has_foreign_income: bool = False,
         has_depreciation: bool = False,
+        has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
@@ -103,6 +104,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
             has_depreciation=has_depreciation,
+            has_exempt_rental=has_exempt_rental,
         )
 
         # Auto-generate required schedules

@@ -25,7 +25,6 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
-    AnnualReportType,
     ClientTypeForReport,
     FilingDeadlineType as DeadlineType,
     ExtensionReason,
@@ -147,7 +146,7 @@ def _build_annex_payload(
             "maintenance_expenses": _as_plain_decimal(maintenance),
             "net_rental_income": _as_plain_decimal(rental_income - maintenance - depreciation),
         }
-    if schedule == AnnualReportSchedule.SCHEDULE_BET:
+    if schedule == AnnualReportSchedule.FORM_1399:
         purchase_price = _random_decimal(rng, 25_000, 220_000)
         sale_price = purchase_price + _random_decimal(rng, 5_000, 90_000)
         return {
@@ -159,7 +158,7 @@ def _build_annex_payload(
             "capital_gain": _as_plain_decimal(sale_price - purchase_price),
             "tax_rate": _as_plain_decimal(_random_decimal(rng, 20, 30)),
         }
-    if schedule == AnnualReportSchedule.SCHEDULE_GIMMEL:
+    if schedule == AnnualReportSchedule.SCHEDULE_DALET:
         gross_income = _random_decimal(rng, 8_000, 85_000)
         foreign_tax = _random_decimal(rng, 0, float(gross_income * Decimal("0.22")))
         return {
@@ -169,7 +168,7 @@ def _build_annex_payload(
             "foreign_tax_paid": _as_plain_decimal(foreign_tax),
             "net_income": _as_plain_decimal(gross_income - foreign_tax),
         }
-    if schedule == AnnualReportSchedule.SCHEDULE_DALET:
+    if schedule == AnnualReportSchedule.FORM_1342:
         asset_cost = _random_decimal(rng, 6_000, 80_000)
         annual_dep = _random_decimal(rng, 1_000, float(asset_cost * Decimal("0.25")))
         accumulated = annual_dep + _random_decimal(rng, 500, float(asset_cost * Decimal("0.35")))
@@ -181,16 +180,7 @@ def _build_annex_payload(
             "annual_depreciation": _as_plain_decimal(annual_dep),
             "book_value": _as_plain_decimal(max(asset_cost - accumulated, Decimal("0.00"))),
         }
-    if schedule == AnnualReportSchedule.SCHEDULE_HEH:
-        rental_income = _random_decimal(rng, 36_000, 72_000)
-        exempt_amount = min(rental_income, _random_decimal(rng, 24_000, 60_000))
-        return {
-            "property_address": _property_address(rng),
-            "rental_income": _as_plain_decimal(rental_income),
-            "exempt_amount": _as_plain_decimal(exempt_amount),
-            "taxable_amount": _as_plain_decimal(rental_income - exempt_amount),
-        }
-    if schedule == AnnualReportSchedule.SCHEDULE_VAV:
+    if schedule == AnnualReportSchedule.SCHEDULE_GIMMEL:
         purchase_price = _random_decimal(rng, 8_000, 70_000)
         sale_price = purchase_price + rng.choice([
             _random_decimal(rng, 1_500, 20_000),
@@ -203,7 +193,7 @@ def _build_annex_payload(
             "sale_price": _as_plain_decimal(sale_price),
             "gain_loss": _as_plain_decimal(sale_price - purchase_price),
         }
-    if schedule == AnnualReportSchedule.ANNEX_15:
+    if schedule == AnnualReportSchedule.FORM_150:
         gross_amount = _random_decimal(rng, 6_000, 60_000)
         withholding = _random_decimal(rng, 0, float(gross_amount * Decimal("0.25")))
         return {
@@ -213,7 +203,7 @@ def _build_annex_payload(
             "withholding_tax": _as_plain_decimal(withholding),
             "treaty_rate": _as_plain_decimal(_random_decimal(rng, 5, 25)),
         }
-    if schedule == AnnualReportSchedule.ANNEX_867:
+    if schedule == AnnualReportSchedule.FORM_1343:
         return {
             "bank_name": rng.choice(["בנק הפועלים", "בנק לאומי", "מזרחי טפחות", "IBI Trade"]),
             "account_number": f"{rng.randint(10000, 99999)}-{rng.randint(1000000, 9999999)}",
@@ -231,15 +221,13 @@ def _annex_schedules_for_report(report: AnnualReport, rng: Random) -> list[Annua
     if report.has_rental_income:
         schedules.append(AnnualReportSchedule.SCHEDULE_B)
     if report.has_capital_gains:
-        schedules.extend([AnnualReportSchedule.SCHEDULE_BET, AnnualReportSchedule.SCHEDULE_VAV])
+        schedules.extend([AnnualReportSchedule.FORM_1399, AnnualReportSchedule.SCHEDULE_GIMMEL])
     if report.has_foreign_income:
-        schedules.extend([AnnualReportSchedule.SCHEDULE_GIMMEL, AnnualReportSchedule.ANNEX_15])
+        schedules.extend([AnnualReportSchedule.SCHEDULE_DALET, AnnualReportSchedule.FORM_150])
     if report.has_depreciation:
-        schedules.append(AnnualReportSchedule.SCHEDULE_DALET)
-    if report.has_exempt_rental:
-        schedules.append(AnnualReportSchedule.SCHEDULE_HEH)
+        schedules.append(AnnualReportSchedule.FORM_1342)
     if rng.random() < 0.35:
-        schedules.append(AnnualReportSchedule.ANNEX_867)
+        schedules.append(AnnualReportSchedule.FORM_1343)
     if not schedules:
         schedules = [rng.choice(list(AnnualReportSchedule))]
     return list(dict.fromkeys(schedules))
@@ -285,15 +273,12 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
         for year in years:
             business = rng.choice(client_businesses)
             if business.client.entity_type == EntityType.COMPANY_LTD:
-                report_type = AnnualReportType.COMPANY
                 client_type_for_report = ClientTypeForReport.CORPORATION
-                form_type = AnnualReportForm.FORM_6111
+                form_type = AnnualReportForm.FORM_1214
             elif business.client.entity_type in (EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE):
-                report_type = AnnualReportType.SELF_EMPLOYED
                 client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
-                form_type = AnnualReportForm.FORM_1215
+                form_type = AnnualReportForm.FORM_1301
             else:
-                report_type = AnnualReportType.INDIVIDUAL
                 client_type_for_report = ClientTypeForReport.INDIVIDUAL
                 form_type = AnnualReportForm.FORM_1301
 
@@ -350,7 +335,6 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             report = AnnualReport(
                 client_id=business.client_id,
                 tax_year=year,
-                report_type=report_type,
                 client_type=client_type_for_report,
                 form_type=form_type,
                 status=status,
@@ -366,7 +350,6 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 has_capital_gains=rng.random() < 0.25,
                 has_foreign_income=rng.random() < 0.2,
                 has_depreciation=rng.random() < 0.2,
-                has_exempt_rental=rng.random() < 0.15,
                 submission_method=submission_method,
                 extension_reason=extension_reason,
                 notes=rng.choice(["", "דורש בדיקה", "ממתין לחתימת לקוח"]),

@@ -2,6 +2,7 @@ from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
     Index, Integer, Numeric, String, Text, text,
 )
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -45,6 +46,7 @@ class AnnualReport(Base):
     has_capital_gains = Column(Boolean, default=False, nullable=False)
     has_foreign_income = Column(Boolean, default=False, nullable=False)
     has_depreciation = Column(Boolean, default=False, nullable=False)
+    has_exempt_rental = Column(Boolean, default=False, nullable=False)
   
     submission_method = Column(pg_enum(SubmissionMethod), nullable=True)
     extension_reason  = Column(pg_enum(ExtensionReason),  nullable=True)
@@ -54,7 +56,26 @@ class AnnualReport(Base):
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
- 
+
+    # ── Relationships ─────────────────────────────────────────────────────────
+    detail = relationship(
+        "AnnualReportDetail", back_populates="report",
+        uselist=False, cascade="all, delete-orphan",
+    )
+    schedule_entries = relationship(
+        "AnnualReportScheduleEntry", back_populates="annual_report",
+        cascade="all, delete-orphan",
+    )
+    income_lines = relationship(
+        "AnnualReportIncomeLine", cascade="all, delete-orphan",
+    )
+    expense_lines = relationship(
+        "AnnualReportExpenseLine", cascade="all, delete-orphan",
+    )
+    credit_points = relationship(
+        "AnnualReportCreditPoint", cascade="all, delete-orphan",
+    )
+
     __table_args__ = (
         Index(
             "idx_annual_report_client_year_type",

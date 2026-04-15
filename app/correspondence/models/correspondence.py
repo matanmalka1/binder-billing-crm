@@ -80,8 +80,8 @@ class Correspondence(Base):
     deleted_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client  = relationship("Client",           foreign_keys="[Correspondence.client_id]")
-    contact = relationship("AuthorityContact", foreign_keys="[Correspondence.contact_id]")
+    client  = relationship("Client",           foreign_keys="[Correspondence.client_id]",  viewonly=True)
+    contact = relationship("AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True)
 
     __table_args__ = (
         Index("idx_correspondence_client_id",         "client_id"),

@@ -126,8 +126,8 @@ class SignatureRequest(Base):
     deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client        = relationship("Client",       foreign_keys="[SignatureRequest.client_id]")
-    annual_report = relationship("AnnualReport", foreign_keys="[SignatureRequest.annual_report_id]")
+    client        = relationship("Client",       foreign_keys="[SignatureRequest.client_id]",       viewonly=True)
+    annual_report = relationship("AnnualReport", foreign_keys="[SignatureRequest.annual_report_id]", viewonly=True)
     audit_events  = relationship("SignatureAuditEvent", back_populates="signature_request")
 
     __table_args__ = (

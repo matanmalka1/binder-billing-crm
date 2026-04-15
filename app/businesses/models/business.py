@@ -34,7 +34,7 @@ class Business(Base):
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
 
     # Relationship: lazy="select"; use explicit joinedload when needed.
-    client = relationship("Client", foreign_keys=[client_id], lazy="select")
+    client = relationship("Client", foreign_keys=[client_id], lazy="select", viewonly=True)
 
     # Business details.
     business_name = Column(String, nullable=False)   # required: every activity must have a name

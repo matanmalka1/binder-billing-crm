@@ -19,6 +19,7 @@ from sqlalchemy import (
     Boolean, Column, DateTime, ForeignKey,
     Index, Integer, Numeric, String, Text, text,
 )
+from sqlalchemy.orm import relationship
 from app.common.enums import SubmissionMethod
 from app.utils.enum_utils import pg_enum
 
@@ -74,6 +75,15 @@ class VatWorkItem(Base):
     # Soft delete
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # ── Relationships ─────────────────────────────────────────────────────────
+    invoices = relationship(
+        "VatInvoice", back_populates="work_item", cascade="all, delete-orphan",
+    )
+    original_item = relationship(
+        "VatWorkItem", foreign_keys="[VatWorkItem.amends_item_id]",
+        remote_side="VatWorkItem.id", uselist=False,
+    )
 
     __table_args__ = (
         Index(

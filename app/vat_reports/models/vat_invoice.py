@@ -15,6 +15,7 @@ from sqlalchemy import (
     Boolean, Column, Date, ForeignKey,
     Index, Integer, Numeric, String, UniqueConstraint,
 )
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
 from datetime import date
@@ -34,8 +35,10 @@ class VatInvoice(Base):
     __tablename__ = "vat_invoices"
 
     id                   = Column(Integer, primary_key=True, autoincrement=True)
-    work_item_id         = Column(Integer, ForeignKey("vat_work_items.id"),
+    work_item_id         = Column(Integer, ForeignKey("vat_work_items.id", ondelete="CASCADE"),
                                   nullable=False, index=True)
+
+    work_item = relationship("VatWorkItem", back_populates="invoices")
     created_by           = Column(Integer, ForeignKey("users.id"), nullable=False)
     # Optional tag: which BusinessActivity (branch/shop/service) contributed this invoice.
     # NULL = untagged (valid — e.g. client has only one activity or is a COMPANY_LTD).

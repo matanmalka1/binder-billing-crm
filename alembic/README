@@ -56,9 +56,22 @@ Notes:
 
 ## Migration chain
 
-
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks (HEAD)
 
 ## Run instructions
+### a61d76155e04_add_relationships_and_cascade_fks
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade a61d76155e04`
+- What it does:
+  Adds `ON DELETE CASCADE` to 7 FK columns across annual_report child tables, binder_intakes,
+  and vat_invoices. Uses `batch_alter_table(recreate='always')` for SQLite compatibility.
+  Affected tables: annual_report_credit_points, annual_report_details,
+  annual_report_expense_lines, annual_report_income_lines, annual_report_schedules,
+  binder_intakes, vat_invoices.
+- Notes: PostgreSQL supports ALTER CONSTRAINT natively; the batch/recreate strategy is a no-op
+  overhead on PostgreSQL but doesn't cause failures.
+
 ### initial_schema (0c533cccdb56)
 
 - Command:

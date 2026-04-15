@@ -25,6 +25,7 @@ from sqlalchemy import (
     BigInteger, Boolean, Column, DateTime, ForeignKey,
     Index, Integer, SmallInteger, String,
 )
+from sqlalchemy.orm import relationship
 from sqlalchemy.schema import CheckConstraint
 from app.utils.enum_utils import pg_enum
 
@@ -92,6 +93,10 @@ class PermanentDocument(Base):
     # ── Versioning ────────────────────────────────────────────────────────────
     version      = Column(Integer, default=1, nullable=False, server_default="1")
     superseded_by = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
+    superseded_by_doc = relationship(
+        "PermanentDocument", foreign_keys="[PermanentDocument.superseded_by]",
+        remote_side="PermanentDocument.id", uselist=False,
+    )
 
     # ── Cross-domain link ─────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
