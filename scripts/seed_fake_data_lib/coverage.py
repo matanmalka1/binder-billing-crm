@@ -219,11 +219,19 @@ class SeedCoverageValidator:
             fk_counts=self._count_by_fk(db, AnnualReportExpenseLine, AnnualReportExpenseLine.annual_report_id),
             minimum=1,
         )
+        annex_fk_counts = {
+            int(report_id): int(count)
+            for report_id, count in db.execute(
+                select(AnnualReportScheduleEntry.annual_report_id, func.count(AnnualReportAnnexData.id))
+                .join(AnnualReportAnnexData, AnnualReportAnnexData.schedule_entry_id == AnnualReportScheduleEntry.id)
+                .group_by(AnnualReportScheduleEntry.annual_report_id)
+            ).all()
+        }
         self._assert_fk_presence(
             errors,
             label="annual_report_annex_data/report",
             parent_ids=report_ids,
-            fk_counts=self._count_by_fk(db, AnnualReportAnnexData, AnnualReportAnnexData.annual_report_id),
+            fk_counts=annex_fk_counts,
             minimum=1,
         )
         self._assert_fk_presence(
