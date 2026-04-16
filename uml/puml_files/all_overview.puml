@@ -1,0 +1,160 @@
+@startuml
+' Global overview — one package per domain
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam packageStyle rectangle
+skinparam classFontSize 12
+skinparam ClassBackgroundColor #EEF4FB
+skinparam ClassBorderColor #5588BB
+
+package "advance_payments" {
+  class AdvancePayment
+}
+
+package "annual_reports" {
+  class AnnualReportAnnexData
+  class AnnualReportCreditPoint
+  class AnnualReportDetail
+  class AnnualReportExpenseLine
+  class AnnualReportIncomeLine
+  class AnnualReport
+  class AnnualReportScheduleEntry
+  class AnnualReportStatusHistory
+}
+
+package "audit" {
+  class EntityAuditLog
+}
+
+package "authority_contact" {
+  class AuthorityContact
+}
+
+package "binders" {
+  class Binder
+  class BinderIntake
+  class BinderIntakeMaterial
+  class BinderStatusLog
+}
+
+package "businesses" {
+  class Business
+}
+
+package "charge" {
+  class Charge
+}
+
+package "clients" {
+  class Client
+}
+
+package "correspondence" {
+  class Correspondence
+}
+
+package "invoice" {
+  class Invoice
+}
+
+package "notes" {
+  class EntityNote
+}
+
+package "notification" {
+  class Notification
+}
+
+package "permanent_documents" {
+  class PermanentDocument
+}
+
+package "reminders" {
+  class Reminder
+}
+
+package "signature_requests" {
+  class SignatureAuditEvent
+  class SignatureRequest
+}
+
+package "tax_deadline" {
+  class TaxDeadline
+}
+
+package "users" {
+  class User
+  class UserAuditLog
+}
+
+package "vat_reports" {
+  class VatAuditLog
+  class VatInvoice
+  class VatWorkItem
+}
+
+"annual_reports" --> "permanent_documents" : ORM
+"businesses" --> "clients" : ORM
+"businesses" --> "notes" : ORM
+"charge" --> "clients" : ORM
+"charge" --> "annual_reports" : ORM
+"charge" --> "invoice" : ORM
+"clients" --> "notes" : ORM
+"correspondence" --> "clients" : ORM
+"correspondence" --> "authority_contact" : ORM
+"signature_requests" --> "clients" : ORM
+"signature_requests" --> "annual_reports" : ORM
+"advance_payments" ..> "clients" : FK
+"advance_payments" ..> "annual_reports" : FK
+"advance_payments" ..> "users" : FK
+"annual_reports" --> "permanent_documents" : FK
+"annual_reports" ..> "clients" : FK
+"annual_reports" ..> "users" : FK
+"audit" ..> "users" : FK
+"authority_contact" ..> "clients" : FK
+"authority_contact" ..> "users" : FK
+"binders" ..> "clients" : FK
+"binders" ..> "users" : FK
+"binders" ..> "businesses" : FK
+"binders" ..> "annual_reports" : FK
+"businesses" --> "clients" : FK
+"businesses" ..> "users" : FK
+"charge" --> "clients" : FK
+"charge" ..> "businesses" : FK
+"charge" --> "annual_reports" : FK
+"charge" ..> "users" : FK
+"clients" ..> "users" : FK
+"correspondence" --> "clients" : FK
+"correspondence" ..> "businesses" : FK
+"correspondence" --> "authority_contact" : FK
+"correspondence" ..> "users" : FK
+"invoice" ..> "charge" : FK
+"notes" ..> "users" : FK
+"notification" ..> "clients" : FK
+"notification" ..> "businesses" : FK
+"notification" ..> "binders" : FK
+"notification" ..> "users" : FK
+"permanent_documents" ..> "clients" : FK
+"permanent_documents" ..> "businesses" : FK
+"permanent_documents" ..> "users" : FK
+"reminders" ..> "clients" : FK
+"reminders" ..> "businesses" : FK
+"reminders" ..> "binders" : FK
+"reminders" ..> "charge" : FK
+"reminders" ..> "tax_deadline" : FK
+"reminders" ..> "annual_reports" : FK
+"reminders" ..> "advance_payments" : FK
+"reminders" ..> "users" : FK
+"signature_requests" --> "clients" : FK
+"signature_requests" ..> "businesses" : FK
+"signature_requests" ..> "users" : FK
+"signature_requests" --> "annual_reports" : FK
+"signature_requests" ..> "permanent_documents" : FK
+"tax_deadline" ..> "clients" : FK
+"tax_deadline" ..> "users" : FK
+"tax_deadline" ..> "advance_payments" : FK
+"vat_reports" ..> "users" : FK
+"vat_reports" ..> "businesses" : FK
+"vat_reports" ..> "clients" : FK
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+' Domain: reminders  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum ReminderStatus {
+  pending
+  processing
+  sent
+  canceled
+}
+
+enum ReminderType {
+  tax_deadline_approaching
+  vat_filing
+  advance_payment_due
+  annual_report_deadline
+  binder_idle
+  unpaid_charge
+  document_missing
+  custom
+}
+
+class Reminder <<reminders>> {
+  +id : int <<PK>>
+  +reminder_type : ReminderType
+  +status : ReminderStatus
+  +target_date : date
+  +days_before : int
+  +send_on : date
+  +message : text
+  +sent_at : datetime?
+  +canceled_at : datetime?
+}
+
+' FK-only links (no ORM relationship declared):
+Reminder ..> Client : client_id
+Reminder ..> Business : business_id
+Reminder ..> Binder : binder_id
+Reminder ..> Charge : charge_id
+Reminder ..> TaxDeadline : tax_deadline_id
+Reminder ..> AnnualReport : annual_report_id
+Reminder ..> AdvancePayment : advance_payment_id
+Reminder ..> User : canceled_by
+Reminder ..> User : created_by
+Reminder ..> User : deleted_by
+
+@enduml

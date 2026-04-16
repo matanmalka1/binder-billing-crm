@@ -1,0 +1,61 @@
+@startuml
+' Domain: users  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum UserRole {
+  advisor
+  secretary
+}
+
+class User <<users>> {
+  +id : int <<PK>>
+  +full_name : str
+  +email : str
+  +phone : str?
+  +password_hash : str(60)
+  +role : UserRole
+  +is_active : bool
+  +token_version : int
+  +created_at : datetime
+  +last_login_at : datetime?
+}
+
+enum AuditAction {
+  login_success
+  login_failure
+  logout
+  user_created
+  user_updated
+  user_activated
+  user_deactivated
+  password_reset
+}
+
+enum AuditStatus {
+  success
+  failure
+}
+
+class UserAuditLog <<user_audit_logs>> {
+  +id : int <<PK>>
+  +action : AuditAction
+  +actor_user_id : int? <<FK→users>>
+  +target_user_id : int? <<FK→users>>
+  +email : str?
+  +status : AuditStatus
+  +reason : str?
+  +metadata_json : text?
+  +created_at : datetime
+}
+
+' FK-only links (no ORM relationship declared):
+UserAuditLog ..> User : actor_user_id
+UserAuditLog ..> User : target_user_id
+
+@enduml

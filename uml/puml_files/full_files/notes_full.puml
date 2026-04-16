@@ -1,0 +1,27 @@
+@startuml
+' Domain: notes  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+class EntityNote <<entity_notes>> {
+  +id : int <<PK>>
+  +entity_type : str
+  +entity_id : int
+  +note : text
+  +created_by : int? <<FK→users>>
+  +created_at : datetime
+  +updated_at : datetime?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+' FK-only links (no ORM relationship declared):
+EntityNote ..> User : created_by
+EntityNote ..> User : deleted_by
+
+@enduml

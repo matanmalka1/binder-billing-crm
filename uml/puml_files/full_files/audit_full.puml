@@ -1,0 +1,26 @@
+@startuml
+' Domain: audit  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+class EntityAuditLog <<entity_audit_logs>> {
+  +id : int <<PK>>
+  +entity_type : str
+  +entity_id : int
+  +performed_by : int <<FK→users>>
+  +action : str
+  +old_value : text?
+  +new_value : text?
+  +note : text?
+  +performed_at : datetime
+}
+
+' FK-only links (no ORM relationship declared):
+EntityAuditLog ..> User : performed_by
+
+@enduml

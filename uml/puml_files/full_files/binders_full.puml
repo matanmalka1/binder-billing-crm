@@ -1,0 +1,90 @@
+@startuml
+' Domain: binders  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum BinderStatus {
+  in_office
+  ready_for_pickup
+  returned
+}
+
+class Binder <<binders>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +binder_number : str
+  +period_start : date
+  +period_end : date?
+  +status : BinderStatus
+  +returned_at : date?
+  +pickup_person_name : str?
+  +is_full : bool
+  +notes : text?
+  +created_at : datetime
+  +created_by : int <<FK→users>>
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+class BinderIntake <<binder_intakes>> {
+  +id : int <<PK>>
+  +binder_id : int <<FK→binders>>
+  +received_at : date
+  +received_by : int <<FK→users>>
+  +notes : text?
+  +created_at : datetime
+}
+
+enum MaterialType {
+  vat
+  income_tax
+  annual_report
+  salary
+  bookkeeping
+  national_insurance
+  capital_declaration
+  pension_and_insurance
+  corporate_docs
+  tax_assessment
+  other
+}
+
+class BinderIntakeMaterial <<binder_intake_materials>> {
+  +id : int <<PK>>
+  +intake_id : int <<FK→binder_intakes>>
+  +business_id : int? <<FK→businesses>>
+  +material_type : MaterialType
+  +annual_report_id : int? <<FK→annual_reports>>
+  +description : text?
+  +created_at : datetime
+}
+
+class BinderStatusLog <<binder_status_logs>> {
+  +id : int <<PK>>
+  +binder_id : int <<FK→binders>>
+  +old_status : str
+  +new_status : str
+  +changed_by : int <<FK→users>>
+  +changed_at : datetime
+  +notes : text?
+}
+
+Binder --> "0..*" BinderIntake : intakes
+BinderIntake --> "0..1" Binder : binder
+' FK-only links (no ORM relationship declared):
+Binder ..> Client : client_id
+Binder ..> User : created_by
+Binder ..> User : deleted_by
+BinderIntake ..> User : received_by
+BinderIntakeMaterial ..> BinderIntake : intake_id
+BinderIntakeMaterial ..> Business : business_id
+BinderIntakeMaterial ..> AnnualReport : annual_report_id
+BinderStatusLog ..> Binder : binder_id
+BinderStatusLog ..> User : changed_by
+
+@enduml

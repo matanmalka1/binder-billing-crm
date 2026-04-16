@@ -1,0 +1,54 @@
+@startuml
+' Domain: charge  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum ChargeStatus {
+  draft
+  issued
+  paid
+  canceled
+}
+
+enum ChargeType {
+  monthly_retainer
+  annual_report_fee
+  vat_filing_fee
+  representation_fee
+  consultation_fee
+  other
+}
+
+class Charge <<charges>> {
+  +id : int <<PK>>
+  +charge_type : ChargeType
+  +status : ChargeStatus
+  +amount : decimal(10,2)
+  +period : str(7)?
+  +months_covered : int
+  +description : text?
+  +issued_at : datetime?
+  +paid_at : datetime?
+  +canceled_at : datetime?
+  +cancellation_reason : text?
+}
+
+Charge ..> "0..1" Client : client
+Charge ..> "0..1" AnnualReport : annual_report
+Charge --> "0..1" Invoice : invoice
+' FK-only links (no ORM relationship declared):
+Charge ..> Client : client_id
+Charge ..> Business : business_id
+Charge ..> AnnualReport : annual_report_id
+Charge ..> User : created_by
+Charge ..> User : issued_by
+Charge ..> User : paid_by
+Charge ..> User : canceled_by
+Charge ..> User : deleted_by
+
+@enduml

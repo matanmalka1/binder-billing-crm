@@ -1,0 +1,51 @@
+@startuml
+' Domain: advance_payments  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum AdvancePaymentStatus {
+  pending
+  paid
+  partial
+  overdue
+}
+
+enum PaymentMethod {
+  bank_transfer
+  credit_card
+  check
+  direct_debit
+  cash
+  other
+}
+
+class AdvancePayment <<advance_payments>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +period : str(7)
+  +period_months_count : int
+  +due_date : date
+  +expected_amount : decimal(10,2)?
+  +paid_amount : decimal(10,2)
+  +status : AdvancePaymentStatus
+  +paid_at : datetime?
+  +payment_method : PaymentMethod?
+  +annual_report_id : int? <<FK→annual_reports>>
+  +notes : str(500)?
+  +created_at : datetime
+  +updated_at : datetime?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+' FK-only links (no ORM relationship declared):
+AdvancePayment ..> Client : client_id
+AdvancePayment ..> AnnualReport : annual_report_id
+AdvancePayment ..> User : deleted_by
+
+@enduml

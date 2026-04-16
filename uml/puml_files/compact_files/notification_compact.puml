@@ -1,0 +1,57 @@
+@startuml
+' Domain: notification  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum NotificationChannel {
+  whatsapp
+  email
+}
+
+enum NotificationSeverity {
+  info
+  warning
+  urgent
+  critical
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  failed
+}
+
+enum NotificationTrigger {
+  binder_received
+  binder_ready_for_pickup
+  manual_payment_reminder
+}
+
+class Notification <<notifications>> {
+  +id : int <<PK>>
+  +trigger : NotificationTrigger
+  +channel : NotificationChannel
+  +severity : NotificationSeverity
+  +recipient : str
+  +content_snapshot : text
+  +status : NotificationStatus
+  +sent_at : datetime?
+  +failed_at : datetime?
+  +error_message : text?
+  +retry_count : int
+  +is_read : bool
+  +read_at : datetime?
+}
+
+' FK-only links (no ORM relationship declared):
+Notification ..> Client : client_id
+Notification ..> Business : business_id
+Notification ..> Binder : binder_id
+Notification ..> User : triggered_by
+
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+' Domain: authority_contact  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum ContactType {
+  assessing_officer
+  vat_branch
+  national_insurance
+  other
+}
+
+class AuthorityContact <<authority_contacts>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +contact_type : ContactType
+  +name : str
+  +office : str?
+  +phone : str?
+  +email : str?
+  +notes : text?
+  +created_at : datetime
+  +updated_at : datetime?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+' FK-only links (no ORM relationship declared):
+AuthorityContact ..> Client : client_id
+AuthorityContact ..> User : deleted_by
+
+@enduml

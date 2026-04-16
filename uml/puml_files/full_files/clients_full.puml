@@ -1,0 +1,59 @@
+@startuml
+' Domain: clients  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum ClientStatus {
+  active
+  frozen
+  closed
+}
+
+enum IdNumberType {
+  individual
+  corporation
+  passport
+  other
+}
+
+class Client <<clients>> {
+  +id : int <<PK>>
+  +full_name : str
+  +id_number : str
+  +id_number_type : IdNumberType
+  +phone : str?
+  +email : str?
+  +address_street : str?
+  +address_building_number : str?
+  +address_apartment : str?
+  +address_city : str?
+  +address_zip_code : str?
+  +entity_type : EntityType?
+  +vat_reporting_frequency : VatType?
+  +vat_exempt_ceiling : decimal(12,0)?
+  +advance_rate : decimal(5,2)?
+  +advance_rate_updated_at : date?
+  +accountant_name : str(100)?
+  +status : ClientStatus
+  +notes : text?
+  +created_by : int? <<FK→users>>
+  +created_at : datetime
+  +updated_at : datetime?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+  +restored_at : datetime?
+  +restored_by : int? <<FK→users>>
+}
+
+Client ..> "0..*" EntityNote : entity_notes
+' FK-only links (no ORM relationship declared):
+Client ..> User : created_by
+Client ..> User : deleted_by
+Client ..> User : restored_by
+
+@enduml

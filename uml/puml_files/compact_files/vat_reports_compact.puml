@@ -1,0 +1,72 @@
+@startuml
+' Domain: vat_reports  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+class VatAuditLog <<vat_audit_logs>> {
+  +id : int <<PK>>
+  +action : str
+  +old_value : text?
+  +new_value : text?
+  +note : text?
+  +performed_at : datetime
+}
+
+class VatInvoice <<vat_invoices>> {
+  +id : int <<PK>>
+  +invoice_type : InvoiceType
+  +document_type : DocumentType?
+  +invoice_number : str
+  +invoice_date : date
+  +counterparty_name : str
+  +counterparty_id : str?
+  +counterparty_id_type : CounterpartyIdType?
+  +net_amount : decimal(12,2)
+  +vat_amount : decimal(12,2)
+  +expense_category : ExpenseCategory?
+  +rate_type : VatRateType
+  +deduction_rate : decimal(5,4)
+  +is_exceptional : bool
+}
+
+class VatWorkItem <<vat_work_items>> {
+  +id : int <<PK>>
+  +period : str(7)
+  +period_type : VatType
+  +status : VatWorkItemStatus
+  +pending_materials_note : text?
+  +total_output_vat : decimal(12,2)
+  +total_input_vat : decimal(12,2)
+  +net_vat : decimal(12,2)
+  +total_output_net : decimal(12,2)
+  +total_input_net : decimal(12,2)
+  +final_vat_amount : decimal(12,2)?
+  +is_overridden : bool
+  +override_justification : text?
+  +submission_method : SubmissionMethod?
+  +filed_at : datetime?
+  +submission_reference : str(100)?
+  +is_amendment : bool
+}
+
+VatInvoice --> "0..1" VatWorkItem : work_item
+VatWorkItem --> "0..*" VatInvoice : invoices
+VatWorkItem --> "0..1" VatWorkItem : original_item
+' FK-only links (no ORM relationship declared):
+VatAuditLog ..> VatWorkItem : work_item_id
+VatAuditLog ..> User : performed_by
+VatAuditLog ..> VatInvoice : invoice_id
+VatInvoice ..> User : created_by
+VatInvoice ..> Business : business_activity_id
+VatWorkItem ..> Client : client_id
+VatWorkItem ..> User : created_by
+VatWorkItem ..> User : assigned_to
+VatWorkItem ..> User : filed_by
+VatWorkItem ..> User : deleted_by
+
+@enduml

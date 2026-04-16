@@ -1,0 +1,44 @@
+@startuml
+' Domain: businesses  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum BusinessStatus {
+  active
+  frozen
+  closed
+}
+
+class Business <<businesses>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +business_name : str
+  +status : BusinessStatus
+  +opened_at : date
+  +closed_at : date?
+  +phone_override : str(20)?
+  +email_override : str(254)?
+  +notes : text?
+  +created_by : int? <<FK→users>>
+  +created_at : datetime
+  +updated_at : datetime?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+  +restored_at : datetime?
+  +restored_by : int? <<FK→users>>
+}
+
+Business ..> "0..1" Client : client
+Business ..> "0..*" EntityNote : entity_notes
+' FK-only links (no ORM relationship declared):
+Business ..> Client : client_id
+Business ..> User : created_by
+Business ..> User : deleted_by
+Business ..> User : restored_by
+
+@enduml

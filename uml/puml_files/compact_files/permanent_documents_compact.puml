@@ -1,0 +1,64 @@
+@startuml
+' Domain: permanent_documents  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum DocumentScope {
+  client
+  business
+}
+
+enum DocumentStatus {
+  pending
+  received
+  approved
+  rejected
+}
+
+enum DocumentType {
+  id_copy
+  power_of_attorney
+  engagement_agreement
+  tax_form
+  receipt
+  invoice_doc
+  bank_approval
+  withholding_certificate
+  nii_approval
+  other
+}
+
+class PermanentDocument <<permanent_documents>> {
+  +id : int <<PK>>
+  +scope : DocumentScope
+  +document_type : DocumentType
+  +storage_key : str
+  +original_filename : str?
+  +file_size_bytes : int?
+  +mime_type : str?
+  +tax_year : int?
+  +is_present : bool
+  +is_deleted : bool
+  +status : DocumentStatus
+  +version : int
+  +notes : str?
+  +uploaded_at : datetime
+  +approved_at : datetime?
+  +rejected_at : datetime?
+}
+
+PermanentDocument --> "0..1" PermanentDocument : superseded_by_doc
+' FK-only links (no ORM relationship declared):
+PermanentDocument ..> Client : client_id
+PermanentDocument ..> Business : business_id
+PermanentDocument ..> AnnualReport : annual_report_id
+PermanentDocument ..> User : uploaded_by
+PermanentDocument ..> User : approved_by
+PermanentDocument ..> User : rejected_by
+
+@enduml

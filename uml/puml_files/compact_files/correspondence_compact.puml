@@ -1,0 +1,36 @@
+@startuml
+' Domain: correspondence  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum CorrespondenceType {
+  call
+  letter
+  email
+  meeting
+  fax
+}
+
+class Correspondence <<correspondence_entries>> {
+  +id : int <<PK>>
+  +correspondence_type : CorrespondenceType
+  +subject : str
+  +notes : text?
+  +occurred_at : datetime
+}
+
+Correspondence ..> "0..1" Client : client
+Correspondence ..> "0..1" AuthorityContact : contact
+' FK-only links (no ORM relationship declared):
+Correspondence ..> Client : client_id
+Correspondence ..> Business : business_id
+Correspondence ..> AuthorityContact : contact_id
+Correspondence ..> User : created_by
+Correspondence ..> User : deleted_by
+
+@enduml

@@ -1,0 +1,22 @@
+@startuml
+' Domain: invoice  |  mode: compact
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+class Invoice <<invoices>> {
+  +id : int <<PK>>
+  +provider : str
+  +external_invoice_id : str
+  +document_url : str?
+  +issued_at : datetime
+}
+
+' FK-only links (no ORM relationship declared):
+Invoice ..> Charge : charge_id
+
+@enduml

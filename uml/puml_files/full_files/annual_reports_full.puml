@@ -1,0 +1,177 @@
+@startuml
+' Domain: annual_reports  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+class AnnualReportAnnexData <<annual_report_annex_data>> {
+  +id : int <<PK>>
+  +schedule_entry_id : int <<FK→annual_report_schedules>>
+  +line_number : int
+  +data : json
+  +data_version : int
+  +notes : text?
+  +created_at : datetime
+  +updated_at : datetime?
+}
+
+enum CreditPointReason {
+  resident
+  academic_degree
+  discharged_soldier
+  new_immigrant
+  single_parent
+}
+
+class AnnualReportCreditPoint <<annual_report_credit_points>> {
+  +id : int <<PK>>
+  +annual_report_id : int <<FK→annual_reports>>
+  +reason : CreditPointReason
+  +points : decimal(5,2)
+  +notes : str?
+}
+
+class AnnualReportDetail <<annual_report_details>> {
+  +id : int <<PK>>
+  +report_id : int <<FK→annual_reports>>
+  +pension_contribution : decimal(12,2)?
+  +donation_amount : decimal(12,2)?
+  +other_credits : decimal(12,2)?
+  +client_approved_at : datetime?
+  +internal_notes : text?
+  +amendment_reason : str(500)?
+  +created_at : datetime
+  +updated_at : datetime?
+}
+
+enum ExpenseCategoryType {
+  office_rent
+  professional_services
+  salaries
+  depreciation
+  vehicle
+  marketing
+  insurance
+  communication
+  travel
+  training
+  bank_fees
+  other
+}
+
+class AnnualReportExpenseLine <<annual_report_expense_lines>> {
+  +id : int <<PK>>
+  +annual_report_id : int <<FK→annual_reports>>
+  +category : ExpenseCategoryType
+  +amount : decimal(14,2)
+  +recognition_rate : decimal(5,2)
+  +external_document_reference : str(255)?
+  +supporting_document_id : int? <<FK→permanent_documents>>
+  +description : str(255)?
+  +created_at : datetime
+  +updated_at : datetime?
+}
+
+enum IncomeSourceType {
+  business
+  salary
+  interest
+  dividends
+  capital_gains
+  rental
+  foreign
+  pension
+  other
+}
+
+class AnnualReportIncomeLine <<annual_report_income_lines>> {
+  +id : int <<PK>>
+  +annual_report_id : int <<FK→annual_reports>>
+  +source_type : IncomeSourceType
+  +amount : decimal(14,2)
+  +description : str(255)?
+  +created_at : datetime
+  +updated_at : datetime?
+}
+
+class AnnualReport <<annual_reports>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +created_by : int? <<FK→users>>
+  +assigned_to : int? <<FK→users>>
+  +tax_year : int
+  +client_type : ClientAnnualFilingType
+  +form_type : PrimaryAnnualReportForm
+  +status : AnnualReportStatus
+  +deadline_type : FilingDeadlineType
+  +filing_deadline : datetime?
+  +custom_deadline_note : str?
+  +submitted_at : datetime?
+  +ita_reference : str?
+  +assessment_amount : decimal(14,2)?
+  +refund_due : decimal(14,2)?
+  +tax_due : decimal(14,2)?
+  +has_rental_income : bool
+  +has_capital_gains : bool
+  +has_foreign_income : bool
+  +has_depreciation : bool
+  +has_exempt_rental : bool
+  +submission_method : SubmissionMethod?
+  +extension_reason : ExtensionReason?
+  +notes : text?
+  +created_at : datetime
+  +updated_at : datetime
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+class AnnualReportScheduleEntry <<annual_report_schedules>> {
+  +id : int <<PK>>
+  +annual_report_id : int <<FK→annual_reports>>
+  +schedule : AnnualReportSchedule
+  +is_required : bool
+  +is_complete : bool
+  +notes : text?
+  +created_at : datetime
+  +completed_at : datetime?
+  +completed_by : int? <<FK→users>>
+}
+
+class AnnualReportStatusHistory <<annual_report_status_history>> {
+  +id : int <<PK>>
+  +annual_report_id : int <<FK→annual_reports>>
+  +from_status : AnnualReportStatus?
+  +to_status : AnnualReportStatus
+  +changed_by : int? <<FK→users>>
+  +changed_by_name : str(255)?
+  +note : text?
+  +occurred_at : datetime
+}
+
+AnnualReportAnnexData --> "0..1" AnnualReportScheduleEntry : schedule_entry
+AnnualReportDetail --> "0..1" AnnualReport : report
+AnnualReportExpenseLine --> "0..1" PermanentDocument : supporting_document
+AnnualReport --> "0..1" AnnualReportDetail : detail
+AnnualReport --> "0..*" AnnualReportScheduleEntry : schedule_entries
+AnnualReport --> "0..*" AnnualReportIncomeLine : income_lines
+AnnualReport --> "0..*" AnnualReportExpenseLine : expense_lines
+AnnualReport --> "0..*" AnnualReportCreditPoint : credit_points
+AnnualReportScheduleEntry --> "0..1" AnnualReport : annual_report
+AnnualReportScheduleEntry --> "0..*" AnnualReportAnnexData : annex_lines
+' FK-only links (no ORM relationship declared):
+AnnualReportCreditPoint ..> AnnualReport : annual_report_id
+AnnualReportExpenseLine ..> AnnualReport : annual_report_id
+AnnualReportIncomeLine ..> AnnualReport : annual_report_id
+AnnualReport ..> Client : client_id
+AnnualReport ..> User : created_by
+AnnualReport ..> User : assigned_to
+AnnualReport ..> User : deleted_by
+AnnualReportScheduleEntry ..> User : completed_by
+AnnualReportStatusHistory ..> AnnualReport : annual_report_id
+AnnualReportStatusHistory ..> User : changed_by
+
+@enduml

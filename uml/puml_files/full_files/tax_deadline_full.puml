@@ -1,0 +1,54 @@
+@startuml
+' Domain: tax_deadline  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum DeadlineType {
+  vat
+  advance_payment
+  national_insurance
+  annual_report
+  other
+}
+
+enum TaxDeadlineStatus {
+  pending
+  completed
+}
+
+enum UrgencyLevel {
+  overdue
+  red
+  yellow
+  green
+}
+
+class TaxDeadline <<tax_deadlines>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +deadline_type : DeadlineType
+  +period : str(7)?
+  +due_date : date
+  +status : TaxDeadlineStatus
+  +completed_at : datetime?
+  +completed_by : int? <<FK→users>>
+  +advance_payment_id : int? <<FK→advance_payments>>
+  +payment_amount : decimal(10,2)?
+  +description : text?
+  +created_at : datetime
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+' FK-only links (no ORM relationship declared):
+TaxDeadline ..> Client : client_id
+TaxDeadline ..> User : completed_by
+TaxDeadline ..> AdvancePayment : advance_payment_id
+TaxDeadline ..> User : deleted_by
+
+@enduml

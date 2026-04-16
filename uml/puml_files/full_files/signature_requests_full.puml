@@ -1,0 +1,87 @@
+@startuml
+' Domain: signature_requests  |  mode: full
+' Edge legend: --> ORM relationship()   ..> FK-only (no relationship)
+hide empty members
+skinparam classAttributeIconSize 0
+skinparam classFontSize 13
+skinparam ArrowColor #555555
+skinparam ClassBorderColor #888888
+skinparam ClassBackgroundColor #FAFAFA
+
+enum SignatureRequestStatus {
+  draft
+  pending_signature
+  signed
+  declined
+  expired
+  canceled
+}
+
+enum SignatureRequestType {
+  engagement_agreement
+  annual_report_approval
+  power_of_attorney
+  vat_return_approval
+  custom
+}
+
+class SignatureAuditEvent <<signature_audit_events>> {
+  +id : int <<PK>>
+  +signature_request_id : int <<FK→signature_requests>>
+  +event_type : str
+  +actor_type : str
+  +actor_id : int?
+  +actor_name : str?
+  +ip_address : str?
+  +user_agent : str?
+  +notes : text?
+  +occurred_at : datetime
+}
+
+class SignatureRequest <<signature_requests>> {
+  +id : int <<PK>>
+  +client_id : int <<FK→clients>>
+  +business_id : int? <<FK→businesses>>
+  +created_by : int <<FK→users>>
+  +annual_report_id : int? <<FK→annual_reports>>
+  +document_id : int? <<FK→permanent_documents>>
+  +request_type : SignatureRequestType
+  +title : str
+  +description : text?
+  +content_hash : str?
+  +storage_key : str?
+  +signer_name : str
+  +signer_email : str?
+  +signer_phone : str?
+  +status : SignatureRequestStatus
+  +signing_token : str?
+  +created_at : datetime
+  +sent_at : datetime?
+  +expires_at : datetime?
+  +expiry_days : int
+  +signed_at : datetime?
+  +declined_at : datetime?
+  +canceled_at : datetime?
+  +canceled_by : int? <<FK→users>>
+  +signer_ip_address : str?
+  +signer_user_agent : str?
+  +decline_reason : text?
+  +signed_document_key : str?
+  +deleted_at : datetime?
+  +deleted_by : int? <<FK→users>>
+}
+
+SignatureAuditEvent --> "0..1" SignatureRequest : signature_request
+SignatureRequest ..> "0..1" Client : client
+SignatureRequest ..> "0..1" AnnualReport : annual_report
+SignatureRequest --> "0..*" SignatureAuditEvent : audit_events
+' FK-only links (no ORM relationship declared):
+SignatureRequest ..> Client : client_id
+SignatureRequest ..> Business : business_id
+SignatureRequest ..> User : created_by
+SignatureRequest ..> AnnualReport : annual_report_id
+SignatureRequest ..> PermanentDocument : document_id
+SignatureRequest ..> User : canceled_by
+SignatureRequest ..> User : deleted_by
+
+@enduml
