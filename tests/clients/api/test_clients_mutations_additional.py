@@ -3,7 +3,7 @@ from app.businesses.models.business import Business
 from app.clients.repositories.client_repository import ClientRepository
 
 
-def _create_client(client, headers, *, full_name="Client A", id_number="700000001"):
+def _create_client(client, headers, *, full_name="Client A", id_number="700000003"):
     return client.post(
         "/api/v1/clients",
         headers=headers,
@@ -42,7 +42,7 @@ def test_get_client_not_found_returns_domain_error(client, advisor_headers):
 
 
 def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary_headers):
-    created = _create_client(client, advisor_headers, id_number="700000021")
+    created = _create_client(client, advisor_headers, id_number="700000029")
     client_id = created.json()["id"]
 
     denied = client.delete(f"/api/v1/clients/{client_id}", headers=secretary_headers)
@@ -63,14 +63,14 @@ def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary
 
 
 def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, test_db):
-    first = _create_client(client, advisor_headers, full_name="Old One", id_number="700000031")
+    first = _create_client(client, advisor_headers, full_name="Old One", id_number="700000037")
     first_id = first.json()["id"]
 
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
     # Seed an active duplicate directly at repository level so restore can hit CLIENT.CONFLICT.
     ClientRepository(test_db).create(
         full_name="Active One",
-        id_number="700000031",
+        id_number="700000037",
         id_number_type=IdNumberType.CORPORATION,
         created_by=1,
     )
@@ -82,32 +82,32 @@ def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, 
 
 
 def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers):
-    first = _create_client(client, advisor_headers, full_name="Deleted Source", id_number="700000032")
+    first = _create_client(client, advisor_headers, full_name="Deleted Source", id_number="700000045")
     first_id = first.json()["id"]
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
 
-    duplicate = _create_client(client, advisor_headers, full_name="Try Again", id_number="700000032")
+    duplicate = _create_client(client, advisor_headers, full_name="Try Again", id_number="700000045")
 
     assert duplicate.status_code == 409
     payload = duplicate.json()["detail"]
     assert payload["error"] == "CLIENT.DELETED_EXISTS"
-    assert payload["conflict"]["id_number"] == "700000032"
+    assert payload["conflict"]["id_number"] == "700000045"
     assert len(payload["conflict"]["deleted_clients"]) == 1
 
 
 def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
-    active = _create_client(client, advisor_headers, full_name="Conflict Active", id_number="700000041")
-    deleted = _create_client(client, advisor_headers, full_name="Conflict Deleted", id_number="700000042")
+    active = _create_client(client, advisor_headers, full_name="Conflict Active", id_number="700000052")
+    deleted = _create_client(client, advisor_headers, full_name="Conflict Deleted", id_number="700000060")
 
     client.delete(f"/api/v1/clients/{deleted.json()['id']}", headers=advisor_headers)
 
-    active_info = client.get("/api/v1/clients/conflict/700000041", headers=advisor_headers)
+    active_info = client.get("/api/v1/clients/conflict/700000052", headers=advisor_headers)
     assert active_info.status_code == 200
     body_active = active_info.json()
     assert len(body_active["active_clients"]) == 1
     assert len(body_active["deleted_clients"]) == 0
 
-    deleted_info = client.get("/api/v1/clients/conflict/700000042", headers=advisor_headers)
+    deleted_info = client.get("/api/v1/clients/conflict/700000060", headers=advisor_headers)
     assert deleted_info.status_code == 200
     body_deleted = deleted_info.json()
     assert len(body_deleted["active_clients"]) == 0
@@ -115,14 +115,14 @@ def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
 
 
 def test_create_conflict_payload_contains_conflict_lists(client, advisor_headers):
-    _create_client(client, advisor_headers, full_name="First", id_number="700000051")
+    _create_client(client, advisor_headers, full_name="First", id_number="700000078")
 
-    duplicate = _create_client(client, advisor_headers, full_name="Second", id_number="700000051")
+    duplicate = _create_client(client, advisor_headers, full_name="Second", id_number="700000078")
 
     assert duplicate.status_code == 409
     payload = duplicate.json()["detail"]
     assert payload["error"] == "CLIENT.CONFLICT"
-    assert payload["conflict"]["id_number"] == "700000051"
+    assert payload["conflict"]["id_number"] == "700000078"
     assert len(payload["conflict"]["active_clients"]) == 1
 
 
@@ -140,9 +140,23 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
     assert response.status_code == 422
 
 
+def test_create_validates_israeli_checksum_for_corporation(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "full_name": "Bad Corp",
+            "id_number": "700000001",
+            "id_number_type": "corporation",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_list_clients_respects_search_and_pagination(client, advisor_headers):
-    _create_client(client, advisor_headers, full_name="Alpha Client", id_number="700000061")
-    _create_client(client, advisor_headers, full_name="Beta Client", id_number="700000062")
+    _create_client(client, advisor_headers, full_name="Alpha Client", id_number="700000086")
+    _create_client(client, advisor_headers, full_name="Beta Client", id_number="700000094")
 
     response = client.get(
         "/api/v1/clients?search=Alpha&page=1&page_size=1",
@@ -157,7 +171,7 @@ def test_list_clients_respects_search_and_pagination(client, advisor_headers):
 
 
 def test_client_status_card_is_client_scoped_without_business_id(client, advisor_headers):
-    created = _create_client(client, advisor_headers, full_name="Status Client", id_number="700000071")
+    created = _create_client(client, advisor_headers, full_name="Status Client", id_number="700000102")
     client_id = created.json()["id"]
 
     response = client.get(f"/api/v1/clients/{client_id}/status-card", headers=advisor_headers)
@@ -175,7 +189,7 @@ def test_client_status_card_is_client_scoped_without_business_id(client, advisor
 
 
 def test_client_status_card_does_not_require_existing_business(client, advisor_headers, test_db):
-    created = _create_client(client, advisor_headers, full_name="No Business Client", id_number="700000072")
+    created = _create_client(client, advisor_headers, full_name="No Business Client", id_number="700000110")
     client_id = created.json()["id"]
 
     test_db.query(Business).filter(Business.client_id == client_id).delete()

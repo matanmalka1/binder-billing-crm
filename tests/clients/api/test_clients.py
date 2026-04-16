@@ -25,13 +25,13 @@ def test_authenticated_client_creation(client, auth_token):
         client,
         {"Authorization": f"Bearer {auth_token}"},
         full_name="John Doe",
-        id_number="100000001",
+        id_number="100000009",
     )
 
     assert response.status_code == 201
     data = response.json()
     assert data["full_name"] == "John Doe"
-    assert data["id_number"] == "100000001"
+    assert data["id_number"] == "100000009"
     assert data["id_number_type"] == "corporation"
     assert "id" in data
     assert "created_at" in data
@@ -42,9 +42,9 @@ def test_client_creation_duplicate_id_number(client, auth_token):
     """Duplicate id_number returns 409."""
     headers = {"Authorization": f"Bearer {auth_token}"}
 
-    _create_client(client, headers, full_name="Jane Doe", id_number="200000001")
+    _create_client(client, headers, full_name="Jane Doe", id_number="200000008")
 
-    response = _create_client(client, headers, full_name="John Smith", id_number="200000001")
+    response = _create_client(client, headers, full_name="John Smith", id_number="200000008")
 
     assert response.status_code == 409
     data = response.json()

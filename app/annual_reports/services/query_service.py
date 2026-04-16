@@ -154,7 +154,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
                     "id": report.id,
                     "client_id": report.client_id,
                     "client_name": client.full_name if client else None,
-                    "business_name": None,
+                    "business_name": client.full_name if client else None,
                     "tax_year": report.tax_year,
                     "days_until_due": (
                         None if not report.filing_deadline

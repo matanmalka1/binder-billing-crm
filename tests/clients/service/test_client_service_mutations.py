@@ -21,7 +21,7 @@ def test_create_client_success(test_db):
 
     created = service.create_client(
         full_name="Service Client",
-        id_number="610000001",
+        id_number="610000002",
         id_number_type=IdNumberType.CORPORATION,
         actor_id=3,
     )
@@ -31,14 +31,15 @@ def test_create_client_success(test_db):
 
 
 def test_create_client_conflict_when_active_exists(test_db):
-    _create_client(test_db, full_name="Existing", id_number="620000001")
+    _create_client(test_db, full_name="Existing", id_number="620000000")
     service = ClientService(test_db)
 
     with pytest.raises(ConflictError) as exc:
         service.create_client(
             full_name="Duplicate",
-            id_number="620000001",
+            id_number="620000000",
             id_number_type=IdNumberType.CORPORATION,
+            actor_id=1,
         )
 
     assert exc.value.code == "CLIENT.CONFLICT"
@@ -48,7 +49,7 @@ def test_create_client_deleted_exists_conflict(test_db):
     repo = ClientRepository(test_db)
     existing = repo.create(
         full_name="Deleted",
-        id_number="630000001",
+        id_number="630000008",
         id_number_type=IdNumberType.CORPORATION,
         created_by=1,
     )
@@ -58,8 +59,9 @@ def test_create_client_deleted_exists_conflict(test_db):
     with pytest.raises(ConflictError) as exc:
         service.create_client(
             full_name="New",
-            id_number="630000001",
+            id_number="630000008",
             id_number_type=IdNumberType.CORPORATION,
+            actor_id=1,
         )
 
     assert exc.value.code == "CLIENT.DELETED_EXISTS"
@@ -78,7 +80,7 @@ def test_update_delete_restore_flow(test_db):
     service = ClientService(test_db)
     created = service.create_client(
         full_name="Before Update",
-        id_number="640000001",
+        id_number="640000006",
         id_number_type=IdNumberType.CORPORATION,
         actor_id=10,
     )
@@ -93,7 +95,8 @@ def test_update_delete_restore_flow(test_db):
     assert updated.phone == "0501234567"
 
     service.delete_client(created.id, actor_id=11)
-    assert service.get_client(created.id) is None
+    with pytest.raises(NotFoundError):
+        service.get_client_or_raise(created.id)
 
     restored = service.restore_client(created.id, actor_id=12)
     assert restored.deleted_at is None
@@ -104,8 +107,9 @@ def test_delete_raises_not_found_when_client_already_deleted(test_db):
     service = ClientService(test_db)
     created = service.create_client(
         full_name="Delete Twice",
-        id_number="640000009",
+        id_number="640000014",
         id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
     )
     service.delete_client(created.id, actor_id=1)
 
@@ -116,7 +120,7 @@ def test_delete_raises_not_found_when_client_already_deleted(test_db):
 
 
 def test_restore_raises_when_not_deleted(test_db):
-    client = _create_client(test_db, full_name="Alive", id_number="650000001")
+    client = _create_client(test_db, full_name="Alive", id_number="650000003")
     service = ClientService(test_db)
 
     with pytest.raises(ConflictError) as exc:
@@ -153,13 +157,15 @@ def test_list_clients_and_conflict_info(test_db):
     service = ClientService(test_db)
     one = service.create_client(
         full_name="Alpha",
-        id_number="670000001",
+        id_number="670000009",
         id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
     )
     two = service.create_client(
         full_name="Beta",
-        id_number="670000002",
+        id_number="670000017",
         id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
     )
     service.delete_client(two.id, actor_id=1)
 
@@ -167,11 +173,11 @@ def test_list_clients_and_conflict_info(test_db):
     assert total == 1
     assert [c.id for c in items] == [one.id]
 
-    info_active = service.get_conflict_info("670000001")
+    info_active = service.get_conflict_info("670000009")
     assert len(info_active["active_clients"]) == 1
     assert len(info_active["deleted_clients"]) == 0
 
-    info_deleted = service.get_conflict_info("670000002")
+    info_deleted = service.get_conflict_info("670000017")
     assert len(info_deleted["active_clients"]) == 0
     assert len(info_deleted["deleted_clients"]) == 1
 
@@ -187,8 +193,9 @@ def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch
     with pytest.raises(ConflictError) as exc:
         service.create_client(
             full_name="Integrity",
-            id_number="690000001",
+            id_number="690000005",
             id_number_type=IdNumberType.CORPORATION,
+            actor_id=1,
         )
 
     assert exc.value.code == "CLIENT.CONFLICT"
@@ -207,8 +214,9 @@ def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkey
     service = ClientService(test_db)
     created = service.create_client(
         full_name="To Restore",
-        id_number="690000002",
+        id_number="690000013",
         id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
     )
     service.delete_client(created.id, actor_id=1)
 

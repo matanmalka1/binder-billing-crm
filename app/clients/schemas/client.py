@@ -53,6 +53,15 @@ class ClientCreateRequest(BaseModel):
         if self.id_number_type == IdNumberType.INDIVIDUAL:
             if not validate_israeli_id_checksum(self.id_number):
                 raise ValueError("מספר זהות אינו תקין")
+
+        if self.id_number_type == IdNumberType.CORPORATION:
+            if not validate_israeli_id_checksum(self.id_number):
+                raise ValueError("מספר ח.פ אינו תקין")
+
+        non_employee_types = {EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE, EntityType.COMPANY_LTD}
+        if self.entity_type in non_employee_types and self.vat_reporting_frequency is None:
+            raise ValueError("יש לציין תדירות דיווח מע״מ עבור עוסק/חברה")
+
         return self
 
 
@@ -68,7 +77,6 @@ class ClientUpdateRequest(BaseModel):
     address_apartment: Optional[str] = None
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
-    notes: Optional[str] = None
     # ── Tax reporting ─────────────────────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
