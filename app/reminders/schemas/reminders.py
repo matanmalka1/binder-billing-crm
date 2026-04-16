@@ -1,10 +1,13 @@
+import re
 from datetime import date
 from typing import Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.reminders.models.reminder import ReminderType, ReminderStatus
 from app.core.api_types import ApiDateTime
+
+_DATE_SUFFIX_RE = re.compile(r"\s*\(\d{4}-\d{2}-\d{2}\)$")
 
 
 class ReminderCreateRequest(BaseModel):
@@ -83,9 +86,10 @@ class ReminderCreateRequest(BaseModel):
 class ReminderResponse(BaseModel):
     id: int
     # client_id is always set in the DB — non-optional here reflects that truth.
-    # client_name and business_name are enriched by the query layer.
+    # client_name, client_id_number, and business_name are enriched by the query layer.
     client_id: int
     client_name: Optional[str] = None
+    client_id_number: Optional[str] = None
     business_id: Optional[int] = None
     business_name: Optional[str] = None
     reminder_type: ReminderType
@@ -104,6 +108,11 @@ class ReminderResponse(BaseModel):
     sent_at: Optional[ApiDateTime] = None
     canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None
+
+    @field_validator("message", mode="before")
+    @classmethod
+    def strip_date_suffix(cls, v: str) -> str:
+        return _DATE_SUFFIX_RE.sub("", v)
 
     model_config = {"from_attributes": True}
 

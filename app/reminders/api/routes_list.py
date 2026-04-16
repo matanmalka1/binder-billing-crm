@@ -46,6 +46,7 @@ def list_reminders(
             # client_id and client_name are always present (client_id is never null)
             resp.client_id = ctx["client_id"]
             resp.client_name = ctx["client_name"]
+            resp.client_id_number = ctx["client_id_number"]
             # business context is present only when the reminder is business-scoped
             resp.business_id = ctx["business_id"]
             resp.business_name = ctx["business_name"]

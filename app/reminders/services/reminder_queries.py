@@ -13,6 +13,7 @@ from app.clients.repositories.client_repository import ClientRepository
 class ReminderContext(TypedDict):
     client_id: int
     client_name: str
+    client_id_number: Optional[str]
     business_id: Optional[int]
     business_name: Optional[str]
 
@@ -41,6 +42,7 @@ def _build_context_map(
         result[r.id] = ReminderContext(
             client_id=r.client_id,
             client_name=client.full_name if client else f"לקוח #{r.client_id}",
+            client_id_number=client.id_number if client else None,
             business_id=r.business_id,
             business_name=business.business_name if business else None,
         )
