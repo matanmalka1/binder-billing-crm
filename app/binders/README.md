@@ -233,16 +233,19 @@ Behavior:
 
 ## Cross-Domain Client Route
 
-The client-scoped binder list is implemented outside this module in:
-- `app/clients/api/client_binders_router.py`
+The client-scoped binder list is served by this module:
+- `app/binders/api/client_binders_router.py`
 
 Route:
 - `GET /api/v1/clients/{client_id}/binders`
 
 Behavior:
-- validates the client exists
+- validates the client exists (via `ClientService`)
 - returns all non-deleted binders for that client, across all statuses
 - uses `BinderOperationsService` enrichment
+
+The initial binder created on client registration is handled by:
+- `app/binders/services/client_onboarding_service.py` (`create_initial_binder`)
 
 ## Lifecycle Rules
 

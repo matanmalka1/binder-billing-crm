@@ -41,6 +41,14 @@ class BinderOperationsService:
         total = self.repo.count_by_client(client_id)
         return items, total
 
+    def get_active_binder_for_client(self, client_id: int) -> Optional["Binder"]:
+        """Return the active (non-returned) binder for a client, or None."""
+        return self.repo.get_active_by_client(client_id)
+
+    def map_active_binders_for_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:
+        """Return {client_id: binder} for the active binder of each client."""
+        return self.repo.map_active_by_clients(client_ids)
+
     def client_exists(self, client_id: int) -> bool:
         """Compatibility helper for callers that still query client existence here."""
         return self.client_repo.get_by_id(client_id) is not None

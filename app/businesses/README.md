@@ -154,10 +154,11 @@ Guard behavior:
 
 ## Status Card
 
-This domain also contains the client status-card aggregation service used by:
+This domain owns the client status-card aggregation endpoint:
 - `GET /api/v1/clients/{client_id}/status-card`
+- Router: `app/businesses/api/client_status_card_router.py`
 
-That endpoint is client-scoped. `status_card_service.py` aggregates:
+The endpoint is client-scoped. `status_card_service.py` aggregates:
 - VAT summary
 - annual report summary
 - issued charges summary

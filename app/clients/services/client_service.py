@@ -9,8 +9,8 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_binder_helper import create_initial_binder
-from app.clients.services.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
+from app.binders.services.client_onboarding_service import create_initial_binder
+from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.messages import (
     CLIENT_ID_NUMBER_ACTIVE_EXISTS,

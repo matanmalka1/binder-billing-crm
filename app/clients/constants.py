@@ -4,8 +4,6 @@ from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_CLIENT_IMPORT_UPLOAD_SIZE = 10 * 1024 * 1024
-CLIENT_STATUS_CARD_YEAR_MIN = 2000
-CLIENT_STATUS_CARD_YEAR_MAX = 2100
 
 CLIENT_EXPORT_COLUMNS = [
     ("id", "ID"),

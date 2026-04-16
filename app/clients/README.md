@@ -1,6 +1,6 @@
 # Clients Module
 
-> Last audited: 2026-03-22
+> Last audited: 2026-04-16
 
 Manages CRM clients at the identity level only. Business-level state (status, tax profile, VAT/report workflows, etc.) is handled under `app/businesses/` and related domains.
 
@@ -22,7 +22,9 @@ Comments:
 - Schemas: `app/clients/schemas/client.py`
 - Repository: `app/clients/repositories/client_repository.py`
 - Service: `app/clients/services/client_service.py`
+- Query service: `app/clients/services/client_query_service.py`
 - API: `app/clients/api/clients.py`
+- Enrichment (active binder number): `app/clients/api/client_enrichment.py`
 - Excel API/service: `app/clients/api/clients_excel.py`, `app/clients/services/client_excel_service.py`
 
 ## Domain Model
@@ -83,8 +85,11 @@ Comments:
 ## Cross-Domain Notes
 
 - A client can have multiple businesses (`app/businesses/`).
-- Binders are client-scoped (`client_id`) and are reused in client status-card aggregation.
-- Business guard helpers (`assert_business_allows_create`, `assert_business_not_closed`) are defined in `app/businesses/services/business_guards.py` and used by several domains.
+- `GET /api/v1/clients/{client_id}/binders` — served by `app/binders/api/client_binders_router.py`.
+- `GET /api/v1/clients/{client_id}/status-card` — served by `app/businesses/api/client_status_card_router.py`.
+- Initial binder creation on client creation is handled by `app/binders/services/client_onboarding_service.py`.
+- Obligation generation (tax deadlines + annual reports) on client create/update is handled by `app/actions/obligation_orchestrator.py`.
+- Business guard helpers (`assert_business_allows_create`, `assert_business_not_closed`) are in `app/businesses/services/business_guards.py`.
 
 Comments:
 - If client deletion/restoration rules change, check downstream flows that resolve binders/status via `client_id`.

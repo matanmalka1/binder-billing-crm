@@ -1,8 +1,9 @@
 # Actions Module
 
-> Last audited: 2026-03-21 (domain-by-domain backend sync).
+> Last audited: 2026-04-16
 
 Defines executable UI action contracts shared across domains (businesses, binders, charges, tax deadlines, annual reports).
+Also owns cross-domain application workflows that do not belong to a single domain.
 
 ## Scope
 
@@ -13,6 +14,7 @@ This module provides:
 - Domain action factories for tax deadlines and annual reports
 - Role-aware action filtering (for example advisor-only actions)
 - Confirm-dialog metadata and optional payload contracts for frontend executors
+- `obligation_orchestrator.py` — cross-domain workflow that generates tax deadlines and annual reports for a client (idempotent; used on client create/update and business create)
 
 ## Domain Model
 
@@ -37,6 +39,7 @@ Common action producers:
 Implementation references:
 - Contracts: `app/actions/action_contracts.py`
 - Tax/annual actions: `app/actions/report_deadline_actions.py`
+- Obligation workflow: `app/actions/obligation_orchestrator.py`
 
 ## API
 
