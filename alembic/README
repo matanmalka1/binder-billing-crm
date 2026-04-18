@@ -10,7 +10,7 @@
   2. Review the generated migration — fix any `sqlite_where`/`postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- The repository currently uses a single fresh base migration; the current head is the initial schema.
+- The repository has advanced beyond the initial schema; keep this README in sync with the current head.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Known autogenerate quirk — partial index `where` clauses
@@ -56,7 +56,26 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment (HEAD)
+
+### 0010_binder_domain_alignment
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0010_binder_domain_alignment`
+- What it does:
+  Adds the `closed_in_office` binder status, structured intake period fields, `vat_report_id`,
+  grouped handover tables, intake edit-log table, migrates legacy `is_full` rows to the new
+  status model, drops `is_full`, and makes `binders.period_start` nullable.
+- Notes:
+  PostgreSQL enum mutation is executed only on PostgreSQL. Legacy intake `description` values are
+  backfilled into structured period fields only when parseable; unresolved rows stay `NULL`.
+
+### 0009_add_office_client_number
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0009_add_office_client_number`
+- What it does:
+  Adds `clients.office_client_number` plus a partial unique index for active clients only.
 
 ## Run instructions
 ### a61d76155e04_add_relationships_and_cascade_fks

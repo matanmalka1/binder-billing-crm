@@ -43,7 +43,7 @@ def test_list_business_binders_returns_client_binders(client, test_db, test_user
     business, binder = _seed_client_business_and_binder(test_db, user_id=test_user.id)
 
     response = client.get(
-        f"/api/v1/businesses/{business.id}/binders?page=1&page_size=20",
+        f"/api/v1/clients/{business.client_id}/binders?page=1&page_size=20",
         headers=advisor_headers,
     )
 
@@ -58,9 +58,9 @@ def test_list_business_binders_returns_client_binders(client, test_db, test_user
 
 def test_list_business_binders_business_not_found(client, advisor_headers):
     response = client.get(
-        "/api/v1/businesses/999999/binders?page=1&page_size=20",
+        "/api/v1/clients/999999/binders?page=1&page_size=20",
         headers=advisor_headers,
     )
 
     assert response.status_code == 404
-    assert response.json()["error"] == "BUSINESS.NOT_FOUND"
+    assert response.json()["error"] == "CLIENT.NOT_FOUND"

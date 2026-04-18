@@ -33,7 +33,11 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 )
                 period_end = returned_at
             else:
-                status = rng.choice([BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP])
+                status = rng.choice([
+                    BinderStatus.IN_OFFICE,
+                    BinderStatus.CLOSED_IN_OFFICE,
+                    BinderStatus.READY_FOR_PICKUP,
+                ])
                 returned_at = None
                 period_end = None
 
@@ -44,7 +48,6 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 period_end=period_end,
                 returned_at=returned_at,
                 status=status,
-                is_full=seq < num and status == BinderStatus.RETURNED,
                 created_by=rng.choice(users).id,
                 pickup_person_name=(full_name(rng) if status == BinderStatus.RETURNED else None),
                 notes=rng.choice(["", "דחוף", "הלקוח ביקש שיחה חוזרת"]),

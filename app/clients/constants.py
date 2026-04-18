@@ -1,4 +1,3 @@
-from app.binders.models.binder import BinderStatus
 from app.common.enums import EntityType
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
@@ -26,11 +25,6 @@ CLIENT_TEMPLATE_COLUMNS = [
 CLIENT_TEMPLATE_SAMPLE_ROW = ["יוסי כהן", "123456789", "0501234567", "yossi@example.com"]
 CLIENT_EXCEL_SHEET_TITLE = "Clients"
 CLIENT_EXCEL_FREEZE_PANES = "A2"
-
-AUTO_BINDER_SEQUENCE = 1
-AUTO_BINDER_INITIAL_STATUS = BinderStatus.IN_OFFICE.value
-AUTO_BINDER_STATUS_LOG_OLD_VALUE = "null"
-AUTO_BINDER_STATUS_LOG_NOTES = "קלסר נפתח אוטומטית"
 
 CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH = 10
 CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({

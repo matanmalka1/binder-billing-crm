@@ -30,6 +30,14 @@ class BinderIntakeRepository:
         self.db.flush()
         return intake
 
+    def get_by_id(self, intake_id: int) -> Optional[BinderIntake]:
+        """Get a single intake by ID."""
+        return (
+            self.db.query(BinderIntake)
+            .filter(BinderIntake.id == intake_id)
+            .first()
+        )
+
     def get_first_by_binder(self, binder_id: int) -> Optional[BinderIntake]:
         """Get the earliest intake for a binder (first material received)."""
         return (

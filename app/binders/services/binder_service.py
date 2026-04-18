@@ -13,6 +13,8 @@ from app.binders.services.messages import (
     BINDER_READY_REVERTED,
 )
 from app.binders.models.binder_intake import BinderIntake
+from app.binders.models.binder_intake_material import BinderIntakeMaterial
+from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_repository import ClientRepository
@@ -32,13 +34,13 @@ class BinderService(BinderListService):
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
         self.client_repo = ClientRepository(db)
+        self.material_repo = BinderIntakeMaterialRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
 
     def receive_binder(
         self,
         client_id: int,
-        period_start: date,
         received_at: date,
         received_by: int,
         open_new_binder: bool = False,
@@ -48,7 +50,6 @@ class BinderService(BinderListService):
         """Receive material into existing binder or create new one."""
         return self.intake_service.receive(
             client_id=client_id,
-            period_start=period_start,
             open_new_binder=open_new_binder,
             received_at=received_at,
             received_by=received_by,
@@ -147,6 +148,38 @@ class BinderService(BinderListService):
         """Compatibility helper for callers that still fetch raw binder entities."""
         return self.binder_repo.get_by_id(binder_id)
 
+    def mark_ready_bulk(
+        self,
+        client_id: int,
+        until_period_year: int,
+        until_period_month: int,
+        user_id: int,
+    ) -> list[Binder]:
+        """
+        Mark all eligible binders for a client as READY_FOR_PICKUP.
+
+        Eligibility:
+        - binder belongs to client_id
+        - binder status is IN_OFFICE or CLOSED_IN_OFFICE
+        - binder has at least one material row with structured period
+        - latest material period is <= the requested cutoff
+        """
+        cutoff = (until_period_year, until_period_month)
+        updated: list[Binder] = []
+
+        for binder in self.binder_repo.list_by_client(client_id):
+            if binder.status not in {
+                BinderStatus.IN_OFFICE,
+                BinderStatus.CLOSED_IN_OFFICE,
+            }:
+                continue
+            latest_material = self.material_repo.get_last_by_binder(binder.id)
+            if not self._material_period_lte_cutoff(latest_material, cutoff):
+                continue
+            updated.append(self.mark_ready_for_pickup(binder.id, user_id=user_id))
+
+        return updated
+
     def delete_binder(self, binder_id: int, actor_id: int) -> bool:
         """Soft-delete a binder. Returns False if not found."""
         binder = self.binder_repo.get_by_id(binder_id)
@@ -168,3 +201,12 @@ class BinderService(BinderListService):
             sort_by=sort_by,
             sort_dir=sort_dir,
         )
+
+    @staticmethod
+    def _material_period_lte_cutoff(
+        material: Optional[BinderIntakeMaterial],
+        cutoff: tuple[int, int],
+    ) -> bool:
+        if not material or material.period_year is None or material.period_month_end is None:
+            return False
+        return (material.period_year, material.period_month_end) <= cutoff

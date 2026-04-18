@@ -52,6 +52,7 @@ class ClientService:
         vat_exempt_ceiling=None,
         advance_rate=None,
         accountant_name: Optional[str] = None,
+        office_client_number: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> Client:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
@@ -79,6 +80,7 @@ class ClientService:
                 vat_exempt_ceiling=vat_exempt_ceiling,
                 advance_rate=advance_rate,
                 accountant_name=accountant_name,
+                office_client_number=office_client_number,
                 created_by=actor_id,
             )
         except IntegrityError:

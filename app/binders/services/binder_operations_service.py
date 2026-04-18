@@ -42,11 +42,11 @@ class BinderOperationsService:
         return items, total
 
     def get_active_binder_for_client(self, client_id: int) -> Optional["Binder"]:
-        """Return the active (non-returned) binder for a client, or None."""
+        """Return the active IN_OFFICE binder for a client, or None."""
         return self.repo.get_active_by_client(client_id)
 
     def map_active_binders_for_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:
-        """Return {client_id: binder} for the active binder of each client."""
+        """Return {client_id: binder} for each client's active IN_OFFICE binder."""
         return self.repo.map_active_by_clients(client_ids)
 
     def client_exists(self, client_id: int) -> bool:
@@ -70,8 +70,10 @@ class BinderOperationsService:
         client = self.client_repo.get_by_id(binder.client_id)
         client_name = client.full_name if client else None
 
-        # days_in_office = days elapsed since period_start (matches BinderDetailResponse).
-        days_in_office = (ref_date - binder.period_start).days
+        # days_in_office is only defined once the binder has a derived period_start.
+        days_in_office = (
+            (ref_date - binder.period_start).days if binder.period_start is not None else None
+        )
 
         return {
             "id": binder.id,
@@ -80,7 +82,7 @@ class BinderOperationsService:
             "binder_number": binder.binder_number,
             "period_start": binder.period_start,
             "period_end": binder.period_end,
-            "status": binder.status.value,
+            "status": binder.status,
             "returned_at": binder.returned_at,
             "pickup_person_name": binder.pickup_person_name,
             "days_in_office": days_in_office,

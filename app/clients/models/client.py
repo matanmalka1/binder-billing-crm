@@ -1,6 +1,6 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, column
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, column
 from sqlalchemy.orm import relationship, foreign
 from app.utils.enum_utils import pg_enum
 
@@ -71,6 +71,11 @@ class Client(Base):
     # ── Metadata ──────────────────────────────────────────────────────────────
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
 
+    # ── Office client number ──────────────────────────────────────────────────
+    # Physical label number used by the office (e.g. "7" in binder label "7/5").
+    # Assigned manually by staff. NULL until set. Must be unique among active clients.
+    office_client_number = Column(Integer, nullable=True)
+
     notes = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
@@ -100,6 +105,13 @@ class Client(Base):
             sqlite_where=column("deleted_at").is_(None),
         ),
         Index("ix_clients_full_name", "full_name"),
+        Index(
+            "ix_clients_office_client_number_active",
+            "office_client_number",
+            unique=True,
+            postgresql_where=column("deleted_at").is_(None),
+            sqlite_where=column("deleted_at").is_(None),
+        ),
     )
 
     def __repr__(self):

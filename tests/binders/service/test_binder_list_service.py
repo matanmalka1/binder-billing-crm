@@ -64,6 +64,7 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     assert items[0].client_name == "Alpha Client"
     assert counters["total"] == 1
     assert counters["in_office"] == 1
+    assert counters["closed_in_office"] == 0
     assert counters["ready_for_pickup"] == 0
     assert counters["returned"] == 0
 
@@ -73,6 +74,7 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     assert none_counters == {
         "total": 0,
         "in_office": 0,
+        "closed_in_office": 0,
         "ready_for_pickup": 0,
         "returned": 0,
     }
@@ -103,6 +105,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
     assert counters == {
         "total": 3,
         "in_office": 1,
+        "closed_in_office": 0,
         "ready_for_pickup": 1,
         "returned": 1,
     }
@@ -116,3 +119,31 @@ def test_get_binder_with_client_name_returns_none_for_missing(test_db, test_user
     service.client_repo = ClientRepository(test_db)
 
     assert service.get_binder_with_client_name(999999) is None
+
+
+def test_build_binder_response_handles_null_period_start(test_db, test_user):
+    client = Client(full_name="Null Period Client", id_number="BLSNULL")
+    test_db.add(client)
+    test_db.commit()
+    test_db.refresh(client)
+
+    binder = Binder(
+        client_id=client.id,
+        binder_number="NULL-100",
+        period_start=None,
+        status=BinderStatus.IN_OFFICE,
+        created_by=test_user.id,
+    )
+    test_db.add(binder)
+    test_db.commit()
+    test_db.refresh(binder)
+
+    service = BinderListService()
+    service.db = test_db
+    service.binder_repo = BinderRepository(test_db)
+    service.client_repo = ClientRepository(test_db)
+
+    response = service.build_binder_response(binder, client_name=client.full_name)
+
+    assert response.period_start is None
+    assert response.days_in_office is None

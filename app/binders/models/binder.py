@@ -1,7 +1,7 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Boolean, Column, Date, DateTime, ForeignKey,
+    Column, Date, DateTime, ForeignKey,
     Index, Integer, String, Text,
     column, and_,
 )
@@ -13,6 +13,7 @@ from app.utils.time_utils import utcnow
 
 class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
+    CLOSED_IN_OFFICE = "closed_in_office"   # full, no more intake, still physically present
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
 
@@ -43,8 +44,10 @@ class Binder(Base):
     binder_number = Column(String, nullable=False)
 
     # Binder period: when it starts and when it ends.
-    period_start = Column(Date, nullable=False)
-    period_end = Column(Date, nullable=True)  # null = active binder
+    # period_start is derived from the reporting period of the first material inserted.
+    # NULL for newly opened binders that have not yet received any material.
+    period_start = Column(Date, nullable=True)
+    period_end = Column(Date, nullable=True)  # null = active/open binder
 
     # Binder status.
     status = Column(
@@ -58,9 +61,6 @@ class Binder(Base):
 
     # Who picked up the binder (client / courier / employee / family member).
     pickup_person_name = Column(String, nullable=True)
-
-    # Marked True when the binder is physically full; triggers opening a new one.
-    is_full = Column(Boolean, default=False, nullable=False)
 
     # Physical logistics info: shelf location, binder color, material condition.
     notes = Column(Text, nullable=True)
@@ -80,17 +80,18 @@ class Binder(Base):
         Index("idx_binder_client", "client_id"),
         Index("idx_binder_status", "status"),
         Index("idx_binder_period_start", "period_start"),
-        # Globally unique binder_number to prevent duplicates among active binders.
+        # Unique binder_number among open (IN_OFFICE) non-deleted binders only.
+        # CLOSED_IN_OFFICE and RETURNED binders may share a number with a newer IN_OFFICE binder.
         Index(
             "idx_active_binder_unique",
             "binder_number",
             unique=True,
             postgresql_where=and_(
-                column("status") != RETURNED_STATUS_VALUE,
+                column("status") == BinderStatus.IN_OFFICE.value,
                 column("deleted_at").is_(None),
             ),
             sqlite_where=and_(
-                column("status") != RETURNED_STATUS_VALUE,
+                column("status") == BinderStatus.IN_OFFICE.value,
                 column("deleted_at").is_(None),
             ),
         ),

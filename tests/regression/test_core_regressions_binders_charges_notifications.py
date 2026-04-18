@@ -1,4 +1,5 @@
 from app.clients.models.client import Client
+from app.businesses.models.business import Business
 
 
 def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_db):
@@ -6,6 +7,7 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
     test_client = Client(
         full_name="S5 Regression Client",
         id_number="555555550",
+        office_client_number=501,
     )
     test_db.add(test_client)
     test_db.commit()
@@ -16,17 +18,22 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
         headers=advisor_headers,
         json={
             "client_id": test_client.id,
-            "binder_number": "S5-REG-001",
-            "period_start": "2026-01-01",
-            "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
+            "materials": [
+                {
+                    "material_type": "other",
+                    "period_year": 2026,
+                    "period_month_start": 1,
+                    "period_month_end": 1,
+                }
+            ],
         },
     )
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder"]["binder_number"].startswith(str(test_client.id) + "/")
+    assert data["binder"]["binder_number"] == "501/1"
     assert data["binder"]["status"] == "in_office"
 
 
@@ -46,12 +53,14 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
+    business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
 
     response = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "business_id": test_client.id,
+            "client_id": test_client.id,
+            "business_id": business.id if business else None,
             "amount": 100.0,
             "charge_type": "other",
         },

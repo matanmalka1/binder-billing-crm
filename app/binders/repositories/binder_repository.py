@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import nullslast
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -14,11 +15,16 @@ class BinderRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
+    @staticmethod
+    def _order_by_period_start(query, descending: bool):
+        order_expr = Binder.period_start.desc() if descending else Binder.period_start.asc()
+        return query.order_by(nullslast(order_expr), Binder.id.desc() if descending else Binder.id.asc())
+
     def create(
         self,
         client_id: int,
         binder_number: str,
-        period_start: date,
+        period_start: Optional[date],
         created_by: int,
         notes: Optional[str] = None,
     ) -> Binder:
@@ -103,7 +109,8 @@ class BinderRepository(BaseRepository):
             effective_dir = "asc" if sort_dir == "desc" else "desc"
 
         order_fn = asc if effective_dir == "asc" else desc
-        query = query.order_by(order_fn(col))
+        # NULLs in period_start (newly opened binders without material) sort last.
+        query = query.order_by(nullslast(order_fn(col)))
 
         return self._paginate(query, page, page_size)
 
@@ -138,9 +145,8 @@ class BinderRepository(BaseRepository):
                 Binder.status != BinderStatus.RETURNED,
                 Binder.deleted_at.is_(None),
             )
-            .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-        return self._paginate(query, page, page_size)
+        return self._paginate(self._order_by_period_start(query, descending=True), page, page_size)
 
     def count_open_binders(self) -> int:
         """Count open binders (not soft-deleted)."""
@@ -175,9 +181,13 @@ class BinderRepository(BaseRepository):
     def list_by_client(self, client_id: int) -> list[Binder]:
         """Return all non-deleted binders for a client (all statuses)."""
         return (
-            self.db.query(Binder)
-            .filter(Binder.client_id == client_id, Binder.deleted_at.is_(None))
-            .order_by(Binder.period_start.asc())
+            self._order_by_period_start(
+                self.db.query(Binder).filter(
+                    Binder.client_id == client_id,
+                    Binder.deleted_at.is_(None),
+                ),
+                descending=False,
+            )
             .all()
         )
 
@@ -194,9 +204,8 @@ class BinderRepository(BaseRepository):
                 Binder.client_id == client_id,
                 Binder.deleted_at.is_(None),
             )
-            .order_by(Binder.period_start.desc(), Binder.id.desc())
         )
-        return self._paginate(query, page, page_size)
+        return self._paginate(self._order_by_period_start(query, descending=True), page, page_size)
 
     def count_by_client(self, client_id: int) -> int:
         """Count binders for a client (not soft-deleted)."""
@@ -210,13 +219,12 @@ class BinderRepository(BaseRepository):
         )
 
     def get_active_by_client(self, client_id: int) -> Optional[Binder]:
-        """Return the single non-returned, non-full, non-deleted binder for a client."""
+        """Return the single open (IN_OFFICE) non-deleted binder for a client."""
         return (
             self.db.query(Binder)
             .filter(
                 Binder.client_id == client_id,
-                Binder.status != BinderStatus.RETURNED,
-                Binder.is_full.is_(False),
+                Binder.status == BinderStatus.IN_OFFICE,
                 Binder.deleted_at.is_(None),
             )
             .first()
@@ -231,15 +239,14 @@ class BinderRepository(BaseRepository):
         )
 
     def map_active_by_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:
-        """Return {client_id: binder} for the active (non-returned, non-full) binder of each client."""
+        """Return {client_id: binder} for the open (IN_OFFICE) binder of each client."""
         if not client_ids:
             return {}
         rows = (
             self.db.query(Binder)
             .filter(
                 Binder.client_id.in_(client_ids),
-                Binder.status != BinderStatus.RETURNED,
-                Binder.is_full.is_(False),
+                Binder.status == BinderStatus.IN_OFFICE,
                 Binder.deleted_at.is_(None),
             )
             .all()

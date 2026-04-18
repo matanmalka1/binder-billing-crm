@@ -15,6 +15,10 @@ class BinderIntakeMaterialRequest(BaseModel):
     material_type: MaterialType
     business_id: Optional[int] = None        # None = כל עסקי הלקוח
     annual_report_id: Optional[int] = None
+    vat_report_id: Optional[int] = None
+    period_year: int
+    period_month_start: int = Field(ge=1, le=12)
+    period_month_end: int = Field(ge=1, le=12)
     description: Optional[str] = None
 
 
@@ -25,7 +29,6 @@ class BinderReceiveRequest(BaseModel):
     אם לא — יוצר קלסר חדש.
     """
     client_id: int                            # קלסר שייך ללקוח
-    period_start: date = Field(default_factory=date.today)  # תחילת תקופת הקלסר
     received_at: date                         # תאריך קבלת החומרים (ב-intake)
     received_by: int
     open_new_binder: bool = False             # True = סמן קלסר קיים כמלא ופתח חדש
@@ -46,10 +49,9 @@ class BinderResponse(BaseModel):
     client_id: int
     client_name: Optional[str] = None        # enriched by service
     binder_number: str
-    period_start: date
+    period_start: Optional[date] = None
     period_end: Optional[date] = None
     status: BinderStatus
-    is_full: bool = False
     returned_at: Optional[date] = None
     pickup_person_name: Optional[str] = None
     notes: Optional[str] = None
@@ -61,12 +63,20 @@ class BinderResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BinderListCounters(BaseModel):
+    total: int
+    in_office: int
+    closed_in_office: int
+    ready_for_pickup: int
+    returned: int
+
+
 class BinderListResponse(BaseModel):
     items: list[BinderResponse]
     page: int
     page_size: int
     total: int
-    counters: dict[str, int]
+    counters: BinderListCounters
 
 
 # ── Intake responses ──────────────────────────────────────────────────────────
@@ -77,6 +87,10 @@ class BinderIntakeMaterialResponse(BaseModel):
     material_type: MaterialType
     business_id: Optional[int] = None
     annual_report_id: Optional[int] = None
+    vat_report_id: Optional[int] = None
+    period_year: Optional[int] = None
+    period_month_start: Optional[int] = None
+    period_month_end: Optional[int] = None
     description: Optional[str] = None
     created_at: ApiDateTime
 
@@ -106,6 +120,39 @@ class BinderReceiveResult(BaseModel):
     binder: BinderResponse
     intake: BinderIntakeResponse
     is_new_binder: bool
+
+
+class BinderMarkReadyBulkRequest(BaseModel):
+    client_id: int
+    until_period_year: int
+    until_period_month: int = Field(ge=1, le=12)
+
+
+# ── Handover ─────────────────────────────────────────────────────────────────
+
+class BinderHandoverRequest(BaseModel):
+    """בקשת מסירת קלסרים מרובים ללקוח בבת אחת."""
+    client_id: int
+    binder_ids: list[int] = Field(min_length=1)
+    received_by_name: str
+    handed_over_at: date
+    until_period_year: int
+    until_period_month: int = Field(ge=1, le=12)
+    notes: Optional[str] = None
+
+
+class BinderHandoverResponse(BaseModel):
+    id: int
+    client_id: int
+    received_by_name: str
+    handed_over_at: date
+    until_period_year: int
+    until_period_month: int
+    binder_ids: list[int]
+    notes: Optional[str] = None
+    created_at: ApiDateTime
+
+    model_config = {"from_attributes": True}
 
 
 # ── Status history ────────────────────────────────────────────────────────────

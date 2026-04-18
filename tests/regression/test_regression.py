@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
+from app.businesses.models.business import Business
 from app.clients.models.client import Client
 
 
@@ -9,6 +10,7 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
     test_client = Client(
         full_name="Regression Test Client",
         id_number="000000003",
+        office_client_number=601,
     )
     test_db.add(test_client)
     test_db.commit()
@@ -19,17 +21,22 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
         headers=advisor_headers,
         json={
             "client_id": test_client.id,
-            "binder_number": "REG-001",
-            "period_start": "2026-01-01",
-            "binder_type": "other",
             "received_at": "2026-02-09",
             "received_by": 1,
+            "materials": [
+                {
+                    "material_type": "other",
+                    "period_year": 2026,
+                    "period_month_start": 1,
+                    "period_month_end": 1,
+                }
+            ],
         },
     )
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder"]["binder_number"].startswith(str(test_client.id) + "/")
+    assert data["binder"]["binder_number"] == "601/1"
     assert data["binder"]["status"] == "in_office"
 
 
@@ -68,13 +75,15 @@ def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers,
     test_db.add(test_client)
     test_db.commit()
     test_db.refresh(test_client)
+    business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
 
     # Test charge creation
     response = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "business_id": test_client.id,
+            "client_id": test_client.id,
+            "business_id": business.id if business else None,
             "amount": 100.0,
             "charge_type": "other",
         },

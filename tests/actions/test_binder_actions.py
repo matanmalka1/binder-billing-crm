@@ -12,6 +12,14 @@ def test_in_office_binder_only_exposes_ready_action():
     assert [action["key"] for action in actions] == ["ready"]
 
 
+def test_closed_in_office_binder_also_exposes_ready_action():
+    binder = SimpleNamespace(id=13, status=BinderStatus.CLOSED_IN_OFFICE)
+
+    actions = get_binder_actions(binder)
+
+    assert [action["key"] for action in actions] == ["ready"]
+
+
 def test_ready_for_pickup_binder_exposes_revert_and_return_with_pickup_input():
     binder = SimpleNamespace(id=11, status=BinderStatus.READY_FOR_PICKUP)
 

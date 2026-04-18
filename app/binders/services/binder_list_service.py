@@ -37,7 +37,7 @@ class BinderListService:
         if binder_number and binder_number.lower() not in binder.binder_number.lower():
             return False
 
-        if year and binder.period_start.year != year:
+        if year and (binder.period_start is None or binder.period_start.year != year):
             return False
 
         return True
@@ -47,6 +47,9 @@ class BinderListService:
             "total": len(binders),
             BinderStatus.IN_OFFICE.value: sum(
                 1 for binder in binders if binder.status == BinderStatus.IN_OFFICE
+            ),
+            BinderStatus.CLOSED_IN_OFFICE.value: sum(
+                1 for binder in binders if binder.status == BinderStatus.CLOSED_IN_OFFICE
             ),
             BinderStatus.READY_FOR_PICKUP.value: sum(
                 1 for binder in binders if binder.status == BinderStatus.READY_FOR_PICKUP
@@ -65,7 +68,9 @@ class BinderListService:
     ) -> BinderResponse:
         ref_date = reference_date or date.today()
         response = BinderResponse.model_validate(binder)
-        response.days_in_office = (ref_date - binder.period_start).days
+        response.days_in_office = (
+            (ref_date - binder.period_start).days if binder.period_start is not None else None
+        )
         response.available_actions = get_binder_actions(binder)
         response.client_name = client_name
         return response

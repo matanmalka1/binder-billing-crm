@@ -7,11 +7,14 @@ from app.binders.models.binder import Binder, BinderStatus
 
 
 def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
-    """Return executable actions for a binder (with endpoints & metadata)."""
+    """Return executable actions for a binder based on its current logistics status."""
     status = _value(binder.status)
     actions: list[dict[str, Any]] = []
 
-    if status == BinderStatus.IN_OFFICE.value:
+    if status in {
+        BinderStatus.IN_OFFICE.value,
+        BinderStatus.CLOSED_IN_OFFICE.value,
+    }:
         actions.append(
             build_action(
                 key="ready",

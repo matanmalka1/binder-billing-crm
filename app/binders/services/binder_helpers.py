@@ -9,8 +9,11 @@ from app.binders.models.binder import Binder, BinderStatus
 
 
 def validate_ready_transition(binder: Binder) -> None:
-    """Validate binder can be marked ready for pickup."""
-    if binder.status != BinderStatus.IN_OFFICE:
+    """Validate binder can be marked ready for pickup.
+
+    Allowed from IN_OFFICE (open active binder) and CLOSED_IN_OFFICE (full, still in office).
+    """
+    if binder.status not in {BinderStatus.IN_OFFICE, BinderStatus.CLOSED_IN_OFFICE}:
         raise AppError(
             f"לא ניתן לסמן תיק כמוכן מסטטוס {binder.status}",
             "BINDER.INVALID_STATUS",

@@ -7,6 +7,7 @@ def _create_client(test_db, suffix: str) -> Client:
     crm_client = Client(
         full_name=f"Binders List Client {suffix}",
         id_number=f"BDL{suffix}",
+        office_client_number=400 + int(suffix),
     )
     test_db.add(crm_client)
     test_db.commit()
@@ -20,10 +21,17 @@ def _create_binder_via_api(client, advisor_headers, crm_client_id: int, user_id:
         headers=advisor_headers,
         json={
             "client_id": crm_client_id,
-            "binder_number": "BDL-001",
-            "period_start": date.today().isoformat(),
             "received_at": date.today().isoformat(),
             "received_by": user_id,
+            "materials": [
+                {
+                    "material_type": "other",
+                    "period_year": date.today().year,
+                    "period_month_start": date.today().month,
+                    "period_month_end": date.today().month,
+                    "description": "list get test material",
+                }
+            ],
         },
     )
     assert res.status_code == 201
@@ -61,10 +69,17 @@ def test_receive_allows_reusing_number_after_soft_delete(client, test_db, adviso
         headers=advisor_headers,
         json={
             "client_id": crm_client.id,
-            "binder_number": "BDL-001",
-            "period_start": date.today().isoformat(),
             "received_at": date.today().isoformat(),
             "received_by": test_user.id,
+            "materials": [
+                {
+                    "material_type": "other",
+                    "period_year": date.today().year,
+                    "period_month_start": date.today().month,
+                    "period_month_end": date.today().month,
+                    "description": "reuse number test material",
+                }
+            ],
         },
     )
     assert second.status_code == 201

@@ -17,6 +17,10 @@ class BinderIntakeMaterialRepository:
         material_type: MaterialType,
         business_id: Optional[int] = None,
         annual_report_id: Optional[int] = None,
+        vat_report_id: Optional[int] = None,
+        period_year: Optional[int] = None,
+        period_month_start: Optional[int] = None,
+        period_month_end: Optional[int] = None,
         description: Optional[str] = None,
     ) -> BinderIntakeMaterial:
         material = BinderIntakeMaterial(
@@ -24,6 +28,10 @@ class BinderIntakeMaterialRepository:
             material_type=material_type,
             business_id=business_id,
             annual_report_id=annual_report_id,
+            vat_report_id=vat_report_id,
+            period_year=period_year,
+            period_month_start=period_month_start,
+            period_month_end=period_month_end,
             description=description,
         )
         self.db.add(material)

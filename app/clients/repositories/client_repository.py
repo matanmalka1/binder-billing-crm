@@ -31,6 +31,7 @@ class ClientRepository(BaseRepository):
         advance_rate=None,
         advance_rate_updated_at=None,
         accountant_name: Optional[str] = None,
+        office_client_number: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Client:
         """Create a new client (identity + tax profile)."""
@@ -51,6 +52,7 @@ class ClientRepository(BaseRepository):
             advance_rate=advance_rate,
             advance_rate_updated_at=advance_rate_updated_at,
             accountant_name=accountant_name,
+            office_client_number=office_client_number,
             created_by=created_by,
         )
         self.db.add(client)

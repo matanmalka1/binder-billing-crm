@@ -102,3 +102,26 @@ def test_list_active_respects_sort_and_filters(test_db):
 
     number_filtered = repo.list_active(binder_number="G-1")
     assert [b.id for b in number_filtered] == [older.id]
+
+
+def test_list_open_binders_sorts_null_period_start_last(test_db):
+    repo = BinderRepository(test_db)
+    user = _user(test_db)
+    client = _client(test_db, "Null Sort", "B004")
+
+    with_period = repo.create(
+        client_id=client.id,
+        binder_number="NULL-1",
+        period_start=date(2024, 4, 1),
+        created_by=user.id,
+    )
+    without_period = repo.create(
+        client_id=client.id,
+        binder_number="NULL-2",
+        period_start=None,
+        created_by=user.id,
+    )
+
+    ordered = repo.list_open_binders(page=1, page_size=20)
+
+    assert [binder.id for binder in ordered[:2]] == [with_period.id, without_period.id]

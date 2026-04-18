@@ -1,5 +1,5 @@
 from enum import Enum as PyEnum
- 
+
 from sqlalchemy import (
     Column, DateTime, ForeignKey,
     Index, Integer, Text,
@@ -47,12 +47,23 @@ class BinderIntakeMaterial(Base):
     # Material type.
     material_type = Column(pg_enum(MaterialType), nullable=False)
 
-    # Link to a specific annual report (nullable; not every material belongs to one).
+    # Link to a specific annual report (nullable; only for annual_report material type).
     annual_report_id = Column(
         Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
     )
 
-    # Free-text description ("bank statements Jan-Mar", "vendor X invoices").
+    # Link to a VAT reporting-period entity (nullable; only for vat material type).
+    vat_report_id = Column(
+        Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True
+    )
+
+    # Structured reporting period — required for all material rows.
+    # Nullable only for legacy rows that predate this field.
+    period_year = Column(Integer, nullable=True)
+    period_month_start = Column(Integer, nullable=True)  # 1–12
+    period_month_end = Column(Integer, nullable=True)    # 1–12; equals period_month_start for monthly
+
+    # Optional free-text note (not the period — use structured fields above for period).
     description = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
