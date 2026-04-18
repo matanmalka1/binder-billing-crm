@@ -40,6 +40,7 @@ def list_users(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     is_active: Optional[bool] = Query(None),
+    search: Optional[str] = Query(None),
 ):
     service = UserManagementService(db)
     items, total = service.list_users(
@@ -47,6 +48,7 @@ def list_users(
         page=page,
         page_size=page_size,
         is_active=is_active,
+        search=search,
     )
     return UserManagementListResponse(items=items, page=page, page_size=page_size, total=total)
 

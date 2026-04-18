@@ -64,10 +64,16 @@ class UserManagementService:
         page: int,
         page_size: int,
         is_active: Optional[bool] = None,
+        search: Optional[str] = None,
     ):
         ensure_advisor(actor_role)
-        items = self.user_repo.list(page=page, page_size=page_size, is_active=is_active)
-        total = self.user_repo.count(is_active=is_active)
+        items = self.user_repo.list(
+            page=page,
+            page_size=page_size,
+            is_active=is_active,
+            search=search,
+        )
+        total = self.user_repo.count(is_active=is_active, search=search)
         return items, total
 
     def get_user(self, actor_role: UserRole, user_id: int) -> User:

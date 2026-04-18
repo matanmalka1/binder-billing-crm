@@ -67,6 +67,26 @@ def test_list_users_supports_is_active_filter(client, advisor_headers, test_db):
     assert all(item["is_active"] is False for item in inactive_body["items"])
 
 
+def test_list_users_supports_search_filter(client, advisor_headers, test_db):
+    name_match = _make_user(test_db, "dana.search@example.com")
+    name_match.full_name = "Dana Search"
+    email_match = _make_user(test_db, "mail.findme@example.com")
+    email_match.full_name = "Other User"
+    test_db.commit()
+
+    name_response = client.get("/api/v1/users?search=Dana", headers=advisor_headers)
+    assert name_response.status_code == 200
+    name_body = name_response.json()
+    assert name_body["total"] == 1
+    assert [item["id"] for item in name_body["items"]] == [name_match.id]
+
+    email_response = client.get("/api/v1/users?search=mail.findme", headers=advisor_headers)
+    assert email_response.status_code == 200
+    email_body = email_response.json()
+    assert email_body["total"] == 1
+    assert [item["id"] for item in email_body["items"]] == [email_match.id]
+
+
 def test_secretary_cannot_access_user_management(client, secretary_headers):
     response = client.get("/api/v1/users", headers=secretary_headers)
     assert response.status_code == 403

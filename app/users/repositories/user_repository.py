@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -28,19 +29,43 @@ class UserRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
         is_active: Optional[bool] = None,
+        search: Optional[str] = None,
     ) -> list[User]:
         """List users with pagination."""
-        query = self.db.query(User)
-        if is_active is not None:
-            query = query.filter(User.is_active == is_active)
+        query = self._apply_list_filters(
+            self.db.query(User),
+            is_active=is_active,
+            search=search,
+        )
         return self._paginate(query.order_by(User.id.asc()), page, page_size)
 
-    def count(self, is_active: Optional[bool] = None) -> int:
+    def count(self, is_active: Optional[bool] = None, search: Optional[str] = None) -> int:
         """Count users."""
-        query = self.db.query(User)
+        query = self._apply_list_filters(
+            self.db.query(User),
+            is_active=is_active,
+            search=search,
+        )
+        return query.count()
+
+    def _apply_list_filters(
+        self,
+        query,
+        *,
+        is_active: Optional[bool] = None,
+        search: Optional[str] = None,
+    ):
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
-        return query.count()
+        if search and search.strip():
+            pattern = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(pattern),
+                    User.email.ilike(pattern),
+                )
+            )
+        return query
 
     def list_by_ids(self, user_ids: list[int]) -> list[User]:
         """Batch fetch users by a list of IDs (single query)."""

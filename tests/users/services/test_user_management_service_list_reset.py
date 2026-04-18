@@ -80,3 +80,30 @@ def test_list_users_and_reset_password(test_db, test_user):
             target_user_id=999999,
             new_password="newpassword123",
         )
+
+
+def test_list_users_filters_by_search(test_db):
+    service = UserManagementService(test_db)
+    name_match = _managed_user(test_db, email="name-match@example.com")
+    name_match.full_name = "Dana Search"
+    email_match = _managed_user(test_db, email="mail.match@example.com")
+    email_match.full_name = "Different Name"
+    test_db.commit()
+
+    items_by_name, total_by_name = service.list_users(
+        actor_role=UserRole.ADVISOR,
+        page=1,
+        page_size=10,
+        search="Dana",
+    )
+    items_by_email, total_by_email = service.list_users(
+        actor_role=UserRole.ADVISOR,
+        page=1,
+        page_size=10,
+        search="mail.match",
+    )
+
+    assert total_by_name == 1
+    assert [item.id for item in items_by_name] == [name_match.id]
+    assert total_by_email == 1
+    assert [item.id for item in items_by_email] == [email_match.id]
