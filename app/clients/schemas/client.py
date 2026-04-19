@@ -10,6 +10,17 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 from app.utils.id_validation import validate_israeli_id_checksum
 from app.businesses.schemas.business_schemas import BusinessCreateRequest, BusinessResponse
 
+CREATE_CLIENT_REQUIRED_LABELS = {
+    "full_name": "שם מלא",
+    "phone": "טלפון",
+    "address_street": "רחוב",
+    "address_building_number": "מספר בניין",
+    "address_apartment": "דירה",
+    "address_city": "עיר",
+    "address_zip_code": "מיקוד",
+    "accountant_name": "רואה חשבון מלווה",
+}
+
 
 # ─── Requests ────────────────────────────────────────────────────────────────
 
@@ -92,6 +103,39 @@ class CreateClientRequest(BaseModel):
     """יצירת לקוח ועסק ראשון."""
     client: ClientCreateRequest
     business: BusinessCreateRequest
+
+    @model_validator(mode="after")
+    def require_full_create_payload(self) -> "CreateClientRequest":
+        required_client_strings = (
+            ("full_name", self.client.full_name),
+            ("phone", self.client.phone),
+            ("address_street", self.client.address_street),
+            ("address_building_number", self.client.address_building_number),
+            ("address_apartment", self.client.address_apartment),
+            ("address_city", self.client.address_city),
+            ("address_zip_code", self.client.address_zip_code),
+            ("accountant_name", self.client.accountant_name),
+        )
+        for field_name, value in required_client_strings:
+            if value is None or not value.strip():
+                raise ValueError(f"יש להזין {CREATE_CLIENT_REQUIRED_LABELS[field_name]}")
+
+        if self.client.entity_type is None:
+            raise ValueError("יש לבחור סוג ישות")
+        if self.client.email is None:
+            raise ValueError("יש להזין כתובת אימייל")
+        if self.client.office_client_number is None:
+            raise ValueError("יש להזין מספר לקוח במשרד")
+        if self.client.vat_reporting_frequency is None:
+            raise ValueError("יש לציין תדירות דיווח מע״מ")
+        if self.client.advance_rate is None:
+            raise ValueError("יש להזין אחוז מקדמה")
+        if self.business.opened_at is None:
+            raise ValueError("יש להזין תאריך פתיחת עסק")
+        if self.client.entity_type == EntityType.OSEK_PATUR and self.client.vat_exempt_ceiling is None:
+            raise ValueError("יש להזין תקרת פטור מע״מ")
+
+        return self
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────

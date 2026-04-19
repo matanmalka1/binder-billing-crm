@@ -14,6 +14,7 @@ class _CreateResponse:
 
 
 def _create_client(client, headers, *, full_name="Client A", id_number="700000003"):
+    office_client_number = int("".join(ch for ch in id_number if ch.isdigit())[-6:] or "321")
     response = client.post(
         "/api/v1/clients",
         headers=headers,
@@ -22,8 +23,23 @@ def _create_client(client, headers, *, full_name="Client A", id_number="70000000
                 "full_name": full_name,
                 "id_number": id_number,
                 "id_number_type": "corporation",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "client@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "office_client_number": office_client_number,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "CPA Name",
             },
-            "business": {"business_name": f"{full_name} Business"},
+            "business": {
+                "business_name": f"{full_name} Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
     return _CreateResponse(response)
@@ -149,8 +165,20 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
                 "full_name": "Checksum Invalid",
                 "id_number": "123456789",
                 "id_number_type": "individual",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "checksum@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "office_client_number": 321,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "CPA Name",
             },
-            "business": {"business_name": "Checksum Invalid Business"},
+            "business": {"business_name": "Checksum Invalid Business", "opened_at": "2026-04-19"},
         },
     )
 
@@ -166,8 +194,20 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
                 "full_name": "Bad Corp",
                 "id_number": "700000001",
                 "id_number_type": "corporation",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "badcorp@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "office_client_number": 321,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "CPA Name",
             },
-            "business": {"business_name": "Bad Corp Business"},
+            "business": {"business_name": "Bad Corp Business", "opened_at": "2026-04-19"},
         },
     )
 

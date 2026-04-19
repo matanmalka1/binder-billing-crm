@@ -10,6 +10,7 @@ from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
+from app.binders.repositories.binder_repository import BinderRepository
 from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.messages import (
@@ -107,8 +108,15 @@ class ClientService:
     def update_client(self, client_id: int, actor_id: Optional[int] = None, **fields) -> Client:
         """Update client identity fields (name, phone, email, address)."""
         existing = self.get_client_or_raise(client_id)
+        should_create_initial_binder = (
+            existing.office_client_number is None
+            and fields.get("office_client_number") is not None
+            and BinderRepository(self.db).count_by_client(client_id) == 0
+        )
         old_snapshot = {k: getattr(existing, k, None) for k in fields if hasattr(existing, k)}
         updated = self.client_repo.update(client_id, **fields)
+        if should_create_initial_binder:
+            create_initial_binder(self.db, updated, actor_id)
         if obligation_fields_changed(fields):
             generate_client_obligations(
                 self.db, client_id, actor_id=actor_id,

@@ -93,7 +93,7 @@ def create_client(
         _raise_client_conflict(service.client_service, request.client.id_number, e)
 
     return CreateClientResponse(
-        client=ClientResponse.model_validate(client),
+        client=enrich_single(ClientResponse.model_validate(client), db),
         business=business,
     )
 
@@ -171,7 +171,7 @@ def update_client(
         actor_id=user.id,
         **request.model_dump(exclude_unset=True),
     )
-    return ClientResponse.model_validate(client)
+    return enrich_single(ClientResponse.model_validate(client), db)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ Valid test IDs: 039337423, 087654321 (verified below), use id_number_type=corpor
 """
 
 from app.businesses.models.business import Business
+from app.binders.models.binder import Binder
 from app.clients.models.client import Client
 
 
@@ -20,6 +21,7 @@ class _CreateResponse:
 
 def _create_client(client, headers, full_name="Test Client", id_number="000000000"):
     """Helper: create a client with an initial business."""
+    office_client_number = int("".join(ch for ch in id_number if ch.isdigit())[-6:] or "321")
     resp = client.post(
         "/api/v1/clients",
         headers=headers,
@@ -28,8 +30,23 @@ def _create_client(client, headers, full_name="Test Client", id_number="00000000
                 "full_name": full_name,
                 "id_number": id_number,
                 "id_number_type": "corporation",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "test@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "office_client_number": office_client_number,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "CPA Name",
             },
-            "business": {"business_name": f"{full_name} Business"},
+            "business": {
+                "business_name": f"{full_name} Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
     return _CreateResponse(resp)
@@ -104,8 +121,18 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
                 "full_name": "Created Client",
                 "id_number": "ONB-001",
                 "id_number_type": "other",
+                "entity_type": "company_ltd",
                 "phone": "050-1234567",
                 "email": "created@example.com",
+                "address_street": "Herzl",
+                "address_building_number": "12",
+                "address_apartment": "3",
+                "address_city": "Haifa",
+                "address_zip_code": "1234567",
+                "office_client_number": 456,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "Created CPA",
             },
             "business": {
                 "business_name": "Created Business",
@@ -131,6 +158,49 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
     assert stored_business.opened_at.isoformat() == "2026-04-19"
 
 
+def test_create_client_with_office_number_returns_active_binder_and_persists_binder(
+    client, test_db, advisor_headers
+):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Binder On Create",
+                "id_number": "ONB-BINDER-001",
+                "id_number_type": "other",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "binder@example.com",
+                "address_street": "Allenby",
+                "address_building_number": "8",
+                "address_apartment": "2",
+                "address_city": "Jerusalem",
+                "address_zip_code": "7654321",
+                "office_client_number": 321,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "Binder CPA",
+            },
+            "business": {
+                "business_name": "Binder Business",
+                "opened_at": "2026-04-19",
+            },
+        },
+    )
+
+    assert response.status_code == 201
+    data = response.json()
+    assert data["client"]["active_binder_number"] == "321/1"
+
+    stored_binder = (
+        test_db.query(Binder)
+        .filter(Binder.client_id == data["client"]["id"])
+        .one()
+    )
+    assert stored_binder.binder_number == "321/1"
+
+
 def test_create_client_requires_advisor_role(client, secretary_headers):
     response = client.post(
         "/api/v1/clients",
@@ -140,8 +210,20 @@ def test_create_client_requires_advisor_role(client, secretary_headers):
                 "full_name": "Secretary Create",
                 "id_number": "ONB-SEC",
                 "id_number_type": "other",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "secretary@example.com",
+                "address_street": "Jaffa",
+                "address_building_number": "1",
+                "address_apartment": "1",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1111111",
+                "office_client_number": 500,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "Secretary CPA",
             },
-            "business": {"business_name": "Secretary Business"},
+            "business": {"business_name": "Secretary Business", "opened_at": "2026-04-19"},
         },
     )
 
@@ -161,8 +243,20 @@ def test_create_client_rejects_blank_business_before_creating_client(
                 "full_name": "Invalid Create",
                 "id_number": "ONB-BLANK",
                 "id_number_type": "other",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "invalid@example.com",
+                "address_street": "Begin",
+                "address_building_number": "4",
+                "address_apartment": "9",
+                "address_city": "Rishon",
+                "address_zip_code": "2222222",
+                "office_client_number": 501,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "Invalid CPA",
             },
-            "business": {"business_name": "   "},
+            "business": {"business_name": "   ", "opened_at": "2026-04-19"},
         },
     )
 
@@ -173,3 +267,37 @@ def test_create_client_rejects_blank_business_before_creating_client(
         .count()
         == 0
     )
+
+
+def test_create_client_missing_required_field_returns_friendly_hebrew_message(
+    client,
+    advisor_headers,
+):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Friendly Error Client",
+                "id_number": "ONB-FRIENDLY",
+                "id_number_type": "other",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "friendly@example.com",
+                "address_street": "",
+                "address_building_number": "4",
+                "address_apartment": "9",
+                "address_city": "Rishon",
+                "address_zip_code": "2222222",
+                "office_client_number": 777,
+                "vat_reporting_frequency": "monthly",
+                "advance_rate": "8.5",
+                "accountant_name": "Friendly CPA",
+            },
+            "business": {"business_name": "Friendly Business", "opened_at": "2026-04-19"},
+        },
+    )
+
+    assert response.status_code == 422
+    errors = response.json()["detail"]
+    assert any(error["msg"] == "Value error, יש להזין רחוב" for error in errors)

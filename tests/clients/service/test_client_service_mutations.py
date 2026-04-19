@@ -1,6 +1,7 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models.client import IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
@@ -28,6 +29,22 @@ def test_create_client_success(test_db):
 
     assert created.id is not None
     assert created.created_by == 3
+
+
+def test_create_client_with_office_client_number_creates_initial_binder(test_db):
+    service = ClientService(test_db)
+
+    created = service.create_client(
+        full_name="Binder Client",
+        id_number="610000010",
+        id_number_type=IdNumberType.CORPORATION,
+        office_client_number=123,
+        actor_id=3,
+    )
+
+    binder = BinderRepository(test_db).get_active_by_client(created.id)
+    assert binder is not None
+    assert binder.binder_number == "123/1"
 
 
 def test_create_client_conflict_when_active_exists(test_db):
@@ -101,6 +118,28 @@ def test_update_delete_restore_flow(test_db):
     restored = service.restore_client(created.id, actor_id=12)
     assert restored.deleted_at is None
     assert restored.restored_by == 12
+
+
+def test_update_client_creates_initial_binder_when_office_number_added_later(test_db):
+    service = ClientService(test_db)
+    created = service.create_client(
+        full_name="Late Binder",
+        id_number="640000022",
+        id_number_type=IdNumberType.CORPORATION,
+        actor_id=10,
+    )
+
+    assert BinderRepository(test_db).count_by_client(created.id) == 0
+
+    updated = service.update_client(
+        created.id,
+        actor_id=10,
+        office_client_number=124,
+    )
+
+    binder = BinderRepository(test_db).get_active_by_client(updated.id)
+    assert binder is not None
+    assert binder.binder_number == "124/1"
 
 
 def test_delete_raises_not_found_when_client_already_deleted(test_db):
