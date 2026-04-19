@@ -41,7 +41,6 @@ class ClientCreateRequest(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     # ── Tax reporting ─────────────────────────────────────────────────────────
-    office_client_number: Optional[int] = None
     vat_reporting_frequency: Optional[VatType] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
@@ -82,7 +81,6 @@ class ClientUpdateRequest(BaseModel):
     """עדכון פרטי זהות ופרופיל מס."""
     full_name: Optional[str] = None
     status: Optional[ClientStatus] = None
-    office_client_number: Optional[int] = None
     entity_type: Optional[EntityType] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -124,8 +122,6 @@ class CreateClientRequest(BaseModel):
             raise ValueError("יש לבחור סוג ישות")
         if self.client.email is None:
             raise ValueError("יש להזין כתובת אימייל")
-        if self.client.office_client_number is None:
-            raise ValueError("יש להזין מספר לקוח במשרד")
         if self.client.vat_reporting_frequency is None:
             raise ValueError("יש לציין תדירות דיווח מע״מ")
         if self.client.advance_rate is None:

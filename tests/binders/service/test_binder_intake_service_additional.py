@@ -93,6 +93,7 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
 
 def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=303)
+    _business(test_db, client.id)
     test_db.query(Business).filter(Business.client_id == client.id).update(
         {"status": BusinessStatus.FROZEN}
     )

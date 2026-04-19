@@ -37,7 +37,6 @@ class CreateClientService:
         vat_exempt_ceiling=None,
         advance_rate=None,
         accountant_name: Optional[str] = None,
-        office_client_number: Optional[int] = None,
         business_opened_at: Optional[date] = None,
         business_notes: Optional[str] = None,
         actor_id: Optional[int] = None,
@@ -68,7 +67,6 @@ class CreateClientService:
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
             accountant_name=accountant_name,
-            office_client_number=office_client_number,
             actor_id=actor_id,
         )
         business = self.business_service.create_business(

@@ -81,7 +81,6 @@ def create_client(
             vat_exempt_ceiling=request.client.vat_exempt_ceiling,
             advance_rate=request.client.advance_rate,
             accountant_name=request.client.accountant_name,
-            office_client_number=request.client.office_client_number,
             business_name=request.business.business_name,
             business_opened_at=request.business.opened_at,
             business_notes=request.business.notes,

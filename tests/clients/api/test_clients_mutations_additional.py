@@ -14,7 +14,6 @@ class _CreateResponse:
 
 
 def _create_client(client, headers, *, full_name="Client A", id_number="700000003"):
-    office_client_number = int("".join(ch for ch in id_number if ch.isdigit())[-6:] or "321")
     response = client.post(
         "/api/v1/clients",
         headers=headers,
@@ -31,7 +30,6 @@ def _create_client(client, headers, *, full_name="Client A", id_number="70000000
                 "address_apartment": "5",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
-                "office_client_number": office_client_number,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "CPA Name",
@@ -61,6 +59,16 @@ def test_get_and_patch_client(client, advisor_headers):
     assert updated.status_code == 200
     assert updated.json()["full_name"] == "Client B"
     assert updated.json()["phone"] == "0501234567"
+
+
+def test_create_assigns_office_client_number_automatically_in_ascending_order(client, advisor_headers):
+    first = _create_client(client, advisor_headers, id_number="700000003")
+    second = _create_client(client, advisor_headers, id_number="700000011")
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert first.json()["office_client_number"] == 1
+    assert second.json()["office_client_number"] == 2
 
 
 def test_get_client_not_found_returns_domain_error(client, advisor_headers):
@@ -173,7 +181,6 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
                 "address_apartment": "5",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
-                "office_client_number": 321,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "CPA Name",
@@ -202,7 +209,6 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
                 "address_apartment": "5",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
-                "office_client_number": 321,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "CPA Name",

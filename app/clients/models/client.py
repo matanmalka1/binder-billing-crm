@@ -73,7 +73,8 @@ class Client(Base):
 
     # ── Office client number ──────────────────────────────────────────────────
     # Physical label number used by the office (e.g. "7" in binder label "7/5").
-    # Assigned manually by staff. NULL until set. Must be unique among active clients.
+    # Assigned automatically for new clients in ascending order.
+    # Must be unique among active clients.
     office_client_number = Column(Integer, nullable=True)
 
     notes = Column(Text, nullable=True)

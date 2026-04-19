@@ -28,12 +28,7 @@ def create_initial_binder(db: Session, client: Client, actor_id: Optional[int]) 
         _log.warning("auto-binder skipped for client %s: actor_id is None", client.id)
         return
     if client.office_client_number is None:
-        _log.warning(
-            "auto-binder skipped for client %s: office_client_number not set — "
-            "staff must open first binder manually after assigning office client number",
-            client.id,
-        )
-        return
+        raise ValueError(f"לא ניתן ליצור קלסר: מספר לקוח משרד חסר ללקוח {client.id}")
 
     binder_repo = BinderRepository(db)
     status_log_repo = BinderStatusLogRepository(db)

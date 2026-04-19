@@ -10,7 +10,6 @@ from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
-from app.binders.repositories.binder_repository import BinderRepository
 from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.messages import (
@@ -53,7 +52,6 @@ class ClientService:
         vat_exempt_ceiling=None,
         advance_rate=None,
         accountant_name: Optional[str] = None,
-        office_client_number: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> Client:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
@@ -70,22 +68,24 @@ class ClientService:
                 "CLIENT.DELETED_EXISTS",
             )
 
-        try:
-            client = self.client_repo.create(
-                full_name=full_name, id_number=id_number, id_number_type=id_number_type,
-                entity_type=entity_type,
-                phone=phone, email=email, address_street=address_street,
-                address_building_number=address_building_number, address_apartment=address_apartment,
-                address_city=address_city, address_zip_code=address_zip_code,
-                vat_reporting_frequency=vat_reporting_frequency,
-                vat_exempt_ceiling=vat_exempt_ceiling,
-                advance_rate=advance_rate,
-                accountant_name=accountant_name,
-                office_client_number=office_client_number,
-                created_by=actor_id,
-            )
-        except IntegrityError:
-            raise ConflictError(CLIENT_ID_NUMBER_CONFLICT.format(id_number=id_number), "CLIENT.CONFLICT")
+        client = self._create_client_with_generated_office_number(
+            full_name=full_name,
+            id_number=id_number,
+            id_number_type=id_number_type,
+            entity_type=entity_type,
+            phone=phone,
+            email=email,
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
+            vat_reporting_frequency=vat_reporting_frequency,
+            vat_exempt_ceiling=vat_exempt_ceiling,
+            advance_rate=advance_rate,
+            accountant_name=accountant_name,
+            actor_id=actor_id,
+        )
 
         create_initial_binder(self.db, client, actor_id)
         generate_client_obligations(
@@ -99,6 +99,58 @@ class ClientService:
             )
         return client
 
+    def _create_client_with_generated_office_number(
+        self,
+        *,
+        full_name: str,
+        id_number: str,
+        id_number_type: IdNumberType,
+        entity_type: Optional[EntityType],
+        phone: Optional[str],
+        email: Optional[str],
+        address_street: Optional[str],
+        address_building_number: Optional[str],
+        address_apartment: Optional[str],
+        address_city: Optional[str],
+        address_zip_code: Optional[str],
+        vat_reporting_frequency: Optional[VatType],
+        vat_exempt_ceiling,
+        advance_rate,
+        accountant_name: Optional[str],
+        actor_id: Optional[int],
+    ) -> Client:
+        for attempt in range(3):
+            office_client_number = self.client_repo.get_next_office_client_number()
+            savepoint = self.db.begin_nested()
+            try:
+                client = self.client_repo.create(
+                    full_name=full_name,
+                    id_number=id_number,
+                    id_number_type=id_number_type,
+                    entity_type=entity_type,
+                    phone=phone,
+                    email=email,
+                    address_street=address_street,
+                    address_building_number=address_building_number,
+                    address_apartment=address_apartment,
+                    address_city=address_city,
+                    address_zip_code=address_zip_code,
+                    vat_reporting_frequency=vat_reporting_frequency,
+                    vat_exempt_ceiling=vat_exempt_ceiling,
+                    advance_rate=advance_rate,
+                    accountant_name=accountant_name,
+                    office_client_number=office_client_number,
+                    created_by=actor_id,
+                )
+                savepoint.commit()
+                return client
+            except IntegrityError:
+                savepoint.rollback()
+                if attempt == 2:
+                    break
+
+        raise ConflictError(CLIENT_ID_NUMBER_CONFLICT.format(id_number=id_number), "CLIENT.CONFLICT")
+
     def get_client_or_raise(self, client_id: int) -> Client:
         client = self.client_repo.get_by_id(client_id)
         if not client:
@@ -108,15 +160,8 @@ class ClientService:
     def update_client(self, client_id: int, actor_id: Optional[int] = None, **fields) -> Client:
         """Update client identity fields (name, phone, email, address)."""
         existing = self.get_client_or_raise(client_id)
-        should_create_initial_binder = (
-            existing.office_client_number is None
-            and fields.get("office_client_number") is not None
-            and BinderRepository(self.db).count_by_client(client_id) == 0
-        )
         old_snapshot = {k: getattr(existing, k, None) for k in fields if hasattr(existing, k)}
         updated = self.client_repo.update(client_id, **fields)
-        if should_create_initial_binder:
-            create_initial_binder(self.db, updated, actor_id)
         if obligation_fields_changed(fields):
             generate_client_obligations(
                 self.db, client_id, actor_id=actor_id,

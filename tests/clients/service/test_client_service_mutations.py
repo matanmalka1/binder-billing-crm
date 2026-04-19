@@ -29,22 +29,44 @@ def test_create_client_success(test_db):
 
     assert created.id is not None
     assert created.created_by == 3
+    assert created.office_client_number == 1
 
 
-def test_create_client_with_office_client_number_creates_initial_binder(test_db):
+def test_create_client_assigns_next_office_client_number_and_creates_initial_binder(test_db):
     service = ClientService(test_db)
 
-    created = service.create_client(
-        full_name="Binder Client",
+    first = service.create_client(
+        full_name="First Client",
         id_number="610000010",
         id_number_type=IdNumberType.CORPORATION,
-        office_client_number=123,
+        actor_id=3,
+    )
+    created = service.create_client(
+        full_name="Binder Client",
+        id_number="610000028",
+        id_number_type=IdNumberType.CORPORATION,
         actor_id=3,
     )
 
+    assert first.office_client_number == 1
+    assert created.office_client_number == 2
+
     binder = BinderRepository(test_db).get_active_by_client(created.id)
     assert binder is not None
-    assert binder.binder_number == "123/1"
+    assert binder.binder_number == "2/1"
+
+
+def test_create_client_auto_assigns_office_client_number(test_db):
+    service = ClientService(test_db)
+
+    created = service.create_client(
+        full_name="Auto Office Number",
+        id_number="610000036",
+        id_number_type=IdNumberType.CORPORATION,
+        actor_id=3,
+    )
+
+    assert created.office_client_number == 1
 
 
 def test_create_client_conflict_when_active_exists(test_db):
@@ -120,26 +142,19 @@ def test_update_delete_restore_flow(test_db):
     assert restored.restored_by == 12
 
 
-def test_update_client_creates_initial_binder_when_office_number_added_later(test_db):
+def test_create_client_always_creates_initial_binder(test_db):
     service = ClientService(test_db)
     created = service.create_client(
-        full_name="Late Binder",
+        full_name="Auto Binder Client",
         id_number="640000022",
         id_number_type=IdNumberType.CORPORATION,
         actor_id=10,
     )
 
-    assert BinderRepository(test_db).count_by_client(created.id) == 0
-
-    updated = service.update_client(
-        created.id,
-        actor_id=10,
-        office_client_number=124,
-    )
-
-    binder = BinderRepository(test_db).get_active_by_client(updated.id)
+    assert BinderRepository(test_db).count_by_client(created.id) == 1
+    binder = BinderRepository(test_db).get_active_by_client(created.id)
     assert binder is not None
-    assert binder.binder_number == "124/1"
+    assert binder.binder_number == f"{created.office_client_number}/1"
 
 
 def test_delete_raises_not_found_when_client_already_deleted(test_db):
@@ -219,6 +234,27 @@ def test_list_clients_and_conflict_info(test_db):
     info_deleted = service.get_conflict_info("670000017")
     assert len(info_deleted["active_clients"]) == 0
     assert len(info_deleted["deleted_clients"]) == 1
+
+
+def test_create_client_does_not_reuse_deleted_office_client_number(test_db):
+    service = ClientService(test_db)
+    first = service.create_client(
+        full_name="First",
+        id_number="670000025",
+        id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
+    )
+    service.delete_client(first.id, actor_id=1)
+
+    second = service.create_client(
+        full_name="Second",
+        id_number="670000033",
+        id_number_type=IdNumberType.CORPORATION,
+        actor_id=1,
+    )
+
+    assert first.office_client_number == 1
+    assert second.office_client_number == 2
 
 
 def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch):

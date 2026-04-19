@@ -21,7 +21,6 @@ class _CreateResponse:
 
 def _create_client(client, headers, full_name="Test Client", id_number="000000000"):
     """Helper: create a client with an initial business."""
-    office_client_number = int("".join(ch for ch in id_number if ch.isdigit())[-6:] or "321")
     resp = client.post(
         "/api/v1/clients",
         headers=headers,
@@ -38,7 +37,6 @@ def _create_client(client, headers, full_name="Test Client", id_number="00000000
                 "address_apartment": "5",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
-                "office_client_number": office_client_number,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "CPA Name",
@@ -66,6 +64,7 @@ def test_authenticated_client_creation(client, auth_token):
     assert data["full_name"] == "John Doe"
     assert data["id_number"] == "100000009"
     assert data["id_number_type"] == "corporation"
+    assert data["office_client_number"] == 1
     assert "id" in data
     assert "created_at" in data
     assert data["created_at"].endswith("Z")
@@ -129,7 +128,6 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
                 "address_apartment": "3",
                 "address_city": "Haifa",
                 "address_zip_code": "1234567",
-                "office_client_number": 456,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "Created CPA",
@@ -146,6 +144,7 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
     assert data["client"]["full_name"] == "Created Client"
     assert data["business"]["business_name"] == "Created Business"
     assert data["business"]["client_id"] == data["client"]["id"]
+    assert data["client"]["office_client_number"] == 1
 
     stored_business = (
         test_db.query(Business)
@@ -177,7 +176,6 @@ def test_create_client_with_office_number_returns_active_binder_and_persists_bin
                 "address_apartment": "2",
                 "address_city": "Jerusalem",
                 "address_zip_code": "7654321",
-                "office_client_number": 321,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "Binder CPA",
@@ -191,14 +189,15 @@ def test_create_client_with_office_number_returns_active_binder_and_persists_bin
 
     assert response.status_code == 201
     data = response.json()
-    assert data["client"]["active_binder_number"] == "321/1"
+    assert data["client"]["office_client_number"] == 1
+    assert data["client"]["active_binder_number"] == "1/1"
 
     stored_binder = (
         test_db.query(Binder)
         .filter(Binder.client_id == data["client"]["id"])
         .one()
     )
-    assert stored_binder.binder_number == "321/1"
+    assert stored_binder.binder_number == "1/1"
 
 
 def test_create_client_requires_advisor_role(client, secretary_headers):
@@ -218,7 +217,6 @@ def test_create_client_requires_advisor_role(client, secretary_headers):
                 "address_apartment": "1",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1111111",
-                "office_client_number": 500,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "Secretary CPA",
@@ -251,7 +249,6 @@ def test_create_client_rejects_blank_business_before_creating_client(
                 "address_apartment": "9",
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
-                "office_client_number": 501,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "Invalid CPA",
@@ -289,7 +286,6 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
                 "address_apartment": "9",
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
-                "office_client_number": 777,
                 "vat_reporting_frequency": "monthly",
                 "advance_rate": "8.5",
                 "accountant_name": "Friendly CPA",

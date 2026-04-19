@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, func
 
 from app.common.repositories.base_repository import BaseRepository
 from app.clients.models.client import Client, ClientStatus, IdNumberType
@@ -202,3 +202,8 @@ class ClientRepository(BaseRepository):
         """Update client identity fields."""
         client = self.get_by_id(client_id)
         return self._update_entity(client, **fields)
+
+    def get_next_office_client_number(self) -> int:
+        """Return the next office client number in ascending order."""
+        current_max = self.db.query(func.max(Client.office_client_number)).scalar()
+        return 1 if current_max is None else current_max + 1
