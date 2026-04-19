@@ -25,8 +25,7 @@ def create_initial_binder(db: Session, client: Client, actor_id: Optional[int]) 
     The binder is created with period_start=None (no material received yet).
     """
     if actor_id is None:
-        _log.warning("auto-binder skipped for client %s: actor_id is None", client.id)
-        return
+        raise ValueError(f"לא ניתן ליצור קלסר אוטומטי ללקוח {client.id}: actor_id חסר")
     if client.office_client_number is None:
         raise ValueError(f"לא ניתן ליצור קלסר: מספר לקוח משרד חסר ללקוח {client.id}")
 

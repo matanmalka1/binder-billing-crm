@@ -19,6 +19,7 @@ from app.clients.services.messages import (
     CLIENT_ID_NUMBER_EXISTS,
     CLIENT_NOT_DELETED,
     CLIENT_NOT_FOUND,
+    CLIENT_OFFICE_NUMBER_CONFLICT,
 )
 from app.core.exceptions import ConflictError, NotFoundError
 
@@ -144,12 +145,17 @@ class ClientService:
                 )
                 savepoint.commit()
                 return client
-            except IntegrityError:
+            except IntegrityError as exc:
                 savepoint.rollback()
+                err_str = str(exc.orig).lower() if exc.orig else ""
+                if "id_number" in err_str or "ix_clients_id_number" in err_str:
+                    raise ConflictError(
+                        CLIENT_ID_NUMBER_CONFLICT.format(id_number=id_number), "CLIENT.CONFLICT"
+                    ) from exc
                 if attempt == 2:
                     break
 
-        raise ConflictError(CLIENT_ID_NUMBER_CONFLICT.format(id_number=id_number), "CLIENT.CONFLICT")
+        raise ConflictError(CLIENT_OFFICE_NUMBER_CONFLICT, "OFFICE_NUMBER.CONFLICT")
 
     def get_client_or_raise(self, client_id: int) -> Client:
         client = self.client_repo.get_by_id(client_id)

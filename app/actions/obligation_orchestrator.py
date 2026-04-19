@@ -44,13 +44,13 @@ def generate_client_obligations(
     פעולה אידמפוטנטית — מועדים ודוחות קיימים מדולגים.
     מחזירה את מספר הישויות שנוצרו.
 
-    best_effort=False (ברירת מחדל — לשימוש בזרימות עדכון):
-        שגיאות נרשמות בלוג, ה-savepoint מבוצע rollback, והפונקציה מחזירה.
-        הטרנזקציה הראשית נשמרת — הישות המעדכנת כבר flushed ותבוצע commit בסיום הבקשה.
-
-    best_effort=True — לשימוש בזרימות יצירה:
+    best_effort=False (ברירת מחדל — לשימוש בזרימות יצירה):
         שגיאות מועלות מיד לאחר rollback של ה-savepoint.
         הכשל מתגלגל למעלה, get_db() מבצע rollback לטרנזקציה הראשית — אין נתונים עצומים.
+
+    best_effort=True — לשימוש בזרימות עדכון:
+        שגיאות נרשמות בלוג, ה-savepoint מבוצע rollback, והפונקציה מחזירה.
+        הטרנזקציה הראשית נשמרת — הישות המעדכנת כבר flushed ותבוצע commit בסיום הבקשה.
     """
     years = _years_to_generate(reference_date)
     total = 0

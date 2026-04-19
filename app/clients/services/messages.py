@@ -4,3 +4,4 @@ CLIENT_ID_NUMBER_CONFLICT = "לקוח עם מספר ת.ז. {id_number} כבר ק
 CLIENT_NOT_FOUND = "לקוח {client_id} לא נמצא"
 CLIENT_NOT_DELETED = "לקוח זה אינו מחוק"
 CLIENT_ID_NUMBER_ACTIVE_EXISTS = "לקוח עם מספר ת.ז. {id_number} כבר קיים ופעיל במערכת"
+CLIENT_OFFICE_NUMBER_CONFLICT = "שגיאה בהקצאת מספר לקוח פנימי — נסה שוב"
