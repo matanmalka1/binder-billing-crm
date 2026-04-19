@@ -6,12 +6,14 @@ from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    AdvancePaymentAggregationRepository,
+)
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
     advance_payment_status_text_expr,
 )
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.common.enums import VatType
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
@@ -54,19 +56,19 @@ def _create_business(test_db, name: str, id_number: str):
     return business
 
 
-def test_list_by_business_year_filters_and_orders(test_db):
+def test_list_by_client_year_filters_and_orders(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Client One", "100000001")
 
     january = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2025-01",
         period_months_count=1,
         due_date=date(2025, 2, 15),
         expected_amount=Decimal("100.00"),
     )
     february = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2025-02",
         period_months_count=1,
         due_date=date(2025, 3, 15),
@@ -74,12 +76,12 @@ def test_list_by_business_year_filters_and_orders(test_db):
     )
     repo.update(february, status=AdvancePaymentStatus.PAID)
 
-    items, total = repo.list_by_business_year(business_id=business.id, year=2025, status=None)
+    items, total = repo.list_by_client_year(client_id=business.client_id, year=2025, status=None)
     assert total == 2
     assert [p.period for p in items] == ["2025-01", "2025-02"]
 
-    pending_items, pending_total = repo.list_by_business_year(
-        business_id=business.id,
+    pending_items, pending_total = repo.list_by_client_year(
+        client_id=business.client_id,
         year=2025,
         status=[AdvancePaymentStatus.PENDING],
     )
@@ -93,7 +95,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
     user = _create_user(test_db)
 
     january = VatWorkItem(
-        business_id=business.id,
+        client_id=business.client_id,
         created_by=user.id,
         period="2025-01",
         period_type=VatType.MONTHLY,
@@ -102,7 +104,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         net_vat=Decimal("150.50"),
     )
     february = VatWorkItem(
-        business_id=business.id,
+        client_id=business.client_id,
         created_by=user.id,
         period="2025-02",
         period_type=VatType.MONTHLY,
@@ -111,7 +113,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         net_vat=Decimal("149.50"),
     )
     previous_year = VatWorkItem(
-        business_id=business.id,
+        client_id=business.client_id,
         created_by=user.id,
         period="2024-12",
         period_type=VatType.MONTHLY,
@@ -122,22 +124,23 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
     test_db.add_all([january, february, previous_year])
     test_db.commit()
 
-    assert repo.get_annual_output_vat(business_id=business.id, year=2025) == Decimal("300.00")
+    assert repo.get_annual_output_vat(client_id=business.client_id, year=2025) == Decimal("300.00")
 
 
 def test_list_overview_payments_filters_by_month_and_status(test_db):
     repo = AdvancePaymentRepository(test_db)
+    aggregation_repo = AdvancePaymentAggregationRepository(test_db)
     business_a = _create_business(test_db, "Alpha", "100000003")
     business_b = _create_business(test_db, "Beta", "100000004")
 
     payment_a = repo.create(
-        business_id=business_a.id,
+        client_id=business_a.client_id,
         period="2025-01",
         period_months_count=1,
         due_date=date(2025, 2, 10),
     )
     payment_b = repo.create(
-        business_id=business_b.id,
+        client_id=business_b.client_id,
         period="2025-01",
         period_months_count=1,
         due_date=date(2025, 2, 12),
@@ -145,13 +148,13 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     repo.update(payment_b, status=AdvancePaymentStatus.PAID)
 
     repo.create(
-        business_id=business_a.id,
+        client_id=business_a.client_id,
         period="2025-02",
         period_months_count=1,
         due_date=date(2025, 3, 10),
     )
 
-    rows = repo.list_overview_payments(
+    rows = aggregation_repo.list_overview_payments(
         year=2025,
         month=1,
         statuses=[AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PAID],
@@ -163,12 +166,12 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     assert payment_b.id in ids
 
 
-def test_list_by_business_year_handles_legacy_uppercase_status_values(test_db):
+def test_list_by_client_year_handles_legacy_uppercase_status_values(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Legacy Client", "100000005")
 
     payment = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-03",
         period_months_count=1,
         due_date=date(2026, 4, 15),
@@ -182,12 +185,12 @@ def test_list_by_business_year_handles_legacy_uppercase_status_values(test_db):
     )
     test_db.commit()
 
-    items, total = repo.list_by_business_year(business_id=business.id, year=2026, status=None)
+    items, total = repo.list_by_client_year(client_id=business.client_id, year=2026, status=None)
     assert total == 1
     assert items[0].status == AdvancePaymentStatus.PARTIAL
 
-    filtered, filtered_total = repo.list_by_business_year(
-        business_id=business.id,
+    filtered, filtered_total = repo.list_by_client_year(
+        client_id=business.client_id,
         year=2026,
         status=[AdvancePaymentStatus.PARTIAL],
     )

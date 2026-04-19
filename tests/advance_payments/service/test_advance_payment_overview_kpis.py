@@ -6,7 +6,6 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService as AdvancePaymentService
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -38,9 +37,9 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
     b1 = _business(test_db, 1)
     b2 = _business(test_db, 2)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(business_id=b2.id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
+    repo.create(client_id=b2.client_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
     paid = repo.create(
-        business_id=b1.id,
+        client_id=b1.client_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),
@@ -58,15 +57,15 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
     )
 
     assert total == 2
-    assert rows[0][1] == b1.business_name
-    assert rows[1][1] == b2.business_name
+    assert rows[0][1] == b1.client.full_name
+    assert rows[1][1] == b2.client.full_name
 
 
 def test_get_overview_kpis_collection_rate_rounds(test_db):
     business = _business(test_db, 3)
     repo = AdvancePaymentRepository(test_db)
     partial = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
@@ -75,7 +74,7 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
     repo.update(partial, paid_amount=Decimal("50"), status=AdvancePaymentStatus.PARTIAL)
 
     paid = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),

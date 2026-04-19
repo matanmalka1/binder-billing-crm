@@ -2,7 +2,6 @@ from datetime import date
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -27,7 +26,7 @@ def test_delete_advance_payment_success(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-04",
         period_months_count=1,
         due_date=date(2026, 5, 15),

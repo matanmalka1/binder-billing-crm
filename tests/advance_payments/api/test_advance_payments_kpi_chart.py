@@ -4,7 +4,6 @@ from decimal import Decimal
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -25,10 +24,10 @@ def _business(db) -> Business:
     return business
 
 
-def _seed_payments(db, business_id: int):
+def _seed_payments(db, client_id: int):
     repo = AdvancePaymentRepository(db)
     jan = repo.create(
-        business_id=business_id,
+        client_id=client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
@@ -37,7 +36,7 @@ def _seed_payments(db, business_id: int):
     repo.update(jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID)
 
     mar = repo.create(
-        business_id=business_id,
+        client_id=client_id,
         period="2026-03",
         period_months_count=1,
         due_date=date(2026, 4, 15),
@@ -48,7 +47,7 @@ def _seed_payments(db, business_id: int):
 
 def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
     business = _business(test_db)
-    _seed_payments(test_db, business.id)
+    _seed_payments(test_db, business.client_id)
 
     resp = client.get(
         f"/api/v1/clients/{business.client_id}/advance-payments/chart?year=2026",
@@ -70,7 +69,7 @@ def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
 
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):
     business = _business(test_db)
-    _seed_payments(test_db, business.id)
+    _seed_payments(test_db, business.client_id)
 
     resp = client.get(
         f"/api/v1/clients/{business.client_id}/advance-payments/kpi?year=2026",

@@ -6,7 +6,6 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_analytics_repository import AdvancePaymentAnalyticsRepository
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 
 
@@ -34,19 +33,19 @@ def _business(test_db) -> Business:
     return business
 
 
-def test_advance_payment_get_by_id_for_business_and_soft_delete(test_db):
+def test_advance_payment_get_by_id_for_client_and_soft_delete(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _business(test_db)
 
     payment = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100.00"),
     )
 
-    fetched = repo.get_by_id_for_business(payment.id, business.id)
+    fetched = repo.get_by_id_for_client(payment.id, business.client_id)
     assert fetched is not None
     assert fetched.id == payment.id
 
@@ -59,7 +58,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     business = _business(test_db)
 
     jan = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
@@ -68,7 +67,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     repo.update(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
 
     feb = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),
@@ -76,9 +75,9 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     )
     repo.update(feb, paid_amount=Decimal("150.00"), status=AdvancePaymentStatus.PARTIAL)
 
-    assert repo.exists_for_period(business.id, "2026-01") is True
-    assert repo.exists_for_period(business.id, "2026-03") is False
-    assert repo.sum_paid_by_business_year(business.id, 2026) == 100.0
+    assert repo.exists_for_period(business.client_id, "2026-01") is True
+    assert repo.exists_for_period(business.client_id, "2026-03") is False
+    assert repo.sum_paid_by_client_year(business.client_id, 2026) == 100.0
 
 
 def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
@@ -87,7 +86,7 @@ def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
     business = _business(test_db)
 
     jan = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
@@ -96,7 +95,7 @@ def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
     repo.update(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
 
     feb = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),
@@ -104,13 +103,13 @@ def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
     )
     repo.update(feb, paid_amount=Decimal("0.00"), status=AdvancePaymentStatus.OVERDUE)
 
-    kpis = analytics.get_annual_kpis(business.id, 2026)
+    kpis = analytics.get_annual_kpis_for_client(business.client_id, 2026)
     assert kpis["total_expected"] == 300.0
     assert kpis["total_paid"] == 100.0
     assert kpis["overdue_count"] == 1
     assert kpis["on_time_count"] == 1
 
-    monthly = analytics.monthly_chart_data(business.id, 2026)
+    monthly = analytics.monthly_chart_data_for_client(business.client_id, 2026)
     assert len(monthly) == 2
     assert monthly[0]["period"] == "2026-01"
     assert monthly[0]["expected_amount"] == 100.0

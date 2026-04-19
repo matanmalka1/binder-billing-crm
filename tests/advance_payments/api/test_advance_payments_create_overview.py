@@ -5,7 +5,6 @@ from itertools import count
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -65,7 +64,6 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     business = _business(test_db)
 
     payload = {
-        "business_id": business.id,
         "period": "2026-03",
         "period_months_count": 1,
         "due_date": "2026-04-15",
@@ -112,8 +110,8 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(business_id=business.id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    feb = repo.create(business_id=business.id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    repo.create(client_id=business.client_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
+    feb = repo.create(client_id=business.client_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
     repo.update(feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200"))
 
     resp = client.get(
