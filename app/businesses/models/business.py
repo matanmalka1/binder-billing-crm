@@ -20,7 +20,9 @@ class Business(Base):
     A specific business under a client.
 
     A client can hold multiple businesses (multiple operational activities under the same legal entity).
-    All business activity (reports, charges, VAT, binders) is associated with the business.
+    Business-scoped records may reference this model directly, while tax/reporting workflows that are
+    legally scoped to the client keep their primary ownership on Client and may only tag individual
+    records to a business.
 
     Contact details (email, phone):
     - email_override / phone_override = business-specific contact details (DB columns)

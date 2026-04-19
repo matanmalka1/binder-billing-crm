@@ -30,11 +30,6 @@ _TRANSFER_LIST_KEYS = {
     "annual_report_ids": "annual_report_id",
     "vat_report_ids": "vat_report_id",
 }
-_LEGACY_TRANSFER_LIST_KEYS = {
-    "new_business_ids": "business_ids",
-    "new_annual_report_ids": "annual_report_ids",
-    "new_vat_report_ids": "vat_report_ids",
-}
 
 
 class BinderIntakeEditService:
@@ -64,9 +59,6 @@ class BinderIntakeEditService:
         - intake fields: received_at, received_by, notes
         - transfer fields: client_id, binder_id
         - linked FK replacements: business_ids, annual_report_ids, vat_report_ids
-
-        Legacy aliases new_business_ids / new_annual_report_ids / new_vat_report_ids
-        are still accepted for compatibility.
         """
         intake = self.intake_repo.get_by_id(intake_id)
         if not intake:
@@ -95,36 +87,9 @@ class BinderIntakeEditService:
         self.db.flush()
         return intake
 
-    def edit_intake_transfer(
-        self,
-        intake_id: int,
-        actor_id: int,
-        new_binder_id: int,
-        new_business_ids: Optional[list[int]] = None,
-        new_annual_report_ids: Optional[list[int]] = None,
-        new_vat_report_ids: Optional[list[int]] = None,
-    ) -> BinderIntake:
-        """
-        Backward-compatible wrapper for callers that still use the transfer-specific method.
-        """
-        return self.edit_intake(
-            intake_id=intake_id,
-            actor_id=actor_id,
-            patch={
-                "binder_id": new_binder_id,
-                "business_ids": new_business_ids,
-                "annual_report_ids": new_annual_report_ids,
-                "vat_report_ids": new_vat_report_ids,
-            },
-        )
-
     @staticmethod
     def _normalize_patch(patch: dict[str, Any]) -> dict[str, Any]:
-        normalized = dict(patch)
-        for legacy_key, canonical_key in _LEGACY_TRANSFER_LIST_KEYS.items():
-            if legacy_key in normalized and canonical_key not in normalized:
-                normalized[canonical_key] = normalized.pop(legacy_key)
-        return normalized
+        return dict(patch)
 
     @staticmethod
     def _is_transfer_patch(patch: dict[str, Any]) -> bool:
