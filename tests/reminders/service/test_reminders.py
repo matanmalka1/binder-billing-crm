@@ -3,7 +3,6 @@ from datetime import date, timedelta
 import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -25,6 +24,7 @@ def _client(db) -> Client:
 def _business(db, client_id: int) -> Business:
     business = Business(
         client_id=client_id,
+        business_name=f"Reminder Service Biz {client_id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
@@ -35,7 +35,9 @@ def _business(db, client_id: int) -> Business:
 
 
 def _reminder(repo: ReminderRepository, business_id: int, *, status: ReminderStatus = ReminderStatus.PENDING):
+    business = repo.db.get(Business, business_id)
     reminder = repo.create(
+        client_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -89,7 +91,7 @@ def test_mark_sent_enforces_pending_status(test_db):
     reminder = _reminder(repo, business.id, status=ReminderStatus.SENT)
 
     with pytest.raises(AppError) as exc_info:
-        ReminderService(test_db).mark_sent(reminder.id)
+        ReminderService(test_db).mark_sent(reminder.id, actor_id=1)
 
     assert exc_info.value.code == "REMINDER.INVALID_STATUS"
 
@@ -100,6 +102,7 @@ def test_get_pending_respects_reference_date(test_db):
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
+        client_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today,
@@ -108,6 +111,7 @@ def test_get_pending_respects_reference_date(test_db):
         message="Today",
     )
     repo.create(
+        client_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today + timedelta(days=5),
@@ -129,6 +133,7 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
+        client_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today,
@@ -137,6 +142,7 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
         message="Today Pending",
     )
     repo.create(
+        client_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today + timedelta(days=2),
@@ -154,12 +160,12 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
 
 def test_cancel_missing_reminder_raises_not_found(test_db):
     with pytest.raises(NotFoundError):
-        ReminderService(test_db).cancel_reminder(999)
+        ReminderService(test_db).cancel_reminder(999, actor_id=1)
 
 
 def test_mark_sent_missing_reminder_raises_not_found(test_db):
     with pytest.raises(NotFoundError):
-        ReminderService(test_db).mark_sent(999999)
+        ReminderService(test_db).mark_sent(999999, actor_id=1)
 
 
 def test_cancel_enforces_pending_status(test_db):
@@ -169,6 +175,6 @@ def test_cancel_enforces_pending_status(test_db):
     reminder = _reminder(repo, business.id, status=ReminderStatus.SENT)
 
     with pytest.raises(AppError) as exc_info:
-        ReminderService(test_db).cancel_reminder(reminder.id)
+        ReminderService(test_db).cancel_reminder(reminder.id, actor_id=1)
 
     assert exc_info.value.code == "REMINDER.INVALID_STATUS"

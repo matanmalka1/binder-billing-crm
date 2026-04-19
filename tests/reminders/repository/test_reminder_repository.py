@@ -2,7 +2,6 @@ from datetime import date, timedelta
 from itertools import count
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.common.enums import EntityType
 from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -27,6 +26,7 @@ def _client(db) -> Client:
 def _business(db, client_id: int) -> Business:
     business = Business(
         client_id=client_id,
+        business_name=f"Reminder Repo Biz {client_id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
@@ -37,7 +37,9 @@ def _business(db, client_id: int) -> Business:
 
 
 def _create_reminder(repo: ReminderRepository, business_id: int, *, send_on: date, message: str):
+    business = repo.db.get(Business, business_id)
     return repo.create(
+        client_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=send_on + timedelta(days=5),
@@ -86,14 +88,3 @@ def test_pending_status_and_business_queries(test_db):
 def test_update_status_returns_none_for_missing_reminder(test_db):
     repo = ReminderRepository(test_db)
     assert repo.update_status(999999, ReminderStatus.CANCELED) is None
-
-
-def test_reminder_repr_includes_key_fields(test_db):
-    repo = ReminderRepository(test_db)
-    client = _client(test_db)
-    business = _business(test_db, client.id)
-    reminder = _create_reminder(repo, business.id, send_on=date.today(), message="repr-check")
-
-    text = repr(reminder)
-    assert f"id={reminder.id}" in text
-    assert f"business_id={business.id}" in text

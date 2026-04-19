@@ -4,9 +4,9 @@ import pytest
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.businesses.models.business import Business, BusinessStatus
-from app.common.enums import EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client
+from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.services.factory import (
     create_custom_reminder,
@@ -36,6 +36,7 @@ def _client(db) -> Client:
 def _business(db, client_id: int) -> Business:
     business = Business(
         client_id=client_id,
+        business_name=f"Reminder Factory Biz {client_id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
@@ -52,15 +53,15 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     business_repo = BusinessRepository(test_db)
 
     tax_deadline = TaxDeadlineRepository(test_db).create(
-        business_id=business.id,
+        client_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
     )
     tax = create_tax_deadline_reminder(
         reminder_repo,
-        business_repo,
+        ClientRepository(test_db),
         TaxDeadlineRepository(test_db),
-        business_id=business.id,
+        client_id=crm_client.id,
         tax_deadline_id=tax_deadline.id,
         target_date=tax_deadline.due_date,
         days_before=3,
@@ -81,9 +82,8 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
 
     idle = create_idle_binder_reminder(
         reminder_repo,
-        business_repo,
+        ClientRepository(test_db),
         BinderRepository(test_db),
-        business_id=business.id,
         binder_id=binder.id,
         days_idle=5,
         created_by=test_user.id,
@@ -154,9 +154,8 @@ def test_factory_validation_errors(test_db):
     with pytest.raises(NotFoundError):
         create_idle_binder_reminder(
             reminder_repo,
-            business_repo,
+            ClientRepository(test_db),
             BinderRepository(test_db),
-            business_id=business.id,
             binder_id=999999,
             days_idle=1,
         )
@@ -164,33 +163,31 @@ def test_factory_validation_errors(test_db):
 
 def test_tax_deadline_factory_not_found_and_negative_days(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
     reminder_repo = ReminderRepository(test_db)
-    business_repo = BusinessRepository(test_db)
     tax_repo = TaxDeadlineRepository(test_db)
 
     with pytest.raises(NotFoundError):
         create_tax_deadline_reminder(
             reminder_repo,
-            business_repo,
+            ClientRepository(test_db),
             tax_repo,
-            business_id=business.id,
+            client_id=crm_client.id,
             tax_deadline_id=999999,
             target_date=date.today() + timedelta(days=3),
             days_before=1,
         )
 
     existing = tax_repo.create(
-        business_id=business.id,
+        client_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
     )
     with pytest.raises(AppError) as exc_info:
         create_tax_deadline_reminder(
             reminder_repo,
-            business_repo,
+            ClientRepository(test_db),
             tax_repo,
-            business_id=business.id,
+            client_id=crm_client.id,
             tax_deadline_id=existing.id,
             target_date=existing.due_date,
             days_before=-1,
@@ -200,9 +197,8 @@ def test_tax_deadline_factory_not_found_and_negative_days(test_db):
 
 def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    _business(test_db, crm_client.id)
     reminder_repo = ReminderRepository(test_db)
-    business_repo = BusinessRepository(test_db)
 
     binder = Binder(
         client_id=crm_client.id,
@@ -218,9 +214,8 @@ def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
     with pytest.raises(AppError) as exc_info:
         create_idle_binder_reminder(
             reminder_repo,
-            business_repo,
+            ClientRepository(test_db),
             BinderRepository(test_db),
-            business_id=business.id,
             binder_id=binder.id,
             days_idle=-1,
         )
