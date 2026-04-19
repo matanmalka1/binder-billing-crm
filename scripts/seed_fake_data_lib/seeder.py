@@ -132,6 +132,8 @@ class Seeder:
                 binder_intakes,
             )
             binders.create_binder_logs(db, self.rng, seeded_binders, seeded_users)
+            binders.create_binder_handovers(db, self.rng, seeded_binders, seeded_users)
+            binders.create_binder_intake_edit_logs(db, self.rng, binder_intakes, seeded_users)
             users.create_entity_audit_logs(db, self.rng, seeded_users, seeded_businesses, seeded_clients)
             notifications.create_notifications(db, self.rng, seeded_clients, seeded_businesses, seeded_binders, seeded_users)
             vat_work_items = vat.create_vat_work_items(

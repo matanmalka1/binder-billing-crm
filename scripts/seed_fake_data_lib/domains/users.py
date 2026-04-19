@@ -13,6 +13,7 @@ from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 from ..constants import DEFAULT_PASSWORD_HASH
+from ..demo_catalog import demo_email, mobile_phone
 from ..random_utils import full_name
 
 
@@ -28,8 +29,8 @@ def create_users(db, rng: Random, cfg) -> list[User]:
         role = UserRole.ADVISOR if i % 3 == 0 else UserRole.SECRETARY
         user = User(
             full_name=full_name(rng),
-            email=f"user{serial}@example.com",
-            phone=f"05{rng.randint(10000000, 99999999)}",
+            email=demo_email("staff", serial),
+            phone=mobile_phone(rng),
             password_hash=DEFAULT_PASSWORD_HASH,
             role=role,
             is_active=rng.random() > 0.1,

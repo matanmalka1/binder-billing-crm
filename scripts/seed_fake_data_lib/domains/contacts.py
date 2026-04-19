@@ -5,6 +5,7 @@ from random import Random
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
+from ..demo_catalog import AUTHORITY_CONTACTS, CORRESPONDENCE_NOTES, CORRESPONDENCE_SUBJECTS, office_phone
 
 
 def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
@@ -24,19 +25,15 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
                 continue
             created_at = now - timedelta(days=rng.randint(0, 300))
             updated_at = min(now, created_at + timedelta(days=rng.randint(0, 90)))
+            contact_profile = AUTHORITY_CONTACTS[(client.id + idx - 1) % len(AUTHORITY_CONTACTS)]
             contact = AuthorityContact(
                 client_id=client.id,
                 contact_type=rng.choice(list(ContactType)),
-                name=rng.choice([
-                    "אילה בן דוד",
-                    "אופיר צדוק",
-                    "ניב רחמים",
-                    "מורן טל",
-                ]),
-                office=rng.choice(["תל אביב", "ירושלים", "חיפה", "באר שבע"]),
-                phone=f"07{rng.randint(10000000, 99999999)}",
-                email=f"person{client.id}-{idx}@rashut.example",
-                notes=rng.choice(["", "מעדיף וואטסאפ", "איש קשר לבנק"]),
+                name=contact_profile["name"],
+                office=contact_profile["office"],
+                phone=office_phone(rng),
+                email=contact_profile["email"],
+                notes=rng.choice(["", "איש הקשר מטפל בתיק הפעיל", "מומלץ לתאם מראש לפני פנייה חוזרת"]),
                 created_at=created_at,
                 updated_at=updated_at,
             )
@@ -63,18 +60,8 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
                 business_id=business.id,
                 contact_id=contact.id if contact else None,
                 correspondence_type=rng.choice(list(CorrespondenceType)),
-                subject=rng.choice([
-                    "דיון בתוכנית תשלום מס",
-                    "הגשת מסמכים חסרים",
-                    "פגישה מתוכננת עם הרשות",
-                    "הלקוח ביקש הבהרה",
-                ]),
-                notes=rng.choice([
-                    None,
-                    "מעקב שבוע הבא",
-                    "סיכום שנשלח במייל",
-                    "ממתין לתגובה",
-                ]),
+                subject=rng.choice(CORRESPONDENCE_SUBJECTS),
+                notes=rng.choice(CORRESPONDENCE_NOTES),
                 occurred_at=occurred_at,
                 created_by=rng.choice(users).id,
                 created_at=occurred_at,

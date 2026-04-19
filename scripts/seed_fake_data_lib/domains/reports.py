@@ -295,7 +295,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 filing_deadline = extended_deadline(year)
             else:
                 filing_deadline = None
-                custom_deadline_note = "מועד מותאם אישית בסביבת דמו"
+                custom_deadline_note = "המועד עודכן בהתאם לאישור ארכה שהתקבל עבור הלקוח"
             submission_method = (
                 rng.choice(list(SubmissionMethod))
                 if status

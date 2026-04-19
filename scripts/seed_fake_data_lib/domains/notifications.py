@@ -11,6 +11,7 @@ from app.notification.models.notification import (
     NotificationStatus,
     NotificationTrigger,
 )
+from ..demo_catalog import demo_email
 
 
 def create_notifications(db, rng: Random, clients, businesses, binders, users=None) -> None:
@@ -99,7 +100,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
                         channel=NotificationChannel.EMAIL,
                         severity=NotificationSeverity.INFO,
                         status=NotificationStatus.PENDING,
-                        recipient=client.email or "client@example.com",
+                        recipient=client.email or demo_email("client", client.id),
                         content_snapshot=f"הודעה אוטומטית עבור קלסר {fallback_binder.binder_number}",
                         created_at=datetime.now(UTC),
                     )

@@ -4,10 +4,13 @@ from datetime import date, timedelta, UTC, datetime
 from random import Random
 
 from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder_handover import BinderHandover, BinderHandoverBinder
 from app.binders.models.binder_intake import BinderIntake
+from app.binders.models.binder_intake_edit_log import BinderIntakeEditLog
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
 from app.binders.models.binder_status_log import BinderStatusLog
 
+from ..demo_catalog import BUSINESS_NOTES
 from ..random_utils import full_name
 
 
@@ -50,7 +53,7 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 status=status,
                 created_by=rng.choice(users).id,
                 pickup_person_name=(full_name(rng) if status == BinderStatus.RETURNED else None),
-                notes=rng.choice(["", "דחוף", "הלקוח ביקש שיחה חוזרת"]),
+                notes=rng.choice(BUSINESS_NOTES),
             )
             db.add(binder)
             binders.append(binder)
@@ -163,3 +166,105 @@ def create_binder_intake_materials(db, rng: Random, binders, businesses, reports
             materials.append(item)
     db.flush()
     return materials
+
+
+def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHandover]:
+    handovers: list[BinderHandover] = []
+    returned_by_client: dict[int, list[Binder]] = {}
+    for binder in binders:
+        if binder.status != BinderStatus.RETURNED:
+            continue
+        returned_by_client.setdefault(binder.client_id, []).append(binder)
+
+    for client_id, client_binders in returned_by_client.items():
+        ordered = sorted(
+            client_binders,
+            key=lambda binder: (
+                binder.returned_at or binder.period_end or binder.period_start,
+                binder.id,
+            ),
+        )
+        index = 0
+        while index < len(ordered):
+            group_size = min(rng.randint(1, 3), len(ordered) - index)
+            handover_binders = ordered[index:index + group_size]
+            index += group_size
+            handed_over_at = max(
+                (binder.returned_at or binder.period_end or binder.period_start)
+                for binder in handover_binders
+            )
+            handover = BinderHandover(
+                client_id=client_id,
+                received_by_name=handover_binders[-1].pickup_person_name or full_name(rng),
+                handed_over_at=handed_over_at,
+                until_period_year=handed_over_at.year,
+                until_period_month=handed_over_at.month,
+                notes=rng.choice([
+                    None,
+                    "המסירה בוצעה במשרד הלקוח",
+                    "הלקוח קיבל את כל החומר עד למועד זה",
+                    "המסירה בוצעה לאחר תיאום טלפוני",
+                ]),
+                created_by=rng.choice(users).id,
+                created_at=datetime.combine(handed_over_at, datetime.min.time(), tzinfo=UTC)
+                + timedelta(hours=rng.randint(9, 18)),
+            )
+            db.add(handover)
+            db.flush()
+            handovers.append(handover)
+
+            for binder in handover_binders:
+                db.add(BinderHandoverBinder(handover_id=handover.id, binder_id=binder.id))
+
+    db.flush()
+    return handovers
+
+
+def create_binder_intake_edit_logs(db, rng: Random, intakes, users) -> list[BinderIntakeEditLog]:
+    logs: list[BinderIntakeEditLog] = []
+    if not intakes or not users:
+        return logs
+
+    sample_size = min(len(intakes), max(1, len(intakes) // 3))
+    sampled_intakes = rng.sample(intakes, sample_size)
+    for intake in sampled_intakes:
+        edit_time = datetime.combine(intake.received_at, datetime.min.time(), tzinfo=UTC) + timedelta(
+            days=rng.randint(0, 10),
+            hours=rng.randint(9, 18),
+        )
+
+        note_suffix = rng.choice([
+            "הושלם לאחר שיחת הבהרה עם הלקוח",
+            "עודכן לאחר קליטת החומר במשרד",
+            "נוספה הערה לאחר בדיקת מסמכים",
+        ])
+        old_notes = intake.notes or None
+        new_notes = note_suffix if not intake.notes else f"{intake.notes}. {note_suffix}"
+        note_log = BinderIntakeEditLog(
+            intake_id=intake.id,
+            field_name="notes",
+            old_value=old_notes,
+            new_value=new_notes,
+            changed_by=rng.choice(users).id,
+            changed_at=edit_time,
+        )
+        intake.notes = new_notes
+        db.add(note_log)
+        logs.append(note_log)
+
+        if rng.random() < 0.4:
+            shifted_date = intake.received_at + timedelta(days=1)
+            date_log = BinderIntakeEditLog(
+                intake_id=intake.id,
+                field_name="received_at",
+                old_value=str(intake.received_at),
+                new_value=str(shifted_date),
+                changed_by=rng.choice(users).id,
+                changed_at=edit_time + timedelta(minutes=15),
+            )
+            intake.received_at = shifted_date
+            db.add(date_log)
+            logs.append(date_log)
+
+    db.flush()
+    return logs

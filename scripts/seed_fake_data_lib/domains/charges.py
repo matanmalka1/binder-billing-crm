@@ -6,6 +6,7 @@ from random import Random
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
+from ..demo_catalog import CHARGE_DESCRIPTIONS, INVOICE_BASE_URL
 
 from ._business_groups import group_businesses_by_client, pick_businesses_for_client
 
@@ -63,14 +64,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 period=period,
                 months_covered=months_covered,
                 status=status,
-                description=rng.choice(
-                    [
-                        None,
-                        "חיוב שירות חודשי",
-                        "חיוב עבודה נקודתית",
-                        "התחשבנות תקופתית",
-                    ]
-                ),
+                description=rng.choice(CHARGE_DESCRIPTIONS),
                 created_at=created_at,
                 created_by=rng.choice(users).id if users else None,
                 issued_at=issued_at,
@@ -94,9 +88,9 @@ def create_invoices(db, charges) -> None:
         invoice_id = f"חשבונית-{invoice_serial}"
         invoice = Invoice(
             charge_id=charge.id,
-            provider="ספק-דמו",
+            provider="מערכת הנהלת חשבונות פנימית",
             external_invoice_id=invoice_id,
-            document_url=f"https://example.local/invoices/{invoice_id}.pdf",
+            document_url=f"{INVOICE_BASE_URL}/{invoice_id}.pdf",
             issued_at=charge.issued_at or charge.created_at,
             created_at=charge.created_at,
         )

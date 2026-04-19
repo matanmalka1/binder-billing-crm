@@ -9,6 +9,7 @@ from app.permanent_documents.models.permanent_document import (
     DocumentType,
     PermanentDocument,
 )
+from ..demo_catalog import DOCUMENT_NOTES
 
 
 def create_documents(db, rng: Random, clients, businesses, users):
@@ -58,7 +59,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 tax_year=None,
                 status=status,
                 is_present=is_present,
-                notes=rng.choice([None, "סריקה באיכות טובה", "נדרש דף ספח", "עודכן לפי מסמך חדש"]),
+                notes=rng.choice(DOCUMENT_NOTES),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
@@ -114,7 +115,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 tax_year=rng.choice([uploaded_at.year, uploaded_at.year - 1, None]),
                 status=status,
                 is_present=is_present,
-                notes=rng.choice([None, "מסמך מסווג להוצאות", "שייך לשנת המס האחרונה", "נשלח על ידי הלקוח"]),
+                notes=rng.choice(DOCUMENT_NOTES),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,

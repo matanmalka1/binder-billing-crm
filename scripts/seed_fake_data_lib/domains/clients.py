@@ -10,40 +10,30 @@ from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.notes.models.entity_note import EntityNote
 
-from ..constants import COMPANY_WORDS
+from ..demo_catalog import (
+    ACCOUNTANT_NAMES,
+    BUSINESS_CATALOG,
+    BUSINESS_NOTES,
+    CLIENT_NOTES,
+    ENTITY_NOTE_TEXTS,
+    REALISTIC_ADDRESSES,
+    demo_email,
+    mobile_phone,
+)
 from ..random_utils import full_name, generate_valid_israeli_id
-
-STREET_NAMES = [
-    "הרצל",
-    "בן יהודה",
-    "ויצמן",
-    "הנביאים",
-    "אבן גבירול",
-    "העצמאות",
-    "ביאליק",
-    "רוטשילד",
-]
-
-CITY_NAMES = [
-    "תל אביב",
-    "ירושלים",
-    "חיפה",
-    "באר שבע",
-    "פתח תקווה",
-    "ראשון לציון",
-    "נתניה",
-    "אשדוד",
-]
 
 
 def create_clients(db, rng: Random, cfg) -> list[Client]:
     clients: list[Client] = []
     existing_clients = int(db.execute(select(func.count()).select_from(Client)).scalar_one())
+    existing_max_office_number = db.execute(select(func.max(Client.office_client_number))).scalar_one()
+    next_office_client_number = (existing_max_office_number or 0) + 1
     for i in range(cfg.clients):
         serial = existing_clients + i + 1
         is_corporation = rng.random() < 0.25
+        address = rng.choice(REALISTIC_ADDRESSES)
         if is_corporation:
-            full_name_value = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
+            full_name_value = BUSINESS_CATALOG[(serial - 1) % len(BUSINESS_CATALOG)]
             id_number_type = IdNumberType.CORPORATION
             id_number = generate_valid_israeli_id(serial, prefix="5")
             entity_type = EntityType.COMPANY_LTD
@@ -68,11 +58,11 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
                 vat_reporting_frequency = VatType.EXEMPT
                 vat_exempt_ceiling = None
 
-        address_street = rng.choice(STREET_NAMES)
+        address_street = address["street"]
         address_building_number = str(rng.randint(1, 220))
         address_apartment = str(rng.randint(1, 30)) if rng.random() < 0.75 else None
-        address_city = rng.choice(CITY_NAMES)
-        address_zip_code = f"{rng.randint(1000000, 9999999)}"
+        address_city = address["city"]
+        address_zip_code = address["zip_code"]
         advance_rate = None if entity_type == EntityType.EMPLOYEE else round(rng.uniform(2.0, 12.0), 2)
         advance_rate_updated_at = (
             date.today() - timedelta(days=rng.randint(0, 540))
@@ -84,9 +74,9 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             full_name=full_name_value,
             id_number=id_number,
             id_number_type=id_number_type,
-            phone=f"05{rng.randint(10000000, 99999999)}",
-            email=f"client{serial}@example.com",
-            notes=rng.choice(["", "לקוח VIP", "מעדיף וואטסאפ", "מעקב חודשי"]),
+            phone=mobile_phone(rng),
+            email=demo_email("client", serial),
+            notes=rng.choice(CLIENT_NOTES),
             address_street=address_street,
             address_building_number=address_building_number,
             address_apartment=address_apartment,
@@ -97,10 +87,12 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
             advance_rate_updated_at=advance_rate_updated_at,
-            accountant_name=rng.choice(["רו\"ח דנה לוי", "רו\"ח אמיר כהן", "רו\"ח נטע מזרחי"]),
+            accountant_name=rng.choice(ACCOUNTANT_NAMES),
+            office_client_number=next_office_client_number,
         )
         db.add(client)
         clients.append(client)
+        next_office_client_number += 1
     db.flush()
     return clients
 
@@ -143,7 +135,7 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 default_type = EntityType.EMPLOYEE
 
             if default_type == EntityType.COMPANY_LTD:
-                base_name = f'{rng.choice(COMPANY_WORDS)} {rng.choice(COMPANY_WORDS)} בע"מ'
+                base_name = BUSINESS_CATALOG[(serial - 1) % len(BUSINESS_CATALOG)]
                 business_name = base_name if business_index == 0 else f"{base_name} {business_index + 1}"
             elif default_type == EntityType.EMPLOYEE:
                 business_name = (
@@ -168,7 +160,7 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 phone_override=client.phone,
                 email_override=client.email,
                 created_by=rng.choice(users).id if users else None,
-                notes=rng.choice(["", "עסק ותיק", "מעקב חודשי", "לקוח חשוב"]),
+                notes=rng.choice(BUSINESS_NOTES),
             )
             db.add(business)
             businesses.append(business)
@@ -176,21 +168,12 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
     return businesses
 
 
-NOTE_TEXTS = [
-    "לקוח ותיק, מעדיף תקשורת בווטסאפ",
-    "יש לבדוק מסמכים לפני הגשה",
-    "מחכה לאישור מהלקוח",
-    "נפתחה תיק חדש ב-2024",
-    "הלקוח ביקש עדכון שוטף",
-]
-
-
 def create_entity_notes(db, rng: Random, clients: list[Client], users) -> None:
     for client in rng.sample(clients, min(len(clients), max(1, len(clients) // 2))):
         note = EntityNote(
             entity_type="client",
             entity_id=client.id,
-            note=rng.choice(NOTE_TEXTS),
+            note=rng.choice(ENTITY_NOTE_TEXTS),
             created_by=rng.choice(users).id if users else None,
         )
         db.add(note)

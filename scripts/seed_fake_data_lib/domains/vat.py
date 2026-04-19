@@ -22,6 +22,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from ._business_groups import group_businesses_by_client
 from app.common.enums import VatType
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
+from ..demo_catalog import VAT_COUNTERPARTIES
 from ..random_utils import generate_valid_israeli_id
 
 DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
@@ -229,7 +230,7 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 document_type=document_type,
                 invoice_number=invoice_number,
                 invoice_date=(datetime.now(UTC) - timedelta(days=rng.randint(1, 60))).date(),
-                counterparty_name=rng.choice(["לקוח", "ספק", "סוכנות", "יבואן", "משווק"]) + f" {rng.randint(1, 999)}",
+                counterparty_name=rng.choice(VAT_COUNTERPARTIES),
                 counterparty_id=counterparty_id,
                 counterparty_id_type=counterparty_id_type,
                 net_amount=base_amount,

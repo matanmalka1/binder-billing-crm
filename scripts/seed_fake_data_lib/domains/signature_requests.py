@@ -145,8 +145,8 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 annual_report_id=report.id if report else None,
                 document_id=document.id if document else None,
                 request_type=request_type,
-                title="בקשת חתימה " + client.full_name,
-                description="נא לחתום ולהחזיר",
+                title=f"חתימה על מסמך עבור {client.full_name}",
+                description="נא לעבור על המסמך, לחתום דיגיטלית ולהחזיר לאישור סופי",
                 content_hash=None,
                 storage_key=document.storage_key if document else None,
                 signer_name=client.full_name,
@@ -165,7 +165,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 if status == SignatureRequestStatus.DECLINED
                 else None,
                 signer_ip_address="127.0.0.1" if status == SignatureRequestStatus.SIGNED else None,
-                signer_user_agent="seed-browser/1.0" if status == SignatureRequestStatus.SIGNED else None,
+                signer_user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" if status == SignatureRequestStatus.SIGNED else None,
                 signed_document_key=(
                     f"signed/signature_request_{serial}.pdf"
                     if status == SignatureRequestStatus.SIGNED
@@ -199,9 +199,9 @@ def create_signature_audit_events(db, rng: Random, requests: Iterable[SignatureR
                 event_type=event_type,
                 actor_type=actor_type,
                 actor_id=request.created_by if actor_type == "advisor" else None,
-                actor_name="זורע נתונים",
+                actor_name="מערכת חתימות דיגיטליות",
                 ip_address="127.0.0.1",
-                user_agent="seeder/1.0",
+                user_agent="signature-service/2026.04",
                 occurred_at=ts,
             )
             db.add(audit)
