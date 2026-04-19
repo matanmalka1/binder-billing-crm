@@ -183,6 +183,7 @@ class ClientListResponse(BaseModel):
 
 
 class CreateClientResponse(BaseModel):
+    client_record_id: int
     client: ClientResponse
     business: BusinessResponse
     impact: ClientCreationImpactResponse

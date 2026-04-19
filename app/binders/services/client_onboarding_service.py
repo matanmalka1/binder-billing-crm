@@ -14,7 +14,12 @@ _AUTO_BINDER_STATUS_LOG_OLD_VALUE = "null"
 _AUTO_BINDER_STATUS_LOG_NOTES = "קלסר נפתח אוטומטית"
 
 
-def create_initial_binder(db: Session, client: Client, actor_id: Optional[int]) -> None:
+def create_initial_binder(
+    db: Session,
+    client: Client,
+    actor_id: Optional[int],
+    client_record_id: Optional[int] = None,
+) -> None:
     """
     Open a bare placeholder binder when a new client is created.
 
@@ -34,6 +39,7 @@ def create_initial_binder(db: Session, client: Client, actor_id: Optional[int]) 
     seq = binder_repo.count_all_by_client(client.id) + 1
     binder = binder_repo.create(
         client_id=client.id,
+        client_record_id=client_record_id,
         binder_number=f"{client.office_client_number}/{seq}",
         period_start=None,
         created_by=actor_id,

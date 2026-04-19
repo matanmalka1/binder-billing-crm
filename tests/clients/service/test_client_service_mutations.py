@@ -17,36 +17,33 @@ def _create_client(db, *, full_name: str, id_number: str):
     )
 
 
+def _svc_create(service, *, full_name, id_number, actor_id=3):
+    """Helper: create via service, return (client, client_record)."""
+    return service.create_client(
+        full_name=full_name,
+        id_number=id_number,
+        id_number_type=IdNumberType.CORPORATION,
+        actor_id=actor_id,
+    )
+
+
 def test_create_client_success(test_db):
     service = ClientService(test_db)
 
-    created = service.create_client(
-        full_name="Service Client",
-        id_number="610000002",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=3,
-    )
+    client, cr = _svc_create(service, full_name="Service Client", id_number="610000002")
 
-    assert created.id is not None
-    assert created.created_by == 3
-    assert created.office_client_number == 1
+    assert client.id is not None
+    assert client.created_by == 3
+    assert client.office_client_number == 1
+    assert cr.id is not None
+    assert cr.office_client_number == 1
 
 
 def test_create_client_assigns_next_office_client_number_and_creates_initial_binder(test_db):
     service = ClientService(test_db)
 
-    first = service.create_client(
-        full_name="First Client",
-        id_number="610000010",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=3,
-    )
-    created = service.create_client(
-        full_name="Binder Client",
-        id_number="610000028",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=3,
-    )
+    first, _ = _svc_create(service, full_name="First Client", id_number="610000010")
+    created, _ = _svc_create(service, full_name="Binder Client", id_number="610000028")
 
     assert first.office_client_number == 1
     assert created.office_client_number == 2
@@ -59,12 +56,7 @@ def test_create_client_assigns_next_office_client_number_and_creates_initial_bin
 def test_create_client_auto_assigns_office_client_number(test_db):
     service = ClientService(test_db)
 
-    created = service.create_client(
-        full_name="Auto Office Number",
-        id_number="610000036",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=3,
-    )
+    created, _ = _svc_create(service, full_name="Auto Office Number", id_number="610000036")
 
     assert created.office_client_number == 1
 
@@ -117,12 +109,7 @@ def test_get_client_or_raise_not_found(test_db):
 
 def test_update_delete_restore_flow(test_db):
     service = ClientService(test_db)
-    created = service.create_client(
-        full_name="Before Update",
-        id_number="640000006",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=10,
-    )
+    created, _ = _svc_create(service, full_name="Before Update", id_number="640000006", actor_id=10)
 
     updated = service.update_client(
         created.id,
@@ -144,12 +131,7 @@ def test_update_delete_restore_flow(test_db):
 
 def test_create_client_always_creates_initial_binder(test_db):
     service = ClientService(test_db)
-    created = service.create_client(
-        full_name="Auto Binder Client",
-        id_number="640000022",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=10,
-    )
+    created, _ = _svc_create(service, full_name="Auto Binder Client", id_number="640000022", actor_id=10)
 
     assert BinderRepository(test_db).count_by_client(created.id) == 1
     binder = BinderRepository(test_db).get_active_by_client(created.id)
@@ -159,12 +141,7 @@ def test_create_client_always_creates_initial_binder(test_db):
 
 def test_delete_raises_not_found_when_client_already_deleted(test_db):
     service = ClientService(test_db)
-    created = service.create_client(
-        full_name="Delete Twice",
-        id_number="640000014",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
+    created, _ = _svc_create(service, full_name="Delete Twice", id_number="640000014")
     service.delete_client(created.id, actor_id=1)
 
     with pytest.raises(NotFoundError) as exc:
@@ -209,18 +186,8 @@ def test_restore_raises_when_active_duplicate_exists(test_db):
 
 def test_list_clients_and_conflict_info(test_db):
     service = ClientService(test_db)
-    one = service.create_client(
-        full_name="Alpha",
-        id_number="670000009",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
-    two = service.create_client(
-        full_name="Beta",
-        id_number="670000017",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
+    one, _ = _svc_create(service, full_name="Alpha", id_number="670000009")
+    two, _ = _svc_create(service, full_name="Beta", id_number="670000017")
     service.delete_client(two.id, actor_id=1)
 
     items, total = service.list_clients(search="Alpha", page=1, page_size=10)
@@ -238,20 +205,10 @@ def test_list_clients_and_conflict_info(test_db):
 
 def test_create_client_does_not_reuse_deleted_office_client_number(test_db):
     service = ClientService(test_db)
-    first = service.create_client(
-        full_name="First",
-        id_number="670000025",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
+    first, _ = _svc_create(service, full_name="First", id_number="670000025")
     service.delete_client(first.id, actor_id=1)
 
-    second = service.create_client(
-        full_name="Second",
-        id_number="670000033",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
+    second, _ = _svc_create(service, full_name="Second", id_number="670000033")
 
     assert first.office_client_number == 1
     assert second.office_client_number == 2
@@ -261,7 +218,7 @@ def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch
     service = ClientService(test_db)
 
     def _raise_integrity(**_kwargs):
-        raise IntegrityError("insert", {}, Exception("duplicate"))
+        raise IntegrityError("insert", {}, Exception("ix_clients_id_number duplicate"))
 
     monkeypatch.setattr(service.client_repo, "create", _raise_integrity)
 
@@ -287,12 +244,7 @@ def test_restore_raises_not_found_when_client_missing(test_db):
 
 def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkeypatch):
     service = ClientService(test_db)
-    created = service.create_client(
-        full_name="To Restore",
-        id_number="690000013",
-        id_number_type=IdNumberType.CORPORATION,
-        actor_id=1,
-    )
+    created, _ = _svc_create(service, full_name="To Restore", id_number="690000013")
     service.delete_client(created.id, actor_id=1)
 
     monkeypatch.setattr(service.client_repo, "restore", lambda *_args, **_kwargs: None)

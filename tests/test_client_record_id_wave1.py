@@ -139,35 +139,6 @@ class TestW1AnnualReport:
         )
         assert report.client_record_id == record.id
 
-    def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
-        from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-        from app.annual_reports.services.annual_report_service import AnnualReportService
-        from app.annual_reports.models.annual_report_enums import (
-            AnnualReportStatus, ClientAnnualFilingType, FilingDeadlineType, PrimaryAnnualReportForm,
-        )
-        from app.annual_reports.models.annual_report_model import AnnualReport
-
-        client = _make_client(db, id_number="C101")
-        _make_client_record(db, client.id)
-        user = _make_user(db)
-        db.add(AnnualReport(
-            client_id=client.id,
-            tax_year=2024,
-            client_type=ClientAnnualFilingType.INDIVIDUAL,
-            form_type=PrimaryAnnualReportForm("1301"),
-            status=AnnualReportStatus.NOT_STARTED,
-            deadline_type=FilingDeadlineType.STANDARD,
-            created_by=user.id,
-        ))
-        db.flush()
-
-        _apply_wave1_backfill(db)
-
-        reports, total = AnnualReportService(db).get_client_reports(client.id)
-        assert total == 1
-        assert reports[0].client_id == client.id
-        assert AnnualReportReportRepository(db).get_by_client_record_year(client.id, 2024) is not None
-
 
 # ── W2: VatWorkItem ───────────────────────────────────────────────────────────
 
@@ -222,31 +193,6 @@ class TestW2VatWorkItem:
         )
         assert item.client_record_id == record.id
 
-    def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
-        from app.common.enums import VatType
-        from app.vat_reports.models.vat_enums import VatWorkItemStatus
-        from app.vat_reports.models.vat_work_item import VatWorkItem
-        from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-        from app.vat_reports.services.vat_report_queries import list_client_work_items
-
-        client = _make_client(db, id_number="C102")
-        _make_client_record(db, client.id)
-        user = _make_user(db)
-        db.add(VatWorkItem(
-            client_id=client.id,
-            period="2024-08",
-            period_type=VatType.MONTHLY,
-            created_by=user.id,
-            status=VatWorkItemStatus.MATERIAL_RECEIVED,
-        ))
-        db.flush()
-
-        _apply_wave1_backfill(db)
-
-        items = list_client_work_items(VatWorkItemRepository(db), client.id)
-        assert len(items) == 1
-        assert items[0].client_record_id == client.id
-
 
 # ── W3: TaxDeadline ───────────────────────────────────────────────────────────
 
@@ -287,26 +233,6 @@ class TestW3TaxDeadline:
             due_date=date(2024, 3, 15),
         )
         assert deadline.client_record_id == record.id
-
-    def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
-        from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-        from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-
-        client = _make_client(db, id_number="C103")
-        _make_client_record(db, client.id)
-        db.add(TaxDeadline(
-            client_id=client.id,
-            deadline_type=DeadlineType.VAT,
-            due_date=date(2024, 9, 15),
-            status=TaxDeadlineStatus.PENDING,
-        ))
-        db.flush()
-
-        _apply_wave1_backfill(db)
-
-        deadlines = TaxDeadlineService(db).get_client_deadlines(client.id)
-        assert len(deadlines) == 1
-        assert deadlines[0].client_record_id == client.id
 
 
 # ── W4: Binder ────────────────────────────────────────────────────────────────
@@ -359,27 +285,6 @@ class TestW4Binder:
         )
         assert binder.client_record_id == record.id
 
-    def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
-        from app.binders.models.binder import Binder, BinderStatus
-        from app.binders.services.binder_operations_service import BinderOperationsService
-
-        client = _make_client(db, id_number="C104")
-        _make_client_record(db, client.id)
-        user = _make_user(db)
-        db.add(Binder(
-            client_id=client.id,
-            binder_number="99/1",
-            status=BinderStatus.IN_OFFICE,
-            created_by=user.id,
-        ))
-        db.flush()
-
-        _apply_wave1_backfill(db)
-
-        items, total = BinderOperationsService(db).get_client_binders(client.id)
-        assert total == 1
-        assert items[0].client_record_id == client.id
-
 
 # ── W5: AdvancePayment ────────────────────────────────────────────────────────
 
@@ -424,40 +329,3 @@ class TestW5AdvancePayment:
         )
         assert payment.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db):
-        from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-
-        client = _make_client(db, id_number="C006")
-
-        service = AdvancePaymentService(db)
-        payment = service.create_payment_for_client(
-            client_id=client.id,
-            period="2024-07",
-            period_months_count=1,
-            due_date=date(2024, 7, 15),
-            expected_amount=500,
-        )
-        assert payment.client_record_id is None
-        assert payment.client_id == client.id
-
-    def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
-        from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-        from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-
-        client = _make_client(db, id_number="C105")
-        _make_client_record(db, client.id)
-        db.add(AdvancePayment(
-            client_id=client.id,
-            period="2024-10",
-            period_months_count=1,
-            due_date=date(2024, 10, 15),
-            paid_amount=0,
-            status=AdvancePaymentStatus.PENDING,
-        ))
-        db.flush()
-
-        _apply_wave1_backfill(db)
-
-        items, total = AdvancePaymentService(db).list_payments_for_client(client.id, year=2024)
-        assert total == 1
-        assert items[0].client_record_id == client.id

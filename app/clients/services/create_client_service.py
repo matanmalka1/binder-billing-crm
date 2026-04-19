@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.businesses.models.business import Business
 from app.businesses.services.business_service import BusinessService
 from app.clients.models.client import Client, IdNumberType
+from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_service import ClientService
 from app.common.enums import EntityType, VatType
 
@@ -40,18 +41,18 @@ class CreateClientService:
         business_opened_at: Optional[date] = None,
         business_notes: Optional[str] = None,
         actor_id: Optional[int] = None,
-    ) -> tuple[Client, Business]:
+    ) -> tuple[Client, ClientRecord, Business]:
         """
-        Create both records in the current DB transaction.
+        Create all records in the current DB transaction.
 
         The caller/session owner is responsible for commit. If any creation step
-        raises, the request-level DB dependency rolls back both records.
+        raises, the request-level DB dependency rolls back all records.
         """
         normalized_business_name = business_name.strip()
         if not normalized_business_name:
             raise ValueError("יש להזין שם עסק")
 
-        client = self.client_service.create_client(
+        client, client_record = self.client_service.create_client(
             full_name=full_name,
             id_number=id_number,
             id_number_type=id_number_type,
@@ -76,4 +77,4 @@ class CreateClientService:
             notes=business_notes,
             actor_id=actor_id,
         )
-        return client, business
+        return client, client_record, business

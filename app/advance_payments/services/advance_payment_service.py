@@ -53,9 +53,13 @@ class AdvancePaymentService:
         if year is None:
             year = utcnow().year
         self._get_client_or_raise(client_id)
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
-        return self.repo.list_by_client_record_year(
-            client_record_id, year, status=status, page=page, page_size=page_size
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            return self.repo.list_by_client_record_year(
+                client_record.id, year, status=status, page=page, page_size=page_size
+            )
+        return self.repo.list_by_client_year(
+            client_id, year, status=status, page=page, page_size=page_size
         )
 
     # ─── Create ───────────────────────────────────────────────────────────────
@@ -78,7 +82,8 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record_id = client_record.id if client_record else None
         return self.repo.create(
             client_id=client_id,
             client_record_id=client_record_id,

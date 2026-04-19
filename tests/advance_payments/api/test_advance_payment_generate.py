@@ -1,13 +1,20 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 def _business(db) -> Business:
     crm_client = Client(full_name="Advance Gen API Client", id_number="APGAPI001")
     db.add(crm_client)
+    db.flush()
+    legal_entity = LegalEntity(id_number="APGAPI001", id_number_type=IdNumberType.INDIVIDUAL)
+    db.add(legal_entity)
+    db.flush()
+    db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal_entity.id))
     db.commit()
     db.refresh(crm_client)
 

@@ -84,7 +84,7 @@ def create_client(
     """Create a reporting entity and its first business in one request."""
     service = CreateClientService(db)
     try:
-        client, business = service.create_client(
+        client, client_record, business = service.create_client(
             full_name=request.client.full_name,
             id_number=request.client.id_number,
             id_number_type=request.client.id_number_type,
@@ -115,6 +115,7 @@ def create_client(
         vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
     return CreateClientResponse(
+        client_record_id=client_record.id,
         client=enrich_single(ClientResponse.model_validate(client), db),
         business=business,
         impact=impact,

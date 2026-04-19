@@ -10,6 +10,7 @@ _log = logging.getLogger(__name__)
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.clients.models.client import Client, IdNumberType
+from app.clients.models.client_record import ClientRecord
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
@@ -59,7 +60,7 @@ class ClientService:
         advance_rate=None,
         accountant_name: Optional[str] = None,
         actor_id: Optional[int] = None,
-    ) -> Client:
+    ) -> tuple[Client, ClientRecord]:
         active_clients = self.client_repo.get_active_by_id_number(id_number)
         if active_clients:
             raise ConflictError(
@@ -93,7 +94,13 @@ class ClientService:
             actor_id=actor_id,
         )
 
-        legal_entity = LegalEntityRepository(self.db).create(
+        le_repo = LegalEntityRepository(self.db)
+        if le_repo.get_by_id_number(id_number_type, id_number):
+            raise ConflictError(
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number),
+                "CLIENT.CONFLICT",
+            )
+        legal_entity = le_repo.create(
             id_number=id_number,
             id_number_type=id_number_type,
             entity_type=entity_type,
@@ -101,14 +108,14 @@ class ClientService:
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
         )
-        ClientRecordRepository(self.db).create(
+        client_record = ClientRecordRepository(self.db).create(
             legal_entity_id=legal_entity.id,
             office_client_number=client.office_client_number,
             accountant_name=accountant_name,
             created_by=actor_id,
         )
 
-        create_initial_binder(self.db, client, actor_id)
+        create_initial_binder(self.db, client, actor_id, client_record_id=client_record.id)
         generate_client_obligations(
             self.db, client.id, actor_id=actor_id, entity_type=entity_type, best_effort=False,
         )
@@ -118,7 +125,7 @@ class ClientService:
                 performed_by=actor_id, action=ACTION_CREATED,
                 new_value=json.dumps({"full_name": full_name, "id_number": id_number}),
             )
-        return client
+        return client, client_record
 
     def _create_client_with_generated_office_number(
         self,

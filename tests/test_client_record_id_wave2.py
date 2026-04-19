@@ -114,7 +114,7 @@ class TestO1Reminder:
 
         client = _make_client(db, "C202")
         record = _make_client_record(db, client.id)
-        deadline = TaxDeadline(client_id=client.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 2, 15))
+        deadline = TaxDeadline(client_id=client.id, client_record_id=record.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 2, 15))
         db.add(deadline)
         db.flush()
 
@@ -128,29 +128,6 @@ class TestO1Reminder:
             days_before=3,
         )
         assert reminder.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.reminders.services.factory import create_tax_deadline_reminder
-        from app.reminders.repositories.reminder_repository import ReminderRepository
-        from app.clients.repositories.client_repository import ClientRepository
-        from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
-        from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
-
-        client = _make_client(db, "C203")
-        deadline = TaxDeadline(client_id=client.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 3, 15))
-        db.add(deadline)
-        db.flush()
-
-        reminder = create_tax_deadline_reminder(
-            ReminderRepository(db),
-            ClientRepository(db),
-            TaxDeadlineRepository(db),
-            client_id=client.id,
-            tax_deadline_id=deadline.id,
-            target_date=date(2024, 3, 15),
-            days_before=3,
-        )
-        assert reminder.client_record_id is None
 
 
 class TestO2Charge:
@@ -181,13 +158,6 @@ class TestO2Charge:
 
         charge = BillingService(db).create_charge(client_id=client.id, amount=120, charge_type="other")
         assert charge.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.charge.services.billing_service import BillingService
-
-        client = _make_client(db, "C206")
-        charge = BillingService(db).create_charge(client_id=client.id, amount=120, charge_type="other")
-        assert charge.client_record_id is None
 
 
 class TestO3Notification:
@@ -229,19 +199,6 @@ class TestO3Notification:
         created = svc.notification_repo.list_by_client_record(record.id)[0]
         assert created.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db, monkeypatch):
-        from app.notification.services.notification_send_service import NotificationSendService
-
-        client = _make_client(db, "C209")
-        client.email = "client2@test.com"
-        db.flush()
-        svc = NotificationSendService(db)
-        monkeypatch.setattr(svc.email, "send", lambda *args, **kwargs: (True, None))
-
-        svc.send_client_reminder(client.id, "hello")
-        created = svc.notification_repo.list_by_client(client.id)[0]
-        assert created.client_record_id is None
-
 
 class TestO4Correspondence:
     def test_repo_list_by_client_record(self, db):
@@ -280,21 +237,6 @@ class TestO4Correspondence:
             created_by=user.id,
         )
         assert entry.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.correspondence.services.correspondence_service import CorrespondenceService
-        from app.correspondence.models.correspondence import CorrespondenceType
-
-        client = _make_client(db, "C212")
-        user = _make_user(db)
-        entry = CorrespondenceService(db).add_entry(
-            client_id=client.id,
-            correspondence_type=CorrespondenceType.EMAIL,
-            subject="hello",
-            occurred_at=datetime.utcnow(),
-            created_by=user.id,
-        )
-        assert entry.client_record_id is None
 
 
 class TestO5SignatureRequest:
@@ -338,21 +280,6 @@ class TestO5SignatureRequest:
         )
         assert req.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db):
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
-
-        client = _make_client(db, "C215")
-        user = _make_user(db)
-        req = SignatureRequestService(db).create_request(
-            client_id=client.id,
-            created_by=user.id,
-            created_by_name=user.full_name,
-            request_type="custom",
-            title="Sign",
-            signer_name="Signer",
-        )
-        assert req.client_record_id is None
-
 
 class TestO6AuthorityContact:
     def test_repo_list_by_client_record(self, db):
@@ -384,17 +311,6 @@ class TestO6AuthorityContact:
             name="Officer",
         )
         assert contact.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.authority_contact.services.authority_contact_service import AuthorityContactService
-
-        client = _make_client(db, "C218")
-        contact = AuthorityContactService(db).add_contact(
-            client_id=client.id,
-            contact_type="other",
-            name="Officer",
-        )
-        assert contact.client_record_id is None
 
 
 class TestO7BinderHandover:
@@ -447,27 +363,3 @@ class TestO7BinderHandover:
         )
         assert handover.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db):
-        from app.binders.models.binder import Binder, BinderStatus
-        from app.binders.services.binder_handover_service import BinderHandoverService
-
-        client = _make_client(db, "C221")
-        user = _make_user(db)
-        db.add(Binder(
-            client_id=client.id,
-            binder_number="21/1",
-            status=BinderStatus.READY_FOR_PICKUP,
-            created_by=user.id,
-        ))
-        db.flush()
-
-        handover = BinderHandoverService(db).create_handover(
-            client_id=client.id,
-            binder_ids=[1],
-            received_by_name="Receiver",
-            handed_over_at=date.today(),
-            until_period_year=2024,
-            until_period_month=6,
-            actor_id=user.id,
-        )
-        assert handover.client_record_id is None

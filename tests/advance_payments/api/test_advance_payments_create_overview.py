@@ -6,7 +6,9 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
 from app.clients.models.client import Client
-from app.common.enums import VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType, VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -14,12 +16,15 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 _client_seq = count(1)
 
 
-def _business(db) -> Business:
-    client = Client(
-        full_name="Advance Client",
-        id_number=f"66666666{next(_client_seq)}",
-    )
+def _business(db):
+    id_number = f"66666666{next(_client_seq)}"
+    client = Client(full_name="Advance Client", id_number=id_number)
     db.add(client)
+    db.flush()
+    legal_entity = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL)
+    db.add(legal_entity)
+    db.flush()
+    db.add(ClientRecord(id=client.id, legal_entity_id=legal_entity.id))
     db.commit()
     db.refresh(client)
 
@@ -46,6 +51,7 @@ def _vat_work_item(db, business_id: int, created_by: int, period: str, output_va
     assert business is not None
     item = VatWorkItem(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         created_by=created_by,
         period=period,
         period_type=VatType.MONTHLY,

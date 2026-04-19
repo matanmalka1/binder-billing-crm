@@ -23,7 +23,7 @@ class AnnualReport(Base):
  
     id = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
