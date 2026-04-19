@@ -108,6 +108,7 @@ class ReminderResponse(BaseModel):
     sent_at: Optional[ApiDateTime] = None
     canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None
+    display_label: Optional[str] = None
 
     @field_validator("message", mode="before")
     @classmethod
