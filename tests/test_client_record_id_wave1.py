@@ -139,23 +139,6 @@ class TestW1AnnualReport:
         )
         assert report.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db):
-        from app.annual_reports.services.annual_report_service import AnnualReportService
-
-        client = _make_client(db, id_number="C002")
-        user = _make_user(db)
-
-        service = AnnualReportService(db)
-        report = service.create_report(
-            client_id=client.id,
-            tax_year=2022,
-            client_type="individual",
-            created_by=user.id,
-            created_by_name=user.full_name,
-        )
-        assert report.client_record_id is None
-        assert report.client_id == client.id
-
     def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
         from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
         from app.annual_reports.services.annual_report_service import AnnualReportService
@@ -239,30 +222,6 @@ class TestW2VatWorkItem:
         )
         assert item.client_record_id == record.id
 
-    def test_fallback_when_no_client_record(self, db):
-        from app.vat_reports.services.intake import create_work_item
-        from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-        from app.clients.repositories.client_repository import ClientRepository
-
-        client = _make_client(db, id_number="C003")
-        business = Business(
-            client_id=client.id, business_name="Biz2", status=BusinessStatus.ACTIVE,
-            opened_at=date.today(),
-        )
-        db.add(business)
-        db.flush()
-        user = _make_user(db)
-
-        item = create_work_item(
-            VatWorkItemRepository(db),
-            ClientRepository(db),
-            client_id=client.id,
-            period="2024-05",
-            created_by=user.id,
-        )
-        assert item.client_record_id is None
-        assert item.client_id == client.id
-
     def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
         from app.common.enums import VatType
         from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -328,21 +287,6 @@ class TestW3TaxDeadline:
             due_date=date(2024, 3, 15),
         )
         assert deadline.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-        from app.tax_deadline.models.tax_deadline import DeadlineType
-
-        client = _make_client(db, id_number="C004")
-
-        service = TaxDeadlineService(db)
-        deadline = service.create_deadline(
-            client_id=client.id,
-            deadline_type=DeadlineType.VAT,
-            due_date=date(2024, 4, 15),
-        )
-        assert deadline.client_record_id is None
-        assert deadline.client_id == client.id
 
     def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
         from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
@@ -414,30 +358,6 @@ class TestW4Binder:
             received_by=user.id,
         )
         assert binder.client_record_id == record.id
-
-    def test_fallback_when_no_client_record(self, db):
-        from app.binders.services.binder_intake_service import BinderIntakeService
-
-        client = _make_client(db, id_number="C005")
-        user = _make_user(db)
-        client.office_client_number = 100
-        db.flush()
-
-        business = Business(
-            client_id=client.id, business_name="B2", status=BusinessStatus.ACTIVE,
-            opened_at=date.today(),
-        )
-        db.add(business)
-        db.flush()
-
-        service = BinderIntakeService(db)
-        binder, _, _ = service.receive(
-            client_id=client.id,
-            received_at=date.today(),
-            received_by=user.id,
-        )
-        assert binder.client_record_id is None
-        assert binder.client_id == client.id
 
     def test_backfilled_legacy_row_is_visible_via_client_record_query(self, db):
         from app.binders.models.binder import Binder, BinderStatus

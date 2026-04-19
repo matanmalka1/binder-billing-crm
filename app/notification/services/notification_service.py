@@ -131,12 +131,12 @@ class NotificationService:
         client_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> tuple:
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id) if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
         items, total = self.notification_repo.list_paginated(
             page=page,
             page_size=page_size,
             client_id=client_id,
-            client_record_id=client_record.id if client_record else None,
+            client_record_id=client_record_id,
             business_id=business_id,
         )
         name_map = self._build_name_map(items)
@@ -148,11 +148,11 @@ class NotificationService:
         client_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ):
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id) if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
         items = self.notification_repo.list_recent(
             limit=limit,
             client_id=client_id,
-            client_record_id=client_record.id if client_record else None,
+            client_record_id=client_record_id,
             business_id=business_id,
         )
         name_map = self._build_name_map(items)
@@ -174,9 +174,10 @@ class NotificationService:
         client_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
         return self.notification_repo.count_unread(
             client_id=client_id,
-            client_record_id=(ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None and ClientRecordRepository(self.db).get_by_client_id(client_id) else None),
+            client_record_id=client_record_id,
             business_id=business_id,
         )
 
@@ -188,8 +189,9 @@ class NotificationService:
         client_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
         return self.notification_repo.mark_all_read(
             client_id=client_id,
-            client_record_id=(ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None and ClientRecordRepository(self.db).get_by_client_id(client_id) else None),
+            client_record_id=client_record_id,
             business_id=business_id,
         )

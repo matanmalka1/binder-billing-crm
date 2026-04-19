@@ -18,6 +18,7 @@ from app.binders.services.messages import (
     BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED,
     BINDER_NOT_FOUND,
 )
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
@@ -188,7 +189,8 @@ class BinderIntakeEditService:
         if requested_client_id is None or requested_client_id == current_binder.client_id:
             return current_binder
 
-        target_binder = self.binder_repo.get_active_by_client(requested_client_id)
+        requested_client_record_id = ClientRecordRepository(self.db).get_by_client_id(requested_client_id).id
+        target_binder = self.binder_repo.get_active_by_client_record(requested_client_record_id)
         if not target_binder:
             raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
         return target_binder

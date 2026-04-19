@@ -37,8 +37,7 @@ class TaxDeadlineService:
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        client_record_id = client_record.id if client_record else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = due_date.year - 1
@@ -168,7 +167,5 @@ class TaxDeadlineService:
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """Get deadlines for a specific client."""
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if client_record:
-            return self.deadline_repo.list_by_client_record(client_record.id, status, deadline_type)
-        return self.deadline_repo.list_by_client(client_id, status, deadline_type)
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        return self.deadline_repo.list_by_client_record(client_record_id, status, deadline_type)

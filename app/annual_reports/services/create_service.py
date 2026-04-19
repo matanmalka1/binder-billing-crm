@@ -50,8 +50,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        client_record_id = client_record.id if client_record else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
         if not client_repo.get_by_id(client_id):
             from app.core.exceptions import NotFoundError
             raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")

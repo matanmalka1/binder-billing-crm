@@ -71,9 +71,8 @@ class NotificationSendService:
             .first()
         )
 
-    def _get_client_record_id(self, client_id: int) -> Optional[int]:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        return record.id if record else None
+    def _get_client_record_id(self, client_id: int) -> int:
+        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
 
     def bulk_notify(
         self,

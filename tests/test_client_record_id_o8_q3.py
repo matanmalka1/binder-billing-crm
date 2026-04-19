@@ -96,21 +96,3 @@ class TestPermanentDocumentClientRecord:
         assert len(docs) == 1
         assert docs[0].business_id == business.id
 
-    def test_fallback_when_no_client_record_exists(self, db):
-        from app.permanent_documents.models.permanent_document import DocumentScope
-        from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
-
-        client = _make_client(db, "C303")
-        service = PermanentDocumentService(db)
-        service.document_repo.create(
-            client_id=client.id,
-            client_record_id=None,
-            business_id=None,
-            scope=DocumentScope.CLIENT,
-            document_type="id_copy",
-            storage_key="c",
-            uploaded_by=1,
-        )
-        docs = service.list_client_documents(client.id)
-        assert len(docs) == 1
-        assert docs[0].client_record_id is None

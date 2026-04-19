@@ -43,13 +43,9 @@ def list_client_requests(
 ) -> Tuple[List[SignatureRequest], int]:
     """All signature requests for a legal entity (primary query path)."""
     status_enum = _parse_status(status)
-    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
-    if client_record is not None:
-        items = repo.list_by_client_record(client_record.id, status=status_enum, page=page, page_size=page_size)
-        total = repo.count_by_client_record(client_record.id, status=status_enum)
-    else:
-        items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
-        total = repo.count_by_client(client_id, status=status_enum)
+    client_record_id = ClientRecordRepository(repo.db).get_by_client_id(client_id).id
+    items = repo.list_by_client_record(client_record_id, status=status_enum, page=page, page_size=page_size)
+    total = repo.count_by_client_record(client_record_id, status=status_enum)
     return items, total
 
 

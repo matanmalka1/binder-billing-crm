@@ -8,6 +8,7 @@ from app.annual_reports.models.annual_report_enums import ANNUAL_REPORT_FILED_ST
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.services.constants import ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE
 from app.annual_reports.services.messages import ANNUAL_DEADLINE_REMINDER_MESSAGE
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.repositories.tax_deadline_query_repository import TaxDeadlineQueryRepository
 from app.reminders.models.reminder import ReminderType
@@ -28,8 +29,9 @@ def sync_annual_report_deadline(
     if not entering_filed and not leaving_filed:
         return
 
-    deadlines = TaxDeadlineQueryRepository(db).list_by_client(
-        client_id=report.client_id,
+    client_record_id = ClientRecordRepository(db).get_by_client_id(report.client_id).id
+    deadlines = TaxDeadlineQueryRepository(db).list_by_client_record(
+        client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_from=date(report.tax_year + 1, 1, 1),
         due_to=date(report.tax_year + 1, 12, 31),
@@ -64,6 +66,7 @@ def sync_annual_report_deadline(
                         due_date=deadline.due_date,
                     ),
                     client_id=deadline.client_id,
+                    client_record_id=client_record_id,
                     tax_deadline_id=deadline.id,
                     created_by=changed_by,
                 )

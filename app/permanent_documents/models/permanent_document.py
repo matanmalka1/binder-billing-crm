@@ -73,7 +73,7 @@ class PermanentDocument(Base):
 
     # ── Ownership ─────────────────────────────────────────────────────────────
     client_id   = Column(Integer, ForeignKey("clients.id"),    nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
     business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True,  index=True)
     scope       = Column(pg_enum(DocumentScope), nullable=False)
 

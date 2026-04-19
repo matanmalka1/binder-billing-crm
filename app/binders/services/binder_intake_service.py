@@ -62,19 +62,14 @@ class BinderIntakeService:
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
         ClientService(self.db).get_client_or_raise(client_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        client_record_id = client_record.id if client_record else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
 
         businesses = self.business_repo.list_by_client(client_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
 
-        active_binder = (
-            self.binder_repo.get_active_by_client_record(client_record_id)
-            if client_record_id is not None
-            else self.binder_repo.get_active_by_client(client_id)
-        )
+        active_binder = self.binder_repo.get_active_by_client_record(client_record_id)
         existing = self._resolve_existing_binder_for_materials(
             client_id=client_id,
             active_binder=active_binder,
@@ -191,7 +186,6 @@ class BinderIntakeService:
             return None
 
         older_binder = self._find_matching_older_binder(
-            client_id=client_id,
             client_record_id=active_binder.client_record_id,
             active_binder_id=active_binder.id,
             min_period_start=min_period_start,
@@ -202,8 +196,7 @@ class BinderIntakeService:
     def _find_matching_older_binder(
         self,
         *,
-        client_id: int,
-        client_record_id: Optional[int],
+        client_record_id: int,
         active_binder_id: int,
         min_period_start: date,
         max_period_end: date,
@@ -215,11 +208,7 @@ class BinderIntakeService:
         RETURNED binders are excluded because they should not receive fresh intake rows.
         """
         candidates: list[Binder] = []
-        binders = (
-            self.binder_repo.list_by_client_record(client_record_id)
-            if client_record_id is not None
-            else self.binder_repo.list_by_client(client_id)
-        )
+        binders = self.binder_repo.list_by_client_record(client_record_id)
         for binder in binders:
             if binder.id == active_binder_id:
                 continue

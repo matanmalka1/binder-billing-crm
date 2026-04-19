@@ -17,6 +17,7 @@ from app.binders.models.binder_intake_material import BinderIntakeMaterial
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
 
@@ -167,7 +168,8 @@ class BinderService(BinderListService):
         cutoff = (until_period_year, until_period_month)
         updated: list[Binder] = []
 
-        for binder in self.binder_repo.list_by_client(client_id):
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        for binder in self.binder_repo.list_by_client_record(client_record_id):
             if binder.status not in {
                 BinderStatus.IN_OFFICE,
                 BinderStatus.CLOSED_IN_OFFICE,

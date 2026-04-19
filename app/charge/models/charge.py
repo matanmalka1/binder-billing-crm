@@ -39,8 +39,8 @@ class Charge(Base):
     client_id: Mapped[int] = mapped_column(
         ForeignKey("clients.id"), nullable=False, index=True
     )
-    client_record_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("client_records.id"), nullable=True, index=True
+    client_record_id: Mapped[int] = mapped_column(
+        ForeignKey("client_records.id"), nullable=False, index=True
     )
     # OPTIONAL: set only when the charge is specific to one business
     business_id: Mapped[Optional[int]] = mapped_column(

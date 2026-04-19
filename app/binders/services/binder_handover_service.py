@@ -59,10 +59,10 @@ class BinderHandoverService:
                 notes=BINDER_PICKED_UP_BY.format(pickup_person_name=received_by_name),
             )
 
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
         handover = self.handover_repo.create(
             client_id=client_id,
-            client_record_id=client_record.id if client_record else None,
+            client_record_id=client_record_id,
             received_by_name=received_by_name,
             handed_over_at=handed_over_at,
             until_period_year=until_period_year,

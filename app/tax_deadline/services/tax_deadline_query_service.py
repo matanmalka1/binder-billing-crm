@@ -39,17 +39,11 @@ class TaxDeadlineQueryService:
     ) -> tuple[list[TaxDeadline], int]:
         """Route branching logic: by client, by business name, or all pending."""
         if client_id:
-            client_record = self.client_record_repo.get_by_client_id(client_id)
-            if client_record is not None:
-                items = self.deadline_repo.list_by_client_record(
-                    client_record.id, status, deadline_type,
-                    due_from=due_from, due_to=due_to, period=period,
-                )
-            else:
-                items = self.deadline_repo.list_by_client(
-                    client_id, status, deadline_type,
-                    due_from=due_from, due_to=due_to, period=period,
-                )
+            client_record_id = self.client_record_repo.get_by_client_id(client_id).id
+            items = self.deadline_repo.list_by_client_record(
+                client_record_id, status, deadline_type,
+                due_from=due_from, due_to=due_to, period=period,
+            )
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total

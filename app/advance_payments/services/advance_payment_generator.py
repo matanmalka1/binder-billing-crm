@@ -7,6 +7,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.constants import build_due_date, get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 
@@ -29,6 +30,7 @@ def generate_annual_schedule(
     if not client:
         raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
 
+    client_record_id = ClientRecordRepository(db).get_by_client_id(client_id).id
     service = AdvancePaymentService(db)
     repo = AdvancePaymentRepository(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(
@@ -42,12 +44,13 @@ def generate_annual_schedule(
 
     for month in start_months:
         period = f"{year}-{month:02d}"
-        if repo.exists_for_period(client_id, period):
+        if repo.exists_for_client_record_period(client_record_id, period):
             skipped += 1
             continue
 
         payment = repo.create(
             client_id=client_id,
+            client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
             due_date=build_due_date(year, month, period_months_count),

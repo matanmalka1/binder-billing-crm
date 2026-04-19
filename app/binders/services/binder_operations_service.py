@@ -34,22 +34,16 @@ class BinderOperationsService:
         page_size: int = 20,
     ) -> tuple[list[Binder], int]:
         """Get all binders for a client with pagination."""
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if client_record is not None:
-            binders = self.repo.list_by_client_record(client_record.id)
-            total = len(binders)
-            offset = (page - 1) * page_size
-            return binders[offset: offset + page_size], total
-        items = self.repo.list_by_client_paginated(client_id=client_id, page=page, page_size=page_size)
-        total = self.repo.count_by_client(client_id)
-        return items, total
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        binders = self.repo.list_by_client_record(client_record_id)
+        total = len(binders)
+        offset = (page - 1) * page_size
+        return binders[offset: offset + page_size], total
 
     def get_active_binder_for_client(self, client_id: int) -> Optional["Binder"]:
         """Return the active IN_OFFICE binder for a client, or None."""
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if client_record is not None:
-            return self.repo.get_active_by_client_record(client_record.id)
-        return self.repo.get_active_by_client(client_id)
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        return self.repo.get_active_by_client_record(client_record_id)
 
     def map_active_binders_for_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:
         """Return {client_id: binder} for each client's active IN_OFFICE binder."""

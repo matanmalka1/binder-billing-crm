@@ -70,16 +70,12 @@ class TimelineService:
             .all()
         )
         business_ids = [business.id for business in businesses]
-        client_record = self.client_record_repo.get_by_client_id(client_id)
+        client_record_id = self.client_record_repo.get_by_client_id(client_id).id
 
         events = []
 
         # Bounded: _TIMELINE_BULK_LIMIT — older binders silently excluded if exceeded.
-        binders = (
-            self.binder_repo.list_by_client_record(client_record.id)
-            if client_record is not None
-            else self.binder_repo.list_by_client(client_id)
-        )
+        binders = self.binder_repo.list_by_client_record(client_record_id)
         for binder in binders:
             events.append(binder_received_event(binder))
             if binder.returned_at:

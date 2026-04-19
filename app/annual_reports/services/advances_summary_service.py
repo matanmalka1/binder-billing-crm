@@ -11,6 +11,7 @@ from app.annual_reports.repositories.annual_report_repository import AnnualRepor
 from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.messages import ANNUAL_REPORT_DETAILED_NOT_FOUND
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 class AnnualReportAdvancesSummaryService:
@@ -24,8 +25,9 @@ class AnnualReportAdvancesSummaryService:
         if not report:
             raise NotFoundError(ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
-        payments, count = self.advance_repo.list_by_client_year(
-            report.client_id,
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(report.client_id).id
+        payments, count = self.advance_repo.list_by_client_record_year(
+            client_record_id,
             report.tax_year,
             status=[AdvancePaymentStatus.PAID],
             page=1,

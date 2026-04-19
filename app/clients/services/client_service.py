@@ -1,14 +1,19 @@
 import json
+import logging
 from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
+_log = logging.getLogger(__name__)
+
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.clients.models.client import Client, IdNumberType
 from app.common.enums import EntityType, VatType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
 from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.clients.services.client_query_service import ClientQueryService
@@ -88,6 +93,21 @@ class ClientService:
             actor_id=actor_id,
         )
 
+        legal_entity = LegalEntityRepository(self.db).create(
+            id_number=id_number,
+            id_number_type=id_number_type,
+            entity_type=entity_type,
+            vat_reporting_frequency=vat_reporting_frequency,
+            vat_exempt_ceiling=vat_exempt_ceiling,
+            advance_rate=advance_rate,
+        )
+        ClientRecordRepository(self.db).create(
+            legal_entity_id=legal_entity.id,
+            office_client_number=client.office_client_number,
+            accountant_name=accountant_name,
+            created_by=actor_id,
+        )
+
         create_initial_binder(self.db, client, actor_id)
         generate_client_obligations(
             self.db, client.id, actor_id=actor_id, entity_type=entity_type, best_effort=False,
@@ -158,6 +178,7 @@ class ClientService:
         raise ConflictError(CLIENT_OFFICE_NUMBER_CONFLICT, "OFFICE_NUMBER.CONFLICT")
 
     def get_client_or_raise(self, client_id: int) -> Client:
+        _log.warning("DEPRECATED: get_client_or_raise reads legacy Client model. Migrate to ClientRecord (Layer 2).")
         client = self.client_repo.get_by_id(client_id)
         if not client:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")

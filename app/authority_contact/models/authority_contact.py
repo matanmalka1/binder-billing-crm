@@ -46,7 +46,7 @@ class AuthorityContact(Base):
 
     id        = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Contact identity ──────────────────────────────────────────────────────
     contact_type = Column(pg_enum(ContactType), nullable=False)

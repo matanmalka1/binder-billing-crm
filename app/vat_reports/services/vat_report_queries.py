@@ -77,10 +77,8 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
 
 
 def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int):
-    client_record = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_id)
-    if client_record:
-        return work_item_repo.list_by_client_record(client_record.id)
-    return work_item_repo.list_by_client(client_id)
+    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_id).id
+    return work_item_repo.list_by_client_record(client_record_id)
 
 
 def _resolve_client_ids_by_name(

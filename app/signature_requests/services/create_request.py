@@ -73,11 +73,11 @@ def create_request(
     content_hash = None
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
-    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
+    client_record_id = ClientRecordRepository(repo.db).get_by_client_id(client_id).id
 
     req = repo.create(
         client_id=client_id,
-        client_record_id=client_record.id if client_record else None,
+        client_record_id=client_record_id,
         business_id=business_id,
         created_by=created_by,
         request_type=req_type,

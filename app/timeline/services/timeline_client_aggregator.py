@@ -1,4 +1,5 @@
 from app.clients.models.client import Client
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -36,8 +37,9 @@ def build_client_events(
         for reminder in reminders:
             events.append(reminder_created_event(reminder))
 
-    client_reminders = reminder_repo.list_by_client(
-        client_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+    client_record_id = ClientRecordRepository(db).get_by_client_id(client_id).id
+    client_reminders = reminder_repo.list_by_client_record(
+        client_record_id, page=1, page_size=_TIMELINE_BULK_LIMIT
     )
     for reminder in client_reminders:
         events.append(reminder_created_event(reminder))

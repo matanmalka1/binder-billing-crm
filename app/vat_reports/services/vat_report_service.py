@@ -7,6 +7,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -88,7 +89,8 @@ class VatReportService:
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
     def get_work_item_by_client_period(self, client_id: int, period: str):
-        return self.work_item_repo.get_by_client_period(client_id, period)
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        return self.work_item_repo.get_by_client_record_period(client_record_id, period)
 
     def get_audit_trail(self, item_id: int):
         return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)

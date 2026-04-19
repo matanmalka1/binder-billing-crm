@@ -62,8 +62,7 @@ def create_work_item(
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    client_record = ClientRecordRepository(client_repo.db).get_by_client_id(client_id)
-    client_record_id = client_record.id if client_record else None
+    client_record_id = ClientRecordRepository(client_repo.db).get_by_client_id(client_id).id
 
     client = client_repo.get_by_id(client_id)
     if not client:
@@ -80,7 +79,7 @@ def create_work_item(
     # WARNING: This check only filters for non-deleted items (deleted_at IS NULL).
     # If we ever allow soft-deleting FILED items, this guard must be updated to
     # also block creation when a FILED item exists for the same period, even if deleted.
-    existing = work_item_repo.get_by_client_period(client_id, period)
+    existing = work_item_repo.get_by_client_record_period(client_record_id, period)
     if existing:
         raise ConflictError(
             VAT_WORK_ITEM_CONFLICT.format(client_id=client_id, period=period),

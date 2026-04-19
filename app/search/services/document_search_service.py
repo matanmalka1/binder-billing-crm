@@ -45,12 +45,8 @@ class DocumentSearchService:
         return results
 
     def list_client_documents(self, client_id: int, query: str) -> list[DocumentSearchResult]:
-        client_record = self.client_record_repo.get_by_client_id(client_id)
-        docs = (
-            self.doc_repo.list_by_client_record(client_record.id)
-            if client_record is not None
-            else self.doc_repo.list_by_client(client_id)
-        )
+        client_record_id = self.client_record_repo.get_by_client_id(client_id).id
+        docs = self.doc_repo.list_by_client_record(client_record_id)
         term = query.strip().lower()
         return [
             DocumentSearchResult(

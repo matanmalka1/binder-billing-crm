@@ -21,6 +21,7 @@ from app.charge.models.charge import ChargeStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.models.binder import BinderStatus
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
@@ -31,6 +32,7 @@ class StatusCardService:
     """
 
     def __init__(self, db: Session):
+        self._db = db
         self._vat_repo = VatWorkItemRepository(db)
         self._annual_repo = AnnualReportRepository(db)
         self._charge_repo = ChargeRepository(db)
@@ -44,21 +46,22 @@ class StatusCardService:
         year: Optional[int] = None,
     ) -> ClientStatusCardResponse:
         resolved_year = year or utcnow().year
+        client_record_id = ClientRecordRepository(self._db).get_by_client_id(client_id).id
         return ClientStatusCardResponse(
             client_id=client_id,
             year=resolved_year,
-            client_vat=self._vat_card(client_id, resolved_year),
-            annual_report=self._annual_report_card(client_id, resolved_year),
-            charges=self._charges_card(client_id),
-            advance_payments=self._advance_payments_card(client_id, resolved_year),
-            binders=self._binders_card(client_id),
-            documents=self._documents_card(client_id),
+            client_vat=self._vat_card(client_record_id, resolved_year),
+            annual_report=self._annual_report_card(client_record_id, resolved_year),
+            charges=self._charges_card(client_record_id),
+            advance_payments=self._advance_payments_card(client_record_id, resolved_year),
+            binders=self._binders_card(client_record_id),
+            documents=self._documents_card(client_record_id),
         )
 
-    def _vat_card(self, client_id: int, year: int) -> VatSummaryCard:
+    def _vat_card(self, client_record_id: int, year: int) -> VatSummaryCard:
         prefix = f"{year}-"
         rows = [
-            r for r in self._vat_repo.list_by_client(client_id)
+            r for r in self._vat_repo.list_by_client_record(client_record_id)
             if r.period and r.period.startswith(prefix)
         ]
         net_total = sum((r.net_vat or Decimal(0)) for r in rows)
@@ -71,8 +74,8 @@ class StatusCardService:
             latest_period=latest,
         )
 
-    def _annual_report_card(self, client_id: int, year: int) -> AnnualReportCard:
-        report = self._annual_repo.get_by_client_year(client_id, year)
+    def _annual_report_card(self, client_record_id: int, year: int) -> AnnualReportCard:
+        report = self._annual_repo.get_by_client_record_year(client_record_id, year)
         if not report:
             return AnnualReportCard()
         deadline_str = (
@@ -86,9 +89,9 @@ class StatusCardService:
             tax_due=report.tax_due,
         )
 
-    def _charges_card(self, client_id: int) -> ChargesCard:
-        rows = self._charge_repo.list_charges(
-            client_id=client_id,
+    def _charges_card(self, client_record_id: int) -> ChargesCard:
+        rows = self._charge_repo.list_charges_by_client_record(
+            client_record_id=client_record_id,
             status=ChargeStatus.ISSUED,
             page=1,
             page_size=10_000,
@@ -96,9 +99,9 @@ class StatusCardService:
         total = sum((r.amount or Decimal(0)) for r in rows)
         return ChargesCard(total_outstanding=total, unpaid_count=len(rows))
 
-    def _advance_payments_card(self, client_id: int, year: int) -> AdvancePaymentsCard:
-        rows, _ = self._advance_repo.list_by_client_year(
-            client_id=client_id,
+    def _advance_payments_card(self, client_record_id: int, year: int) -> AdvancePaymentsCard:
+        rows, _ = self._advance_repo.list_by_client_record_year(
+            client_record_id=client_record_id,
             year=year,
             page=1,
             page_size=10_000,
@@ -106,13 +109,13 @@ class StatusCardService:
         total = sum((r.paid_amount or Decimal(0)) for r in rows)
         return AdvancePaymentsCard(total_paid=total, count=len(rows))
 
-    def _binders_card(self, client_id: int) -> BindersCard:
-        rows = self._binder_repo.list_by_client(client_id)
+    def _binders_card(self, client_record_id: int) -> BindersCard:
+        rows = self._binder_repo.list_by_client_record(client_record_id)
         active = [r for r in rows if r.status != BinderStatus.RETURNED]
         in_office = sum(1 for r in active if r.status == BinderStatus.IN_OFFICE)
         return BindersCard(active_count=len(active), in_office_count=in_office)
 
-    def _documents_card(self, client_id: int) -> DocumentsCard:
-        rows = self._doc_repo.list_by_client(client_id)
+    def _documents_card(self, client_record_id: int) -> DocumentsCard:
+        rows = self._doc_repo.list_by_client_record(client_record_id)
         present = sum(1 for r in rows if r.is_present)
         return DocumentsCard(total_count=len(rows), present_count=present)

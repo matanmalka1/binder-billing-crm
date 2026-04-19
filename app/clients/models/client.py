@@ -1,3 +1,5 @@
+# DEPRECATED: use LegalEntity + ClientRecord.
+# Scheduled for removal after Layer 2.
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, column

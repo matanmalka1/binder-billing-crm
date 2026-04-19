@@ -50,9 +50,8 @@ def _require_non_negative_days(days_before: int) -> None:
         raise AppError(NEGATIVE_DAYS, "REMINDER.NEGATIVE_DAYS")
 
 
-def _resolve_client_record_id(client_id: int, repo: ClientRecordRepository) -> Optional[int]:
-    record = repo.get_by_client_id(client_id)
-    return record.id if record else None
+def _resolve_client_record_id(client_id: int, repo: ClientRecordRepository) -> int:
+    return repo.get_by_client_id(client_id).id
 
 
 # ── Client-scoped reminders ───────────────────────────────────────────────────

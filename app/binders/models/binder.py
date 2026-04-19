@@ -39,7 +39,7 @@ class Binder(Base):
 
     # The binder belongs to the client, not to a specific business.
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # Globally unique number (the label number on the physical binder).
     binder_number = Column(String, nullable=False)

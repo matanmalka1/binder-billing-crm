@@ -128,6 +128,17 @@ class AdvancePaymentRepository(BaseRepository):
             .exists()
         ).scalar()
 
+    def exists_for_client_record_period(self, client_record_id: int, period: str) -> bool:
+        return self.db.query(
+            self.db.query(AdvancePayment)
+            .filter(
+                AdvancePayment.client_record_id == client_record_id,
+                AdvancePayment.period == period,
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .exists()
+        ).scalar()
+
     def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
 

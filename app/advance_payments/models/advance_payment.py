@@ -66,7 +66,7 @@ class AdvancePayment(Base):
 
     id        = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Period ────────────────────────────────────────────────────────────────
     period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period

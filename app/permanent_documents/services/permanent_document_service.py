@@ -57,9 +57,8 @@ class PermanentDocumentService:
             )
         return resolved
 
-    def _get_client_record_id(self, client_id: int) -> Optional[int]:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        return record.id if record else None
+    def _get_client_record_id(self, client_id: int) -> int:
+        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
 
     def _build_storage_key(
         self,
@@ -198,16 +197,9 @@ class PermanentDocumentService:
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
         ClientService(self.db).get_client_or_raise(client_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if client_record is not None:
-            return self.document_repo.list_by_client_record(
-                client_record.id,
-                tax_year=tax_year,
-                document_type=document_type,
-                status=status,
-            )
-        return self.document_repo.list_by_client(
-            client_id,
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        return self.document_repo.list_by_client_record(
+            client_record_id,
             tax_year=tax_year,
             document_type=document_type,
             status=status,
