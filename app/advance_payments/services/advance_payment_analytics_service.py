@@ -51,11 +51,12 @@ class AdvancePaymentAnalyticsService:
             [
                 (
                     p,
+                    clients[p.client_id].office_client_number if p.client_id in clients else None,
                     clients[p.client_id].full_name if p.client_id in clients else "",
                 )
                 for p in payments
             ],
-            key=lambda x: (x[1], x[0].period),
+            key=lambda x: (x[2], x[0].period),
         )
 
         total = len(rows)

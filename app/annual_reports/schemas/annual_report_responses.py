@@ -20,6 +20,7 @@ from app.annual_reports.models.annual_report_enums import (
 class AnnualReportResponse(BaseModel):
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
     business_name: Optional[str] = None
@@ -132,6 +133,7 @@ class SeasonSummaryResponse(BaseModel):
 class AnnualReportKanbanItemResponse(BaseModel):
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
     business_name: Optional[str] = None

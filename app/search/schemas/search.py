@@ -8,6 +8,7 @@ class SearchResult(BaseModel):
 
     result_type: str  # "client" | "binder"
     client_id: int
+    office_client_number: Optional[int] = None
     client_name: str
     id_number: Optional[str] = None
     client_status: Optional[str] = None
@@ -20,6 +21,7 @@ class DocumentSearchResult(BaseModel):
 
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     business_id: int
     business_name: str
     document_type: str

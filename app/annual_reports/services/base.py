@@ -40,6 +40,7 @@ class AnnualReportBaseService:
             obj = AnnualReportResponse.model_validate(r)
             client = clients.get(r.client_id)
             if client:
+                obj.office_client_number = client.office_client_number
                 obj.client_name = client.full_name
                 obj.client_id_number = client.id_number
                 obj.business_name = client.full_name

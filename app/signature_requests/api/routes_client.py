@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
+from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     SignatureRequestListResponse,
@@ -36,8 +37,18 @@ def list_client_signature_requests(
         page=page,
         page_size=page_size,
     )
+    client_repo = ClientRepository(db)
+    office_number_map = {
+        client.id: client.office_client_number
+        for client in client_repo.list_by_ids(sorted({item.client_id for item in items}))
+    }
     return SignatureRequestListResponse(
-        items=[SignatureRequestResponse.model_validate(r) for r in items],
+        items=[
+            SignatureRequestResponse.model_validate(r).model_copy(
+                update={"office_client_number": office_number_map.get(r.client_id)}
+            )
+            for r in items
+        ],
         page=page,
         page_size=page_size,
         total=total,
@@ -64,8 +75,18 @@ def list_business_signature_requests(
         page=page,
         page_size=page_size,
     )
+    client_repo = ClientRepository(db)
+    office_number_map = {
+        client.id: client.office_client_number
+        for client in client_repo.list_by_ids(sorted({item.client_id for item in items}))
+    }
     return SignatureRequestListResponse(
-        items=[SignatureRequestResponse.model_validate(r) for r in items],
+        items=[
+            SignatureRequestResponse.model_validate(r).model_copy(
+                update={"office_client_number": office_number_map.get(r.client_id)}
+            )
+            for r in items
+        ],
         page=page,
         page_size=page_size,
         total=total,

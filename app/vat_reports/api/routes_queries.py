@@ -66,6 +66,7 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     enriched = service.get_work_item_enriched(item_id)
     return serialize_enriched_work_item(
         enriched["item"],
+        office_client_number_map=enriched["office_client_number_map"],
         name_map=enriched["name_map"],
         id_number_map=enriched["id_number_map"],
         status_map=enriched["status_map"],
@@ -85,6 +86,7 @@ def list_client_work_items(client_id: int, db: DBSession, current_user: CurrentU
     items = [
         serialize_enriched_work_item(
             i,
+            office_client_number_map=enriched["office_client_number_map"],
             name_map=enriched["name_map"],
             id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],
@@ -118,6 +120,7 @@ def list_work_items(
     items = [
         serialize_enriched_work_item(
             i,
+            office_client_number_map=enriched["office_client_number_map"],
             name_map=enriched["name_map"],
             id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],

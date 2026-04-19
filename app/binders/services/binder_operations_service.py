@@ -62,12 +62,13 @@ class BinderOperationsService:
         Enrich binder with operational state.
 
         Returns a dict that matches BinderDetailResponse fields:
-          id, client_id, client_name, client_id_number, binder_number, period_start, period_end,
+          id, client_id, office_client_number, client_name, client_id_number, binder_number, period_start, period_end,
           status, returned_at, pickup_person_name, days_in_office.
         """
         ref_date = reference_date or date.today()
 
         client = self.client_repo.get_by_id(binder.client_id)
+        office_client_number = client.office_client_number if client else None
         client_name = client.full_name if client else None
         client_id_number = client.id_number if client else None
 
@@ -79,6 +80,7 @@ class BinderOperationsService:
         return {
             "id": binder.id,
             "client_id": binder.client_id,
+            "office_client_number": office_client_number,
             "client_name": client_name,
             "client_id_number": client_id_number,
             "binder_number": binder.binder_number,

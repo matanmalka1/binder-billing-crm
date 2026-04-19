@@ -64,6 +64,7 @@ class BinderListService:
         binder: Binder,
         *,
         reference_date: Optional[date] = None,
+        office_client_number: Optional[int] = None,
         client_name: Optional[str] = None,
         client_id_number: Optional[str] = None,
     ) -> BinderResponse:
@@ -73,6 +74,7 @@ class BinderListService:
             (ref_date - binder.period_start).days if binder.period_start is not None else None
         )
         response.available_actions = get_binder_actions(binder)
+        response.office_client_number = office_client_number
         response.client_name = client_name
         response.client_id_number = client_id_number
         return response
@@ -85,6 +87,7 @@ class BinderListService:
         return self.build_binder_response(
             binder,
             reference_date=date.today(),
+            office_client_number=client.office_client_number if client else None,
             client_name=client.full_name if client else None,
             client_id_number=client.id_number if client else None,
         )
@@ -119,6 +122,7 @@ class BinderListService:
 
         client_ids = list({binder.client_id for binder in binders})
         clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        office_client_number_map = {c.id: c.office_client_number for c in clients}
         client_name_map = {c.id: c.full_name for c in clients}
         client_id_number_map = {c.id: c.id_number for c in clients}
 
@@ -149,6 +153,7 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
+                    office_client_number=office_client_number_map.get(binder.client_id),
                     client_name=current_client_name,
                     client_id_number=client_id_number_map.get(binder.client_id),
                 )

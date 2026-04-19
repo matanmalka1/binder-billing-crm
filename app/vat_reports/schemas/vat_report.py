@@ -31,6 +31,7 @@ class VatWorkItemCreateRequest(BaseModel):
 class VatWorkItemResponse(BaseModel):
     id: int
     client_id: int
+    office_client_number: Optional[int] = None  # enriched by service
     client_name: Optional[str] = None       # enriched by service
     client_id_number: Optional[str] = None  # enriched by service
     client_status: Optional[str] = None    # enriched by service

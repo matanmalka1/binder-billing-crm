@@ -51,6 +51,7 @@ class SearchService:
                     {
                         "result_type": "client",
                         "client_id": c.id,
+                        "office_client_number": c.office_client_number,
                         "client_name": c.full_name,
                         "id_number": c.id_number,
                         "client_status": None,
@@ -79,6 +80,7 @@ class SearchService:
                     {
                         "result_type": "client",
                         "client_id": c.id,
+                        "office_client_number": c.office_client_number,
                         "client_name": c.full_name,
                         "id_number": c.id_number,
                         "client_status": None,
@@ -102,6 +104,7 @@ class SearchService:
                     {
                         "result_type": "binder",
                         "client_id": binder.client_id,
+                        "office_client_number": client.office_client_number if client else None,
                         "client_name": client.full_name if client else "לא ידוע",
                         "id_number": client.id_number if client else None,
                         "client_status": None,

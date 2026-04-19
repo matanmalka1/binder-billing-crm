@@ -153,6 +153,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 {
                     "id": report.id,
                     "client_id": report.client_id,
+                    "office_client_number": client.office_client_number if client else None,
                     "client_name": client.full_name if client else None,
                     "client_id_number": client.id_number if client else None,
                     "business_name": client.full_name if client else None,

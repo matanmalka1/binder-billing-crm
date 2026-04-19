@@ -107,6 +107,7 @@ class AdvancePaymentSuggestionResponse(BaseModel):
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     business_name: str
     period: str
     period_months_count: int

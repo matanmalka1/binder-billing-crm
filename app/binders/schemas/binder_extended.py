@@ -10,6 +10,7 @@ class BinderDetailResponse(BaseModel):
     """תצוגה מורחבת עם שדות תפעוליים."""
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
     binder_number: str

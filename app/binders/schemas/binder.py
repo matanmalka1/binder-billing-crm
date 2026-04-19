@@ -47,6 +47,7 @@ class BinderReturnRequest(BaseModel):
 class BinderResponse(BaseModel):
     id: int
     client_id: int
+    office_client_number: Optional[int] = None
     client_name: Optional[str] = None        # enriched by service
     client_id_number: Optional[str] = None   # enriched by service
     binder_number: str

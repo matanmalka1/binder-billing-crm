@@ -30,6 +30,7 @@ class SignatureAuditEventResponse(BaseModel):
 class SignatureRequestResponse(BaseModel):
     id: int
     client_id: int                              # PRIMARY anchor — always present
+    office_client_number: Optional[int] = None
     business_id: Optional[int] = None          # OPTIONAL context
     business_name: Optional[str] = None        # enriched by route layer when business_id set
     created_by: int

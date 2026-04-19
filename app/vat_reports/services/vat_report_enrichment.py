@@ -29,6 +29,7 @@ def get_work_item_enriched(
     client_name = client.full_name if client else None
     return {
         "item": item,
+        "office_client_number_map": {item.client_id: client.office_client_number if client else None},
         "name_map": {item.client_id: client_name},
         "id_number_map": {item.client_id: client.id_number if client else None},
         "status_map": {item.client_id: client.status if client else None},
@@ -49,6 +50,7 @@ def get_client_items_enriched(
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
+        "office_client_number_map": {client_id: client.office_client_number if client else None},
         "name_map": {client_id: client.full_name if client else None},
         "id_number_map": {client_id: client.id_number if client else None},
         "status_map": {client_id: client.status if client else None},
@@ -87,6 +89,7 @@ def get_list_enriched(
     return {
         "items": items,
         "total": total,
+        "office_client_number_map": {c.id: c.office_client_number for c in clients},
         "name_map": {c.id: c.full_name for c in clients},
         "id_number_map": {c.id: c.id_number for c in clients},
         "status_map": {c.id: c.status for c in clients},
