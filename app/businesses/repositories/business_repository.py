@@ -98,6 +98,29 @@ class BusinessRepository(BusinessRepositoryRead):
         )
         return [r[0] for r in rows]
 
+    def exists_for_legal_entity(self, legal_entity_id: int) -> bool:
+        return (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .first()
+        ) is not None
+
+    def all_non_deleted_are_closed_for_legal_entity(self, legal_entity_id: int) -> bool:
+        businesses = (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .all()
+        )
+        return bool(businesses) and all(b.status == BusinessStatus.CLOSED for b in businesses)
+
+    def get_ids_by_legal_entity(self, legal_entity_id: int) -> list[int]:
+        rows = (
+            self.db.query(Business.id)
+            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .all()
+        )
+        return [r[0] for r in rows]
+
     def has_conflicting_sole_trader(
         self,
         client_id: int,

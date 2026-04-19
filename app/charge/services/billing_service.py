@@ -7,7 +7,7 @@ from app.audit.constants import (
     ACTION_CANCELED, ACTION_CREATED, ACTION_DELETED, ACTION_ISSUED, ACTION_PAID, ENTITY_CHARGE,
 )
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.businesses.services.business_guards import validate_business_for_create
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, validate_business_for_create
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.services.constants import UNPAID_CHARGE_REMINDER_DAYS
@@ -37,14 +37,21 @@ class BillingService:
         self.client_repo = ClientRepository(db)
         self._audit = EntityAuditLogRepository(db)
 
-    def _validate_charge_scope(self, client_id: int, business_id: Optional[int]) -> Optional[int]:
+    def _validate_charge_scope(
+        self,
+        client_id: int,
+        business_id: Optional[int],
+        legal_entity_id: Optional[int] = None,
+    ) -> Optional[int]:
         client = self.client_repo.get_by_id(client_id)
         if not client:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CHARGE.CLIENT_NOT_FOUND")
         if business_id is None:
             return None
         business = validate_business_for_create(self.db, business_id)
-        if business.client_id != client_id:
+        if legal_entity_id is not None:
+            assert_business_belongs_to_legal_entity(business, legal_entity_id)
+        elif business.client_id != client_id:
             raise AppError(
                 BUSINESS_CLIENT_MISMATCH,
                 "CHARGE.BUSINESS_CLIENT_MISMATCH",

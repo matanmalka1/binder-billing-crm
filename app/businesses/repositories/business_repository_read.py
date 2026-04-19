@@ -100,6 +100,38 @@ class BusinessRepositoryRead(BaseRepository):
             .all()
         )
 
+    def list_by_legal_entity(self, legal_entity_id: int, page: int = 1, page_size: int = 20) -> list[Business]:
+        query = (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .order_by(Business.opened_at.asc())
+        )
+        return self._paginate(query, page, page_size)
+
+    def count_by_legal_entity(self, legal_entity_id: int) -> int:
+        return (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .count()
+        )
+
+    def list_by_legal_entity_including_deleted(self, legal_entity_id: int) -> list[Business]:
+        return (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id == legal_entity_id)
+            .order_by(Business.deleted_at.asc().nullsfirst(), Business.opened_at.asc())
+            .all()
+        )
+
+    def list_by_legal_entity_ids(self, legal_entity_ids: list[int]) -> list[Business]:
+        if not legal_entity_ids:
+            return []
+        return (
+            self.db.query(Business)
+            .filter(Business.legal_entity_id.in_(legal_entity_ids), Business.deleted_at.is_(None))
+            .all()
+        )
+
     def list_by_ids(self, business_ids: list[int]) -> list[Business]:
         if not business_ids:
             return []

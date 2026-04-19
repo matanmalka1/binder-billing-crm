@@ -19,6 +19,10 @@ from app.signature_requests.models.signature_request import SignatureAuditEvent,
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.client import Client
+from app.clients.models.legal_entity import LegalEntity  # noqa: F401
+from app.clients.models.client_record import ClientRecord  # noqa: F401
+from app.clients.models.person import Person  # noqa: F401
+from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
 from app.businesses.models.business import Business, BusinessStatus
 
 

@@ -19,8 +19,8 @@ class PersonLegalEntityLink(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    person_id = Column(Integer, ForeignKey("persons.id"), nullable=False, index=True)
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
+    person_id = Column(Integer, ForeignKey("persons.id"), nullable=False)
+    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False)
     role = Column(pg_enum(PersonLegalEntityRole), nullable=False, default=PersonLegalEntityRole.OWNER)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)

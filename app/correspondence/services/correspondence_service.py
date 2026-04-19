@@ -8,6 +8,7 @@ from app.correspondence.models.correspondence import Correspondence, Corresponde
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.clients.repositories.client_repository import ClientRepository
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
@@ -28,15 +29,19 @@ class CorrespondenceService:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         return client
 
-    def _assert_business_belongs_to_client(self, business_id: int, client_id: int) -> None:
+    def _assert_business_belongs_to_client(
+        self, business_id: int, client_id: int, legal_entity_id: Optional[int] = None
+    ) -> None:
         """Validate optional business context belongs to the same client."""
         business = self.business_repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        if business.client_id != client_id:
-            raise ForbiddenError(
-                f"עסק {business_id} אינו שייך ללקוח {client_id}",
-                "CORRESPONDENCE.FORBIDDEN_BUSINESS",
+        if legal_entity_id is not None:
+            assert_business_belongs_to_legal_entity(business, legal_entity_id)
+        elif business.client_id != client_id:
+            raise NotFoundError(
+                f"עסק {business_id} לא נמצא",
+                "BUSINESS.NOT_FOUND",
             )
 
     def _assert_contact_belongs_to_client(self, contact_id: int, client_id: int) -> None:

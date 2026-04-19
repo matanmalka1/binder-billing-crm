@@ -34,3 +34,12 @@ def validate_business_for_create(db: Session, business_id: int) -> Business:
         raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
     assert_business_allows_create(business)
     return business
+
+
+def assert_business_belongs_to_legal_entity(business: Business, legal_entity_id: int) -> None:
+    """Raise NotFoundError if business.legal_entity_id does not match the given legal_entity_id."""
+    if business.legal_entity_id != legal_entity_id:
+        raise NotFoundError(
+            f"עסק {business.id} לא נמצא",
+            "BUSINESS.NOT_FOUND",
+        )

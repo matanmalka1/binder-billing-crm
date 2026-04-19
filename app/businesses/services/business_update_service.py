@@ -10,6 +10,7 @@ from app.audit.constants import ACTION_UPDATED, ENTITY_BUSINESS
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 
@@ -32,13 +33,16 @@ class BusinessUpdateService:
         client_id: int,
         user_role: UserRole,
         actor_id: Optional[int] = None,
+        legal_entity_id: Optional[int] = None,
         **fields,
     ) -> Business:
         """Update business fields. FROZEN/CLOSED status requires ADVISOR role."""
         business = self._repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        if business.client_id != client_id:
+        if legal_entity_id is not None:
+            assert_business_belongs_to_legal_entity(business, legal_entity_id)
+        elif business.client_id != client_id:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
 
         if "status" in fields and fields["status"] is not None:

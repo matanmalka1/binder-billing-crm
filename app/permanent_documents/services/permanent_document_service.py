@@ -16,7 +16,7 @@ from app.permanent_documents.models.permanent_document import (
     PermanentDocument,
 )
 from app.utils.time_utils import utcnow
-from app.businesses.services.business_guards import get_business_or_raise
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, get_business_or_raise
 from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
@@ -82,6 +82,7 @@ class PermanentDocumentService:
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
         mime_type: Optional[str] = None,
+        legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
         ClientService(self.db).get_client_or_raise(client_id)
         if business_id is not None:
@@ -89,7 +90,9 @@ class PermanentDocumentService:
                 business = get_business_or_raise(self.db, business_id)
             except NotFoundError as exc:
                 raise NotFoundError(BUSINESS_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
-            if business.client_id != client_id:
+            if legal_entity_id is not None:
+                assert_business_belongs_to_legal_entity(business, legal_entity_id)
+            elif business.client_id != client_id:
                 raise AppError(BUSINESS_CLIENT_MISMATCH_ERROR, "PERMANENT_DOCUMENTS.BUSINESS_CLIENT_MISMATCH", status_code=422)
 
         scope = DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT

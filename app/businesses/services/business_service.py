@@ -11,6 +11,7 @@ from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.businesses.services.business_update_service import BusinessUpdateService
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.users.models.user import UserRole
@@ -109,8 +110,11 @@ class BusinessService:
         self, business_id: int, client_id: int, user_role: UserRole,
         actor_id: Optional[int] = None, **fields
     ) -> Business:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        legal_entity_id = record.legal_entity_id if record else None
         return self._update.update_business(
-            business_id, client_id=client_id, user_role=user_role, actor_id=actor_id, **fields
+            business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,
+            legal_entity_id=legal_entity_id, **fields
         )
 
     # ─── Delete / Restore (delegated) ────────────────────────────────────────

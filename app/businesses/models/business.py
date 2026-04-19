@@ -34,6 +34,8 @@ class Business(Base):
 
     # Link to client.
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    # Phase 3 migration: new FK to legal_entities (nullable until backfill).
+    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=True, index=True)
 
     # Relationship: lazy="select"; use explicit joinedload when needed.
     client = relationship("Client", foreign_keys=[client_id], lazy="select", viewonly=True)
