@@ -90,6 +90,7 @@ class ReminderResponse(BaseModel):
     client_id: int
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
+    office_client_number: Optional[int] = None
     business_id: Optional[int] = None
     business_name: Optional[str] = None
     reminder_type: ReminderType

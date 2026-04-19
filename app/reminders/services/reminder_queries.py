@@ -23,6 +23,7 @@ class ReminderContext(TypedDict):
     client_id: int
     client_name: str
     client_id_number: Optional[str]
+    office_client_number: Optional[int]
     business_id: Optional[int]
     business_name: Optional[str]
     display_label: Optional[str]
@@ -61,6 +62,7 @@ def _build_context_map(
             client_id=r.client_id,
             client_name=client.full_name if client else f"לקוח #{r.client_id}",
             client_id_number=client.id_number if client else None,
+            office_client_number=client.office_client_number if client else None,
             business_id=r.business_id,
             business_name=business.business_name if business else None,
             display_label=display_label,

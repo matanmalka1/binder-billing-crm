@@ -46,6 +46,7 @@ def list_reminders(
             resp.client_id = ctx["client_id"]
             resp.client_name = ctx["client_name"]
             resp.client_id_number = ctx["client_id_number"]
+            resp.office_client_number = ctx["office_client_number"]
             resp.business_id = ctx["business_id"]
             resp.business_name = ctx["business_name"]
             resp.display_label = ctx["display_label"]
