@@ -74,11 +74,24 @@ class ChargeCancelRequest(BaseModel):
     reason: Optional[str] = None
 
 
+class ChargeStatusStat(BaseModel):
+    count: int = 0
+    amount: ApiDecimal = ApiDecimal("0")
+
+
+class ChargeListStats(BaseModel):
+    draft: ChargeStatusStat = ChargeStatusStat()
+    issued: ChargeStatusStat = ChargeStatusStat()
+    paid: ChargeStatusStat = ChargeStatusStat()
+    canceled: ChargeStatusStat = ChargeStatusStat()
+
+
 class ChargeListResponse(BaseModel):
     items: list[ChargeResponse | ChargeResponseSecretary]
     page: int
     page_size: int
     total: int
+    stats: ChargeListStats
 
 
 class BulkChargeActionRequest(BaseModel):

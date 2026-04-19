@@ -55,6 +55,28 @@ def _choose_periods(rng: Random, count: int) -> list[str]:
     return periods[:count]
 
 
+def _ensure_vat_status_coverage(db, work_items: list[VatWorkItem]) -> None:
+    """Patch existing work items to guarantee every VatWorkItemStatus appears at least once."""
+    present = {item.status for item in work_items}
+    missing = [s for s in VatWorkItemStatus if s not in present]
+    if not missing:
+        return
+    # Pick active (non-filed) work items to reassign; fall back to any item.
+    candidates = [item for item in work_items if item.status != VatWorkItemStatus.FILED]
+    if not candidates:
+        candidates = list(work_items)
+    for i, status in enumerate(missing):
+        item = candidates[i % len(candidates)]
+        item.status = status
+        # Clear filed-only fields if we moved away from FILED.
+        if status != VatWorkItemStatus.FILED:
+            item.filed_at = None
+            item.filed_by = None
+            item.submission_reference = None
+            item.submission_method = None
+            item.final_vat_amount = None
+
+
 def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None) -> list[VatWorkItem]:
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
@@ -128,6 +150,9 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
             work_items.append(work_item)
 
     db.flush()
+
+    # Guarantee full enum coverage regardless of dataset size.
+    _ensure_vat_status_coverage(db, work_items)
 
     filed_by_client: dict[int, list[VatWorkItem]] = defaultdict(list)
     for work_item in work_items:

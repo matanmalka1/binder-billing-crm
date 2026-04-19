@@ -137,6 +137,27 @@ class ChargeRepository(BaseRepository):
         entity = charge or self.get_by_id(charge_id)
         return self._update_status(entity, new_status, **additional_fields)
 
+    def stats_by_status(
+        self,
+        client_id: Optional[int] = None,
+        charge_type: Optional[str] = None,
+    ) -> dict[str, dict]:
+        """Return count and total amount per status, ignoring status filter."""
+        from decimal import Decimal
+        query = (
+            self.db.query(Charge.status, func.count(Charge.id), func.sum(Charge.amount))
+            .filter(Charge.deleted_at.is_(None))
+        )
+        if client_id is not None:
+            query = query.filter(Charge.client_id == client_id)
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
+        rows = query.group_by(Charge.status).all()
+        return {
+            str(s.value): {"count": count, "amount": str(total or Decimal(0))}
+            for s, count, total in rows
+        }
+
     def get_aging_buckets(self, as_of_date: date) -> list:
         """Aggregate unpaid (ISSUED) charges per client into aging buckets via SQL."""
         cut_30 = as_of_date - timedelta(days=30)

@@ -105,4 +105,62 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
                         created_at=datetime.now(UTC),
                     )
                 )
+
+    # Guarantee full enum coverage regardless of dataset size.
+    _ensure_notification_enum_coverage(db, rng, clients_by_id, businesses_by_client_id, binders)
     db.flush()
+
+
+def _ensure_notification_enum_coverage(db, rng, clients_by_id, businesses_by_client_id, binders) -> None:
+    """Ensure every NotificationStatus and NotificationChannel value appears at least once."""
+    from sqlalchemy import select, func
+    from app.database import SessionLocal
+
+    if not binders:
+        return
+
+    binder = rng.choice(binders)
+    candidate_businesses = businesses_by_client_id.get(binder.client_id, [])
+    if not candidate_businesses:
+        return
+    business = candidate_businesses[0]
+    client = clients_by_id.get(business.client_id)
+    if not client:
+        return
+
+    now = datetime.now(UTC)
+    for status in [NotificationStatus.PENDING, NotificationStatus.FAILED]:
+        sent_at = None
+        failed_at = None
+        if status == NotificationStatus.FAILED:
+            failed_at = now - timedelta(hours=1)
+        db.add(Notification(
+            client_id=business.client_id,
+            business_id=business.id,
+            binder_id=binder.id,
+            trigger=NotificationTrigger.BINDER_RECEIVED,
+            channel=NotificationChannel.WHATSAPP,
+            severity=NotificationSeverity.INFO,
+            status=status,
+            recipient=client.phone or "0500000000",
+            content_snapshot=f"הודעת כיסוי עבור קלסר {binder.binder_number}",
+            sent_at=sent_at,
+            failed_at=failed_at,
+            error_message=("פסק זמן מול הספק" if status == NotificationStatus.FAILED else None),
+            created_at=now - timedelta(hours=2),
+        ))
+
+    for channel in [NotificationChannel.EMAIL, NotificationChannel.WHATSAPP]:
+        db.add(Notification(
+            client_id=business.client_id,
+            business_id=business.id,
+            binder_id=binder.id,
+            trigger=NotificationTrigger.BINDER_RECEIVED,
+            channel=channel,
+            severity=NotificationSeverity.INFO,
+            status=NotificationStatus.SENT,
+            recipient=(client.email if channel == NotificationChannel.EMAIL else (client.phone or "0500000000")),
+            content_snapshot=f"הודעת כיסוי ערוץ עבור קלסר {binder.binder_number}",
+            sent_at=now - timedelta(minutes=30),
+            created_at=now - timedelta(hours=3),
+        ))

@@ -87,7 +87,36 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             db.add(deadline)
             deadlines.append(deadline)
     db.flush()
+    _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng)
     return deadlines
+
+
+def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> None:
+    present = {d.deadline_type for d in deadlines}
+    # ADVANCE_PAYMENT is seeded separately; only check non-advance types
+    required = [TaxDeadlineType.VAT, TaxDeadlineType.ANNUAL_REPORT,
+                TaxDeadlineType.NATIONAL_INSURANCE, TaxDeadlineType.OTHER]
+    missing = [t for t in required if t not in present]
+    if not missing:
+        return
+    today = date.today()
+    fallback_business = businesses[0]
+    for dtype in missing:
+        due_date = today + timedelta(days=rng.randint(1, 30))
+        period = f"{due_date.year}-{due_date.month:02d}" if dtype != TaxDeadlineType.OTHER else None
+        deadline = TaxDeadline(
+            client_id=fallback_business.client_id,
+            deadline_type=dtype,
+            period=period,
+            due_date=due_date,
+            status=TaxDeadlineStatus.PENDING,
+            payment_amount=Decimal("1000.00"),
+            description=f"תזכורת עבור {DEADLINE_LABELS.get(dtype, 'מועד מס')}",
+            created_at=datetime.now(UTC),
+        )
+        db.add(deadline)
+        deadlines.append(deadline)
+    db.flush()
 
 
 def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:

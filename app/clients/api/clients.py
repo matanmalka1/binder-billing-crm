@@ -8,6 +8,7 @@ from app.clients.models.client import ClientStatus
 from app.clients.schemas.client import (
     ClientConflictInfo,
     ClientListResponse,
+    ClientListStats,
     CreateClientRequest,
     CreateClientResponse,
     ClientResponse,
@@ -143,11 +144,13 @@ def list_clients(
         page_size=page_size,
     )
     enriched = enrich_list([ClientResponse.model_validate(c) for c in items], db)
+    stats = service.get_client_stats()
     return ClientListResponse(
         items=enriched,
         page=page,
         page_size=page_size,
         total=total,
+        stats=stats,
     )
 
 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.charge.schemas.charge import ChargeListResponse, ChargeResponse, ChargeResponseSecretary
+from app.charge.schemas.charge import ChargeListResponse, ChargeListStats, ChargeStatusStat, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
@@ -105,9 +105,20 @@ class ChargeQueryService:
             data["office_client_number"] = office_client_number_map.get(charge.id)
             return schema(**data)
 
+        raw = self.charge_repo.stats_by_status(client_id=client_id, charge_type=charge_type)
+        def _stat(key: str) -> ChargeStatusStat:
+            d = raw.get(key, {})
+            return ChargeStatusStat(count=d.get("count", 0), amount=d.get("amount", "0"))
+        stats = ChargeListStats(
+            draft=_stat("draft"),
+            issued=_stat("issued"),
+            paid=_stat("paid"),
+            canceled=_stat("canceled"),
+        )
         return ChargeListResponse(
             items=[_enrich(c) for c in items],
             page=page,
             page_size=page_size,
             total=total,
+            stats=stats,
         )

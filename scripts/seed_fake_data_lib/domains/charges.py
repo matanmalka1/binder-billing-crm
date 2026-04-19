@@ -77,7 +77,46 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
             db.add(charge)
             charges.append(charge)
     db.flush()
+    _ensure_charge_status_coverage(charges, users, rng)
     return charges
+
+
+def _ensure_charge_status_coverage(charges: list[Charge], users, rng: Random) -> None:
+    present = {c.status for c in charges}
+    missing = [s for s in ChargeStatus if s not in present]
+    if not missing:
+        return
+    from collections import Counter
+    counts = Counter(c.status for c in charges)
+    for status in missing:
+        donor_status = max(counts, key=lambda s: counts[s])
+        if counts[donor_status] <= 1:
+            continue
+        candidate = next(c for c in charges if c.status == donor_status)
+        counts[donor_status] -= 1
+        candidate.status = status
+        if status == ChargeStatus.DRAFT:
+            candidate.issued_at = None
+            candidate.issued_by = None
+            candidate.paid_at = None
+            candidate.paid_by = None
+            candidate.canceled_at = None
+            candidate.canceled_by = None
+        elif status == ChargeStatus.ISSUED:
+            candidate.paid_at = None
+            candidate.paid_by = None
+            candidate.canceled_at = None
+            candidate.canceled_by = None
+            if candidate.issued_at is None:
+                candidate.issued_at = candidate.created_at
+                candidate.issued_by = rng.choice(users).id if users else None
+        elif status == ChargeStatus.CANCELED:
+            candidate.paid_at = None
+            candidate.paid_by = None
+            if candidate.canceled_at is None:
+                candidate.canceled_at = candidate.created_at
+                candidate.canceled_by = rng.choice(users).id if users else None
+        counts[status] = counts.get(status, 0) + 1
 
 
 def create_invoices(db, charges) -> None:

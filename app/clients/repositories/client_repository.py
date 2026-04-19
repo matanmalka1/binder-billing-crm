@@ -203,6 +203,16 @@ class ClientRepository(BaseRepository):
         client = self.get_by_id(client_id)
         return self._update_entity(client, **fields)
 
+    def count_by_status(self) -> dict[ClientStatus, int]:
+        """Count active (non-deleted) clients grouped by status."""
+        rows = (
+            self.db.query(Client.status, func.count(Client.id))
+            .filter(Client.deleted_at.is_(None))
+            .group_by(Client.status)
+            .all()
+        )
+        return {status: count for status, count in rows}
+
     def get_next_office_client_number(self) -> int:
         """Return the next office client number in ascending order."""
         current_max = self.db.query(func.max(Client.office_client_number)).scalar()

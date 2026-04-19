@@ -168,11 +168,18 @@ class ClientResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ClientListStats(BaseModel):
+    active: int = 0
+    frozen: int = 0
+    closed: int = 0
+
+
 class ClientListResponse(BaseModel):
     items: list[ClientResponse]
     page: int
     page_size: int
     total: int
+    stats: ClientListStats
 
 
 class CreateClientResponse(BaseModel):

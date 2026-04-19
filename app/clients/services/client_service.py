@@ -223,6 +223,9 @@ class ClientService:
             search=search, status=status, sort_by=sort_by, sort_order=sort_order, page=page, page_size=page_size,
         )
 
+    def get_client_stats(self):
+        return self._query.get_client_stats()
+
     def list_all_clients(self):
         return self._query.list_all_clients()
 

@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.clients.models.client import Client, ClientStatus
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.schemas.client import ClientListStats
 
 
 class ClientQueryService:
@@ -32,6 +33,14 @@ class ClientQueryService:
         )
         total = self.client_repo.count(search=search, status=status)
         return items, total
+
+    def get_client_stats(self) -> ClientListStats:
+        counts = self.client_repo.count_by_status()
+        return ClientListStats(
+            active=counts.get(ClientStatus.ACTIVE, 0),
+            frozen=counts.get(ClientStatus.FROZEN, 0),
+            closed=counts.get(ClientStatus.CLOSED, 0),
+        )
 
     def list_all_clients(self) -> list[Client]:
         """Return all active clients."""
