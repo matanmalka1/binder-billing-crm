@@ -1,5 +1,5 @@
 """
-Tax Deadline — calendar deadline for tax obligations per business.
+Tax Deadline — calendar deadline for tax obligations per client.
 
 Israeli context:
   Covers VAT filing, advance payments (מקדמות), national insurance (ביטוח לאומי),
@@ -12,10 +12,10 @@ Design decisions:
 - UrgencyLevel enum lives here (used by service layer) but not stored on the model.
 - completed_at + completed_by capture who fulfilled the obligation and when.
 - period ("YYYY-MM") links the deadline to a reporting period for display
-  and reporting; generator deduplication currently uses business + type + due_date.
+  and reporting; generator deduplication currently uses client + type + due_date.
 - advance_payment_id: TaxDeadline knows which AdvancePayment settled it.
   Direction: TaxDeadline → AdvancePayment (not the reverse) to avoid circular FK.
-- Soft delete included — TaxDeadline is a business entity.
+- Soft delete included — TaxDeadline is a client entity.
 """
 
 from enum import Enum as PyEnum
