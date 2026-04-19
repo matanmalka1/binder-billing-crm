@@ -15,6 +15,7 @@ class PermanentDocumentRepository:
     def create(
         self,
         client_id: int,
+        client_record_id: Optional[int],
         business_id: Optional[int],
         scope: DocumentScope,
         document_type: str,
@@ -31,6 +32,7 @@ class PermanentDocumentRepository:
     ) -> PermanentDocument:
         document = PermanentDocument(
             client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             scope=scope,
             document_type=document_type,
@@ -103,6 +105,52 @@ class PermanentDocumentRepository:
         if status is not None:
             q = q.filter(PermanentDocument.status == status)
         return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+
+    def list_by_client_record(
+        self,
+        client_record_id: int,
+        scope: Optional[DocumentScope] = None,
+        tax_year: Optional[int] = None,
+        document_type: Optional[str] = None,
+        status: Optional[DocumentStatus] = None,
+        include_superseded: bool = False,
+    ) -> list[PermanentDocument]:
+        q = self.db.query(PermanentDocument).filter(
+            PermanentDocument.client_record_id == client_record_id,
+            PermanentDocument.is_deleted == False,  # noqa: E712
+        )
+        if scope is not None:
+            q = q.filter(PermanentDocument.scope == scope)
+        if not include_superseded:
+            q = q.filter(PermanentDocument.superseded_by == None)  # noqa: E711
+        if tax_year is not None:
+            q = q.filter(PermanentDocument.tax_year == tax_year)
+        if document_type is not None:
+            q = q.filter(PermanentDocument.document_type == document_type)
+        if status is not None:
+            q = q.filter(PermanentDocument.status == status)
+        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        return (
+            self.db.query(PermanentDocument)
+            .filter(
+                PermanentDocument.client_record_id == client_record_id,
+                PermanentDocument.is_deleted == False,  # noqa: E712
+            )
+            .count()
+        )
+
+    def get_by_id_and_client_record(self, document_id: int, client_record_id: int) -> Optional[PermanentDocument]:
+        return (
+            self.db.query(PermanentDocument)
+            .filter(
+                PermanentDocument.id == document_id,
+                PermanentDocument.client_record_id == client_record_id,
+                PermanentDocument.is_deleted == False,  # noqa: E712
+            )
+            .first()
+        )
 
     def count_by_business(self, business_id: int) -> int:
         return (

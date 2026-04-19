@@ -56,6 +56,18 @@ class PermanentDocumentQueryRepository:
             q = q.filter(PermanentDocument.tax_year == tax_year)
         return q.order_by(PermanentDocument.version.desc()).all()
 
+    def get_all_versions_by_client_record(
+        self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
+    ) -> list[PermanentDocument]:
+        q = self.db.query(PermanentDocument).filter(
+            PermanentDocument.client_record_id == client_record_id,
+            PermanentDocument.document_type == document_type,
+            PermanentDocument.is_deleted == False,  # noqa: E712
+        )
+        if tax_year is not None:
+            q = q.filter(PermanentDocument.tax_year == tax_year)
+        return q.order_by(PermanentDocument.version.desc()).all()
+
     def list_by_annual_report(self, annual_report_id: int) -> list[PermanentDocument]:
         return (
             self.db.query(PermanentDocument)

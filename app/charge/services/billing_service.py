@@ -23,6 +23,7 @@ from app.charge.services.messages import (
     CLIENT_NOT_FOUND,
 )
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.reminders.services.reminder_service import ReminderService
 from app.utils.time_utils import utcnow
@@ -58,6 +59,10 @@ class BillingService:
             )
         return business.id
 
+    def _get_client_record_id(self, client_id: int) -> Optional[int]:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        return record.id if record else None
+
     def create_charge(
         self,
         client_id: int,
@@ -72,7 +77,11 @@ class BillingService:
         if amount <= 0:
             raise AppError(AMOUNT_MUST_BE_POSITIVE, "CHARGE.AMOUNT_INVALID")
         charge = self.charge_repo.create(
-            client_id=client_id, business_id=business_id, amount=amount, charge_type=charge_type,
+            client_id=client_id,
+            client_record_id=self._get_client_record_id(client_id),
+            business_id=business_id,
+            amount=amount,
+            charge_type=charge_type,
             period=period, months_covered=months_covered, created_by=actor_id,
         )
         if actor_id:

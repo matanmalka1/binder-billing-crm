@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -19,6 +20,10 @@ class AuthorityContactService:
         repo = ClientRepository(self.db)
         if not repo.get_by_id(client_id):
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+
+    def _get_client_record_id(self, client_id: int) -> Optional[int]:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        return record.id if record else None
 
     def add_contact(
         self,
@@ -36,6 +41,7 @@ class AuthorityContactService:
 
         return self.contact_repo.create(
             client_id=client_id,
+            client_record_id=self._get_client_record_id(client_id),
             contact_type=contact_type_enum,
             name=name,
             office=office,
@@ -69,10 +75,15 @@ class AuthorityContactService:
         """List contacts for client with pagination."""
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
 
-        items = self.contact_repo.list_by_client(
-            client_id, contact_type_enum, page=page, page_size=page_size
-        )
-        total = self.contact_repo.count_by_client(client_id, contact_type_enum)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            items = self.contact_repo.list_by_client_record(
+                client_record.id, contact_type_enum, page=page, page_size=page_size
+            )
+            total = self.contact_repo.count_by_client_record(client_record.id, contact_type_enum)
+        else:
+            items = self.contact_repo.list_by_client(client_id, contact_type_enum, page=page, page_size=page_size)
+            total = self.contact_repo.count_by_client(client_id, contact_type_enum)
         return items, total
 
     def delete_contact(self, contact_id: int, actor_id: int) -> None:

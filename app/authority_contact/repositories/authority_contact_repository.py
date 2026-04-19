@@ -16,6 +16,7 @@ class AuthorityContactRepository(BaseRepository):
     def create(
         self,
         client_id: int,
+        client_record_id: Optional[int],
         contact_type: ContactType,
         name: str,
         office: Optional[str] = None,
@@ -26,6 +27,7 @@ class AuthorityContactRepository(BaseRepository):
         """Create new authority contact."""
         contact = AuthorityContact(
             client_id=client_id,
+            client_record_id=client_record_id,
             contact_type=contact_type,
             name=name,
             office=office,
@@ -70,6 +72,34 @@ class AuthorityContactRepository(BaseRepository):
         contact_type: Optional[ContactType] = None,
     ) -> int:
         return self._base_query(client_id, contact_type).count()
+
+    def list_by_client_record(
+        self,
+        client_record_id: int,
+        contact_type: Optional[ContactType] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[AuthorityContact]:
+        query = self.db.query(AuthorityContact).filter(
+            AuthorityContact.client_record_id == client_record_id,
+            AuthorityContact.deleted_at.is_(None),
+        )
+        if contact_type:
+            query = query.filter(AuthorityContact.contact_type == contact_type)
+        return self._paginate(query.order_by(AuthorityContact.created_at.desc()), page, page_size)
+
+    def count_by_client_record(
+        self,
+        client_record_id: int,
+        contact_type: Optional[ContactType] = None,
+    ) -> int:
+        query = self.db.query(AuthorityContact).filter(
+            AuthorityContact.client_record_id == client_record_id,
+            AuthorityContact.deleted_at.is_(None),
+        )
+        if contact_type:
+            query = query.filter(AuthorityContact.contact_type == contact_type)
+        return query.count()
 
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""

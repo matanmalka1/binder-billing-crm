@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, NotFoundError
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.services.client_service import ClientService
 from app.permanent_documents.services.constants import ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES
 from app.infrastructure.storage import StorageProvider, get_storage_provider
@@ -55,6 +56,10 @@ class PermanentDocumentService:
                 status_code=422,
             )
         return resolved
+
+    def _get_client_record_id(self, client_id: int) -> Optional[int]:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        return record.id if record else None
 
     def _build_storage_key(
         self,
@@ -128,6 +133,7 @@ class PermanentDocumentService:
         # Single commit at the end keeps record + superseded_by atomic.
         document = self.document_repo.create(
             client_id=client_id,
+            client_record_id=self._get_client_record_id(client_id),
             business_id=business_id,
             scope=scope,
             document_type=document_type,
@@ -192,6 +198,14 @@ class PermanentDocumentService:
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
         ClientService(self.db).get_client_or_raise(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            return self.document_repo.list_by_client_record(
+                client_record.id,
+                tax_year=tax_year,
+                document_type=document_type,
+                status=status,
+            )
         return self.document_repo.list_by_client(
             client_id,
             tax_year=tax_year,

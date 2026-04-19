@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import (
@@ -22,6 +23,7 @@ class TaxDeadlineQueryService:
         self.deadline_repo = TaxDeadlineRepository(db)
         self.business_repo = BusinessRepository(db)
         self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
 
     def list_deadlines(
         self,
@@ -37,10 +39,17 @@ class TaxDeadlineQueryService:
     ) -> tuple[list[TaxDeadline], int]:
         """Route branching logic: by client, by business name, or all pending."""
         if client_id:
-            items = self.deadline_repo.list_by_client(
-                client_id, status, deadline_type,
-                due_from=due_from, due_to=due_to, period=period,
-            )
+            client_record = self.client_record_repo.get_by_client_id(client_id)
+            if client_record is not None:
+                items = self.deadline_repo.list_by_client_record(
+                    client_record.id, status, deadline_type,
+                    due_from=due_from, due_to=due_to, period=period,
+                )
+            else:
+                items = self.deadline_repo.list_by_client(
+                    client_id, status, deadline_type,
+                    due_from=due_from, due_to=due_to, period=period,
+                )
             total = len(items)
             offset = (page - 1) * page_size
             return items[offset: offset + page_size], total

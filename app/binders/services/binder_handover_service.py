@@ -10,6 +10,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.services.messages import BINDER_HANDOVER_INVALID_BINDERS, BINDER_PICKED_UP_BY
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 class BinderHandoverService:
@@ -58,8 +59,10 @@ class BinderHandoverService:
                 notes=BINDER_PICKED_UP_BY.format(pickup_person_name=received_by_name),
             )
 
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
         handover = self.handover_repo.create(
             client_id=client_id,
+            client_record_id=client_record.id if client_record else None,
             received_by_name=received_by_name,
             handed_over_at=handed_over_at,
             until_period_year=until_period_year,

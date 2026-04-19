@@ -8,6 +8,7 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
 )
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.services.messages import INVALID_FILTER_STATUS
 from app.signature_requests.services.signature_request_validations import get_or_raise
 
@@ -42,8 +43,13 @@ def list_client_requests(
 ) -> Tuple[List[SignatureRequest], int]:
     """All signature requests for a legal entity (primary query path)."""
     status_enum = _parse_status(status)
-    items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
-    total = repo.count_by_client(client_id, status=status_enum)
+    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
+    if client_record is not None:
+        items = repo.list_by_client_record(client_record.id, status=status_enum, page=page, page_size=page_size)
+        total = repo.count_by_client_record(client_record.id, status=status_enum)
+    else:
+        items = repo.list_by_client(client_id, status=status_enum, page=page, page_size=page_size)
+        total = repo.count_by_client(client_id, status=status_enum)
     return items, total
 
 

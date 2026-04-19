@@ -11,6 +11,7 @@ from app.signature_requests.services.messages import (
     SIGNATURE_REQUEST_CREATED_NOTE,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestType,
@@ -72,9 +73,11 @@ def create_request(
     content_hash = None
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
+    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
 
     req = repo.create(
         client_id=client_id,
+        client_record_id=client_record.id if client_record else None,
         business_id=business_id,
         created_by=created_by,
         request_type=req_type,

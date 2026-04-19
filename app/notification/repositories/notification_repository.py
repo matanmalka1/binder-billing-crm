@@ -26,6 +26,7 @@ class NotificationRepository:
         channel: NotificationChannel,
         recipient: str,
         content_snapshot: str,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,                      # OPTIONAL context
         binder_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
@@ -38,6 +39,7 @@ class NotificationRepository:
             )
         notification = Notification(
             client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             binder_id=binder_id,
             trigger=trigger,
@@ -95,6 +97,25 @@ class NotificationRepository:
     def count_by_client(self, client_id: int) -> int:
         return self.db.query(Notification).filter(Notification.client_id == client_id).count()
 
+    def list_by_client_record(
+        self,
+        client_record_id: int,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[Notification]:
+        offset = (page - 1) * page_size
+        return (
+            self.db.query(Notification)
+            .filter(Notification.client_record_id == client_record_id)
+            .order_by(Notification.created_at.desc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        return self.db.query(Notification).filter(Notification.client_record_id == client_record_id).count()
+
     # ── List by business (scoped view) ────────────────────────────────────────
 
     def list_by_business(
@@ -123,6 +144,7 @@ class NotificationRepository:
         page: int = 1,
         page_size: int = 20,
         client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> tuple[list[Notification], int]:
         """Return paginated notifications and total count.
@@ -131,7 +153,9 @@ class NotificationRepository:
         business_id narrows further to a specific business scope.
         """
         q = self.db.query(Notification)
-        if client_id is not None:
+        if client_record_id is not None:
+            q = q.filter(Notification.client_record_id == client_record_id)
+        elif client_id is not None:
             q = q.filter(Notification.client_id == client_id)
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)
@@ -148,10 +172,13 @@ class NotificationRepository:
         self,
         limit: int = 20,
         client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> list[Notification]:
         q = self.db.query(Notification)
-        if client_id is not None:
+        if client_record_id is not None:
+            q = q.filter(Notification.client_record_id == client_record_id)
+        elif client_id is not None:
             q = q.filter(Notification.client_id == client_id)
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)
@@ -173,12 +200,15 @@ class NotificationRepository:
     def mark_all_read(
         self,
         client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
         """Mark all unread notifications as read. Returns count updated."""
         now = utcnow()
         q = self.db.query(Notification).filter(Notification.is_read == False)  # noqa: E712
-        if client_id is not None:
+        if client_record_id is not None:
+            q = q.filter(Notification.client_record_id == client_record_id)
+        elif client_id is not None:
             q = q.filter(Notification.client_id == client_id)
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)
@@ -189,10 +219,13 @@ class NotificationRepository:
     def count_unread(
         self,
         client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
         q = self.db.query(Notification).filter(Notification.is_read == False)  # noqa: E712
-        if client_id is not None:
+        if client_record_id is not None:
+            q = q.filter(Notification.client_record_id == client_record_id)
+        elif client_id is not None:
             q = q.filter(Notification.client_id == client_id)
         if business_id is not None:
             q = q.filter(Notification.business_id == business_id)

@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
@@ -24,6 +25,9 @@ class PermanentDocumentActionService:
     def get_document_versions(
         self, client_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            return self.query_repo.get_all_versions_by_client_record(client_record.id, document_type, tax_year)
         return self.query_repo.get_all_versions_by_client(client_id, document_type, tax_year)
 
     def update_notes(self, document_id: int, notes: str) -> PermanentDocument:

@@ -82,7 +82,35 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents (HEAD)
+
+### 0017_backfill_client_record_id_to_permanent_documents
+- Data migration only.
+- Backfills `permanent_documents.client_record_id` from legacy `client_id`.
+
+### 0016_add_client_record_id_to_permanent_documents
+- Additive only. Adds `permanent_documents.client_record_id` (nullable FK → `client_records.id`).
+
+### 0015_add_client_record_id_to_binder_handovers
+- Additive only. Adds `binder_handovers.client_record_id` (nullable FK → `client_records.id`).
+
+### 0014_add_client_record_id_to_authority_contacts
+- Additive only. Adds `authority_contacts.client_record_id` (nullable FK → `client_records.id`).
+
+### 0013_add_client_record_id_to_signature_requests
+- Additive only. Adds `signature_requests.client_record_id` (nullable FK → `client_records.id`).
+
+### 0012_add_client_record_id_to_correspondence
+- Additive only. Adds `correspondence_entries.client_record_id` (nullable FK → `client_records.id`).
+
+### 0011_add_client_record_id_to_notifications
+- Additive only. Adds `notifications.client_record_id` (nullable FK → `client_records.id`).
+
+### 0010_add_client_record_id_to_charges
+- Additive only. Adds `charges.client_record_id` (nullable FK → `client_records.id`).
+
+### 0009_add_client_record_id_to_reminders
+- Additive only. Adds `reminders.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0008_backfill_client_record_ids_wave1
 - Data migration only.

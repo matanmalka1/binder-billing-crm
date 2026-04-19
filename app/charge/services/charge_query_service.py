@@ -6,6 +6,7 @@ from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeListStats, ChargeStatusStat, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 
@@ -45,20 +46,37 @@ class ChargeQueryService:
 
         Returns (items, total, business_name_map, office_client_number_map).
         """
-        items = self.charge_repo.list_charges(
-            client_id=client_id,
-            business_id=business_id,
-            status=status,
-            charge_type=charge_type,
-            page=page,
-            page_size=page_size,
-        )
-        total = self.charge_repo.count_charges(
-            client_id=client_id,
-            business_id=business_id,
-            status=status,
-            charge_type=charge_type,
-        )
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id) if client_id is not None else None
+        if client_record is not None:
+            items = self.charge_repo.list_charges_by_client_record(
+                client_record_id=client_record.id,
+                business_id=business_id,
+                status=status,
+                charge_type=charge_type,
+                page=page,
+                page_size=page_size,
+            )
+            total = self.charge_repo.count_charges_by_client_record(
+                client_record_id=client_record.id,
+                business_id=business_id,
+                status=status,
+                charge_type=charge_type,
+            )
+        else:
+            items = self.charge_repo.list_charges(
+                client_id=client_id,
+                business_id=business_id,
+                status=status,
+                charge_type=charge_type,
+                page=page,
+                page_size=page_size,
+            )
+            total = self.charge_repo.count_charges(
+                client_id=client_id,
+                business_id=business_id,
+                status=status,
+                charge_type=charge_type,
+            )
 
         business_ids = list({c.business_id for c in items if c.business_id is not None})
         businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
@@ -105,7 +123,12 @@ class ChargeQueryService:
             data["office_client_number"] = office_client_number_map.get(charge.id)
             return schema(**data)
 
-        raw = self.charge_repo.stats_by_status(client_id=client_id, charge_type=charge_type)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id) if client_id is not None else None
+        raw = self.charge_repo.stats_by_status(
+            client_id=client_id,
+            client_record_id=client_record.id if client_record else None,
+            charge_type=charge_type,
+        )
         def _stat(key: str) -> ChargeStatusStat:
             d = raw.get(key, {})
             return ChargeStatusStat(count=d.get("count", 0), amount=d.get("amount", "0"))

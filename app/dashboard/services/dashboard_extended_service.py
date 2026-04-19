@@ -8,6 +8,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.models.user import UserRole
 from app.dashboard.services.dashboard_extended_builders import (
     ready_attention_item,
@@ -27,6 +28,7 @@ class DashboardExtendedService:
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.business_repo = BusinessRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.charge_repo = ChargeRepository(db)
         self._cached_active_binders_with_businesses: Optional[list[tuple]] = None
 
@@ -42,9 +44,21 @@ class DashboardExtendedService:
             )
             client_ids = list({binder.client_id for binder in binders})
             businesses = self.business_repo.list_by_client_ids(client_ids)
+            legal_entity_by_client = {}
+            for client_id in client_ids:
+                record = self.client_record_repo.get_by_client_id(client_id)
+                if record is not None:
+                    legal_entity_by_client[client_id] = record.legal_entity_id
             business_map = {}
             for business in businesses:
-                business_map.setdefault(business.client_id, business)
+                key = business.client_id
+                legal_entity_id = getattr(business, "legal_entity_id", None)
+                if legal_entity_id is not None:
+                    for client_id, entity_id in legal_entity_by_client.items():
+                        if entity_id == legal_entity_id:
+                            key = client_id
+                            break
+                business_map.setdefault(key, business)
             self._cached_active_binders_with_businesses = [
                 (binder, business_map.get(binder.client_id))
                 for binder in binders

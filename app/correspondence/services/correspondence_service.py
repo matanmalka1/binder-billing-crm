@@ -10,6 +10,7 @@ from app.authority_contact.repositories.authority_contact_repository import Auth
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
 _FORBIDDEN_CONTACT = "CORRESPONDENCE.FORBIDDEN_CONTACT"
@@ -43,6 +44,10 @@ class CorrespondenceService:
                 f"עסק {business_id} לא נמצא",
                 "BUSINESS.NOT_FOUND",
             )
+
+    def _get_client_record_id(self, client_id: int) -> Optional[int]:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        return record.id if record else None
 
     def _assert_contact_belongs_to_client(self, contact_id: int, client_id: int) -> None:
         """
@@ -88,6 +93,7 @@ class CorrespondenceService:
 
         return self.repo.create(
             client_id=client_id,
+            client_record_id=self._get_client_record_id(client_id),
             business_id=business_id,
             correspondence_type=correspondence_type,
             subject=subject,
@@ -143,6 +149,19 @@ class CorrespondenceService:
         self._get_client_or_raise(client_id)
         if business_id is not None:
             self._assert_business_belongs_to_client(business_id, client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            return self.repo.list_by_client_record_paginated(
+                client_record.id,
+                business_id=business_id,
+                page=page,
+                page_size=page_size,
+                correspondence_type=correspondence_type,
+                contact_id=contact_id,
+                from_date=from_date,
+                to_date=to_date,
+                sort_dir=sort_dir,
+            )
         return self.repo.list_paginated(
             client_id=client_id,
             business_id=business_id,

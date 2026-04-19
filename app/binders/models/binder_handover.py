@@ -17,6 +17,7 @@ class BinderHandover(Base):
 
     # The client whose binders are being returned.
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
 
     # Name of the person who physically received the binders on the client side.
     received_by_name = Column(String, nullable=False)

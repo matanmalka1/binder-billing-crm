@@ -18,6 +18,7 @@ class ChargeRepository(BaseRepository):
     def create(
         self,
         client_id: int,
+        client_record_id: Optional[int],
         amount: float,
         charge_type: str,
         business_id: Optional[int] = None,
@@ -28,6 +29,7 @@ class ChargeRepository(BaseRepository):
         """Create new charge in draft status."""
         charge = Charge(
             client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             amount=amount,
             charge_type=charge_type,
@@ -108,6 +110,29 @@ class ChargeRepository(BaseRepository):
         query = query.order_by(Charge.created_at.desc())
         return self._paginate(query, page, page_size)
 
+    def list_charges_by_client_record(
+        self,
+        client_record_id: int,
+        business_id: Optional[int] = None,
+        business_ids: Optional[list[int]] = None,
+        status: Optional[str] = None,
+        charge_type: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[Charge]:
+        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None), Charge.client_record_id == client_record_id)
+        if business_id is not None:
+            query = query.filter(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                return []
+            query = query.filter(Charge.business_id.in_(business_ids))
+        if status:
+            query = query.filter(Charge.status == status)
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
+        return self._paginate(query.order_by(Charge.created_at.desc()), page, page_size)
+
     def count_charges(
         self,
         client_id: Optional[int] = None,
@@ -120,6 +145,27 @@ class ChargeRepository(BaseRepository):
         query = self._base_filter(client_id, business_id, business_ids, status, charge_type)
         if query is None:
             return 0
+        return query.count()
+
+    def count_charges_by_client_record(
+        self,
+        client_record_id: int,
+        business_id: Optional[int] = None,
+        business_ids: Optional[list[int]] = None,
+        status: Optional[str] = None,
+        charge_type: Optional[str] = None,
+    ) -> int:
+        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None), Charge.client_record_id == client_record_id)
+        if business_id is not None:
+            query = query.filter(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                return 0
+            query = query.filter(Charge.business_id.in_(business_ids))
+        if status:
+            query = query.filter(Charge.status == status)
+        if charge_type:
+            query = query.filter(Charge.charge_type == charge_type)
         return query.count()
 
     def update_status(
@@ -140,6 +186,7 @@ class ChargeRepository(BaseRepository):
     def stats_by_status(
         self,
         client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         charge_type: Optional[str] = None,
     ) -> dict[str, dict]:
         """Return count and total amount per status, ignoring status filter."""
@@ -148,7 +195,9 @@ class ChargeRepository(BaseRepository):
             self.db.query(Charge.status, func.count(Charge.id), func.sum(Charge.amount))
             .filter(Charge.deleted_at.is_(None))
         )
-        if client_id is not None:
+        if client_record_id is not None:
+            query = query.filter(Charge.client_record_id == client_record_id)
+        elif client_id is not None:
             query = query.filter(Charge.client_id == client_id)
         if charge_type:
             query = query.filter(Charge.charge_type == charge_type)

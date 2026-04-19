@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.search.schemas.search import DocumentSearchResult
 from app.search.services.document_search_service import DocumentSearchService
@@ -21,6 +22,7 @@ class SearchService:
     def __init__(self, db: Session):
         self.db = db
         self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.binder_repo = BinderRepository(db)
 
     def search(
