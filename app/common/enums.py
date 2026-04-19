@@ -31,4 +31,11 @@ class EntityType(str, PyEnum):
     EMPLOYEE    = "employee"
 
 
-__all__ = ["SubmissionMethod", "VatType", "EntityType"]
+class IdNumberType(str, PyEnum):
+    INDIVIDUAL  = "individual"   # ת"ז — 9 ספרות עם ספרת ביקורת
+    CORPORATION = "corporation"  # ח"פ — 9 ספרות
+    PASSPORT    = "passport"     # דרכון — לתושבי חוץ
+    OTHER       = "other"
+
+
+__all__ = ["SubmissionMethod", "VatType", "EntityType", "IdNumberType"]

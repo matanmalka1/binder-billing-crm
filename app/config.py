@@ -40,16 +40,20 @@ class Config:
         os.getenv("APP_ENV") or "development"
     )  # type: ignore[assignment]
     PORT: int = int(os.getenv("PORT", "8000"))
-    
+
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "sqlite:///./binder_crm_test.db" if APP_ENV == "test" else "sqlite:///./binder_crm.db"
+        (
+            "sqlite:///./binder_crm_test.db"
+            if APP_ENV == "test"
+            else "postgresql+psycopg2://postgres:postgres@localhost:5432/binder_crm"
+        ),
     )
 
     JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
     if not JWT_SECRET:
         raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
-    
+
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
     ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
 

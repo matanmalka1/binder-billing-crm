@@ -7,28 +7,54 @@
 - New migration filename convention: `<revision_id>_<description>.py` (Alembic revision id prefix).
 - After any SQLAlchemy model change:
   1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
-  2. Review the generated migration — fix any `sqlite_where`/`postgresql_where` strings to use `sa.text(...)`.
+  2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
 - The repository has advanced beyond the initial schema; keep this README in sync with the current head.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
+## Development database
+
+Development now targets local PostgreSQL, not SQLite.
+
+1. Start the DB:
+
+```bash
+docker compose up -d postgres
+```
+
+2. Wait for health:
+
+```bash
+docker compose ps
+```
+
+3. Run migrations:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+```
+
+Default local connection:
+
+```text
+postgresql+psycopg2://postgres:postgres@localhost:5432/binder_crm
+```
+
 ## Known autogenerate quirk — partial index `where` clauses
 
-Alembic autogenerate writes `sqlite_where='...'` as a plain string.
+Alembic autogenerate can still write `postgresql_where='...'` as a plain string.
 SQLAlchemy 2.x requires a `ClauseElement`, so you must wrap it manually:
 
 ```python
 # Generated (broken):
 op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
     unique=True,
-    sqlite_where='deleted_at IS NULL',
     postgresql_where='deleted_at IS NULL')
 
 # Fixed:
 op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
     unique=True,
-    sqlite_where=sa.text('deleted_at IS NULL'),
     postgresql_where=sa.text('deleted_at IS NULL'))
 ```
 
@@ -56,7 +82,16 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models (HEAD)
+
+### 95cd4a1266d8_layer1_phase1_new_identity_models
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 95cd4a1266d8`
+- What it does:
+  Adds `persons`, `legal_entities`, `client_records`, and `person_legal_entity_links`.
+- Notes:
+  Uses PostgreSQL-ready constraints and partial unique indexes. The migration was hand-written after autogenerate missed the new tables.
 
 ### 0010_binder_domain_alignment
 
@@ -104,7 +139,7 @@ Notes:
   binder_intake_materials, binder_status_logs, annual_report_* sub-tables.
   Important notes:
   - After autogenerate, manually wrap all partial-index `where` args with `sa.text(...)`.
-  - SQLite and PostgreSQL both supported via dual `sqlite_where` / `postgresql_where` args.
+  - Older migrations may still include dual `sqlite_where` / `postgresql_where` args from the previous SQLite-backed development setup.
 
 ## Daily commands
 
@@ -140,5 +175,6 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision
 ## Environment notes
 
 - `alembic/env.py` reads `DATABASE_URL` from app config.
+- `alembic/env.py` auto-imports all `app.*.models.*` modules before autogenerate.
 - Always set `APP_ENV` and `ENV_FILE` so `JWT_SECRET` and other required settings are loaded.
 - Production startup runs migrations first: `alembic upgrade head && gunicorn ...`

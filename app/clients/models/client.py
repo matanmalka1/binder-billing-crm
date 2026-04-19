@@ -6,14 +6,11 @@ from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.common.enums import EntityType, VatType
+from app.common.enums import EntityType, VatType, IdNumberType
 from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures EntityNote is registered with SQLAlchemy before Client relationships are configured
 
-class IdNumberType(str, PyEnum):
-    INDIVIDUAL   = "individual"   # ת"ז — 9 ספרות עם ספרת ביקורת
-    CORPORATION  = "corporation"  # ח"פ — 9 ספרות
-    PASSPORT     = "passport"     # דרכון — לתושבי חוץ
-    OTHER        = "other"
+# IdNumberType re-exported from app.common.enums — import from there in new code.
+IdNumberType = IdNumberType  # noqa: PLW0127
 
 class ClientStatus(str, PyEnum):
     ACTIVE = "active"
