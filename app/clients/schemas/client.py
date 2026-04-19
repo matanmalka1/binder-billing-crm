@@ -9,6 +9,7 @@ from app.common.enums import EntityType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.utils.id_validation import validate_israeli_id_checksum
 from app.businesses.schemas.business_schemas import BusinessCreateRequest, BusinessResponse
+from app.clients.schemas.impact import ClientCreationImpactResponse
 
 CREATE_CLIENT_REQUIRED_LABELS = {
     "full_name": "שם מלא",
@@ -177,6 +178,7 @@ class ClientListResponse(BaseModel):
 class CreateClientResponse(BaseModel):
     client: ClientResponse
     business: BusinessResponse
+    impact: ClientCreationImpactResponse
 
 
 # ─── Conflict info ────────────────────────────────────────────────────────────

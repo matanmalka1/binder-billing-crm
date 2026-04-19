@@ -15,8 +15,10 @@ from app.clients.schemas.client import (
     ActiveClientSummary,
     DeletedClientSummary,
 )
+from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
+from app.clients.services.impact_preview_service import compute_creation_impact
 from app.core.exceptions import ConflictError
 from app.clients.api.client_enrichment import enrich_single, enrich_list
 
@@ -48,6 +50,22 @@ def _raise_client_conflict(service: ClientService, id_number: str, error: Confli
                 ],
             ).model_dump(mode="json"),
         },
+    )
+
+
+@router.post(
+    "/preview-impact",
+    response_model=ClientCreationImpactResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def preview_creation_impact(
+    request: CreateClientRequest,
+    _db: DBSession,
+):
+    """מחזיר תצוגה מקדימה של הישויות שייווצרו אוטומטית עם פתיחת הלקוח. לא כותב לבסיס הנתונים."""
+    return compute_creation_impact(
+        entity_type=request.client.entity_type,
+        vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
 
 
@@ -91,9 +109,14 @@ def create_client(
             raise
         _raise_client_conflict(service.client_service, request.client.id_number, e)
 
+    impact = compute_creation_impact(
+        entity_type=request.client.entity_type,
+        vat_reporting_frequency=request.client.vat_reporting_frequency,
+    )
     return CreateClientResponse(
         client=enrich_single(ClientResponse.model_validate(client), db),
         business=business,
+        impact=impact,
     )
 
 
