@@ -22,6 +22,7 @@ Comments:
 - Schemas: `app/clients/schemas/client.py`
 - Repository: `app/clients/repositories/client_repository.py`
 - Service: `app/clients/services/client_service.py`
+- Create-client orchestration: `app/clients/services/create_client_service.py`
 - Query service: `app/clients/services/client_query_service.py`
 - API: `app/clients/api/clients.py`
 - Enrichment (active binder number): `app/clients/api/client_enrichment.py`
@@ -57,7 +58,7 @@ Comments:
 
 Routers are mounted with `/api/v1` in `app/router_registry.py`, so clients endpoints are under `/api/v1/clients`.
 
-- `POST /api/v1/clients` (`ADVISOR`, `SECRETARY`) - create client
+- `POST /api/v1/clients` (`ADVISOR` only) - create client and first business together
 - `GET /api/v1/clients` (`ADVISOR`, `SECRETARY`) - list clients (`search`, `page`, `page_size<=100`)
 - `GET /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) - get by id
 - `PATCH /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) - partial update
@@ -73,7 +74,8 @@ Excel endpoints:
 
 Comments:
 - Import is partial-success by design: valid rows are created, invalid rows are returned in the `errors` array.
-- Import currently creates identity-only clients and does not auto-create businesses.
+- Import requires `Full Name`, `Business Name`, and `ID Number`; valid rows create a client and first business together.
+- Identity-only client creation is not exposed through the API.
 
 ## Error Codes
 

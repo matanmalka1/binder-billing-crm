@@ -3,16 +3,30 @@ from app.businesses.models.business import Business
 from app.clients.repositories.client_repository import ClientRepository
 
 
+class _CreateResponse:
+    def __init__(self, response):
+        self._response = response
+        self.status_code = response.status_code
+
+    def json(self):
+        payload = self._response.json()
+        return payload["client"] if self.status_code == 201 else payload
+
+
 def _create_client(client, headers, *, full_name="Client A", id_number="700000003"):
-    return client.post(
+    response = client.post(
         "/api/v1/clients",
         headers=headers,
         json={
-            "full_name": full_name,
-            "id_number": id_number,
-            "id_number_type": "corporation",
+            "client": {
+                "full_name": full_name,
+                "id_number": id_number,
+                "id_number_type": "corporation",
+            },
+            "business": {"business_name": f"{full_name} Business"},
         },
     )
+    return _CreateResponse(response)
 
 
 def test_get_and_patch_client(client, advisor_headers):
@@ -131,9 +145,12 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
         "/api/v1/clients",
         headers=advisor_headers,
         json={
-            "full_name": "Checksum Invalid",
-            "id_number": "123456789",
-            "id_number_type": "individual",
+            "client": {
+                "full_name": "Checksum Invalid",
+                "id_number": "123456789",
+                "id_number_type": "individual",
+            },
+            "business": {"business_name": "Checksum Invalid Business"},
         },
     )
 
@@ -145,9 +162,12 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
         "/api/v1/clients",
         headers=advisor_headers,
         json={
-            "full_name": "Bad Corp",
-            "id_number": "700000001",
-            "id_number_type": "corporation",
+            "client": {
+                "full_name": "Bad Corp",
+                "id_number": "700000001",
+                "id_number_type": "corporation",
+            },
+            "business": {"business_name": "Bad Corp Business"},
         },
     )
 

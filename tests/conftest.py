@@ -5,7 +5,6 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy import event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 import app.main as main_module
@@ -21,22 +20,6 @@ from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.client import Client
 from app.businesses.models.business import Business, BusinessStatus
-
-
-@event.listens_for(Client, "after_insert")
-def _create_default_business_for_client(mapper, connection, target):
-    """Keep legacy tests working: every seeded client gets a matching business."""
-    # Avoid forcing id=client.id, which can collide with already-created businesses
-    # in suites that manually seed business rows between client inserts.
-    connection.execute(
-        Business.__table__.insert().values(
-            client_id=target.id,
-            business_name=target.full_name,
-            status=BusinessStatus.ACTIVE,
-            opened_at=date.today(),
-        )
-    )
-
 
 
 @pytest.fixture(scope="function")
@@ -59,6 +42,39 @@ def test_db():
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="function")
+def create_client_with_business(test_db):
+    """Create a test client with an explicit default business."""
+    def _create(
+        *,
+        full_name: str = "Seeded Test Client",
+        id_number: str = "SEEDED-001",
+        business_name: str | None = None,
+        opened_at: date | None = None,
+        **client_fields,
+    ):
+        client = Client(
+            full_name=full_name,
+            id_number=id_number,
+            **client_fields,
+        )
+        test_db.add(client)
+        test_db.flush()
+        business = Business(
+            client_id=client.id,
+            business_name=business_name or full_name,
+            status=BusinessStatus.ACTIVE,
+            opened_at=opened_at or date.today(),
+        )
+        test_db.add(business)
+        test_db.commit()
+        test_db.refresh(client)
+        test_db.refresh(business)
+        return client, business
+
+    return _create
 
 
 @pytest.fixture(scope="function")
@@ -143,6 +159,15 @@ def vat_client(test_db):
         id_number="123456789",
     )
     test_db.add(client)
+    test_db.flush()
+    test_db.add(
+        Business(
+            client_id=client.id,
+            business_name=client.full_name,
+            status=BusinessStatus.ACTIVE,
+            opened_at=date.today(),
+        )
+    )
     test_db.commit()
     test_db.refresh(client)
     return client

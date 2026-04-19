@@ -88,8 +88,8 @@ class ClientUpdateRequest(BaseModel):
     accountant_name: Optional[str] = None
 
 
-class ClientOnboardingCreateRequest(BaseModel):
-    """יצירת לקוח ועסק ראשון באותה זרימת onboarding."""
+class CreateClientRequest(BaseModel):
+    """יצירת לקוח ועסק ראשון."""
     client: ClientCreateRequest
     business: BusinessCreateRequest
 
@@ -134,7 +134,7 @@ class ClientListResponse(BaseModel):
     total: int
 
 
-class ClientOnboardingResponse(BaseModel):
+class CreateClientResponse(BaseModel):
     client: ClientResponse
     business: BusinessResponse
 

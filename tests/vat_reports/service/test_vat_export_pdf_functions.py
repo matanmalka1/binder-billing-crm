@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -31,9 +31,17 @@ def _user(test_db) -> User:
 def _business(test_db) -> Business:
     client = Client(full_name="VAT Export Client", id_number="VEP001")
     test_db.add(client)
+    test_db.flush()
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        opened_at=date(2026, 1, 1),
+    )
+    test_db.add(business)
     test_db.commit()
     test_db.refresh(client)
-    return test_db.get(Business, client.id)
+    test_db.refresh(business)
+    return business
 
 
 def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatch):

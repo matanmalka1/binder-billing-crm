@@ -37,8 +37,8 @@ def test_template_download(client, advisor_headers):
 
 def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers):
     payload = _workbook_bytes([
-        ["full_name", "id_number", "phone", "email"],
-        ["Excel User", "710000001", "0500000000", "excel@example.com"],
+        ["full_name", "business_name", "id_number", "phone", "email"],
+        ["Excel User", "Excel User Business", "710000001", "0500000000", "excel@example.com"],
     ])
 
     denied = client.post(
@@ -62,10 +62,10 @@ def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_he
 
 def test_import_clients_excel_returns_row_errors(client, advisor_headers):
     payload = _workbook_bytes([
-        ["full_name", "id_number", "phone", "email"],
-        ["", "", None, None],
-        ["Duplicate One", "720000001", None, None],
-        ["Duplicate Two", "720000001", None, None],
+        ["full_name", "business_name", "id_number", "phone", "email"],
+        ["", "", "", None, None],
+        ["Duplicate One", "Duplicate One Business", "720000001", None, None],
+        ["Duplicate Two", "Duplicate Two Business", "720000001", None, None],
     ])
 
     response = client.post(
@@ -83,7 +83,7 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers):
 
 
 def test_import_clients_excel_rejects_large_content_length(client, advisor_headers):
-    payload = _workbook_bytes([["full_name", "id_number"], ["Big", "730000001"]])
+    payload = _workbook_bytes([["full_name", "business_name", "id_number"], ["Big", "Big Business", "730000001"]])
 
     response = client.post(
         "/api/v1/clients/import",
@@ -152,7 +152,10 @@ def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_heade
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr("builtins.__import__", _import)
-    payload = _workbook_bytes([["full_name", "id_number"], ["Openpyxl Missing", "740000001"]])
+    payload = _workbook_bytes([
+        ["full_name", "business_name", "id_number"],
+        ["Openpyxl Missing", "Openpyxl Missing Business", "740000001"],
+    ])
 
     response = client.post(
         "/api/v1/clients/import",

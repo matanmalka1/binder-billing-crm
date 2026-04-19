@@ -7,8 +7,11 @@ from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.constants import EXCEL_MEDIA_TYPE, MAX_CLIENT_IMPORT_UPLOAD_SIZE
 from app.clients.schemas.client import ClientImportResponse
-from app.clients.services.client_service import ClientService
 from app.clients.services.client_excel_service import ClientExcelService
+from app.clients.services.create_client_service import CreateClientService
+from app.clients.services.client_service import ClientService
+
+MAX_UPLOAD_SIZE = MAX_CLIENT_IMPORT_UPLOAD_SIZE
 
 router = APIRouter(
     prefix="/clients",
@@ -68,7 +71,7 @@ async def import_clients_from_excel(
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
     content_length = request.headers.get("Content-Length")
-    if content_length is not None and int(content_length) > MAX_CLIENT_IMPORT_UPLOAD_SIZE:
+    if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",
@@ -82,8 +85,8 @@ async def import_clients_from_excel(
             detail="הספרייה openpyxl נדרשת לצורך ייבוא לקוחות",
         ) from exc
 
-    contents = await file.read(MAX_CLIENT_IMPORT_UPLOAD_SIZE + 1)
-    if len(contents) > MAX_CLIENT_IMPORT_UPLOAD_SIZE:
+    contents = await file.read(MAX_UPLOAD_SIZE + 1)
+    if len(contents) > MAX_UPLOAD_SIZE:
         raise HTTPException(
             status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="הקובץ חורג ממגבלת הגודל של 10MB",
@@ -97,8 +100,8 @@ async def import_clients_from_excel(
         )
 
     total_rows = max(workbook.active.max_row - 1, 0)
-    client_service = ClientService(db)
+    create_client_service = CreateClientService(db)
     excel_service = ClientExcelService(db)
-    created, errors = excel_service.import_clients_from_excel(workbook, client_service, actor_id=user.id)
+    created, errors = excel_service.import_clients_from_excel(workbook, create_client_service, actor_id=user.id)
 
     return {"created": created, "total_rows": total_rows, "errors": errors}

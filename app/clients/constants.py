@@ -17,12 +17,13 @@ CLIENT_EXPORT_COLUMNS = [
 
 CLIENT_TEMPLATE_COLUMNS = [
     ("full_name", "Full Name"),
+    ("business_name", "Business Name"),
     ("id_number", "ID Number"),
     ("phone", "Phone (optional)"),
     ("email", "Email (optional)"),
 ]
 
-CLIENT_TEMPLATE_SAMPLE_ROW = ["יוסי כהן", "123456789", "0501234567", "yossi@example.com"]
+CLIENT_TEMPLATE_SAMPLE_ROW = ["יוסי כהן", "יוסי כהן ייעוץ", "123456789", "0501234567", "yossi@example.com"]
 CLIENT_EXCEL_SHEET_TITLE = "Clients"
 CLIENT_EXCEL_FREEZE_PANES = "A2"
 

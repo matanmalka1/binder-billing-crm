@@ -34,9 +34,17 @@ def _business(db) -> Business:
     idx = next(_client_seq)
     client = Client(full_name=f"VAT Work Repo Client {idx}", id_number=f"VWR{idx:03d}")
     db.add(client)
+    db.flush()
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        opened_at=date(2026, 1, 1),
+    )
+    db.add(business)
     db.commit()
     db.refresh(client)
-    return db.get(Business, client.id)
+    db.refresh(business)
+    return business
 
 
 def test_status_listing_totals_and_audit_trail(test_db):

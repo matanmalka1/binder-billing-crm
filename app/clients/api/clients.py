@@ -7,15 +7,15 @@ from app.users.models.user import UserRole
 from app.clients.models.client import ClientStatus
 from app.clients.schemas.client import (
     ClientConflictInfo,
-    ClientCreateRequest,
     ClientListResponse,
-    ClientOnboardingCreateRequest,
-    ClientOnboardingResponse,
+    CreateClientRequest,
+    CreateClientResponse,
     ClientResponse,
     ClientUpdateRequest,
     ActiveClientSummary,
     DeletedClientSummary,
 )
+from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
 from app.core.exceptions import ConflictError
 from app.clients.api.client_enrichment import enrich_single, enrich_list
@@ -51,63 +51,21 @@ def _raise_client_conflict(service: ClientService, id_number: str, error: Confli
     )
 
 
-@router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
-def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser):
-    """
-    יצירת לקוח חדש (רשומת זהות בלבד).
-
-    מקרי קונפליקט אפשריים:
-    - CLIENT.CONFLICT (409): לקוח פעיל עם אותו ת.ז. כבר קיים.
-      התגובה כוללת active_clients עם רשימת הלקוחות הפעילים.
-    - CLIENT.DELETED_EXISTS (409): לקוח עם אותו ת.ז. קיים אך נמחק.
-      התגובה כוללת deleted_clients עם רשימת הלקוחות המחוקים.
-
-    לאחר יצירת לקוח, יש ליצור עסק דרך POST /clients/{client_id}/businesses.
-    """
-    service = ClientService(db)
-    try:
-        client = service.create_client(
-            full_name=request.full_name,
-            id_number=request.id_number,
-            id_number_type=request.id_number_type,
-            entity_type=request.entity_type,
-            phone=request.phone,
-            email=str(request.email) if request.email else None,
-            address_street=request.address_street,
-            address_building_number=request.address_building_number,
-            address_apartment=request.address_apartment,
-            address_city=request.address_city,
-            address_zip_code=request.address_zip_code,
-            vat_reporting_frequency=request.vat_reporting_frequency,
-            vat_exempt_ceiling=request.vat_exempt_ceiling,
-            advance_rate=request.advance_rate,
-            accountant_name=request.accountant_name,
-            office_client_number=request.office_client_number,
-            actor_id=user.id,
-        )
-        return ClientResponse.model_validate(client)
-    except ConflictError as e:
-        if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
-            raise
-
-        _raise_client_conflict(service, request.id_number, e)
-
-
 @router.post(
-    "/onboarding",
-    response_model=ClientOnboardingResponse,
+    "",
+    response_model=CreateClientResponse,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def create_client_onboarding(
-    request: ClientOnboardingCreateRequest,
+def create_client(
+    request: CreateClientRequest,
     db: DBSession,
     user: CurrentUser,
 ):
     """Create a reporting entity and its first business in one request."""
-    service = ClientService(db)
+    service = CreateClientService(db)
     try:
-        client, business = service.create_client_with_initial_business(
+        client, business = service.create_client(
             full_name=request.client.full_name,
             id_number=request.client.id_number,
             id_number_type=request.client.id_number_type,
@@ -132,9 +90,9 @@ def create_client_onboarding(
     except ConflictError as e:
         if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
             raise
-        _raise_client_conflict(service, request.client.id_number, e)
+        _raise_client_conflict(service.client_service, request.client.id_number, e)
 
-    return ClientOnboardingResponse(
+    return CreateClientResponse(
         client=ClientResponse.model_validate(client),
         business=business,
     )

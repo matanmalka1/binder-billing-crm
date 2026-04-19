@@ -4,6 +4,7 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_excel_service import ClientExcelService
 
 
@@ -11,10 +12,10 @@ def test_client_excel_import_skips_blank_and_collects_errors(test_db):
     service = ClientExcelService(test_db)
     wb = Workbook()
     ws = wb.active
-    ws.append(["full_name", "id_number", "phone", "email"])
-    ws.append([None, None, None, None])
-    ws.append(["", "", "", ""])
-    ws.append(["Good Name", "ID1", "", ""])
+    ws.append(["full_name", "business_name", "id_number", "phone", "email"])
+    ws.append([None, None, None, None, None])
+    ws.append(["", "", "", "", ""])
+    ws.append(["Good Name", "Good Business", "ID1", "", ""])
 
     class _ClientSvc:
         def create_client(self, **kwargs):
@@ -32,19 +33,42 @@ def test_client_excel_import_collects_required_field_errors(test_db):
     service = ClientExcelService(test_db)
     wb = Workbook()
     ws = wb.active
-    ws.append(["full_name", "id_number", "phone", "email"])
-    ws.append(["Missing ID", "", "", ""])
-    ws.append(["", "760000001", "", ""])
+    ws.append(["full_name", "business_name", "id_number", "phone", "email"])
+    ws.append(["Missing ID", "Missing ID Business", "", "", ""])
+    ws.append(["Missing Business", "", "760000001", "", ""])
+    ws.append(["", "Missing Name Business", "760000002", "", ""])
 
     class _ClientSvc:
         def create_client(self, **_kwargs):
-            raise AssertionError("create_client should not be called for invalid rows")
+            raise AssertionError("create should not be called for invalid rows")
 
     created, errors = service.import_clients_from_excel(wb, _ClientSvc(), actor_id=1)
 
     assert created == 0
-    assert len(errors) == 2
-    assert {err["row"] for err in errors} == {2, 3}
+    assert len(errors) == 3
+    assert {err["row"] for err in errors} == {2, 3, 4}
+
+
+def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
+    service = ClientExcelService(test_db)
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["full_name", "business_name", "id_number", "phone", "email"])
+    ws.append(["Half Created", "Half Created Business", "ROLLBACK-1", "", ""])
+
+    class _ClientSvc:
+        def create_client(self, **kwargs):
+            ClientRepository(test_db).create(
+                full_name=kwargs["full_name"],
+                id_number=kwargs["id_number"],
+            )
+            raise RuntimeError("business failed")
+
+    created, errors = service.import_clients_from_excel(wb, _ClientSvc(), actor_id=1)
+
+    assert created == 0
+    assert len(errors) == 1
+    assert test_db.query(Client).filter(Client.id_number == "ROLLBACK-1").count() == 0
 
 
 def test_client_excel_export_and_template_generate_files(test_db):
@@ -77,6 +101,8 @@ def test_client_excel_export_and_template_generate_files(test_db):
     template_ws = template_wb.active
     assert template_ws.cell(row=1, column=1).value == "Full Name"
     assert template_ws.cell(row=2, column=1).value == "יוסי כהן"
+    assert template_ws.cell(row=1, column=2).value == "Business Name"
+    assert template_ws.cell(row=2, column=2).value == "יוסי כהן ייעוץ"
 
 
 def test_client_excel_create_workbook_importerror(monkeypatch, test_db):

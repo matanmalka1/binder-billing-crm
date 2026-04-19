@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.clients.models.client import Client
@@ -25,9 +27,17 @@ def _user(test_db) -> User:
 def _business(test_db) -> Business:
     client = Client(full_name="VAT Summary Client", id_number="VAT-SUM-1")
     test_db.add(client)
+    test_db.flush()
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        opened_at=date(2026, 1, 1),
+    )
+    test_db.add(business)
     test_db.commit()
     test_db.refresh(client)
-    return test_db.get(Business, client.id)
+    test_db.refresh(business)
+    return business
 
 
 def test_vat_client_summary_repository_periods_and_annual_aggregates(test_db):
@@ -73,9 +83,16 @@ def test_vat_work_item_repository_list_by_business(test_db):
 
     client2 = Client(full_name="VAT Summary Client 2", id_number="VAT-SUM-2")
     test_db.add(client2)
+    test_db.flush()
+    b2 = Business(
+        client_id=client2.id,
+        business_name=client2.full_name,
+        opened_at=date(2026, 1, 1),
+    )
+    test_db.add(b2)
     test_db.commit()
     test_db.refresh(client2)
-    b2 = test_db.get(Business, client2.id)
+    test_db.refresh(b2)
 
     repo = VatWorkItemRepository(test_db)
     a = repo.create(b1.id, "2026-03", VatType.MONTHLY, user.id)

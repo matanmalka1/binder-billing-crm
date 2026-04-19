@@ -15,13 +15,14 @@ from app.clients.constants import (
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 if TYPE_CHECKING:
-    from app.clients.services.client_service import ClientService
+    from app.clients.services.create_client_service import CreateClientService
 
 
 class ClientExcelService:
     """Helper for creating client Excel exports and templates."""
 
-    def __init__(self, _db: Session):
+    def __init__(self, db: Session):
+        self.db = db
         self.export_dir = Path(tempfile.gettempdir()) / "exports" / "clients"
         self.export_dir.mkdir(parents=True, exist_ok=True)
 
@@ -67,10 +68,10 @@ class ClientExcelService:
     def import_clients_from_excel(
         self,
         workbook,
-        client_service: "ClientService",
+        create_client_service: "CreateClientService",
         actor_id: int | None = None,
     ) -> tuple[int, list[dict]]:
-        """Parse workbook and create clients. Returns (created_count, errors)."""
+        """Parse workbook and create clients with their first business."""
         worksheet = workbook.active
         created = 0
         errors: list[dict] = []
@@ -80,24 +81,29 @@ class ClientExcelService:
                 continue
 
             full_name = str(row[0]).strip() if len(row) > 0 and row[0] is not None else ""
-            id_number = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
-            phone = str(row[2]).strip() if len(row) > 2 and row[2] is not None else None
-            email = str(row[3]).strip() if len(row) > 3 and row[3] is not None else None
+            business_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
+            id_number = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
+            phone = str(row[3]).strip() if len(row) > 3 and row[3] is not None else None
+            email = str(row[4]).strip() if len(row) > 4 and row[4] is not None else None
 
-            if not (full_name and id_number):
-                errors.append({"row": row_index, "error": "שם מלא ומספר מזהה הם שדות חובה"})
+            if not (full_name and business_name and id_number):
+                errors.append({"row": row_index, "error": "שם מלא, שם עסק ומספר מזהה הם שדות חובה"})
                 continue
 
+            savepoint = self.db.begin_nested()
             try:
-                client_service.create_client(
+                create_client_service.create_client(
                     full_name=full_name,
+                    business_name=business_name,
                     id_number=id_number,
                     phone=phone,
                     email=email,
                     actor_id=actor_id,
                 )
+                savepoint.commit()
                 created += 1
             except Exception as exc:
+                savepoint.rollback()
                 errors.append({"row": row_index, "error": str(exc)})
 
         return created, errors
