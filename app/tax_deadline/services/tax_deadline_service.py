@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.utils.time_utils import utcnow
@@ -36,6 +37,9 @@ class TaxDeadlineService:
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record_id = client_record.id if client_record else None
+
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = due_date.year - 1
             report = AnnualReportRepository(self.db).get_by_client_year(client_id, tax_year)
@@ -47,6 +51,7 @@ class TaxDeadlineService:
 
         deadline = self.deadline_repo.create(
             client_id=client_id,
+            client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
@@ -163,4 +168,7 @@ class TaxDeadlineService:
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """Get deadlines for a specific client."""
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record:
+            return self.deadline_repo.list_by_client_record(client_record.id, status, deadline_type)
         return self.deadline_repo.list_by_client(client_id, status, deadline_type)

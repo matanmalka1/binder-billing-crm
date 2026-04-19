@@ -19,6 +19,7 @@ from app.binders.repositories.binder_intake_material_repository import BinderInt
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 
@@ -61,13 +62,19 @@ class BinderIntakeService:
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
         ClientService(self.db).get_client_or_raise(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record_id = client_record.id if client_record else None
 
         businesses = self.business_repo.list_by_client(client_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
 
-        active_binder = self.binder_repo.get_active_by_client(client_id)
+        active_binder = (
+            self.binder_repo.get_active_by_client_record(client_record_id)
+            if client_record_id is not None
+            else self.binder_repo.get_active_by_client(client_id)
+        )
         existing = self._resolve_existing_binder_for_materials(
             client_id=client_id,
             active_binder=active_binder,
@@ -93,6 +100,7 @@ class BinderIntakeService:
             seq = self.binder_repo.count_all_by_client(client_id) + 1
             binder = self.binder_repo.create(
                 client_id=client_id,
+                client_record_id=client_record_id,
                 binder_number=self._build_binder_number(client.office_client_number, seq),
                 period_start=None,
                 created_by=received_by,
@@ -184,6 +192,7 @@ class BinderIntakeService:
 
         older_binder = self._find_matching_older_binder(
             client_id=client_id,
+            client_record_id=active_binder.client_record_id,
             active_binder_id=active_binder.id,
             min_period_start=min_period_start,
             max_period_end=max_period_end,
@@ -194,6 +203,7 @@ class BinderIntakeService:
         self,
         *,
         client_id: int,
+        client_record_id: Optional[int],
         active_binder_id: int,
         min_period_start: date,
         max_period_end: date,
@@ -205,7 +215,12 @@ class BinderIntakeService:
         RETURNED binders are excluded because they should not receive fresh intake rows.
         """
         candidates: list[Binder] = []
-        for binder in self.binder_repo.list_by_client(client_id):
+        binders = (
+            self.binder_repo.list_by_client_record(client_record_id)
+            if client_record_id is not None
+            else self.binder_repo.list_by_client(client_id)
+        )
+        for binder in binders:
             if binder.id == active_binder_id:
                 continue
             if binder.status != BinderStatus.CLOSED_IN_OFFICE:

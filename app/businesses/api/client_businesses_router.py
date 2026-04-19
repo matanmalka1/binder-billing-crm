@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy.orm import Session
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -9,7 +10,19 @@ from app.businesses.schemas.business_schemas import (
     ClientBusinessesResponse,
 )
 from app.businesses.services.business_service import BusinessService
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.models.business import Business
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
 from app.actions.action_contracts import get_business_actions
+
+
+def _assert_business_belongs_to_client(db: Session, business: Business, client_id: int) -> None:
+    record = ClientRecordRepository(db).get_by_client_id(client_id)
+    if record is not None:
+        assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
+    elif business.client_id != client_id:
+        raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")
 
 
 def _to_business_response(business, user_role: UserRole) -> BusinessResponse:
@@ -66,9 +79,7 @@ def list_client_businesses(
 def get_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
     service = BusinessService(db)
     business = service.get_business_or_raise(business_id)
-    if business.client_id != client_id:
-        from app.core.exceptions import NotFoundError
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    _assert_business_belongs_to_client(db, business, client_id)
     return _to_business_response(business, user.role)
 
 
@@ -98,9 +109,7 @@ def update_business(
 def delete_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
     service = BusinessService(db)
     business = service.get_business_or_raise(business_id)
-    if business.client_id != client_id:
-        from app.core.exceptions import NotFoundError
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    _assert_business_belongs_to_client(db, business, client_id)
     service.delete_business(business_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -114,10 +123,10 @@ def restore_business(client_id: int, business_id: int, db: DBSession, user: Curr
     service = BusinessService(db)
     # IDOR check: verify business belongs to client before restore
     from app.businesses.repositories.business_repository import BusinessRepository
-    from app.core.exceptions import NotFoundError
     repo = BusinessRepository(db)
     existing = repo.get_by_id_including_deleted(business_id)
-    if not existing or existing.client_id != client_id:
+    if not existing:
         raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    _assert_business_belongs_to_client(db, existing, client_id)
     business = service.restore_business(business_id, actor_id=user.id, actor_role=user.role)
     return _to_business_response(business, user.role)

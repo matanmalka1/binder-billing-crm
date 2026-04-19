@@ -69,11 +69,37 @@ class AnnualReportReportRepository(BaseRepository):
         )
         return self._paginate(q, page, page_size)
 
+    def list_by_client_record(self, client_record_id: int, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
+        q = (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.client_record_id == client_record_id, AnnualReport.deleted_at.is_(None))
+            .order_by(AnnualReport.tax_year.desc())
+        )
+        return self._paginate(q, page, page_size)
+
     def count_by_client(self, client_id: int) -> int:
         return (
             self.db.query(AnnualReport)
             .filter(AnnualReport.client_id == client_id, AnnualReport.deleted_at.is_(None))
             .count()
+        )
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        return (
+            self.db.query(AnnualReport)
+            .filter(AnnualReport.client_record_id == client_record_id, AnnualReport.deleted_at.is_(None))
+            .count()
+        )
+
+    def get_by_client_record_year(self, client_record_id: int, tax_year: int) -> Optional[AnnualReport]:
+        return (
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.client_record_id == client_record_id,
+                AnnualReport.tax_year == tax_year,
+                AnnualReport.deleted_at.is_(None),
+            )
+            .first()
         )
 
     def list_by_status(

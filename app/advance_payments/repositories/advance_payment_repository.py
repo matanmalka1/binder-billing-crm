@@ -32,9 +32,11 @@ class AdvancePaymentRepository(BaseRepository):
         payment_method=None,
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
+        client_record_id: Optional[int] = None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
             client_id=client_id,
+            client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
             due_date=due_date,
@@ -79,6 +81,30 @@ class AdvancePaymentRepository(BaseRepository):
             self.db.query(AdvancePayment)
             .filter(
                 AdvancePayment.client_id == client_id,
+                AdvancePayment.period.like(f"{year}-%"),
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .order_by(AdvancePayment.period.asc())
+        )
+        if status:
+            normalized = [s.value.lower() for s in status]
+            query = query.filter(advance_payment_status_text_expr().in_(normalized))
+        total = query.count()
+        items = self._paginate(query, page, page_size)
+        return items, total
+
+    def list_by_client_record_year(
+        self,
+        client_record_id: int,
+        year: int,
+        status: Optional[list[AdvancePaymentStatus]] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> tuple[list[AdvancePayment], int]:
+        query = (
+            self.db.query(AdvancePayment)
+            .filter(
+                AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )

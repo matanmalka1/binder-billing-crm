@@ -14,6 +14,7 @@ from app.advance_payments.services.advance_payment_calculator import (
 from app.advance_payments.services.constants import ADVANCE_PAYMENT_VAT_RATE
 from app.clients.models.client import ClientStatus
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
@@ -52,6 +53,11 @@ class AdvancePaymentService:
         if year is None:
             year = utcnow().year
         self._get_client_or_raise(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record:
+            return self.repo.list_by_client_record_year(
+                client_record.id, year, status=status, page=page, page_size=page_size
+            )
         return self.repo.list_by_client_year(
             client_id, year, status=status, page=page, page_size=page_size
         )
@@ -76,8 +82,11 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record_id = client_record.id if client_record else None
         return self.repo.create(
             client_id=client_id,
+            client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
             due_date=due_date,

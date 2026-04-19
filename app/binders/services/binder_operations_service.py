@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 
 
@@ -33,16 +34,21 @@ class BinderOperationsService:
         page_size: int = 20,
     ) -> tuple[list[Binder], int]:
         """Get all binders for a client with pagination."""
-        items = self.repo.list_by_client_paginated(
-            client_id=client_id,
-            page=page,
-            page_size=page_size,
-        )
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            binders = self.repo.list_by_client_record(client_record.id)
+            total = len(binders)
+            offset = (page - 1) * page_size
+            return binders[offset: offset + page_size], total
+        items = self.repo.list_by_client_paginated(client_id=client_id, page=page, page_size=page_size)
         total = self.repo.count_by_client(client_id)
         return items, total
 
     def get_active_binder_for_client(self, client_id: int) -> Optional["Binder"]:
         """Return the active IN_OFFICE binder for a client, or None."""
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record is not None:
+            return self.repo.get_active_by_client_record(client_record.id)
         return self.repo.get_active_by_client(client_id)
 
     def map_active_binders_for_clients(self, client_ids: list[int]) -> dict[int, "Binder"]:

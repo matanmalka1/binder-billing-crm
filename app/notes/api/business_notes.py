@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 from app.notes.schemas.entity_note import (
     EntityNoteCreateRequest,
@@ -22,9 +24,13 @@ _ENTITY_TYPE = "business"
 
 
 def _assert_business_belongs_to_client(db, business_id: int, client_id: int) -> None:
-    repo = BusinessRepository(db)
-    business = repo.get_by_id(business_id)
-    if not business or business.client_id != client_id:
+    business = BusinessRepository(db).get_by_id(business_id)
+    if not business:
+        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    record = ClientRecordRepository(db).get_by_client_id(client_id)
+    if record is not None:
+        assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
+    elif business.client_id != client_id:
         raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
 
 

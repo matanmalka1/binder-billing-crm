@@ -34,6 +34,12 @@ class VatWorkItemWriteRepository:
     def list_by_client(self, client_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_client(client_id, limit=limit)
 
+    def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
+        return self._query.list_by_client_record(client_record_id, limit=limit)
+
+    def get_by_client_record_period(self, client_record_id: int, period: str) -> Optional[VatWorkItem]:
+        return self._query.get_by_client_record_period(client_record_id, period)
+
     def list_by_business_activity(self, business_activity_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_business_activity(business_activity_id, limit=limit)
 
@@ -67,11 +73,13 @@ class VatWorkItemWriteRepository:
         status: VatWorkItemStatus = VatWorkItemStatus.MATERIAL_RECEIVED,
         pending_materials_note: Optional[str] = None,
         assigned_to: Optional[int] = None,
+        client_record_id: Optional[int] = None,
     ) -> VatWorkItem:
         if client_id is None or period is None or period_type is None or created_by is None:
             raise TypeError("client_id, period, period_type, and created_by are required")
         item = VatWorkItem(
             client_id=client_id,
+            client_record_id=client_record_id,
             period=period,
             period_type=period_type,
             created_by=created_by,

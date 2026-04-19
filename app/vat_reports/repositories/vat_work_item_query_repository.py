@@ -53,6 +53,29 @@ class VatWorkItemQueryRepository:
             .all()
         )
 
+    def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
+        return (
+            self.db.query(VatWorkItem)
+            .filter(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .order_by(VatWorkItem.period.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_by_client_record_period(self, client_record_id: int, period: str) -> Optional[VatWorkItem]:
+        return (
+            self.db.query(VatWorkItem)
+            .filter(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.period == period,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .first()
+        )
+
     def list_by_business_activity(self, business_activity_id: int, limit: int = 200) -> list[VatWorkItem]:
         """List work items that have at least one invoice tagged to this business activity."""
         from app.vat_reports.models.vat_invoice import VatInvoice

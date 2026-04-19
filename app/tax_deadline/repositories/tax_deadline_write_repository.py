@@ -27,9 +27,11 @@ class TaxDeadlineWriteRepository:
         period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
+        client_record_id: Optional[int] = None,
     ) -> TaxDeadline:
         deadline = TaxDeadline(
             client_id=client_id,
+            client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,

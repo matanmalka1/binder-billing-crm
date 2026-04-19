@@ -54,6 +54,7 @@ class TaxDeadline(Base):
 
     id        = Column(Integer, primary_key=True, autoincrement=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
 
     # ── Deadline identity ─────────────────────────────────────────────────────
     deadline_type = Column(pg_enum(DeadlineType), nullable=False)

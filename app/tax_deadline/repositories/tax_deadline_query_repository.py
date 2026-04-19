@@ -150,6 +150,35 @@ class TaxDeadlineQueryRepository:
             query = query.filter(TaxDeadline.deadline_type == deadline_type)
         return query.order_by(TaxDeadline.due_date.asc()).all()
 
+    def list_by_client_record(
+        self,
+        client_record_id: int,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
+    ) -> list[TaxDeadline]:
+        """List non-deleted deadlines for a client_record with optional filters."""
+        query = (
+            self.db.query(TaxDeadline)
+            .filter(
+                TaxDeadline.deleted_at.is_(None),
+                TaxDeadline.client_record_id == client_record_id,
+            )
+        )
+        if status:
+            query = query.filter(TaxDeadline.status == status)
+        if deadline_type:
+            query = query.filter(TaxDeadline.deadline_type == deadline_type)
+        if due_from is not None:
+            query = query.filter(TaxDeadline.due_date >= due_from)
+        if due_to is not None:
+            query = query.filter(TaxDeadline.due_date <= due_to)
+        if period is not None:
+            query = query.filter(TaxDeadline.period == period)
+        return query.order_by(TaxDeadline.due_date.asc()).all()
+
     def list_by_client(
         self,
         client_id: int,

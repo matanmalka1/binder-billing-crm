@@ -10,6 +10,7 @@ from app.annual_reports.schemas.annual_report_responses import (
     StatusHistoryResponse,
 )
 from app.core.exceptions import ConflictError
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from .base import AnnualReportBaseService
 from .messages import REPORT_AMEND_ONLY_SUBMITTED_ERROR
 
@@ -22,8 +23,13 @@ class AnnualReportQueryService(AnnualReportBaseService):
         return self._to_responses([report])[0]
 
     def get_client_reports(self, client_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
-        reports = self.repo.list_by_client(client_id, page=page, page_size=page_size)
-        total = self.repo.count_by_client(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if client_record:
+            reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
+            total = self.repo.count_by_client_record(client_record.id)
+        else:
+            reports = self.repo.list_by_client(client_id, page=page, page_size=page_size)
+            total = self.repo.count_by_client(client_id)
         return self._to_responses(reports), total
 
     def list_reports(

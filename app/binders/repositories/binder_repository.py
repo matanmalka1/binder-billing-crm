@@ -27,10 +27,12 @@ class BinderRepository(BaseRepository):
         period_start: Optional[date],
         created_by: int,
         notes: Optional[str] = None,
+        client_record_id: Optional[int] = None,
     ) -> Binder:
         """Create new binder."""
         binder = Binder(
             client_id=client_id,
+            client_record_id=client_record_id,
             binder_number=binder_number,
             period_start=period_start,
             created_by=created_by,
@@ -189,6 +191,31 @@ class BinderRepository(BaseRepository):
                 descending=False,
             )
             .all()
+        )
+
+    def list_by_client_record(self, client_record_id: int) -> list[Binder]:
+        """Return all non-deleted binders for a client_record (all statuses)."""
+        return (
+            self._order_by_period_start(
+                self.db.query(Binder).filter(
+                    Binder.client_record_id == client_record_id,
+                    Binder.deleted_at.is_(None),
+                ),
+                descending=False,
+            )
+            .all()
+        )
+
+    def get_active_by_client_record(self, client_record_id: int) -> Optional[Binder]:
+        """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""
+        return (
+            self.db.query(Binder)
+            .filter(
+                Binder.client_record_id == client_record_id,
+                Binder.status == BinderStatus.IN_OFFICE,
+                Binder.deleted_at.is_(None),
+            )
+            .first()
         )
 
     def list_by_client_paginated(

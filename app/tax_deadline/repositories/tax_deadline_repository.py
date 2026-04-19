@@ -92,6 +92,24 @@ class TaxDeadlineRepository:
     ) -> list[TaxDeadline]:
         return self._q.list_by_client_ids(client_ids, status=status, deadline_type=deadline_type)
 
+    def list_by_client_record(
+        self,
+        client_record_id: int,
+        status: Optional[str] = None,
+        deadline_type: Optional[DeadlineType] = None,
+        due_from: Optional[date] = None,
+        due_to: Optional[date] = None,
+        period: Optional[str] = None,
+    ) -> list[TaxDeadline]:
+        return self._q.list_by_client_record(
+            client_record_id,
+            status=status,
+            deadline_type=deadline_type,
+            due_from=due_from,
+            due_to=due_to,
+            period=period,
+        )
+
     def list_by_client(
         self,
         client_id: int,
@@ -128,6 +146,7 @@ class TaxDeadlineRepository:
         period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
+        client_record_id: Optional[int] = None,
     ) -> TaxDeadline:
         return self._w.create(
             client_id=client_id,
@@ -136,6 +155,7 @@ class TaxDeadlineRepository:
             period=period,
             payment_amount=payment_amount,
             description=description,
+            client_record_id=client_record_id,
         )
 
     def update_status(

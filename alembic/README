@@ -82,7 +82,30 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 (HEAD)
+
+### 0008_backfill_client_record_ids_wave1
+- Data migration only.
+- Backfills `annual_reports.client_record_id`, `vat_work_items.client_record_id`,
+  `tax_deadlines.client_record_id`, `binders.client_record_id`, and
+  `advance_payments.client_record_id` from legacy `client_id`.
+- Backfills `businesses.legal_entity_id` from legacy `client_id`.
+- Mapping assumption: `client_records.id == clients.id` for existing seed data.
+
+### 0007_add_client_record_id_to_advance_payments
+- Additive only. Adds `advance_payments.client_record_id` (nullable FK → `client_records.id`).
+
+### 0006_add_client_record_id_to_binders
+- Additive only. Adds `binders.client_record_id` (nullable FK → `client_records.id`).
+
+### 0005_add_client_record_id_to_tax_deadlines
+- Additive only. Adds `tax_deadlines.client_record_id` (nullable FK → `client_records.id`).
+
+### 0004_add_client_record_id_to_vat_work_items
+- Additive only. Adds `vat_work_items.client_record_id` (nullable FK → `client_records.id`).
+
+### 0003_add_client_record_id_to_annual_reports
+- Additive only. Adds `annual_reports.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0002_add_legal_entity_id_to_businesses
 
