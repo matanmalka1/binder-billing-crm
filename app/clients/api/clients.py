@@ -9,6 +9,8 @@ from app.clients.schemas.client import (
     ClientConflictInfo,
     ClientCreateRequest,
     ClientListResponse,
+    ClientOnboardingCreateRequest,
+    ClientOnboardingResponse,
     ClientResponse,
     ClientUpdateRequest,
     ActiveClientSummary,
@@ -26,6 +28,28 @@ router = APIRouter(
 
 
 # ─── Create ───────────────────────────────────────────────────────────────────
+
+def _raise_client_conflict(service: ClientService, id_number: str, error: ConflictError):
+    conflict_info = service.get_conflict_info(id_number)
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "error": error.code,
+            "detail": str(error),
+            "conflict": ClientConflictInfo(
+                id_number=id_number,
+                active_clients=[
+                    ActiveClientSummary.model_validate(c)
+                    for c in conflict_info["active_clients"]
+                ],
+                deleted_clients=[
+                    DeletedClientSummary.model_validate(c)
+                    for c in conflict_info["deleted_clients"]
+                ],
+            ).model_dump(mode="json"),
+        },
+    )
+
 
 @router.post("", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser):
@@ -66,25 +90,54 @@ def create_client(request: ClientCreateRequest, db: DBSession, user: CurrentUser
         if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
             raise
 
-        conflict_info = service.get_conflict_info(request.id_number)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
-                "error": e.code,
-                "detail": str(e),
-                "conflict": ClientConflictInfo(
-                    id_number=request.id_number,
-                    active_clients=[
-                        ActiveClientSummary.model_validate(c)
-                        for c in conflict_info["active_clients"]
-                    ],
-                    deleted_clients=[
-                        DeletedClientSummary.model_validate(c)
-                        for c in conflict_info["deleted_clients"]
-                    ],
-                ).model_dump(mode="json"),
-            },
+        _raise_client_conflict(service, request.id_number, e)
+
+
+@router.post(
+    "/onboarding",
+    response_model=ClientOnboardingResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def create_client_onboarding(
+    request: ClientOnboardingCreateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    """Create a reporting entity and its first business in one request."""
+    service = ClientService(db)
+    try:
+        client, business = service.create_client_with_initial_business(
+            full_name=request.client.full_name,
+            id_number=request.client.id_number,
+            id_number_type=request.client.id_number_type,
+            entity_type=request.client.entity_type,
+            phone=request.client.phone,
+            email=str(request.client.email) if request.client.email else None,
+            address_street=request.client.address_street,
+            address_building_number=request.client.address_building_number,
+            address_apartment=request.client.address_apartment,
+            address_city=request.client.address_city,
+            address_zip_code=request.client.address_zip_code,
+            vat_reporting_frequency=request.client.vat_reporting_frequency,
+            vat_exempt_ceiling=request.client.vat_exempt_ceiling,
+            advance_rate=request.client.advance_rate,
+            accountant_name=request.client.accountant_name,
+            office_client_number=request.client.office_client_number,
+            business_name=request.business.business_name,
+            business_opened_at=request.business.opened_at,
+            business_notes=request.business.notes,
+            actor_id=user.id,
         )
+    except ConflictError as e:
+        if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
+            raise
+        _raise_client_conflict(service, request.client.id_number, e)
+
+    return ClientOnboardingResponse(
+        client=ClientResponse.model_validate(client),
+        business=business,
+    )
 
 
 # ─── Read ─────────────────────────────────────────────────────────────────────

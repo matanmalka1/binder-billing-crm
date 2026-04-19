@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.businesses.models.business import BusinessStatus
 from app.core.api_types import ApiDateTime
@@ -16,8 +16,16 @@ class BusinessCreateRequest(BaseModel):
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
     opened_at: Optional[date] = None
-    business_name: Optional[str] = None
+    business_name: str = Field(..., min_length=1, max_length=100)
     notes: Optional[str] = None
+
+    @field_validator("business_name")
+    @classmethod
+    def normalize_business_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("יש להזין שם עסק")
+        return value
 
 
 class BusinessUpdateRequest(BaseModel):

@@ -8,6 +8,7 @@ from app.clients.models.client import ClientStatus, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.utils.id_validation import validate_israeli_id_checksum
+from app.businesses.schemas.business_schemas import BusinessCreateRequest, BusinessResponse
 
 
 # ─── Requests ────────────────────────────────────────────────────────────────
@@ -87,6 +88,12 @@ class ClientUpdateRequest(BaseModel):
     accountant_name: Optional[str] = None
 
 
+class ClientOnboardingCreateRequest(BaseModel):
+    """יצירת לקוח ועסק ראשון באותה זרימת onboarding."""
+    client: ClientCreateRequest
+    business: BusinessCreateRequest
+
+
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 class ClientResponse(BaseModel):
@@ -125,6 +132,11 @@ class ClientListResponse(BaseModel):
     page: int
     page_size: int
     total: int
+
+
+class ClientOnboardingResponse(BaseModel):
+    client: ClientResponse
+    business: BusinessResponse
 
 
 # ─── Conflict info ────────────────────────────────────────────────────────────

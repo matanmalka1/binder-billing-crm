@@ -98,6 +98,71 @@ class ClientService:
             )
         return client
 
+    def create_client_with_initial_business(
+        self,
+        *,
+        full_name: str,
+        id_number: str,
+        business_name: str,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
+        entity_type: Optional[EntityType] = None,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        address_street: Optional[str] = None,
+        address_building_number: Optional[str] = None,
+        address_apartment: Optional[str] = None,
+        address_city: Optional[str] = None,
+        address_zip_code: Optional[str] = None,
+        vat_reporting_frequency: Optional[VatType] = None,
+        vat_exempt_ceiling=None,
+        advance_rate=None,
+        accountant_name: Optional[str] = None,
+        office_client_number: Optional[int] = None,
+        business_opened_at=None,
+        business_notes: Optional[str] = None,
+        actor_id: Optional[int] = None,
+    ):
+        """
+        Create the reporting entity and its first business activity together.
+
+        The session is not committed here; FastAPI's DB dependency commits on
+        clean exit and rolls back both records if any part of onboarding fails.
+        """
+        normalized_business_name = business_name.strip()
+        if not normalized_business_name:
+            raise ValueError("יש להזין שם עסק")
+
+        client = self.create_client(
+            full_name=full_name,
+            id_number=id_number,
+            id_number_type=id_number_type,
+            entity_type=entity_type,
+            phone=phone,
+            email=email,
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
+            vat_reporting_frequency=vat_reporting_frequency,
+            vat_exempt_ceiling=vat_exempt_ceiling,
+            advance_rate=advance_rate,
+            accountant_name=accountant_name,
+            office_client_number=office_client_number,
+            actor_id=actor_id,
+        )
+
+        from app.businesses.services.business_service import BusinessService
+
+        business = BusinessService(self.db).create_business(
+            client_id=client.id,
+            opened_at=business_opened_at,
+            business_name=normalized_business_name,
+            notes=business_notes,
+            actor_id=actor_id,
+        )
+        return client, business
+
     def get_client_or_raise(self, client_id: int) -> Client:
         client = self.client_repo.get_by_id(client_id)
         if not client:
