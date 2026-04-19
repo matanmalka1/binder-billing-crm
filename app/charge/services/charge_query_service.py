@@ -19,14 +19,17 @@ class ChargeQueryService:
         self.business_repo = BusinessRepository(db)
         self.client_repo = ClientRepository(db)
 
-    def enrich_business_name(self, charge: Charge) -> str | None:
-        """Return the operational business name or fallback to the client name."""
+    def enrich_charge_context(self, charge: Charge) -> tuple[str | None, int | None]:
+        """Return display name and office client number for a single charge."""
         if charge.business_id is not None:
             businesses = self.business_repo.list_by_ids([charge.business_id])
             if businesses:
-                return businesses[0].full_name
+                client = self.client_repo.get_by_id(charge.client_id)
+                return businesses[0].full_name, client.office_client_number if client else None
         client = self.client_repo.get_by_id(charge.client_id)
-        return client.full_name if client else None
+        if client:
+            return client.full_name, client.office_client_number
+        return None, None
 
     def list_charges(
         self,
@@ -36,12 +39,11 @@ class ChargeQueryService:
         charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[Charge], int, dict[int, str]]:
+    ) -> tuple[list[Charge], int, dict[int, str], dict[int, int | None]]:
         """
         List charges with pagination.
 
-        Returns (items, total, business_name_map) where business_name_map maps
-        charge_id → display name for all charges in the page.
+        Returns (items, total, business_name_map, office_client_number_map).
         """
         items = self.charge_repo.list_charges(
             client_id=client_id,
@@ -64,12 +66,17 @@ class ChargeQueryService:
         client_ids = list({c.client_id for c in items})
         clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
         client_name_by_id = {c.id: c.full_name for c in clients}
+        office_client_number_by_id = {c.id: c.office_client_number for c in clients}
         business_name_map: dict[int, str] = {
             c.id: business_name_by_id.get(c.business_id) or client_name_by_id.get(c.client_id)
             for c in items
         }
+        office_client_number_map: dict[int, int | None] = {
+            c.id: office_client_number_by_id.get(c.client_id)
+            for c in items
+        }
 
-        return items, total, business_name_map
+        return items, total, business_name_map, office_client_number_map
 
     def list_charges_for_role(
         self,
@@ -82,7 +89,7 @@ class ChargeQueryService:
         page_size: int = 20,
     ) -> ChargeListResponse:
         """List charges serialized and role-shaped in one call."""
-        items, total, business_name_map = self.list_charges(
+        items, total, business_name_map, office_client_number_map = self.list_charges(
             business_id=business_id,
             client_id=client_id,
             status=status,
@@ -95,6 +102,7 @@ class ChargeQueryService:
         def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
             data = schema.model_validate(charge).model_dump()
             data["business_name"] = business_name_map.get(charge.id)
+            data["office_client_number"] = office_client_number_map.get(charge.id)
             return schema(**data)
 
         return ChargeListResponse(

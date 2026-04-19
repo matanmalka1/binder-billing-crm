@@ -183,6 +183,18 @@ class TaxDeadlineQueryService:
         clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
         return {c.id: c.full_name for c in clients}
 
+    def build_client_context_map(self, deadlines: list[TaxDeadline]) -> dict[int, dict[str, str | int | None]]:
+        """Return client display context keyed by client_id for the given deadlines."""
+        client_ids = list({d.client_id for d in deadlines})
+        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        return {
+            c.id: {
+                "full_name": c.full_name,
+                "office_client_number": c.office_client_number,
+            }
+            for c in clients
+        }
+
     def get_urgent_deadlines_summary(
         self,
         reference_date: Optional[date] = None,

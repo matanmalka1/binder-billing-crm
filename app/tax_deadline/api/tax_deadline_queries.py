@@ -25,11 +25,13 @@ router = APIRouter(
 def _build_response(
     deadline,
     business_name: Optional[str] = None,
+    office_client_number: Optional[int] = None,
     user_role: UserRole | str | None = None,
 ) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
     if business_name is not None:
         r.business_name = business_name
+    r.office_client_number = office_client_number
     r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
     return r
 
@@ -63,13 +65,14 @@ def list_tax_deadlines(
         due_from=due_from_date, due_to=due_to_date, period=period,
     )
 
-    client_name_map = service.build_client_name_map(paginated)
+    client_context_map = service.build_client_context_map(paginated)
 
     return TaxDeadlineListResponse(
         items=[
             _build_response(
                 d,
-                business_name=client_name_map.get(d.client_id),
+                business_name=client_context_map.get(d.client_id, {}).get("full_name"),
+                office_client_number=client_context_map.get(d.client_id, {}).get("office_client_number"),
                 user_role=user.role,
             )
             for d in paginated
@@ -99,7 +102,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     summary = service.get_urgent_deadlines_summary()
 
     urgent_deadlines = [item["deadline"] for item in summary["urgent"]]
-    client_name_map = service.build_client_name_map(urgent_deadlines)
+    client_context_map = service.build_client_context_map(urgent_deadlines)
 
     urgent_items = []
     for item in summary["urgent"]:
@@ -108,7 +111,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
             DeadlineUrgentItem(
                 id=deadline.id,
                 client_id=deadline.client_id,
-                business_name=client_name_map.get(deadline.client_id) or "לא ידוע",
+                business_name=client_context_map.get(deadline.client_id, {}).get("full_name") or "לא ידוע",
                 deadline_type=deadline.deadline_type,
                 due_date=deadline.due_date,
                 urgency=item["urgency"],
@@ -117,11 +120,12 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
             )
         )
 
-    upcoming_client_name_map = service.build_client_name_map(summary["upcoming"])
+    upcoming_client_context_map = service.build_client_context_map(summary["upcoming"])
     upcoming = [
         _build_response(
             d,
-            business_name=upcoming_client_name_map.get(d.client_id),
+            business_name=upcoming_client_context_map.get(d.client_id, {}).get("full_name"),
+            office_client_number=upcoming_client_context_map.get(d.client_id, {}).get("office_client_number"),
             user_role=user.role,
         )
         for d in summary["upcoming"]

@@ -34,7 +34,9 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         actor_id=user.id,
     )
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
+    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
+    data["business_name"] = business_name
+    data["office_client_number"] = office_client_number
     return ChargeResponse(**data)
 
 
@@ -47,7 +49,9 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Issue a draft charge (ADVISOR only)."""
     charge = BillingService(db).issue_charge(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
+    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
+    data["business_name"] = business_name
+    data["office_client_number"] = office_client_number
     return ChargeResponse(**data)
 
 
@@ -60,7 +64,9 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     """Mark issued charge as paid (ADVISOR only)."""
     charge = BillingService(db).mark_charge_paid(charge_id, actor_id=user.id)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
+    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
+    data["business_name"] = business_name
+    data["office_client_number"] = office_client_number
     return ChargeResponse(**data)
 
 
@@ -73,7 +79,9 @@ def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: Cha
     """Cancel a charge (ADVISOR only)."""
     charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = ChargeQueryService(db).enrich_business_name(charge)
+    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
+    data["business_name"] = business_name
+    data["office_client_number"] = office_client_number
     return ChargeResponse(**data)
 
 
@@ -111,15 +119,17 @@ def list_charges(
 def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Get charge by ID (authenticated users)."""
     charge = BillingService(db).get_charge(charge_id)
-    client_name = ChargeQueryService(db).enrich_business_name(charge)
+    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
 
     if user.role == UserRole.SECRETARY:
         data = ChargeResponseSecretary.model_validate(charge).model_dump()
-        data["business_name"] = client_name
+        data["business_name"] = business_name
+        data["office_client_number"] = office_client_number
         return ChargeResponseSecretary(**data)
 
     data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = client_name
+    data["business_name"] = business_name
+    data["office_client_number"] = office_client_number
     return ChargeResponse(**data)
 
 
