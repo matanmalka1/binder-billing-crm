@@ -11,6 +11,7 @@ class BinderDetailResponse(BaseModel):
     id: int
     client_id: int
     client_name: Optional[str] = None
+    client_id_number: Optional[str] = None
     binder_number: str
     period_start: Optional[date] = None
     period_end: Optional[date] = None

@@ -65,6 +65,7 @@ class BinderListService:
         *,
         reference_date: Optional[date] = None,
         client_name: Optional[str] = None,
+        client_id_number: Optional[str] = None,
     ) -> BinderResponse:
         ref_date = reference_date or date.today()
         response = BinderResponse.model_validate(binder)
@@ -73,6 +74,7 @@ class BinderListService:
         )
         response.available_actions = get_binder_actions(binder)
         response.client_name = client_name
+        response.client_id_number = client_id_number
         return response
 
     def get_binder_with_client_name(self, binder_id: int) -> Optional[BinderResponse]:
@@ -84,6 +86,7 @@ class BinderListService:
             binder,
             reference_date=date.today(),
             client_name=client.full_name if client else None,
+            client_id_number=client.id_number if client else None,
         )
 
     def list_binders_enriched(
@@ -117,6 +120,7 @@ class BinderListService:
         client_ids = list({binder.client_id for binder in binders})
         clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
         client_name_map = {c.id: c.full_name for c in clients}
+        client_id_number_map = {c.id: c.id_number for c in clients}
 
         filtered_binders: list[tuple[Binder, Optional[str]]] = []
         for binder in binders:
@@ -146,6 +150,7 @@ class BinderListService:
                     binder,
                     reference_date=ref_date,
                     client_name=current_client_name,
+                    client_id_number=client_id_number_map.get(binder.client_id),
                 )
             )
 

@@ -67,6 +67,7 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     return serialize_enriched_work_item(
         enriched["item"],
         name_map=enriched["name_map"],
+        id_number_map=enriched["id_number_map"],
         status_map=enriched["status_map"],
         user_map=enriched["user_map"],
     )
@@ -85,6 +86,7 @@ def list_client_work_items(client_id: int, db: DBSession, current_user: CurrentU
         serialize_enriched_work_item(
             i,
             name_map=enriched["name_map"],
+            id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
         )
@@ -117,6 +119,7 @@ def list_work_items(
         serialize_enriched_work_item(
             i,
             name_map=enriched["name_map"],
+            id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
         )

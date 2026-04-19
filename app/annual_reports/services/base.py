@@ -41,6 +41,7 @@ class AnnualReportBaseService:
             client = clients.get(r.client_id)
             if client:
                 obj.client_name = client.full_name
+                obj.client_id_number = client.id_number
                 obj.business_name = client.full_name
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
             result.append(obj)

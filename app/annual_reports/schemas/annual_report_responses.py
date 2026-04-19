@@ -21,6 +21,7 @@ class AnnualReportResponse(BaseModel):
     id: int
     client_id: int
     client_name: Optional[str] = None
+    client_id_number: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
     client_type: ClientAnnualFilingType
@@ -132,6 +133,7 @@ class AnnualReportKanbanItemResponse(BaseModel):
     id: int
     client_id: int
     client_name: Optional[str] = None
+    client_id_number: Optional[str] = None
     business_name: Optional[str] = None
     tax_year: int
     days_until_due: Optional[int] = None

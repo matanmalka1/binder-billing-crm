@@ -48,6 +48,7 @@ class BinderResponse(BaseModel):
     id: int
     client_id: int
     client_name: Optional[str] = None        # enriched by service
+    client_id_number: Optional[str] = None   # enriched by service
     binder_number: str
     period_start: Optional[date] = None
     period_end: Optional[date] = None
