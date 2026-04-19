@@ -71,7 +71,7 @@ class BinderListService:
         ref_date = reference_date or date.today()
         response = BinderResponse.model_validate(binder)
         response.days_in_office = (
-            (ref_date - binder.period_start).days if binder.period_start is not None else None
+            max(0, (ref_date - binder.period_start).days) if binder.period_start is not None else None
         )
         response.available_actions = get_binder_actions(binder)
         response.office_client_number = office_client_number

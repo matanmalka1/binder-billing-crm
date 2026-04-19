@@ -130,8 +130,9 @@ class BinderIntakeService:
                 description=mat.get("description"),
             )
 
-        # Derive period_start from first material if this is a new binder and period not yet set.
-        if is_new_binder and binder.period_start is None and materials:
+        # Backfill period_start from the first structured material whenever the binder
+        # still lacks a derived period window, including legacy existing binders.
+        if binder.period_start is None and materials:
             first = materials[0]
             py = first.get("period_year")
             pm = first.get("period_month_start")

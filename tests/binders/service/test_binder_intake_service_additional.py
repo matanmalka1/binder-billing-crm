@@ -91,6 +91,35 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     assert is_new is False
 
 
+def test_receive_backfills_period_start_for_existing_binder_without_period(test_db, test_user):
+    client = _client(test_db, "BI-SVC-BACKFILL-001", office_client_number=307)
+    _business(test_db, client.id)
+    existing = Binder(
+        client_id=client.id,
+        binder_number="307/1",
+        period_start=None,
+        created_by=test_user.id,
+        status=BinderStatus.IN_OFFICE,
+    )
+    test_db.add(existing)
+    test_db.commit()
+    test_db.refresh(existing)
+
+    service = BinderIntakeService(test_db)
+    binder, intake, is_new = service.receive(
+        client_id=client.id,
+        received_at=date.today(),
+        received_by=test_user.id,
+        notes="backfill period start",
+        materials=_materials(year=2026, month=4),
+    )
+
+    assert binder.id == existing.id
+    assert intake.binder_id == existing.id
+    assert is_new is False
+    assert binder.period_start == date(2026, 4, 1)
+
+
 def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=303)
     _business(test_db, client.id)

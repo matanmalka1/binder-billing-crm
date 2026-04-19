@@ -74,7 +74,7 @@ class BinderOperationsService:
 
         # days_in_office is only defined once the binder has a derived period_start.
         days_in_office = (
-            (ref_date - binder.period_start).days if binder.period_start is not None else None
+            max(0, (ref_date - binder.period_start).days) if binder.period_start is not None else None
         )
 
         return {
