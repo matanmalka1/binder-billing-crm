@@ -106,6 +106,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
     test_db.add(reminder)
 
     notification = Notification(
+        client_id=business.client_id,
         business_id=business.id,
         trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
         channel=NotificationChannel.EMAIL,
@@ -143,6 +144,7 @@ def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
     for _ in range(510):
         test_db.add(
             Notification(
+                client_id=business.client_id,
                 business_id=business.id,
                 trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
                 channel=NotificationChannel.EMAIL,

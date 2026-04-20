@@ -5,20 +5,37 @@ path and correctly enforce state guards.
 Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy) and invalid-state handling only.
 """
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
 
+from app.businesses.models.business import Business
+from app.clients.models.client import Client
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.signature_request_service import SignatureRequestService
 
 
-def _create_draft_request(db, business_id=1, user_id=1):
+def _business(db) -> Business:
+    client = Client(full_name="Signature Lock Client", id_number="999999998")
+    db.add(client)
+    db.flush()
+    business = Business(client_id=client.id, business_name="Signature Lock Business", opened_at=date(2026, 1, 1))
+    db.add(business)
+    db.commit()
+    db.refresh(business)
+    return business
+
+
+def _create_draft_request(db, user_id=1):
+    business = _business(db)
     repo = SignatureRequestRepository(db)
     return repo.create(
-        business_id=business_id,
+        client_id=business.client_id,
+        client_record_id=business.client_id,
+        business_id=business.id,
         created_by=user_id,
         request_type=SignatureRequestType.CUSTOM,
         title="Test Request",

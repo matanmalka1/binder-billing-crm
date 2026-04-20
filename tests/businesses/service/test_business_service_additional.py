@@ -79,10 +79,6 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(mon
         list_by_client=lambda _client_id, **_kwargs: [],
         create=_create,
     )
-    monkeypatch.setattr(
-        "app.businesses.services.business_service.generate_client_obligations",
-        lambda *_args, **_kwargs: None,
-    )
 
     with patch("app.businesses.services.business_service.date") as mock_date:
         mock_date.today.return_value = date(2026, 4, 9)

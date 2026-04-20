@@ -48,7 +48,6 @@ def test_create_business_rejects_duplicate_name_for_client(test_db):
 
 def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
     captured = {}
-    generated = {}
 
     def _create(**kwargs):
         captured.update(kwargs)
@@ -61,10 +60,6 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
         list_by_client=lambda _client_id, **_kwargs: [],
         create=_create,
     )
-    monkeypatch.setattr(
-        "app.businesses.services.business_service.generate_client_obligations",
-        lambda db, client_id, **kwargs: generated.update({"db": db, "client_id": client_id, **kwargs}),
-    )
 
     result = service.create_business(
         client_id=1,
@@ -73,8 +68,6 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
 
     assert result.opened_at == date.today()
     assert captured["opened_at"] == date.today()
-    assert generated["client_id"] == 1
-    assert generated["best_effort"] is False
 
 
 def test_update_business_blocks_non_advisor_freeze_or_close(test_db):

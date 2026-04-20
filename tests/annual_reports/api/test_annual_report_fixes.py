@@ -71,7 +71,7 @@ def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor
         "/api/v1/annual-reports",
         headers=advisor_headers,
         json={
-            "business_id": c.id,
+            "client_id": c.id,
             "tax_year": 2024,
             "client_type": "individual",
             "deadline_type": "standard",
@@ -91,7 +91,7 @@ def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_heade
         "/api/v1/annual-reports",
         headers=advisor_headers,
         json={
-            "business_id": c.id,
+            "client_id": c.id,
             "tax_year": 2026,
             "client_type": "individual",
             "deadline_type": "standard",
@@ -111,7 +111,7 @@ def _create_report(client, headers, db_client_id: int, tax_year: int):
         "/api/v1/annual-reports",
         headers=headers,
         json={
-            "business_id": db_client_id,
+            "client_id": db_client_id,
             "tax_year": tax_year,
             "client_type": "individual",
             "deadline_type": "standard",
@@ -175,12 +175,9 @@ def test_list_reports_sort_by_tax_year_with_filter(client, test_db, advisor_head
     _create_report(client, advisor_headers, c.id, 2025)
     _create_report(client, advisor_headers, c2.id, 2025)
 
-    resp = client.get(
-        "/api/v1/annual-reports?tax_year=2025&sort_by=business_id&order=asc",
-        headers=advisor_headers,
-    )
+    resp = client.get("/api/v1/annual-reports?tax_year=2025&sort_by=client_id&order=asc", headers=advisor_headers)
     assert resp.status_code == 200
     items = resp.json()["items"]
     assert all(item["tax_year"] == 2025 for item in items)
-    client_ids = [item["business_id"] for item in items]
+    client_ids = [item["client_id"] for item in items]
     assert client_ids == sorted(client_ids)

@@ -102,7 +102,7 @@ def test_auto_advance_transitions_and_sets_client_approved_at(monkeypatch, test_
         def __init__(self, db):
             self.db = db
 
-        def upsert(self, annual_report_id, **kwargs):
+        def update_meta(self, annual_report_id, **kwargs):
             calls["upsert"] = (annual_report_id, kwargs)
 
     import app.annual_reports.services.annual_report_service as svc_mod

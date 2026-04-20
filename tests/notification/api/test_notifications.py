@@ -30,8 +30,10 @@ def _business(test_db, suffix: str) -> Business:
 
 
 def _seed_notification(test_db, business_id: int, content: str):
+    business = test_db.get(Business, business_id)
     repo = NotificationRepository(test_db)
     return repo.create(
+        client_id=business.client_id,
         business_id=business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,

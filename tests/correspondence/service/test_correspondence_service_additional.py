@@ -123,7 +123,7 @@ def test_add_entry_rejected_for_business_client_mismatch(test_db, test_user):
     b2 = _business(test_db, "700000007")
     service = CorrespondenceService(test_db)
 
-    with pytest.raises(ForbiddenError) as exc_info:
+    with pytest.raises(NotFoundError) as exc_info:
         service.add_entry(
             client_id=b1.client_id,
             business_id=b2.id,
@@ -133,7 +133,7 @@ def test_add_entry_rejected_for_business_client_mismatch(test_db, test_user):
             created_by=test_user.id,
         )
 
-    assert exc_info.value.code == "CORRESPONDENCE.FORBIDDEN_BUSINESS"
+    assert exc_info.value.code == "BUSINESS.NOT_FOUND"
 
 
 def test_get_entry_not_found_for_mismatch_client(test_db, test_user):

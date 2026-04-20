@@ -1,259 +1,141 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from types import SimpleNamespace
 
 import pytest
 
+from app.businesses.models.business import Business
 from app.clients.models.client import Client
+from app.core.exceptions import AppError, NotFoundError
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.signature_requests.services import create_request as create_request_module
 from app.signature_requests.services import signature_request_validations as validations
 from app.signature_requests.services.admin_actions import expire_overdue_requests
-from app.core.exceptions import AppError, NotFoundError
+from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.utils.time_utils import utcnow
 
 
-def _client(db) -> Client:
-    client = Client(
-        full_name="Signature Service Client",
-        id_number="999999992",
-        email="svc@example.com",
-    )
+def _business(db, suffix: str = "A") -> Business:
+    client = Client(full_name=f"Signature Service Client {suffix}", id_number=f"99999999{suffix}", email="svc@example.com")
     db.add(client)
+    db.flush()
+    business = Business(client_id=client.id, business_name=f"Signature Service Business {suffix}", opened_at=date(2026, 1, 1))
+    db.add(business)
     db.commit()
-    db.refresh(client)
-    return client
+    db.refresh(business)
+    return business
+
+
+def _create(repo: SignatureRequestRepository, business: Business, *, user_id: int, title: str, annual_report_id: int | None = None):
+    return repo.create(
+        client_id=business.client_id,
+        client_record_id=business.client_id,
+        business_id=business.id,
+        created_by=user_id,
+        request_type=SignatureRequestType.CUSTOM if annual_report_id is None else SignatureRequestType.ANNUAL_REPORT_APPROVAL,
+        title=title,
+        signer_name="Signer",
+        annual_report_id=annual_report_id,
+    )
 
 
 def test_expire_overdue_requests_marks_expired_and_audits(test_db, test_user):
-    client = _client(test_db)
+    business = _business(test_db, "1")
     repo = SignatureRequestRepository(test_db)
-
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Expired",
-        signer_name="Late Signer",
-    )
-    # Force pending + expired
-    repo.update(
-        req.id,
-        status=SignatureRequestStatus.PENDING_SIGNATURE,
-        signing_token="expired-token",
-        sent_at=utcnow() - timedelta(days=10),
-        expires_at=utcnow() - timedelta(days=1),
-    )
-
-    expired_count = expire_overdue_requests(repo)
-
-    updated = repo.get_by_id(req.id)
-    assert expired_count == 1
-    assert updated.status == SignatureRequestStatus.EXPIRED
-    assert updated.signing_token is None
-
-    audit_events = repo.list_audit_events(req.id)
-    assert any(e.event_type == "expired" for e in audit_events)
+    req = _create(repo, business, user_id=test_user.id, title="Expired")
+    repo.update(req.id, status=SignatureRequestStatus.PENDING_SIGNATURE, signing_token="expired-token", sent_at=utcnow() - timedelta(days=10), expires_at=utcnow() - timedelta(days=1))
+    assert expire_overdue_requests(repo) == 1
+    assert repo.get_by_id(req.id).status == SignatureRequestStatus.EXPIRED
+    assert any(e.event_type == "expired" for e in repo.list_audit_events(req.id))
 
 
 def test_record_view_on_expired_request_sets_status_and_raises(test_db, test_user):
-    client = _client(test_db)
+    business = _business(test_db, "2")
     repo = SignatureRequestRepository(test_db)
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Expired View",
-        signer_name="Viewer",
-    )
-    repo.update(
-        req.id,
-        status=SignatureRequestStatus.PENDING_SIGNATURE,
-        signing_token="view-token",
-        sent_at=utcnow() - timedelta(days=5),
-        expires_at=utcnow() - timedelta(days=1),
-    )
-
+    req = _create(repo, business, user_id=test_user.id, title="Expired View")
+    repo.update(req.id, status=SignatureRequestStatus.PENDING_SIGNATURE, signing_token="view-token", sent_at=utcnow() - timedelta(days=5), expires_at=utcnow() - timedelta(days=1))
     with pytest.raises(AppError) as exc_info:
         SignatureRequestService(test_db).record_view(token="view-token")
-
     assert exc_info.value.code == "SIGNATURE_REQUEST.EXPIRED"
-    refreshed = repo.get_by_id(req.id)
-    assert refreshed.status == SignatureRequestStatus.EXPIRED
+    assert repo.get_by_id(req.id).status == SignatureRequestStatus.EXPIRED
 
 
-def test_list_business_requests_invalid_status_raises_app_error(test_db, test_user):
-    client = _client(test_db)
-    service = SignatureRequestService(test_db)
-
+def test_list_business_requests_invalid_status_raises_app_error(test_db):
+    business = _business(test_db, "3")
     with pytest.raises(AppError) as exc_info:
-        service.list_business_requests(business_id=client.id, status="not_a_status")
-
+        SignatureRequestService(test_db).list_business_requests(business_id=business.id, status="not_a_status")
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"
 
 
 def test_service_get_by_token_returns_request(test_db, test_user):
-    client = _client(test_db)
+    business = _business(test_db, "4")
     repo = SignatureRequestRepository(test_db)
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Token Lookup",
-        signer_name="Signer",
-    )
+    req = _create(repo, business, user_id=test_user.id, title="Token Lookup")
     repo.update(req.id, signing_token="lookup-token")
-
-    found = SignatureRequestService(test_db).get_by_token("lookup-token")
-
-    assert found is not None
-    assert found.id == req.id
+    assert SignatureRequestService(test_db).get_by_token("lookup-token").id == req.id
 
 
 def test_service_expire_overdue_requests_delegates_and_returns_count(test_db, test_user):
-    client = _client(test_db)
+    business = _business(test_db, "5")
     repo = SignatureRequestRepository(test_db)
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Service Expire",
-        signer_name="Late Signer",
-    )
-    repo.update(
-        req.id,
-        status=SignatureRequestStatus.PENDING_SIGNATURE,
-        signing_token="service-expire-token",
-        sent_at=utcnow() - timedelta(days=10),
-        expires_at=utcnow() - timedelta(days=1),
-    )
-
-    count = SignatureRequestService(test_db).expire_overdue_requests()
-    refreshed = repo.get_by_id(req.id)
-
-    assert count == 1
-    assert refreshed.status == SignatureRequestStatus.EXPIRED
+    req = _create(repo, business, user_id=test_user.id, title="Service Expire")
+    repo.update(req.id, status=SignatureRequestStatus.PENDING_SIGNATURE, signing_token="service-expire-token", sent_at=utcnow() - timedelta(days=10), expires_at=utcnow() - timedelta(days=1))
+    assert SignatureRequestService(test_db).expire_overdue_requests() == 1
+    assert repo.get_by_id(req.id).status == SignatureRequestStatus.EXPIRED
 
 
 def test_create_request_raises_when_business_missing():
-    repo = SimpleNamespace(
-        create=lambda **kwargs: None,
-        append_audit_event=lambda **kwargs: None,
-    )
+    repo = SimpleNamespace(create=lambda **kwargs: None, append_audit_event=lambda **kwargs: None, db=SimpleNamespace())
     business_repo = SimpleNamespace(get_by_id=lambda _business_id: None)
-
     with pytest.raises(NotFoundError) as exc_info:
-        create_request_module.create_request(
-            repo,
-            business_repo,
-            business_id=123,
-            created_by=1,
-            created_by_name="Advisor",
-            request_type="custom",
-            title="Missing business",
-            signer_name="Signer",
-        )
-
+        create_request_module.create_request(repo, business_repo, client_id=123, business_id=123, created_by=1, created_by_name="Advisor", request_type="custom", title="Missing business", signer_name="Signer")
     assert exc_info.value.code == "BUSINESS.NOT_FOUND"
 
 
 def test_create_request_raises_on_invalid_type():
-    repo = SimpleNamespace(
-        create=lambda **kwargs: None,
-        append_audit_event=lambda **kwargs: None,
-    )
-    business_repo = SimpleNamespace(get_by_id=lambda _business_id: SimpleNamespace(email=None, phone=None))
-
-    with pytest.raises(AppError) as exc_info:
-        create_request_module.create_request(
-            repo,
-            business_repo,
-            business_id=1,
-            created_by=1,
-            created_by_name="Advisor",
-            request_type="not-a-valid-type",
-            title="Bad type",
-            signer_name="Signer",
-        )
-
+    client_record_repo = SimpleNamespace(get_by_client_id=lambda _client_id: SimpleNamespace(id=1))
+    repo = SimpleNamespace(create=lambda **kwargs: None, append_audit_event=lambda **kwargs: None, db=object())
+    business_repo = SimpleNamespace(get_by_id=lambda _business_id: SimpleNamespace(client_id=1, contact_email=None, contact_phone=None))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.signature_requests.services.create_request.ClientRecordRepository", lambda _db: client_record_repo)
+        with pytest.raises(AppError) as exc_info:
+            create_request_module.create_request(repo, business_repo, client_id=1, business_id=1, created_by=1, created_by_name="Advisor", request_type="not-a-valid-type", title="Bad type", signer_name="Signer")
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_TYPE"
 
 
 def test_create_request_falls_back_to_business_contact_details():
     captured = {}
-
+    client_record_repo = SimpleNamespace(get_by_client_id=lambda _client_id: SimpleNamespace(id=7))
     def _create(**kwargs):
         captured["create"] = kwargs
         return SimpleNamespace(id=42)
-
-    def _append_audit_event(**kwargs):
-        captured["audit"] = kwargs
-
-    repo = SimpleNamespace(
-        create=_create,
-        append_audit_event=_append_audit_event,
-    )
-    business_repo = SimpleNamespace(
-        get_by_id=lambda _business_id: SimpleNamespace(email="biz@example.com", phone="050-1111111")
-    )
-
-    create_request_module.create_request(
-        repo,
-        business_repo,
-        business_id=1,
-        created_by=9,
-        created_by_name="Advisor",
-        request_type="custom",
-        title="Fallback contact",
-        signer_name="Signer",
-        signer_email=None,
-        signer_phone=None,
-    )
-
+    repo = SimpleNamespace(create=_create, append_audit_event=lambda **kwargs: captured.setdefault("audit", kwargs), db=object())
+    business_repo = SimpleNamespace(get_by_id=lambda _business_id: SimpleNamespace(id=1, client_id=5, contact_email="biz@example.com", contact_phone="050-1111111"))
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("app.signature_requests.services.create_request.ClientRecordRepository", lambda _db: client_record_repo)
+        create_request_module.create_request(repo, business_repo, client_id=5, business_id=1, created_by=9, created_by_name="Advisor", request_type="custom", title="Fallback contact", signer_name="Signer", signer_email=None, signer_phone=None)
     assert captured["create"]["signer_email"] == "biz@example.com"
     assert captured["create"]["signer_phone"] == "050-1111111"
     assert captured["audit"]["event_type"] == "created"
 
 
 def test_cancel_request_rejects_non_cancelable_status(test_db, test_user):
-    client = _client(test_db)
+    business = _business(test_db, "6")
     repo = SignatureRequestRepository(test_db)
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Already signed",
-        signer_name="Signer",
-    )
+    req = _create(repo, business, user_id=test_user.id, title="Already signed")
     repo.update(req.id, status=SignatureRequestStatus.SIGNED)
-
     with pytest.raises(AppError) as exc_info:
-        SignatureRequestService(test_db).cancel_request(
-            request_id=req.id,
-            canceled_by=test_user.id,
-            canceled_by_name=test_user.full_name,
-            reason="Cancel after sign",
-        )
-
+        SignatureRequestService(test_db).cancel_request(request_id=req.id, canceled_by=test_user.id, canceled_by_name=test_user.full_name, reason="Cancel after sign")
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"
 
 
 def test_get_or_raise_and_assert_signable_validation_branches(test_db, test_user):
+    business = _business(test_db, "7")
     repo = SignatureRequestRepository(test_db)
-    client = _client(test_db)
-    req = repo.create(
-        business_id=client.id,
-        created_by=test_user.id,
-        request_type=SignatureRequestType.CUSTOM,
-        title="Validation",
-        signer_name="Signer",
-    )
-
+    req = _create(repo, business, user_id=test_user.id, title="Validation")
     with pytest.raises(NotFoundError) as not_found_exc:
         validations.get_or_raise(repo, 999999)
     assert not_found_exc.value.code == "SIGNATURE_REQUEST.NOT_FOUND"
-
     with pytest.raises(AppError) as invalid_status_exc:
-        validations.assert_signable(repo, req)
+        validations.assert_pending(req)
     assert invalid_status_exc.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"

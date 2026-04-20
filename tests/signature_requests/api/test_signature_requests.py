@@ -1,8 +1,11 @@
+from datetime import date
+
+from app.businesses.models.business import Business
 from app.clients.models.client import Client
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 
 
-def _client(db) -> Client:
+def _business(db) -> Business:
     client = Client(
         full_name="Signature Client",
         id_number="999999991",
@@ -10,19 +13,27 @@ def _client(db) -> Client:
         phone="050-1234567",
     )
     db.add(client)
+    db.flush()
+    business = Business(
+        client_id=client.id,
+        business_name="Signature Business",
+        opened_at=date(2026, 1, 1),
+    )
+    db.add(business)
     db.commit()
-    db.refresh(client)
-    return client
+    db.refresh(business)
+    return business
 
 
 def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     create_resp = client.post(
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "business_id": crm_client.id,
+            "business_id": business.id,
+            "client_id": business.client_id,
             "request_type": "custom",
             "title": "Engagement Letter",
             "description": "Please approve",
@@ -64,13 +75,14 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
 
 
 def test_signature_request_decline_records_reason(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     create_resp = client.post(
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "business_id": crm_client.id,
+            "business_id": business.id,
+            "client_id": business.client_id,
             "request_type": "custom",
             "title": "Decline Test",
             "signer_name": "Decliner",
@@ -101,13 +113,14 @@ def test_signature_request_decline_records_reason(client, test_db, advisor_heade
 
 
 def test_send_requires_draft_status(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     create_resp = client.post(
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "business_id": crm_client.id,
+            "business_id": business.id,
+            "client_id": business.client_id,
             "request_type": "custom",
             "title": "Send Twice",
             "signer_name": "Signer",
@@ -132,7 +145,7 @@ def test_send_requires_draft_status(client, test_db, advisor_headers):
 
 
 def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     # Two pending
     ids = []
@@ -141,7 +154,8 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
             "/api/v1/signature-requests",
             headers=advisor_headers,
             json={
-                "business_id": crm_client.id,
+                "business_id": business.id,
+                "client_id": business.client_id,
                 "request_type": "custom",
                 "title": f"Pending {i}",
                 "signer_name": "Signer",
@@ -160,7 +174,8 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "business_id": crm_client.id,
+            "business_id": business.id,
+            "client_id": business.client_id,
             "request_type": "custom",
             "title": "Draft",
             "signer_name": "Signer",
@@ -184,13 +199,14 @@ def test_invalid_token_returns_error_on_sign(client):
 
 
 def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_headers):
-    crm_client = _client(test_db)
+    business = _business(test_db)
 
     create_resp = client.post(
         "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
-            "business_id": crm_client.id,
+            "business_id": business.id,
+            "client_id": business.client_id,
             "request_type": "custom",
             "title": "Audit Trail Endpoint",
             "signer_name": "Signer",

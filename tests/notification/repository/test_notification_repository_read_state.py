@@ -29,7 +29,9 @@ def _business(test_db, suffix: str) -> Business:
 
 
 def _create(repo: NotificationRepository, business_id: int, msg: str):
+    business = repo.db.get(Business, business_id)
     return repo.create(
+        client_id=business.client_id,
         business_id=business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,

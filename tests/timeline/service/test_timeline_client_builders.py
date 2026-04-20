@@ -20,7 +20,7 @@ from app.timeline.services.timeline_client_builders import (
 def test_client_builder_events():
     client = SimpleNamespace(
         full_name="Client Builder",
-        opened_at=date(2026, 1, 1),
+        created_at=datetime(2026, 1, 1, 8, 0),
         updated_at=datetime(2026, 1, 2, 8, 0),
         entity_type=EntityType.COMPANY_LTD,
     )

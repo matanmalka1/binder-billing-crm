@@ -48,12 +48,13 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
 
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        business_id=report.business_id,
+        client_id=report.client_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100.00"),
         paid_amount=Decimal("100.00"),
+        annual_report_id=report.id,
     )
     repo.update(payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00"))
 

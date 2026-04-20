@@ -31,5 +31,5 @@ def test_lifecycle_soft_delete_true_and_false(test_db):
     report = _report(test_db)
     assert repo.soft_delete(report.id, deleted_by=5) is True
 
-    refreshed = AnnualReportService(test_db).repo.get_by_business_year(report.business_id, 2026)
+    refreshed = AnnualReportService(test_db).repo.get_by_client_year(report.client_id, 2026)
     assert refreshed is None

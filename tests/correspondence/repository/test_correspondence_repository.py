@@ -56,6 +56,7 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
 
     first = repo.create(
         client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="First",
@@ -64,6 +65,7 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
     )
     second = repo.create(
         client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.CALL,
         subject="Second",
@@ -72,6 +74,7 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
     )
     third = repo.create(
         client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.MEETING,
         subject="Third",
@@ -80,6 +83,7 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
     )
     repo.create(
         client_id=business_b.client_id,
+        client_record_id=business_b.client_id,
         business_id=business_b.id,
         correspondence_type=CorrespondenceType.LETTER,
         subject="Other client",
@@ -118,6 +122,7 @@ def test_list_by_client_filters_business_and_sort(test_db):
 
     e1 = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Email 1",
@@ -127,6 +132,7 @@ def test_list_by_client_filters_business_and_sort(test_db):
     )
     e2 = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.CALL,
         subject="Call",
@@ -136,6 +142,7 @@ def test_list_by_client_filters_business_and_sort(test_db):
     )
     e3 = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Email 2",
@@ -168,6 +175,7 @@ def test_update_ignores_unknown_fields(test_db):
 
     entry = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Before",
