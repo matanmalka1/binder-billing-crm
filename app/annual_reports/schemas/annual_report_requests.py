@@ -17,7 +17,7 @@ from app.annual_reports.models.annual_report_enums import (
 
 
 class AnnualReportCreateRequest(BaseModel):
-    client_id: int
+    client_record_id: int
     tax_year: int
     client_type: ClientAnnualFilingType
     deadline_type: FilingDeadlineType = FilingDeadlineType.STANDARD

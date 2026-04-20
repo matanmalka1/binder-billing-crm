@@ -23,7 +23,7 @@ def create_request(
     repo: SignatureRequestRepository,
     business_repo: BusinessRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     business_id: Optional[int] = None,
     created_by: int,
     created_by_name: str,
@@ -40,12 +40,12 @@ def create_request(
 ) -> SignatureRequest:
     """Create a new signature request in DRAFT status.
 
-    client_id is always required — it is the primary anchor.
-    business_id is optional; when provided it must belong to the given client_id.
+    client_record_id is always required — it is the primary anchor.
+    business_id is optional; when provided it must belong to the given client_record_id.
     """
-    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
+    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_record_id)
     if not client_record:
-        raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
 
     # Validate business ownership when business_id is supplied
     if business_id is not None:
@@ -75,7 +75,6 @@ def create_request(
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
 
     req = repo.create(
-        client_id=client_id,
         client_record_id=client_record.id,
         business_id=business_id,
         created_by=created_by,

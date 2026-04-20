@@ -25,7 +25,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def upload_permanent_document(
-    client_id: Annotated[int, Form(...)],
+    client_record_id: Annotated[int, Form(...)],
     document_type: Annotated[str, Form(...)],
     file: Annotated[UploadFile, File(...)],
     db: DBSession,
@@ -36,11 +36,11 @@ def upload_permanent_document(
     notes: Annotated[Optional[str], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
-    record = ClientRecordRepository(db).get_by_client_id(client_id)
+    record = ClientRecordRepository(db).get_by_client_id(client_record_id)
     legal_entity_id = record.legal_entity_id if record else None
     service = PermanentDocumentService(db)
     document = service.upload_document(
-        client_id=client_id,
+        client_record_id=client_record_id,
         document_type=document_type,
         file_data=file.file,
         filename=file.filename or "document",
@@ -55,36 +55,36 @@ def upload_permanent_document(
     return PermanentDocumentResponse.model_validate(document)
 
 @router.get(
-    "/client/{client_id}",
+    "/client/{client_record_id}",
     response_model=PermanentDocumentListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def list_client_documents(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     tax_year: Optional[int] = Query(default=None),
 ):
     """List permanent documents for a client."""
     service = PermanentDocumentService(db)
-    documents = service.list_client_documents(client_id, tax_year=tax_year)
+    documents = service.list_client_documents(client_record_id, tax_year=tax_year)
 
     return PermanentDocumentListResponse(
         items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]
     )
 
 @router.get(
-    "/client/{client_id}/signals",
+    "/client/{client_record_id}/signals",
     response_model=OperationalSignalsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_operational_signals(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    signals = PermanentDocumentService(db).get_client_operational_signals(client_id)
+    signals = PermanentDocumentService(db).get_client_operational_signals(client_record_id)
     return OperationalSignalsResponse(**signals)
 
 

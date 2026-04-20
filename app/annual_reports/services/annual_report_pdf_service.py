@@ -24,8 +24,8 @@ class AnnualReportPdfService:
             raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
         from app.clients.repositories.client_repository import ClientRepository
-        _client = ClientRepository(self.db).get_by_id(report.client_id)
-        client_name = _client.full_name if _client else CLIENT_FALLBACK_NAME.format(client_id=report.client_id)
+        _client = ClientRepository(self.db).get_by_id(report.client_record_id)
+        client_name = _client.full_name if _client else CLIENT_FALLBACK_NAME.format(client_record_id=report.client_record_id)
 
         fin_svc = AnnualReportFinancialService(self.db)
         summary = fin_svc.get_financial_summary(report_id)

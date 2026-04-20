@@ -26,7 +26,7 @@ class BinderHandoverService:
 
     def create_handover(
         self,
-        client_id: int,
+        client_record_id: int,
         binder_ids: list[int],
         received_by_name: str,
         handed_over_at: date,
@@ -39,16 +39,12 @@ class BinderHandoverService:
         Return multiple binders to a client in a single grouped handover event.
 
         Validates:
-        - All binders belong to client_id
+        - All binders belong to client_record_id
         - All binders are in READY_FOR_PICKUP status
 
         Transitions each binder to RETURNED and creates a BinderHandover record.
         """
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if not client_record:
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
-        assert_client_record_is_active(client_record)
-        binders = self._load_and_validate_binders(client_id, binder_ids)
+        binders = self._load_and_validate_binders(client_record_id, binder_ids)
 
         for binder in binders:
             old_status = binder.status.value
@@ -66,8 +62,7 @@ class BinderHandoverService:
             )
 
         handover = self.handover_repo.create(
-            client_id=client_id,
-            client_record_id=client_record.id,
+            client_record_id=client_record_id,
             received_by_name=received_by_name,
             handed_over_at=handed_over_at,
             until_period_year=until_period_year,
@@ -80,12 +75,12 @@ class BinderHandoverService:
         return handover
 
     def _load_and_validate_binders(
-        self, client_id: int, binder_ids: list[int]
+        self, client_record_id: int, binder_ids: list[int]
     ) -> list[Binder]:
         binders = []
         for bid in binder_ids:
             binder = self.binder_repo.get_by_id_for_update(bid)
-            if not binder or binder.client_id != client_id:
+            if not binder or binder.client_record_id != client_record_id:
                 raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")
             if binder.status != BinderStatus.READY_FOR_PICKUP:
                 raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")

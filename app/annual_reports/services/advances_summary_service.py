@@ -25,7 +25,7 @@ class AnnualReportAdvancesSummaryService:
         if not report:
             raise NotFoundError(ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
 
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(report.client_id).id
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(report.client_record_id).id
         payments, count = self.advance_repo.list_by_client_record_year(
             client_record_id,
             report.tax_year,

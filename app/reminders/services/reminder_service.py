@@ -51,11 +51,9 @@ class ReminderService:
             self.reminder_repo, self.annual_report_repo, **kwargs
         )
 
-    def create_unpaid_charge_reminder(self, *, client_id: int = None, client_record_id: int = None, **kwargs):
+    def create_unpaid_charge_reminder(self, *, client_record_id: int, **kwargs):
         if client_record_id is None:
-            if client_id is None:
-                raise ValueError("client_id or client_record_id required")
-            client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+            raise ValueError("client_record_id required")
         return reminder_factory.create_unpaid_charge_reminder(
             self.reminder_repo, self.business_repo, self.charge_repo,
             client_record_id=client_record_id, **kwargs

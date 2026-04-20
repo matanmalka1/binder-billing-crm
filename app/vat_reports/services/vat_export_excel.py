@@ -12,7 +12,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 
 def export_vat_to_excel(
     client_name: str,
-    client_id: int,
+    client_record_id: int,
     year: int,
     periods: list[VatPeriodRow],
     export_dir: str,
@@ -70,7 +70,7 @@ def export_vat_to_excel(
 
     return save_workbook_to_temp(
         wb,
-        prefix=f"vat_{client_id}_{year}",
+        prefix=f"vat_{client_record_id}_{year}",
         export_dir=export_dir,
         extra_meta={"format": "excel", "generated_at": datetime.now()},
     )

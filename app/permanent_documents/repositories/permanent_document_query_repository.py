@@ -13,13 +13,13 @@ class PermanentDocumentQueryRepository:
 
     def get_latest_version(
         self,
-        client_id: int,
+        client_record_id: int,
         document_type: str,
         tax_year: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> Optional[PermanentDocument]:
         q = self.db.query(PermanentDocument).filter(
-            PermanentDocument.client_id == client_id,
+            PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
             PermanentDocument.superseded_by == None,  # noqa: E711
@@ -45,10 +45,10 @@ class PermanentDocumentQueryRepository:
         return q.order_by(PermanentDocument.version.desc()).all()
 
     def get_all_versions_by_client(
-        self, client_id: int, document_type: str, tax_year: Optional[int] = None
+        self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
         q = self.db.query(PermanentDocument).filter(
-            PermanentDocument.client_id == client_id,
+            PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
@@ -80,14 +80,14 @@ class PermanentDocumentQueryRepository:
         )
 
     def missing_by_type(
-        self, business_id: int, client_id: int, required_types: list[str]
+        self, business_id: int, client_record_id: int, required_types: list[str]
     ) -> list[str]:
         existing = (
             self.db.query(PermanentDocument.document_type)
             .filter(
                 (
                     (PermanentDocument.business_id == business_id)
-                    | (PermanentDocument.client_id == client_id)
+                    | (PermanentDocument.client_record_id == client_record_id)
                 ),
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
@@ -98,11 +98,11 @@ class PermanentDocumentQueryRepository:
         existing_types = {row[0] for row in existing}
         return [t for t in required_types if t not in existing_types]
 
-    def missing_by_client_type(self, client_id: int, required_types: list[str]) -> list[str]:
+    def missing_by_client_type(self, client_record_id: int, required_types: list[str]) -> list[str]:
         existing = (
             self.db.query(PermanentDocument.document_type)
             .filter(
-                PermanentDocument.client_id == client_id,
+                PermanentDocument.client_record_id == client_record_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
             )

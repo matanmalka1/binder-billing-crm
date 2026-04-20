@@ -17,7 +17,7 @@ from app.advance_payments.services.advance_payment_analytics_service import Adva
 from app.advance_payments.services.constants import parse_period_year
 
 router = APIRouter(
-    prefix="/clients/{client_id}/advance-payments",
+    prefix="/clients/{client_record_id}/advance-payments",
     tags=["advance-payments"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
@@ -25,7 +25,7 @@ router = APIRouter(
 
 @router.get("", response_model=AdvancePaymentListResponse)
 def list_advance_payments(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     year: int | None = Query(None),
@@ -35,7 +35,7 @@ def list_advance_payments(
 ):
     service = AdvancePaymentService(db)
     items, total = service.list_payments_for_client(
-        client_id,
+        client_record_id,
         year,
         status=status_filter if status_filter else None,
         page=page,
@@ -56,14 +56,14 @@ def list_advance_payments(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def create_advance_payment(
-    client_id: int,
+    client_record_id: int,
     request: AdvancePaymentCreateRequest,
     db: DBSession,
     user: CurrentUser,
 ):
     service = AdvancePaymentService(db)
     payment = service.create_payment_for_client(
-        client_id=client_id,
+        client_record_id=client_record_id,
         period=request.period,
         period_months_count=request.period_months_count,
         due_date=request.due_date,
@@ -78,16 +78,16 @@ def create_advance_payment(
 
 @router.get("/suggest", response_model=AdvancePaymentSuggestionResponse)
 def suggest_advance_payment(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     year: int = Query(...),
     period_months_count: int = Query(1, ge=1, le=2),
 ):
     service = AdvancePaymentService(db)
-    suggested = service.suggest_expected_amount_for_client(client_id, year, period_months_count)
+    suggested = service.suggest_expected_amount_for_client(client_record_id, year, period_months_count)
     return AdvancePaymentSuggestionResponse(
-        client_id=client_id,
+        client_record_id=client_record_id,
         year=year,
         suggested_amount=suggested,
         has_data=suggested is not None,
@@ -96,25 +96,25 @@ def suggest_advance_payment(
 
 @router.get("/kpi", response_model=AnnualKPIResponse)
 def get_annual_kpis(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     year: int = Query(...),
 ):
     service = AdvancePaymentAnalyticsService(db)
-    data = service.get_annual_kpis_for_client(client_id=client_id, year=year)
+    data = service.get_annual_kpis_for_client(client_record_id=client_record_id, year=year)
     return AnnualKPIResponse(**data)
 
 
 @router.get("/chart", response_model=ChartDataResponse)
 def get_chart_data(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     year: int = Query(...),
 ):
     service = AdvancePaymentAnalyticsService(db)
-    data = service.get_chart_data_for_client(client_id=client_id, year=year)
+    data = service.get_chart_data_for_client(client_record_id=client_record_id, year=year)
     return ChartDataResponse(**data)
 
 
@@ -124,7 +124,7 @@ def get_chart_data(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def update_advance_payment(
-    client_id: int,
+    client_record_id: int,
     payment_id: int,
     request: AdvancePaymentUpdateRequest,
     db: DBSession,
@@ -132,7 +132,7 @@ def update_advance_payment(
 ):
     service = AdvancePaymentService(db)
     payment = service.update_payment_for_client(
-        client_id=client_id,
+        client_record_id=client_record_id,
         payment_id=payment_id,
         **request.model_dump(exclude_unset=True),
     )
@@ -142,7 +142,7 @@ def update_advance_payment(
         try:
             tax_year = parse_period_year(payment.period)
             from app.annual_reports.services.financial_service import AnnualReportFinancialService
-            AnnualReportFinancialService(db).invalidate_tax_if_open(client_id, tax_year)
+            AnnualReportFinancialService(db).invalidate_tax_if_open(client_record_id, tax_year)
         except Exception:
             pass  # Non-critical: do not fail the payment update if hook errors
     return AdvancePaymentRow.model_validate(payment)
@@ -154,9 +154,9 @@ def update_advance_payment(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def delete_advance_payment(
-    client_id: int,
+    client_record_id: int,
     payment_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
-    AdvancePaymentService(db).delete_payment_for_client(client_id, payment_id, actor_id=user.id)
+    AdvancePaymentService(db).delete_payment_for_client(client_record_id, payment_id, actor_id=user.id)

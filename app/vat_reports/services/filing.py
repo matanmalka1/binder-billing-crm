@@ -29,7 +29,7 @@ def _validate_amendment(
     amended_item = work_item_repo.get_by_id(amends_item_id)
     if amended_item is None:
         raise AppError(AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404)
-    if amended_item.client_id != item.client_id:
+    if amended_item.client_record_id != item.client_record_id:
         raise AppError(AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
     if amended_item.status != VatWorkItemStatus.FILED:
         raise AppError(AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400)

@@ -49,7 +49,7 @@ class NotificationService:
             period_start=binder.period_start,
         )
         return self._send_svc.send_client_notification(
-            client_id=client.id,
+            client_record_id=client.id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
             content=content,
             binder_id=binder.id,
@@ -62,7 +62,7 @@ class NotificationService:
             binder_number=binder.binder_number,
         )
         return self._send_svc.send_client_notification(
-            client_id=client.id,
+            client_record_id=client.id,
             trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
             content=content,
             binder_id=binder.id,
@@ -81,8 +81,8 @@ class NotificationService:
             triggered_by=triggered_by,
         )
 
-    def notify_client_reminder(self, client_id: int, reminder_text: str) -> bool:
-        return self._send_svc.send_client_reminder(client_id, reminder_text)
+    def notify_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
+        return self._send_svc.send_client_reminder(client_record_id, reminder_text)
 
     def notify_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         return self._send_svc.send_client_record_reminder(client_record_id, reminder_text)
@@ -131,14 +131,13 @@ class NotificationService:
         self,
         page: int = 1,
         page_size: int = 20,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> tuple:
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id if client_record_id is not None else None
         items, total = self.notification_repo.list_paginated(
             page=page,
             page_size=page_size,
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
         )
@@ -148,13 +147,12 @@ class NotificationService:
     def list_recent(
         self,
         limit: int = 20,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ):
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id if client_record_id is not None else None
         items = self.notification_repo.list_recent(
             limit=limit,
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
         )
@@ -174,12 +172,11 @@ class NotificationService:
 
     def count_unread(
         self,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id if client_record_id is not None else None
         return self.notification_repo.count_unread(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
         )
@@ -189,12 +186,11 @@ class NotificationService:
 
     def mark_all_read(
         self,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id if client_id is not None else None
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id if client_record_id is not None else None
         return self.notification_repo.mark_all_read(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
         )

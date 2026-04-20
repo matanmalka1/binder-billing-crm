@@ -22,17 +22,17 @@ def get_work_item_enriched(
 ) -> dict:
     """Return work item + client/user enrichment data."""
     item = get_work_item(work_item_repo, item_id)
-    client = client_repo.get_by_id(item.client_id)
+    client = client_repo.get_by_id(item.client_record_id)
     user_ids = [uid for uid in [item.assigned_to, item.filed_by] if uid]
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     user_map = {u.id: u.full_name for u in users}
     client_name = client.full_name if client else None
     return {
         "item": item,
-        "office_client_number_map": {item.client_id: client.office_client_number if client else None},
-        "name_map": {item.client_id: client_name},
-        "id_number_map": {item.client_id: client.id_number if client else None},
-        "status_map": {item.client_id: client.status if client else None},
+        "office_client_number_map": {item.client_record_id: client.office_client_number if client else None},
+        "name_map": {item.client_record_id: client_name},
+        "id_number_map": {item.client_record_id: client.id_number if client else None},
+        "status_map": {item.client_record_id: client.status if client else None},
         "user_map": user_map,
     }
 
@@ -41,19 +41,19 @@ def get_client_items_enriched(
     work_item_repo: VatWorkItemRepository,
     client_repo: ClientRepository,
     user_repo: UserRepository,
-    client_id: int,
+    client_record_id: int,
 ) -> dict:
     """Return client work items + enrichment data."""
-    items = list_client_work_items(work_item_repo, client_id)
-    client = client_repo.get_by_id(client_id)
+    items = list_client_work_items(work_item_repo, client_record_id)
+    client = client_repo.get_by_id(client_record_id)
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {
         "items": items,
-        "office_client_number_map": {client_id: client.office_client_number if client else None},
-        "name_map": {client_id: client.full_name if client else None},
-        "id_number_map": {client_id: client.id_number if client else None},
-        "status_map": {client_id: client.status if client else None},
+        "office_client_number_map": {client_record_id: client.office_client_number if client else None},
+        "name_map": {client_record_id: client.full_name if client else None},
+        "id_number_map": {client_record_id: client.id_number if client else None},
+        "status_map": {client_record_id: client.status if client else None},
         "user_map": {u.id: u.full_name for u in users},
     }
 
@@ -82,8 +82,8 @@ def get_list_enriched(
             page=page, page_size=page_size,
             period=period, client_name=client_name,
         )
-    client_ids = list({item.client_id for item in items})
-    clients = client_repo.list_by_ids(client_ids)
+    client_record_ids = list({item.client_record_id for item in items})
+    clients = client_repo.list_by_ids(client_record_ids)
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     return {

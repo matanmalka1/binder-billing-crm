@@ -56,16 +56,16 @@ class PermanentDocumentService:
             )
         return resolved
 
-    def _get_client_record_id(self, client_id: int) -> int:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+    def _get_client_record_id(self, client_record_id: int) -> int:
+        record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         if not record:
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         return record.id
 
     def _build_storage_key(
         self,
         *,
-        client_id: int,
+        client_record_id: int,
         document_type: str,
         tax_year: Optional[int],
         version: int,
@@ -73,12 +73,12 @@ class PermanentDocumentService:
         business_id: Optional[int] = None,
     ) -> str:
         tax_year_str = str(tax_year) if tax_year else "permanent"
-        owner_segment = f"businesses/{business_id}" if business_id is not None else f"clients/{client_id}"
+        owner_segment = f"businesses/{business_id}" if business_id is not None else f"clients/{client_record_id}"
         return f"{owner_segment}/{document_type}/{tax_year_str}/v{version}_{filename}"
 
     def upload_document(
         self,
-        client_id: int,
+        client_record_id: int,
         document_type: str,
         file_data: BinaryIO,
         filename: str,
@@ -90,10 +90,10 @@ class PermanentDocumentService:
         mime_type: Optional[str] = None,
         legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
-        ClientService(self.db).get_client_or_raise(client_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        ClientService(self.db).get_client_or_raise(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         if not client_record:
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         if business_id is not None:
             try:
                 business = get_business_or_raise(self.db, business_id)
@@ -118,14 +118,14 @@ class PermanentDocumentService:
         resolved_mime = self._resolve_mime(mime_type, filename)
 
         existing = self.query_repo.get_latest_version(
-            client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             document_type=document_type,
             tax_year=tax_year,
         )
         next_version = (existing.version + 1) if existing else 1
         storage_key = self._build_storage_key(
-            client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             document_type=document_type,
             tax_year=tax_year,
@@ -136,7 +136,6 @@ class PermanentDocumentService:
         # Flush DB record first; upload to storage only if flush succeeds.
         # Single commit at the end keeps record + superseded_by atomic.
         document = self.document_repo.create(
-            client_id=client_id,
             client_record_id=client_record.id,
             business_id=business_id,
             scope=scope,
@@ -196,13 +195,13 @@ class PermanentDocumentService:
 
     def list_client_documents(
         self,
-        client_id: int,
+        client_record_id: int,
         tax_year: Optional[int] = None,
         document_type: Optional[str] = None,
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
-        ClientService(self.db).get_client_or_raise(client_id)
-        client_record_id = self._get_client_record_id(client_id)
+        ClientService(self.db).get_client_or_raise(client_record_id)
+        client_record_id = self._get_client_record_id(client_record_id)
         return self.document_repo.list_by_client_record(
             client_record_id,
             tax_year=tax_year,
@@ -220,11 +219,11 @@ class PermanentDocumentService:
     def get_operational_signals(self, business_id: int) -> dict:
         return SignalsService(self.db).compute_business_operational_signals(business_id)
 
-    def get_client_operational_signals(self, client_id: int) -> dict:
-        ClientService(self.db).get_client_or_raise(client_id)
+    def get_client_operational_signals(self, client_record_id: int) -> dict:
+        ClientService(self.db).get_client_or_raise(client_record_id)
         return {
-            "client_id": client_id,
-            "missing_documents": self.query_repo.missing_by_client_type(client_id, _DEFAULT_REQUIRED_TYPES),
+            "client_record_id": client_record_id,
+            "missing_documents": self.query_repo.missing_by_client_type(client_record_id, _DEFAULT_REQUIRED_TYPES),
         }
 
     def delete_document(self, document_id: int) -> None:
@@ -258,7 +257,7 @@ class PermanentDocumentService:
 
         next_version = doc.version + 1
         storage_key = self._build_storage_key(
-            client_id=doc.client_id,
+            client_record_id=doc.client_record_id,
             business_id=doc.business_id,
             document_type=doc.document_type,
             tax_year=doc.tax_year,

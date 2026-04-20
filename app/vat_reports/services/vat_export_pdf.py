@@ -25,7 +25,7 @@ def _hebrew(text: str) -> str:
 
 def export_vat_to_pdf(
     client_name: str,
-    client_id: int,
+    client_record_id: int,
     year: int,
     periods: list[VatPeriodRow],
     export_dir: str,
@@ -55,7 +55,7 @@ def export_vat_to_pdf(
             "Ensure assets/fonts/ directory contains Assistant-Regular.ttf and Assistant-Bold.ttf"
         ) from e
 
-    filename = f"vat_{client_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = f"vat_{client_record_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))

@@ -43,7 +43,7 @@ class BinderIntakeService:
 
     def receive(
         self,
-        client_id: int,
+        client_record_id: int,
         received_at: date,
         received_by: int,
         open_new_binder: bool = False,
@@ -62,19 +62,18 @@ class BinderIntakeService:
         Returns (binder, intake, is_new_binder).
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
-        ClientService(self.db).get_client_or_raise(client_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         assert_client_record_is_active(client_record)
-        client_record_id = client_record.id
+        client_record_id = client_record.legal_entity_id
 
-        businesses = self.business_repo.list_by_client(client_id)
+        businesses = self.business_repo.list_by_client(client_record_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
 
         active_binder = self.binder_repo.get_active_by_client_record(client_record_id)
         existing = self._resolve_existing_binder_for_materials(
-            client_id=client_id,
+            client_record_id=client_record_id,
             active_binder=active_binder,
             materials=materials,
         )
@@ -92,12 +91,11 @@ class BinderIntakeService:
                 active_binder.status = BinderStatus.CLOSED_IN_OFFICE
                 self.db.flush()
 
-            client = self.client_repo.get_by_id(client_id)
+            client = self.client_repo.get_by_id(client_record_id)
             if not client or client.office_client_number is None:
                 raise AppError(BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING")
-            seq = self.binder_repo.count_all_by_client(client_id) + 1
+            seq = self.binder_repo.count_all_by_client(client_record_id) + 1
             binder = self.binder_repo.create(
-                client_id=client_id,
                 client_record_id=client_record_id,
                 binder_number=self._build_binder_number(client.office_client_number, seq),
                 period_start=None,
@@ -148,13 +146,13 @@ class BinderIntakeService:
                 self.db.flush()
 
         if is_new_binder:
-            notify_client = self.client_repo.get_by_id(client_id)
+            notify_client = self.client_repo.get_by_id(client_record_id)
             if notify_client:
                 self.notification_service.notify_binder_received(binder, notify_client)
             else:
                 _log.warning(
                     "notify_binder_received skipped: client %s not found (binder %s)",
-                    client_id, binder.id,
+                    client_record_id, binder.id,
                 )
 
         return binder, intake, is_new_binder
@@ -162,7 +160,7 @@ class BinderIntakeService:
     def _resolve_existing_binder_for_materials(
         self,
         *,
-        client_id: int,
+        client_record_id: int,
         active_binder: Optional[Binder],
         materials: Optional[list[dict]],
     ) -> Optional[Binder]:

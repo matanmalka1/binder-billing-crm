@@ -52,13 +52,13 @@ class TimelineService:
 
     def get_client_timeline(
         self,
-        client_id: int,
+        client_record_id: int,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int]:
         client = (
             self.db.query(Client)
-            .filter(Client.id == client_id, Client.deleted_at.is_(None))
+            .filter(Client.id == client_record_id, Client.deleted_at.is_(None))
             .first()
         )
         if not client:
@@ -66,11 +66,11 @@ class TimelineService:
 
         businesses = (
             self.db.query(Business)
-            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .filter(Business.client_id == client_record_id, Business.deleted_at.is_(None))
             .all()
         )
         business_ids = [business.id for business in businesses]
-        client_record_id = self.client_record_repo.get_by_client_id(client_id).id
+        client_record_id = self.client_record_repo.get_by_client_id(client_record_id).id
 
         events = []
 
@@ -108,11 +108,11 @@ class TimelineService:
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
-        events.extend(self._build_tax_deadline_events(client_id, business_ids, client_record.id if client_record else None))
-        events.extend(self._build_annual_report_events(client_id, client_record.id if client_record else None))
+        events.extend(self._build_tax_deadline_events(business_ids, client_record.id if client_record else None))
+        events.extend(self._build_annual_report_events(client_record.id if client_record else None))
         events.extend(
             build_client_events(
-                self.db, client_id, business_ids, self.reminder_repo, self.sig_repo
+                self.db, client_record_id, business_ids, self.reminder_repo, self.sig_repo
             )
         )
 
@@ -126,22 +126,18 @@ class TimelineService:
         for status_log in logs:
             events.append(binder_status_change_event(binder, status_log))
 
-    def _build_tax_deadline_events(self, client_id: int, business_ids: list[int], client_record_id: int | None) -> list[dict]:
+    def _build_tax_deadline_events(self, business_ids: list[int], client_record_id: int | None) -> list[dict]:
         # Tax deadlines are per-client and naturally bounded (months × years).
         query = self.db.query(TaxDeadline).filter(TaxDeadline.deleted_at.is_(None))
         if client_record_id is not None:
             query = query.filter(TaxDeadline.client_record_id == client_record_id)
-        else:
-            query = query.filter(TaxDeadline.client_id == client_id)
         deadlines = query.limit(_TIMELINE_BULK_LIMIT).all()
         return [tax_deadline_due_event(d) for d in deadlines]
 
-    def _build_annual_report_events(self, client_id: int, client_record_id: int | None) -> list[dict]:
+    def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
         # Annual reports are bounded by tax years — limit is a safety net only.
         query = self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None))
         if client_record_id is not None:
             query = query.filter(AnnualReport.client_record_id == client_record_id)
-        else:
-            query = query.filter(AnnualReport.client_id == client_id)
         reports = query.limit(_TIMELINE_BULK_LIMIT).all()
         return [annual_report_status_changed_event(r) for r in reports]

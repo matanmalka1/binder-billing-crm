@@ -28,7 +28,7 @@ class BinderReceiveRequest(BaseModel):
     אם binder_number קיים ופעיל — מוסיף intake לקלסר קיים.
     אם לא — יוצר קלסר חדש.
     """
-    client_id: int                            # קלסר שייך ללקוח
+    client_record_id: int                            # קלסר שייך ללקוח
     received_at: date                         # תאריך קבלת החומרים (ב-intake)
     received_by: int
     open_new_binder: bool = False             # True = סמן קלסר קיים כמלא ופתח חדש
@@ -46,7 +46,7 @@ class BinderReturnRequest(BaseModel):
 
 class BinderResponse(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     office_client_number: Optional[int] = None
     client_name: Optional[str] = None        # enriched by service
     client_id_number: Optional[str] = None   # enriched by service
@@ -125,7 +125,7 @@ class BinderReceiveResult(BaseModel):
 
 
 class BinderMarkReadyBulkRequest(BaseModel):
-    client_id: int
+    client_record_id: int
     until_period_year: int
     until_period_month: int = Field(ge=1, le=12)
 
@@ -134,7 +134,7 @@ class BinderMarkReadyBulkRequest(BaseModel):
 
 class BinderHandoverRequest(BaseModel):
     """בקשת מסירת קלסרים מרובים ללקוח בבת אחת."""
-    client_id: int
+    client_record_id: int
     binder_ids: list[int] = Field(min_length=1)
     received_by_name: str
     handed_over_at: date
@@ -145,7 +145,7 @@ class BinderHandoverRequest(BaseModel):
 
 class BinderHandoverResponse(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     received_by_name: str
     handed_over_at: date
     until_period_year: int

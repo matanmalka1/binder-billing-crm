@@ -94,7 +94,7 @@ class VatInvoiceAggregationRepository:
             grouped.get(InvoiceType.EXPENSE, Decimal("0")),
         )
 
-    def sum_income_net_by_client_year(self, client_id: int, year: int) -> Decimal:
+    def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> Decimal:
         """Sum net_amount of INCOME invoices for a client across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.
@@ -103,7 +103,7 @@ class VatInvoiceAggregationRepository:
             self.db.query(func.sum(self._signed_amount(VatInvoice.net_amount)))
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
-                VatWorkItem.client_id == client_id,
+                VatWorkItem.client_record_id == client_record_id,
                 VatInvoice.invoice_type == InvoiceType.INCOME,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),
@@ -113,7 +113,7 @@ class VatInvoiceAggregationRepository:
         return Decimal(str(result or 0))
 
     def sum_expense_net_by_client_year_grouped(
-        self, client_id: int, year: int
+        self, client_record_id: int, year: int
     ) -> dict[str, Decimal]:
         """Return {expense_category_value: total_net_amount} for EXPENSE invoices.
 
@@ -127,7 +127,7 @@ class VatInvoiceAggregationRepository:
             )
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
             .filter(
-                VatWorkItem.client_id == client_id,
+                VatWorkItem.client_record_id == client_record_id,
                 VatInvoice.invoice_type == InvoiceType.EXPENSE,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),

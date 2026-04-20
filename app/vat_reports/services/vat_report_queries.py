@@ -76,8 +76,8 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     return item
 
 
-def list_client_work_items(work_item_repo: VatWorkItemRepository, client_id: int):
-    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_id).id
+def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_id: int):
+    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_record_id).id
     return work_item_repo.list_by_client_record(client_record_id)
 
 
@@ -106,13 +106,13 @@ def list_work_items_by_status(
     period: Optional[str] = None,
     client_name: Optional[str] = None,
 ):
-    client_ids = _resolve_client_ids_by_name(client_repo, client_name)
-    if client_name and not client_ids:
+    client_record_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, client_ids=client_ids
+        status, page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
     )
-    total = work_item_repo.count_by_status(status, period=period, client_ids=client_ids)
+    total = work_item_repo.count_by_status(status, period=period, client_record_ids=client_record_ids)
     return items, total
 
 
@@ -124,13 +124,13 @@ def list_all_work_items(
     period: Optional[str] = None,
     client_name: Optional[str] = None,
 ):
-    client_ids = _resolve_client_ids_by_name(client_repo, client_name)
-    if client_name and not client_ids:
+    client_record_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, client_ids=client_ids
+        page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
     )
-    total = work_item_repo.count_all(period=period, client_ids=client_ids)
+    total = work_item_repo.count_all(period=period, client_record_ids=client_record_ids)
     return items, total
 
 

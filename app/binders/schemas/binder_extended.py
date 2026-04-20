@@ -9,7 +9,7 @@ from app.binders.models.binder import BinderStatus
 class BinderDetailResponse(BaseModel):
     """תצוגה מורחבת עם שדות תפעוליים."""
     id: int
-    client_id: int
+    client_record_id: int
     office_client_number: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None

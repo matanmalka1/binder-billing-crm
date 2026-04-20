@@ -58,7 +58,7 @@ class BinderIntakeEditService:
 
         Supported patch keys:
         - intake fields: received_at, received_by, notes
-        - transfer fields: client_id, binder_id
+        - transfer fields: client_record_id, binder_id
         - linked FK replacements: business_ids, annual_report_ids, vat_report_ids
         """
         intake = self.intake_repo.get_by_id(intake_id)
@@ -94,7 +94,7 @@ class BinderIntakeEditService:
 
     @staticmethod
     def _is_transfer_patch(patch: dict[str, Any]) -> bool:
-        return any(key in patch for key in {"client_id", "binder_id", *tuple(_TRANSFER_LIST_KEYS)})
+        return any(key in patch for key in {"client_record_id", "binder_id", *tuple(_TRANSFER_LIST_KEYS)})
 
     def _apply_transfer_patch(
         self,
@@ -111,15 +111,15 @@ class BinderIntakeEditService:
             )
 
         target_binder = self._resolve_target_binder(current_binder=current_binder, patch=patch)
-        target_client_id = target_binder.client_id
+        target_client_id = target_binder.client_record_id
         if not self.client_repo.get_by_id(target_client_id):
             raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
 
-        if current_binder.client_id != target_client_id:
+        if current_binder.client_record_id != target_client_id:
             self.edit_log_repo.append(
                 intake_id=intake.id,
-                field_name="client_id",
-                old_value=self._stringify_value(current_binder.client_id),
+                field_name="client_record_id",
+                old_value=self._stringify_value(current_binder.client_record_id),
                 new_value=self._stringify_value(target_client_id),
                 changed_by=actor_id,
             )
@@ -131,9 +131,9 @@ class BinderIntakeEditService:
             materials=materials,
             attr_name="business_id",
             replacements=patch.get("business_ids"),
-            client_id=target_client_id,
+            client_record_id=target_client_id,
             loader=self.business_repo.get_by_id,
-            owner_attr="client_id",
+            owner_attr="client_record_id",
         )
         self._validate_and_apply_fk_updates(
             intake_id=intake.id,
@@ -141,9 +141,9 @@ class BinderIntakeEditService:
             materials=materials,
             attr_name="annual_report_id",
             replacements=patch.get("annual_report_ids"),
-            client_id=target_client_id,
+            client_record_id=target_client_id,
             loader=self.annual_report_repo.get_by_id,
-            owner_attr="client_id",
+            owner_attr="client_record_id",
         )
         self._validate_and_apply_fk_updates(
             intake_id=intake.id,
@@ -151,9 +151,9 @@ class BinderIntakeEditService:
             materials=materials,
             attr_name="vat_report_id",
             replacements=patch.get("vat_report_ids"),
-            client_id=target_client_id,
+            client_record_id=target_client_id,
             loader=self.vat_report_repo.get_by_id,
-            owner_attr="client_id",
+            owner_attr="client_record_id",
         )
 
         if intake.binder_id != target_binder.id:
@@ -173,7 +173,7 @@ class BinderIntakeEditService:
         patch: dict[str, Any],
     ):
         requested_binder_id = patch.get("binder_id")
-        requested_client_id = patch.get("client_id")
+        requested_client_id = patch.get("client_record_id")
 
         if requested_binder_id is not None:
             target_binder = self.binder_repo.get_by_id(requested_binder_id)
@@ -182,11 +182,11 @@ class BinderIntakeEditService:
                     BINDER_NOT_FOUND.format(binder_id=requested_binder_id),
                     "BINDER.NOT_FOUND",
                 )
-            if requested_client_id is not None and target_binder.client_id != requested_client_id:
+            if requested_client_id is not None and target_binder.client_record_id != requested_client_id:
                 raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
             return target_binder
 
-        if requested_client_id is None or requested_client_id == current_binder.client_id:
+        if requested_client_id is None or requested_client_id == current_binder.client_record_id:
             return current_binder
 
         requested_client_record_id = ClientRecordRepository(self.db).get_by_client_id(requested_client_id).id
@@ -203,7 +203,7 @@ class BinderIntakeEditService:
         materials: list[BinderIntakeMaterial],
         attr_name: str,
         replacements: Optional[list[int]],
-        client_id: int,
+        client_record_id: int,
         loader,
         owner_attr: str,
     ) -> None:
@@ -215,7 +215,7 @@ class BinderIntakeEditService:
         effective_ids = replacements or [getattr(m, attr_name) for m in linked_materials]
         for idx, entity_id in enumerate(effective_ids):
             entity = loader(entity_id)
-            if not entity or getattr(entity, owner_attr, None) != client_id:
+            if not entity or getattr(entity, owner_attr, None) != client_record_id:
                 raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
 
             if replacements is None:

@@ -17,14 +17,14 @@ from app.timeline.services.timeline_client_builders import (
 
 def build_client_events(
     db,
-    client_id: int,
+    client_record_id: int,
     business_ids: list[int],
     reminder_repo: ReminderRepository,
     sig_repo: SignatureRequestRepository,
 ) -> list[dict]:
     events = []
 
-    client = db.query(Client).filter(Client.id == client_id, Client.deleted_at.is_(None)).first()
+    client = db.query(Client).filter(Client.id == client_record_id, Client.deleted_at.is_(None)).first()
     if client:
         events.append(client_created_event(client))
         if client.updated_at and client.updated_at != client.created_at:
@@ -37,7 +37,7 @@ def build_client_events(
         for reminder in reminders:
             events.append(reminder_created_event(reminder))
 
-    client_record_id = ClientRecordRepository(db).get_by_client_id(client_id).id
+    client_record_id = ClientRecordRepository(db).get_by_client_id(client_record_id).id
     client_reminders = reminder_repo.list_by_client_record(
         client_record_id, page=1, page_size=_TIMELINE_BULK_LIMIT
     )

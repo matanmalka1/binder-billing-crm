@@ -17,7 +17,7 @@ class ReminderCreateRequest(BaseModel):
     message: Optional[str] = Field(None, min_length=1)
 
     # Anchors — validated per type below
-    client_id: Optional[int] = Field(None, gt=0)
+    client_record_id: Optional[int] = Field(None, gt=0)
     business_id: Optional[int] = Field(None, gt=0)
 
     # Domain links — at most one set per reminder, matched to reminder_type
@@ -32,51 +32,51 @@ class ReminderCreateRequest(BaseModel):
         t = self.reminder_type
 
         if t == ReminderType.TAX_DEADLINE_APPROACHING:
-            if not self.client_id:
-                raise ValueError("client_id נדרש עבור tax_deadline_approaching")
+            if not self.client_record_id:
+                raise ValueError("client_record_id נדרש עבור tax_deadline_approaching")
             if not self.tax_deadline_id:
                 raise ValueError("tax_deadline_id נדרש עבור סוג זה")
 
         elif t == ReminderType.VAT_FILING:
-            # client_id resolved from tax_deadline in the factory
+            # client_record_id resolved from tax_deadline in the factory
             if not self.tax_deadline_id:
                 raise ValueError("tax_deadline_id נדרש עבור vat_filing")
 
         elif t == ReminderType.BINDER_IDLE:
-            # client_id resolved from binder in the factory
+            # client_record_id resolved from binder in the factory
             if not self.binder_id:
                 raise ValueError("binder_id נדרש עבור binder_idle")
 
         elif t == ReminderType.ANNUAL_REPORT_DEADLINE:
-            # client_id resolved from annual_report in the factory
+            # client_record_id resolved from annual_report in the factory
             if not self.annual_report_id:
                 raise ValueError("annual_report_id נדרש עבור annual_report_deadline")
 
         elif t == ReminderType.UNPAID_CHARGE:
-            # client_id required explicitly; business_id is optional context
-            if not self.client_id:
-                raise ValueError("client_id נדרש עבור unpaid_charge")
+            # client_record_id required explicitly; business_id is optional context
+            if not self.client_record_id:
+                raise ValueError("client_record_id נדרש עבור unpaid_charge")
             if not self.charge_id:
                 raise ValueError("charge_id נדרש עבור unpaid_charge")
 
         elif t == ReminderType.ADVANCE_PAYMENT_DUE:
-            # client_id resolved from business in the factory
+            # client_record_id resolved from business in the factory
             if not self.business_id:
                 raise ValueError("business_id נדרש עבור advance_payment_due")
             if not self.advance_payment_id:
                 raise ValueError("advance_payment_id נדרש עבור advance_payment_due")
 
         elif t == ReminderType.DOCUMENT_MISSING:
-            # client_id resolved from business in the factory
+            # client_record_id resolved from business in the factory
             if not self.business_id:
                 raise ValueError("business_id נדרש עבור document_missing")
             if not self.message:
                 raise ValueError("message נדרש עבור תזכורת מסמך חסר")
 
         elif t == ReminderType.CUSTOM:
-            # client_id is the primary anchor; business_id is optional context
-            if not self.client_id and not self.business_id:
-                raise ValueError("client_id או business_id נדרש עבור תזכורת מותאמת אישית")
+            # client_record_id is the primary anchor; business_id is optional context
+            if not self.client_record_id and not self.business_id:
+                raise ValueError("client_record_id או business_id נדרש עבור תזכורת מותאמת אישית")
             if not self.message:
                 raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
 
@@ -86,7 +86,7 @@ class ReminderCreateRequest(BaseModel):
 class ReminderResponse(BaseModel):
     id: int
     # Populated by the query layer from client_record_id — not an ORM column.
-    client_id: Optional[int] = None
+    client_record_id: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
     office_client_number: Optional[int] = None

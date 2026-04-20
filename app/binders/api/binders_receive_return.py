@@ -32,7 +32,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     service = BinderService(db)
     materials = [m.model_dump() for m in request.materials] if request.materials else []
     binder, intake, is_new_binder = service.receive_binder(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         open_new_binder=request.open_new_binder,
         received_at=request.received_at,
         received_by=request.received_by,
@@ -52,7 +52,7 @@ def mark_ready_bulk(request: BinderMarkReadyBulkRequest, db: DBSession, user: Cu
     """Mark all eligible binders for a client as ready for pickup up to a cutoff period."""
     service = BinderService(db)
     binders = service.mark_ready_bulk(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         until_period_year=request.until_period_year,
         until_period_month=request.until_period_month,
         user_id=user.id,
@@ -105,7 +105,7 @@ def create_handover(request: BinderHandoverRequest, db: DBSession, user: Current
     """Return multiple binders to a client in a single grouped handover event."""
     service = BinderHandoverService(db)
     handover = service.create_handover(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         binder_ids=request.binder_ids,
         received_by_name=request.received_by_name,
         handed_over_at=request.handed_over_at,
@@ -117,7 +117,7 @@ def create_handover(request: BinderHandoverRequest, db: DBSession, user: Current
     binder_ids = BinderHandoverRepository(db).get_binder_ids_for_handover(handover.id)
     return BinderHandoverResponse(
         id=handover.id,
-        client_id=handover.client_id,
+        client_record_id=handover.client_record_id,
         received_by_name=handover.received_by_name,
         handed_over_at=handover.handed_over_at,
         until_period_year=handover.until_period_year,

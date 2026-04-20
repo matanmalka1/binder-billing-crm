@@ -32,7 +32,7 @@ from .messages import (
 class AnnualReportCreateService(AnnualReportBaseService):
     def create_report(
         self,
-        client_id: int,
+        client_record_id: int,
         tax_year: int,
         client_type: str,
         created_by: int,
@@ -51,12 +51,12 @@ class AnnualReportCreateService(AnnualReportBaseService):
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         assert_client_record_is_active(client_record)
         client_record_id = client_record.id if client_record else None
-        if not client_repo.get_by_id(client_id):
+        if not client_repo.get_by_id(client_record_id):
             from app.core.exceptions import NotFoundError
-            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
 
         valid_client_types = {e.value for e in ClientAnnualFilingType}
         if client_type not in valid_client_types:
@@ -74,7 +74,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         existing = self.repo.get_by_client_record_year(client_record_id, tax_year)
         if existing:
             raise ConflictError(ANNUAL_REPORT_ALREADY_EXISTS.format(
-                client_id=client_id,
+                client_record_id=client_record_id,
                 tax_year=tax_year,
                 existing_id=existing.id,
                 status=existing.status.value,
@@ -130,6 +130,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
         EntityAuditLogRepository(self.db).append(
             entity_type=ENTITY_ANNUAL_REPORT, entity_id=report.id,
             performed_by=created_by, action=ACTION_CREATED,
-            new_value=json.dumps({"tax_year": tax_year, "client_type": client_type, "client_id": client_id}),
+            new_value=json.dumps({"tax_year": tax_year, "client_type": client_type, "client_record_id": client_record_id}),
         )
         return report

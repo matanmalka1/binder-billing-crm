@@ -46,7 +46,7 @@ def create_work_item(
     work_item_repo: VatWorkItemRepository,
     client_repo: ClientRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     period: str,
     created_by: int,
     assigned_to: Optional[int] = None,
@@ -58,18 +58,18 @@ def create_work_item(
 
     Rules:
     - Client must exist and not be CLOSED or FROZEN.
-    - Only one work item per (client_id, period) — duplicate raises ConflictError.
+    - Only one work item per (client_record_id, period) — duplicate raises ConflictError.
     - Period must match the client's reporting frequency.
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    client_record = ClientRecordRepository(client_repo.db).get_by_client_id(client_id)
+    client_record = ClientRecordRepository(client_repo.db).get_by_client_id(client_record_id)
     assert_client_record_is_active(client_record)
     client_record_id = client_record.id
 
-    client = client_repo.get_by_id(client_id)
+    client = client_repo.get_by_id(client_record_id)
     if not client:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
 
     if client.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
@@ -85,7 +85,7 @@ def create_work_item(
     existing = work_item_repo.get_by_client_record_period(client_record_id, period)
     if existing:
         raise ConflictError(
-            VAT_WORK_ITEM_CONFLICT.format(client_id=client_id, period=period),
+            VAT_WORK_ITEM_CONFLICT.format(client_record_id=client_record_id, period=period),
             "VAT.CONFLICT",
         )
 
@@ -100,7 +100,6 @@ def create_work_item(
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
     item = work_item_repo.create(
-        client_id=client_id,
         client_record_id=client_record_id,
         period=period,
         period_type=effective_vat_type,

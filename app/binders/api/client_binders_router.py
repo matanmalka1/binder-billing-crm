@@ -13,19 +13,19 @@ router = APIRouter(
 )
 
 
-@router.get("/{client_id}/binders", response_model=BinderListResponseExtended)
+@router.get("/{client_record_id}/binders", response_model=BinderListResponseExtended)
 def list_client_binders(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List all binders for a specific client."""
-    ClientService(db).get_client_or_raise(client_id)
+    ClientService(db).get_client_or_raise(client_record_id)
 
     service = BinderOperationsService(db)
     items, total = service.get_client_binders(
-        client_id=client_id,
+        client_record_id=client_record_id,
         page=page,
         page_size=page_size,
     )

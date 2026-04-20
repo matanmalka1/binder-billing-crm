@@ -41,7 +41,7 @@ def list_advance_payments_overview(
     items = [
         AdvancePaymentOverviewRow(
             id=payment.id,
-            client_id=payment.client_id,
+            client_record_id=payment.client_record_id,
             office_client_number=office_client_number,
             business_name=business_name,
             period=payment.period,

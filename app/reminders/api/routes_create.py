@@ -26,7 +26,7 @@ def create_reminder(
 
     if request.reminder_type == ReminderType.TAX_DEADLINE_APPROACHING:
         reminder = service.create_tax_deadline_reminder(
-            client_id=request.client_id,
+            client_record_id=request.client_record_id,
             tax_deadline_id=request.tax_deadline_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -61,10 +61,10 @@ def create_reminder(
         )
 
     elif request.reminder_type == ReminderType.UNPAID_CHARGE:
-        # client_id is required by the schema validator for this type.
+        # client_record_id is required by the schema validator for this type.
         # business_id is optional context — may be None for client-level charges.
         reminder = service.create_unpaid_charge_reminder(
-            client_id=request.client_id,
+            client_record_id=request.client_record_id,
             business_id=request.business_id,
             charge_id=request.charge_id,
             days_unpaid=request.days_before,
@@ -93,7 +93,7 @@ def create_reminder(
 
     else:  # ReminderType.CUSTOM
         reminder = service.create_custom_reminder(
-            client_id=request.client_id,
+            client_record_id=request.client_record_id,
             business_id=request.business_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -102,5 +102,5 @@ def create_reminder(
         )
 
     resp = ReminderResponse.model_validate(reminder)
-    resp.client_id = reminder.client_record_id
+    resp.client_record_id = reminder.client_record_id
     return resp

@@ -72,8 +72,8 @@ class VatReportService:
     def get_work_item(self, item_id: int):
         return vat_report_queries.get_work_item(self.work_item_repo, item_id)
 
-    def list_client_work_items(self, client_id: int):
-        return vat_report_queries.list_client_work_items(self.work_item_repo, client_id)
+    def list_client_work_items(self, client_record_id: int):
+        return vat_report_queries.list_client_work_items(self.work_item_repo, client_record_id)
 
     def list_work_items_by_status(self, **kwargs):
         return vat_report_queries.list_work_items_by_status(
@@ -88,8 +88,8 @@ class VatReportService:
     def list_invoices(self, **kwargs):
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
-    def get_work_item_by_client_period(self, client_id: int, period: str):
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+    def get_work_item_by_client_period(self, client_record_id: int, period: str):
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
         return self.work_item_repo.get_by_client_record_period(client_record_id, period)
 
     def get_audit_trail(self, item_id: int):
@@ -100,9 +100,9 @@ class VatReportService:
             self.work_item_repo, self.client_repo, self.user_repo, item_id
         )
 
-    def get_client_items_enriched(self, client_id: int) -> dict:
+    def get_client_items_enriched(self, client_record_id: int) -> dict:
         return vat_report_enrichment.get_client_items_enriched(
-            self.work_item_repo, self.client_repo, self.user_repo, client_id
+            self.work_item_repo, self.client_repo, self.user_repo, client_record_id
         )
 
     def get_list_enriched(self, **kwargs) -> dict:

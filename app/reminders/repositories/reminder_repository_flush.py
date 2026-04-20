@@ -35,15 +35,13 @@ class ReminderRepositoryFlush(ReminderRepositoryRead):
         days_before: int,
         send_on,
         message: str,
-        client_id: int,                     # always required — legal entity anchor
-        client_record_id: Optional[int] = None,
+        client_record_id: int,
         business_id: Optional[int] = None,  # optional context
         tax_deadline_id: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> Reminder:
         """Insert a new reminder and flush (no commit). Use only inside a sync transaction."""
         reminder = Reminder(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
             reminder_type=reminder_type,

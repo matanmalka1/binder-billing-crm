@@ -36,21 +36,21 @@ advisor_router = APIRouter(
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,      # PRIMARY filter — all notifications for a legal entity
+    client_record_id: Optional[int] = None,      # PRIMARY filter — all notifications for a legal entity
     business_id: Optional[int] = None,    # SECONDARY filter — narrow to one business
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
     """Return paginated notifications ordered by created_at desc.
 
-    Use client_id to get all notifications for a legal entity.
+    Use client_record_id to get all notifications for a legal entity.
     Optionally combine with business_id to scope to a specific business.
     """
     svc = NotificationService(db)
     items, total = svc.list_paginated(
         page=page,
         page_size=page_size,
-        client_id=client_id,
+        client_record_id=client_record_id,
         business_id=business_id,
     )
     return NotificationListResponse(
@@ -65,12 +65,12 @@ def list_notifications(
 def get_unread_count(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     business_id: Optional[int] = None,
 ):
     svc = NotificationService(db)
     return UnreadCountResponse(
-        unread_count=svc.count_unread(client_id=client_id, business_id=business_id)
+        unread_count=svc.count_unread(client_record_id=client_record_id, business_id=business_id)
     )
 
 
@@ -86,12 +86,12 @@ def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
 def mark_all_read(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     business_id: Optional[int] = None,
 ):
     """Mark all unread notifications as read (optionally scoped to client or business)."""
     svc = NotificationService(db)
-    updated = svc.mark_all_read(client_id=client_id, business_id=business_id)
+    updated = svc.mark_all_read(client_record_id=client_record_id, business_id=business_id)
     return MarkReadResponse(updated=updated)
 
 

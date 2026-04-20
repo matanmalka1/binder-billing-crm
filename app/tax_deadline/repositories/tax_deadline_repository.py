@@ -86,11 +86,11 @@ class TaxDeadlineRepository:
 
     def list_by_client_ids(
         self,
-        client_ids: list[int],
+        client_record_ids: list[int],
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        return self._q.list_by_client_ids(client_ids, status=status, deadline_type=deadline_type)
+        return self._q.list_by_client_ids(client_record_ids, status=status, deadline_type=deadline_type)
 
     def list_by_client_record(
         self,
@@ -112,7 +112,7 @@ class TaxDeadlineRepository:
 
     def list_by_client(
         self,
-        client_id: int,
+        client_record_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
@@ -120,7 +120,7 @@ class TaxDeadlineRepository:
         period: Optional[str] = None,
     ) -> list[TaxDeadline]:
         return self._q.list_by_client(
-            client_id,
+            client_record_id,
             status=status,
             deadline_type=deadline_type,
             due_from=due_from,
@@ -130,11 +130,11 @@ class TaxDeadlineRepository:
 
     def exists(
         self,
-        client_id: int,
+        client_record_id: int,
         deadline_type: DeadlineType,
         due_date: date,
     ) -> bool:
-        return self._q.exists(client_id, deadline_type, due_date)
+        return self._q.exists(client_record_id, deadline_type, due_date)
 
     def exists_by_record(
         self,

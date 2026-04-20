@@ -31,8 +31,8 @@ from app.annual_reports.services.messages import (
 
 
 class FinancialCrudMixin:
-    def _assert_client_allows_create(self, client_id: int) -> None:
-        client = ClientRepository(self.db).get_by_id(client_id)
+    def _assert_client_allows_create(self, client_record_id: int) -> None:
+        client = ClientRepository(self.db).get_by_id(client_record_id)
         if client and client.status == ClientStatus.CLOSED:
             raise ForbiddenError(CLIENT_CLOSED_CREATE_WORK_ERROR, "CLIENT.CLOSED")
         if client and client.status == ClientStatus.FROZEN:
@@ -47,7 +47,7 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
-        self._assert_client_allows_create(report.client_id)
+        self._assert_client_allows_create(report.client_record_id)
         valid_sources = {e.value for e in IncomeSourceType}
         if source_type not in valid_sources:
             raise AppError(INVALID_INCOME_SOURCE_ERROR.format(source_type=source_type), "ANNUAL_REPORT.INVALID_TYPE")
@@ -101,7 +101,7 @@ class FinancialCrudMixin:
         actor_id: Optional[int] = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
-        self._assert_client_allows_create(report.client_id)
+        self._assert_client_allows_create(report.client_record_id)
         valid_categories = {e.value for e in ExpenseCategoryType}
         if category not in valid_categories:
             raise AppError(INVALID_EXPENSE_CATEGORY_ERROR.format(category=category), "ANNUAL_REPORT.INVALID_TYPE")

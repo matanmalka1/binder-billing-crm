@@ -25,7 +25,7 @@ def _enrich_business_name(
 ) -> SignatureRequestResponse:
     """Attach business_name when the request is scoped to a business.
 
-    client_id is already on the DB row — no need to derive it from a join.
+    client_record_id is already on the DB row — no need to derive it from a join.
     """
     if response.business_id is None:
         return response
@@ -39,7 +39,7 @@ def _enrich_client_office_number(
     response: SignatureRequestResponse,
     db: DBSession,
 ) -> SignatureRequestResponse:
-    client = ClientRepository(db).get_by_id(response.client_id)
+    client = ClientRepository(db).get_by_id(response.client_record_id)
     if client:
         response.office_client_number = client.office_client_number
     return response
@@ -60,7 +60,7 @@ def create_signature_request(
 ):
     service = SignatureRequestService(db)
     req = service.create_request(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         business_id=request.business_id,
         created_by=user.id,
         created_by_name=user.full_name,
@@ -98,11 +98,11 @@ def list_pending_requests(
     client_repo = ClientRepository(db)
     office_number_map = {
         client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_id for item in items}))
+        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
     }
     for r in items:
         resp = SignatureRequestResponse.model_validate(r)
-        resp.office_client_number = office_number_map.get(r.client_id)
+        resp.office_client_number = office_number_map.get(r.client_record_id)
         if r.business_id:
             resp.business_name = name_map.get(r.business_id)
         responses.append(resp)

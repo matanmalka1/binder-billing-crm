@@ -29,7 +29,7 @@ class SignatureAuditEventResponse(BaseModel):
 
 class SignatureRequestResponse(BaseModel):
     id: int
-    client_id: int                              # PRIMARY anchor — always present
+    client_record_id: int                              # PRIMARY anchor — always present
     office_client_number: Optional[int] = None
     business_id: Optional[int] = None          # OPTIONAL context
     business_name: Optional[str] = None        # enriched by route layer when business_id set
@@ -73,7 +73,7 @@ class SignatureRequestWithAuditResponse(SignatureRequestResponse):
 # ── Advisor create request ────────────────────────────────────────────────────
 
 class SignatureRequestCreateRequest(BaseModel):
-    client_id: int = Field(gt=0)                        # PRIMARY anchor — always required
+    client_record_id: int = Field(gt=0)                        # PRIMARY anchor — always required
     business_id: Optional[int] = Field(None, gt=0)     # OPTIONAL; validated server-side for ownership
     request_type: SignatureRequestType
     title: str = Field(min_length=3, max_length=200)

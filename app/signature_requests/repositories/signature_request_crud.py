@@ -15,8 +15,7 @@ class SignatureRequestCrudMixin:
 
     def create(
         self,
-        client_id: int,                          # PRIMARY anchor — always required
-        client_record_id: Optional[int],
+        client_record_id: int,
         created_by: int,
         request_type: SignatureRequestType,
         title: str,
@@ -31,7 +30,6 @@ class SignatureRequestCrudMixin:
         content_hash: Optional[str] = None,
     ) -> SignatureRequest:
         req = SignatureRequest(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
             created_by=created_by,

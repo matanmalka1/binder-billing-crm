@@ -22,18 +22,18 @@ class VatComplianceRepository:
         )
         return (
             self.db.query(
-                VatWorkItem.client_id,
+                VatWorkItem.client_record_id,
                 Client.full_name.label("client_name"),
                 func.count(VatWorkItem.id).label("periods_expected"),
                 func.sum(filed_case).label("periods_filed"),
             )
-            .join(Client, Client.id == VatWorkItem.client_id)
+            .join(Client, Client.id == VatWorkItem.client_record_id)
             .filter(
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )
-            .group_by(VatWorkItem.client_id, Client.full_name)
+            .group_by(VatWorkItem.client_record_id, Client.full_name)
             .order_by(Client.full_name)
             .all()
         )
@@ -43,7 +43,7 @@ class VatComplianceRepository:
         year_str = str(year)
         return (
             self.db.query(
-                VatWorkItem.client_id,
+                VatWorkItem.client_record_id,
                 VatWorkItem.period,
                 VatWorkItem.filed_at,
             )
@@ -60,11 +60,11 @@ class VatComplianceRepository:
         """Work items whose statutory deadline has passed and are not yet FILED."""
         return (
             self.db.query(
-                VatWorkItem.client_id,
+                VatWorkItem.client_record_id,
                 VatWorkItem.period,
                 Client.full_name.label("client_name"),
             )
-            .join(Client, Client.id == VatWorkItem.client_id)
+            .join(Client, Client.id == VatWorkItem.client_record_id)
             .filter(
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
@@ -80,12 +80,12 @@ class VatComplianceRepository:
         year_str = str(year)
         return (
             self.db.query(
-                VatWorkItem.client_id,
+                VatWorkItem.client_record_id,
                 Client.full_name.label("client_name"),
                 VatWorkItem.period,
                 VatWorkItem.updated_at,
             )
-            .join(Client, Client.id == VatWorkItem.client_id)
+            .join(Client, Client.id == VatWorkItem.client_record_id)
             .filter(
                 VatWorkItem.status == VatWorkItemStatus.PENDING_MATERIALS,
                 func.substr(VatWorkItem.period, 1, 4) == year_str,

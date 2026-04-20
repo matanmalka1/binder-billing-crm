@@ -12,9 +12,9 @@ router = APIRouter(
 )
 
 
-@router.get("/{client_id}/timeline", response_model=ClientTimelineResponse)
+@router.get("/{client_record_id}/timeline", response_model=ClientTimelineResponse)
 def get_client_timeline(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
@@ -22,13 +22,13 @@ def get_client_timeline(
     """Get unified client timeline."""
     service = TimelineService(db)
     events, total = service.get_client_timeline(
-        client_id=client_id,
+        client_record_id=client_record_id,
         page=page,
         page_size=page_size,
     )
 
     return ClientTimelineResponse(
-        client_id=client_id,
+        client_record_id=client_record_id,
         events=[TimelineEvent(**e) for e in events],
         page=page,
         page_size=page_size,

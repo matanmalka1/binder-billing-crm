@@ -25,7 +25,7 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
     """Create a new annual income tax report for a client legal entity."""
     service = AnnualReportService(db)
     orm_report = service.create_report(
-        client_id=body.client_id,
+        client_record_id=body.client_record_id,
         tax_year=body.tax_year,
         client_type=body.client_type,
         created_by=user.id,
@@ -50,7 +50,7 @@ def list_annual_reports(
     tax_year: int | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
-    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|client_id)$"),
+    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|client_record_id)$"),
     order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
     """List annual reports (optionally filter by tax_year)."""

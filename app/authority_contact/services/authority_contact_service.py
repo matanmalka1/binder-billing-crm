@@ -5,8 +5,6 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 
 
 class AuthorityContactService:
@@ -16,20 +14,9 @@ class AuthorityContactService:
         self.db = db
         self.contact_repo = AuthorityContactRepository(db)
 
-    def _get_client_or_raise(self, client_id: int) -> None:
-        repo = ClientRepository(self.db)
-        if not repo.get_by_id(client_id):
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-
-    def _get_client_record_id(self, client_id: int) -> int:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if not record:
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
-        return record.id
-
     def add_contact(
         self,
-        client_id: int,
+        client_record_id: int,
         contact_type: str,
         name: str,
         office: Optional[str] = None,
@@ -38,11 +25,10 @@ class AuthorityContactService:
         notes: Optional[str] = None,
     ) -> AuthorityContact:
         """Add new authority contact for client."""
-        self._get_client_or_raise(client_id)
         contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
 
         return self.contact_repo.create(
-            client_record_id=self._get_client_record_id(client_id),
+            client_record_id=client_record_id,
             contact_type=contact_type_enum,
             name=name,
             office=office,
@@ -68,16 +54,14 @@ class AuthorityContactService:
 
     def list_client_contacts(
         self,
-        client_id: int,
+        client_record_id: int,
         contact_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
         """List contacts for client with pagination."""
-        self._get_client_or_raise(client_id)
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
 
-        client_record_id = self._get_client_record_id(client_id)
         items = self.contact_repo.list_by_client_record(
             client_record_id, contact_type_enum, page=page, page_size=page_size
         )

@@ -35,14 +35,14 @@ class AgingReportService:
         capped = len(all_rows) > AGING_CHARGE_FETCH_LIMIT
         rows = all_rows[:AGING_CHARGE_FETCH_LIMIT]
 
-        client_ids = [row.client_id for row in rows]
-        client_map = {c.id: c for c in self.client_repo.list_by_ids(client_ids)}
+        client_record_ids = [row.client_record_id for row in rows]
+        client_map = {c.id: c for c in self.client_repo.list_by_ids(client_record_ids)}
 
         items = []
         total_outstanding = 0.0
 
         for row in rows:
-            client = client_map.get(row.client_id)
+            client = client_map.get(row.client_record_id)
             if not client:
                 continue
 
@@ -50,7 +50,7 @@ class AgingReportService:
             oldest_days = (as_of_date - oldest_date).days if oldest_date else None
 
             items.append({
-                "client_id": client.id,
+                "client_record_id": client.id,
                 "client_name": client.full_name,
                 "total_outstanding": round(float(row.total), 2),
                 "current": round(float(row.current), 2),

@@ -15,15 +15,15 @@ from app.vat_reports.schemas.vat_client_summary_schema import (
 from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 
 
-def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryResponse:
+def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
     client_repo = ClientRepository(db)
 
-    client = client_repo.get_by_id(client_id)
+    client = client_repo.get_by_id(client_record_id)
     if not client:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
 
-    raw_periods = summary_repo.get_periods_for_client(client_id)
+    raw_periods = summary_repo.get_periods_for_client(client_record_id)
     periods = [
         VatPeriodRow(
             work_item_id=r.id,
@@ -40,11 +40,11 @@ def get_client_summary(db: Session, *, client_id: int) -> VatClientSummaryRespon
         for r, output_net, input_net in raw_periods
     ]
 
-    raw_annual = summary_repo.get_annual_aggregates(client_id)
+    raw_annual = summary_repo.get_annual_aggregates(client_record_id)
     annual = [VatAnnualSummary.model_validate(row) for row in raw_annual]
 
     return VatClientSummaryResponse(
-        client_id=client_id,
+        client_record_id=client_record_id,
         periods=periods,
         annual=annual,
     )

@@ -14,8 +14,7 @@ class CorrespondenceRepository:
 
     def create(
         self,
-        client_id: int,                          # PRIMARY anchor — always required
-        client_record_id: Optional[int],
+        client_record_id: int,
         correspondence_type: CorrespondenceType,
         subject: str,
         occurred_at: datetime,
@@ -25,7 +24,6 @@ class CorrespondenceRepository:
         notes: Optional[str] = None,
     ) -> Correspondence:
         entry = Correspondence(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
             contact_id=contact_id,
@@ -44,7 +42,7 @@ class CorrespondenceRepository:
         *,
         page: int,
         page_size: int,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
         correspondence_type: Optional[CorrespondenceType] = None,
         contact_id: Optional[int] = None,
@@ -56,9 +54,8 @@ class CorrespondenceRepository:
             Correspondence.deleted_at.is_(None),
         )
 
-        # At least one of client_id / business_id should always be provided
-        if client_id is not None:
-            base = base.filter(Correspondence.client_id == client_id)
+        if client_record_id is not None:
+            base = base.filter(Correspondence.client_record_id == client_record_id)
         if business_id is not None:
             base = base.filter(Correspondence.business_id == business_id)
         if correspondence_type is not None:
@@ -82,7 +79,7 @@ class CorrespondenceRepository:
 
     def list_by_client_paginated(
         self,
-        client_id: int,
+        client_record_id: int,
         *,
         page: int,
         page_size: int,
@@ -94,7 +91,7 @@ class CorrespondenceRepository:
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         return self.list_paginated(
-            client_id=client_id,
+            client_record_id=client_record_id,
             business_id=business_id,
             page=page,
             page_size=page_size,

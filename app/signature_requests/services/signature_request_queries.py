@@ -36,14 +36,14 @@ def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
 def list_client_requests(
     repo: SignatureRequestRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     status: Optional[str] = None,
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[SignatureRequest], int]:
     """All signature requests for a legal entity (primary query path)."""
     status_enum = _parse_status(status)
-    client_record_id = ClientRecordRepository(repo.db).get_by_client_id(client_id).id
+    client_record_id = ClientRecordRepository(repo.db).get_by_client_id(client_record_id).id
     items = repo.list_by_client_record(client_record_id, status=status_enum, page=page, page_size=page_size)
     total = repo.count_by_client_record(client_record_id, status=status_enum)
     return items, total

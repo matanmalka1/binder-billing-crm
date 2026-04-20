@@ -44,15 +44,15 @@ class AdvancePaymentAnalyticsService:
 
         payments = self.aggregation_repo.list_overview_payments(year, month, statuses)
 
-        client_ids = list({p.client_id for p in payments})
-        clients = {c.id: c for c in self._client_repo.list_by_ids(client_ids)}
+        client_record_ids = list({p.client_record_id for p in payments})
+        clients = {c.id: c for c in self._client_repo.list_by_ids(client_record_ids)}
 
         rows = sorted(
             [
                 (
                     p,
-                    clients[p.client_id].office_client_number if p.client_id in clients else None,
-                    clients[p.client_id].full_name if p.client_id in clients else "",
+                    clients[p.client_record_id].office_client_number if p.client_record_id in clients else None,
+                    clients[p.client_record_id].full_name if p.client_record_id in clients else "",
                 )
                 for p in payments
             ],
@@ -65,13 +65,13 @@ class AdvancePaymentAnalyticsService:
 
     # ─── KPIs ─────────────────────────────────────────────────────────────────
 
-    def get_annual_kpis_for_client(self, client_id: int, year: int) -> dict:
-        if not self._client_repo.get_by_id(client_id):
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
-        data = self.analytics_repo.get_annual_kpis_for_client(client_id, year)
+    def get_annual_kpis_for_client(self, client_record_id: int, year: int) -> dict:
+        if not self._client_repo.get_by_id(client_record_id):
+            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        data = self.analytics_repo.get_annual_kpis_for_client(client_record_id, year)
         return {
             **data,
-            "client_id": client_id,
+            "client_record_id": client_record_id,
             "year": year,
             "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }
@@ -87,8 +87,8 @@ class AdvancePaymentAnalyticsService:
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
         return {**data, "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"])}
 
-    def get_chart_data_for_client(self, client_id: int, year: int) -> dict:
-        if not self._client_repo.get_by_id(client_id):
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
-        months = self.analytics_repo.monthly_chart_data_for_client(client_id, year)
-        return {"client_id": client_id, "year": year, "months": months}
+    def get_chart_data_for_client(self, client_record_id: int, year: int) -> dict:
+        if not self._client_repo.get_by_id(client_record_id):
+            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        months = self.analytics_repo.monthly_chart_data_for_client(client_record_id, year)
+        return {"client_record_id": client_record_id, "year": year, "months": months}

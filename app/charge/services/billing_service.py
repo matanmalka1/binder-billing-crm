@@ -40,13 +40,13 @@ class BillingService:
 
     def _validate_charge_scope(
         self,
-        client_id: int,
+        client_record_id: int,
         business_id: Optional[int],
         legal_entity_id: Optional[int] = None,
     ) -> Optional[int]:
-        client = self.client_repo.get_by_id(client_id)
+        client = self.client_repo.get_by_id(client_record_id)
         if not client:
-            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CHARGE.CLIENT_NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "CHARGE.CLIENT_NOT_FOUND")
         if business_id is None:
             return None
         business = validate_business_for_create(self.db, business_id)
@@ -55,7 +55,7 @@ class BillingService:
 
     def create_charge(
         self,
-        client_id: int,
+        client_record_id: int,
         amount: float,
         charge_type: str,
         business_id: Optional[int] = None,
@@ -65,11 +65,11 @@ class BillingService:
     ) -> Charge:
         if amount <= 0:
             raise AppError(AMOUNT_MUST_BE_POSITIVE, "CHARGE.AMOUNT_INVALID")
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         if not client_record:
-            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CHARGE.CLIENT_RECORD_NOT_FOUND")
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "CHARGE.CLIENT_RECORD_NOT_FOUND")
         assert_client_record_is_active(client_record)
-        business_id = self._validate_charge_scope(client_id, business_id, client_record.legal_entity_id)
+        business_id = self._validate_charge_scope(client_record_id, business_id, client_record.legal_entity_id)
         charge = self.charge_repo.create(
             client_record_id=client_record.id,
             business_id=business_id,

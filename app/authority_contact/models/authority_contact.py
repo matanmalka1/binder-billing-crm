@@ -73,4 +73,3 @@ class AuthorityContact(Base):
             f"<AuthorityContact(id={self.id}, client_record_id={self.client_record_id}, "
             f"type='{self.contact_type}', name='{self.name}')>"
         )
-

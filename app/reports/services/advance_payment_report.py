@@ -13,13 +13,13 @@ class AdvancePaymentReportService:
 
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
         rows = self.repo.get_collections_aggregates(year, month)
-        client_ids = [row.client_id for row in rows]
-        clients = {client.id: client for client in self.client_repo.list_by_ids(client_ids)}
+        client_record_ids = [row.client_record_id for row in rows]
+        clients = {client.id: client for client in self.client_repo.list_by_ids(client_record_ids)}
 
         items = [
             {
-                "client_id": r.client_id,
-                "client_name": clients[r.client_id].full_name if r.client_id in clients else f"לקוח #{r.client_id}",
+                "client_record_id": r.client_record_id,
+                "client_name": clients[r.client_record_id].full_name if r.client_record_id in clients else f"לקוח #{r.client_record_id}",
                 "total_expected": float(r.total_expected),
                 "total_paid": float(r.total_paid),
                 "overdue_count": int(r.overdue_count),

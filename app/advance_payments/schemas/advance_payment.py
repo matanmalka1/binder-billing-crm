@@ -15,7 +15,7 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 class AdvancePaymentRow(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     business_name: Optional[str] = None
     period: str                          # "YYYY-MM"
     period_months_count: int             # 1=חודשי, 2=דו-חודשי
@@ -98,7 +98,7 @@ class AdvancePaymentUpdateRequest(BaseModel):
 
 
 class AdvancePaymentSuggestionResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     year: int
     suggested_amount: Optional[ApiDecimal] = None
     has_data: bool
@@ -106,7 +106,7 @@ class AdvancePaymentSuggestionResponse(BaseModel):
 
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     office_client_number: Optional[int] = None
     business_name: str
     period: str
@@ -138,7 +138,7 @@ class AdvancePaymentOverviewResponse(BaseModel):
 
 
 class AnnualKPIResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     year: int
     total_expected: ApiDecimal
     total_paid: ApiDecimal
@@ -156,7 +156,7 @@ class MonthlyChartRow(BaseModel):
 
 
 class ChartDataResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     year: int
     months: list[MonthlyChartRow]
 

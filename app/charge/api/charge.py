@@ -25,7 +25,7 @@ router = APIRouter(
 def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser):
     """Create new charge (ADVISOR only)."""
     charge = BillingService(db).create_charge(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         business_id=request.business_id,
         amount=request.amount,
         charge_type=request.charge_type,
@@ -94,7 +94,7 @@ def list_charges(
     db: DBSession,
     user: CurrentUser,
     business_id: Optional[int] = None,
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
     charge_type: Optional[str] = None,
     page: int = Query(1, ge=1),
@@ -104,7 +104,7 @@ def list_charges(
     return ChargeQueryService(db).list_charges_for_role(
         user_role=user.role,
         business_id=business_id,
-        client_id=client_id,
+        client_record_id=client_record_id,
         status=status_filter,
         charge_type=charge_type,
         page=page,

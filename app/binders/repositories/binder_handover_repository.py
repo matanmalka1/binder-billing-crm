@@ -14,8 +14,7 @@ class BinderHandoverRepository:
 
     def create(
         self,
-        client_id: int,
-        client_record_id: Optional[int],
+        client_record_id: int,
         received_by_name: str,
         handed_over_at: date,
         until_period_year: int,
@@ -26,7 +25,6 @@ class BinderHandoverRepository:
     ) -> BinderHandover:
         from app.utils.time_utils import utcnow
         handover = BinderHandover(
-            client_id=client_id,
             client_record_id=client_record_id,
             received_by_name=received_by_name,
             handed_over_at=handed_over_at,
@@ -51,14 +49,6 @@ class BinderHandoverRepository:
             self.db.query(BinderHandover)
             .filter(BinderHandover.id == handover_id)
             .first()
-        )
-
-    def list_by_client(self, client_id: int) -> list[BinderHandover]:
-        return (
-            self.db.query(BinderHandover)
-            .filter(BinderHandover.client_id == client_id)
-            .order_by(BinderHandover.handed_over_at.desc())
-            .all()
         )
 
     def list_by_client_record(self, client_record_id: int) -> list[BinderHandover]:

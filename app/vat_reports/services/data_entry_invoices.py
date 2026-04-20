@@ -71,7 +71,7 @@ def add_invoice(
 
     assert_editable(item)
 
-    client = repo_or_client_repo.get_by_id(item.client_id)
+    client = repo_or_client_repo.get_by_id(item.client_record_id)
 
     if client and getattr(client, "status", None) == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
@@ -79,7 +79,7 @@ def add_invoice(
     if business_activity_id is not None:
         db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
         business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
-        if not business or business.client_id != item.client_id:
+        if not business or business.client_id != item.client_record_id:
             raise AppError(
                 VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
@@ -93,7 +93,7 @@ def add_invoice(
 
     ceiling_warning = False
     if invoice_type == InvoiceType.INCOME and client:
-        scope_id = item.client_id
+        scope_id = item.client_record_id
         ceiling_warning = check_osek_patur_ceiling(
             client, invoice_repo, scope_id, item.period, net_amount
         )

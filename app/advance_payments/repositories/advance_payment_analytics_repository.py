@@ -17,7 +17,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def get_annual_kpis_for_client(self, client_id: int, year: int) -> dict:
+    def get_annual_kpis_for_client(self, client_record_id: int, year: int) -> dict:
         rows = (
             self.db.query(
                 AdvancePayment.status,
@@ -26,7 +26,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 func.count(AdvancePayment.id).label("count"),
             )
             .filter(
-                AdvancePayment.client_id == client_id,
+                AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
@@ -64,7 +64,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             "total_paid": float(total_paid),
         }
 
-    def monthly_chart_data_for_client(self, client_id: int, year: int) -> list[dict]:
+    def monthly_chart_data_for_client(self, client_record_id: int, year: int) -> list[dict]:
         rows = (
             self.db.query(
                 AdvancePayment.period,
@@ -85,7 +85,7 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 ).label("overdue_amount"),
             )
             .filter(
-                AdvancePayment.client_id == client_id,
+                AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )

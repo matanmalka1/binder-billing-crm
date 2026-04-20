@@ -28,17 +28,11 @@ class VatWorkItemWriteRepository:
         """Fetch with a row-level lock for status transitions."""
         return self._query.get_by_id_for_update(item_id)
 
-    def get_by_client_period(self, client_id: int, period: str) -> Optional[VatWorkItem]:
-        return self._query.get_by_client_period(client_id, period)
-
-    def list_by_client(self, client_id: int, limit: int = 200) -> list[VatWorkItem]:
-        return self._query.list_by_client(client_id, limit=limit)
+    def get_by_client_record_period(self, client_record_id: int, period: str) -> Optional[VatWorkItem]:
+        return self._query.get_by_client_record_period(client_record_id, period)
 
     def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_client_record(client_record_id, limit=limit)
-
-    def get_by_client_record_period(self, client_record_id: int, period: str) -> Optional[VatWorkItem]:
-        return self._query.get_by_client_record_period(client_record_id, period)
 
     def list_by_business_activity(self, business_activity_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_business_activity(business_activity_id, limit=limit)
@@ -58,27 +52,25 @@ class VatWorkItemWriteRepository:
     def count_by_period_not_filed(self, period: str) -> int:
         return self._query.count_by_period_not_filed(period)
 
-    def sum_net_vat_by_client_year(self, client_id: int, tax_year: int):
-        return self._query.sum_net_vat_by_client_year(client_id, tax_year)
+    def sum_net_vat_by_client_record_year(self, client_record_id: int, tax_year: int):
+        return self._query.sum_net_vat_by_client_record_year(client_record_id, tax_year)
 
     def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
         return self._query.list_not_filed_for_period(period, limit=limit)
 
     def create(
         self,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         period: Optional[str] = None,
         period_type=None,
         created_by: Optional[int] = None,
         status: VatWorkItemStatus = VatWorkItemStatus.MATERIAL_RECEIVED,
         pending_materials_note: Optional[str] = None,
         assigned_to: Optional[int] = None,
-        client_record_id: Optional[int] = None,
     ) -> VatWorkItem:
-        if client_id is None or period is None or period_type is None or created_by is None:
-            raise TypeError("client_id, period, period_type, and created_by are required")
+        if client_record_id is None or period is None or period_type is None or created_by is None:
+            raise TypeError("client_record_id, period, period_type, and created_by are required")
         item = VatWorkItem(
-            client_id=client_id,
             client_record_id=client_record_id,
             period=period,
             period_type=period_type,

@@ -40,7 +40,7 @@ def _build_response(
 def list_tax_deadlines(
     db: DBSession,
     user: CurrentUser,
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     business_name: Optional[str] = Query(None),
     client_name: Optional[str] = Query(None),
     deadline_type: Optional[str] = None,
@@ -61,7 +61,7 @@ def list_tax_deadlines(
     due_to_date = date_type.fromisoformat(due_to) if due_to else None
 
     paginated, total = service.list_deadlines(
-        client_id, search_name, status_filter, type_enum, page=page, page_size=page_size,
+        client_record_id, search_name, status_filter, type_enum, page=page, page_size=page_size,
         due_from=due_from_date, due_to=due_to_date, period=period,
     )
 
@@ -71,8 +71,8 @@ def list_tax_deadlines(
         items=[
             _build_response(
                 d,
-                business_name=client_context_map.get(d.client_id, {}).get("full_name"),
-                office_client_number=client_context_map.get(d.client_id, {}).get("office_client_number"),
+                business_name=client_context_map.get(d.client_record_id, {}).get("full_name"),
+                office_client_number=client_context_map.get(d.client_record_id, {}).get("office_client_number"),
                 user_role=user.role,
             )
             for d in paginated
@@ -85,13 +85,13 @@ def list_tax_deadlines(
 
 @router.get("/timeline", response_model=list[TimelineEntry])
 def get_timeline(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
     """Return all deadlines for a client sorted by due_date asc."""
     service = TaxDeadlineQueryService(db)
-    entries = service.get_timeline(client_id)
+    entries = service.get_timeline(client_record_id)
     return [TimelineEntry(**e) for e in entries]
 
 
@@ -110,8 +110,8 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
         urgent_items.append(
             DeadlineUrgentItem(
                 id=deadline.id,
-                client_id=deadline.client_id,
-                business_name=client_context_map.get(deadline.client_id, {}).get("full_name") or "לא ידוע",
+                client_record_id=deadline.client_record_id,
+                business_name=client_context_map.get(deadline.client_record_id, {}).get("full_name") or "לא ידוע",
                 deadline_type=deadline.deadline_type,
                 due_date=deadline.due_date,
                 urgency=item["urgency"],
@@ -124,8 +124,8 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     upcoming = [
         _build_response(
             d,
-            business_name=upcoming_client_context_map.get(d.client_id, {}).get("full_name"),
-            office_client_number=upcoming_client_context_map.get(d.client_id, {}).get("office_client_number"),
+            business_name=upcoming_client_context_map.get(d.client_record_id, {}).get("full_name"),
+            office_client_number=upcoming_client_context_map.get(d.client_record_id, {}).get("office_client_number"),
             user_role=user.role,
         )
         for d in summary["upcoming"]

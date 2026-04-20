@@ -123,9 +123,9 @@ class VatInvoiceRepository:
     def sum_net_both_types(self, work_item_id: int) -> tuple[float, float]:
         return self._agg.sum_net_both_types(work_item_id)
 
-    def sum_income_net_by_client_year(self, client_id: int, year: int) -> float:
-        return self._agg.sum_income_net_by_client_year(client_id, year)
+    def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> float:
+        return self._agg.sum_income_net_by_client_year(client_record_id, year)
 
-    def sum_expense_net_by_client_year_grouped(self, client_id: int, year: int) -> dict:
-        return self._agg.sum_expense_net_by_client_year_grouped(client_id, year)
+    def sum_expense_net_by_client_year_grouped(self, client_record_id: int, year: int) -> dict:
+        return self._agg.sum_expense_net_by_client_year_grouped(client_record_id, year)
 

@@ -21,7 +21,7 @@ def list_binders(
     db: DBSession,
     user: CurrentUser,
     status_filter: Optional[str] = Query(None, alias="status"),
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     query: Optional[str] = None,
     client_name: Optional[str] = None,
     binder_number: Optional[str] = None,
@@ -34,7 +34,7 @@ def list_binders(
     """List active binders with optional filters, sorting, and pagination."""
     service = BinderService(db)
     items, total, counters = service.list_binders_enriched(
-        client_id=client_id,
+        client_record_id=client_record_id,
         status=status_filter,
         query=query,
         client_name_filter=client_name,

@@ -22,12 +22,12 @@ class AnnualReportQueryService(AnnualReportBaseService):
             return None
         return self._to_responses([report])[0]
 
-    def get_client_reports(self, client_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+    def get_client_reports(self, client_record_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
         from app.core.exceptions import NotFoundError
         from .messages import ANNUAL_REPORT_CLIENT_NOT_FOUND
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         if client_record is None:
-            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
         reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
         total = self.repo.count_by_client_record(client_record.id)
         return self._to_responses(reports), total
@@ -104,7 +104,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
         tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         response.profit = tax.net_profit
-        advances_paid = Decimal(str(self.advance_repo.sum_paid_by_client_year(orm_report.client_id, orm_report.tax_year)))
+        advances_paid = Decimal(str(self.advance_repo.sum_paid_by_client_year(orm_report.client_record_id, orm_report.tax_year)))
         response.final_balance = tax.tax_after_credits - advances_paid
 
         return response
@@ -135,8 +135,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
         """Group reports by stage for Kanban board."""
         from app.clients.repositories.client_repository import ClientRepository
         reports = self.repo.list_all_with_businesses()
-        client_ids = {r.client_id for r in reports}
-        clients = {c.id: c for c in ClientRepository(self.db).list_by_ids(list(client_ids))} if client_ids else {}
+        client_record_ids = {r.client_record_id for r in reports}
+        clients = {c.id: c for c in ClientRepository(self.db).list_by_ids(list(client_record_ids))} if client_record_ids else {}
 
         stages = {stage.value: [] for stage in ReportStage}
         for report in reports:
@@ -154,11 +154,11 @@ class AnnualReportQueryService(AnnualReportBaseService):
             else:  # submitted, accepted, closed
                 stage_key = ReportStage.TRANSMITTED
 
-            client = clients.get(report.client_id)
+            client = clients.get(report.client_record_id)
             stages[stage_key.value].append(
                 {
                     "id": report.id,
-                    "client_id": report.client_id,
+                    "client_record_id": report.client_record_id,
                     "office_client_number": client.office_client_number if client else None,
                     "client_name": client.full_name if client else None,
                     "client_id_number": client.id_number if client else None,

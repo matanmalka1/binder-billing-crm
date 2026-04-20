@@ -1,4 +1,4 @@
-CLIENT_NOT_FOUND = "לקוח {client_id} לא נמצא"
+CLIENT_NOT_FOUND = "לקוח {client_record_id} לא נמצא"
 BUSINESS_CLIENT_MISMATCH = "העסק שנבחר אינו שייך ללקוח שסופק"
 AMOUNT_MUST_BE_POSITIVE = "הסכום חייב להיות חיובי"
 CHARGE_NOT_FOUND = "החיוב {charge_id} לא נמצא"

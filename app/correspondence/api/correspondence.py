@@ -27,9 +27,9 @@ client_router = APIRouter(
 )
 
 
-@client_router.get("/{client_id}/correspondence", response_model=CorrespondenceListResponse)
+@client_router.get("/{client_record_id}/correspondence", response_model=CorrespondenceListResponse)
 def list_correspondence_by_client(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(_DEFAULT_PAGE_SIZE, ge=1, le=_MAX_PAGE_SIZE),
@@ -43,7 +43,7 @@ def list_correspondence_by_client(
     """All correspondence for a client, optionally filtered by business."""
     service = CorrespondenceService(db)
     entries, total = service.list_client_entries(
-        client_id,
+        client_record_id,
         page=page,
         page_size=page_size,
         business_id=business_id,
@@ -62,31 +62,31 @@ def list_correspondence_by_client(
 
 
 @client_router.get(
-    "/{client_id}/correspondence/{correspondence_id}",
+    "/{client_record_id}/correspondence/{correspondence_id}",
     response_model=CorrespondenceResponse,
 )
 def get_correspondence(
-    client_id: int,
+    client_record_id: int,
     correspondence_id: int,
     db: DBSession,
 ):
-    entry = CorrespondenceService(db).get_entry(correspondence_id, client_id)
+    entry = CorrespondenceService(db).get_entry(correspondence_id, client_record_id)
     return CorrespondenceResponse.model_validate(entry)
 
 
 @client_router.post(
-    "/{client_id}/correspondence",
+    "/{client_record_id}/correspondence",
     response_model=CorrespondenceResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_correspondence(
-    client_id: int,
+    client_record_id: int,
     request: CorrespondenceCreateRequest,
     db: DBSession,
     user: CurrentUser,
 ):
     entry = CorrespondenceService(db).add_entry(
-        client_id=client_id,
+        client_record_id=client_record_id,
         business_id=request.business_id,
         correspondence_type=request.correspondence_type,
         subject=request.subject,
@@ -99,11 +99,11 @@ def create_correspondence(
 
 
 @client_router.patch(
-    "/{client_id}/correspondence/{correspondence_id}",
+    "/{client_record_id}/correspondence/{correspondence_id}",
     response_model=CorrespondenceResponse,
 )
 def update_correspondence(
-    client_id: int,
+    client_record_id: int,
     correspondence_id: int,
     request: CorrespondenceUpdateRequest,
     db: DBSession,
@@ -111,21 +111,21 @@ def update_correspondence(
 ):
     entry = CorrespondenceService(db).update_entry(
         correspondence_id,
-        client_id,
+        client_record_id,
         **request.model_dump(exclude_unset=True),
     )
     return CorrespondenceResponse.model_validate(entry)
 
 
 @client_router.delete(
-    "/{client_id}/correspondence/{correspondence_id}",
+    "/{client_record_id}/correspondence/{correspondence_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=_ADVISOR_ONLY,
 )
 def delete_correspondence(
-    client_id: int,
+    client_record_id: int,
     correspondence_id: int,
     db: DBSession,
     user: CurrentUser,
 ):
-    CorrespondenceService(db).delete_entry(correspondence_id, client_id, actor_id=user.id)
+    CorrespondenceService(db).delete_entry(correspondence_id, client_record_id, actor_id=user.id)

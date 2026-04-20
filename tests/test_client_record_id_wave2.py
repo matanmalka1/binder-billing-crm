@@ -72,7 +72,7 @@ def _make_business(db, client_id: int):
     from app.businesses.models.business import Business, BusinessStatus
 
     business = Business(
-        client_id=client_id,
+        client_record_id=client_record_id,
         business_name=f"Biz-{client_id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
@@ -90,7 +90,6 @@ class TestO1Reminder:
         client = _make_client(db)
         record = _make_client_record(db, client.id)
         db.add(Reminder(
-            client_id=client.id,
             client_record_id=record.id,
             reminder_type=ReminderType.CUSTOM,
             status=ReminderStatus.PENDING,
@@ -114,7 +113,7 @@ class TestO1Reminder:
 
         client = _make_client(db, "C202")
         record = _make_client_record(db, client.id)
-        deadline = TaxDeadline(client_id=client.id, client_record_id=record.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 2, 15))
+        deadline = TaxDeadline(client_record_id=record.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 2, 15))
         db.add(deadline)
         db.flush()
 
@@ -122,7 +121,7 @@ class TestO1Reminder:
             ReminderRepository(db),
             ClientRepository(db),
             TaxDeadlineRepository(db),
-            client_id=client.id,
+            client_record_id=record.id,
             tax_deadline_id=deadline.id,
             target_date=date(2024, 2, 15),
             days_before=3,
@@ -138,7 +137,6 @@ class TestO2Charge:
         client = _make_client(db, "C204")
         record = _make_client_record(db, client.id)
         db.add(Charge(
-            client_id=client.id,
             client_record_id=record.id,
             charge_type="other",
             status=ChargeStatus.DRAFT,
@@ -156,7 +154,7 @@ class TestO2Charge:
         client = _make_client(db, "C205")
         record = _make_client_record(db, client.id)
 
-        charge = BillingService(db).create_charge(client_id=client.id, amount=120, charge_type="other")
+        charge = BillingService(db).create_charge(client_record_id=record.id, amount=120, charge_type="other")
         assert charge.client_record_id == record.id
 
 
@@ -170,7 +168,6 @@ class TestO3Notification:
         client = _make_client(db, "C207")
         record = _make_client_record(db, client.id)
         db.add(Notification(
-            client_id=client.id,
             client_record_id=record.id,
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             channel=NotificationChannel.EMAIL,
@@ -209,7 +206,6 @@ class TestO4Correspondence:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         db.add(Correspondence(
-            client_id=client.id,
             client_record_id=record.id,
             correspondence_type=CorrespondenceType.EMAIL,
             subject="subject",
@@ -230,7 +226,7 @@ class TestO4Correspondence:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         entry = CorrespondenceService(db).add_entry(
-            client_id=client.id,
+            client_record_id=record.id,
             correspondence_type=CorrespondenceType.EMAIL,
             subject="hello",
             occurred_at=datetime.utcnow(),
@@ -250,7 +246,6 @@ class TestO5SignatureRequest:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         db.add(SignatureRequest(
-            client_id=client.id,
             client_record_id=record.id,
             created_by=user.id,
             request_type=SignatureRequestType.CUSTOM,
@@ -271,7 +266,7 @@ class TestO5SignatureRequest:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         req = SignatureRequestService(db).create_request(
-            client_id=client.id,
+            client_record_id=record.id,
             created_by=user.id,
             created_by_name=user.full_name,
             request_type="custom",
@@ -289,7 +284,6 @@ class TestO6AuthorityContact:
         client = _make_client(db, "C216")
         record = _make_client_record(db, client.id)
         db.add(AuthorityContact(
-            client_id=client.id,
             client_record_id=record.id,
             contact_type=ContactType.OTHER,
             name="Officer",
@@ -306,7 +300,7 @@ class TestO6AuthorityContact:
         client = _make_client(db, "C217")
         record = _make_client_record(db, client.id)
         contact = AuthorityContactService(db).add_contact(
-            client_id=client.id,
+            client_record_id=record.id,
             contact_type="other",
             name="Officer",
         )
@@ -322,7 +316,6 @@ class TestO7BinderHandover:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         db.add(BinderHandover(
-            client_id=client.id,
             client_record_id=record.id,
             received_by_name="Receiver",
             handed_over_at=date.today(),
@@ -344,7 +337,6 @@ class TestO7BinderHandover:
         record = _make_client_record(db, client.id)
         user = _make_user(db)
         db.add(Binder(
-            client_id=client.id,
             client_record_id=record.id,
             binder_number="20/1",
             status=BinderStatus.READY_FOR_PICKUP,
@@ -353,7 +345,7 @@ class TestO7BinderHandover:
         db.flush()
 
         handover = BinderHandoverService(db).create_handover(
-            client_id=client.id,
+            client_record_id=record.id,
             binder_ids=[1],
             received_by_name="Receiver",
             handed_over_at=date.today(),

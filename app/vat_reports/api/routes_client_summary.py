@@ -16,28 +16,28 @@ router = APIRouter(
 
 
 @router.get(
-    "/clients/{client_id}/summary",
+    "/clients/{client_record_id}/summary",
     response_model=VatClientSummaryResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_vat_client_summary(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
 ):
-    return get_client_summary(db, client_id=client_id)
+    return get_client_summary(db, client_record_id=client_record_id)
 
 
 @router.get(
-    "/clients/{client_id}/export",
+    "/clients/{client_record_id}/export",
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def export_vat_client(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     format: str = Query(..., pattern="^(excel|pdf)$"),
     year: int = Query(..., ge=2000, le=2100),
 ):
-    result, media_type = export(db, client_id, year, fmt=format)
+    result, media_type = export(db, client_record_id, year, fmt=format)
     return FileResponse(
         path=result["filepath"],
         media_type=media_type,

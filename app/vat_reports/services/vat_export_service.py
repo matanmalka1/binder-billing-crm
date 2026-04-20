@@ -23,12 +23,12 @@ def _get_export_dir() -> str:
     return path
 
 
-def _load(db: Session, client_id: int, year: int):
-    client = ClientRepository(db).get_by_id(client_id)
+def _load(db: Session, client_record_id: int, year: int):
+    client = ClientRepository(db).get_by_id(client_record_id)
     if not client:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
     display_name = client.full_name
-    all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_id)
+    all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_record_id)
     periods = [
         VatPeriodRow.model_validate(work_item)
         for work_item, *_ in all_periods
@@ -37,14 +37,14 @@ def _load(db: Session, client_id: int, year: int):
     return display_name, periods
 
 
-def export_to_excel(db: Session, client_id: int, year: int) -> Dict[str, object]:
-    display_name, periods = _load(db, client_id, year)
-    return export_vat_to_excel(display_name, client_id, year, periods, _get_export_dir())
+def export_to_excel(db: Session, client_record_id: int, year: int) -> Dict[str, object]:
+    display_name, periods = _load(db, client_record_id, year)
+    return export_vat_to_excel(display_name, client_record_id, year, periods, _get_export_dir())
 
 
-def export_to_pdf(db: Session, client_id: int, year: int) -> Dict[str, object]:
-    display_name, periods = _load(db, client_id, year)
-    return export_vat_to_pdf(display_name, client_id, year, periods, _get_export_dir())
+def export_to_pdf(db: Session, client_record_id: int, year: int) -> Dict[str, object]:
+    display_name, periods = _load(db, client_record_id, year)
+    return export_vat_to_pdf(display_name, client_record_id, year, periods, _get_export_dir())
 
 
 _MEDIA_TYPES = {
@@ -53,10 +53,10 @@ _MEDIA_TYPES = {
 }
 
 
-def export(db: Session, client_id: int, year: int, fmt: str) -> tuple[Dict[str, object], str]:
+def export(db: Session, client_record_id: int, year: int, fmt: str) -> tuple[Dict[str, object], str]:
     """Dispatch export by format. Returns (result_dict, media_type)."""
     if fmt == "excel":
-        result = export_to_excel(db, client_id, year)
+        result = export_to_excel(db, client_record_id, year)
     else:
-        result = export_to_pdf(db, client_id, year)
+        result = export_to_pdf(db, client_record_id, year)
     return result, _MEDIA_TYPES[fmt]

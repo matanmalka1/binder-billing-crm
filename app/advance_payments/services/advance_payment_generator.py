@@ -13,7 +13,7 @@ from app.core.exceptions import NotFoundError
 
 
 def generate_annual_schedule(
-    client_id: int,
+    client_record_id: int,
     year: int,
     db: Session,
     period_months_count: int = 1,
@@ -26,15 +26,15 @@ def generate_annual_schedule(
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
     מחזיר (created_records, skipped_count).
     """
-    client = ClientRepository(db).get_by_id(client_id)
+    client = ClientRepository(db).get_by_id(client_record_id)
     if not client:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
+        raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
 
-    client_record_id = ClientRecordRepository(db).get_by_client_id(client_id).id
+    client_record_id = ClientRecordRepository(db).get_by_client_id(client_record_id).id
     service = AdvancePaymentService(db)
     repo = AdvancePaymentRepository(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(
-        client_id, year, period_months_count
+        client_record_id, year, period_months_count
     )
 
     start_months = get_period_start_months(period_months_count)
@@ -44,12 +44,11 @@ def generate_annual_schedule(
 
     for month in start_months:
         period = f"{year}-{month:02d}"
-        if repo.exists_for_client_record_period(client_record_id, period):
+        if repo.exists_for_period(client_record_id, period):
             skipped += 1
             continue
 
         payment = repo.create(
-            client_id=client_id,
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,

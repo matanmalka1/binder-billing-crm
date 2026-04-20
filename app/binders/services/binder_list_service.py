@@ -83,7 +83,7 @@ class BinderListService:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None
-        client = self.client_repo.get_by_id(binder.client_id)
+        client = self.client_repo.get_by_id(binder.client_record_id)
         return self.build_binder_response(
             binder,
             reference_date=date.today(),
@@ -95,7 +95,7 @@ class BinderListService:
     def list_binders_enriched(
         self,
         *,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         status: Optional[str] = None,
         query: Optional[str] = None,
         client_name_filter: Optional[str] = None,
@@ -114,21 +114,21 @@ class BinderListService:
 
         ref_date = reference_date or date.today()
         binders = self.binder_repo.list_active(
-            client_id=client_id,
+            client_record_id=client_record_id,
             sort_by=db_sort_by,
             sort_dir=sort_dir,
             include_returned=True,
         )
 
-        client_ids = list({binder.client_id for binder in binders})
-        clients = self.client_repo.list_by_ids(client_ids) if client_ids else []
+        client_record_ids = list({binder.client_record_id for binder in binders})
+        clients = self.client_repo.list_by_ids(client_record_ids) if client_record_ids else []
         office_client_number_map = {c.id: c.office_client_number for c in clients}
         client_name_map = {c.id: c.full_name for c in clients}
         client_id_number_map = {c.id: c.id_number for c in clients}
 
         filtered_binders: list[tuple[Binder, Optional[str]]] = []
         for binder in binders:
-            current_client_name = client_name_map.get(binder.client_id)
+            current_client_name = client_name_map.get(binder.client_record_id)
             if not self._matches_non_status_filters(
                 binder,
                 query=query,
@@ -153,9 +153,9 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
-                    office_client_number=office_client_number_map.get(binder.client_id),
+                    office_client_number=office_client_number_map.get(binder.client_record_id),
                     client_name=current_client_name,
-                    client_id_number=client_id_number_map.get(binder.client_id),
+                    client_id_number=client_id_number_map.get(binder.client_record_id),
                 )
             )
 

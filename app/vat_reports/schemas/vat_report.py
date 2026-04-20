@@ -14,7 +14,7 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 # ── Work Item ─────────────────────────────────────────────────────────────────
 
 class VatWorkItemCreateRequest(BaseModel):
-    client_id: int
+    client_record_id: int
     period: str                             # "YYYY-MM"
     assigned_to: Optional[int] = None
     mark_pending: bool = False
@@ -30,7 +30,7 @@ class VatWorkItemCreateRequest(BaseModel):
 
 class VatWorkItemResponse(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     office_client_number: Optional[int] = None  # enriched by service
     client_name: Optional[str] = None       # enriched by service
     client_id_number: Optional[str] = None  # enriched by service
@@ -83,7 +83,7 @@ class VatPeriodOptionResponse(BaseModel):
 
 
 class VatPeriodOptionsResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     year: int
     period_type: VatType
     options: list[VatPeriodOptionResponse]

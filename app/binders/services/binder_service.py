@@ -41,7 +41,7 @@ class BinderService(BinderListService):
 
     def receive_binder(
         self,
-        client_id: int,
+        client_record_id: int,
         received_at: date,
         received_by: int,
         open_new_binder: bool = False,
@@ -50,7 +50,7 @@ class BinderService(BinderListService):
     ) -> tuple[Binder, BinderIntake, bool]:
         """Receive material into existing binder or create new one."""
         return self.intake_service.receive(
-            client_id=client_id,
+            client_record_id=client_record_id,
             open_new_binder=open_new_binder,
             received_at=received_at,
             received_by=received_by,
@@ -79,11 +79,11 @@ class BinderService(BinderListService):
             notes=BINDER_MARKED_READY,
         )
 
-        client = self.client_repo.get_by_id(binder.client_id)
+        client = self.client_repo.get_by_id(binder.client_record_id)
         if client:
             self.notification_service.notify_ready_for_pickup(updated, client)
         else:
-            _log.warning("notify_ready_for_pickup skipped: client %s not found (binder %s)", binder.client_id, binder_id)
+            _log.warning("notify_ready_for_pickup skipped: client %s not found (binder %s)", binder.client_record_id, binder_id)
 
         return updated
 
@@ -151,7 +151,7 @@ class BinderService(BinderListService):
 
     def mark_ready_bulk(
         self,
-        client_id: int,
+        client_record_id: int,
         until_period_year: int,
         until_period_month: int,
         user_id: int,
@@ -160,7 +160,7 @@ class BinderService(BinderListService):
         Mark all eligible binders for a client as READY_FOR_PICKUP.
 
         Eligibility:
-        - binder belongs to client_id
+        - binder belongs to client_record_id
         - binder status is IN_OFFICE or CLOSED_IN_OFFICE
         - binder has at least one material row with structured period
         - latest material period is <= the requested cutoff
@@ -168,7 +168,7 @@ class BinderService(BinderListService):
         cutoff = (until_period_year, until_period_month)
         updated: list[Binder] = []
 
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
         for binder in self.binder_repo.list_by_client_record(client_record_id):
             if binder.status not in {
                 BinderStatus.IN_OFFICE,
@@ -191,14 +191,14 @@ class BinderService(BinderListService):
 
     def list_active_binders(
         self,
-        client_id: Optional[int] = None,
+        client_record_id: Optional[int] = None,
         status: Optional[str] = None,
         sort_by: str = "period_start",
         sort_dir: str = "desc",
     ) -> list[Binder]:
         """Compatibility helper for callers that still use the old service method."""
         return self.binder_repo.list_active(
-            client_id=client_id,
+            client_record_id=client_record_id,
             status=status,
             sort_by=sort_by,
             sort_dir=sort_dir,

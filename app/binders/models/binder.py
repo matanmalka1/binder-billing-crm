@@ -5,7 +5,7 @@ from sqlalchemy import (
     Index, Integer, String, Text,
     column, and_,
 )
-from sqlalchemy.orm import relationship, synonym
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -39,7 +39,6 @@ class Binder(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
-    client_id = synonym("client_record_id")
 
     # Globally unique number (the label number on the physical binder).
     binder_number = Column(String, nullable=False)

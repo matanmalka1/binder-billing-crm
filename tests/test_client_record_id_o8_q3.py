@@ -58,7 +58,6 @@ class TestPermanentDocumentClientRecord:
         record = _make_client_record(db, client.id)
         repo = PermanentDocumentRepository(db)
         repo.create(
-            client_id=client.id,
             client_record_id=record.id,
             business_id=None,
             scope=DocumentScope.CLIENT,
@@ -83,7 +82,6 @@ class TestPermanentDocumentClientRecord:
         db.flush()
         repo = PermanentDocumentRepository(db)
         repo.create(
-            client_id=client.id,
             client_record_id=record.id,
             business_id=business.id,
             scope=DocumentScope.BUSINESS,

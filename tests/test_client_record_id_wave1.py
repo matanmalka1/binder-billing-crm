@@ -105,7 +105,6 @@ class TestW1AnnualReport:
         user = _make_user(db)
 
         report = AnnualReport(
-            client_id=client.id,
             client_record_id=record.id,
             tax_year=2024,
             client_type=ClientAnnualFilingType.INDIVIDUAL,
@@ -131,7 +130,7 @@ class TestW1AnnualReport:
 
         service = AnnualReportService(db)
         report = service.create_report(
-            client_id=client.id,
+            client_record_id=record.id,
             tax_year=2023,
             client_type="individual",
             created_by=user.id,
@@ -154,7 +153,6 @@ class TestW2VatWorkItem:
         user = _make_user(db)
 
         item = VatWorkItem(
-            client_id=client.id,
             client_record_id=record.id,
             period="2024-01",
             period_type=VatType.MONTHLY,
@@ -187,7 +185,7 @@ class TestW2VatWorkItem:
         item = create_work_item(
             VatWorkItemRepository(db),
             ClientRepository(db),
-            client_id=client.id,
+            client_record_id=record.id,
             period="2024-03",
             created_by=user.id,
         )
@@ -205,7 +203,6 @@ class TestW3TaxDeadline:
         record = _make_client_record(db, client.id)
 
         deadline = TaxDeadline(
-            client_id=client.id,
             client_record_id=record.id,
             deadline_type=DeadlineType.VAT,
             due_date=date(2024, 2, 15),
@@ -228,7 +225,7 @@ class TestW3TaxDeadline:
 
         service = TaxDeadlineService(db)
         deadline = service.create_deadline(
-            client_id=client.id,
+            client_record_id=record.id,
             deadline_type=DeadlineType.VAT,
             due_date=date(2024, 3, 15),
         )
@@ -247,7 +244,6 @@ class TestW4Binder:
         user = _make_user(db)
 
         binder = Binder(
-            client_id=client.id,
             client_record_id=record.id,
             binder_number="1/1",
             status=BinderStatus.IN_OFFICE,
@@ -279,7 +275,7 @@ class TestW4Binder:
 
         service = BinderIntakeService(db)
         binder, _, _ = service.receive(
-            client_id=client.id,
+            client_record_id=record.id,
             received_at=date.today(),
             received_by=user.id,
         )
@@ -297,7 +293,6 @@ class TestW5AdvancePayment:
         record = _make_client_record(db, client.id)
 
         payment = AdvancePayment(
-            client_id=client.id,
             client_record_id=record.id,
             period="2024-01",
             period_months_count=1,
@@ -321,11 +316,10 @@ class TestW5AdvancePayment:
 
         service = AdvancePaymentService(db)
         payment = service.create_payment_for_client(
-            client_id=client.id,
+            client_record_id=record.id,
             period="2024-06",
             period_months_count=1,
             due_date=date(2024, 6, 15),
             expected_amount=1000,
         )
         assert payment.client_record_id == record.id
-

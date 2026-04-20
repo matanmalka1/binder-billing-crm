@@ -11,12 +11,12 @@ class BinderRepositoryExtensions(BinderRepository):
 
     def list_by_client(
         self,
-        client_id: int,
+        client_record_id: int,
         page: int = 1,
         page_size: int = 20,
     ):
         return self.list_by_client_paginated(
-            client_id=client_id,
+            client_record_id=client_record_id,
             page=page,
             page_size=page_size,
         )

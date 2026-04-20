@@ -55,11 +55,11 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             query = query.filter(advance_payment_status_text_expr().in_(normalized))
         return query.all()
 
-    def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
+    def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
         result = (
             self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
             .filter(
-                AdvancePayment.client_id == client_id,
+                AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
                 AdvancePayment.deleted_at.is_(None),
@@ -72,7 +72,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         """Per-client aggregates for the collections report."""
         query = (
             self.db.query(
-                AdvancePayment.client_id,
+                AdvancePayment.client_record_id,
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                 func.coalesce(
@@ -92,4 +92,4 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         )
         if month is not None:
             query = query.filter(advance_payment_matches_month_expr(month))
-        return query.group_by(AdvancePayment.client_id).all()
+        return query.group_by(AdvancePayment.client_record_id).all()

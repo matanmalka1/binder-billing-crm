@@ -38,7 +38,6 @@ def create_initial_binder(
     status_log_repo = BinderStatusLogRepository(db)
     seq = binder_repo.count_all_by_client(client.id) + 1
     binder = binder_repo.create(
-        client_id=client.id,
         client_record_id=client_record_id,
         binder_number=f"{client.office_client_number}/{seq}",
         period_start=None,

@@ -18,11 +18,11 @@ client_router = APIRouter(
 
 
 @client_router.get(
-    "/clients/{client_id}/signature-requests",
+    "/clients/{client_record_id}/signature-requests",
     response_model=SignatureRequestListResponse,
 )
 def list_client_signature_requests(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     status_filter: str | None = Query(None, alias="status"),
@@ -32,7 +32,7 @@ def list_client_signature_requests(
     """All signature requests for a legal entity, across all businesses."""
     service = SignatureRequestService(db)
     items, total = service.list_client_requests(
-        client_id=client_id,
+        client_record_id=client_record_id,
         status=status_filter,
         page=page,
         page_size=page_size,
@@ -40,12 +40,12 @@ def list_client_signature_requests(
     client_repo = ClientRepository(db)
     office_number_map = {
         client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_id for item in items}))
+        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
     }
     return SignatureRequestListResponse(
         items=[
             SignatureRequestResponse.model_validate(r).model_copy(
-                update={"office_client_number": office_number_map.get(r.client_id)}
+                update={"office_client_number": office_number_map.get(r.client_record_id)}
             )
             for r in items
         ],
@@ -78,12 +78,12 @@ def list_business_signature_requests(
     client_repo = ClientRepository(db)
     office_number_map = {
         client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_id for item in items}))
+        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
     }
     return SignatureRequestListResponse(
         items=[
             SignatureRequestResponse.model_validate(r).model_copy(
-                update={"office_client_number": office_number_map.get(r.client_id)}
+                update={"office_client_number": office_number_map.get(r.client_record_id)}
             )
             for r in items
         ],

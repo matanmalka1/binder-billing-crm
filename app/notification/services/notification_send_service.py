@@ -64,15 +64,15 @@ class NotificationSendService:
         )
         return row or None
 
-    def _get_client(self, client_id: int) -> Client | None:
+    def _get_client(self, client_record_id: int) -> Client | None:
         return (
             self.db.query(Client)
-            .filter(Client.id == client_id, Client.deleted_at.is_(None))
+            .filter(Client.id == client_record_id, Client.deleted_at.is_(None))
             .first()
         )
 
-    def _get_client_record_id(self, client_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
+    def _get_client_record_id(self, client_record_id: int) -> int:
+        return ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
 
     def bulk_notify(
         self,
@@ -178,7 +178,7 @@ class NotificationSendService:
 
     def send_client_notification(
         self,
-        client_id: int,
+        client_record_id: int,
         trigger: NotificationTrigger,
         content: str,
         binder_id: Optional[int] = None,
@@ -187,9 +187,9 @@ class NotificationSendService:
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
         try:
-            client = self._get_client(client_id)
+            client = self._get_client(client_record_id)
             if not client:
-                logger.warning("send_client_notification: client %s not found", client_id)
+                logger.warning("send_client_notification: client %s not found", client_record_id)
                 return True
 
             subject = _SUBJECTS.get(trigger)
@@ -211,15 +211,15 @@ class NotificationSendService:
                 ok, err = self.whatsapp.send(client.phone, content)
                 if ok:
                     self.notification_repo.mark_sent(n.id)
-                    logger.info("Client notification sent via WhatsApp | client=%s trigger=%s", client_id, trigger.value)
+                    logger.info("Client notification sent via WhatsApp | client=%s trigger=%s", client_record_id, trigger.value)
                     return True
                 self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
-                logger.warning("WhatsApp failed client=%s, falling back to email: %s", client_id, err)
+                logger.warning("WhatsApp failed client=%s, falling back to email: %s", client_record_id, err)
 
             if not client.email:
                 logger.info(
                     "send_client_notification: client %s has no email, skipping trigger=%s",
-                    client_id, trigger.value,
+                    client_record_id, trigger.value,
                 )
                 return True
 
@@ -236,32 +236,32 @@ class NotificationSendService:
             success, error = self.email.send(client.email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(n.id)
-                logger.info("Client notification sent | client=%s trigger=%s", client_id, trigger.value)
+                logger.info("Client notification sent | client=%s trigger=%s", client_record_id, trigger.value)
             else:
                 self.notification_repo.mark_failed(n.id, error or "unknown error")
                 logger.error(
                     "Client notification failed | client=%s trigger=%s error=%s",
-                    client_id, trigger.value, error,
+                    client_record_id, trigger.value, error,
                 )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_client_notification | client=%s trigger=%s error=%s",
-                client_id, trigger, exc,
+                client_record_id, trigger, exc,
             )
         return True
 
-    def send_client_reminder(self, client_id: int, reminder_text: str) -> bool:
+    def send_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         """Send reminder email directly to a client (legacy: resolves client_record_id internally)."""
         try:
             client = self.db.query(Client).filter(
-                Client.id == client_id, Client.deleted_at.is_(None)
+                Client.id == client_record_id, Client.deleted_at.is_(None)
             ).first()
             if not client or not client.email:
-                logger.info("send_client_reminder: client %s has no email or not found", client_id)
+                logger.info("send_client_reminder: client %s has no email or not found", client_record_id)
                 return True
             n = self.notification_repo.create(
-                client_record_id=self._get_client_record_id(client_id),
+                client_record_id=self._get_client_record_id(client_record_id),
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 channel=NotificationChannel.EMAIL,
                 recipient=client.email,
@@ -270,12 +270,12 @@ class NotificationSendService:
             ok, err = self.email.send(client.email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
             if ok:
                 self.notification_repo.mark_sent(n.id)
-                logger.info("Client reminder sent | client=%s", client_id)
+                logger.info("Client reminder sent | client=%s", client_record_id)
             else:
                 self.notification_repo.mark_failed(n.id, err or "unknown error")
-                logger.error("send_client_reminder failed | client=%s error=%s", client_id, err)
+                logger.error("send_client_reminder failed | client=%s error=%s", client_record_id, err)
         except Exception as exc:  # noqa: BLE001
-            logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_id, exc)
+            logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_record_id, exc)
         return True
 
     def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:

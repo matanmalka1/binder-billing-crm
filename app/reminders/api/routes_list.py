@@ -24,7 +24,7 @@ def list_reminders(
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
     business_id: Optional[int] = Query(None),
-    client_id: Optional[int] = Query(None),
+    client_record_id: Optional[int] = Query(None),
 ):
     service = ReminderService(db)
 
@@ -32,9 +32,9 @@ def list_reminders(
         items, total, context_map = service.get_reminders_by_business(
             business_id=business_id, page=page, page_size=page_size
         )
-    elif client_id is not None:
+    elif client_record_id is not None:
         items, total, context_map = service.get_reminders_by_client(
-            client_id=client_id, page=page, page_size=page_size
+            client_record_id=client_record_id, page=page, page_size=page_size
         )
     else:
         items, total, context_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
@@ -43,7 +43,7 @@ def list_reminders(
         resp = ReminderResponse.model_validate(r)
         ctx = context_map.get(r.id)
         if ctx:
-            resp.client_id = ctx["client_id"]
+            resp.client_record_id = ctx["client_record_id"]
             resp.client_name = ctx["client_name"]
             resp.client_id_number = ctx["client_id_number"]
             resp.office_client_number = ctx["office_client_number"]

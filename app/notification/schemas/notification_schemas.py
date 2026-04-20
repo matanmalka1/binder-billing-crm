@@ -13,7 +13,7 @@ from app.notification.models.notification import (
 
 class NotificationResponse(BaseModel):
     id: int
-    client_id: int                          # PRIMARY anchor — always present
+    client_record_id: int                          # PRIMARY anchor — always present
     business_id: Optional[int] = None      # OPTIONAL context
     business_name: Optional[str] = None    # enriched by service layer
     binder_id: Optional[int] = None

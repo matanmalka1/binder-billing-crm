@@ -108,9 +108,9 @@ class VatImportService:
                 self.expense_repo.delete(line.id)
                 lines_deleted += 1
 
-        income_total = self.vat_agg_repo.sum_income_net_by_client_year(report.client_id, report.tax_year)
+        income_total = self.vat_agg_repo.sum_income_net_by_client_year(report.client_record_id, report.tax_year)
         expense_by_vat_cat = self.vat_agg_repo.sum_expense_net_by_client_year_grouped(
-            report.client_id, report.tax_year
+            report.client_record_id, report.tax_year
         )
 
         income_lines_created = 0

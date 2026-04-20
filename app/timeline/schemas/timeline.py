@@ -24,7 +24,7 @@ class TimelineEvent(BaseModel):
 class ClientTimelineResponse(BaseModel):
     """Client timeline response."""
 
-    client_id: int
+    client_record_id: int
     events: list[TimelineEvent]
     page: int
     page_size: int

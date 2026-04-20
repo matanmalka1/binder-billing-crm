@@ -132,7 +132,7 @@ class TaxDeadlineQueryRepository:
 
     def list_by_client_ids(
         self,
-        client_ids: list[int],
+        client_record_ids: list[int],
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
@@ -141,7 +141,7 @@ class TaxDeadlineQueryRepository:
             self.db.query(TaxDeadline)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.client_id.in_(client_ids),
+                TaxDeadline.client_record_id.in_(client_record_ids),
             )
         )
         if status:
@@ -181,7 +181,7 @@ class TaxDeadlineQueryRepository:
 
     def list_by_client(
         self,
-        client_id: int,
+        client_record_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
         due_from: Optional[date] = None,
@@ -193,7 +193,7 @@ class TaxDeadlineQueryRepository:
             self.db.query(TaxDeadline)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.client_id == client_id,
+                TaxDeadline.client_record_id == client_record_id,
             )
         )
         if status:
@@ -210,7 +210,7 @@ class TaxDeadlineQueryRepository:
 
     def exists(
         self,
-        client_id: int,
+        client_record_id: int,
         deadline_type: DeadlineType,
         due_date: date,
     ) -> bool:
@@ -219,7 +219,7 @@ class TaxDeadlineQueryRepository:
             self.db.query(TaxDeadline.id)
             .filter(
                 TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.client_id == client_id,
+                TaxDeadline.client_record_id == client_record_id,
                 TaxDeadline.deadline_type == deadline_type,
                 TaxDeadline.due_date == due_date,
             )

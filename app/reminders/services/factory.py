@@ -4,9 +4,9 @@ Single module for all reminder creation flows.
 Replaces the old factory.py + factory_extended.py split (which had no principled boundary).
 
 Ownership rule enforced here:
-  client_id is ALWAYS set — it is the primary anchor (legal entity).
+  client_record_id is ALWAYS set — it is the primary anchor (legal entity).
   business_id is set ADDITIONALLY when the reminder is scoped to a specific business.
-  The repository no longer enforces XOR; it requires client_id unconditionally.
+  The repository no longer enforces XOR; it requires client_record_id unconditionally.
 """
 from __future__ import annotations
 
@@ -51,14 +51,14 @@ def _require_non_negative_days(days_before: int) -> None:
         raise AppError(NEGATIVE_DAYS, "REMINDER.NEGATIVE_DAYS")
 
 
-def _resolve_client_record_id(client_id: int, repo: ClientRecordRepository) -> int:
-    client_record = repo.get_by_client_id(client_id)
+def _resolve_client_record_id(client_record_id: int, repo: ClientRecordRepository) -> int:
+    client_record = repo.get_by_client_id(client_record_id)
     assert_client_record_is_active(client_record)
     return client_record.id
 
 
 # ── Client-scoped reminders ───────────────────────────────────────────────────
-# client_id comes directly from the caller or is resolved from a linked entity.
+# client_record_id comes directly from the caller or is resolved from a linked entity.
 # business_id is not set — these are legal-entity level events.
 
 def create_tax_deadline_reminder(
@@ -66,15 +66,15 @@ def create_tax_deadline_reminder(
     client_repo: ClientRepository,
     tax_deadline_repo: TaxDeadlineRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     tax_deadline_id: int,
     target_date: date,
     days_before: int,
     message: Optional[str] = None,
     created_by: Optional[int] = None,
 ) -> Reminder:
-    if not client_repo.get_by_id(client_id):
-        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "REMINDER.CLIENT_NOT_FOUND")
+    if not client_repo.get_by_id(client_record_id):
+        raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "REMINDER.CLIENT_NOT_FOUND")
     if not tax_deadline_repo.get_by_id(tax_deadline_id):
         raise NotFoundError(TAX_DEADLINE_NOT_FOUND.format(tax_deadline_id=tax_deadline_id), "REMINDER.NOT_FOUND")
     _require_non_negative_days(days_before)
@@ -82,7 +82,7 @@ def create_tax_deadline_reminder(
     send_on = target_date - timedelta(days=days_before)
     if message is None:
         message = TAX_DEADLINE_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
-    client_record_id = _resolve_client_record_id(client_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_client_record_id(client_record_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
         client_record_id=client_record_id,
@@ -190,7 +190,7 @@ def create_annual_report_deadline_reminder(
 
 
 # ── Business-scoped reminders ─────────────────────────────────────────────────
-# client_id is resolved from business.client_id so both anchors are always set.
+# client_record_id is resolved from business.client_id so both anchors are always set.
 
 def create_unpaid_charge_reminder(
     reminder_repo: ReminderRepository,
@@ -302,7 +302,7 @@ def create_custom_reminder(
     reminder_repo: ReminderRepository,
     business_repo: BusinessRepository,
     *,
-    client_id: Optional[int] = None,
+    client_record_id: Optional[int] = None,
     business_id: Optional[int] = None,
     target_date: date,
     days_before: int,
@@ -312,13 +312,13 @@ def create_custom_reminder(
     if business_id is not None:
         business = get_business_or_raise(business_repo.db, business_id)
         resolved_client_id = business.client_id
-        # if caller also supplied client_id, verify it matches the business's legal entity
-        if client_id is not None and client_id != resolved_client_id:
-            raise AppError("business_id אינו שייך ל-client_id שסופק", "REMINDER.BUSINESS_CLIENT_MISMATCH")
-    elif client_id is not None:
-        resolved_client_id = client_id
+        # if caller also supplied client_record_id, verify it matches the business's legal entity
+        if client_record_id is not None and client_record_id != resolved_client_id:
+            raise AppError("business_id אינו שייך ל-client_record_id שסופק", "REMINDER.BUSINESS_CLIENT_MISMATCH")
+    elif client_record_id is not None:
+        resolved_client_id = client_record_id
     else:
-        raise AppError("client_id או business_id נדרש עבור תזכורת מותאמת אישית", "REMINDER.MISSING_ANCHOR")
+        raise AppError("client_record_id או business_id נדרש עבור תזכורת מותאמת אישית", "REMINDER.MISSING_ANCHOR")
 
     _require_non_negative_days(days_before)
     if not message or not message.strip():

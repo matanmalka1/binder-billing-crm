@@ -24,7 +24,7 @@ Design notes:
     - Currency is always ILS by project convention, so no currency column is
       stored.
     - Soft deletion is enabled because this is a client-owned entity.
-    - Uniqueness of (client_id, period) is enforced via a partial index
+    - Uniqueness of (client_record_id, period) is enforced via a partial index
       (WHERE deleted_at IS NULL) — not a hard UniqueConstraint — so that a
       soft-deleted record never blocks recreation of the same period.
 """

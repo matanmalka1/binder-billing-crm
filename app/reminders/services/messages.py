@@ -1,5 +1,5 @@
 NEGATIVE_DAYS = "המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי"
-CLIENT_NOT_FOUND = "לקוח {client_id} לא נמצא"
+CLIENT_NOT_FOUND = "לקוח {client_record_id} לא נמצא"
 TAX_DEADLINE_NOT_FOUND = "מועד מס {tax_deadline_id} לא נמצא"
 TAX_DEADLINE_REMINDER_DEFAULT = "תזכורת: מועד מס בעוד {days_before} ימים"
 VAT_FILING_REMINDER_DEFAULT = 'תזכורת: מועד הגשת דוח מע"מ בעוד {days_before} ימים'

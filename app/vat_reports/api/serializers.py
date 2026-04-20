@@ -15,10 +15,10 @@ def serialize_enriched_work_item(
     user_map: dict,
 ) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
-    data.office_client_number = office_client_number_map.get(item.client_id)
-    data.client_name = name_map.get(item.client_id)
-    data.client_id_number = id_number_map.get(item.client_id)
-    data.client_status = status_map.get(item.client_id)
+    data.office_client_number = office_client_number_map.get(item.client_record_id)
+    data.client_name = name_map.get(item.client_record_id)
+    data.client_id_number = id_number_map.get(item.client_record_id)
+    data.client_status = status_map.get(item.client_record_id)
     deadline = compute_deadline_fields(item, submission_method=item.submission_method)
     data.submission_deadline = deadline["submission_deadline"]
     data.statutory_deadline = deadline["statutory_deadline"]

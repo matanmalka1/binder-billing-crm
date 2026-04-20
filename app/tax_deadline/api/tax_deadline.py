@@ -29,7 +29,7 @@ def _build_response(
 ) -> TaxDeadlineResponse:
     r = TaxDeadlineResponse.model_validate(deadline)
     if db is not None and business_name is None:
-        client = ClientRepository(db).get_by_id(deadline.client_id)
+        client = ClientRepository(db).get_by_id(deadline.client_record_id)
         business_name = client.full_name if client else None
     if business_name is not None:
         r.business_name = business_name
@@ -51,7 +51,7 @@ def create_tax_deadline(
     """Create new tax deadline."""
     service = TaxDeadlineService(db)
     deadline = service.create_deadline(
-        client_id=request.client_id,
+        client_record_id=request.client_record_id,
         deadline_type=DeadlineType(request.deadline_type),
         due_date=request.due_date,
         period=request.period,

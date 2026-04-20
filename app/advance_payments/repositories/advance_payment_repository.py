@@ -23,7 +23,7 @@ class AdvancePaymentRepository(BaseRepository):
 
     def create(
         self,
-        client_id: int,
+        client_record_id: int,
         period: str,
         period_months_count: int,
         due_date: date,
@@ -32,10 +32,8 @@ class AdvancePaymentRepository(BaseRepository):
         payment_method=None,
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
-        client_record_id: Optional[int] = None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
-            client_id=client_id,
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
@@ -58,40 +56,16 @@ class AdvancePaymentRepository(BaseRepository):
             .first()
         )
 
-    def get_by_id_for_client(self, payment_id: int, client_id: int) -> Optional[AdvancePayment]:
+    def get_by_id_for_client_record(self, payment_id: int, client_record_id: int) -> Optional[AdvancePayment]:
         return (
             self.db.query(AdvancePayment)
             .filter(
                 AdvancePayment.id == payment_id,
-                AdvancePayment.client_id == client_id,
+                AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.deleted_at.is_(None),
             )
             .first()
         )
-
-    def list_by_client_year(
-        self,
-        client_id: int,
-        year: int,
-        status: Optional[list[AdvancePaymentStatus]] = None,
-        page: int = 1,
-        page_size: int = 50,
-    ) -> tuple[list[AdvancePayment], int]:
-        query = (
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.client_id == client_id,
-                AdvancePayment.period.like(f"{year}-%"),
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .order_by(AdvancePayment.period.asc())
-        )
-        if status:
-            normalized = [s.value.lower() for s in status]
-            query = query.filter(advance_payment_status_text_expr().in_(normalized))
-        total = query.count()
-        items = self._paginate(query, page, page_size)
-        return items, total
 
     def list_by_client_record_year(
         self,
@@ -117,18 +91,7 @@ class AdvancePaymentRepository(BaseRepository):
         items = self._paginate(query, page, page_size)
         return items, total
 
-    def exists_for_period(self, client_id: int, period: str) -> bool:
-        return self.db.query(
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.client_id == client_id,
-                AdvancePayment.period == period,
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .exists()
-        ).scalar()
-
-    def exists_for_client_record_period(self, client_record_id: int, period: str) -> bool:
+    def exists_for_period(self, client_record_id: int, period: str) -> bool:
         return self.db.query(
             self.db.query(AdvancePayment)
             .filter(
@@ -153,8 +116,8 @@ class AdvancePaymentRepository(BaseRepository):
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────
 
-    def sum_paid_by_client_year(self, client_id: int, year: int) -> float:
-        return self._agg.sum_paid_by_client_year(client_id, year)
+    def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
+        return self._agg.sum_paid_by_client_year(client_record_id, year)
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
         return self._agg.get_collections_aggregates(year, month)

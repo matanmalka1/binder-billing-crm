@@ -7,7 +7,7 @@ from app.annual_reports.models.annual_report_enums import AnnualReportForm, Annu
 
 
 class VatComplianceReportItemResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     client_name: str
     periods_expected: int
     periods_filed: int
@@ -18,7 +18,7 @@ class VatComplianceReportItemResponse(BaseModel):
 
 
 class VatComplianceStalePendingResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     client_name: str
     period: str
     days_pending: int
@@ -32,7 +32,7 @@ class VatComplianceReportResponse(BaseModel):
 
 
 class AdvancePaymentReportItemResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     client_name: str
     total_expected: float
     total_paid: float
@@ -51,7 +51,7 @@ class AdvancePaymentCollectionsReportResponse(BaseModel):
 
 
 class AnnualReportStatusClientResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     client_name: str
     form_type: Optional[AnnualReportForm] = None
     filing_deadline: Optional[date] = None
@@ -71,7 +71,7 @@ class AnnualReportStatusReportResponse(BaseModel):
 
 
 class AgingReportItemResponse(BaseModel):
-    client_id: int
+    client_record_id: int
     client_name: str
     total_outstanding: float
     current: float

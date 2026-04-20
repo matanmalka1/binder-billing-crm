@@ -110,7 +110,7 @@ def resolve_invoice_derived_fields(
 def check_osek_patur_ceiling(
     client,
     invoice_repo: VatInvoiceRepository,
-    client_id: int,
+    client_record_id: int,
     period: str,
     new_net_amount: float,
 ) -> bool:
@@ -124,7 +124,7 @@ def check_osek_patur_ceiling(
     if not is_osek_patur:
         return False
     year = int(period[:4])
-    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_id, year)))
+    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_record_id, year)))
     new_total = current_total + Decimal(str(new_net_amount))
     if new_total > OSEK_PATUR_CEILING_ILS:
         raise AppError(

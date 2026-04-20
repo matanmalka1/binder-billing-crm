@@ -17,18 +17,18 @@ router = APIRouter(
 )
 
 @router.get(
-    "/client/{client_id}/versions",
+    "/client/{client_record_id}/versions",
     response_model=DocumentVersionsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_document_versions(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     user: CurrentUser,
     document_type: str = Query(...),
     tax_year: Optional[int] = Query(default=None),
 ):
-    docs = PermanentDocumentActionService(db).get_document_versions(client_id, document_type, tax_year)
+    docs = PermanentDocumentActionService(db).get_document_versions(client_record_id, document_type, tax_year)
     return DocumentVersionsResponse(items=[PermanentDocumentResponse.model_validate(d) for d in docs])
 
 

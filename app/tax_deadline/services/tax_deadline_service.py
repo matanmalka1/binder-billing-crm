@@ -26,7 +26,7 @@ class TaxDeadlineService:
 
     def create_deadline(
         self,
-        client_id: int,
+        client_record_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
@@ -34,11 +34,11 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        client = self.client_repo.get_by_id(client_id)
+        client = self.client_repo.get_by_id(client_record_id)
         if not client:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
 
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
         assert_client_record_is_active(client_record)
         client_record_id = client_record.id
 
@@ -61,7 +61,7 @@ class TaxDeadlineService:
         )
 
         ReminderService(self.db).create_tax_deadline_reminder(
-            client_id=client_id,
+            client_record_id=client_record_id,
             tax_deadline_id=deadline.id,
             target_date=due_date,
             days_before=7,
@@ -137,7 +137,7 @@ class TaxDeadlineService:
             reminder_service = ReminderService(self.db)
             reminder_service.cancel_reminders_for_tax_deadline(deadline_id)
             reminder_service.create_tax_deadline_reminder(
-                client_id=deadline.client_id,
+                client_record_id=deadline.client_record_id,
                 tax_deadline_id=deadline.id,
                 target_date=deadline.due_date,
                 days_before=7,
@@ -164,10 +164,10 @@ class TaxDeadlineService:
 
     def get_client_deadlines(
         self,
-        client_id: int,
+        client_record_id: int,
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
         """Get deadlines for a specific client."""
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
         return self.deadline_repo.list_by_client_record(client_record_id, status, deadline_type)

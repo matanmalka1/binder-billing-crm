@@ -14,8 +14,7 @@ class PermanentDocumentRepository:
 
     def create(
         self,
-        client_id: int,
-        client_record_id: Optional[int],
+        client_record_id: int,
         business_id: Optional[int],
         scope: DocumentScope,
         document_type: str,
@@ -31,7 +30,6 @@ class PermanentDocumentRepository:
         notes: Optional[str] = None,
     ) -> PermanentDocument:
         document = PermanentDocument(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
             scope=scope,
@@ -86,14 +84,14 @@ class PermanentDocumentRepository:
 
     def list_by_client(
         self,
-        client_id: int,
+        client_record_id: int,
         tax_year: Optional[int] = None,
         document_type: Optional[str] = None,
         status: Optional[DocumentStatus] = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
         q = self.db.query(PermanentDocument).filter(
-            PermanentDocument.client_id == client_id,
+            PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if not include_superseded:

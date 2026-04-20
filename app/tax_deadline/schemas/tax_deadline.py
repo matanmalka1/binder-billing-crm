@@ -11,7 +11,7 @@ from app.tax_deadline.models.tax_deadline import (
 )
 
 class TaxDeadlineCreateRequest(BaseModel):
-    client_id: int
+    client_record_id: int
     deadline_type: DeadlineType             # enum
     due_date: date
     period: Optional[str] = None            # "YYYY-MM" — קיים במודל
@@ -32,7 +32,7 @@ class TaxDeadlineCreateRequest(BaseModel):
 
 class TaxDeadlineResponse(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     office_client_number: Optional[int] = None
     business_name: Optional[str] = None     # enriched by service (client full_name)
     deadline_type: DeadlineType
@@ -69,7 +69,7 @@ class TaxDeadlineListResponse(BaseModel):
 
 class DeadlineUrgentItem(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     business_name: str
     deadline_type: DeadlineType
     due_date: date
@@ -82,7 +82,7 @@ class DashboardDeadlinesResponse(BaseModel):
     upcoming: list[TaxDeadlineResponse]
 
 class GenerateDeadlinesRequest(BaseModel):
-    client_id: int
+    client_record_id: int
     year: int
 
 class GenerateDeadlinesResponse(BaseModel):
@@ -90,7 +90,7 @@ class GenerateDeadlinesResponse(BaseModel):
 
 class TimelineEntry(BaseModel):
     id: int
-    client_id: int
+    client_record_id: int
     deadline_type: DeadlineType
     period: Optional[str] = None
     due_date: date

@@ -31,14 +31,14 @@ class AnnualReportBaseService:
         from app.clients.repositories.client_repository import ClientRepository
         client_repo = ClientRepository(self.db)
 
-        client_ids = {r.client_id for r in reports}
-        clients = {c.id: c for c in client_repo.list_by_ids(list(client_ids))} if client_ids else {}
+        client_record_ids = {r.client_record_id for r in reports}
+        clients = {c.id: c for c in client_repo.list_by_ids(list(client_record_ids))} if client_record_ids else {}
 
         from app.actions.report_deadline_actions import get_annual_report_actions
         result = []
         for r in reports:
             obj = AnnualReportResponse.model_validate(r)
-            client = clients.get(r.client_id)
+            client = clients.get(r.client_record_id)
             if client:
                 obj.office_client_number = client.office_client_number
                 obj.client_name = client.full_name

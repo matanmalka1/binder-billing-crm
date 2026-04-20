@@ -8,9 +8,9 @@ Israeli context:
 
 Design decisions:
 - scope=CLIENT: belongs to the person (id_copy, power_of_attorney,
-  engagement_agreement) — client_id required, business_id must be NULL.
-- scope=BUSINESS: belongs to a specific business — both client_id and
-  business_id required. client_id is denormalized for fast queries without JOIN.
+  engagement_agreement) — client_record_id required, business_id must be NULL.
+- scope=BUSINESS: belongs to a specific business — both client_record_id and
+  business_id required. client_record_id is denormalized for fast queries without JOIN.
 - CheckConstraint enforces the scope/business_id invariant at DB level.
 - is_deleted (soft delete) on the row; storage file is NOT deleted —
   service layer handles storage cleanup separately.

@@ -23,5 +23,5 @@ def generate_deadlines(
 ):
     """Generate all tax deadlines for a client and year. Skips existing (idempotent)."""
     service = DeadlineGeneratorService(db)
-    created_count = service.generate_all(request.client_id, request.year)
+    created_count = service.generate_all(request.client_record_id, request.year)
     return GenerateDeadlinesResponse(created_count=created_count)

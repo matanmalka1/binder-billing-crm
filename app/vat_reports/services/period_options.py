@@ -22,14 +22,14 @@ def get_period_options(
     work_item_repo: VatWorkItemRepository,
     client_repo: ClientRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     year: Optional[int] = None,
     period_type_override: Optional[VatType] = None,
 ):
     """Return period options for UI selection based on client VAT frequency."""
-    client = client_repo.get_by_id(client_id)
+    client = client_repo.get_by_id(client_record_id)
     if not client:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_id=client_id), "VAT.NOT_FOUND")
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
 
     selected_year = year or date.today().year
 
@@ -42,7 +42,7 @@ def get_period_options(
 
     start_months = range(1, 12, 2) if period_type == VatType.BIMONTHLY else range(1, 13)
     year_prefix = f"{selected_year}-"
-    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_id).id
+    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_record_id).id
     opened_periods = {
         i.period for i in work_item_repo.list_by_client_record(client_record_id)
         if i.period.startswith(year_prefix)
@@ -61,7 +61,7 @@ def get_period_options(
         )
 
     return {
-        "client_id": client_id,
+        "client_record_id": client_record_id,
         "year": selected_year,
         "period_type": period_type,
         "options": options,
