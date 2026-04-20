@@ -22,17 +22,16 @@ router = APIRouter(
 
 def _to_contact_response(contact) -> AuthorityContactResponse:
     response = AuthorityContactResponse.model_validate(contact)
-    response.client_id = contact.client_record_id
     return response
 
 
 @router.post(
-    "/{client_id}/authority-contacts",
+    "/{client_record_id}/authority-contacts",
     response_model=AuthorityContactResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_authority_contact(
-    client_id: int,
+    client_record_id: int,
     request: AuthorityContactCreateRequest,
     db: DBSession,
     _: CurrentUser,
@@ -40,7 +39,7 @@ def create_authority_contact(
     """Create new authority contact for client."""
     service = AuthorityContactService(db)
     contact = service.add_contact(
-        client_id=client_id,
+        client_record_id=client_record_id,
         contact_type=request.contact_type,
         name=request.name,
         office=request.office,
@@ -51,9 +50,9 @@ def create_authority_contact(
     return _to_contact_response(contact)
 
 
-@router.get("/{client_id}/authority-contacts", response_model=AuthorityContactListResponse)
+@router.get("/{client_record_id}/authority-contacts", response_model=AuthorityContactListResponse)
 def list_authority_contacts(
-    client_id: int,
+    client_record_id: int,
     db: DBSession,
     _: CurrentUser,
     contact_type: Optional[ContactType] = None,
@@ -63,7 +62,7 @@ def list_authority_contacts(
     """List authority contacts for client with pagination."""
     service = AuthorityContactService(db)
     contacts, total = service.list_client_contacts(
-        client_id,
+        client_record_id,
         contact_type,
         page=page,
         page_size=page_size,

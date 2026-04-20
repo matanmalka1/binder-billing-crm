@@ -63,7 +63,7 @@ def create_work_item(
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    client_record = ClientRecordRepository(client_repo.db).get_by_client_id(client_record_id)
+    client_record = ClientRecordRepository(client_repo.db).get_by_id(client_record_id)
     assert_client_record_is_active(client_record)
     client_record_id = client_record.id
 

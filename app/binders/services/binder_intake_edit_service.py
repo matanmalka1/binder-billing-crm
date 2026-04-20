@@ -173,7 +173,7 @@ class BinderIntakeEditService:
         patch: dict[str, Any],
     ):
         requested_binder_id = patch.get("binder_id")
-        requested_client_id = patch.get("client_record_id")
+        requested_client_record_id = patch.get("client_record_id")
 
         if requested_binder_id is not None:
             target_binder = self.binder_repo.get_by_id(requested_binder_id)
@@ -182,14 +182,13 @@ class BinderIntakeEditService:
                     BINDER_NOT_FOUND.format(binder_id=requested_binder_id),
                     "BINDER.NOT_FOUND",
                 )
-            if requested_client_id is not None and target_binder.client_record_id != requested_client_id:
+            if requested_client_record_id is not None and target_binder.client_record_id != requested_client_record_id:
                 raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
             return target_binder
 
-        if requested_client_id is None or requested_client_id == current_binder.client_record_id:
+        if requested_client_record_id is None or requested_client_record_id == current_binder.client_record_id:
             return current_binder
 
-        requested_client_record_id = ClientRecordRepository(self.db).get_by_client_id(requested_client_id).id
         target_binder = self.binder_repo.get_active_by_client_record(requested_client_record_id)
         if not target_binder:
             raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")

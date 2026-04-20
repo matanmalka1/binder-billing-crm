@@ -25,7 +25,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
     def get_client_reports(self, client_record_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
         from app.core.exceptions import NotFoundError
         from .messages import ANNUAL_REPORT_CLIENT_NOT_FOUND
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if client_record is None:
             raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
         reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)

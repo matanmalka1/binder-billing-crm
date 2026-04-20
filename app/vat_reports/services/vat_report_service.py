@@ -89,7 +89,7 @@ class VatReportService:
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
     def get_work_item_by_client_period(self, client_record_id: int, period: str):
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
+        client_record_id = ClientRecordRepository(self.db).get_by_id(client_record_id).id
         return self.work_item_repo.get_by_client_record_period(client_record_id, period)
 
     def get_audit_trail(self, item_id: int):

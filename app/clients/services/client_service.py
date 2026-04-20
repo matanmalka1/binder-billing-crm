@@ -121,7 +121,7 @@ class ClientService:
                 advance_rate=advance_rate,
             )
         record_repo = ClientRecordRepository(self.db)
-        client_record = record_repo.get_by_client_id(client.id) or record_repo.create(
+        client_record = record_repo.create(
             legal_entity_id=legal_entity.id,
             office_client_number=client.office_client_number,
             accountant_name=accountant_name,
@@ -243,11 +243,10 @@ class ClientService:
         return updated
 
     def _update_client_record_status(self, client_id: int, new_status: ClientStatus) -> None:
-        record_repo = ClientRecordRepository(self.db)
-        record = record_repo.get_by_client_id(client_id)
+        record = self._get_client_record_by_client_id(client_id)
         if not record:
             return
-        record_repo.update_status(record.id, new_status)
+        ClientRecordRepository(self.db).update_status(record.id, new_status)
         if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
             ReminderRepository(self.db).cancel_pending_by_client_record(record.id)
             TaxDeadlineRepository(self.db).cancel_pending_by_client_record(record.id)
@@ -258,7 +257,7 @@ class ClientService:
     def _cancel_deadlines_on_entity_type_change(
         self, client_id: int, old_entity_type, new_entity_type, actor_id: Optional[int]
     ) -> None:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        record = self._get_client_record_by_client_id(client_id)
         if not record:
             return
         deadline_repo = TaxDeadlineRepository(self.db)
@@ -273,6 +272,18 @@ class ClientService:
             old_value=str(old_entity_type),
             new_value=str(new_entity_type),
         )
+
+    def _get_client_record_by_client_id(self, client_id: int) -> Optional[ClientRecord]:
+        client = self.client_repo.get_by_id(client_id)
+        if not client:
+            return None
+        legal_entity = LegalEntityRepository(self.db).get_by_id_number(
+            client.id_number_type,
+            client.id_number,
+        )
+        if not legal_entity:
+            return None
+        return ClientRecordRepository(self.db).get_by_legal_entity_id(legal_entity.id)
 
     def delete_client(self, client_id: int, actor_id: int) -> None:
         client = self.client_repo.get_by_id_including_deleted(client_id)

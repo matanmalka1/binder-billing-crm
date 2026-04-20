@@ -7,6 +7,9 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService as AdvancePaymentService
 from app.businesses.models.business import Business
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 _seq = count(1)
@@ -14,22 +17,28 @@ _seq = count(1)
 
 def _business(db, idx: int) -> Business:
     uniq = next(_seq)
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=f"321654{uniq:03d}")
+    db.add(legal_entity)
+    db.commit()
+    db.refresh(legal_entity)
+
     client = Client(
         full_name=f"AP Overview Client {idx}",
-        id_number=f"321654{uniq:03d}",
+        id_number=legal_entity.id_number,
     )
     db.add(client)
     db.commit()
     db.refresh(client)
-
     business = Business(
         client_id=client.id,
+        legal_entity_id=legal_entity.id,
         business_name=f"AP Overview Biz {idx}",
         opened_at=date.today(),
     )
     db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_record_id = client.id
     return business
 
 
@@ -37,9 +46,9 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
     b1 = _business(test_db, 1)
     b2 = _business(test_db, 2)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_id=b2.client_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
+    repo.create(client_record_id=b2.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
     paid = repo.create(
-        client_id=b1.client_id,
+        client_record_id=b1.client_record_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),
@@ -65,7 +74,7 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
     business = _business(test_db, 3)
     repo = AdvancePaymentRepository(test_db)
     partial = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),
@@ -74,7 +83,7 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
     repo.update(partial, paid_amount=Decimal("50"), status=AdvancePaymentStatus.PARTIAL)
 
     paid = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,
         due_date=date(2026, 3, 15),

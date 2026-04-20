@@ -22,6 +22,9 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.models.binder import BinderStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.core.exceptions import NotFoundError
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
 
@@ -46,7 +49,20 @@ class StatusCardService:
         year: Optional[int] = None,
     ) -> ClientStatusCardResponse:
         resolved_year = year or utcnow().year
-        client_record_id = ClientRecordRepository(self._db).get_by_client_id(client_id).id
+        client = ClientRepository(self._db).get_by_id(client_id)
+        legal_entity = (
+            LegalEntityRepository(self._db).get_by_id_number(client.id_number_type, client.id_number)
+            if client
+            else None
+        )
+        record = (
+            ClientRecordRepository(self._db).get_by_legal_entity_id(legal_entity.id)
+            if legal_entity
+            else None
+        )
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        client_record_id = record.id
         return ClientStatusCardResponse(
             client_id=client_id,
             year=resolved_year,

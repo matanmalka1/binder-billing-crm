@@ -29,7 +29,7 @@ def sync_annual_report_deadline(
     if not entering_filed and not leaving_filed:
         return
 
-    client_record_id = ClientRecordRepository(db).get_by_client_id(report.client_record_id).id
+    client_record_id = ClientRecordRepository(db).get_by_id(report.client_record_id).id
     deadlines = TaxDeadlineQueryRepository(db).list_by_client_record(
         client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,

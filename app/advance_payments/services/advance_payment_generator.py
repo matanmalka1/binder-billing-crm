@@ -7,7 +7,6 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.constants import build_due_date, get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 
@@ -26,11 +25,11 @@ def generate_annual_schedule(
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
     מחזיר (created_records, skipped_count).
     """
-    client = ClientRepository(db).get_by_id(client_record_id)
+    from app.clients.repositories.client_record_repository import ClientRecordRepository
+    record = ClientRecordRepository(db).get_by_id(client_record_id)
+    client = ClientRepository(db).get_by_id(record.legal_entity_id) if record else None
     if not client:
-        raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
-
-    client_record_id = ClientRecordRepository(db).get_by_client_id(client_record_id).id
+        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND")
     service = AdvancePaymentService(db)
     repo = AdvancePaymentRepository(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(

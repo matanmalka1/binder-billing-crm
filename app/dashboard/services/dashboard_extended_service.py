@@ -42,27 +42,34 @@ class DashboardExtendedService:
             binders = self.binder_repo.list_active(
                 page=1, page_size=_ACTIVE_BINDERS_FETCH_LIMIT
             )
-            client_ids = list({binder.client_id for binder in binders})
-            businesses = self.business_repo.list_by_client_ids(client_ids)
-            legal_entity_by_client = {}
-            for client_id in client_ids:
-                record = self.client_record_repo.get_by_client_id(client_id)
-                if record is not None:
-                    legal_entity_by_client[client_id] = record.legal_entity_id
+            client_record_ids = list({binder.client_record_id for binder in binders})
+            record_by_id = {
+                record.id: record
+                for record in (
+                    self.client_record_repo.get_by_id(client_record_id)
+                    for client_record_id in client_record_ids
+                )
+                if record is not None
+            }
+            legal_entity_ids = [record.legal_entity_id for record in record_by_id.values()]
+            businesses = self.business_repo.list_by_legal_entity_ids(legal_entity_ids)
             business_map = {}
             for business in businesses:
-                key = business.client_id
-                legal_entity_id = getattr(business, "legal_entity_id", None)
-                if legal_entity_id is not None:
-                    for client_id, entity_id in legal_entity_by_client.items():
-                        if entity_id == legal_entity_id:
-                            key = client_id
-                            break
+                key = next(
+                    (
+                        client_record_id
+                        for client_record_id, record in record_by_id.items()
+                        if record.legal_entity_id == business.legal_entity_id
+                    ),
+                    None,
+                )
+                if key is None:
+                    continue
                 business_map.setdefault(key, business)
             self._cached_active_binders_with_businesses = [
-                (binder, business_map.get(binder.client_id))
+                (binder, business_map.get(binder.client_record_id))
                 for binder in binders
-                if business_map.get(binder.client_id)
+                if business_map.get(binder.client_record_id)
             ]
         return self._cached_active_binders_with_businesses
 

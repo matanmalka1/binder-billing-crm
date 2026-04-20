@@ -38,7 +38,7 @@ class CorrespondenceService:
         assert_business_belongs_to_legal_entity(business, legal_entity_id)
 
     def _get_client_record_or_raise(self, client_record_id: int):
-        record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not record:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         return record

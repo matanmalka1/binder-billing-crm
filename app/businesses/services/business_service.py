@@ -13,6 +13,7 @@ from app.businesses.services.business_lifecycle_service import BusinessLifecycle
 from app.businesses.services.business_update_service import BusinessUpdateService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.users.models.user import UserRole
 
@@ -110,7 +111,15 @@ class BusinessService:
         self, business_id: int, client_id: int, user_role: UserRole,
         actor_id: Optional[int] = None, **fields
     ) -> Business:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        client = self.client_repo.get_by_id(client_id)
+        record = None
+        if client:
+            legal_entity = LegalEntityRepository(self.db).get_by_id_number(
+                client.id_number_type,
+                client.id_number,
+            )
+            if legal_entity:
+                record = ClientRecordRepository(self.db).get_by_legal_entity_id(legal_entity.id)
         legal_entity_id = record.legal_entity_id if record else None
         return self._update.update_business(
             business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,

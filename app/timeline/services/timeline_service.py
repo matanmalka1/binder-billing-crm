@@ -6,7 +6,6 @@ from app.binders.repositories.binder_status_log_repository import BinderStatusLo
 from app.businesses.models.business import Business
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.models.client import Client
 from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -56,21 +55,16 @@ class TimelineService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int]:
-        client = (
-            self.db.query(Client)
-            .filter(Client.id == client_record_id, Client.deleted_at.is_(None))
-            .first()
-        )
-        if not client:
+        client_record = self.client_record_repo.get_by_id(client_record_id)
+        if not client_record:
             raise NotFoundError(message="לקוח לא נמצא", code="TIMELINE.CLIENT_NOT_FOUND")
-
         businesses = (
             self.db.query(Business)
-            .filter(Business.client_id == client_record_id, Business.deleted_at.is_(None))
+            .filter(Business.legal_entity_id == client_record.legal_entity_id, Business.deleted_at.is_(None))
             .all()
         )
         business_ids = [business.id for business in businesses]
-        client_record_id = self.client_record_repo.get_by_client_id(client_record_id).id
+        client_record_id = client_record.id
 
         events = []
 

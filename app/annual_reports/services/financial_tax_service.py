@@ -146,7 +146,7 @@ class FinancialTaxMixin:
     def invalidate_tax_if_open(self, client_record_id: int, tax_year: int) -> None:
         """Clear saved tax_due / refund_due when advances change before submission."""
         from app.clients.repositories.client_record_repository import ClientRecordRepository
-        client_record = ClientRecordRepository(self.report_repo.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.report_repo.db).get_by_id(client_record_id)
         if not client_record:
             return
         report = self.report_repo.get_by_client_record_year(client_record.id, tax_year)

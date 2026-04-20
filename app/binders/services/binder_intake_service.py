@@ -62,7 +62,7 @@ class BinderIntakeService:
         Returns (binder, intake, is_new_binder).
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
         client_record_id = client_record.legal_entity_id
 

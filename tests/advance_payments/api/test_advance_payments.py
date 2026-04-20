@@ -4,36 +4,45 @@ from decimal import Decimal
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 def _create_business(test_db) -> Business:
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="444444444")
+    test_db.add(legal_entity)
+    test_db.commit()
+    test_db.refresh(legal_entity)
+
     client = Client(full_name="Advance Payment Client", id_number="444444444")
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
-
     business = Business(
         client_id=client.id,
+        legal_entity_id=legal_entity.id,
         business_name="Advance Payment Business",
         opened_at=date.today(),
     )
     test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
+    business.client_record_id = client.id
     return business
 
 
 def test_list_advance_payments_paginates(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_id=business.client_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    repo.create(client_id=business.client_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
-    repo.create(client_id=business.client_id, period="2026-03", period_months_count=1, due_date=date(2026, 4, 15))
+    repo.create(client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
+    repo.create(client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    repo.create(client_record_id=business.client_record_id, period="2026-03", period_months_count=1, due_date=date(2026, 4, 15))
     # Extra year entry should be filtered out
-    repo.create(client_id=business.client_id, period="2025-12", period_months_count=1, due_date=date(2026, 1, 15))
+    repo.create(client_record_id=business.client_record_id, period="2025-12", period_months_count=1, due_date=date(2026, 1, 15))
 
     response = client.get(
-        f"/api/v1/clients/{business.client_id}/advance-payments?year=2026&page=1&page_size=2",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments?year=2026&page=1&page_size=2",
         headers=advisor_headers,
     )
 
@@ -44,7 +53,7 @@ def test_list_advance_payments_paginates(client, test_db, advisor_headers):
     assert [item["period"] for item in data["items"]] == ["2026-01", "2026-02"]
 
     second_page = client.get(
-        f"/api/v1/clients/{business.client_id}/advance-payments?year=2026&page=2&page_size=2",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments?year=2026&page=2&page_size=2",
         headers=advisor_headers,
     )
     assert second_page.status_code == 200
@@ -55,7 +64,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_record_id,
         period="2026-05",
         period_months_count=1,
         due_date=date(2026, 6, 15),
@@ -63,7 +72,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
     )
 
     response = client.patch(
-        f"/api/v1/clients/{business.client_id}/advance-payments/{payment.id}",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/{payment.id}",
         headers=advisor_headers,
         json={"paid_amount": 500.0, "status": "paid"},
     )
@@ -79,14 +88,14 @@ def test_update_advance_payment_invalid_status_returns_400(client, test_db, advi
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_record_id,
         period="2026-07",
         period_months_count=1,
         due_date=date(2026, 8, 15),
     )
 
     response = client.patch(
-        f"/api/v1/clients/{business.client_id}/advance-payments/{payment.id}",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/{payment.id}",
         headers=advisor_headers,
         json={"status": "unknown"},
     )
@@ -97,7 +106,7 @@ def test_update_advance_payment_invalid_status_returns_400(client, test_db, advi
 def test_update_advance_payment_not_found_returns_404(client, test_db, advisor_headers):
     business = _create_business(test_db)
     response = client.patch(
-        f"/api/v1/clients/{business.client_id}/advance-payments/999",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/999",
         headers=advisor_headers,
         json={"status": "paid"},
     )
@@ -117,5 +126,5 @@ def test_list_advance_payments_missing_client_returns_404(client, advisor_header
 
     assert response.status_code == 404
     data = response.json()
-    assert data["error"] == "ADVANCE_PAYMENT.CLIENT_NOT_FOUND"
-    assert data["error_meta"]["detail"] == "לקוח 999 לא נמצא"
+    assert data["error"] == "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND"
+    assert data["error_meta"]["detail"] == "רשומת לקוח 999 לא נמצאה"

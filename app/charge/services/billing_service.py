@@ -65,7 +65,7 @@ class BillingService:
     ) -> Charge:
         if amount <= 0:
             raise AppError(AMOUNT_MUST_BE_POSITIVE, "CHARGE.AMOUNT_INVALID")
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "CHARGE.CLIENT_RECORD_NOT_FOUND")
         assert_client_record_is_active(client_record)

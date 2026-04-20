@@ -42,7 +42,7 @@ def get_period_options(
 
     start_months = range(1, 12, 2) if period_type == VatType.BIMONTHLY else range(1, 13)
     year_prefix = f"{selected_year}-"
-    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_client_id(client_record_id).id
+    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_id(client_record_id).id
     opened_periods = {
         i.period for i in work_item_repo.list_by_client_record(client_record_id)
         if i.period.startswith(year_prefix)

@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import Optional
-from app.clients.models.client_record import ClientRecord as _ClientRecord
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository as AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
@@ -20,7 +19,6 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import get_business_or_raise
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType
@@ -52,7 +50,13 @@ def _require_non_negative_days(days_before: int) -> None:
 
 
 def _resolve_client_record_id(client_record_id: int, repo: ClientRecordRepository) -> int:
-    client_record = repo.get_by_client_id(client_record_id)
+    client_record = repo.get_by_id(client_record_id)
+    assert_client_record_is_active(client_record)
+    return client_record.id
+
+
+def _resolve_business_client_record_id(business, repo: ClientRecordRepository) -> int:
+    client_record = repo.get_by_legal_entity_id(business.legal_entity_id)
     assert_client_record_is_active(client_record)
     return client_record.id
 
@@ -63,7 +67,7 @@ def _resolve_client_record_id(client_record_id: int, repo: ClientRecordRepositor
 
 def create_tax_deadline_reminder(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
+    client_record_repo: ClientRecordRepository,
     tax_deadline_repo: TaxDeadlineRepository,
     *,
     client_record_id: int,
@@ -73,7 +77,7 @@ def create_tax_deadline_reminder(
     message: Optional[str] = None,
     created_by: Optional[int] = None,
 ) -> Reminder:
-    if not client_repo.get_by_id(client_record_id):
+    if not client_record_repo.get_by_id(client_record_id):
         raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "REMINDER.CLIENT_NOT_FOUND")
     if not tax_deadline_repo.get_by_id(tax_deadline_id):
         raise NotFoundError(TAX_DEADLINE_NOT_FOUND.format(tax_deadline_id=tax_deadline_id), "REMINDER.NOT_FOUND")
@@ -190,7 +194,7 @@ def create_annual_report_deadline_reminder(
 
 
 # ── Business-scoped reminders ─────────────────────────────────────────────────
-# client_record_id is resolved from business.client_id so both anchors are always set.
+# client_record_id is resolved from the business legal entity so both anchors are always set.
 
 def create_unpaid_charge_reminder(
     reminder_repo: ReminderRepository,
@@ -211,8 +215,7 @@ def create_unpaid_charge_reminder(
         raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "REMINDER.NOT_FOUND")
     if charge.client_record_id != client_record_id or charge.business_id != business_id:
         raise AppError(CHARGE_SCOPE_MISMATCH, "REMINDER.CHARGE_SCOPE_MISMATCH")
-    client_record = reminder_repo.db.query(_ClientRecord).filter(_ClientRecord.id == client_record_id).first()
-    assert_client_record_is_active(client_record)
+    assert_client_record_is_active(ClientRecordRepository(reminder_repo.db).get_by_id(client_record_id))
     _require_non_negative_days(days_unpaid)
 
     target_date = date.today()
@@ -253,7 +256,7 @@ def create_advance_payment_due_reminder(
     send_on = target_date - timedelta(days=days_before)
     if message is None:
         message = ADVANCE_PAYMENT_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
-    client_record_id = _resolve_client_record_id(business.client_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_business_client_record_id(business, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
         client_record_id=client_record_id,
@@ -284,7 +287,7 @@ def create_document_missing_reminder(
         raise AppError(DOCUMENT_MISSING_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
-    client_record_id = _resolve_client_record_id(business.client_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_business_client_record_id(business, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
         client_record_id=client_record_id,
@@ -311,12 +314,13 @@ def create_custom_reminder(
 ) -> Reminder:
     if business_id is not None:
         business = get_business_or_raise(business_repo.db, business_id)
-        resolved_client_id = business.client_id
-        # if caller also supplied client_record_id, verify it matches the business's legal entity
-        if client_record_id is not None and client_record_id != resolved_client_id:
+        resolved_client_record_id = _resolve_business_client_record_id(
+            business, ClientRecordRepository(reminder_repo.db)
+        )
+        if client_record_id is not None and client_record_id != resolved_client_record_id:
             raise AppError("business_id אינו שייך ל-client_record_id שסופק", "REMINDER.BUSINESS_CLIENT_MISMATCH")
     elif client_record_id is not None:
-        resolved_client_id = client_record_id
+        resolved_client_record_id = client_record_id
     else:
         raise AppError("client_record_id או business_id נדרש עבור תזכורת מותאמת אישית", "REMINDER.MISSING_ANCHOR")
 
@@ -325,7 +329,9 @@ def create_custom_reminder(
         raise AppError(CUSTOM_REMINDER_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
-    client_record_id = _resolve_client_record_id(resolved_client_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_client_record_id(
+        resolved_client_record_id, ClientRecordRepository(reminder_repo.db)
+    )
 
     return reminder_repo.create(
         client_record_id=client_record_id,

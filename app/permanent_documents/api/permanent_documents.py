@@ -36,7 +36,7 @@ def upload_permanent_document(
     notes: Annotated[Optional[str], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
-    record = ClientRecordRepository(db).get_by_client_id(client_record_id)
+    record = ClientRecordRepository(db).get_by_id(client_record_id)
     legal_entity_id = record.legal_entity_id if record else None
     service = PermanentDocumentService(db)
     document = service.upload_document(

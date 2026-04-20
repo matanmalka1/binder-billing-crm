@@ -57,7 +57,7 @@ class PermanentDocumentService:
         return resolved
 
     def _get_client_record_id(self, client_record_id: int) -> int:
-        record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not record:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         return record.id
@@ -91,7 +91,7 @@ class PermanentDocumentService:
         legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
         ClientService(self.db).get_client_or_raise(client_record_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         if business_id is not None:
@@ -213,8 +213,14 @@ class PermanentDocumentService:
         self, business_id: int, required: Optional[list[str]] = None
     ) -> list[str]:
         business = get_business_or_raise(self.db, business_id)
+        client_record = ClientRecordRepository(self.db).get_by_legal_entity_id(business.legal_entity_id)
+        if not client_record:
+            raise NotFoundError(
+                f"רשומת לקוח לעסק {business_id} לא נמצאה",
+                "PERMANENT_DOCUMENTS.CLIENT_RECORD_NOT_FOUND",
+            )
         required_types = required if required is not None else _DEFAULT_REQUIRED_TYPES
-        return self.query_repo.missing_by_type(business_id, business.client_id, required_types)
+        return self.query_repo.missing_by_type(business_id, client_record.id, required_types)
 
     def get_operational_signals(self, business_id: int) -> dict:
         return SignalsService(self.db).compute_business_operational_signals(business_id)

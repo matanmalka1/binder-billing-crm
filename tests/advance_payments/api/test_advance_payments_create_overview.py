@@ -24,25 +24,27 @@ def _business(db):
     legal_entity = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL)
     db.add(legal_entity)
     db.flush()
-    db.add(ClientRecord(id=client.id, legal_entity_id=legal_entity.id))
     db.commit()
     db.refresh(client)
 
     business = Business(
         client_id=client.id,
+        legal_entity_id=legal_entity.id,
         business_name="Advance Overview Business",
         opened_at=date.today(),
     )
     db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_record_id = client.id
+    business.legal_entity = legal_entity
     return business
 
 
 def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -> None:
     business = db.get(Business, business_id)
     assert business is not None
-    business.client.advance_rate = advance_rate
+    business.legal_entity.advance_rate = advance_rate
     db.commit()
 
 
@@ -50,8 +52,7 @@ def _vat_work_item(db, business_id: int, created_by: int, period: str, output_va
     business = db.get(Business, business_id)
     assert business is not None
     item = VatWorkItem(
-        client_id=business.client_id,
-        client_record_id=business.client_id,
+        client_record_id=business.client_record_id,
         created_by=created_by,
         period=period,
         period_type=VatType.MONTHLY,
@@ -76,7 +77,7 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
         "expected_amount": 1200.0,
     }
     first = client.post(
-        f"/api/v1/clients/{business.client_id}/advance-payments",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments",
         headers=advisor_headers,
         json=payload,
     )
@@ -84,7 +85,7 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert first.json()["period"] == "2026-03"
 
     conflict = client.post(
-        f"/api/v1/clients/{business.client_id}/advance-payments",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments",
         headers=advisor_headers,
         json=payload,
     )
@@ -101,13 +102,13 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
     _vat_work_item(test_db, business.id, test_user.id, "2025-01", Decimal("18000"))
 
     resp = client.get(
-        f"/api/v1/clients/{business.client_id}/advance-payments/suggest?year=2026",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/suggest?year=2026",
         headers=advisor_headers,
     )
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["client_id"] == business.client_id
+    assert data["client_record_id"] == business.client_record_id
     assert data["year"] == 2026
     assert data["has_data"] is True
     assert Decimal(str(data["suggested_amount"])) == Decimal("500")
@@ -116,8 +117,8 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_id=business.client_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    feb = repo.create(client_id=business.client_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    repo.create(client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
+    feb = repo.create(client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
     repo.update(feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200"))
 
     resp = client.get(

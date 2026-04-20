@@ -51,7 +51,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
         client_record_id = client_record.id if client_record else None
         if not client_repo.get_by_id(client_record_id):

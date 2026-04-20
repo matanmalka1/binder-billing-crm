@@ -13,8 +13,8 @@ from app.advance_payments.services.advance_payment_calculator import (
 )
 from app.advance_payments.services.constants import ADVANCE_PAYMENT_VAT_RATE
 from app.clients.models.client import ClientStatus
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 
 
@@ -23,21 +23,17 @@ class AdvancePaymentService:
         self.db = db
         self.repo = AdvancePaymentRepository(db)
 
-    @property
-    def _client_repo(self) -> ClientRepository:
-        return ClientRepository(self.db)
-
-    def _get_client_or_raise(self, client_record_id: int):
-        client = self._client_repo.get_by_id(client_record_id)
-        if client is None:
-            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
-        return client
+    def _get_record_or_raise(self, client_record_id: int):
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if record is None:
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND")
+        return record
 
     def _assert_client_allows_create(self, client_record_id: int) -> None:
-        client = self._get_client_or_raise(client_record_id)
-        if client.status == ClientStatus.CLOSED:
+        record = self._get_record_or_raise(client_record_id)
+        if record.status == ClientStatus.CLOSED:
             raise ForbiddenError("לקוח סגור — לא ניתן ליצור מקדמה", "CLIENT.CLOSED")
-        if client.status == ClientStatus.FROZEN:
+        if record.status == ClientStatus.FROZEN:
             raise ForbiddenError("לקוח מוקפא — לא ניתן ליצור מקדמה", "CLIENT.FROZEN")
 
     # ─── List ─────────────────────────────────────────────────────────────────
@@ -52,12 +48,7 @@ class AdvancePaymentService:
     ) -> tuple[list[AdvancePayment], int]:
         if year is None:
             year = utcnow().year
-        self._get_client_or_raise(client_record_id)
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
-        if client_record is not None:
-            return self.repo.list_by_client_record_year(
-                client_record.id, year, status=status, page=page, page_size=page_size
-            )
+        self._get_record_or_raise(client_record_id)
         return self.repo.list_by_client_record_year(
             client_record_id, year, status=status, page=page, page_size=page_size
         )
@@ -82,8 +73,6 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id)
-        client_record_id = client_record.id if client_record else None
         return self.repo.create(
             client_record_id=client_record_id,
             period=period,
@@ -104,7 +93,7 @@ class AdvancePaymentService:
     }
 
     def update_payment_for_client(self, client_record_id: int, payment_id: int, **fields) -> AdvancePayment:
-        self._get_client_or_raise(client_record_id)
+        self._get_record_or_raise(client_record_id)
         payment = self.repo.get_by_id_for_client_record(payment_id, client_record_id)
         if not payment:
             raise NotFoundError(
@@ -128,7 +117,7 @@ class AdvancePaymentService:
     # ─── Delete ───────────────────────────────────────────────────────────────
 
     def delete_payment_for_client(self, client_record_id: int, payment_id: int, actor_id: int) -> None:
-        self._get_client_or_raise(client_record_id)
+        self._get_record_or_raise(client_record_id)
         payment = self.repo.get_by_id_for_client_record(payment_id, client_record_id)
         if not payment:
             raise NotFoundError(
@@ -142,8 +131,9 @@ class AdvancePaymentService:
     def suggest_expected_amount_for_client(
         self, client_record_id: int, year: int, period_months_count: int = 1
     ) -> Optional[Decimal]:
-        client = self._client_repo.get_by_id(client_record_id)
-        if client is None or client.advance_rate is None:
+        record = self._get_record_or_raise(client_record_id)
+        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+        if legal_entity is None or legal_entity.advance_rate is None:
             return None
         prior_year_vat = VatClientSummaryRepository(self.db).get_annual_output_vat(
             client_record_id=client_record_id, year=year - 1
@@ -152,5 +142,5 @@ class AdvancePaymentService:
             return None
         annual_income = derive_annual_income_from_vat(prior_year_vat, ADVANCE_PAYMENT_VAT_RATE)
         return calculate_expected_amount(
-            annual_income, Decimal(str(client.advance_rate)), period_months_count
+            annual_income, Decimal(str(legal_entity.advance_rate)), period_months_count
         )

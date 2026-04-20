@@ -72,7 +72,7 @@ class NotificationSendService:
         )
 
     def _get_client_record_id(self, client_record_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_client_id(client_record_id).id
+        return ClientRecordRepository(self.db).get_by_id(client_record_id).id
 
     def bulk_notify(
         self,

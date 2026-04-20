@@ -29,7 +29,7 @@ class DeadlineGeneratorService:
         return client.vat_reporting_frequency if client else None
 
     def _resolve_client_record_id(self, client_record_id: int) -> int:
-        record = self.client_record_repo.get_by_client_id(client_record_id)
+        record = self.client_record_repo.get_by_id(client_record_id)
         return record.id if record else None
 
     def generate_vat_deadlines(self, client_record_id: int, year: int) -> list:

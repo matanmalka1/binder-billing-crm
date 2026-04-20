@@ -9,7 +9,8 @@ from uuid import uuid4
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.models.client import ClientStatus
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -71,15 +72,24 @@ def add_invoice(
 
     assert_editable(item)
 
-    client = repo_or_client_repo.get_by_id(item.client_record_id)
+    db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
+    record = ClientRecordRepository(db).get_by_id(item.client_record_id) if db else None
+    legal_entity = (
+        LegalEntityRepository(db).get_by_id(record.legal_entity_id)
+        if db and record
+        else None
+    )
 
-    if client and getattr(client, "status", None) == ClientStatus.CLOSED:
+    if record and record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
 
     if business_activity_id is not None:
-        db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
         business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
-        if not business or business.client_id != item.client_record_id:
+        if (
+            not business
+            or not record
+            or business.legal_entity_id != record.legal_entity_id
+        ):
             raise AppError(
                 VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
@@ -92,10 +102,10 @@ def add_invoice(
     is_exceptional = derived["is_exceptional"]
 
     ceiling_warning = False
-    if invoice_type == InvoiceType.INCOME and client:
+    if invoice_type == InvoiceType.INCOME and legal_entity:
         scope_id = item.client_record_id
         ceiling_warning = check_osek_patur_ceiling(
-            client, invoice_repo, scope_id, item.period, net_amount
+            legal_entity, invoice_repo, scope_id, item.period, net_amount
         )
 
     # Auto-fill optional fields when not provided by caller

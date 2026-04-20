@@ -14,18 +14,19 @@ def _business(db) -> Business:
     legal_entity = LegalEntity(id_number="APGAPI001", id_number_type=IdNumberType.INDIVIDUAL)
     db.add(legal_entity)
     db.flush()
-    db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal_entity.id))
     db.commit()
     db.refresh(crm_client)
 
     business = Business(
         client_id=crm_client.id,
+        legal_entity_id=legal_entity.id,
         business_name="Advance Gen Business",
         opened_at=date.today(),
     )
     db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_record_id = crm_client.id
     return business
 
 
@@ -33,7 +34,7 @@ def test_generate_schedule_endpoint_returns_counts(client, test_db, advisor_head
     business = _business(test_db)
 
     resp = client.post(
-        f"/api/v1/clients/{business.client_id}/advance-payments/generate",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/generate",
         headers=advisor_headers,
         json={"business_id": business.id, "year": 2026},
     )
@@ -48,7 +49,7 @@ def test_generate_schedule_endpoint_is_advisor_only(client, test_db, secretary_h
     business = _business(test_db)
 
     resp = client.post(
-        f"/api/v1/clients/{business.client_id}/advance-payments/generate",
+        f"/api/v1/clients/{business.client_record_id}/advance-payments/generate",
         headers=secretary_headers,
         json={"business_id": business.id, "year": 2026},
     )

@@ -46,7 +46,7 @@ class ChargeQueryService:
 
         Returns (items, total, business_name_map, office_client_number_map).
         """
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id) if client_record_id is not None else None
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id) if client_record_id is not None else None
         if client_record is not None:
             items = self.charge_repo.list_charges_by_client_record(
                 client_record_id=client_record.id,
@@ -123,7 +123,7 @@ class ChargeQueryService:
             data["office_client_number"] = office_client_number_map.get(charge.id)
             return schema(**data)
 
-        client_record = ClientRecordRepository(self.db).get_by_client_id(client_record_id) if client_record_id is not None else None
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id) if client_record_id is not None else None
         raw = self.charge_repo.stats_by_status(
             client_record_id=client_record.id if client_record else None,
             charge_type=charge_type,

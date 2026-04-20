@@ -37,7 +37,7 @@ def build_client_events(
         for reminder in reminders:
             events.append(reminder_created_event(reminder))
 
-    client_record_id = ClientRecordRepository(db).get_by_client_id(client_record_id).id
+    client_record_id = ClientRecordRepository(db).get_by_id(client_record_id).id
     client_reminders = reminder_repo.list_by_client_record(
         client_record_id, page=1, page_size=_TIMELINE_BULK_LIMIT
     )
