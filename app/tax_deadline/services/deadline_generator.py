@@ -7,6 +7,7 @@ _today = date.today  # injectable for tests
 from app.common.enums import VatType
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.annual_reports.services.deadlines import standard_deadline
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
@@ -21,10 +22,15 @@ class DeadlineGeneratorService:
         self.deadline_repo = TaxDeadlineRepository(db)
         self.deadline_service = TaxDeadlineService(db)
         self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
 
     def _resolve_vat_type(self, client_id: int):
         client = self.client_repo.get_by_id(client_id)
         return client.vat_reporting_frequency if client else None
+
+    def _resolve_client_record_id(self, client_id: int) -> int:
+        record = self.client_record_repo.get_by_client_id(client_id)
+        return record.id if record else None
 
     def generate_vat_deadlines(self, client_id: int, year: int) -> list:
         """Generate VAT filing deadlines for the year. Skips EXEMPT clients."""
@@ -32,6 +38,8 @@ class DeadlineGeneratorService:
 
         if vat_type == VatType.EXEMPT or vat_type is None:
             return []
+
+        client_record_id = self._resolve_client_record_id(client_id)
 
         due_dates: list[tuple[date, str]] = []  # (due_date, period)
         if vat_type == VatType.MONTHLY:
@@ -53,7 +61,7 @@ class DeadlineGeneratorService:
         for due_date, period in due_dates:
             if due_date < today:
                 continue
-            if not self.deadline_repo.exists(client_id, DeadlineType.VAT, due_date):
+            if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.VAT, period=period):
                 deadline = self.deadline_service.create_deadline(
                     client_id=client_id,
                     deadline_type=DeadlineType.VAT,
@@ -72,6 +80,7 @@ class DeadlineGeneratorService:
         if self._resolve_vat_type(client_id) == VatType.EXEMPT:
             return []
 
+        client_record_id = self._resolve_client_record_id(client_id)
         today = _today()
         created = []
         for month in range(1, 13):
@@ -79,7 +88,7 @@ class DeadlineGeneratorService:
             if due_date < today:
                 continue
             period = f"{year}-{month:02d}"
-            if not self.deadline_repo.exists(client_id, DeadlineType.ADVANCE_PAYMENT, due_date):
+            if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ADVANCE_PAYMENT, period=period):
                 deadline = self.deadline_service.create_deadline(
                     client_id=client_id,
                     deadline_type=DeadlineType.ADVANCE_PAYMENT,
@@ -97,7 +106,8 @@ class DeadlineGeneratorService:
             client.entity_type if client else None
         )
         due_date = standard_deadline(year, client_type=client_type).date()
-        if self.deadline_repo.exists(client_id, DeadlineType.ANNUAL_REPORT, due_date):
+        client_record_id = self._resolve_client_record_id(client_id)
+        if self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT):
             return []
         deadline = self.deadline_service.create_deadline(
             client_id=client_id,

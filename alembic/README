@@ -82,7 +82,19 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null → 0019_drop_client_id_from_workflow_tables → **0020_add_domain_identity_unique_constraints** (HEAD)
+
+### 0020_add_domain_identity_unique_constraints
+- Additive only (indexes only, no column changes).
+- Adds 4 partial unique indexes enforcing domain identity:
+  1. `uq_annual_reports_client_record_tax_year` — `annual_reports(client_record_id, tax_year)` WHERE `deleted_at IS NULL`
+  2. `uq_tax_deadlines_client_record_type_period` — `tax_deadlines(client_record_id, deadline_type, period)` WHERE `deleted_at IS NULL AND period IS NOT NULL`
+  3. `uq_tax_deadlines_client_record_type_no_period` — `tax_deadlines(client_record_id, deadline_type)` WHERE `deleted_at IS NULL AND period IS NULL`
+  4. `uq_vat_work_items_client_record_period` — `vat_work_items(client_record_id, period)` WHERE `deleted_at IS NULL`
+- Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0020_add_domain_identity_unique_constraints`
+
+### 0019_drop_client_id_from_workflow_tables
+- Schema change: drops legacy `client_id` columns from all 13 workflow tables after `client_record_id` was made NOT NULL.
 
 ### 0018_make_client_record_id_not_null
 - Schema change: makes `client_record_id` NOT NULL on all 13 workflow tables.

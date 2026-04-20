@@ -89,6 +89,22 @@ class TaxDeadlineWriteRepository:
         self.db.flush()
         return deadline
 
+    def cancel_pending_by_client_record(self, client_record_id: int) -> int:
+        """Set all PENDING deadlines for client_record_id to CANCELED. Returns count."""
+        rows = (
+            self.db.query(TaxDeadline)
+            .filter(
+                TaxDeadline.deleted_at.is_(None),
+                TaxDeadline.client_record_id == client_record_id,
+                TaxDeadline.status == TaxDeadlineStatus.PENDING,
+            )
+            .all()
+        )
+        for row in rows:
+            row.status = TaxDeadlineStatus.CANCELED
+        self.db.flush()
+        return len(rows)
+
     def delete(self, deadline_id: int, deleted_by: int) -> bool:
         deadline = self.get_by_id(deadline_id)
         if not deadline:

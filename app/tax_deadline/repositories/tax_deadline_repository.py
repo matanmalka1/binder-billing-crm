@@ -136,6 +136,15 @@ class TaxDeadlineRepository:
     ) -> bool:
         return self._q.exists(client_id, deadline_type, due_date)
 
+    def exists_by_record(
+        self,
+        client_record_id: int,
+        deadline_type: DeadlineType,
+        *,
+        period: Optional[str] = None,
+    ) -> bool:
+        return self._q.exists_by_record(client_record_id, deadline_type, period=period)
+
     # ── Write ─────────────────────────────────────────────────────────────────
 
     def create(
@@ -184,6 +193,9 @@ class TaxDeadlineRepository:
             payment_amount=payment_amount,
             description=description,
         )
+
+    def cancel_pending_by_client_record(self, client_record_id: int) -> int:
+        return self._w.cancel_pending_by_client_record(client_record_id)
 
     def delete(self, deadline_id: int, deleted_by: int) -> bool:
         return self._w.delete(deadline_id, deleted_by)

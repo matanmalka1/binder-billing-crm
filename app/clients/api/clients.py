@@ -195,6 +195,7 @@ def update_client(
     client = service.update_client(
         client_id,
         actor_id=user.id,
+        actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
     return enrich_single(ClientResponse.model_validate(client), db)

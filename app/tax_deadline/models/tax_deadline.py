@@ -47,6 +47,7 @@ class DeadlineType(str, PyEnum):
 class TaxDeadlineStatus(str, PyEnum):
     PENDING   = "pending"
     COMPLETED = "completed"
+    CANCELED  = "canceled"
 
 
 class TaxDeadline(Base):
