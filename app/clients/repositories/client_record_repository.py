@@ -2,7 +2,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.core.exceptions import NotFoundError
 

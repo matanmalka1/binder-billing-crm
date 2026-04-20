@@ -11,7 +11,7 @@ from app.common.enums import IdNumberType
 
 
 def _business(db) -> Business:
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="APKPI-1")
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="APKPI-1", official_name="APKPI-1")
     db.add(legal_entity)
     db.commit()
     db.refresh(legal_entity)

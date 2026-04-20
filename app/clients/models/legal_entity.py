@@ -16,6 +16,8 @@ class LegalEntity(Base):
     id_number_type = Column(pg_enum(IdNumberType), nullable=False)
     entity_type = Column(pg_enum(EntityType), nullable=True)
 
+    official_name = Column(String, nullable=False)
+
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
     vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
@@ -26,6 +28,7 @@ class LegalEntity(Base):
 
     __table_args__ = (
         UniqueConstraint("id_number_type", "id_number", name="uq_legal_entity_registration_id"),
+        Index("ix_legal_entities_official_name", "official_name"),
     )
 
     def __repr__(self) -> str:

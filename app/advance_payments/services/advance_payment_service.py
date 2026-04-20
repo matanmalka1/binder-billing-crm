@@ -12,7 +12,7 @@ from app.advance_payments.services.advance_payment_calculator import (
     derive_annual_income_from_vat,
 )
 from app.advance_payments.services.constants import ADVANCE_PAYMENT_VAT_RATE
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository

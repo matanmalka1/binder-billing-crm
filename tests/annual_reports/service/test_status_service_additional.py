@@ -22,7 +22,7 @@ def _create_report(db):
     db.add(crm_client)
     db.commit()
     db.refresh(crm_client)
-    legal = LegalEntity(id_number="LE-ARSTAT001", id_number_type=IdNumberType.INDIVIDUAL)
+    legal = LegalEntity(id_number="LE-ARSTAT001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(legal)
     db.flush()
     db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal.id))

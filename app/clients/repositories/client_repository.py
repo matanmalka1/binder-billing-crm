@@ -5,7 +5,9 @@ from typing import Optional
 from sqlalchemy import asc, desc, func
 
 from app.common.repositories.base_repository import BaseRepository
-from app.clients.models.client import Client, ClientStatus, IdNumberType
+from app.clients.models.client import Client
+from app.clients.enums import ClientStatus
+from app.clients.models.client import IdNumberType
 from app.common.enums import EntityType, VatType
 from app.utils.time_utils import utcnow
 

@@ -45,6 +45,7 @@ def _setup(db) -> tuple:
         id_number_type=IdNumberType.CORPORATION,
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
+        official_name=f"ET{idx:06d}",
     )
     db.add(le)
     db.flush()

@@ -14,7 +14,7 @@ from app.core.exceptions import NotFoundError
 
 
 def _seed(db, *, id_number="LE-TEST-001") -> tuple[LegalEntity, ClientRecord]:
-    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL)
+    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(le)
     db.flush()
     cr = ClientRecord(legal_entity_id=le.id)
@@ -60,7 +60,7 @@ def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalE
     client = Client(full_name="Guard Test Client", id_number=id_number + "-C")
     db.add(client)
     db.flush()
-    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL)
+    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(le)
     db.flush()
     biz = Business(

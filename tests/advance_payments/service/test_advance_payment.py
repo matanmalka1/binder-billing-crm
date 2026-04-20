@@ -29,6 +29,7 @@ def _business(db) -> Business:
     legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, 
         id_number=f"777777{idx:03d}",
         vat_reporting_frequency=VatType.MONTHLY,
+        official_name=f"777777{idx:03d}",
     )
     db.add(legal_entity)
     db.commit()

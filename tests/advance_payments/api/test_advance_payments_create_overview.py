@@ -21,7 +21,7 @@ def _business(db):
     client = Client(full_name="Advance Client", id_number=id_number)
     db.add(client)
     db.flush()
-    legal_entity = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL)
+    legal_entity = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(legal_entity)
     db.flush()
     db.commit()

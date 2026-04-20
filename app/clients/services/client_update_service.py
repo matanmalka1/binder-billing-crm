@@ -9,7 +9,7 @@ from app.audit.constants import ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_record_link_service import ClientRecordLinkService

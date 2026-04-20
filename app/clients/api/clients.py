@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.clients.schemas.client import (
     ClientConflictInfo,
     ClientListResponse,

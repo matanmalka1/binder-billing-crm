@@ -4,7 +4,7 @@ import pytest
 
 from app.common.enums import EntityType
 from app.common.enums import VatType
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake

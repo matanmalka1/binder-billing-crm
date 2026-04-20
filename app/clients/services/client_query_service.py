@@ -4,7 +4,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import Client, ClientStatus
+from app.clients.models.client import Client
+from app.clients.enums import ClientStatus
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.schemas.client import ClientListStats
 

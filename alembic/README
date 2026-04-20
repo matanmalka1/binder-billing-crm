@@ -82,7 +82,18 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null → 0019_drop_client_id_from_workflow_tables → 0020_add_domain_identity_unique_constraints → **0021_add_terminal_closure_states** (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null → 0019_drop_client_id_from_workflow_tables → 0020_add_domain_identity_unique_constraints → 0021_add_terminal_closure_states → 0022_add_official_name_to_legal_entities → **0023_set_official_name_not_null_on_legal_entities** (HEAD)
+
+### 0023_set_official_name_not_null_on_legal_entities
+- Makes `legal_entities.official_name` NOT NULL (after data migration via `scripts/migrate_official_name.py`).
+- Pre-condition: run `scripts/migrate_official_name.py` first to ensure no NULL rows exist.
+- Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0023`
+
+### 0022_add_official_name_to_legal_entities
+- Adds `legal_entities.official_name` (String, nullable) — entity's own registered trading name, independent of owner's name.
+- Adds index `ix_legal_entities_official_name` on `official_name`.
+- Also reconciles index drift from in-model renames across `advance_payments`, `annual_reports`, `authority_contacts`, `binders`, `businesses`, `charges`, `correspondence_entries`, `notifications`, `permanent_documents`, `person_legal_entity_links`, `reminders`, `signature_requests`, `tax_deadlines`, `vat_work_items`.
+- Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0022`
 
 ### 0021_add_terminal_closure_states
 - Adds terminal enum values:

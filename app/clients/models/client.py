@@ -1,6 +1,5 @@
 # DEPRECATED: use LegalEntity + ClientRecord.
 # Scheduled for removal after Layer 2.
-from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, UniqueConstraint, column
 from sqlalchemy.orm import relationship, foreign
@@ -14,10 +13,7 @@ from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures En
 # IdNumberType re-exported from app.common.enums — import from there in new code.
 IdNumberType = IdNumberType  # noqa: PLW0127
 
-class ClientStatus(str, PyEnum):
-    ACTIVE = "active"
-    FROZEN = "frozen"
-    CLOSED = "closed"
+from app.clients.enums import ClientStatus  # noqa: F401 — re-export during migration
 
 class Client(Base):
     """

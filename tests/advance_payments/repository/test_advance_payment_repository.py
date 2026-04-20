@@ -43,7 +43,7 @@ def _create_user(test_db):
 
 
 def _create_business(test_db, name: str, id_number: str):
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=id_number)
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=id_number, official_name=id_number)
     test_db.add(legal_entity)
     test_db.commit()
     test_db.refresh(legal_entity)

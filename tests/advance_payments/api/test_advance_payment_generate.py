@@ -11,7 +11,7 @@ def _business(db) -> Business:
     crm_client = Client(full_name="Advance Gen API Client", id_number="APGAPI001")
     db.add(crm_client)
     db.flush()
-    legal_entity = LegalEntity(id_number="APGAPI001", id_number_type=IdNumberType.INDIVIDUAL)
+    legal_entity = LegalEntity(id_number="APGAPI001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(legal_entity)
     db.flush()
     db.commit()

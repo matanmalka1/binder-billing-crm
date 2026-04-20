@@ -40,7 +40,7 @@ def _make_client_record(db, client_id: int):
     from app.clients.models.legal_entity import LegalEntity
     from app.common.enums import IdNumberType
 
-    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL)
+    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(legal)
     db.flush()
     record = ClientRecord(id=client_id, legal_entity_id=legal.id)

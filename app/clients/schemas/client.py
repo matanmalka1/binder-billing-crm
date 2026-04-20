@@ -4,7 +4,8 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-from app.clients.models.client import ClientStatus, IdNumberType
+from app.clients.enums import ClientStatus
+from app.clients.models.client import IdNumberType
 from app.common.enums import EntityType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.utils.id_validation import validate_israeli_id_checksum

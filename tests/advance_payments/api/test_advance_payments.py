@@ -10,7 +10,7 @@ from app.common.enums import IdNumberType
 
 
 def _create_business(test_db) -> Business:
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="444444444")
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="444444444", official_name="444444444")
     test_db.add(legal_entity)
     test_db.commit()
     test_db.refresh(legal_entity)

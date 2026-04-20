@@ -19,7 +19,7 @@ _seq = count(1)
 
 def _business(db) -> Business:
     idx = next(_seq)
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=f"555666{idx:03d}")
+    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=f"555666{idx:03d}", official_name=f"555666{idx:03d}")
     db.add(legal_entity)
     db.commit()
     db.refresh(legal_entity)

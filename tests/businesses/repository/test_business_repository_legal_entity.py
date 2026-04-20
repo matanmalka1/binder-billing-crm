@@ -17,7 +17,7 @@ def repo(test_db):
 
 @pytest.fixture()
 def legal_entity(test_db):
-    le = LegalEntity(id_number="LE-001", id_number_type=IdNumberType.INDIVIDUAL)
+    le = LegalEntity(id_number="LE-001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     test_db.add(le)
     test_db.flush()
     return le
@@ -128,7 +128,7 @@ def test_list_by_legal_entity_including_deleted(test_db, repo, client_row, legal
 # ─── list_by_legal_entity_ids ───────────────────────────────────────────────
 
 def test_list_by_legal_entity_ids_returns_matching(test_db, repo, client_row, legal_entity):
-    le2 = LegalEntity(id_number="LE-002", id_number_type=IdNumberType.INDIVIDUAL)
+    le2 = LegalEntity(id_number="LE-002", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     test_db.add(le2)
     test_db.flush()
 

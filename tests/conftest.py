@@ -57,6 +57,7 @@ def _ensure_client_identity_graph(session, client: Client) -> None:
                 vat_exempt_ceiling=client.vat_exempt_ceiling,
                 advance_rate=client.advance_rate,
                 advance_rate_updated_at=client.advance_rate_updated_at,
+                official_name=client.full_name,
             )
             session.add(legal_entity)
             session.flush()

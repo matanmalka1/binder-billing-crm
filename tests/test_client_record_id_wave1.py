@@ -57,7 +57,7 @@ def _make_client(db, id_number="C001", vat_type=None):
 def _make_client_record(db, client_id):
     from app.clients.models.legal_entity import LegalEntity
     from app.common.enums import IdNumberType
-    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL)
+    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(legal)
     db.flush()
     # Use client_id as pk to match ClientRecordRepository.get_by_client_id assumption

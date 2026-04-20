@@ -50,6 +50,7 @@ def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
         id_number_type=IdNumberType.CORPORATION,
         entity_type=EntityType.COMPANY_LTD,
         vat_reporting_frequency=vat_type,
+        official_name=f"LE{idx:06d}",
     )
     db.add(le)
     db.flush()

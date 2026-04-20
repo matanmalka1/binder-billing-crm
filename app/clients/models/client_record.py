@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, column
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.clients.models.client import ClientStatus
+from app.clients.enums import ClientStatus
 from app.utils.enum_utils import pg_enum
 
 
