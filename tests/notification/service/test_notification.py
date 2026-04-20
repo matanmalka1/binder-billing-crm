@@ -118,7 +118,7 @@ def test_list_and_read_delegation_methods(test_db):
     service = NotificationService(test_db)
     n1 = SimpleNamespace(
         id=1,
-        client_id=8,
+        client_record_id=8,
         business_id=4,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,

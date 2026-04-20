@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.common.enums import EntityType
-from app.core.exceptions import ConflictError
+from app.core.exceptions import ConflictError, NotFoundError
 from app.clients.constants import (
     CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH,
     CLIENT_OBLIGATION_TRIGGER_FIELDS,
@@ -68,13 +69,21 @@ def generate_client_obligations(
                 raise
 
     report_service = AnnualReportService(db)
+    client_record = ClientRecordLinkService(db).get_client_record_by_client_id(client_id)
+    if not client_record:
+        if best_effort:
+            return total
+        raise NotFoundError(
+            f"רשומת לקוח עבור לקוח {client_id} לא נמצאה",
+            "CLIENT_RECORD.NOT_FOUND",
+        )
     client_type = _derive_client_type(entity_type).value
     _actor_name = actor_name or ""
     for year in years:
         sp = db.begin_nested()  # SAVEPOINT
         try:
             report_service.create_report(
-                client_id=client_id,
+                client_record_id=client_record.id,
                 tax_year=year,
                 client_type=client_type,
                 created_by=actor_id,

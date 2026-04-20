@@ -13,7 +13,8 @@ from app.clients.schemas.impact import ClientCreationImpactResponse
 
 class ClientRecordResponse(BaseModel):
     id: int                                          # ClientRecord.id
-    official_name: str                               # LegalEntity.official_name
+    full_name: str                                   # LegalEntity.official_name / owner Person.full_name
+    official_name: Optional[str] = None              # compatibility alias for LegalEntity.official_name
     id_number: str                                   # LegalEntity.id_number
     id_number_type: Optional[IdNumberType] = None   # LegalEntity.id_number_type
     entity_type: Optional[EntityType] = None        # LegalEntity.entity_type

@@ -1,5 +1,6 @@
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.client_record import ClientRecord
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -24,8 +25,16 @@ def build_client_events(
 ) -> list[dict]:
     events = []
 
-    client_record = db.query(ClientRecord).filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)).first()
-    client = db.query(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id, LegalEntity.deleted_at.is_(None)).first() if client_record else None
+    client_record = (
+        db.query(ClientRecord)
+        .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
+        .first()
+    )
+    client = (
+        LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
+        if client_record
+        else None
+    )
     if client:
         events.append(client_created_event(client))
         if client.updated_at and client.updated_at != client.created_at:

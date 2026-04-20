@@ -23,8 +23,10 @@ def _build_full_join(db: Session):
 
 
 def _row_to_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> dict:
+    full_name = person.full_name if person and person.full_name else le.official_name
     return {
         "id": cr.id,
+        "full_name": full_name,
         "official_name": le.official_name,
         "id_number": le.id_number,
         "id_number_type": le.id_number_type,

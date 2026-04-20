@@ -39,8 +39,8 @@ def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary
     deleted = client.delete(f"/api/v1/clients/{client_id}", headers=advisor_headers)
     assert deleted.status_code == 204
 
-    missing_after_delete = client.get(f"/api/v1/clients/{client_id}", headers=advisor_headers)
-    assert missing_after_delete.status_code == 404
+    fetched_after_delete = client.get(f"/api/v1/clients/{client_id}", headers=advisor_headers)
+    assert fetched_after_delete.status_code == 404
 
     restore_denied = client.post(f"/api/v1/clients/{client_id}/restore", headers=secretary_headers)
     assert restore_denied.status_code == 403

@@ -41,7 +41,7 @@ class BusinessUpdateRequest(BaseModel):
 class BusinessResponse(BaseModel):
     """תגובת עסק."""
     id: int
-    client_id: int
+    client_id: Optional[int] = None
     business_name: Optional[str] = None
     status: BusinessStatus
     opened_at: date

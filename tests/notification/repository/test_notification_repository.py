@@ -1,8 +1,9 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationSeverity,
@@ -13,17 +14,22 @@ from app.notification.repositories.notification_repository import NotificationRe
 
 
 def _business(test_db, suffix: str) -> Business:
-    client = Client(
-        full_name=f"Notif Repo Client {suffix}",
+    legal_entity = LegalEntity(
+        official_name=f"Notif Repo Client {suffix}",
         id_number=f"7100000{suffix}",
-        email=f"repo{suffix}@example.com",
+        id_number_type=IdNumberType.CORPORATION,
     )
-    test_db.add(client)
+    test_db.add(legal_entity)
     test_db.commit()
-    test_db.refresh(client)
+    test_db.refresh(legal_entity)
+
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    test_db.add(client_record)
+    test_db.commit()
+    test_db.refresh(client_record)
 
     business = Business(
-        client_id=client.id,
+        legal_entity_id=legal_entity.id,
         business_name=f"Notif Repo Biz {suffix}",
         opened_at=date(2024, 1, 1),
     )
@@ -33,12 +39,20 @@ def _business(test_db, suffix: str) -> Business:
     return business
 
 
+def _client_record_id(test_db, business: Business) -> int:
+    return (
+        test_db.query(ClientRecord.id)
+        .filter(ClientRecord.legal_entity_id == business.legal_entity_id)
+        .scalar()
+    )
+
+
 def test_notification_repository_lifecycle(test_db):
     repo = NotificationRepository(test_db)
     business = _business(test_db, "1")
 
     pending = repo.create(
-        client_id=business.client_id,
+        client_record_id=_client_record_id(test_db, business),
         business_id=business.id,
         trigger=NotificationTrigger.BINDER_RECEIVED,
         channel=NotificationChannel.EMAIL,
@@ -48,7 +62,7 @@ def test_notification_repository_lifecycle(test_db):
         severity=NotificationSeverity.WARNING,
     )
     later = repo.create(
-        client_id=business.client_id,
+        client_record_id=_client_record_id(test_db, business),
         business_id=business.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.WHATSAPP,
@@ -83,7 +97,7 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
     b2 = _business(test_db, "3")
 
     n1 = repo.create(
-        client_id=b1.client_id,
+        client_record_id=_client_record_id(test_db, b1),
         business_id=b1.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,
@@ -91,7 +105,7 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
         content_snapshot="a",
     )
     n2 = repo.create(
-        client_id=b1.client_id,
+        client_record_id=_client_record_id(test_db, b1),
         business_id=b1.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,
@@ -99,7 +113,7 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
         content_snapshot="b",
     )
     n3 = repo.create(
-        client_id=b2.client_id,
+        client_record_id=_client_record_id(test_db, b2),
         business_id=b2.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,
@@ -138,7 +152,7 @@ def test_notification_repository_exists_for_binder_trigger(test_db):
     assert repo.exists_for_binder_trigger(binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED) is False
 
     repo.create(
-        client_id=business.client_id,
+        client_record_id=_client_record_id(test_db, business),
         business_id=business.id,
         binder_id=77,
         trigger=NotificationTrigger.BINDER_RECEIVED,

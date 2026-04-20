@@ -9,6 +9,7 @@ from sqlalchemy.orm import Query as SAQuery, Session, joinedload
 from app.common.repositories.base_repository import BaseRepository
 from app.businesses.models.business import Business
 from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.client_record import ClientRecord
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink
 
 
@@ -56,7 +57,8 @@ class BusinessRepositoryRead(BaseRepository):
         """List active businesses for a client (paginated)."""
         query = (
             self.db.query(Business)
-            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+            .filter(ClientRecord.id == client_id, Business.deleted_at.is_(None))
             .order_by(Business.opened_at.asc())
         )
         return self._paginate(query, page, page_size)
@@ -64,14 +66,16 @@ class BusinessRepositoryRead(BaseRepository):
     def count_by_client(self, client_id: int) -> int:
         return (
             self.db.query(Business)
-            .filter(Business.client_id == client_id, Business.deleted_at.is_(None))
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+            .filter(ClientRecord.id == client_id, Business.deleted_at.is_(None))
             .count()
         )
 
     def list_by_client_including_deleted(self, client_id: int) -> list[Business]:
         return (
             self.db.query(Business)
-            .filter(Business.client_id == client_id)
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+            .filter(ClientRecord.id == client_id)
             .order_by(Business.deleted_at.asc().nullsfirst(), Business.opened_at.asc())
             .all()
         )
@@ -100,7 +104,8 @@ class BusinessRepositoryRead(BaseRepository):
             return []
         return (
             self.db.query(Business)
-            .filter(Business.client_id.in_(client_ids), Business.deleted_at.is_(None))
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+            .filter(ClientRecord.id.in_(client_ids), Business.deleted_at.is_(None))
             .all()
         )
 

@@ -55,11 +55,13 @@ class NotificationSendService:
 
     def _get_business_and_client(
         self, business_id: int
-    ) -> tuple[Business, ClientRecord | None, Person | None] | None:
+    ) -> tuple[Business, Person | None] | None:
         row = (
-            self.db.query(Business, ClientRecord, PersonLegalEntityLink, Person)
-            .join(LegalEntity, LegalEntity.id == Business.legal_entity_id)
-            .outerjoin(ClientRecord, ClientRecord.legal_entity_id == LegalEntity.id)
+            self.db.query(Business, Person)
+            .outerjoin(
+                LegalEntity,
+                LegalEntity.id == Business.legal_entity_id,
+            )
             .outerjoin(
                 PersonLegalEntityLink,
                 (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
@@ -71,28 +73,41 @@ class NotificationSendService:
         )
         if not row:
             return None
-        business, client_record, _link, person = row
+        business, person = row
         if person is None:
             logger.warning("LegalEntity for business_id=%s has no linked Person", business_id)
-        return business, client_record, person
+        return business, person
 
     def _get_client(self, client_record_id: int) -> Person | None:
-        row = (
+        person = (
             self.db.query(Person)
-            .join(ClientRecord, ClientRecord.id == client_record_id)
+            .select_from(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .join(
+            .outerjoin(
                 PersonLegalEntityLink,
                 (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
                 & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
             )
-            .join(Person, Person.id == PersonLegalEntityLink.person_id)
+            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
             .filter(ClientRecord.id == client_record_id)
             .first()
         )
-        if row is None:
+        if person is None:
             logger.warning("ClientRecord id=%s has no linked Person", client_record_id)
-        return row
+        return person
+
+    def _get_client_record_id_for_business(self, business: Business) -> int | None:
+        if business.legal_entity_id is None:
+            return None
+        row = (
+            self.db.query(ClientRecord.id)
+            .filter(
+                ClientRecord.legal_entity_id == business.legal_entity_id,
+                ClientRecord.deleted_at.is_(None),
+            )
+            .first()
+        )
+        return row[0] if row else None
 
     def bulk_notify(
         self,
@@ -133,7 +148,7 @@ class NotificationSendService:
             if not row:
                 logger.warning("send_notification: business %s not found", business_id)
                 return True
-            _business, client_record, person = row
+            business, person = row
 
             subject = _SUBJECTS.get(trigger)
             if subject is None:
@@ -142,7 +157,7 @@ class NotificationSendService:
 
             phone = person.phone if person else None
             email = person.email if person else None
-            cr_id = client_record.id if client_record else None
+            cr_id = self._get_client_record_id_for_business(business)
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(

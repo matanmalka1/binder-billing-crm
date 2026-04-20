@@ -31,6 +31,9 @@ class ClientService:
         self._creation = ClientCreationService(db)
         self._lifecycle = ClientLifecycleService(db)
         self._update = ClientUpdateService(db)
+        self._creation.client_repo = self.client_repo
+        self._lifecycle.client_repo = self.client_repo
+        self._update.client_repo = self.client_repo
 
     def create_client(
         self,

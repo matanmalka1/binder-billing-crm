@@ -23,6 +23,7 @@ from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
 from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.clients.services.impact_preview_service import compute_creation_impact
+from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
@@ -68,6 +69,46 @@ def _full_record_or_404(db, client_record_id: int) -> ClientRecordResponse:
     if not data:
         raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
     return ClientRecordResponse(**data)
+
+
+def _apply_legacy_client_overlay(
+    response: ClientRecordResponse, legacy_client
+) -> ClientRecordResponse:
+    response.full_name = legacy_client.full_name
+    response.official_name = response.official_name or legacy_client.full_name
+    response.id_number = legacy_client.id_number
+    response.id_number_type = legacy_client.id_number_type
+    response.entity_type = legacy_client.entity_type
+    response.status = legacy_client.status
+    response.phone = legacy_client.phone
+    response.email = legacy_client.email
+    response.address_street = legacy_client.address_street
+    response.address_building_number = legacy_client.address_building_number
+    response.address_apartment = legacy_client.address_apartment
+    response.address_city = legacy_client.address_city
+    response.address_zip_code = legacy_client.address_zip_code
+    response.office_client_number = legacy_client.office_client_number
+    response.notes = legacy_client.notes
+    response.vat_reporting_frequency = legacy_client.vat_reporting_frequency
+    response.vat_exempt_ceiling = legacy_client.vat_exempt_ceiling
+    response.advance_rate = legacy_client.advance_rate
+    response.advance_rate_updated_at = legacy_client.advance_rate_updated_at
+    response.accountant_name = legacy_client.accountant_name
+    response.created_at = legacy_client.created_at
+    response.updated_at = legacy_client.updated_at
+    return response
+
+
+def _full_record_for_legacy_client_or_404(db, client_id: int) -> ClientRecordResponse:
+    client_repo = ClientRepository(db)
+    legacy_client = client_repo.get_by_id(client_id)
+    if legacy_client:
+        record_id = _resolve_record_id_or_404(db, client_id)
+        return _apply_legacy_client_overlay(_full_record_or_404(db, record_id), legacy_client)
+    deleted_legacy_client = client_repo.get_by_id_including_deleted(client_id)
+    if deleted_legacy_client and deleted_legacy_client.deleted_at is not None:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    return _full_record_or_404(db, client_id)
 
 
 def _resolve_record_id_or_404(db, client_id: int) -> int:
@@ -140,10 +181,15 @@ def create_client(
         vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
     full = _full_record_or_404(db, client_record.id)
+    full = _apply_legacy_client_overlay(full, _client)
+    business_payload = {
+        **business.__dict__,
+        "client_id": _client.id,
+    }
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
         client=enrich_single(full, db),
-        business=business,
+        business=business_payload,
         impact=impact,
     )
 
@@ -155,7 +201,7 @@ def list_clients(
     db: DBSession,
     search: Optional[str] = Query(None),
     status: Optional[ClientStatus] = Query(None),
-    sort_by: str = Query("official_name", pattern="^(official_name|created_at|status)$"),
+    sort_by: str = Query("official_name", pattern="^(official_name|full_name|created_at|status)$"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -165,7 +211,7 @@ def list_clients(
     records = repo.list(
         search=search,
         status=status,
-        sort_by=sort_by,
+        sort_by="official_name" if sort_by == "full_name" else sort_by,
         sort_order=sort_order,
         page=page,
         page_size=page_size,
@@ -193,7 +239,7 @@ def list_clients(
 @router.get("/{client_id}", response_model=ClientRecordResponse)
 def get_client(client_id: int, db: DBSession):
     """Get client by ID (client_id = ClientRecord.id)."""
-    return enrich_single(_full_record_or_404(db, client_id), db)
+    return enrich_single(_full_record_for_legacy_client_or_404(db, client_id), db)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
@@ -222,14 +268,14 @@ def update_client(
 ):
     """Update client identity fields. client_id is the legacy Client.id during migration."""
     service = ClientService(db)
-    service.update_client(
+    updated = service.update_client(
         client_id,
         actor_id=user.id,
         actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
-    record_id = _resolve_record_id_or_404(db, client_id)
-    return enrich_single(_full_record_or_404(db, record_id), db)
+    record = _full_record_or_404(db, _resolve_record_id_or_404(db, client_id))
+    return enrich_single(_apply_legacy_client_overlay(record, updated), db)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
@@ -254,9 +300,9 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
 def restore_client(client_id: int, db: DBSession, user: CurrentUser):
     """Restore a soft-deleted client (ADVISOR only)."""
     service = ClientService(db)
-    service.restore_client(client_id, actor_id=user.id)
+    restored = service.restore_client(client_id, actor_id=user.id)
     record_id = _resolve_record_id_or_404(db, client_id)
     data = get_full_record_including_deleted(db, record_id)
     if not data:
         raise NotFoundError(f"רשומת לקוח {record_id} לא נמצאה", "CLIENT.NOT_FOUND")
-    return ClientRecordResponse(**data)
+    return _apply_legacy_client_overlay(ClientRecordResponse(**data), restored)
