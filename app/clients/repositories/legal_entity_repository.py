@@ -15,6 +15,7 @@ class LegalEntityRepository:
         *,
         id_number: str,
         id_number_type: IdNumberType,
+        official_name: str,
         entity_type: Optional[EntityType] = None,
         vat_reporting_frequency: Optional[VatType] = None,
         vat_exempt_ceiling=None,
@@ -23,6 +24,7 @@ class LegalEntityRepository:
         entity = LegalEntity(
             id_number=id_number,
             id_number_type=id_number_type,
+            official_name=official_name,
             entity_type=entity_type,
             vat_reporting_frequency=vat_reporting_frequency,
             vat_exempt_ceiling=vat_exempt_ceiling,

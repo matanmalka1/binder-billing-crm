@@ -13,6 +13,7 @@ from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.clients.repositories.person_repository import PersonRepository
 from app.clients.services.messages import (
     CLIENT_ID_NUMBER_CONFLICT,
     CLIENT_ID_NUMBER_DELETED,
@@ -21,7 +22,7 @@ from app.clients.services.messages import (
 )
 from app.common.enums import EntityType, VatType
 from app.core.exceptions import ConflictError
-
+# TODO 5.8: change return shape to (ClientRecord,) after Client deletion
 
 class ClientCreationService:
     def __init__(self, db: Session):
@@ -83,11 +84,19 @@ class ClientCreationService:
             legal_entity = le_repo.create(
                 id_number=id_number,
                 id_number_type=id_number_type,
+                official_name=full_name,
                 entity_type=entity_type,
                 vat_reporting_frequency=vat_reporting_frequency,
                 vat_exempt_ceiling=vat_exempt_ceiling,
                 advance_rate=advance_rate,
             )
+        PersonRepository(self.db).ensure_owner(
+            legal_entity_id=legal_entity.id, full_name=full_name, id_number=id_number,
+            id_number_type=id_number_type, phone=phone, email=email,
+            address_street=address_street, address_building_number=address_building_number,
+            address_apartment=address_apartment, address_city=address_city,
+            address_zip_code=address_zip_code,
+        )
         record_repo = ClientRecordRepository(self.db)
         client_record = record_repo.get_by_legal_entity_id(legal_entity.id)
         if not client_record:
