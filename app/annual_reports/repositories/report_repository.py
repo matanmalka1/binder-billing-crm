@@ -204,3 +204,25 @@ class AnnualReportReportRepository(BaseRepository):
         report.deleted_by = deleted_by
         self.db.flush()
         return True
+
+    def cancel_open_by_client_record(self, client_record_id: int) -> int:
+        terminal = [
+            AnnualReportStatus.SUBMITTED,
+            AnnualReportStatus.ACCEPTED,
+            AnnualReportStatus.CLOSED,
+        ]
+        rows = (
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.client_record_id == client_record_id,
+                AnnualReport.deleted_at.is_(None),
+                AnnualReport.status.notin_(terminal),
+            )
+            .all()
+        )
+        for row in rows:
+            row.status = AnnualReportStatus.CANCELED
+            row.updated_at = utcnow()
+        if rows:
+            self.db.flush()
+        return len(rows)

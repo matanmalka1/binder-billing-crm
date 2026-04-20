@@ -9,6 +9,8 @@ class VatWorkItemStatus(str, PyEnum):
     DATA_ENTRY_IN_PROGRESS = "data_entry_in_progress"
     READY_FOR_REVIEW       = "ready_for_review"
     FILED                  = "filed"
+    CANCELED               = "canceled"
+    ARCHIVED               = "archived"
 
 class CounterpartyIdType(str, PyEnum):
     IL_BUSINESS = "il_business"  # עוסק מורשה / ח"פ — ספרת ביקורת ישראלית

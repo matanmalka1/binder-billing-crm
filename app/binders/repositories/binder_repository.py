@@ -280,6 +280,25 @@ class BinderRepository(BaseRepository):
         )
         return {b.client_id: b for b in rows}
 
+    def archive_in_office_by_client_record(self, client_record_id: int) -> int:
+        rows = (
+            self.db.query(Binder)
+            .filter(
+                Binder.client_record_id == client_record_id,
+                Binder.deleted_at.is_(None),
+                Binder.status.in_([
+                    BinderStatus.IN_OFFICE,
+                    BinderStatus.CLOSED_IN_OFFICE,
+                ]),
+            )
+            .all()
+        )
+        for row in rows:
+            row.status = BinderStatus.ARCHIVED_IN_OFFICE
+        if rows:
+            self.db.flush()
+        return len(rows)
+
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
         """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
         binder = self.db.query(Binder).filter(Binder.id == binder_id).first()

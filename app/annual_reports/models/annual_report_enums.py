@@ -42,6 +42,7 @@ class AnnualReportStatus(str, PyEnum):
     ASSESSMENT_ISSUED = "assessment_issued" # שומה הוצאה
     OBJECTION_FILED = "objection_filed"     # השגה הוגשה
     CLOSED = "closed"                       # סגור
+    CANCELED = "canceled"
 
 
 class AnnualReportSchedule(str, PyEnum):

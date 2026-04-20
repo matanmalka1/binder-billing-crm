@@ -111,6 +111,23 @@ class VatWorkItemWriteRepository:
         self.db.flush()
         return item
 
+    def cancel_open_by_client_record(self, client_record_id: int) -> int:
+        rows = (
+            self.db.query(VatWorkItem)
+            .filter(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.deleted_at.is_(None),
+                VatWorkItem.status.notin_([VatWorkItemStatus.FILED]),
+            )
+            .all()
+        )
+        for row in rows:
+            row.status = VatWorkItemStatus.CANCELED
+            row.updated_at = utcnow()
+        if rows:
+            self.db.flush()
+        return len(rows)
+
     def update_vat_totals(
         self,
         item_id: int,

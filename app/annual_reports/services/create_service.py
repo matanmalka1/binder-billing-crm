@@ -14,6 +14,7 @@ from app.annual_reports.models.annual_report_enums import (
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.users.services.user_lookup import get_user_or_raise
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
@@ -51,6 +52,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         """Create an annual report and initial schedules/history."""
         client_repo = ClientRepository(self.db)
         client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        assert_client_record_is_active(client_record)
         client_record_id = client_record.id if client_record else None
         if not client_repo.get_by_id(client_id):
             from app.core.exceptions import NotFoundError

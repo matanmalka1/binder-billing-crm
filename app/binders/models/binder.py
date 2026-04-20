@@ -14,6 +14,7 @@ from app.utils.time_utils import utcnow
 class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
     CLOSED_IN_OFFICE = "closed_in_office"   # full, no more intake, still physically present
+    ARCHIVED_IN_OFFICE = "archived_in_office"
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
 

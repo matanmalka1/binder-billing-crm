@@ -7,6 +7,7 @@ from app.core.exceptions import AppError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.utils.time_utils import utcnow
@@ -37,7 +38,9 @@ class TaxDeadlineService:
         if not client:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        assert_client_record_is_active(client_record)
+        client_record_id = client_record.id
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = due_date.year - 1

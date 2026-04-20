@@ -3,6 +3,9 @@ from datetime import date
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 def _seed_binder_with_history(db, user_id: int):
@@ -13,9 +16,15 @@ def _seed_binder_with_history(db, user_id: int):
     db.add(client)
     db.commit()
     db.refresh(client)
+    legal = LegalEntity(id_number="LE-BND-HIST-1", id_number_type=IdNumberType.INDIVIDUAL)
+    db.add(legal)
+    db.flush()
+    db.add(ClientRecord(id=client.id, legal_entity_id=legal.id))
+    db.flush()
 
     binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="BND-H-001",
         period_start=date.today(),
         created_by=user_id,

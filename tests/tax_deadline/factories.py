@@ -17,9 +17,14 @@ def create_business(test_db, *, name_prefix: str = "Tax Deadline", status: Busin
     )
     test_db.add(client)
     test_db.commit()
-
-    business = test_db.query(Business).filter(Business.client_id == client.id).first()
-    assert business is not None
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+    )
+    test_db.add(business)
+    test_db.commit()
 
     if business.status != status:
         business.status = status

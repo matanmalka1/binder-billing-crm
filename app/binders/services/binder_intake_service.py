@@ -20,6 +20,7 @@ from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 
@@ -62,7 +63,9 @@ class BinderIntakeService:
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
         ClientService(self.db).get_client_or_raise(client_id)
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        assert_client_record_is_active(client_record)
+        client_record_id = client_record.id
 
         businesses = self.business_repo.list_by_client(client_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)

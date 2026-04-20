@@ -28,7 +28,7 @@ def test_generate_raises_not_found_when_report_missing(test_db):
 
 
 def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
-    fake_report = SimpleNamespace(id=7, business_id=10, tax_year=2026, client_type="corporation", status=SimpleNamespace(value="not_started"), ita_reference=None)
+    fake_report = SimpleNamespace(id=7, client_id=10, tax_year=2026, client_type="corporation", status=SimpleNamespace(value="not_started"), ita_reference=None)
 
     class _Repo:
         def __init__(self, db):
@@ -37,11 +37,11 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
         def get_by_id(self, report_id):
             return fake_report if report_id == 7 else None
 
-    class _BusinessRepo:
+    class _ClientRepo:
         def __init__(self, db):
             self.db = db
 
-        def get_by_id(self, business_id):
+        def get_by_id(self, client_id):
             return SimpleNamespace(full_name="Client PDF")
 
     class _FinSvc:
@@ -78,7 +78,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             return SimpleNamespace(tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120"))
 
     monkeypatch.setattr(pdf_mod, "AnnualReportRepository", _Repo)
-    monkeypatch.setattr(pdf_mod, "BusinessRepository", _BusinessRepo)
+    monkeypatch.setattr("app.clients.repositories.client_repository.ClientRepository", _ClientRepo)
     monkeypatch.setattr(pdf_mod, "AnnualReportFinancialService", _FinSvc)
     monkeypatch.setattr(pdf_mod, "AnnualReportDetailService", _DetailSvc)
     monkeypatch.setattr(pdf_mod, "build_pdf", lambda *args, **kwargs: b"pdf-bytes")

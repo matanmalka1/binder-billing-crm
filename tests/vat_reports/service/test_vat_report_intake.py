@@ -4,6 +4,7 @@ import pytest
 
 from app.common.enums import EntityType
 from app.common.enums import VatType
+from app.clients.models.client import ClientStatus
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import intake
@@ -18,22 +19,18 @@ def _mock_osek_murshe_business(client_id=1):
 class TestCreateWorkItem:
     def test_happy_path_material_received(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
         client_repo = MagicMock()
+        client_record = MagicMock(id=1, status=ClientStatus.ACTIVE)
 
-        business_repo.get_by_id.return_value = _mock_osek_murshe_business()
+        client_repo.db = MagicMock()
         client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=None)
-        work_item_repo.get_by_business_period.return_value = None
+        work_item_repo.get_by_client_record_period.return_value = None
         work_item_repo.create.return_value = make_item()
 
-        result = intake.create_work_item(
-            work_item_repo,
-            business_repo,
-            business_id=10,
-            period="2026-01",
-            created_by=1,
-            client_repo=client_repo,
-        )
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=client_record)
+
+        result = intake.create_work_item(work_item_repo, client_repo, client_id=10, period="2026-01", created_by=1)
 
         work_item_repo.create.assert_called_once()
         work_item_repo.append_audit.assert_called_once()
@@ -41,108 +38,95 @@ class TestCreateWorkItem:
 
     def test_client_not_found_raises(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
-        business_repo.get_by_id.return_value = None
+        client_repo = MagicMock()
+        client_repo.db = MagicMock()
+        client_repo.get_by_id.return_value = None
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=99, status=ClientStatus.ACTIVE))
 
         with pytest.raises(NotFoundError) as exc_info:
-            intake.create_work_item(
-                work_item_repo, business_repo, business_id=99, period="2026-01", created_by=1
-            )
+            intake.create_work_item(work_item_repo, client_repo, client_id=99, period="2026-01", created_by=1)
         assert exc_info.value.code == "VAT.NOT_FOUND"
 
     def test_duplicate_period_raises(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
         client_repo = MagicMock()
-        business_repo.get_by_id.return_value = _mock_osek_murshe_business()
+        client_repo.db = MagicMock()
         client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=None)
-        work_item_repo.get_by_business_period.return_value = make_item()
+        work_item_repo.get_by_client_record_period.return_value = make_item()
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=10, status=ClientStatus.ACTIVE))
 
         with pytest.raises(ConflictError) as exc_info:
-            intake.create_work_item(
-                work_item_repo, business_repo, business_id=10, period="2026-01", created_by=1,
-                client_repo=client_repo,
-            )
+            intake.create_work_item(work_item_repo, client_repo, client_id=10, period="2026-01", created_by=1)
         assert exc_info.value.code == "VAT.CONFLICT"
 
     def test_pending_without_note_raises(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
         client_repo = MagicMock()
-        business_repo.get_by_id.return_value = _mock_osek_murshe_business()
+        client_repo.db = MagicMock()
         client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=None)
-        work_item_repo.get_by_business_period.return_value = None
+        work_item_repo.get_by_client_record_period.return_value = None
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=10, status=ClientStatus.ACTIVE))
 
         with pytest.raises(AppError) as exc_info:
             intake.create_work_item(
                 work_item_repo,
-                business_repo,
-                business_id=10,
+                client_repo,
+                client_id=10,
                 period="2026-01",
                 created_by=1,
                 mark_pending=True,
-                client_repo=client_repo,
             )
         assert exc_info.value.code == "VAT.PENDING_NOTE_REQUIRED"
 
     def test_pending_with_note_creates_item(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
         client_repo = MagicMock()
-        business_repo.get_by_id.return_value = _mock_osek_murshe_business()
+        client_repo.db = MagicMock()
         client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=None)
-        work_item_repo.get_by_business_period.return_value = None
+        work_item_repo.get_by_client_record_period.return_value = None
         pending_item = make_item(status=VatWorkItemStatus.PENDING_MATERIALS)
         work_item_repo.create.return_value = pending_item
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=10, status=ClientStatus.ACTIVE))
 
         result = intake.create_work_item(
             work_item_repo,
-            business_repo,
-            business_id=10,
+            client_repo,
+            client_id=10,
             period="2026-01",
             created_by=1,
             mark_pending=True,
             pending_materials_note="Missing Q4 invoices",
-            client_repo=client_repo,
         )
         assert result.status == VatWorkItemStatus.PENDING_MATERIALS
 
     def test_exempt_vat_type_rejected(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
-        tax_profile_repo = MagicMock()
-        business_repo.get_by_id.return_value = MagicMock(entity_type=EntityType.COMPANY_LTD)
-        work_item_repo.get_by_business_period.return_value = None
-        tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.EXEMPT)
+        client_repo = MagicMock()
+        client_repo.db = MagicMock()
+        client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=VatType.EXEMPT, status=ClientStatus.ACTIVE)
+        work_item_repo.get_by_client_record_period.return_value = None
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=10, status=ClientStatus.ACTIVE))
 
         with pytest.raises(AppError) as exc_info:
-            intake.create_work_item(
-                work_item_repo,
-                business_repo,
-                business_id=10,
-                period="2026-01",
-                created_by=1,
-                tax_profile_repo=tax_profile_repo,
-            )
+            intake.create_work_item(work_item_repo, client_repo, client_id=10, period="2026-01", created_by=1)
         assert exc_info.value.code == "VAT.CLIENT_EXEMPT"
 
     def test_bimonthly_rejects_even_month(self):
         work_item_repo = MagicMock()
-        business_repo = MagicMock()
-        tax_profile_repo = MagicMock()
-        business_repo.get_by_id.return_value = MagicMock(entity_type=EntityType.COMPANY_LTD)
-        work_item_repo.get_by_business_period.return_value = None
-        tax_profile_repo.get_by_business_id.return_value = MagicMock(vat_type=VatType.BIMONTHLY)
+        client_repo = MagicMock()
+        client_repo.db = MagicMock()
+        client_repo.get_by_id.return_value = MagicMock(vat_reporting_frequency=VatType.BIMONTHLY, status=ClientStatus.ACTIVE)
+        work_item_repo.get_by_client_record_period.return_value = None
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        ClientRecordRepository(client_repo.db).get_by_client_id = MagicMock(return_value=MagicMock(id=10, status=ClientStatus.ACTIVE))
 
         with pytest.raises(AppError) as exc_info:
-            intake.create_work_item(
-                work_item_repo,
-                business_repo,
-                business_id=10,
-                period="2026-02",
-                created_by=1,
-                tax_profile_repo=tax_profile_repo,
-            )
+            intake.create_work_item(work_item_repo, client_repo, client_id=10, period="2026-02", created_by=1)
         assert exc_info.value.code == "VAT.INVALID_PERIOD_FOR_FREQUENCY"
 
 

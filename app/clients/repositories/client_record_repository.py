@@ -2,8 +2,10 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.clients.models.client import Client
 from app.clients.models.client import ClientStatus
 from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.core.exceptions import NotFoundError
 
 
@@ -54,8 +56,63 @@ class ClientRecordRepository:
         ClientRecord.id == client_id holds only because the initial schema populated
         client_records with the same PK as their originating clients row.
         """
-        return (
+        record = (
             self.db.query(ClientRecord)
             .filter(ClientRecord.id == client_id, ClientRecord.deleted_at.is_(None))
             .first()
         )
+        if record:
+            return record
+
+        client = (
+            self.db.query(Client)
+            .filter(Client.id == client_id, Client.deleted_at.is_(None))
+            .first()
+        )
+        if not client:
+            return None
+
+        legal_entity = (
+            self.db.query(LegalEntity)
+            .filter(
+                LegalEntity.id_number == client.id_number,
+                LegalEntity.id_number_type == client.id_number_type,
+            )
+            .first()
+        )
+        if not legal_entity:
+            legal_entity = LegalEntity(
+                id_number=client.id_number,
+                id_number_type=client.id_number_type,
+                entity_type=client.entity_type,
+                vat_reporting_frequency=client.vat_reporting_frequency,
+                vat_exempt_ceiling=client.vat_exempt_ceiling,
+                advance_rate=client.advance_rate,
+                advance_rate_updated_at=client.advance_rate_updated_at,
+            )
+            self.db.add(legal_entity)
+            self.db.flush()
+
+        record = ClientRecord(
+            id=client.id,
+            legal_entity_id=legal_entity.id,
+            office_client_number=client.office_client_number,
+            accountant_name=client.accountant_name,
+            status=client.status,
+            created_by=client.created_by,
+        )
+        self.db.add(record)
+        self.db.flush()
+        return record
+
+    def update_status(self, client_record_id: int, status: ClientStatus) -> Optional[ClientRecord]:
+        record = (
+            self.db.query(ClientRecord)
+            .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
+            .first()
+        )
+        if not record:
+            return None
+        record.status = status
+        self.db.flush()
+        return record

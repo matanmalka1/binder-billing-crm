@@ -20,7 +20,7 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_
     service = AnnualReportService(test_db)
     client = _client(test_db)
     report = service.create_report(
-        business_id=client.id,
+        client_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=test_user.id,
@@ -30,4 +30,3 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_
     assert service.delete_report(report.id, actor_id=test_user.id, actor_name="Test User") is True
     assert service.repo.get_by_id(report.id) is None
     assert service.delete_report(999999, actor_id=test_user.id, actor_name="Test User") is False
-

@@ -125,3 +125,6 @@ class ReminderRepository(ReminderRepositoryFlush):
     def cancel_pending_by_charge(self, charge_id: int) -> int:
         """Cancel all PENDING reminders linked to a charge. Returns count canceled."""
         return self._cancel_pending_by(Reminder.charge_id, charge_id)
+
+    def cancel_pending_by_client_record(self, client_record_id: int) -> int:
+        return self._cancel_pending_by(Reminder.client_record_id, client_record_id)

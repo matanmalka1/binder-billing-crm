@@ -9,8 +9,13 @@ _log = logging.getLogger(__name__)
 
 from app.audit.constants import ACTION_CREATED, ACTION_DELETED, ACTION_RESTORED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
+from app.binders.models.binder import BinderStatus
+from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models.client import Client, IdNumberType
 from app.users.models.user import UserRole
+from app.clients.models.client import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -29,8 +34,9 @@ from app.clients.services.messages import (
     CLIENT_OFFICE_NUMBER_CONFLICT,
 )
 from app.core.exceptions import ConflictError, NotFoundError, ForbiddenError
+from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository
 
 
 class ClientService:
@@ -197,6 +203,7 @@ class ClientService:
     def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields) -> Client:
         """Update client identity fields (name, phone, email, address)."""
         existing = self.get_client_or_raise(client_id)
+        new_status = fields.get("status")
         new_entity_type = fields.get("entity_type")
         old_entity_type = existing.entity_type
         entity_type_changing = (
@@ -207,6 +214,8 @@ class ClientService:
                 raise ForbiddenError("שינוי סוג ישות מותר לרואה חשבון בלבד", "CLIENT.ENTITY_TYPE_CHANGE_FORBIDDEN")
         old_snapshot = {k: getattr(existing, k, None) for k in fields if hasattr(existing, k)}
         updated = self.client_repo.update(client_id, **fields)
+        if new_status is not None:
+            self._update_client_record_status(client_id, new_status)
         if entity_type_changing:
             self._cancel_deadlines_on_entity_type_change(
                 client_id=client_id,
@@ -228,6 +237,19 @@ class ClientService:
             new_value=json.dumps({k: str(v) if v is not None else None for k, v in new_snapshot.items()}),
         )
         return updated
+
+    def _update_client_record_status(self, client_id: int, new_status: ClientStatus) -> None:
+        record_repo = ClientRecordRepository(self.db)
+        record = record_repo.get_by_client_id(client_id)
+        if not record:
+            return
+        record_repo.update_status(record.id, new_status)
+        if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
+            ReminderRepository(self.db).cancel_pending_by_client_record(record.id)
+            TaxDeadlineRepository(self.db).cancel_pending_by_client_record(record.id)
+            VatWorkItemWriteRepository(self.db).cancel_open_by_client_record(record.id)
+            AnnualReportReportRepository(self.db).cancel_open_by_client_record(record.id)
+            BinderRepository(self.db).archive_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(
         self, client_id: int, old_entity_type, new_entity_type, actor_id: Optional[int]

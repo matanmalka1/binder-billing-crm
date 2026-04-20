@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -26,6 +27,64 @@ from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  #
 from app.businesses.models.business import Business, BusinessStatus
 
 
+def _ensure_client_identity_graph(session, client: Client) -> None:
+    if any(isinstance(obj, ClientRecord) and obj.id == client.id for obj in session.new):
+        return
+
+    legal_entity = (
+        session.query(LegalEntity)
+        .filter(
+            LegalEntity.id_number == client.id_number,
+            LegalEntity.id_number_type == client.id_number_type,
+        )
+        .first()
+    )
+    if not legal_entity:
+        pending_legal_entities = [
+            obj for obj in session.new
+            if isinstance(obj, LegalEntity)
+            and obj.id_number == client.id_number
+            and obj.id_number_type == client.id_number_type
+        ]
+        if pending_legal_entities:
+            legal_entity = pending_legal_entities[0]
+        else:
+            legal_entity = LegalEntity(
+                id_number=client.id_number,
+                id_number_type=client.id_number_type,
+                entity_type=client.entity_type,
+                vat_reporting_frequency=client.vat_reporting_frequency,
+                vat_exempt_ceiling=client.vat_exempt_ceiling,
+                advance_rate=client.advance_rate,
+                advance_rate_updated_at=client.advance_rate_updated_at,
+            )
+            session.add(legal_entity)
+            session.flush()
+
+    if legal_entity.id is None:
+        session.flush()
+
+    record = (
+        session.query(ClientRecord)
+        .filter(ClientRecord.id == client.id, ClientRecord.deleted_at.is_(None))
+        .first()
+    )
+    if record:
+        return
+
+    session.add(
+        ClientRecord(
+            id=client.id,
+            legal_entity_id=legal_entity.id,
+            office_client_number=client.office_client_number,
+            accountant_name=client.accountant_name,
+            status=client.status,
+            created_by=client.created_by,
+        )
+    )
+    session.flush()
+
+
 @pytest.fixture(scope="function")
 def test_db():
     """Create test database with proper SQLite threading config."""
@@ -39,6 +98,19 @@ def test_db():
     Base.metadata.create_all(bind=engine)
     
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    @event.listens_for(TestSessionLocal.class_, "before_commit")
+    def _autocreate_client_identity_graph(session):
+        if session.info.get("_auto_client_graph_running"):
+            return
+        session.info["_auto_client_graph_running"] = True
+        try:
+            clients = list(session.query(Client).filter(Client.deleted_at.is_(None)).all())
+            for client in clients:
+                _ensure_client_identity_graph(session, client)
+        finally:
+            session.info.pop("_auto_client_graph_running", None)
+
     db = TestSessionLocal()
     
     try:
@@ -66,6 +138,7 @@ def create_client_with_business(test_db):
         )
         test_db.add(client)
         test_db.flush()
+        _ensure_client_identity_graph(test_db, client)
         business = Business(
             client_id=client.id,
             business_name=business_name or full_name,
@@ -164,6 +237,7 @@ def vat_client(test_db):
     )
     test_db.add(client)
     test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
     test_db.add(
         Business(
             client_id=client.id,

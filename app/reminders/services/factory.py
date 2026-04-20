@@ -21,6 +21,7 @@ from app.businesses.services.business_guards import get_business_or_raise
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -51,7 +52,9 @@ def _require_non_negative_days(days_before: int) -> None:
 
 
 def _resolve_client_record_id(client_id: int, repo: ClientRecordRepository) -> int:
-    return repo.get_by_client_id(client_id).id
+    client_record = repo.get_by_client_id(client_id)
+    assert_client_record_is_active(client_record)
+    return client_record.id
 
 
 # ── Client-scoped reminders ───────────────────────────────────────────────────

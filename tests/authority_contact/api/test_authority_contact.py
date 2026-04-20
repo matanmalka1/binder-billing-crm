@@ -1,6 +1,7 @@
 from app.authority_contact.models.authority_contact import ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.clients.models.client import Client
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 def _create_client(test_db) -> Client:
@@ -15,8 +16,10 @@ def _create_client(test_db) -> Client:
 
 
 def _create_contact(test_db, client_id: int, contact_type: ContactType = ContactType.VAT_BRANCH):
+    client_record_id = ClientRecordRepository(test_db).get_by_client_id(client_id).id
     return AuthorityContactRepository(test_db).create(
         client_id=client_id,
+        client_record_id=client_record_id,
         contact_type=contact_type,
         name="Branch Contact",
         office="Tel Aviv",

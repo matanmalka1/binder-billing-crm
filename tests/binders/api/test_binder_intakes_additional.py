@@ -3,6 +3,9 @@ from datetime import date
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 def _seed_binder_and_intakes(db, user_id: int):
@@ -13,9 +16,15 @@ def _seed_binder_and_intakes(db, user_id: int):
     db.add(crm_client)
     db.commit()
     db.refresh(crm_client)
+    legal = LegalEntity(id_number="LE-BINT001", id_number_type=IdNumberType.INDIVIDUAL)
+    db.add(legal)
+    db.flush()
+    db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal.id))
+    db.flush()
 
     binder = Binder(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         binder_number="BIN-1",
         period_start=date.today(),
         created_by=user_id,

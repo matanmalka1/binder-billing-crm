@@ -5,7 +5,11 @@ import pytest
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 from app.core.exceptions import AppError
 
 
@@ -18,6 +22,20 @@ def _create_report(db):
     db.add(crm_client)
     db.commit()
     db.refresh(crm_client)
+    legal = LegalEntity(id_number="LE-ARSTAT001", id_number_type=IdNumberType.INDIVIDUAL)
+    db.add(legal)
+    db.flush()
+    db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal.id))
+    db.flush()
+    db.add(
+        Business(
+            client_id=crm_client.id,
+            business_name=crm_client.full_name,
+            status=BusinessStatus.ACTIVE,
+            opened_at=date.today(),
+        )
+    )
+    db.flush()
 
     report = AnnualReportService(db).create_report(
         client_id=crm_client.id,

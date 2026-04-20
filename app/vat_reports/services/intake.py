@@ -6,6 +6,7 @@ from typing import Optional
 from app.common.enums import VatType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.models.client import ClientStatus
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -62,7 +63,9 @@ def create_work_item(
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    client_record_id = ClientRecordRepository(client_repo.db).get_by_client_id(client_id).id
+    client_record = ClientRecordRepository(client_repo.db).get_by_client_id(client_id)
+    assert_client_record_is_active(client_record)
+    client_record_id = client_record.id
 
     client = client_repo.get_by_id(client_id)
     if not client:
