@@ -64,9 +64,8 @@ class AdvancePayment(Base):
 
     __tablename__ = "advance_payments"
 
-    id        = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Period ────────────────────────────────────────────────────────────────
     period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period
@@ -98,22 +97,20 @@ class AdvancePayment(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        # Partial unique: a soft-deleted row never blocks a new record for the
-        # same (client_id, period). Mirrors the pattern used in vat_work_items.
         Index(
-            "uq_advance_payment_client_period_active",
-            "client_id", "period",
+            "uq_advance_payment_client_record_period_active",
+            "client_record_id", "period",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
-        Index("idx_advance_payment_client_period", "client_id", "period"),
-        Index("idx_advance_payment_status",        "status"),
-        Index("idx_advance_payment_due_date",      "due_date"),
+        Index("idx_advance_payment_client_record_period", "client_record_id", "period"),
+        Index("idx_advance_payment_status",               "status"),
+        Index("idx_advance_payment_due_date",             "due_date"),
     )
 
     def __repr__(self):
         return (
-            f"<AdvancePayment(id={self.id}, client_id={self.client_id}, "
+            f"<AdvancePayment(id={self.id}, client_record_id={self.client_record_id}, "
             f"period='{self.period}', status='{self.status}')>"
         )

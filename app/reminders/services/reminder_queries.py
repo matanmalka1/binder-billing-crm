@@ -37,7 +37,7 @@ def _build_context_map(
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
 ) -> Dict[int, ReminderContext]:
     """Build a reminder_id → context map for all items."""
-    client_ids = list({r.client_id for r in items})
+    client_ids = list({r.client_record_id for r in items})
     business_ids = list({r.business_id for r in items if r.business_id is not None})
 
     clients = {c.id: c for c in client_repo.list_by_ids(client_ids)}
@@ -56,12 +56,13 @@ def _build_context_map(
 
     result: Dict[int, ReminderContext] = {}
     for r in items:
-        client = clients.get(r.client_id)
+        # client_record_id == legacy client_id (same PK by migration convention)
+        client = clients.get(r.client_record_id)
         business = businesses.get(r.business_id) if r.business_id else None
         display_label = deadline_label_map.get(r.tax_deadline_id) if r.tax_deadline_id else None
         result[r.id] = ReminderContext(
-            client_id=r.client_id,
-            client_name=client.full_name if client else f"לקוח #{r.client_id}",
+            client_id=r.client_record_id,
+            client_name=client.full_name if client else f"לקוח #{r.client_record_id}",
             client_id_number=client.id_number if client else None,
             office_client_number=client.office_client_number if client else None,
             business_id=r.business_id,

@@ -5,12 +5,12 @@ from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
 from app.signature_requests.services.messages import (
-    BUSINESS_CLIENT_MISMATCH,
     BUSINESS_NOT_FOUND,
     INVALID_REQUEST_TYPE,
     SIGNATURE_REQUEST_CREATED_NOTE,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -43,16 +43,16 @@ def create_request(
     client_id is always required — it is the primary anchor.
     business_id is optional; when provided it must belong to the given client_id.
     """
+    client_record = ClientRecordRepository(repo.db).get_by_client_id(client_id)
+    if not client_record:
+        raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+
     # Validate business ownership when business_id is supplied
     if business_id is not None:
         business = business_repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(BUSINESS_NOT_FOUND.format(business_id=business_id), "BUSINESS.NOT_FOUND")
-        if business.client_id != client_id:
-            raise AppError(
-                BUSINESS_CLIENT_MISMATCH.format(business_id=business_id, client_id=client_id),
-                "BUSINESS.CLIENT_MISMATCH",
-            )
+        assert_business_belongs_to_legal_entity(business, client_record.legal_entity_id)
         # Fall back to business contact details when caller omits them
         if not signer_email and business.contact_email:
             signer_email = business.contact_email
@@ -73,11 +73,10 @@ def create_request(
     content_hash = None
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
-    client_record_id = ClientRecordRepository(repo.db).get_by_client_id(client_id).id
 
     req = repo.create(
         client_id=client_id,
-        client_record_id=client_record_id,
+        client_record_id=client_record.id,
         business_id=business_id,
         created_by=created_by,
         request_type=req_type,

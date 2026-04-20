@@ -72,7 +72,6 @@ def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_he
     crm_client = _client(test_db)
     business = _business(test_db, crm_client.id, test_user.id)
     reminder = ReminderRepository(test_db).create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
@@ -109,7 +108,6 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
     crm_client = _client(test_db)
     business = _business(test_db, crm_client.id, test_user.id)
     binder = Binder(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         binder_number="RMA-B",
         period_start=date.today(),
@@ -117,7 +115,6 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         created_by=test_user.id,
     )
     charge = Charge(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         amount=10,

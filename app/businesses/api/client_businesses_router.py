@@ -19,10 +19,9 @@ from app.actions.action_contracts import get_business_actions
 
 def _assert_business_belongs_to_client(db: Session, business: Business, client_id: int) -> None:
     record = ClientRecordRepository(db).get_by_client_id(client_id)
-    if record is not None:
-        assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
-    elif business.client_id != client_id:
+    if not record:
         raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")
+    assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
 
 
 def _to_business_response(business, user_role: UserRole) -> BusinessResponse:

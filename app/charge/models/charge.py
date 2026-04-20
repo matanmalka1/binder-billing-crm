@@ -35,10 +35,6 @@ class Charge(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # ── Anchors ───────────────────────────────────────────────────────────────
-    # PRIMARY: always required — billing belongs to the legal entity
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True
-    )
     client_record_id: Mapped[int] = mapped_column(
         ForeignKey("client_records.id"), nullable=False, index=True
     )
@@ -91,18 +87,17 @@ class Charge(Base):
     deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client        = relationship("Client",       foreign_keys="[Charge.client_id]",       viewonly=True)
     annual_report = relationship("AnnualReport", foreign_keys="[Charge.annual_report_id]", viewonly=True)
     invoice       = relationship("Invoice",      foreign_keys="[Invoice.charge_id]",   uselist=False)
 
     __table_args__ = (
-        Index("idx_charge_client_period", "client_id", "period"),
-        Index("idx_charge_status",        "status"),
+        Index("idx_charge_client_record_period", "client_record_id", "period"),
+        Index("idx_charge_status",               "status"),
     )
 
     def __repr__(self) -> str:
         return (
-            f"<Charge(id={self.id}, client_id={self.client_id}, "
+            f"<Charge(id={self.id}, client_record_id={self.client_record_id}, "
             f"business_id={self.business_id}, type='{self.charge_type}', "
             f"amount={self.amount}, status='{self.status}')>"
         )

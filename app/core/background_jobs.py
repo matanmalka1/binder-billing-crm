@@ -77,23 +77,23 @@ def _vat_compliance_task(db) -> None:
         # Resolve the existing TaxDeadline record for this client+period.
         # due_date on that record is the authoritative deadline (19th for online filers).
         # Using tax_deadline_id as the idempotency key prevents duplicate reminders.
-        existing = deadline_repo.list_by_client(
-            row.client_id,
+        existing = deadline_repo.list_by_client_record(
+            row.client_record_id,
             deadline_type=DeadlineType.VAT,
             period=row.period,
         )
         if not existing:
             logger.warning(
-                "VAT compliance: no TaxDeadline found for client_id=%d period=%s — skipping",
-                row.client_id,
+                "VAT compliance: no TaxDeadline found for client_record_id=%d period=%s — skipping",
+                row.client_record_id,
                 row.period,
             )
             continue
         tax_deadline = existing[0]
-        if reminder_repo.exists_vat_compliance_reminder(row.client_id, tax_deadline.id):
+        if reminder_repo.exists_vat_compliance_reminder(row.client_record_id, tax_deadline.id):
             continue
         reminder_repo.create(
-            client_id=row.client_id,
+            client_record_id=row.client_record_id,
             reminder_type=ReminderType.VAT_FILING,
             target_date=tax_deadline.due_date,
             days_before=0,
@@ -106,8 +106,8 @@ def _vat_compliance_task(db) -> None:
         )
         created += 1
         logger.info(
-            "VAT compliance: created overdue reminder client_id=%d period=%s",
-            row.client_id,
+            "VAT compliance: created overdue reminder client_record_id=%d period=%s",
+            row.client_record_id,
             row.period,
         )
     if created:
@@ -149,24 +149,19 @@ async def daily_reminder_job() -> None:
                             business_id=reminder.business_id,
                             reminder_text=reminder.message,
                         )
-                    elif reminder.client_id is not None:
-                        notification_svc.notify_client_reminder(
-                            client_id=reminder.client_id,
-                            reminder_text=reminder.message,
-                        )
                     else:
-                        logger.warning(
-                            "Reminder id=%d has neither business_id nor client_id — skipping notify",
-                            reminder.id,
+                        notification_svc.notify_client_record_reminder(
+                            client_record_id=reminder.client_record_id,
+                            reminder_text=reminder.message,
                         )
                     reminder_svc.mark_sent(reminder.id)
                     sent += 1
                     logger.info(
-                        "Reminder dispatched id=%d type=%s business_id=%s client_id=%s",
+                        "Reminder dispatched id=%d type=%s business_id=%s client_record_id=%s",
                         reminder.id,
                         reminder.reminder_type,
                         reminder.business_id,
-                        reminder.client_id,
+                        reminder.client_record_id,
                     )
                 except Exception:
                     failed += 1

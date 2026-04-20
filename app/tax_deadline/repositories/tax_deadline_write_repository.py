@@ -21,16 +21,14 @@ class TaxDeadlineWriteRepository:
 
     def create(
         self,
-        client_id: int,
+        client_record_id: int,
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
-        client_record_id: Optional[int] = None,
     ) -> TaxDeadline:
         deadline = TaxDeadline(
-            client_id=client_id,
             client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,

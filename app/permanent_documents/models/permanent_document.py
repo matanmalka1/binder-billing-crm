@@ -72,9 +72,8 @@ class PermanentDocument(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # ── Ownership ─────────────────────────────────────────────────────────────
-    client_id   = Column(Integer, ForeignKey("clients.id"),    nullable=False, index=True)
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True,  index=True)
+    business_id      = Column(Integer, ForeignKey("businesses.id"),     nullable=True,  index=True)
     scope       = Column(pg_enum(DocumentScope), nullable=False)
 
     # ── Document identity ─────────────────────────────────────────────────────
@@ -116,15 +115,15 @@ class PermanentDocument(Base):
             "(scope = 'client') OR (scope = 'business' AND business_id IS NOT NULL)",
             name="ck_document_business_scope_requires_business_id",
         ),
-        Index("ix_permanent_documents_client_type_year",
-              "client_id", "document_type", "tax_year"),
+        Index("ix_permanent_documents_client_record_type_year",
+              "client_record_id", "document_type", "tax_year"),
         Index("ix_permanent_documents_business",
               "business_id", "document_type", "tax_year"),
     )
 
     def __repr__(self):
         return (
-            f"<PermanentDocument(id={self.id}, client_id={self.client_id}, "
+            f"<PermanentDocument(id={self.id}, client_record_id={self.client_record_id}, "
             f"business_id={self.business_id}, scope='{self.scope}', "
             f"type='{self.document_type}', status='{self.status}')>"
         )

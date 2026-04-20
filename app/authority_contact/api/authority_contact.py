@@ -20,6 +20,12 @@ router = APIRouter(
 )
 
 
+def _to_contact_response(contact) -> AuthorityContactResponse:
+    response = AuthorityContactResponse.model_validate(contact)
+    response.client_id = contact.client_record_id
+    return response
+
+
 @router.post(
     "/{client_id}/authority-contacts",
     response_model=AuthorityContactResponse,
@@ -42,7 +48,7 @@ def create_authority_contact(
         email=request.email,
         notes=request.notes,
     )
-    return AuthorityContactResponse.model_validate(contact)
+    return _to_contact_response(contact)
 
 
 @router.get("/{client_id}/authority-contacts", response_model=AuthorityContactListResponse)
@@ -63,7 +69,7 @@ def list_authority_contacts(
         page_size=page_size,
     )
     return AuthorityContactListResponse(
-        items=[AuthorityContactResponse.model_validate(c) for c in contacts],
+        items=[_to_contact_response(c) for c in contacts],
         page=page,
         page_size=page_size,
         total=total,
@@ -81,7 +87,7 @@ def get_authority_contact(
 ):
     """Get a single authority contact by ID."""
     service = AuthorityContactService(db)
-    return AuthorityContactResponse.model_validate(service.get_contact(contact_id))
+    return _to_contact_response(service.get_contact(contact_id))
 
 
 @router.patch(
@@ -98,7 +104,7 @@ def update_authority_contact(
     service = AuthorityContactService(db)
     update_data = request.model_dump(exclude_unset=True)
     contact = service.update_contact(contact_id, **update_data)
-    return AuthorityContactResponse.model_validate(contact)
+    return _to_contact_response(contact)
 
 
 @router.delete(

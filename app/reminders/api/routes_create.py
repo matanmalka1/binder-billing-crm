@@ -93,6 +93,7 @@ def create_reminder(
 
     else:  # ReminderType.CUSTOM
         reminder = service.create_custom_reminder(
+            client_id=request.client_id,
             business_id=request.business_id,
             target_date=request.target_date,
             days_before=request.days_before,
@@ -100,4 +101,6 @@ def create_reminder(
             created_by=user.id,
         )
 
-    return ReminderResponse.model_validate(reminder)
+    resp = ReminderResponse.model_validate(reminder)
+    resp.client_id = reminder.client_record_id
+    return resp

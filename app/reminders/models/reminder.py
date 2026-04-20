@@ -7,14 +7,10 @@ Israeli context:
   background job when send_on <= today.
 
 Anchor pattern:
-  client_id is ALWAYS required — it is the primary anchor (legal entity).
+  client_record_id is the primary anchor (legal entity record).
   business_id is OPTIONAL context — set when the reminder is scoped to a
   specific business activity. This mirrors the pattern used across all other
   domain models (charges, correspondence, notifications, signature_requests).
-
-  The old CheckConstraint (client_id OR business_id) was wrong: it allowed
-  reminders with no client anchor, making "all reminders for client X"
-  queries impossible without joining through businesses.
 
 Design decisions:
   - send_on is pre-computed (target_date - days_before) for efficient scheduler
@@ -67,10 +63,6 @@ class Reminder(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
     # ── Anchors ───────────────────────────────────────────────────────────────
-    # PRIMARY: always required — reminders belong to the legal entity
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True
-    )
     client_record_id: Mapped[int] = mapped_column(
         ForeignKey("client_records.id"), nullable=False, index=True
     )
@@ -119,13 +111,13 @@ class Reminder(Base):
     deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_reminder_status_send_on", "status", "send_on"),
-        Index("idx_reminder_client_type",    "client_id",   "reminder_type"),
-        Index("idx_reminder_business_type",  "business_id", "reminder_type"),
+        Index("idx_reminder_status_send_on",   "status", "send_on"),
+        Index("idx_reminder_client_record_type", "client_record_id", "reminder_type"),
+        Index("idx_reminder_business_type",      "business_id", "reminder_type"),
     )
 
     def __repr__(self) -> str:
-        scope = f"business_id={self.business_id}" if self.business_id else f"client_id={self.client_id}"
+        scope = f"business_id={self.business_id}" if self.business_id else f"client_record_id={self.client_record_id}"
         return (
             f"<Reminder(id={self.id}, {scope}, "
             f"type='{self.reminder_type}', send_on='{self.send_on}')>"

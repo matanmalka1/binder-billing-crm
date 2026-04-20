@@ -84,6 +84,13 @@ class ClientService:
                 "CLIENT.DELETED_EXISTS",
             )
 
+        le_repo = LegalEntityRepository(self.db)
+        if le_repo.get_by_id_number(id_number_type, id_number):
+            raise ConflictError(
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number),
+                "CLIENT.CONFLICT",
+            )
+
         client = self._create_client_with_generated_office_number(
             full_name=full_name,
             id_number=id_number,
@@ -103,21 +110,18 @@ class ClientService:
             actor_id=actor_id,
         )
 
-        le_repo = LegalEntityRepository(self.db)
-        if le_repo.get_by_id_number(id_number_type, id_number):
-            raise ConflictError(
-                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number),
-                "CLIENT.CONFLICT",
+        legal_entity = le_repo.get_by_id_number(id_number_type, id_number)
+        if not legal_entity:
+            legal_entity = le_repo.create(
+                id_number=id_number,
+                id_number_type=id_number_type,
+                entity_type=entity_type,
+                vat_reporting_frequency=vat_reporting_frequency,
+                vat_exempt_ceiling=vat_exempt_ceiling,
+                advance_rate=advance_rate,
             )
-        legal_entity = le_repo.create(
-            id_number=id_number,
-            id_number_type=id_number_type,
-            entity_type=entity_type,
-            vat_reporting_frequency=vat_reporting_frequency,
-            vat_exempt_ceiling=vat_exempt_ceiling,
-            advance_rate=advance_rate,
-        )
-        client_record = ClientRecordRepository(self.db).create(
+        record_repo = ClientRecordRepository(self.db)
+        client_record = record_repo.get_by_client_id(client.id) or record_repo.create(
             legal_entity_id=legal_entity.id,
             office_client_number=client.office_client_number,
             accountant_name=accountant_name,

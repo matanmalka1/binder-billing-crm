@@ -42,7 +42,6 @@ def _business(db, client_id: int) -> Business:
 def _create_reminder(repo: ReminderRepository, business_id: int, *, send_on: date, message: str):
     business = repo.db.get(Business, business_id)
     return repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,

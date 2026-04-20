@@ -144,12 +144,12 @@ class FinancialTaxMixin:
         )
 
     def invalidate_tax_if_open(self, client_id: int, tax_year: int) -> None:
-        """Clear saved tax_due / refund_due when advances change before submission.
-
-        Called from the advance_payments API after a payment is marked PAID so
-        the advisor is prompted to re-save the tax calculation.
-        """
-        report = self.report_repo.get_by_client_year(client_id, tax_year)
+        """Clear saved tax_due / refund_due when advances change before submission."""
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        client_record = ClientRecordRepository(self.report_repo.db).get_by_client_id(client_id)
+        if not client_record:
+            return
+        report = self.report_repo.get_by_client_record_year(client_record.id, tax_year)
         if report and report.status in _PRE_SUBMISSION_STATUSES:
             self.report_repo.update(report.id, tax_due=None, refund_due=None)
 

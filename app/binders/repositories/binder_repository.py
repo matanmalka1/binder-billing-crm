@@ -31,8 +31,7 @@ class BinderRepository(BaseRepository):
     ) -> Binder:
         """Create new binder."""
         binder = Binder(
-            client_id=client_id,
-            client_record_id=client_record_id,
+            client_record_id=client_record_id or client_id,
             binder_number=binder_number,
             period_start=period_start,
             created_by=created_by,
@@ -92,7 +91,7 @@ class BinderRepository(BaseRepository):
             query = query.filter(Binder.status != BinderStatus.RETURNED)
 
         if client_id:
-            query = query.filter(Binder.client_id == client_id)
+            query = query.filter(Binder.client_record_id == client_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -128,7 +127,7 @@ class BinderRepository(BaseRepository):
         )
 
         if client_id:
-            query = query.filter(Binder.client_id == client_id)
+            query = query.filter(Binder.client_record_id == client_id)
 
         if status:
             query = query.filter(Binder.status == status)
@@ -185,7 +184,7 @@ class BinderRepository(BaseRepository):
         return (
             self._order_by_period_start(
                 self.db.query(Binder).filter(
-                    Binder.client_id == client_id,
+                    Binder.client_record_id == client_id,
                     Binder.deleted_at.is_(None),
                 ),
                 descending=False,
@@ -228,7 +227,7 @@ class BinderRepository(BaseRepository):
         query = (
             self.db.query(Binder)
             .filter(
-                Binder.client_id == client_id,
+                Binder.client_record_id == client_id,
                 Binder.deleted_at.is_(None),
             )
         )
@@ -239,7 +238,7 @@ class BinderRepository(BaseRepository):
         return (
             self.db.query(Binder)
             .filter(
-                Binder.client_id == client_id,
+                Binder.client_record_id == client_id,
                 Binder.deleted_at.is_(None),
             )
             .count()
@@ -250,7 +249,7 @@ class BinderRepository(BaseRepository):
         return (
             self.db.query(Binder)
             .filter(
-                Binder.client_id == client_id,
+                Binder.client_record_id == client_id,
                 Binder.status == BinderStatus.IN_OFFICE,
                 Binder.deleted_at.is_(None),
             )
@@ -261,7 +260,7 @@ class BinderRepository(BaseRepository):
         """Count ALL binders for a client (including soft-deleted) for monotonic label seq."""
         return (
             self.db.query(Binder)
-            .filter(Binder.client_id == client_id)
+            .filter(Binder.client_record_id == client_id)
             .count()
         )
 
@@ -272,13 +271,15 @@ class BinderRepository(BaseRepository):
         rows = (
             self.db.query(Binder)
             .filter(
-                Binder.client_id.in_(client_ids),
+                Binder.client_record_id.in_(client_ids),
                 Binder.status == BinderStatus.IN_OFFICE,
                 Binder.deleted_at.is_(None),
             )
             .all()
         )
-        return {b.client_id: b for b in rows}
+        for row in rows:
+            row.client_id = row.client_record_id
+        return {b.client_record_id: b for b in rows}
 
     def archive_in_office_by_client_record(self, client_record_id: int) -> int:
         rows = (

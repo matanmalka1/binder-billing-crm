@@ -13,7 +13,6 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.services.constants import UNPAID_CHARGE_REMINDER_DAYS
 from app.charge.services.messages import (
     AMOUNT_MUST_BE_POSITIVE,
-    BUSINESS_CLIENT_MISMATCH,
     CHARGE_ALREADY_CANCELED,
     CHARGE_CANNOT_CANCEL_PAID,
     CHARGE_DELETE_INVALID_STATUS,
@@ -22,6 +21,7 @@ from app.charge.services.messages import (
     CHARGE_NOT_FOUND,
     CLIENT_NOT_FOUND,
 )
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
@@ -50,17 +50,8 @@ class BillingService:
         if business_id is None:
             return None
         business = validate_business_for_create(self.db, business_id)
-        if legal_entity_id is not None:
-            assert_business_belongs_to_legal_entity(business, legal_entity_id)
-        elif business.client_id != client_id:
-            raise AppError(
-                BUSINESS_CLIENT_MISMATCH,
-                "CHARGE.BUSINESS_CLIENT_MISMATCH",
-            )
+        assert_business_belongs_to_legal_entity(business, legal_entity_id)
         return business.id
-
-    def _get_client_record_id(self, client_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
 
     def create_charge(
         self,
@@ -72,12 +63,15 @@ class BillingService:
         period: Optional[str] = None,
         months_covered: int = 1,
     ) -> Charge:
-        business_id = self._validate_charge_scope(client_id, business_id)
         if amount <= 0:
             raise AppError(AMOUNT_MUST_BE_POSITIVE, "CHARGE.AMOUNT_INVALID")
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if not client_record:
+            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CHARGE.CLIENT_RECORD_NOT_FOUND")
+        assert_client_record_is_active(client_record)
+        business_id = self._validate_charge_scope(client_id, business_id, client_record.legal_entity_id)
         charge = self.charge_repo.create(
-            client_id=client_id,
-            client_record_id=self._get_client_record_id(client_id),
+            client_record_id=client_record.id,
             business_id=business_id,
             amount=amount,
             charge_type=charge_type,
@@ -104,7 +98,7 @@ class BillingService:
             issued_at=utcnow(), issued_by=actor_id,
         )
         ReminderService(self.db).create_unpaid_charge_reminder(
-            client_id=charge.client_id, business_id=charge.business_id, charge_id=charge_id,
+            client_record_id=charge.client_record_id, business_id=charge.business_id, charge_id=charge_id,
             days_unpaid=UNPAID_CHARGE_REMINDER_DAYS,
         )
         if actor_id:

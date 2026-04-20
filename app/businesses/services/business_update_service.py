@@ -11,6 +11,7 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 
@@ -24,6 +25,7 @@ def _serialize(d: dict) -> dict:
 
 class BusinessUpdateService:
     def __init__(self, db: Session):
+        self._db = db
         self._repo = BusinessRepository(db)
         self._audit = EntityAuditLogRepository(db)
 
@@ -40,10 +42,12 @@ class BusinessUpdateService:
         business = self._repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        if legal_entity_id is not None:
-            assert_business_belongs_to_legal_entity(business, legal_entity_id)
-        elif business.client_id != client_id:
-            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        if legal_entity_id is None:
+            record = ClientRecordRepository(self._db).get_by_client_id(client_id)
+            if not record:
+                raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+            legal_entity_id = record.legal_entity_id
+        assert_business_belongs_to_legal_entity(business, legal_entity_id)
 
         if "status" in fields and fields["status"] is not None:
             try:

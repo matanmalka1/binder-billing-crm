@@ -56,7 +56,6 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     business_repo = BusinessRepository(test_db)
 
     tax_deadline = TaxDeadlineRepository(test_db).create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
@@ -74,7 +73,6 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     assert tax.send_on == tax_deadline.due_date - timedelta(days=3)
 
     binder = Binder(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         binder_number="BF-1",
         period_start=date.today(),
@@ -87,7 +85,6 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
 
     idle = create_idle_binder_reminder(
         reminder_repo,
-        ClientRepository(test_db),
         BinderRepository(test_db),
         binder_id=binder.id,
         days_idle=5,
@@ -96,7 +93,6 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
     assert "5" in idle.message
 
     charge = Charge(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         amount=10,
@@ -111,7 +107,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
         reminder_repo,
         business_repo,
         ChargeRepository(test_db),
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         charge_id=charge.id,
         days_unpaid=7,
@@ -160,7 +156,6 @@ def test_factory_validation_errors(test_db):
     with pytest.raises(NotFoundError):
         create_idle_binder_reminder(
             reminder_repo,
-            ClientRepository(test_db),
             BinderRepository(test_db),
             binder_id=999999,
             days_idle=1,
@@ -184,7 +179,6 @@ def test_tax_deadline_factory_not_found_and_negative_days(test_db):
         )
 
     existing = tax_repo.create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
@@ -208,7 +202,6 @@ def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
     reminder_repo = ReminderRepository(test_db)
 
     binder = Binder(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         binder_number="BF-NEG",
         period_start=date.today(),
@@ -222,7 +215,6 @@ def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
     with pytest.raises(AppError) as exc_info:
         create_idle_binder_reminder(
             reminder_repo,
-            ClientRepository(test_db),
             BinderRepository(test_db),
             binder_id=binder.id,
             days_idle=-1,
@@ -243,14 +235,13 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
             reminder_repo,
             business_repo,
             charge_repo,
-            client_id=crm_client.id,
+            client_record_id=crm_client.id,
             business_id=business.id,
             charge_id=999999,
             days_unpaid=1,
         )
 
     charge = Charge(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         amount=55,
@@ -266,7 +257,7 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
             reminder_repo,
             business_repo,
             charge_repo,
-            client_id=crm_client.id,
+            client_record_id=crm_client.id,
             business_id=business.id,
             charge_id=charge.id,
             days_unpaid=-2,

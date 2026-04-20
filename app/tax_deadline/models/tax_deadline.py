@@ -53,8 +53,7 @@ class TaxDeadlineStatus(str, PyEnum):
 class TaxDeadline(Base):
     __tablename__ = "tax_deadlines"
 
-    id        = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Deadline identity ─────────────────────────────────────────────────────
@@ -91,13 +90,13 @@ class TaxDeadline(Base):
             "(advance_payment_id IS NULL) OR (deadline_type = 'advance_payment')",
             name="ck_tax_deadline_advance_payment_link",
         ),
-        Index("idx_tax_deadline_status",         "status"),
-        Index("idx_tax_deadline_type",           "deadline_type"),
-        Index("idx_tax_deadline_client_period",  "client_id", "period"),
+        Index("idx_tax_deadline_status",                "status"),
+        Index("idx_tax_deadline_type",                  "deadline_type"),
+        Index("idx_tax_deadline_client_record_period",  "client_record_id", "period"),
     )
 
     def __repr__(self):
         return (
-            f"<TaxDeadline(id={self.id}, client_id={self.client_id}, "
+            f"<TaxDeadline(id={self.id}, client_record_id={self.client_record_id}, "
             f"type='{self.deadline_type}', due='{self.due_date}')>"
         )

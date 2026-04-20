@@ -7,7 +7,7 @@ Israeli context:
   meetings with clients, and email exchanges.
 
 Design decisions:
-- client_id is the PRIMARY anchor (legal entity). Always required.
+- client_record_id is the primary anchor (legal entity record).
 - business_id is OPTIONAL context — set when the correspondence is scoped
   to a specific business activity (UI grouping only).
 - occurred_at is DateTime(timezone=True) — stored as UTC, frontend converts to Asia/Jerusalem.
@@ -46,10 +46,6 @@ class Correspondence(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # ── Anchors ───────────────────────────────────────────────────────────────
-    # PRIMARY: always required — correspondence belongs to the legal entity
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True
-    )
     client_record_id: Mapped[int] = mapped_column(
         ForeignKey("client_records.id"), nullable=False, index=True
     )
@@ -83,18 +79,17 @@ class Correspondence(Base):
     deleted_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client  = relationship("Client",           foreign_keys="[Correspondence.client_id]",  viewonly=True)
     contact = relationship("AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True)
 
     __table_args__ = (
-        Index("idx_correspondence_client_id",         "client_id"),
+        Index("idx_correspondence_client_record",     "client_record_id"),
         Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
         Index("idx_correspondence_occurred",          "occurred_at"),
     )
 
     def __repr__(self) -> str:
         return (
-            f"<Correspondence(id={self.id}, client_id={self.client_id}, "
+            f"<Correspondence(id={self.id}, client_record_id={self.client_record_id}, "
             f"business_id={self.business_id}, type='{self.correspondence_type}', "
             f"occurred='{self.occurred_at}')>"
         )

@@ -122,9 +122,8 @@ class NotificationSendService:
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
-                    client_id=client.id,        # PRIMARY anchor
                     client_record_id=self._get_client_record_id(client.id),
-                    business_id=business_id,    # optional context
+                    business_id=business_id,
                     binder_id=binder_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
@@ -149,9 +148,8 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_id=client.id,        # PRIMARY anchor
                 client_record_id=self._get_client_record_id(client.id),
-                business_id=business_id,    # optional context
+                business_id=business_id,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
@@ -201,9 +199,7 @@ class NotificationSendService:
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
-                    client_id=client.id,
                     client_record_id=self._get_client_record_id(client.id),
-                    business_id=None,
                     binder_id=binder_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
@@ -228,9 +224,7 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_id=client.id,
                 client_record_id=self._get_client_record_id(client.id),
-                business_id=None,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
@@ -258,7 +252,7 @@ class NotificationSendService:
         return True
 
     def send_client_reminder(self, client_id: int, reminder_text: str) -> bool:
-        """Send reminder email directly to a client. Persists notification row. Never raises."""
+        """Send reminder email directly to a client (legacy: resolves client_record_id internally)."""
         try:
             client = self.db.query(Client).filter(
                 Client.id == client_id, Client.deleted_at.is_(None)
@@ -267,7 +261,6 @@ class NotificationSendService:
                 logger.info("send_client_reminder: client %s has no email or not found", client_id)
                 return True
             n = self.notification_repo.create(
-                client_id=client_id,        # PRIMARY anchor; no business_id (client-direct)
                 client_record_id=self._get_client_record_id(client_id),
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 channel=NotificationChannel.EMAIL,
@@ -283,4 +276,36 @@ class NotificationSendService:
                 logger.error("send_client_reminder failed | client=%s error=%s", client_id, err)
         except Exception as exc:  # noqa: BLE001
             logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_id, exc)
+        return True
+
+    def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
+        """Send reminder to a client resolved from client_record_id."""
+        from app.clients.models.client_record import ClientRecord
+        try:
+            record = self.db.query(ClientRecord).filter(ClientRecord.id == client_record_id).first()
+            if not record:
+                logger.info("send_client_record_reminder: client_record %s not found", client_record_id)
+                return True
+            client = self.db.query(Client).filter(
+                Client.id == record.legal_entity_id, Client.deleted_at.is_(None)
+            ).first()
+            if not client or not client.email:
+                logger.info("send_client_record_reminder: client_record %s has no email", client_record_id)
+                return True
+            n = self.notification_repo.create(
+                client_record_id=client_record_id,
+                trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                channel=NotificationChannel.EMAIL,
+                recipient=client.email,
+                content_snapshot=reminder_text,
+            )
+            ok, err = self.email.send(client.email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
+            if ok:
+                self.notification_repo.mark_sent(n.id)
+                logger.info("Client record reminder sent | client_record=%s", client_record_id)
+            else:
+                self.notification_repo.mark_failed(n.id, err or "unknown error")
+                logger.error("send_client_record_reminder failed | client_record=%s error=%s", client_record_id, err)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Unexpected error in send_client_record_reminder | client_record=%s error=%s", client_record_id, exc)
         return True

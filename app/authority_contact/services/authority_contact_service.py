@@ -22,7 +22,10 @@ class AuthorityContactService:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
 
     def _get_client_record_id(self, client_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        return record.id
 
     def add_contact(
         self,
@@ -39,7 +42,6 @@ class AuthorityContactService:
         contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
 
         return self.contact_repo.create(
-            client_id=client_id,
             client_record_id=self._get_client_record_id(client_id),
             contact_type=contact_type_enum,
             name=name,
@@ -72,9 +74,10 @@ class AuthorityContactService:
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
         """List contacts for client with pagination."""
+        self._get_client_or_raise(client_id)
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
 
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record_id = self._get_client_record_id(client_id)
         items = self.contact_repo.list_by_client_record(
             client_record_id, contact_type_enum, page=page, page_size=page_size
         )

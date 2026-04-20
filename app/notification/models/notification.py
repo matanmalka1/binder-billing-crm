@@ -7,7 +7,7 @@ Israeli context:
   ready for pickup) or manually by an advisor (payment reminder).
 
 Design decisions:
-- client_id is the PRIMARY anchor (legal entity). Always required.
+- client_record_id is the primary anchor (legal entity record).
 - business_id is OPTIONAL context — set when the notification is scoped
   to a specific business activity.
 - content_snapshot stores the rendered message at send time — immutable audit trail.
@@ -61,10 +61,6 @@ class Notification(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # ── Anchors ───────────────────────────────────────────────────────────────
-    # PRIMARY: always required — notifications belong to the legal entity
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True
-    )
     client_record_id: Mapped[int] = mapped_column(
         ForeignKey("client_records.id"), nullable=False, index=True
     )
@@ -116,14 +112,14 @@ class Notification(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
 
     __table_args__ = (
-        Index("idx_notification_client_status",   "client_id",   "status"),
-        Index("idx_notification_business_status", "business_id", "status"),
-        Index("idx_notification_created_at",      "created_at"),
+        Index("idx_notification_client_record_status", "client_record_id", "status"),
+        Index("idx_notification_business_status",      "business_id", "status"),
+        Index("idx_notification_created_at",           "created_at"),
     )
 
     def __repr__(self) -> str:
         return (
-            f"<Notification(id={self.id}, client_id={self.client_id}, "
+            f"<Notification(id={self.id}, client_record_id={self.client_record_id}, "
             f"business_id={self.business_id}, trigger='{self.trigger}', "
             f"status='{self.status}')>"
         )

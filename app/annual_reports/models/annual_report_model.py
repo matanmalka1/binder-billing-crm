@@ -21,9 +21,8 @@ from app.annual_reports.models.annual_report_enums import (
 class AnnualReport(Base):
     __tablename__ = "annual_reports"
  
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=True, index=True)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
  
@@ -79,8 +78,8 @@ class AnnualReport(Base):
 
     __table_args__ = (
         Index(
-            "idx_annual_report_client_year_type",
-            "client_id",
+            "idx_annual_report_client_record_year",
+            "client_record_id",
             "tax_year",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
@@ -93,6 +92,6 @@ class AnnualReport(Base):
 
     def __repr__(self):
         return (
-            f"<AnnualReport(id={self.id}, client_id={self.client_id}, "
+            f"<AnnualReport(id={self.id}, client_record_id={self.client_record_id}, "
             f"year={self.tax_year}, status='{self.status}')>"
         )

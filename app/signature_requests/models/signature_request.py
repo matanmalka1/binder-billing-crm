@@ -12,7 +12,7 @@ Israeli legal context:
     - How they confirmed (action timestamp + IP)
 
 Design decisions:
-- client_id is the PRIMARY anchor (legal entity). Always required.
+- client_record_id is the primary anchor (legal entity record).
 - business_id is OPTIONAL context — set when the signature is scoped
   to a specific business activity.
 - signing_token is a one-time URL-safe token; cleared (NULL) after
@@ -61,10 +61,6 @@ class SignatureRequest(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # ── Anchors ───────────────────────────────────────────────────────────────
-    # PRIMARY: always required — the legal entity is the signer
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"), nullable=False, index=True
-    )
     client_record_id: Mapped[int] = mapped_column(
         ForeignKey("client_records.id"), nullable=False, index=True
     )
@@ -129,12 +125,11 @@ class SignatureRequest(Base):
     deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    client        = relationship("Client",       foreign_keys="[SignatureRequest.client_id]",       viewonly=True)
     annual_report = relationship("AnnualReport", foreign_keys="[SignatureRequest.annual_report_id]", viewonly=True)
     audit_events  = relationship("SignatureAuditEvent", back_populates="signature_request")
 
     __table_args__ = (
-        Index("idx_sig_request_client",        "client_id"),
+        Index("idx_sig_request_client_record", "client_record_id"),
         Index("idx_sig_request_business",      "business_id"),
         Index("idx_sig_request_annual_report", "annual_report_id"),
         Index("idx_sig_request_status",        "status"),
@@ -143,7 +138,7 @@ class SignatureRequest(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<SignatureRequest(id={self.id}, client_id={self.client_id}, "
+            f"<SignatureRequest(id={self.id}, client_record_id={self.client_record_id}, "
             f"business_id={self.business_id}, type='{self.request_type}', "
             f"status='{self.status}')>"
         )

@@ -21,8 +21,7 @@ class ReminderRepository(ReminderRepositoryFlush):
         days_before: int,
         send_on: date,
         message: str,
-        client_id: int,                          # always required — legal entity anchor
-        client_record_id: Optional[int] = None,
+        client_record_id: int,
         business_id: Optional[int] = None,       # optional context
         binder_id: Optional[int] = None,
         charge_id: Optional[int] = None,
@@ -32,7 +31,6 @@ class ReminderRepository(ReminderRepositoryFlush):
         created_by: Optional[int] = None,
     ) -> Reminder:
         reminder = Reminder(
-            client_id=client_id,
             client_record_id=client_record_id,
             business_id=business_id,
             reminder_type=reminder_type,
@@ -77,21 +75,8 @@ class ReminderRepository(ReminderRepositoryFlush):
         reminder = self.get_by_id(reminder_id)
         return self._update_status(reminder, new_status, **additional_fields)
 
-    def exists_vat_compliance_reminder(self, client_id: int, tax_deadline_id: int) -> bool:
+    def exists_vat_compliance_reminder(self, client_record_id: int, tax_deadline_id: int) -> bool:
         """True if a VAT_FILING reminder linked to this tax_deadline_id is already PENDING or SENT."""
-        return (
-            self.db.query(Reminder.id)
-            .filter(
-                Reminder.client_id == client_id,
-                Reminder.reminder_type == ReminderType.VAT_FILING,
-                Reminder.tax_deadline_id == tax_deadline_id,
-                Reminder.status.in_([ReminderStatus.PENDING, ReminderStatus.SENT]),
-                Reminder.deleted_at.is_(None),
-            )
-            .first()
-        ) is not None
-
-    def exists_vat_compliance_reminder_by_client_record(self, client_record_id: int, tax_deadline_id: int) -> bool:
         return (
             self.db.query(Reminder.id)
             .filter(

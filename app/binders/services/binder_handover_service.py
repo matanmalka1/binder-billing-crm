@@ -10,7 +10,9 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.services.messages import BINDER_HANDOVER_INVALID_BINDERS, BINDER_PICKED_UP_BY
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
 
 
 class BinderHandoverService:
@@ -42,6 +44,10 @@ class BinderHandoverService:
 
         Transitions each binder to RETURNED and creates a BinderHandover record.
         """
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if not client_record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        assert_client_record_is_active(client_record)
         binders = self._load_and_validate_binders(client_id, binder_ids)
 
         for binder in binders:
@@ -59,10 +65,9 @@ class BinderHandoverService:
                 notes=BINDER_PICKED_UP_BY.format(pickup_person_name=received_by_name),
             )
 
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
         handover = self.handover_repo.create(
             client_id=client_id,
-            client_record_id=client_record_id,
+            client_record_id=client_record.id,
             received_by_name=received_by_name,
             handed_over_at=handed_over_at,
             until_period_year=until_period_year,

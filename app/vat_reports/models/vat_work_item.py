@@ -31,8 +31,7 @@ from app.common.enums import VatType
 class VatWorkItem(Base):
     __tablename__ = "vat_work_items"
 
-    id        = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
     created_by  = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -88,8 +87,8 @@ class VatWorkItem(Base):
 
     __table_args__ = (
         Index(
-            "uq_vat_work_item_client_period",
-            "client_id",
+            "uq_vat_work_item_client_record_period",
+            "client_record_id",
             "period",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
@@ -101,6 +100,6 @@ class VatWorkItem(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<VatWorkItem(id={self.id}, client_id={self.client_id}, "
+            f"<VatWorkItem(id={self.id}, client_record_id={self.client_record_id}, "
             f"period={self.period}, status={self.status})>"
         )

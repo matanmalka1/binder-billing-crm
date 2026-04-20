@@ -71,7 +71,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         if assigned_to is not None:
             get_user_or_raise(self.user_repo, assigned_to)
 
-        existing = self.repo.get_by_client_year(client_id, tax_year)
+        existing = self.repo.get_by_client_record_year(client_record_id, tax_year)
         if existing:
             raise ConflictError(ANNUAL_REPORT_ALREADY_EXISTS.format(
                 client_id=client_id,
@@ -93,7 +93,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
             filing_deadline = None  # custom — caller can set note
 
         report = self.repo.create(
-            client_id=client_id,
             client_record_id=client_record_id,
             tax_year=tax_year,
             client_type=ct,

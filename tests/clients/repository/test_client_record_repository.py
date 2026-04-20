@@ -102,7 +102,10 @@ def test_update_business_via_legal_entity_id(test_db):
     cr = ClientRecord(id=biz.client_id, legal_entity_id=le.id)
     # ClientRecord with same PK may already exist from _seed; skip if so
     existing = test_db.query(ClientRecord).filter(ClientRecord.id == biz.client_id).first()
-    if not existing:
+    if existing:
+        existing.legal_entity_id = le.id
+        test_db.commit()
+    else:
         test_db.add(cr)
         test_db.commit()
 

@@ -85,16 +85,16 @@ class SignatureRequestCrudMixin:
 
     # ── List by client (primary) ──────────────────────────────────────────────
 
-    def list_by_client(
+    def list_by_client_record(
         self,
-        client_id: int,
+        client_record_id: int,
         status: Optional[SignatureRequestStatus] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
         """All requests for a legal entity, regardless of business."""
         query = self.db.query(SignatureRequest).filter(
-            SignatureRequest.client_id == client_id,
+            SignatureRequest.client_record_id == client_record_id,
             SignatureRequest.deleted_at.is_(None),
         )
         if status:
@@ -106,35 +106,6 @@ class SignatureRequestCrudMixin:
             .limit(page_size)
             .all()
         )
-
-    def count_by_client(
-        self,
-        client_id: int,
-        status: Optional[SignatureRequestStatus] = None,
-    ) -> int:
-        query = self.db.query(SignatureRequest).filter(
-            SignatureRequest.client_id == client_id,
-            SignatureRequest.deleted_at.is_(None),
-        )
-        if status:
-            query = query.filter(SignatureRequest.status == status)
-        return query.count()
-
-    def list_by_client_record(
-        self,
-        client_record_id: int,
-        status: Optional[SignatureRequestStatus] = None,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[SignatureRequest]:
-        query = self.db.query(SignatureRequest).filter(
-            SignatureRequest.client_record_id == client_record_id,
-            SignatureRequest.deleted_at.is_(None),
-        )
-        if status:
-            query = query.filter(SignatureRequest.status == status)
-        offset = (page - 1) * page_size
-        return query.order_by(SignatureRequest.created_at.desc()).offset(offset).limit(page_size).all()
 
     def count_by_client_record(
         self,

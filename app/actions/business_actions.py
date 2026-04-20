@@ -13,6 +13,8 @@ def get_business_actions(
 ) -> list[dict[str, Any]]:
     """Return executable actions for a business (role-aware)."""
     status = _value(business.status)
+    # TODO: migrate to /client-records/{business.legal_entity_id}/businesses/{business.id}
+    # once frontend routing is updated — breaking change, coordinate with UI team.
     endpoint = f"/clients/{business.client_id}/businesses/{business.id}"
     actions: list[dict[str, Any]] = []
 

@@ -84,6 +84,9 @@ class NotificationService:
     def notify_client_reminder(self, client_id: int, reminder_text: str) -> bool:
         return self._send_svc.send_client_reminder(client_id, reminder_text)
 
+    def notify_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
+        return self._send_svc.send_client_record_reminder(client_record_id, reminder_text)
+
     def bulk_notify(
         self,
         business_ids: list[int],

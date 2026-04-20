@@ -23,13 +23,13 @@ class AnnualReportQueryService(AnnualReportBaseService):
         return self._to_responses([report])[0]
 
     def get_client_reports(self, client_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+        from app.core.exceptions import NotFoundError
+        from .messages import ANNUAL_REPORT_CLIENT_NOT_FOUND
         client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
-        if client_record is not None:
-            reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
-            total = self.repo.count_by_client_record(client_record.id)
-        else:
-            reports = self.repo.list_by_client(client_id, page=page, page_size=page_size)
-            total = self.repo.count_by_client(client_id)
+        if client_record is None:
+            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_id=client_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+        reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
+        total = self.repo.count_by_client_record(client_record.id)
         return self._to_responses(reports), total
 
     def list_reports(

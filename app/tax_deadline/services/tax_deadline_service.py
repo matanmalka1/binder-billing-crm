@@ -44,7 +44,7 @@ class TaxDeadlineService:
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = due_date.year - 1
-            report = AnnualReportRepository(self.db).get_by_client_year(client_id, tax_year)
+            report = AnnualReportRepository(self.db).get_by_client_record_year(client_record_id, tax_year)
             if report and report.status in ANNUAL_REPORT_FILED_STATUSES:
                 raise AppError(
                     f"דוח שנתי לשנת {tax_year} כבר הוגש — לא ניתן ליצור מועד הגשה חדש",
@@ -52,7 +52,6 @@ class TaxDeadlineService:
                 )
 
         deadline = self.deadline_repo.create(
-            client_id=client_id,
             client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,

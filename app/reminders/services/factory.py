@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from typing import Optional
-
+from app.clients.models.client_record import ClientRecord as _ClientRecord
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository as AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
@@ -85,7 +85,6 @@ def create_tax_deadline_reminder(
     client_record_id = _resolve_client_record_id(client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=client_id,
         client_record_id=client_record_id,
         reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
         target_date=target_date,
@@ -99,7 +98,6 @@ def create_tax_deadline_reminder(
 
 def create_vat_filing_reminder(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     tax_deadline_repo: TaxDeadlineRepository,
     *,
     tax_deadline_id: int,
@@ -111,18 +109,14 @@ def create_vat_filing_reminder(
     deadline = tax_deadline_repo.get_by_id(tax_deadline_id)
     if not deadline:
         raise NotFoundError(TAX_DEADLINE_NOT_FOUND.format(tax_deadline_id=tax_deadline_id), "REMINDER.NOT_FOUND")
-    if not client_repo.get_by_id(deadline.client_id):
-        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=deadline.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
         message = VAT_FILING_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
-    client_record_id = _resolve_client_record_id(deadline.client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=deadline.client_id,
-        client_record_id=client_record_id,
+        client_record_id=deadline.client_record_id,
         reminder_type=ReminderType.VAT_FILING,
         target_date=target_date,
         days_before=days_before,
@@ -135,7 +129,6 @@ def create_vat_filing_reminder(
 
 def create_idle_binder_reminder(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     binder_repo: BinderRepository,
     *,
     binder_id: int,
@@ -146,19 +139,15 @@ def create_idle_binder_reminder(
     binder = binder_repo.get_by_id(binder_id)
     if not binder:
         raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "REMINDER.NOT_FOUND")
-    if not client_repo.get_by_id(binder.client_id):
-        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=binder.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_idle)
 
     target_date = date.today() + timedelta(days=days_idle)
     send_on = date.today()
     if message is None:
         message = IDLE_BINDER_REMINDER_DEFAULT.format(days_idle=days_idle)
-    client_record_id = _resolve_client_record_id(binder.client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=binder.client_id,
-        client_record_id=client_record_id,
+        client_record_id=binder.client_record_id,
         reminder_type=ReminderType.BINDER_IDLE,
         target_date=target_date,
         days_before=0,
@@ -171,7 +160,6 @@ def create_idle_binder_reminder(
 
 def create_annual_report_deadline_reminder(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     annual_report_repo: AnnualReportRepository,
     *,
     annual_report_id: int,
@@ -183,18 +171,14 @@ def create_annual_report_deadline_reminder(
     report = annual_report_repo.get_by_id(annual_report_id)
     if not report:
         raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(annual_report_id=annual_report_id), "REMINDER.NOT_FOUND")
-    if not client_repo.get_by_id(report.client_id):
-        raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=report.client_id), "REMINDER.CLIENT_NOT_FOUND")
     _require_non_negative_days(days_before)
 
     send_on = target_date - timedelta(days=days_before)
     if message is None:
         message = ANNUAL_REPORT_REMINDER_DEFAULT.format(days_before=days_before, target_date=target_date)
-    client_record_id = _resolve_client_record_id(report.client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=report.client_id,
-        client_record_id=client_record_id,
+        client_record_id=report.client_record_id,
         reminder_type=ReminderType.ANNUAL_REPORT_DEADLINE,
         target_date=target_date,
         days_before=days_before,
@@ -213,7 +197,7 @@ def create_unpaid_charge_reminder(
     business_repo: BusinessRepository,
     charge_repo: ChargeRepository,
     *,
-    client_id: int,
+    client_record_id: int,
     business_id: Optional[int] = None,
     charge_id: int,
     days_unpaid: int,
@@ -225,20 +209,20 @@ def create_unpaid_charge_reminder(
     charge = charge_repo.get_by_id(charge_id)
     if not charge:
         raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "REMINDER.NOT_FOUND")
-    if charge.client_id != client_id or charge.business_id != business_id:
+    if charge.client_record_id != client_record_id or charge.business_id != business_id:
         raise AppError(CHARGE_SCOPE_MISMATCH, "REMINDER.CHARGE_SCOPE_MISMATCH")
+    client_record = reminder_repo.db.query(_ClientRecord).filter(_ClientRecord.id == client_record_id).first()
+    assert_client_record_is_active(client_record)
     _require_non_negative_days(days_unpaid)
 
     target_date = date.today()
     send_on = date.today()
     if message is None:
         message = UNPAID_CHARGE_REMINDER_DEFAULT.format(days_unpaid=days_unpaid)
-    client_record_id = _resolve_client_record_id(client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=client_id,
         client_record_id=client_record_id,
-        business_id=business_id,          # optional context; client_id always set above
+        business_id=business_id,
         reminder_type=ReminderType.UNPAID_CHARGE,
         target_date=target_date,
         days_before=0,
@@ -272,7 +256,6 @@ def create_advance_payment_due_reminder(
     client_record_id = _resolve_client_record_id(business.client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=business.client_id,
         client_record_id=client_record_id,
         business_id=business_id,
         reminder_type=ReminderType.ADVANCE_PAYMENT_DUE,
@@ -304,7 +287,6 @@ def create_document_missing_reminder(
     client_record_id = _resolve_client_record_id(business.client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=business.client_id,
         client_record_id=client_record_id,
         business_id=business_id,
         reminder_type=ReminderType.DOCUMENT_MISSING,
@@ -320,22 +302,32 @@ def create_custom_reminder(
     reminder_repo: ReminderRepository,
     business_repo: BusinessRepository,
     *,
-    business_id: int,
+    client_id: Optional[int] = None,
+    business_id: Optional[int] = None,
     target_date: date,
     days_before: int,
     message: str,
     created_by: Optional[int] = None,
 ) -> Reminder:
-    business = get_business_or_raise(business_repo.db, business_id)
+    if business_id is not None:
+        business = get_business_or_raise(business_repo.db, business_id)
+        resolved_client_id = business.client_id
+        # if caller also supplied client_id, verify it matches the business's legal entity
+        if client_id is not None and client_id != resolved_client_id:
+            raise AppError("business_id אינו שייך ל-client_id שסופק", "REMINDER.BUSINESS_CLIENT_MISMATCH")
+    elif client_id is not None:
+        resolved_client_id = client_id
+    else:
+        raise AppError("client_id או business_id נדרש עבור תזכורת מותאמת אישית", "REMINDER.MISSING_ANCHOR")
+
     _require_non_negative_days(days_before)
     if not message or not message.strip():
         raise AppError(CUSTOM_REMINDER_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
 
     send_on = target_date - timedelta(days=days_before)
-    client_record_id = _resolve_client_record_id(business.client_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_client_record_id(resolved_client_id, ClientRecordRepository(reminder_repo.db))
 
     return reminder_repo.create(
-        client_id=business.client_id,
         client_record_id=client_record_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,

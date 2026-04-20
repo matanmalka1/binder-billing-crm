@@ -44,8 +44,7 @@ class ContactType(str, PyEnum):
 class AuthorityContact(Base):
     __tablename__ = "authority_contacts"
 
-    id        = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Contact identity ──────────────────────────────────────────────────────
@@ -65,13 +64,13 @@ class AuthorityContact(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
-        Index("idx_authority_contact_client", "client_id"),
-        Index("idx_authority_contact_type",   "contact_type"),
+        Index("idx_authority_contact_client_record", "client_record_id"),
+        Index("idx_authority_contact_type",          "contact_type"),
     )
 
     def __repr__(self):
         return (
-            f"<AuthorityContact(id={self.id}, client_id={self.client_id}, "
+            f"<AuthorityContact(id={self.id}, client_record_id={self.client_record_id}, "
             f"type='{self.contact_type}', name='{self.name}')>"
         )
 

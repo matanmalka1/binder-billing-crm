@@ -40,7 +40,6 @@ def _business(db, client_id: int) -> Business:
 def _reminder(repo: ReminderRepository, business_id: int, *, status: ReminderStatus = ReminderStatus.PENDING):
     business = repo.db.get(Business, business_id)
     reminder = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
@@ -106,7 +105,6 @@ def test_get_pending_respects_reference_date(test_db):
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
@@ -116,7 +114,6 @@ def test_get_pending_respects_reference_date(test_db):
         message="Today",
     )
     repo.create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
@@ -139,7 +136,6 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
@@ -149,7 +145,6 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
         message="Today Pending",
     )
     repo.create(
-        client_id=crm_client.id,
         client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,

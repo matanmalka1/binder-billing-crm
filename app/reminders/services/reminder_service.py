@@ -7,6 +7,7 @@ from app.annual_reports.repositories.report_repository import AnnualReportReport
 from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services import factory as reminder_factory
@@ -37,22 +38,27 @@ class ReminderService:
 
     def create_vat_filing_reminder(self, **kwargs):
         return reminder_factory.create_vat_filing_reminder(
-            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
+            self.reminder_repo, self.tax_deadline_repo, **kwargs
         )
 
     def create_idle_binder_reminder(self, **kwargs):
         return reminder_factory.create_idle_binder_reminder(
-            self.reminder_repo, self.client_repo, self.binder_repo, **kwargs
+            self.reminder_repo, self.binder_repo, **kwargs
         )
 
     def create_annual_report_deadline_reminder(self, **kwargs):
         return reminder_factory.create_annual_report_deadline_reminder(
-            self.reminder_repo, self.client_repo, self.annual_report_repo, **kwargs
+            self.reminder_repo, self.annual_report_repo, **kwargs
         )
 
-    def create_unpaid_charge_reminder(self, **kwargs):
+    def create_unpaid_charge_reminder(self, *, client_id: int = None, client_record_id: int = None, **kwargs):
+        if client_record_id is None:
+            if client_id is None:
+                raise ValueError("client_id or client_record_id required")
+            client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
         return reminder_factory.create_unpaid_charge_reminder(
-            self.reminder_repo, self.business_repo, self.charge_repo, **kwargs
+            self.reminder_repo, self.business_repo, self.charge_repo,
+            client_record_id=client_record_id, **kwargs
         )
 
     def create_advance_payment_due_reminder(self, **kwargs):

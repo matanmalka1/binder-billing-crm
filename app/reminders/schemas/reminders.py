@@ -74,9 +74,9 @@ class ReminderCreateRequest(BaseModel):
                 raise ValueError("message נדרש עבור תזכורת מסמך חסר")
 
         elif t == ReminderType.CUSTOM:
-            # client_id resolved from business in the factory
-            if not self.business_id:
-                raise ValueError("business_id נדרש עבור תזכורת מותאמת אישית")
+            # client_id is the primary anchor; business_id is optional context
+            if not self.client_id and not self.business_id:
+                raise ValueError("client_id או business_id נדרש עבור תזכורת מותאמת אישית")
             if not self.message:
                 raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
 
@@ -85,9 +85,8 @@ class ReminderCreateRequest(BaseModel):
 
 class ReminderResponse(BaseModel):
     id: int
-    # client_id is always set in the DB — non-optional here reflects that truth.
-    # client_name, client_id_number, and business_name are enriched by the query layer.
-    client_id: int
+    # Populated by the query layer from client_record_id — not an ORM column.
+    client_id: Optional[int] = None
     client_name: Optional[str] = None
     client_id_number: Optional[str] = None
     office_client_number: Optional[int] = None

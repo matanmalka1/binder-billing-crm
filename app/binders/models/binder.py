@@ -5,7 +5,7 @@ from sqlalchemy import (
     Index, Integer, String, Text,
     column, and_,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, synonym
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -38,9 +38,8 @@ class Binder(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # The binder belongs to the client, not to a specific business.
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
     client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    client_id = synonym("client_record_id")
 
     # Globally unique number (the label number on the physical binder).
     binder_number = Column(String, nullable=False)
@@ -79,8 +78,8 @@ class Binder(Base):
     intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index("idx_binder_client", "client_id"),
-        Index("idx_binder_status", "status"),
+        Index("idx_binder_client_record", "client_record_id"),
+        Index("idx_binder_status",        "status"),
         Index("idx_binder_period_start", "period_start"),
         # Unique binder_number among open (IN_OFFICE) non-deleted binders only.
         # CLOSED_IN_OFFICE and RETURNED binders may share a number with a newer IN_OFFICE binder.
@@ -101,5 +100,5 @@ class Binder(Base):
     def __repr__(self):
         return (
             f"<Binder(id={self.id}, number='{self.binder_number}', "
-            f"client_id={self.client_id}, status='{self.status}')>"
+            f"client_record_id={self.client_record_id}, status='{self.status}')>"
         )

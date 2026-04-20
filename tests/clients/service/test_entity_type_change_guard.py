@@ -75,7 +75,6 @@ def _setup(db) -> tuple:
 
 def _add_pending_deadline(db, client, cr) -> TaxDeadline:
     dl = TaxDeadline(
-        client_id=client.id,
         client_record_id=cr.id,
         deadline_type=DeadlineType.VAT,
         period="2026-05",

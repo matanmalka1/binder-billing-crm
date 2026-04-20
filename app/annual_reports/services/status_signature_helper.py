@@ -21,7 +21,7 @@ class AnnualReportSignatureHelper:
 
     def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
         from app.signature_requests.services.signature_request_service import SignatureRequestService
-        businesses = self.business_repo.list_by_client(report.client_id)  # type: ignore[attr-defined]
+        businesses = self.business_repo.list_by_client(report.client_record_id)  # type: ignore[attr-defined]
         business = businesses[0] if businesses else None
         if not business:
             return

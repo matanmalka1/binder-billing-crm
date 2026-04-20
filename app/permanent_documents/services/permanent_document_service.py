@@ -22,7 +22,6 @@ from app.binders.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
 from app.permanent_documents.services.messages import (
-    BUSINESS_CLIENT_MISMATCH_ERROR,
     BUSINESS_NOT_FOUND_ERROR,
     DOCUMENT_NOT_FOUND_ERROR,
     FILE_TOO_LARGE_ERROR,
@@ -58,7 +57,10 @@ class PermanentDocumentService:
         return resolved
 
     def _get_client_record_id(self, client_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        return record.id
 
     def _build_storage_key(
         self,
@@ -89,15 +91,18 @@ class PermanentDocumentService:
         legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
         ClientService(self.db).get_client_or_raise(client_id)
+        client_record = ClientRecordRepository(self.db).get_by_client_id(client_id)
+        if not client_record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         if business_id is not None:
             try:
                 business = get_business_or_raise(self.db, business_id)
             except NotFoundError as exc:
                 raise NotFoundError(BUSINESS_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
-            if legal_entity_id is not None:
-                assert_business_belongs_to_legal_entity(business, legal_entity_id)
-            elif business.client_id != client_id:
-                raise AppError(BUSINESS_CLIENT_MISMATCH_ERROR, "PERMANENT_DOCUMENTS.BUSINESS_CLIENT_MISMATCH", status_code=422)
+            assert_business_belongs_to_legal_entity(
+                business,
+                legal_entity_id if legal_entity_id is not None else client_record.legal_entity_id,
+            )
 
         scope = DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT
         DocumentType(document_type)
@@ -132,7 +137,7 @@ class PermanentDocumentService:
         # Single commit at the end keeps record + superseded_by atomic.
         document = self.document_repo.create(
             client_id=client_id,
-            client_record_id=self._get_client_record_id(client_id),
+            client_record_id=client_record.id,
             business_id=business_id,
             scope=scope,
             document_type=document_type,
@@ -197,7 +202,7 @@ class PermanentDocumentService:
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
         ClientService(self.db).get_client_or_raise(client_id)
-        client_record_id = ClientRecordRepository(self.db).get_by_client_id(client_id).id
+        client_record_id = self._get_client_record_id(client_id)
         return self.document_repo.list_by_client_record(
             client_record_id,
             tax_year=tax_year,
