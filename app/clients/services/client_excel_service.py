@@ -1,4 +1,5 @@
 import tempfile
+from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable
 
@@ -9,6 +10,7 @@ from app.clients.constants import (
     CLIENT_EXCEL_FREEZE_PANES,
     CLIENT_EXCEL_SHEET_TITLE,
     CLIENT_EXPORT_COLUMNS,
+    MAX_CLIENT_IMPORT_UPLOAD_SIZE,
     CLIENT_TEMPLATE_COLUMNS,
     CLIENT_TEMPLATE_SAMPLE_ROW,
 )
@@ -16,6 +18,12 @@ from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 if TYPE_CHECKING:
     from app.clients.services.create_client_service import CreateClientService
+
+
+class ClientExcelImportError(ValueError):
+    def __init__(self, message: str, status_code: int):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class ClientExcelService:
@@ -80,11 +88,10 @@ class ClientExcelService:
             if not any(cell is not None and str(cell).strip() for cell in row):
                 continue
 
-            full_name = str(row[0]).strip() if len(row) > 0 and row[0] is not None else ""
-            business_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
-            id_number = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
-            phone = str(row[3]).strip() if len(row) > 3 and row[3] is not None else None
-            email = str(row[4]).strip() if len(row) > 4 and row[4] is not None else None
+            values = self._template_row_values(row)
+            full_name = values["full_name"]
+            business_name = values["business_name"]
+            id_number = values["id_number"]
 
             if not (full_name and business_name and id_number):
                 errors.append({"row": row_index, "error": "שם מלא, שם עסק ומספר מזהה הם שדות חובה"})
@@ -96,8 +103,8 @@ class ClientExcelService:
                     full_name=full_name,
                     business_name=business_name,
                     id_number=id_number,
-                    phone=phone,
-                    email=email,
+                    phone=values["phone"] or None,
+                    email=values["email"] or None,
                     actor_id=actor_id,
                 )
                 savepoint.commit()
@@ -108,6 +115,47 @@ class ClientExcelService:
 
         return created, errors
 
+    def import_clients_from_upload(
+        self,
+        contents: bytes,
+        create_client_service: "CreateClientService",
+        actor_id: int | None = None,
+        content_length: int | None = None,
+        max_upload_size: int = MAX_CLIENT_IMPORT_UPLOAD_SIZE,
+    ) -> dict:
+        if content_length is not None and content_length > max_upload_size:
+            raise ClientExcelImportError("הקובץ חורג ממגבלת הגודל של 10MB", 413)
+        if len(contents) > max_upload_size:
+            raise ClientExcelImportError("הקובץ חורג ממגבלת הגודל של 10MB", 413)
+
+        try:
+            from openpyxl import load_workbook
+        except ImportError as exc:
+            raise ClientExcelImportError(
+                "הספרייה openpyxl נדרשת לצורך ייבוא לקוחות",
+                500,
+            ) from exc
+
+        try:
+            workbook = load_workbook(BytesIO(contents), data_only=True)
+        except Exception as exc:
+            raise ClientExcelImportError("לא ניתן לקרוא את קובץ האקסל", 400) from exc
+
+        total_rows = max(workbook.active.max_row - 1, 0)
+        created, errors = self.import_clients_from_excel(
+            workbook,
+            create_client_service,
+            actor_id=actor_id,
+        )
+        return {"created": created, "total_rows": total_rows, "errors": errors}
+
     def _value_from_client(self, client: Client, attr: str):
         value = getattr(client, attr, "")
         return value or ""
+
+    def _template_row_values(self, row) -> dict[str, str]:
+        values = {}
+        for index, (field_name, _) in enumerate(CLIENT_TEMPLATE_COLUMNS):
+            raw_value = row[index] if len(row) > index else None
+            values[field_name] = str(raw_value).strip() if raw_value is not None else ""
+        return values

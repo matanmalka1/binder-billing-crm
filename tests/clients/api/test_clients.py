@@ -7,52 +7,12 @@ Valid test IDs: 039337423, 087654321 (verified below), use id_number_type=corpor
 from app.businesses.models.business import Business
 from app.binders.models.binder import Binder
 from app.clients.models.client import Client
-
-
-class _CreateResponse:
-    def __init__(self, response):
-        self._response = response
-        self.status_code = response.status_code
-
-    def json(self):
-        payload = self._response.json()
-        return payload["client"] if self.status_code == 201 else payload
-
-
-def _create_client(client, headers, full_name="Test Client", id_number="000000000"):
-    """Helper: create a client with an initial business."""
-    resp = client.post(
-        "/api/v1/clients",
-        headers=headers,
-        json={
-            "client": {
-                "full_name": full_name,
-                "id_number": id_number,
-                "id_number_type": "corporation",
-                "entity_type": "company_ltd",
-                "phone": "050-1234567",
-                "email": "test@example.com",
-                "address_street": "Main",
-                "address_building_number": "10",
-                "address_apartment": "5",
-                "address_city": "Tel Aviv",
-                "address_zip_code": "1234567",
-                "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
-                "accountant_name": "CPA Name",
-            },
-            "business": {
-                "business_name": f"{full_name} Business",
-                "opened_at": "2026-04-19",
-            },
-        },
-    )
-    return _CreateResponse(resp)
+from tests.clients.helpers import create_client_via_api
 
 
 def test_authenticated_client_creation(client, auth_token):
     """Authenticated user can create a client."""
-    response = _create_client(
+    response = create_client_via_api(
         client,
         {"Authorization": f"Bearer {auth_token}"},
         full_name="John Doe",
@@ -88,9 +48,9 @@ def test_client_creation_duplicate_id_number(client, auth_token):
     """Duplicate id_number returns 409."""
     headers = {"Authorization": f"Bearer {auth_token}"}
 
-    _create_client(client, headers, full_name="Jane Doe", id_number="200000008")
+    create_client_via_api(client, headers, full_name="Jane Doe", id_number="200000008")
 
-    response = _create_client(client, headers, full_name="John Smith", id_number="200000008")
+    response = create_client_via_api(client, headers, full_name="John Smith", id_number="200000008")
 
     assert response.status_code == 409
     data = response.json()

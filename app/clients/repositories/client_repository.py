@@ -120,6 +120,19 @@ class ClientRepository(BaseRepository):
         "status": Client.status,
     }
 
+    def _active_query(self):
+        return self.db.query(Client).filter(Client.deleted_at.is_(None))
+
+    def _apply_list_filters(self, query, search=None, status=None):
+        if search:
+            term = f"%{search.strip()}%"
+            query = query.filter(
+                Client.full_name.ilike(term) | Client.id_number.ilike(term)
+            )
+        if status:
+            query = query.filter(Client.status == status)
+        return query
+
     def list(
         self,
         search: Optional[str] = None,
@@ -130,14 +143,7 @@ class ClientRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Client]:
         """List active clients with optional search, status filter, and sorting."""
-        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
-        if search:
-            term = f"%{search.strip()}%"
-            query = query.filter(
-                Client.full_name.ilike(term) | Client.id_number.ilike(term)
-            )
-        if status:
-            query = query.filter(Client.status == status)
+        query = self._apply_list_filters(self._active_query(), search, status)
         col = self._SORTABLE_FIELDS.get(sort_by, Client.full_name)
         query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
         return self._paginate(query, page, page_size)
@@ -148,14 +154,7 @@ class ClientRepository(BaseRepository):
         status: Optional[ClientStatus] = None,
     ) -> int:
         """Count active clients with optional search and status filter."""
-        query = self.db.query(Client).filter(Client.deleted_at.is_(None))
-        if search:
-            term = f"%{search.strip()}%"
-            query = query.filter(
-                Client.full_name.ilike(term) | Client.id_number.ilike(term)
-            )
-        if status:
-            query = query.filter(Client.status == status)
+        query = self._apply_list_filters(self._active_query(), search, status)
         return query.count()
 
     def search(
@@ -167,7 +166,7 @@ class ClientRepository(BaseRepository):
         page_size: int = 20,
     ) -> tuple[list[Client], int]:
         """Cross-domain search — used by search and tax_deadline domains."""
-        q = self.db.query(Client).filter(Client.deleted_at.is_(None))
+        q = self._active_query()
         if query:
             term = f"%{query.strip()}%"
             q = q.filter(Client.full_name.ilike(term) | Client.id_number.ilike(term))

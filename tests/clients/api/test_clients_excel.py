@@ -9,6 +9,8 @@ from starlette.datastructures import UploadFile
 
 from app.clients.api import clients_excel as clients_excel_api
 
+IDEMPOTENCY_HEADER = {"X-Idempotency-Key": "clients-import-test-key"}
+
 
 def _workbook_bytes(rows: list[list[str | None]]) -> bytes:
     wb = Workbook()
@@ -43,14 +45,14 @@ def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_he
 
     denied = client.post(
         "/api/v1/clients/import",
-        headers=secretary_headers,
+        headers={**secretary_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     assert denied.status_code == 403
 
     ok = client.post(
         "/api/v1/clients/import",
-        headers=advisor_headers,
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     assert ok.status_code == 200
@@ -70,7 +72,7 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers):
 
     response = client.post(
         "/api/v1/clients/import",
-        headers=advisor_headers,
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
 
@@ -87,7 +89,11 @@ def test_import_clients_excel_rejects_large_content_length(client, advisor_heade
 
     response = client.post(
         "/api/v1/clients/import",
-        headers={**advisor_headers, "Content-Length": str(11 * 1024 * 1024)},
+        headers={
+            **advisor_headers,
+            **IDEMPOTENCY_HEADER,
+            "Content-Length": str(11 * 1024 * 1024),
+        },
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
 
@@ -97,7 +103,7 @@ def test_import_clients_excel_rejects_large_content_length(client, advisor_heade
 def test_import_clients_excel_invalid_file(client, advisor_headers):
     response = client.post(
         "/api/v1/clients/import",
-        headers=advisor_headers,
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("bad.xlsx", b"not-an-excel", "application/octet-stream")},
     )
 
@@ -136,7 +142,7 @@ def test_import_clients_excel_rejects_large_body_without_content_length(client, 
 
     response = client.post(
         "/api/v1/clients/import",
-        headers=advisor_headers,
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
 
@@ -159,7 +165,7 @@ def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_heade
 
     response = client.post(
         "/api/v1/clients/import",
-        headers=advisor_headers,
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
         files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
 
@@ -180,7 +186,23 @@ def test_import_clients_excel_rejects_large_body_after_read_without_content_leng
                 request=request,
                 db=test_db,
                 user=user,
+                _x_idempotency_key="direct-call-key",
             )
         )
 
     assert exc.value.status_code == 413
+
+
+def test_import_clients_excel_requires_idempotency_key(client, advisor_headers):
+    payload = _workbook_bytes([
+        ["full_name", "business_name", "id_number"],
+        ["Missing Key", "Missing Key Business", "770000001"],
+    ])
+
+    response = client.post(
+        "/api/v1/clients/import",
+        headers=advisor_headers,
+        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+
+    assert response.status_code == 422

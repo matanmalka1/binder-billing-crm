@@ -64,14 +64,21 @@ class ClientRecordRepository:
         if record:
             return record
 
-        client = (
+        client = self._get_active_legacy_client(client_id)
+        if not client:
+            return None
+
+        legal_entity = self._get_or_create_legacy_legal_entity(client)
+        return self._create_legacy_record(client, legal_entity.id)
+
+    def _get_active_legacy_client(self, client_id: int) -> Optional[Client]:
+        return (
             self.db.query(Client)
             .filter(Client.id == client_id, Client.deleted_at.is_(None))
             .first()
         )
-        if not client:
-            return None
 
+    def _get_or_create_legacy_legal_entity(self, client: Client) -> LegalEntity:
         legal_entity = (
             self.db.query(LegalEntity)
             .filter(
@@ -80,22 +87,26 @@ class ClientRecordRepository:
             )
             .first()
         )
-        if not legal_entity:
-            legal_entity = LegalEntity(
-                id_number=client.id_number,
-                id_number_type=client.id_number_type,
-                entity_type=client.entity_type,
-                vat_reporting_frequency=client.vat_reporting_frequency,
-                vat_exempt_ceiling=client.vat_exempt_ceiling,
-                advance_rate=client.advance_rate,
-                advance_rate_updated_at=client.advance_rate_updated_at,
-            )
-            self.db.add(legal_entity)
-            self.db.flush()
+        if legal_entity:
+            return legal_entity
 
+        legal_entity = LegalEntity(
+            id_number=client.id_number,
+            id_number_type=client.id_number_type,
+            entity_type=client.entity_type,
+            vat_reporting_frequency=client.vat_reporting_frequency,
+            vat_exempt_ceiling=client.vat_exempt_ceiling,
+            advance_rate=client.advance_rate,
+            advance_rate_updated_at=client.advance_rate_updated_at,
+        )
+        self.db.add(legal_entity)
+        self.db.flush()
+        return legal_entity
+
+    def _create_legacy_record(self, client: Client, legal_entity_id: int) -> ClientRecord:
         record = ClientRecord(
             id=client.id,
-            legal_entity_id=legal_entity.id,
+            legal_entity_id=legal_entity_id,
             office_client_number=client.office_client_number,
             accountant_name=client.accountant_name,
             status=client.status,

@@ -1,13 +1,11 @@
-import io
-
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.constants import EXCEL_MEDIA_TYPE, MAX_CLIENT_IMPORT_UPLOAD_SIZE
 from app.clients.schemas.client import ClientImportResponse
-from app.clients.services.client_excel_service import ClientExcelService
+from app.clients.services.client_excel_service import ClientExcelImportError, ClientExcelService
 from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
 
@@ -68,40 +66,25 @@ async def import_clients_from_excel(
     request: Request,
     db: DBSession,
     user: CurrentUser,
+    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
     content_length = request.headers.get("Content-Length")
-    if content_length is not None and int(content_length) > MAX_UPLOAD_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="הקובץ חורג ממגבלת הגודל של 10MB",
-        )
-
-    try:
-        import openpyxl
-    except ImportError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="הספרייה openpyxl נדרשת לצורך ייבוא לקוחות",
-        ) from exc
-
+    parsed_content_length = int(content_length) if content_length is not None else None
     contents = await file.read(MAX_UPLOAD_SIZE + 1)
-    if len(contents) > MAX_UPLOAD_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="הקובץ חורג ממגבלת הגודל של 10MB",
-        )
-    try:
-        workbook = openpyxl.load_workbook(io.BytesIO(contents), data_only=True)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"לא ניתן לקרוא את קובץ האקסל: {exc}",
-        )
-
-    total_rows = max(workbook.active.max_row - 1, 0)
     create_client_service = CreateClientService(db)
     excel_service = ClientExcelService(db)
-    created, errors = excel_service.import_clients_from_excel(workbook, create_client_service, actor_id=user.id)
 
-    return {"created": created, "total_rows": total_rows, "errors": errors}
+    try:
+        return excel_service.import_clients_from_upload(
+            contents,
+            create_client_service,
+            actor_id=user.id,
+            content_length=parsed_content_length,
+            max_upload_size=MAX_UPLOAD_SIZE,
+        )
+    except ClientExcelImportError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+        ) from exc
