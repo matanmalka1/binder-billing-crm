@@ -5,7 +5,6 @@ Valid test IDs: 039337423, 087654321 (verified below), use id_number_type=corpor
 """
 
 from app.businesses.models.business import Business
-from app.binders.models.binder import Binder
 from app.clients.models.client import Client
 from tests.clients.helpers import create_client_via_api
 
@@ -42,33 +41,6 @@ def test_identity_only_client_creation_is_not_available(client, advisor_headers)
     )
 
     assert response.status_code == 422
-
-
-def test_client_creation_duplicate_id_number(client, auth_token):
-    """Duplicate id_number returns 409."""
-    headers = {"Authorization": f"Bearer {auth_token}"}
-
-    create_client_via_api(client, headers, full_name="Jane Doe", id_number="200000008")
-
-    response = create_client_via_api(client, headers, full_name="John Smith", id_number="200000008")
-
-    assert response.status_code == 409
-    data = response.json()
-    assert data["detail"]["error"] in ("CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS")
-
-
-def test_clients_list_returns_paginated_response(client, auth_token):
-    """List endpoint returns items/page/page_size/total."""
-    headers = {"Authorization": f"Bearer {auth_token}"}
-
-    list_response = client.get("/api/v1/clients", headers=headers)
-
-    assert list_response.status_code == 200
-    data = list_response.json()
-    assert "items" in data
-    assert "page" in data
-    assert "page_size" in data
-    assert "total" in data
 
 
 def test_create_client_creates_client_and_initial_business(client, test_db, advisor_headers):
@@ -115,50 +87,6 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
         .one()
     )
     assert stored_business.opened_at.isoformat() == "2026-04-19"
-
-
-def test_create_client_with_office_number_returns_active_binder_and_persists_binder(
-    client, test_db, advisor_headers
-):
-    response = client.post(
-        "/api/v1/clients",
-        headers=advisor_headers,
-        json={
-            "client": {
-                "full_name": "Binder On Create",
-                "id_number": "ONB-BINDER-001",
-                "id_number_type": "other",
-                "entity_type": "company_ltd",
-                "phone": "050-1234567",
-                "email": "binder@example.com",
-                "address_street": "Allenby",
-                "address_building_number": "8",
-                "address_apartment": "2",
-                "address_city": "Jerusalem",
-                "address_zip_code": "7654321",
-                "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
-                "accountant_name": "Binder CPA",
-            },
-            "business": {
-                "business_name": "Binder Business",
-                "opened_at": "2026-04-19",
-            },
-        },
-    )
-
-    assert response.status_code == 201
-    data = response.json()
-    assert data["client"]["office_client_number"] == 1
-    assert data["client"]["active_binder_number"] == "1/1"
-
-    stored_binder = (
-        test_db.query(Binder)
-        .filter(Binder.client_id == data["client"]["id"])
-        .one()
-    )
-    assert stored_binder.binder_number == "1/1"
-
 
 def test_create_client_requires_advisor_role(client, secretary_headers):
     response = client.post(

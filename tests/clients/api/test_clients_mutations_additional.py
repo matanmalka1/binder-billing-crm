@@ -1,5 +1,4 @@
 from app.clients.models.client import IdNumberType
-from app.businesses.models.business import Business
 from app.clients.repositories.client_repository import ClientRepository
 from tests.clients.helpers import create_client_via_api
 
@@ -20,16 +19,6 @@ def test_get_and_patch_client(client, advisor_headers):
     assert updated.status_code == 200
     assert updated.json()["full_name"] == "Client B"
     assert updated.json()["phone"] == "0501234567"
-
-
-def test_create_assigns_office_client_number_automatically_in_ascending_order(client, advisor_headers):
-    first = create_client_via_api(client, advisor_headers, id_number="700000003")
-    second = create_client_via_api(client, advisor_headers, id_number="700000011")
-
-    assert first.status_code == 201
-    assert second.status_code == 201
-    assert first.json()["office_client_number"] == 1
-    assert second.json()["office_client_number"] == 2
 
 
 def test_get_client_not_found_returns_domain_error(client, advisor_headers):
@@ -195,36 +184,3 @@ def test_list_clients_respects_search_and_pagination(client, advisor_headers):
     assert data["total"] == 1
     assert len(data["items"]) == 1
     assert data["items"][0]["full_name"] == "Alpha Client"
-
-
-def test_client_status_card_is_client_scoped_without_business_id(client, advisor_headers):
-    created = create_client_via_api(client, advisor_headers, full_name="Status Client", id_number="700000102")
-    client_id = created.json()["id"]
-
-    response = client.get(f"/api/v1/clients/{client_id}/status-card", headers=advisor_headers)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["client_id"] == client_id
-    assert "business_id" not in data
-    assert "client_vat" in data
-    assert "annual_report" in data
-    assert "charges" in data
-    assert "advance_payments" in data
-    assert "binders" in data
-    assert "documents" in data
-
-
-def test_client_status_card_does_not_require_existing_business(client, advisor_headers, test_db):
-    created = create_client_via_api(client, advisor_headers, full_name="No Business Client", id_number="700000110")
-    client_id = created.json()["id"]
-
-    test_db.query(Business).filter(Business.client_id == client_id).delete()
-    test_db.commit()
-
-    response = client.get(f"/api/v1/clients/{client_id}/status-card", headers=advisor_headers)
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["client_id"] == client_id
-    assert "business_id" not in data

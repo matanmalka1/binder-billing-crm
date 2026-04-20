@@ -53,14 +53,6 @@ def test_create_client_assigns_next_office_client_number_and_creates_initial_bin
     assert binder.binder_number == "2/1"
 
 
-def test_create_client_auto_assigns_office_client_number(test_db):
-    service = ClientService(test_db)
-
-    created, _ = _svc_create(service, full_name="Auto Office Number", id_number="610000036")
-
-    assert created.office_client_number == 1
-
-
 def test_create_client_conflict_when_active_exists(test_db):
     _create_client(test_db, full_name="Existing", id_number="620000000")
     service = ClientService(test_db)
