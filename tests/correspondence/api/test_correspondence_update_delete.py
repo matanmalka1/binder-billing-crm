@@ -1,26 +1,19 @@
 from datetime import date, datetime
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _create_business(test_db, id_number: str = "111222333") -> Business:
-    client = Client(
+    _, business = seed_client_with_business(
+        test_db,
         full_name="Update Test Client",
         id_number=id_number,
-    )
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
         business_name=f"Update Business {id_number}",
         opened_at=date.today(),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
     return business
@@ -29,7 +22,7 @@ def _create_business(test_db, id_number: str = "111222333") -> Business:
 def _add_entry(test_db, client_id: int, business_id: int, user_id: int):
     svc = CorrespondenceService(test_db)
     return svc.add_entry(
-        client_id=client_id,
+        client_record_id=client_id,
         business_id=business_id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Original subject",

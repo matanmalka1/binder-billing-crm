@@ -19,79 +19,50 @@ import app.notes.models.entity_note  # noqa: F401
 from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from app.clients.models.client import Client
 from app.clients.models.legal_entity import LegalEntity  # noqa: F401
 from app.clients.models.client_record import ClientRecord  # noqa: F401
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
+from app.clients.enums import ClientStatus
 from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
-def _ensure_client_identity_graph(session, client: Client) -> None:
-    if any(isinstance(obj, ClientRecord) and obj.id == client.id for obj in session.new):
-        return
-
-    legal_entity = (
-        session.query(LegalEntity)
-        .filter(
-            LegalEntity.id_number == client.id_number,
-            LegalEntity.id_number_type == client.id_number_type,
-        )
-        .first()
-    )
-    if not legal_entity:
-        pending_legal_entities = [
-            obj for obj in session.new
-            if isinstance(obj, LegalEntity)
-            and obj.id_number == client.id_number
-            and obj.id_number_type == client.id_number_type
-        ]
-        if pending_legal_entities:
-            legal_entity = pending_legal_entities[0]
-        else:
-            legal_entity = LegalEntity(
-                id_number=client.id_number,
-                id_number_type=client.id_number_type,
-                entity_type=client.entity_type,
-                vat_reporting_frequency=client.vat_reporting_frequency,
-                vat_exempt_ceiling=client.vat_exempt_ceiling,
-                advance_rate=client.advance_rate,
-                advance_rate_updated_at=client.advance_rate_updated_at,
-                official_name=client.full_name,
-            )
-            session.add(legal_entity)
-            session.flush()
-
-    if legal_entity.id is None:
-        session.flush()
-
-    record = (
+def _ensure_client_identity_graph(session, client) -> None:
+    existing = (
         session.query(ClientRecord)
-        .filter(ClientRecord.id == client.id, ClientRecord.deleted_at.is_(None))
+        .filter(ClientRecord.id == client.id)
         .first()
     )
-    if record:
+    if existing:
         return
-    pending_records = [
-        obj for obj in session.new
-        if isinstance(obj, ClientRecord)
-        and obj.id == client.id
-        and obj.deleted_at is None
-    ]
-    if pending_records:
-        return
-
-    session.add(
-        ClientRecord(
-            id=client.id,
-            legal_entity_id=legal_entity.id,
-            office_client_number=client.office_client_number,
-            accountant_name=client.accountant_name,
-            status=client.status,
-            created_by=client.created_by,
-        )
+    seeded = seed_client_identity(
+        session,
+        full_name=client.full_name,
+        id_number=client.id_number,
+        id_number_type=getattr(client, "id_number_type", IdNumberType.INDIVIDUAL),
+        entity_type=getattr(client, "entity_type", None),
+        phone=getattr(client, "phone", None),
+        email=getattr(client, "email", None),
+        address_street=getattr(client, "address_street", None),
+        address_building_number=getattr(client, "address_building_number", None),
+        address_apartment=getattr(client, "address_apartment", None),
+        address_city=getattr(client, "address_city", None),
+        address_zip_code=getattr(client, "address_zip_code", None),
+        office_client_number=getattr(client, "office_client_number", None),
+        notes=getattr(client, "notes", None),
+        vat_reporting_frequency=getattr(client, "vat_reporting_frequency", None),
+        vat_exempt_ceiling=getattr(client, "vat_exempt_ceiling", None),
+        advance_rate=getattr(client, "advance_rate", None),
+        advance_rate_updated_at=getattr(client, "advance_rate_updated_at", None),
+        accountant_name=getattr(client, "accountant_name", None),
+        status=getattr(client, "status", None) or ClientStatus.ACTIVE,
+        created_by=getattr(client, "created_by", None),
+        deleted_at=getattr(client, "deleted_at", None),
+        client_record_id=client.id,
     )
-    session.flush()
+    client.legal_entity_id = seeded.legal_entity_id
 
 
 @pytest.fixture(scope="function")
@@ -107,45 +78,6 @@ def test_db():
     Base.metadata.create_all(bind=engine)
     
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    @event.listens_for(TestSessionLocal.class_, "before_flush")
-    def _autofill_client_record_ids(session, flush_context, instances):
-        for obj in list(session.new):
-            client_id = getattr(obj, "client_id", None)
-            if client_id is None or not hasattr(obj, "client_record_id"):
-                continue
-            if getattr(obj, "client_record_id", None) is not None:
-                continue
-
-            client_obj = session.get(Client, client_id)
-            if client_obj is None:
-                pending_client = next(
-                    (
-                        pending
-                        for pending in session.new
-                        if isinstance(pending, Client) and pending.id == client_id
-                    ),
-                    None,
-                )
-                client_obj = pending_client
-            if client_obj is None:
-                continue
-
-            _ensure_client_identity_graph(session, client_obj)
-            obj.client_record_id = client_id
-
-    @event.listens_for(TestSessionLocal.class_, "before_commit")
-    def _autocreate_client_identity_graph(session):
-        if session.info.get("_auto_client_graph_running"):
-            return
-        session.info["_auto_client_graph_running"] = True
-        try:
-            session.flush()
-            clients = list(session.query(Client).filter(Client.deleted_at.is_(None)).all())
-            for client in clients:
-                _ensure_client_identity_graph(session, client)
-        finally:
-            session.info.pop("_auto_client_graph_running", None)
 
     db = TestSessionLocal()
     
@@ -167,29 +99,21 @@ def create_client_with_business(test_db):
         opened_at: date | None = None,
         **client_fields,
     ):
-        client = Client(
+        client = seed_client_identity(
             full_name=full_name,
             id_number=id_number,
+            id_number_type=client_fields.pop("id_number_type", IdNumberType.INDIVIDUAL),
             **client_fields,
+            db=test_db,
         )
-        test_db.add(client)
-        test_db.flush()
-        _ensure_client_identity_graph(test_db, client)
-        test_db.flush()
-        legal_entity = (
-            test_db.query(LegalEntity)
-            .filter(LegalEntity.id_number == client.id_number)
-            .first()
-        )
-        business = Business(
-            legal_entity_id=legal_entity.id if legal_entity else None,
+        business = seed_business(
+            test_db,
+            legal_entity_id=client.legal_entity_id,
             business_name=business_name or full_name,
-            status=BusinessStatus.ACTIVE,
             opened_at=opened_at or date.today(),
+            status=BusinessStatus.ACTIVE,
         )
-        test_db.add(business)
         test_db.commit()
-        test_db.refresh(client)
         test_db.refresh(business)
         return client, business
 
@@ -273,27 +197,18 @@ def secretary_headers(secretary_token):
 @pytest.fixture(scope="function")
 def vat_client(test_db):
     """A client fixture for VAT work item tests."""
-    client = Client(
+    client = seed_client_identity(
+        test_db,
         full_name="VAT Test Client",
         id_number="123456789",
+        id_number_type=IdNumberType.INDIVIDUAL,
     )
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    test_db.flush()
-    legal_entity = (
-        test_db.query(LegalEntity)
-        .filter(LegalEntity.id_number == client.id_number)
-        .first()
-    )
-    test_db.add(
-        Business(
-            legal_entity_id=legal_entity.id if legal_entity else None,
-            business_name=client.full_name,
-            status=BusinessStatus.ACTIVE,
-            opened_at=date.today(),
-        )
+    seed_business(
+        test_db,
+        legal_entity_id=client.legal_entity_id,
+        business_name=client.full_name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
     )
     test_db.commit()
-    test_db.refresh(client)
     return client

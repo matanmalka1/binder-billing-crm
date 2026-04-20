@@ -13,10 +13,6 @@ from app.utils.time_utils import utcnow
 class ClientRecordRepository:
     """
     Data access for ClientRecord + LegalEntity.
-
-    Existing Client-based callers continue to use ClientRepository (which
-    delegates to this class after step 5.8). New callers should use this
-    directly. Return-type swap from Client → ClientRecord happens in step 5.6.
     """
 
     def __init__(self, db: Session):

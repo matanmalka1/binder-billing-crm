@@ -1,11 +1,10 @@
-from app.clients.repositories.client_repository import ClientRepository
-from app.common.enums import IdNumberType
 from tests.clients.helpers import create_client_via_api
+from tests.helpers.identity import seed_client_identity
 
 
 def test_get_and_patch_client(client, advisor_headers):
     created = create_client_via_api(client, advisor_headers, full_name="Client A", id_number="700000011")
-    client_id = created.json()["id"]
+    client_id = created.json()["client"]["id"]
 
     fetched = client.get(f"/api/v1/clients/{client_id}", headers=advisor_headers)
     assert fetched.status_code == 200
@@ -31,7 +30,7 @@ def test_get_client_not_found_returns_domain_error(client, advisor_headers):
 
 def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary_headers):
     created = create_client_via_api(client, advisor_headers, id_number="700000029")
-    client_id = created.json()["id"]
+    client_id = created.json()["client"]["id"]
 
     denied = client.delete(f"/api/v1/clients/{client_id}", headers=secretary_headers)
     assert denied.status_code == 403
@@ -52,14 +51,13 @@ def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary
 
 def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, test_db):
     first = create_client_via_api(client, advisor_headers, full_name="Old One", id_number="700000037")
-    first_id = first.json()["id"]
+    first_id = first.json()["client"]["id"]
 
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
-    # Seed an active duplicate directly at repository level so restore can hit CLIENT.CONFLICT.
-    ClientRepository(test_db).create(
+    seed_client_identity(
+        test_db,
         full_name="Active One",
         id_number="700000037",
-        id_number_type=IdNumberType.CORPORATION,
         created_by=1,
     )
 
@@ -71,7 +69,7 @@ def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, 
 
 def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers):
     first = create_client_via_api(client, advisor_headers, full_name="Deleted Source", id_number="700000045")
-    first_id = first.json()["id"]
+    first_id = first.json()["client"]["id"]
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
 
     duplicate = create_client_via_api(client, advisor_headers, full_name="Try Again", id_number="700000045")
@@ -87,7 +85,7 @@ def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
     active = create_client_via_api(client, advisor_headers, full_name="Conflict Active", id_number="700000052")
     deleted = create_client_via_api(client, advisor_headers, full_name="Conflict Deleted", id_number="700000060")
 
-    client.delete(f"/api/v1/clients/{deleted.json()['id']}", headers=advisor_headers)
+    client.delete(f"/api/v1/clients/{deleted.json()['client']['id']}", headers=advisor_headers)
 
     active_info = client.get("/api/v1/clients/conflict/700000052", headers=advisor_headers)
     assert active_info.status_code == 200

@@ -1,28 +1,17 @@
 from datetime import date
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(test_db):
-    client = Client(
+    _client, business = seed_client_with_business(
+        test_db,
         full_name="Charge API Extra",
         id_number="700000001",
     )
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
-    )
-    test_db.add(business)
+    business.status = BusinessStatus.ACTIVE
     test_db.commit()
-    test_db.refresh(client)
-    test_db.refresh(business)
     return business
 
 
@@ -31,7 +20,7 @@ def test_get_charge_as_advisor_and_delete_paths(client, advisor_headers, test_db
     create = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 100.0, "charge_type": "consultation_fee"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 100.0, "charge_type": "consultation_fee"},
     )
     assert create.status_code == 201
     charge_id = create.json()["id"]
@@ -52,12 +41,12 @@ def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_head
     first = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 40.0, "charge_type": "consultation_fee"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 40.0, "charge_type": "consultation_fee"},
     )
     second = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 60.0, "charge_type": "consultation_fee"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 60.0, "charge_type": "consultation_fee"},
     )
     assert first.status_code == 201
     assert second.status_code == 201
@@ -77,7 +66,7 @@ def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_head
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "amount": 10.0,
             "charge_type": "other",
             "period": "2026-13",
@@ -94,7 +83,7 @@ def test_create_charge_supports_bimonthly_period(client, advisor_headers, test_d
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "amount": 150.0,
             "charge_type": "monthly_retainer",
             "period": "2026-03",

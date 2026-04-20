@@ -14,33 +14,24 @@ from app.businesses.models.business import Business, BusinessStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.services.billing_service import BillingService
-from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db):
-    client = Client(full_name="Locking Test Client", id_number="LOCK001")
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
+    _client, business = seed_client_with_business(
+        db,
+        full_name="Locking Test Client",
+        id_number="LOCK001",
     )
-    db.add(business)
+    business.status = BusinessStatus.ACTIVE
     db.commit()
-    db.refresh(client)
-    db.refresh(business)
     return business
 
 
 def _draft_charge(db, business):
     repo = ChargeRepository(db)
     return repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         amount=100.0,

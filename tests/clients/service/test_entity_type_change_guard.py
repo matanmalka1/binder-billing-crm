@@ -9,7 +9,6 @@ from itertools import count
 
 import pytest
 
-from app.clients.models.client import Client
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.services.client_service import ClientService
@@ -20,6 +19,7 @@ from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
 from app.audit.models.entity_audit_log import EntityAuditLog
+from tests.helpers.identity import seed_client_identity
 
 _seq = count(1)
 
@@ -38,43 +38,31 @@ def _make_user(db, role=UserRole.ADVISOR) -> User:
 
 
 def _setup(db) -> tuple:
-    """Returns (client, client_record, advisor_user, secretary_user)."""
+    """Returns (client_record, advisor_user, secretary_user)."""
     idx = next(_seq)
-    le = LegalEntity(
+    seeded = seed_client_identity(
+        db,
+        full_name=f"EntityType Guard {idx}",
         id_number=f"ET{idx:06d}",
         id_number_type=IdNumberType.CORPORATION,
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
-        official_name=f"ET{idx:06d}",
     )
-    db.add(le)
-    db.flush()
+    cr = db.query(ClientRecord).filter(ClientRecord.id == seeded.id).one()
+    le = db.query(LegalEntity).filter(LegalEntity.id == seeded.legal_entity_id).one()
 
-    client = Client(
-        full_name=f"EntityType Guard {idx}",
-        id_number=f"ET{idx:06d}",
-        entity_type=EntityType.OSEK_MURSHE,
-        vat_reporting_frequency=VatType.MONTHLY,
-    )
-    db.add(client)
-    db.flush()
-
-    cr = ClientRecord(id=client.id, legal_entity_id=le.id)
-    db.add(cr)
-
-    biz = Business(legal_entity_id=le.id, business_name=client.full_name, opened_at=date(2026, 1, 1))
+    biz = Business(legal_entity_id=le.id, business_name=seeded.full_name, opened_at=date(2026, 1, 1))
     db.add(biz)
     db.commit()
-    db.refresh(client)
     db.refresh(cr)
 
     advisor = _make_user(db, UserRole.ADVISOR)
     secretary = _make_user(db, UserRole.SECRETARY)
     db.commit()
-    return client, cr, advisor, secretary
+    return cr, advisor, secretary
 
 
-def _add_pending_deadline(db, client, cr) -> TaxDeadline:
+def _add_pending_deadline(db, cr) -> TaxDeadline:
     dl = TaxDeadline(
         client_record_id=cr.id,
         deadline_type=DeadlineType.VAT,
@@ -88,12 +76,12 @@ def _add_pending_deadline(db, client, cr) -> TaxDeadline:
 
 
 def test_secretary_cannot_change_entity_type(test_db):
-    client, cr, advisor, secretary = _setup(test_db)
+    cr, advisor, secretary = _setup(test_db)
     service = ClientService(test_db)
 
     with pytest.raises(ForbiddenError):
         service.update_client(
-            client.id,
+            cr.id,
             actor_id=secretary.id,
             actor_role=UserRole.SECRETARY,
             entity_type=EntityType.COMPANY_LTD,
@@ -101,12 +89,12 @@ def test_secretary_cannot_change_entity_type(test_db):
 
 
 def test_advisor_can_change_entity_type_and_cancels_deadlines(test_db):
-    client, cr, advisor, secretary = _setup(test_db)
-    dl = _add_pending_deadline(test_db, client, cr)
+    cr, advisor, secretary = _setup(test_db)
+    dl = _add_pending_deadline(test_db, cr)
 
     service = ClientService(test_db)
     service.update_client(
-        client.id,
+        cr.id,
         actor_id=advisor.id,
         actor_role=UserRole.ADVISOR,
         entity_type=EntityType.COMPANY_LTD,
@@ -117,11 +105,11 @@ def test_advisor_can_change_entity_type_and_cancels_deadlines(test_db):
 
 
 def test_entity_type_change_logs_audit_entry(test_db):
-    client, cr, advisor, secretary = _setup(test_db)
+    cr, advisor, secretary = _setup(test_db)
 
     service = ClientService(test_db)
     service.update_client(
-        client.id,
+        cr.id,
         actor_id=advisor.id,
         actor_role=UserRole.ADVISOR,
         entity_type=EntityType.COMPANY_LTD,
@@ -130,7 +118,7 @@ def test_entity_type_change_logs_audit_entry(test_db):
     audit_entries = (
         test_db.query(EntityAuditLog)
         .filter(
-            EntityAuditLog.entity_id == client.id,
+            EntityAuditLog.entity_id == cr.id,
             EntityAuditLog.action == "entity_type_changed",
         )
         .all()
@@ -143,12 +131,12 @@ def test_entity_type_change_logs_audit_entry(test_db):
 
 
 def test_non_entity_type_update_does_not_cancel_deadlines(test_db):
-    client, cr, advisor, secretary = _setup(test_db)
-    dl = _add_pending_deadline(test_db, client, cr)
+    cr, advisor, secretary = _setup(test_db)
+    dl = _add_pending_deadline(test_db, cr)
 
     service = ClientService(test_db)
     service.update_client(
-        client.id,
+        cr.id,
         actor_id=advisor.id,
         actor_role=UserRole.ADVISOR,
         full_name="New Name",

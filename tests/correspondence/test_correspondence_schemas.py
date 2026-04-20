@@ -34,7 +34,7 @@ def test_update_schema_allows_none_occurred_at_and_rejects_future():
 def test_list_response_build_calculates_total_pages():
     item = CorrespondenceResponse(
         id=1,
-        client_id=1,
+        client_record_id=1,
         business_id=1,
         contact_id=None,
         correspondence_type=CorrespondenceType.EMAIL,

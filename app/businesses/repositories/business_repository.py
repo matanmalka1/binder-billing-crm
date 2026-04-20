@@ -17,8 +17,8 @@ class BusinessRepository(BusinessRepositoryRead):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def _resolve_legal_entity_id(self, client_id: int) -> int | None:
-        record = ClientRecordRepository(self.db).get_by_id(client_id)
+    def _resolve_legal_entity_id(self, client_record_id: int) -> int | None:
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         return record.legal_entity_id if record else None
 
     # ─── Write ───────────────────────────────────────────────────────────────

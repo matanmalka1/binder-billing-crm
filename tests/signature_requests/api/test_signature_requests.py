@@ -1,27 +1,21 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db) -> Business:
-    client = Client(
+    _client, business = seed_client_with_business(
+        db,
         full_name="Signature Client",
         id_number="999999991",
         email="client@example.com",
         phone="050-1234567",
-    )
-    db.add(client)
-    db.flush()
-    business = Business(
-        client_id=client.id,
         business_name="Signature Business",
         opened_at=date(2026, 1, 1),
     )
-    db.add(business)
     db.commit()
-    db.refresh(business)
     return business
 
 
@@ -33,7 +27,7 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": "Engagement Letter",
             "description": "Please approve",
@@ -82,7 +76,7 @@ def test_signature_request_decline_records_reason(client, test_db, advisor_heade
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": "Decline Test",
             "signer_name": "Decliner",
@@ -120,7 +114,7 @@ def test_send_requires_draft_status(client, test_db, advisor_headers):
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": "Send Twice",
             "signer_name": "Signer",
@@ -151,12 +145,12 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     ids = []
     for i in range(2):
         resp = client.post(
-            "/api/v1/signature-requests",
-            headers=advisor_headers,
-            json={
-                "business_id": business.id,
-                "client_id": business.client_id,
-                "request_type": "custom",
+                "/api/v1/signature-requests",
+                headers=advisor_headers,
+                json={
+                    "business_id": business.id,
+                    "client_record_id": business.client_id,
+                    "request_type": "custom",
                 "title": f"Pending {i}",
                 "signer_name": "Signer",
             },
@@ -175,7 +169,7 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": "Draft",
             "signer_name": "Signer",
@@ -206,7 +200,7 @@ def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_header
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": "Audit Trail Endpoint",
             "signer_name": "Signer",

@@ -1,8 +1,8 @@
-from app.clients.models.client import Client, IdNumberType
+from app.common.enums import IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
 
 
-def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False) -> Client:
+def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False):
     repo = ClientRepository(db)
     client = repo.create(
         full_name=full_name,

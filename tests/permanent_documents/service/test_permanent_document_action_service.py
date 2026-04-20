@@ -3,8 +3,7 @@ from datetime import date
 import pytest
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client, IdNumberType
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import IdNumberType
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
@@ -13,34 +12,22 @@ from app.permanent_documents.models.permanent_document import (
 )
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 from app.permanent_documents.services.permanent_document_action_service import PermanentDocumentActionService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db) -> Business:
-    client = Client(
+    _client, business = seed_client_with_business(
+        db,
         full_name="Perm Action Client",
         id_number="71040001",
         id_number_type=IdNumberType.CORPORATION,
     )
-    db.add(client)
     db.commit()
-    db.refresh(client)
-    client_record = ClientRecordRepository(db).get_by_client_id(client.id)
-
-    business = Business(
-        client_id=client.id,
-        legal_entity_id=client_record.legal_entity_id,
-        business_name="Perm Action Biz",
-        opened_at=date.today(),
-    )
-    db.add(business)
-    db.commit()
-    db.refresh(business)
     return business
 
 
 def _doc(db, business: Business, annual_report_id: int | None = None) -> PermanentDocument:
     return PermanentDocumentRepository(db).create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,

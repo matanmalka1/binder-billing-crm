@@ -4,11 +4,11 @@ from io import BytesIO
 import pytest
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client, IdNumberType
+from app.common.enums import IdNumberType
 from app.core.exceptions import AppError, NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentType
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
+from tests.helpers.identity import seed_client_with_business
 
 
 class _Storage:
@@ -27,23 +27,13 @@ class _Storage:
 
 
 def _business(test_db, *, suffix: str) -> Business:
-    c = Client(
+    _client, b = seed_client_with_business(
+        test_db,
         full_name=f"PermDoc Extra {suffix}",
         id_number=f"7102000{suffix}",
         id_number_type=IdNumberType.CORPORATION,
     )
-    test_db.add(c)
     test_db.commit()
-    test_db.refresh(c)
-
-    b = Business(
-        client_id=c.id,
-        business_name=f"PermDoc Extra Biz {suffix}",
-        opened_at=date.today(),
-    )
-    test_db.add(b)
-    test_db.commit()
-    test_db.refresh(b)
     return b
 
 
@@ -53,7 +43,7 @@ def test_permanent_document_size_mime_and_download_not_found(test_db, test_user)
 
     with pytest.raises(AppError) as size_exc:
         service.upload_document(
-            client_id=b.client_id,
+            client_record_id=b.client_id,
             document_type=DocumentType.ID_COPY,
             file_data=BytesIO(b"x" * (11 * 1024 * 1024)),
             filename="big.pdf",
@@ -66,7 +56,7 @@ def test_permanent_document_size_mime_and_download_not_found(test_db, test_user)
 
     with pytest.raises(AppError) as mime_exc:
         service.upload_document(
-            client_id=b.client_id,
+            client_record_id=b.client_id,
             document_type=DocumentType.ID_COPY,
             file_data=BytesIO(b"ok"),
             filename="bad.bin",
@@ -86,7 +76,7 @@ def test_permanent_document_replace_and_version_increment(test_db, test_user):
     storage = _Storage()
     service = PermanentDocumentService(test_db, storage=storage)
     doc = service.upload_document(
-        client_id=b.client_id,
+        client_record_id=b.client_id,
         document_type=DocumentType.ID_COPY,
         file_data=BytesIO(b"first"),
         filename="id.pdf",

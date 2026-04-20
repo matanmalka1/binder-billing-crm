@@ -2,19 +2,25 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_service import ClientService
 from app.common.enums import IdNumberType
 from app.core.exceptions import ConflictError, NotFoundError
+from app.utils.time_utils import utcnow
+from tests.helpers.identity import seed_client_identity
 
 
-def _create_client(db, *, full_name: str, id_number: str):
-    return ClientRepository(db).create(
+def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False):
+    client = seed_client_identity(
+        db,
         full_name=full_name,
         id_number=id_number,
         id_number_type=IdNumberType.CORPORATION,
         created_by=1,
+        deleted_at=utcnow() if deleted else None,
     )
+    db.flush()
+    return client
 
 
 def _svc_create(service, *, full_name, id_number, actor_id=3):
@@ -67,14 +73,7 @@ def test_create_client_conflict_when_active_exists(test_db):
 
 
 def test_create_client_deleted_exists_conflict(test_db):
-    repo = ClientRepository(test_db)
-    existing = repo.create(
-        full_name="Deleted",
-        id_number="630000008",
-        id_number_type=IdNumberType.CORPORATION,
-        created_by=1,
-    )
-    repo.soft_delete(existing.id, deleted_by=1)
+    _create_client(test_db, full_name="Deleted", id_number="630000008", deleted=True)
 
     service = ClientService(test_db)
     with pytest.raises(ConflictError) as exc:
@@ -151,21 +150,15 @@ def test_restore_raises_when_not_deleted(test_db):
 
 
 def test_restore_raises_when_active_duplicate_exists(test_db):
-    repo = ClientRepository(test_db)
-    deleted = repo.create(
-        full_name="Old",
-        id_number="660000001",
-        id_number_type=IdNumberType.CORPORATION,
-        created_by=1,
+    deleted = _create_client(test_db, full_name="Old", id_number="660000001", deleted=True)
+    test_db.add(
+        ClientRecord(
+            legal_entity_id=deleted.legal_entity_id,
+            office_client_number=99,
+            created_by=1,
+        )
     )
-    repo.soft_delete(deleted.id, deleted_by=1)
-
-    repo.create(
-        full_name="Current Active",
-        id_number="660000001",
-        id_number_type=IdNumberType.CORPORATION,
-        created_by=1,
-    )
+    test_db.flush()
 
     service = ClientService(test_db)
     with pytest.raises(ConflictError) as exc:

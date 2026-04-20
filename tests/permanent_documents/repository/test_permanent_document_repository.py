@@ -4,8 +4,7 @@ from sqlalchemy import String, cast
 from sqlalchemy.dialects import postgresql
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client, IdNumberType
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import IdNumberType
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
     DocumentType,
@@ -16,6 +15,7 @@ from app.permanent_documents.repositories.permanent_document_repository import (
 )
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _user(test_db) -> User:
@@ -33,25 +33,13 @@ def _user(test_db) -> User:
 
 
 def _business(test_db, *, suffix: str) -> Business:
-    client = Client(
+    _client, business = seed_client_with_business(
+        test_db,
         full_name=f"Permanent Client {suffix}",
         id_number=f"7105000{suffix}",
         id_number_type=IdNumberType.CORPORATION,
     )
-    test_db.add(client)
     test_db.commit()
-    test_db.refresh(client)
-    client_record = ClientRecordRepository(test_db).get_by_client_id(client.id)
-
-    business = Business(
-        client_id=client.id,
-        legal_entity_id=client_record.legal_entity_id,
-        business_name=f"Permanent Biz {suffix}",
-        opened_at=date(2024, 1, 1),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
     return business
 
 
@@ -62,7 +50,6 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
     business_b = _business(test_db, suffix="2")
 
     active = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         business_id=business_a.id,
         scope=DocumentScope.CLIENT,
@@ -71,7 +58,6 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
         uploaded_by=user.id,
     )
     deleted = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         business_id=business_a.id,
         scope=DocumentScope.CLIENT,
@@ -80,7 +66,6 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
         uploaded_by=user.id,
     )
     repo.create(
-        client_id=business_b.client_id,
         client_record_id=business_b.client_id,
         business_id=business_b.id,
         scope=DocumentScope.CLIENT,

@@ -1,24 +1,21 @@
 from app.authority_contact.models.authority_contact import ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
-from app.clients.models.client import Client
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from tests.helpers.identity import seed_client_identity
 
 
-def _create_client(test_db) -> Client:
-    client = Client(
+def _create_client(test_db):
+    client = seed_client_identity(
+        test_db,
         full_name="Authority Contact Client",
         id_number="777777777",
     )
-    test_db.add(client)
     test_db.commit()
-    test_db.refresh(client)
     return client
 
 
 def _create_contact(test_db, client_id: int, contact_type: ContactType = ContactType.VAT_BRANCH):
-    client_record_id = ClientRecordRepository(test_db).get_by_client_id(client_id).id
+    client_record_id = client_id
     return AuthorityContactRepository(test_db).create(
-        client_id=client_id,
         client_record_id=client_record_id,
         contact_type=contact_type,
         name="Branch Contact",
@@ -46,7 +43,7 @@ def test_create_authority_contact(client, test_db, advisor_headers):
 
     assert response.status_code == 201
     data = response.json()
-    assert data["client_id"] == crm_client.id
+    assert data["id"] is not None
     assert data["contact_type"] == "vat_branch"
     assert data["name"] == "Ms. VAT"
     assert data["created_at"] is not None

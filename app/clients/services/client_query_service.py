@@ -5,8 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
-from app.clients.repositories.client_repository import LegacyClientView
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
 from app.clients.schemas.client import ClientListStats
 
 
@@ -22,7 +21,7 @@ class ClientQueryService:
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[LegacyClientView], int]:
+    ) -> tuple[list[ClientRecordView], int]:
         """List clients with pagination, optional status filter, and sorting."""
         items = self.client_repo.list(
             search=search,
@@ -43,7 +42,7 @@ class ClientQueryService:
             closed=counts.get(ClientStatus.CLOSED, 0),
         )
 
-    def list_all_clients(self) -> list[LegacyClientView]:
+    def list_all_clients(self) -> list[ClientRecordView]:
         """Return all active clients."""
         return self.client_repo.list_all()
 

@@ -2,26 +2,19 @@ from datetime import date, datetime
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _create_business(test_db, id_number: str = "777777777") -> Business:
-    client = Client(
+    _, business = seed_client_with_business(
+        test_db,
         full_name="Correspondence Client",
         id_number=id_number,
-    )
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
         business_name=f"Business {id_number}",
         opened_at=date.today(),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
     return business
@@ -29,7 +22,7 @@ def _create_business(test_db, id_number: str = "777777777") -> Business:
 
 def _create_contact(test_db, client_id: int) -> AuthorityContact:
     contact = AuthorityContact(
-        client_id=client_id,
+        client_record_id=client_id,
         contact_type=ContactType.ASSESSING_OFFICER,
         name="Assessing Officer",
         phone="0501234567",
@@ -59,7 +52,7 @@ def test_create_correspondence_with_business_context(client, test_db, advisor_he
 
     assert response.status_code == 201
     data = response.json()
-    assert data["client_id"] == business.client_id
+    assert data["client_record_id"] == business.client_id
     assert data["business_id"] == business.id
     assert data["contact_id"] == contact.id
     assert data["correspondence_type"] == "call"
@@ -111,7 +104,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
     service = CorrespondenceService(test_db)
 
     earlier = service.add_entry(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Earlier entry",
@@ -119,7 +112,7 @@ def test_list_correspondence_ordered_desc_and_get_by_id(client, test_db, advisor
         created_by=test_user.id,
     )
     later = service.add_entry(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.MEETING,
         subject="Later entry",

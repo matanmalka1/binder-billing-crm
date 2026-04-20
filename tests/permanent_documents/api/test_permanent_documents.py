@@ -3,10 +3,10 @@ from io import BytesIO
 from itertools import count
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client, IdNumberType
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import IdNumberType
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
+from tests.helpers.identity import seed_client_with_business
 
 
 _client_seq = count(1)
@@ -14,25 +14,13 @@ _client_seq = count(1)
 
 def _business(db) -> Business:
     suffix = next(_client_seq)
-    c = Client(
+    _client, b = seed_client_with_business(
+        db,
         full_name=f"PermDoc Client {suffix}",
         id_number=f"7106000{suffix}",
         id_number_type=IdNumberType.CORPORATION,
     )
-    db.add(c)
     db.commit()
-    db.refresh(c)
-    client_record = ClientRecordRepository(db).get_by_client_id(c.id)
-
-    b = Business(
-        client_id=c.id,
-        legal_entity_id=client_record.legal_entity_id,
-        business_name=f"PermDoc Biz {suffix}",
-        opened_at=date.today(),
-    )
-    db.add(b)
-    db.commit()
-    db.refresh(b)
     return b
 
 
@@ -44,11 +32,11 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", file_bytes, "application/pdf")},
-        data={"client_id": business.client_id, "business_id": business.id, "document_type": "id_copy"},
+        data={"client_record_id": business.client_id, "business_id": business.id, "document_type": "id_copy"},
     )
     assert resp.status_code == 201
     doc = resp.json()
-    assert doc["client_id"] == business.client_id
+    assert doc["client_record_id"] == business.client_id
     assert doc["business_id"] == business.id
     assert doc["document_type"] == "id_copy"
     assert doc["scope"] == "business"
@@ -66,7 +54,6 @@ def test_get_download_url_and_replace_document(client, test_db, advisor_headers)
     business = _business(test_db)
     repo = PermanentDocumentRepository(test_db)
     doc = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
@@ -94,7 +81,6 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = PermanentDocumentRepository(test_db)
     doc = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
@@ -118,11 +104,11 @@ def test_upload_without_business_id_creates_client_owned_document(client, test_d
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", BytesIO(b"content"), "application/pdf")},
-        data={"client_id": business.client_id, "document_type": "id_copy"},
+        data={"client_record_id": business.client_id, "document_type": "id_copy"},
     )
 
     assert resp.status_code == 201
     doc = resp.json()
-    assert doc["client_id"] == business.client_id
+    assert doc["client_record_id"] == business.client_id
     assert doc["business_id"] is None
     assert doc["scope"] == "client"

@@ -1,25 +1,19 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db, suffix: str) -> Business:
-    client = Client(
+    _client, business = seed_client_with_business(
+        db,
         full_name=f"Signature List Client {suffix}",
         id_number=f"SIG-API-{suffix}",
         email=f"sig{suffix}@example.com",
-    )
-    db.add(client)
-    db.flush()
-    business = Business(
-        client_id=client.id,
         business_name=f"Signature List Business {suffix}",
         opened_at=date(2026, 1, 1),
     )
-    db.add(business)
     db.commit()
-    db.refresh(business)
     return business
 
 
@@ -29,7 +23,7 @@ def _create_signature_request(api_client, headers, business: Business, title: st
         headers=headers,
         json={
             "business_id": business.id,
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "request_type": "custom",
             "title": title,
             "signer_name": "Signer",

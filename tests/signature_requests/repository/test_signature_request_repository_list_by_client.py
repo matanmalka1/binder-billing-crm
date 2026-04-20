@@ -1,11 +1,11 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _user(test_db) -> User:
@@ -17,10 +17,14 @@ def _user(test_db) -> User:
 
 
 def _business(test_db, suffix: str) -> Business:
-    business = Business(business_name=f"Sig Repo List Business {suffix}", opened_at=date(2026, 1, 1))
-    test_db.add(business)
+    _client, business = seed_client_with_business(
+        test_db,
+        full_name=f"Sig Repo List Client {suffix}",
+        id_number=f"SIG-L-{suffix}",
+        business_name=f"Sig Repo List Business {suffix}",
+        opened_at=date(2026, 1, 1),
+    )
     test_db.commit()
-    test_db.refresh(business)
     return business
 
 
@@ -28,8 +32,8 @@ def test_signature_request_repository_list_by_business_with_status(test_db):
     repo = SignatureRequestRepository(test_db)
     user = _user(test_db)
     business = _business(test_db, "A")
-    draft = repo.create(client_id=business.client_id, client_record_id=business.client_id, business_id=business.id, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Draft", signer_name="Signer")
-    pending = repo.create(client_id=business.client_id, client_record_id=business.client_id, business_id=business.id, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Pending", signer_name="Signer")
+    draft = repo.create(client_record_id=business.client_id, business_id=business.id, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Draft", signer_name="Signer")
+    pending = repo.create(client_record_id=business.client_id, business_id=business.id, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Pending", signer_name="Signer")
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert {r.id for r in repo.list_by_business(business.id, page=1, page_size=10)} == {draft.id, pending.id}
     pending_only = repo.list_by_business(business.id, status=SignatureRequestStatus.PENDING_SIGNATURE, page=1, page_size=10)

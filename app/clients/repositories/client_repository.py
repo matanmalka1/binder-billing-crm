@@ -19,7 +19,7 @@ from app.common.repositories.base_repository import BaseRepository
 
 
 @dataclass
-class LegacyClientView:
+class ClientRecordView:
     id: int
     client_record_id: int
     full_name: str
@@ -50,7 +50,7 @@ class LegacyClientView:
 
 
 class ClientRepository(BaseRepository):
-    """Legacy-shaped client reads/writes backed by ClientRecord + LegalEntity + Person."""
+    """Client reads/writes backed by ClientRecord + LegalEntity + Person."""
 
     _SORTABLE_FIELDS = {
         "full_name": LegalEntity.official_name,
@@ -76,14 +76,14 @@ class ClientRepository(BaseRepository):
             query = query.filter(ClientRecord.deleted_at.is_(None))
         return query
 
-    def _to_legacy_view(
+    def _to_view(
         self,
         record: ClientRecord,
         legal_entity: LegalEntity,
         person: Optional[Person],
-    ) -> LegacyClientView:
+    ) -> ClientRecordView:
         full_name = person.full_name if person and person.full_name else legal_entity.official_name
-        return LegacyClientView(
+        return ClientRecordView(
             id=record.id,
             client_record_id=record.id,
             full_name=full_name,
@@ -113,12 +113,12 @@ class ClientRepository(BaseRepository):
             restored_by=record.restored_by,
         )
 
-    def _first_view(self, query) -> Optional[LegacyClientView]:
+    def _first_view(self, query) -> Optional[ClientRecordView]:
         row = query.first()
-        return self._to_legacy_view(*row) if row else None
+        return self._to_view(*row) if row else None
 
-    def _list_views(self, query) -> list[LegacyClientView]:
-        return [self._to_legacy_view(*row) for row in query.all()]
+    def _list_views(self, query) -> list[ClientRecordView]:
+        return [self._to_view(*row) for row in query.all()]
 
     def create(
         self,
@@ -140,7 +140,7 @@ class ClientRepository(BaseRepository):
         accountant_name: Optional[str] = None,
         office_client_number: Optional[int] = None,
         created_by: Optional[int] = None,
-    ) -> LegacyClientView:
+    ) -> ClientRecordView:
         legal_entity_repo = LegalEntityRepository(self.db)
         legal_entity = legal_entity_repo.get_by_id_number(id_number_type, id_number)
         if not legal_entity:
@@ -182,24 +182,24 @@ class ClientRepository(BaseRepository):
         )
         return self.get_by_id(record.id)
 
-    def get_by_id(self, client_id: int) -> Optional[LegacyClientView]:
+    def get_by_id(self, client_id: int) -> Optional[ClientRecordView]:
         return self._first_view(
             self._base_query().filter(ClientRecord.id == client_id)
         )
 
-    def get_by_id_including_deleted(self, client_id: int) -> Optional[LegacyClientView]:
+    def get_by_id_including_deleted(self, client_id: int) -> Optional[ClientRecordView]:
         return self._first_view(
             self._base_query(include_deleted=True).filter(ClientRecord.id == client_id)
         )
 
-    def get_active_by_id_number(self, id_number: str) -> list[LegacyClientView]:
+    def get_active_by_id_number(self, id_number: str) -> list[ClientRecordView]:
         return self._list_views(
             self._base_query()
             .filter(LegalEntity.id_number == id_number)
             .order_by(ClientRecord.id.asc())
         )
 
-    def get_deleted_by_id_number(self, id_number: str) -> list[LegacyClientView]:
+    def get_deleted_by_id_number(self, id_number: str) -> list[ClientRecordView]:
         return self._list_views(
             self._base_query(include_deleted=True)
             .filter(
@@ -209,7 +209,7 @@ class ClientRepository(BaseRepository):
             .order_by(ClientRecord.deleted_at.desc())
         )
 
-    def restore(self, client_id: int, restored_by: int) -> Optional[LegacyClientView]:
+    def restore(self, client_id: int, restored_by: int) -> Optional[ClientRecordView]:
         record = ClientRecordRepository(self.db).restore(client_id, restored_by)
         return self.get_by_id_including_deleted(record.id) if record else None
 
@@ -234,7 +234,7 @@ class ClientRepository(BaseRepository):
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
-    ) -> list[LegacyClientView]:
+    ) -> list[ClientRecordView]:
         from sqlalchemy import asc, desc
 
         query = self._apply_list_filters(self._base_query(), search, status)
@@ -257,7 +257,7 @@ class ClientRepository(BaseRepository):
         id_number: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
-    ) -> tuple[list[LegacyClientView], int]:
+    ) -> tuple[list[ClientRecordView], int]:
         q = self._base_query()
         if query:
             term = f"%{query.strip()}%"
@@ -270,19 +270,19 @@ class ClientRepository(BaseRepository):
         items = q.order_by(LegalEntity.official_name.asc()).offset((page - 1) * page_size).limit(page_size)
         return self._list_views(items), total
 
-    def list_by_ids(self, client_ids: list[int]) -> list[LegacyClientView]:
+    def list_by_ids(self, client_ids: list[int]) -> list[ClientRecordView]:
         if not client_ids:
             return []
         return self._list_views(
             self._base_query().filter(ClientRecord.id.in_(client_ids))
         )
 
-    def list_all(self) -> list[LegacyClientView]:
+    def list_all(self) -> list[ClientRecordView]:
         return self._list_views(
             self._base_query().order_by(LegalEntity.official_name.asc())
         )
 
-    def update(self, client_id: int, **fields) -> Optional[LegacyClientView]:
+    def update(self, client_id: int, **fields) -> Optional[ClientRecordView]:
         row = (
             self._base_query()
             .filter(ClientRecord.id == client_id)

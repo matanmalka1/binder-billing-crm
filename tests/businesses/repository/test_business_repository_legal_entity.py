@@ -5,6 +5,7 @@ import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import IdNumberType
 
@@ -82,6 +83,20 @@ def test_get_ids_by_legal_entity_returns_ids(test_db, repo, legal_entity):
     _make_business(test_db, legal_entity.id, deleted=True)
     ids = repo.get_ids_by_legal_entity(legal_entity.id)
     assert set(ids) == {b1.id, b2.id}
+
+
+def test_create_resolves_legal_entity_from_client_record(test_db, repo, legal_entity):
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    test_db.add(client_record)
+    test_db.flush()
+
+    business = repo.create(
+        client_id=client_record.id,
+        opened_at=date(2024, 1, 1),
+        business_name="Created From Record",
+    )
+
+    assert business.legal_entity_id == legal_entity.id
 
 
 # ─── list_by_legal_entity ───────────────────────────────────────────────────

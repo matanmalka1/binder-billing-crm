@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 class AuthorityContactService:
@@ -26,6 +27,8 @@ class AuthorityContactService:
     ) -> AuthorityContact:
         """Add new authority contact for client."""
         contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
+        if not ClientRecordRepository(self.db).get_by_id(client_record_id):
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
 
         return self.contact_repo.create(
             client_record_id=client_record_id,
@@ -61,6 +64,8 @@ class AuthorityContactService:
     ) -> tuple[list[AuthorityContact], int]:
         """List contacts for client with pagination."""
         contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
+        if not ClientRecordRepository(self.db).get_by_id(client_record_id):
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
 
         items = self.contact_repo.list_by_client_record(
             client_record_id, contact_type_enum, page=page, page_size=page_size

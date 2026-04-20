@@ -2,25 +2,17 @@ from datetime import date
 
 from app.businesses.models.business import Business
 from app.businesses.models.business import BusinessStatus
-from app.clients.models.client import Client
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import seed_client_with_business
 
 
 def _create_business(test_db) -> Business:
-    client = Client(full_name="Client B", id_number="222222222")
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
+    _client, business = seed_client_with_business(
+        test_db,
+        full_name="Client B",
+        id_number="222222222",
     )
-    test_db.add(business)
+    business.status = BusinessStatus.ACTIVE
     test_db.commit()
-    test_db.refresh(client)
-    test_db.refresh(business)
     return business
 
 
@@ -28,7 +20,7 @@ def _create_charge_via_api(client, advisor_headers, business) -> int:
     res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 120.0, "charge_type": "consultation_fee"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 120.0, "charge_type": "consultation_fee"},
     )
     assert res.status_code == 201
     return res.json()["id"]

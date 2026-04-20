@@ -1,12 +1,12 @@
 from datetime import date, timedelta
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest, SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
+from tests.helpers.identity import seed_client_with_business
 
 
 def _user(test_db) -> User:
@@ -18,18 +18,19 @@ def _user(test_db) -> User:
 
 
 def _business(test_db, *, suffix: str) -> Business:
-    client = Client(full_name=f"Signature Repo Client {suffix}", id_number=f"SIG-R-{suffix}")
-    test_db.add(client)
-    test_db.flush()
-    test_db.add(business)
+    _client, business = seed_client_with_business(
+        test_db,
+        full_name=f"Signature Repo Client {suffix}",
+        id_number=f"SIG-R-{suffix}",
+        business_name=f"Signature Repo Business {suffix}",
+        opened_at=date(2026, 1, 1),
+    )
     test_db.commit()
-    test_db.refresh(business)
     return business
 
 
 def _create(repo: SignatureRequestRepository, business: Business, *, user_id: int, title: str, annual_report_id: int | None = None):
     return repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user_id,
@@ -80,7 +81,7 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
     repo.update(other.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert [item.id for item in repo.list_pending_by_annual_report(77)] == [pending.id]
     assert draft.id not in [item.id for item in repo.list_pending_by_annual_report(77)]
-    model_repr = repr(SignatureRequest(id=123, client_id=business.client_id, business_id=456, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Repr", signer_name="Signer", status=SignatureRequestStatus.DRAFT))
+    model_repr = repr(SignatureRequest(id=123, client_record_id=business.client_id, business_id=456, created_by=user.id, request_type=SignatureRequestType.CUSTOM, title="Repr", signer_name="Signer", status=SignatureRequestStatus.DRAFT))
     audit_repr = repr(SignatureAuditEvent(id=321, signature_request_id=123, event_type="created", actor_type="advisor"))
     assert "SignatureRequest(id=123" in model_repr
     assert "SignatureAuditEvent(id=321" in audit_repr

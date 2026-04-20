@@ -1,13 +1,3 @@
-class CreateClientResponse:
-    def __init__(self, response):
-        self._response = response
-        self.status_code = response.status_code
-
-    def json(self):
-        payload = self._response.json()
-        return payload["client"] if self.status_code == 201 else payload
-
-
 def make_client_create_payload(
     *,
     full_name="Test Client",
@@ -44,9 +34,8 @@ def make_client_create_payload(
 
 
 def create_client_via_api(client, headers, **payload_overrides):
-    response = client.post(
+    return client.post(
         "/api/v1/clients",
         headers=headers,
         json=make_client_create_payload(**payload_overrides),
     )
-    return CreateClientResponse(response)

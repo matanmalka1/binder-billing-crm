@@ -4,27 +4,20 @@ import pytest
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.services.correspondence_service import CorrespondenceService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db, id_number: str) -> Business:
-    client = Client(
+    _, business = seed_client_with_business(
+        db,
         full_name=f"Correspondence Service {id_number}",
         id_number=id_number,
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
         business_name=f"Business {id_number}",
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
     return business
@@ -32,7 +25,7 @@ def _business(db, id_number: str) -> Business:
 
 def _contact(db, client_id: int, name: str) -> AuthorityContact:
     contact = AuthorityContact(
-        client_id=client_id,
+        client_record_id=client_id,
         contact_type=ContactType.ASSESSING_OFFICER,
         name=name,
         phone="0501111111",
@@ -50,7 +43,7 @@ def test_update_entry_forbidden_when_contact_belongs_to_other_client(test_db, te
 
     service = CorrespondenceService(test_db)
     entry = service.add_entry(
-        client_id=b1.client_id,
+        client_record_id=b1.client_id,
         business_id=b1.id,
         correspondence_type=CorrespondenceType.EMAIL,
         subject="Original",
@@ -68,7 +61,7 @@ def test_update_entry_raises_not_found_when_repo_update_returns_none(test_db, te
     b1 = _business(test_db, "700000003")
     service = CorrespondenceService(test_db)
     entry = service.add_entry(
-        client_id=b1.client_id,
+        client_record_id=b1.client_id,
         business_id=b1.id,
         correspondence_type=CorrespondenceType.CALL,
         subject="Will vanish",
@@ -89,7 +82,7 @@ def test_delete_entry_raises_not_found_when_client_mismatch(test_db, test_user):
     b2 = _business(test_db, "700000005")
     service = CorrespondenceService(test_db)
     entry = service.add_entry(
-        client_id=b1.client_id,
+        client_record_id=b1.client_id,
         business_id=b1.id,
         correspondence_type=CorrespondenceType.MEETING,
         subject="Delete mismatch",
@@ -108,7 +101,7 @@ def test_add_entry_raises_not_found_for_missing_client(test_db, test_user):
 
     with pytest.raises(NotFoundError) as exc_info:
         service.add_entry(
-            client_id=999999,
+            client_record_id=999999,
             correspondence_type=CorrespondenceType.EMAIL,
             subject="Missing client",
             occurred_at=datetime(2026, 1, 4, 9, 0, 0),
@@ -125,7 +118,7 @@ def test_add_entry_rejected_for_business_client_mismatch(test_db, test_user):
 
     with pytest.raises(NotFoundError) as exc_info:
         service.add_entry(
-            client_id=b1.client_id,
+            client_record_id=b1.client_id,
             business_id=b2.id,
             correspondence_type=CorrespondenceType.EMAIL,
             subject="No create",
@@ -142,7 +135,7 @@ def test_get_entry_not_found_for_mismatch_client(test_db, test_user):
     service = CorrespondenceService(test_db)
 
     entry = service.add_entry(
-        client_id=b1.client_id,
+        client_record_id=b1.client_id,
         business_id=b1.id,
         correspondence_type=CorrespondenceType.LETTER,
         subject="Owned by b1",

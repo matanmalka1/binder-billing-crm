@@ -5,7 +5,8 @@ Valid test IDs: 039337423, 087654321 (verified below), use id_number_type=corpor
 """
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from tests.clients.helpers import create_client_via_api
 
 
@@ -20,13 +21,13 @@ def test_authenticated_client_creation(client, auth_token):
 
     assert response.status_code == 201
     data = response.json()
-    assert data["full_name"] == "John Doe"
-    assert data["id_number"] == "100000009"
-    assert data["id_number_type"] == "corporation"
-    assert data["office_client_number"] == 1
-    assert "id" in data
-    assert "created_at" in data
-    assert data["created_at"].endswith("Z")
+    assert data["client"]["full_name"] == "John Doe"
+    assert data["client"]["id_number"] == "100000009"
+    assert data["client"]["id_number_type"] == "corporation"
+    assert data["client"]["office_client_number"] == 1
+    assert "id" in data["client"]
+    assert "created_at" in data["client"]
+    assert data["client"]["created_at"].endswith("Z")
 
 
 def test_identity_only_client_creation_is_not_available(client, advisor_headers):
@@ -146,8 +147,9 @@ def test_create_client_rejects_blank_business_before_creating_client(
 
     assert response.status_code == 422
     assert (
-        test_db.query(Client)
-        .filter(Client.id_number == "ONB-BLANK")
+        test_db.query(ClientRecord)
+        .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+        .filter(LegalEntity.id_number == "ONB-BLANK")
         .count()
         == 0
     )

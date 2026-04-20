@@ -1,25 +1,17 @@
 from datetime import date
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import seed_client_with_business
 
 
 def _create_business(test_db) -> Business:
-    client = Client(full_name="Client A", id_number="111111111")
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
+    _client, business = seed_client_with_business(
+        test_db,
+        full_name="Client A",
+        id_number="111111111",
     )
-    test_db.add(business)
+    business.status = BusinessStatus.ACTIVE
     test_db.commit()
-    test_db.refresh(client)
-    test_db.refresh(business)
     return business
 
 
@@ -29,7 +21,7 @@ def test_advisor_can_create_charge(client, advisor_headers, test_db):
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "business_id": business.id,
             "amount": 100.0,
             "charge_type": "consultation_fee",
@@ -52,7 +44,7 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 50.0, "charge_type": "monthly_retainer"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 50.0, "charge_type": "monthly_retainer"},
     )
     charge_id = create_res.json()["id"]
 
@@ -60,7 +52,7 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
         client.post(
             "/api/v1/charges",
             headers=secretary_headers,
-            json={"client_id": business.client_id, "business_id": business.id, "amount": 1, "charge_type": "other"},
+            json={"client_record_id": business.client_id, "business_id": business.id, "amount": 1, "charge_type": "other"},
         ).status_code
         == 403
     )
@@ -74,7 +66,7 @@ def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, 
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_id": business.client_id, "business_id": business.id, "amount": 75.0, "charge_type": "consultation_fee"},
+        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 75.0, "charge_type": "consultation_fee"},
     )
     charge_id = create_res.json()["id"]
 

@@ -1,13 +1,11 @@
-import logging
 from typing import Optional
 
 from sqlalchemy.orm import Session
-_log = logging.getLogger(__name__)
 
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import IdNumberType
 from app.common.enums import EntityType, VatType
-from app.clients.repositories.client_repository import ClientRepository, LegacyClientView
+from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_lifecycle_service import ClientLifecycleService
@@ -31,6 +29,7 @@ class ClientService:
         self._creation = ClientCreationService(db)
         self._lifecycle = ClientLifecycleService(db)
         self._update = ClientUpdateService(db)
+
     def create_client(
         self,
         full_name: str,
@@ -69,20 +68,19 @@ class ClientService:
             actor_id=actor_id,
         )
 
-    def get_client_or_raise(self, client_id: int) -> LegacyClientView:
-        _log.warning("get_client_or_raise returns a legacy view backed by ClientRecord.")
+    def get_client_or_raise(self, client_id: int) -> ClientRecordView:
         client = self.client_repo.get_by_id(client_id)
         if not client:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         return client
 
-    def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields) -> LegacyClientView:
+    def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields) -> ClientRecordView:
         return self._update.update_client(client_id, actor_id=actor_id, actor_role=actor_role, **fields)
 
     def delete_client(self, client_id: int, actor_id: int) -> None:
         self._lifecycle.delete_client(client_id, actor_id)
 
-    def restore_client(self, client_id: int, actor_id: int) -> LegacyClientView:
+    def restore_client(self, client_id: int, actor_id: int) -> ClientRecordView:
         return self._lifecycle.restore_client(client_id, actor_id)
 
     # ─── Query delegation ────────────────────────────────────────────────────

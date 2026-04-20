@@ -2,30 +2,18 @@ from datetime import date
 from io import BytesIO
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client, IdNumberType
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_client_with_business
 
 
 def _create_business(test_db) -> Business:
-    client = Client(
+    _client, business = seed_client_with_business(
+        test_db,
         full_name="API Test Client",
         id_number="71080001",
         id_number_type=IdNumberType.CORPORATION,
     )
-    test_db.add(client)
     test_db.commit()
-    test_db.refresh(client)
-    client_record = ClientRecordRepository(test_db).get_by_client_id(client.id)
-
-    business = Business(
-        client_id=client.id,
-        legal_entity_id=client_record.legal_entity_id,
-        business_name="API Test Biz",
-        opened_at=date.today(),
-    )
-    test_db.add(business)
-    test_db.commit()
-    test_db.refresh(business)
     return business
 
 
@@ -37,7 +25,7 @@ def test_secretary_can_upload_documents(client, secretary_headers, test_db):
         "/api/v1/documents/upload",
         headers=secretary_headers,
         data={
-            "client_id": b.client_id,
+            "client_record_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },
@@ -46,7 +34,7 @@ def test_secretary_can_upload_documents(client, secretary_headers, test_db):
 
     assert response.status_code == 201
     data = response.json()
-    assert data["client_id"] == b.client_id
+    assert data["client_record_id"] == b.client_id
     assert data["business_id"] == b.id
     assert data["document_type"] == "id_copy"
     assert data["is_present"] is True
@@ -60,7 +48,7 @@ def test_advisor_can_upload_documents(client, advisor_headers, test_db):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         data={
-            "client_id": b.client_id,
+            "client_record_id": b.client_id,
             "business_id": b.id,
             "document_type": "power_of_attorney",
         },
@@ -77,7 +65,7 @@ def test_unauthenticated_cannot_upload_documents(client, test_db):
     response = client.post(
         "/api/v1/documents/upload",
         data={
-            "client_id": b.client_id,
+            "client_record_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },
@@ -95,7 +83,7 @@ def test_invalid_token_cannot_upload_documents(client, test_db):
         "/api/v1/documents/upload",
         headers={"Authorization": "Bearer invalid-token"},
         data={
-            "client_id": b.client_id,
+            "client_record_id": b.client_id,
             "business_id": b.id,
             "document_type": "id_copy",
         },
@@ -116,7 +104,7 @@ def test_secretary_can_view_operational_signals(client, secretary_headers, test_
 
     assert response.status_code == 200
     data = response.json()
-    assert data["client_id"] == b.client_id
+    assert data["client_record_id"] == b.client_id
     assert "missing_documents" in data
 
 

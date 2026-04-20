@@ -2,11 +2,11 @@ from datetime import date, datetime, timedelta
 from itertools import count
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.helpers.identity import seed_client_with_business
 
 
 _client_seq = count(1)
@@ -14,20 +14,13 @@ _client_seq = count(1)
 
 def _business(db) -> Business:
     idx = next(_client_seq)
-    c = Client(
+    _, b = seed_client_with_business(
+        db,
         full_name=f"Correspondence Repo Client {idx}",
-        id_number=f"CRP{idx:09d}",
-    )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-
-    b = Business(
-        client_id=c.id,
+        id_number=f"{idx:09d}",
         business_name=f"Correspondence Repo Business {idx}",
         opened_at=date.today(),
     )
-    db.add(b)
     db.commit()
     db.refresh(b)
     return b
@@ -55,7 +48,6 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
     base = datetime(2026, 1, 1, 12, 0, 0)
 
     first = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.EMAIL,
@@ -64,7 +56,6 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
         created_by=user.id,
     )
     second = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.CALL,
@@ -73,7 +64,6 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
         created_by=user.id,
     )
     third = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         business_id=business_a.id,
         correspondence_type=CorrespondenceType.MEETING,
@@ -82,7 +72,6 @@ def test_list_by_client_paginated_and_soft_delete(test_db):
         created_by=user.id,
     )
     repo.create(
-        client_id=business_b.client_id,
         client_record_id=business_b.client_id,
         business_id=business_b.id,
         correspondence_type=CorrespondenceType.LETTER,
@@ -121,7 +110,6 @@ def test_list_by_client_filters_business_and_sort(test_db):
     base = datetime(2026, 1, 1, 8, 0, 0)
 
     e1 = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
@@ -131,7 +119,6 @@ def test_list_by_client_filters_business_and_sort(test_db):
         contact_id=10,
     )
     e2 = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.CALL,
@@ -141,7 +128,6 @@ def test_list_by_client_filters_business_and_sort(test_db):
         contact_id=20,
     )
     e3 = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,
@@ -174,7 +160,6 @@ def test_update_ignores_unknown_fields(test_db):
     business = _business(test_db)
 
     entry = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         correspondence_type=CorrespondenceType.EMAIL,

@@ -11,20 +11,22 @@ from types import SimpleNamespace
 import pytest
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.signature_request_service import SignatureRequestService
+from tests.helpers.identity import seed_client_with_business
 
 
 def _business(db) -> Business:
-    client = Client(full_name="Signature Lock Client", id_number="999999998")
-    db.add(client)
-    db.flush()
-    db.add(business)
+    _client, business = seed_client_with_business(
+        db,
+        full_name="Signature Lock Client",
+        id_number="999999998",
+        business_name="Signature Lock Business",
+        opened_at=date(2026, 1, 1),
+    )
     db.commit()
-    db.refresh(business)
     return business
 
 
@@ -32,7 +34,6 @@ def _create_draft_request(db, user_id=1):
     business = _business(db)
     repo = SignatureRequestRepository(db)
     return repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user_id,
