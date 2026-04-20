@@ -11,7 +11,7 @@ def ready_attention_item(binder, client) -> dict:
     return {
         "item_type": "ready_for_pickup",
         "binder_id": binder.id,
-        "client_id": client.client_id,
+        "client_id": client.legal_entity_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "description": f"תיק {binder.binder_number} מוכן לאיסוף",
@@ -22,7 +22,7 @@ def unpaid_charge_attention_item(charge, client) -> dict:
     return {
         "item_type": "unpaid_charge",
         "binder_id": None,
-        "client_id": client.client_id,
+        "client_id": client.legal_entity_id,
         "business_id": client.id,
         "client_name": client.full_name,
         "description": f"חיוב לא משולם: {_format_ils_amount(charge.amount)}",

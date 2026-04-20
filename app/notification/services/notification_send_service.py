@@ -10,7 +10,6 @@ from app.core.exceptions import AppError
 from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.clients.models.client import Client
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.models.business import Business
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -71,9 +70,6 @@ class NotificationSendService:
             .first()
         )
 
-    def _get_client_record_id(self, client_record_id: int) -> int:
-        return ClientRecordRepository(self.db).get_by_id(client_record_id).id
-
     def bulk_notify(
         self,
         business_ids: list[int],
@@ -122,7 +118,7 @@ class NotificationSendService:
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
-                    client_record_id=self._get_client_record_id(client.id),
+                    client_record_id=client.id,
                     business_id=business_id,
                     binder_id=binder_id,
                     trigger=trigger,
@@ -148,7 +144,7 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_record_id=self._get_client_record_id(client.id),
+                client_record_id=client.id,
                 business_id=business_id,
                 binder_id=binder_id,
                 trigger=trigger,
@@ -199,7 +195,7 @@ class NotificationSendService:
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
                 n = self.notification_repo.create(
-                    client_record_id=self._get_client_record_id(client.id),
+                    client_record_id=client.id,
                     binder_id=binder_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
@@ -224,7 +220,7 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_record_id=self._get_client_record_id(client.id),
+                client_record_id=client.id,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
@@ -261,7 +257,7 @@ class NotificationSendService:
                 logger.info("send_client_reminder: client %s has no email or not found", client_record_id)
                 return True
             n = self.notification_repo.create(
-                client_record_id=self._get_client_record_id(client_record_id),
+                client_record_id=client_record_id,
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 channel=NotificationChannel.EMAIL,
                 recipient=client.email,

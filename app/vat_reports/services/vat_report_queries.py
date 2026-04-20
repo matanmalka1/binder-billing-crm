@@ -5,7 +5,6 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -77,7 +76,6 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
 
 
 def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_id: int):
-    client_record_id = ClientRecordRepository(work_item_repo.db).get_by_id(client_record_id).id
     return work_item_repo.list_by_client_record(client_record_id)
 
 
