@@ -74,13 +74,18 @@ def add_invoice(
 
     db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
     record = ClientRecordRepository(db).get_by_id(item.client_record_id) if db else None
+    if not record:
+        raise NotFoundError(
+            VAT_ITEM_NOT_FOUND.format(item_id=item_id),
+            "VAT.CLIENT_RECORD_NOT_FOUND",
+        )
     legal_entity = (
         LegalEntityRepository(db).get_by_id(record.legal_entity_id)
         if db and record
         else None
     )
 
-    if record and record.status == ClientStatus.CLOSED:
+    if record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
 
     if business_activity_id is not None:

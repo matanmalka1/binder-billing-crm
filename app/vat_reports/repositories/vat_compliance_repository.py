@@ -6,6 +6,7 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -27,10 +28,12 @@ class VatComplianceRepository:
                 func.count(VatWorkItem.id).label("periods_expected"),
                 func.sum(filed_case).label("periods_filed"),
             )
-            .join(Client, Client.id == VatWorkItem.client_record_id)
+            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
+            .join(Client, Client.id == ClientRecord.legal_entity_id)
             .filter(
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )
             .group_by(VatWorkItem.client_record_id, Client.full_name)
@@ -64,10 +67,12 @@ class VatComplianceRepository:
                 VatWorkItem.period,
                 Client.full_name.label("client_name"),
             )
-            .join(Client, Client.id == VatWorkItem.client_record_id)
+            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
+            .join(Client, Client.id == ClientRecord.legal_entity_id)
             .filter(
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
                 func.substr(VatWorkItem.period, 1, 7) < reference_date.strftime("%Y-%m"),
             )
@@ -85,11 +90,13 @@ class VatComplianceRepository:
                 VatWorkItem.period,
                 VatWorkItem.updated_at,
             )
-            .join(Client, Client.id == VatWorkItem.client_record_id)
+            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
+            .join(Client, Client.id == ClientRecord.legal_entity_id)
             .filter(
                 VatWorkItem.status == VatWorkItemStatus.PENDING_MATERIALS,
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
                 Client.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.updated_at.asc())

@@ -111,6 +111,12 @@ class BusinessService:
         self, business_id: int, client_id: int, user_role: UserRole,
         actor_id: Optional[int] = None, **fields
     ) -> Business:
+        business = self.business_repo.get_by_id(business_id)
+        if business and business.legal_entity_id is None:
+            return self._update.update_business(
+                business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,
+                legal_entity_id=None, **fields
+            )
         client = self.client_repo.get_by_id(client_id)
         record = None
         if client:

@@ -12,7 +12,6 @@ from app.businesses.schemas.business_schemas import (
 from app.businesses.services.business_service import BusinessService
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.businesses.models.business import Business
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.core.exceptions import NotFoundError
@@ -26,14 +25,9 @@ def _assert_business_belongs_to_client(db: Session, business: Business, client_i
         if client
         else None
     )
-    record = (
-        ClientRecordRepository(db).get_by_legal_entity_id(legal_entity.id)
-        if legal_entity
-        else None
-    )
-    if not record:
+    if not legal_entity:
         raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")
-    assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
+    assert_business_belongs_to_legal_entity(business, legal_entity.id)
 
 
 def _to_business_response(business, user_role: UserRole) -> BusinessResponse:

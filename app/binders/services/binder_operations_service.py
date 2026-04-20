@@ -7,6 +7,7 @@ from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
+from app.core.exceptions import NotFoundError
 
 
 class BinderOperationsService:
@@ -34,7 +35,9 @@ class BinderOperationsService:
         page_size: int = 20,
     ) -> tuple[list[Binder], int]:
         """Get all binders for a client with pagination."""
-        client_record_id = ClientRecordRepository(self.db).get_by_id(client_record_id).id
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not client_record:
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         binders = self.repo.list_by_client_record(client_record_id)
         total = len(binders)
         offset = (page - 1) * page_size
@@ -42,7 +45,9 @@ class BinderOperationsService:
 
     def get_active_binder_for_client(self, client_record_id: int) -> Optional["Binder"]:
         """Return the active IN_OFFICE binder for a client, or None."""
-        client_record_id = ClientRecordRepository(self.db).get_by_id(client_record_id).id
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not client_record:
+            return None
         return self.repo.get_active_by_client_record(client_record_id)
 
     def map_active_binders_for_clients(self, client_record_ids: list[int]) -> dict[int, "Binder"]:

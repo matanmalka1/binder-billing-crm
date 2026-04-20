@@ -44,7 +44,7 @@ class BusinessUpdateService:
         business = self._repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        if legal_entity_id is None:
+        if legal_entity_id is None and business.legal_entity_id is not None:
             client = ClientRepository(self._db).get_by_id(client_id)
             legal_entity = (
                 LegalEntityRepository(self._db).get_by_id_number(
@@ -62,7 +62,8 @@ class BusinessUpdateService:
             if not record:
                 raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
             legal_entity_id = record.legal_entity_id
-        assert_business_belongs_to_legal_entity(business, legal_entity_id)
+        if legal_entity_id is not None and business.legal_entity_id is not None:
+            assert_business_belongs_to_legal_entity(business, legal_entity_id)
 
         if "status" in fields and fields["status"] is not None:
             try:

@@ -1,4 +1,5 @@
 from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
@@ -23,7 +24,8 @@ def build_client_events(
 ) -> list[dict]:
     events = []
 
-    client = db.query(Client).filter(Client.id == client_record_id, Client.deleted_at.is_(None)).first()
+    client_record = db.query(ClientRecord).filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)).first()
+    client = db.query(Client).filter(Client.id == client_record.legal_entity_id, Client.deleted_at.is_(None)).first() if client_record else None
     if client:
         events.append(client_created_event(client))
         if client.updated_at and client.updated_at != client.created_at:
