@@ -9,7 +9,10 @@ from app.config import config
 from app.core.exceptions import AppError
 from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
 from app.businesses.models.business import Business
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -50,25 +53,46 @@ class NotificationSendService:
             from_number=config.WHATSAPP_FROM_NUMBER,
         )
 
-    def _get_business_and_client(self, business_id: int) -> tuple[Business, Client] | None:
+    def _get_business_and_client(
+        self, business_id: int
+    ) -> tuple[Business, ClientRecord | None, Person | None] | None:
         row = (
-            self.db.query(Business, Client)
-            .join(Client, Client.id == Business.client_id)
-            .filter(
-                Business.id == business_id,
-                Business.deleted_at.is_(None),
-                Client.deleted_at.is_(None),
+            self.db.query(Business, ClientRecord, PersonLegalEntityLink, Person)
+            .join(LegalEntity, LegalEntity.id == Business.legal_entity_id)
+            .outerjoin(ClientRecord, ClientRecord.legal_entity_id == LegalEntity.id)
+            .outerjoin(
+                PersonLegalEntityLink,
+                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
             )
+            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
+            .filter(Business.id == business_id)
             .first()
         )
-        return row or None
+        if not row:
+            return None
+        business, client_record, _link, person = row
+        if person is None:
+            logger.warning("LegalEntity for business_id=%s has no linked Person", business_id)
+        return business, client_record, person
 
-    def _get_client(self, client_record_id: int) -> Client | None:
-        return (
-            self.db.query(Client)
-            .filter(Client.id == client_record_id, Client.deleted_at.is_(None))
+    def _get_client(self, client_record_id: int) -> Person | None:
+        row = (
+            self.db.query(Person)
+            .join(ClientRecord, ClientRecord.id == client_record_id)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .join(
+                PersonLegalEntityLink,
+                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+            )
+            .join(Person, Person.id == PersonLegalEntityLink.person_id)
+            .filter(ClientRecord.id == client_record_id)
             .first()
         )
+        if row is None:
+            logger.warning("ClientRecord id=%s has no linked Person", client_record_id)
+        return row
 
     def bulk_notify(
         self,
@@ -109,26 +133,30 @@ class NotificationSendService:
             if not row:
                 logger.warning("send_notification: business %s not found", business_id)
                 return True
-            _business, client = row
+            _business, client_record, person = row
 
             subject = _SUBJECTS.get(trigger)
             if subject is None:
                 logger.warning("No subject mapping for trigger=%s, using default", trigger)
                 subject = DEFAULT_NOTIFICATION_SUBJECT
 
-            if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
+            phone = person.phone if person else None
+            email = person.email if person else None
+            cr_id = client_record.id if client_record else None
+
+            if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
-                    client_record_id=client.id,
+                    client_record_id=cr_id,
                     business_id=business_id,
                     binder_id=binder_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
-                    recipient=client.phone,
+                    recipient=phone,
                     content_snapshot=content,
                     triggered_by=triggered_by,
                     severity=severity,
                 )
-                ok, err = self.whatsapp.send(client.phone, content)
+                ok, err = self.whatsapp.send(phone, content)
                 if ok:
                     self.notification_repo.mark_sent(n.id)
                     logger.info("WhatsApp sent | business=%s trigger=%s", business_id, trigger.value)
@@ -136,7 +164,7 @@ class NotificationSendService:
                 self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
                 logger.warning("WhatsApp failed business=%s, falling back to email: %s", business_id, err)
 
-            if not client.email:
+            if not email:
                 logger.info(
                     "send_notification: business %s has no email, skipping trigger=%s",
                     business_id, trigger.value,
@@ -144,17 +172,17 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_record_id=client.id,
+                client_record_id=cr_id,
                 business_id=business_id,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
-                recipient=client.email,
+                recipient=email,
                 content_snapshot=content,
                 triggered_by=triggered_by,
                 severity=severity,
             )
-            success, error = self.email.send(client.email, content, subject=subject)
+            success, error = self.email.send(email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Notification sent | business=%s trigger=%s", business_id, trigger.value)
@@ -183,8 +211,8 @@ class NotificationSendService:
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
         try:
-            client = self._get_client(client_record_id)
-            if not client:
+            person = self._get_client(client_record_id)
+            if not person:
                 logger.warning("send_client_notification: client %s not found", client_record_id)
                 return True
 
@@ -193,18 +221,21 @@ class NotificationSendService:
                 logger.warning("No subject mapping for trigger=%s, using default", trigger)
                 subject = DEFAULT_NOTIFICATION_SUBJECT
 
-            if preferred_channel == "whatsapp" and self.whatsapp.enabled and client.phone:
+            phone = person.phone if person else None
+            email = person.email if person else None
+
+            if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
-                    client_record_id=client.id,
+                    client_record_id=client_record_id,
                     binder_id=binder_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
-                    recipient=client.phone,
+                    recipient=phone,
                     content_snapshot=content,
                     triggered_by=triggered_by,
                     severity=severity,
                 )
-                ok, err = self.whatsapp.send(client.phone, content)
+                ok, err = self.whatsapp.send(phone, content)
                 if ok:
                     self.notification_repo.mark_sent(n.id)
                     logger.info("Client notification sent via WhatsApp | client=%s trigger=%s", client_record_id, trigger.value)
@@ -212,7 +243,7 @@ class NotificationSendService:
                 self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
                 logger.warning("WhatsApp failed client=%s, falling back to email: %s", client_record_id, err)
 
-            if not client.email:
+            if not email:
                 logger.info(
                     "send_client_notification: client %s has no email, skipping trigger=%s",
                     client_record_id, trigger.value,
@@ -220,16 +251,16 @@ class NotificationSendService:
                 return True
 
             n = self.notification_repo.create(
-                client_record_id=client.id,
+                client_record_id=client_record_id,
                 binder_id=binder_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
-                recipient=client.email,
+                recipient=email,
                 content_snapshot=content,
                 triggered_by=triggered_by,
                 severity=severity,
             )
-            success, error = self.email.send(client.email, content, subject=subject)
+            success, error = self.email.send(email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client notification sent | client=%s trigger=%s", client_record_id, trigger.value)
@@ -248,22 +279,36 @@ class NotificationSendService:
         return True
 
     def send_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
-        """Send reminder email directly to a client (legacy: resolves client_record_id internally)."""
+        """Send reminder email directly to a client resolved via ClientRecord → LegalEntity → Person."""
         try:
-            client = self.db.query(Client).filter(
-                Client.id == client_record_id, Client.deleted_at.is_(None)
-            ).first()
-            if not client or not client.email:
+            person = (
+                self.db.query(Person)
+                .join(ClientRecord, ClientRecord.id == client_record_id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .join(
+                    PersonLegalEntityLink,
+                    (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                    & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+                )
+                .join(Person, Person.id == PersonLegalEntityLink.person_id)
+                .filter(ClientRecord.id == client_record_id)
+                .first()
+            )
+            if person is None:
+                logger.warning("send_client_reminder: client_record %s has no linked Person", client_record_id)
+                return True
+            email = person.email
+            if not email:
                 logger.info("send_client_reminder: client %s has no email or not found", client_record_id)
                 return True
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 channel=NotificationChannel.EMAIL,
-                recipient=client.email,
+                recipient=email,
                 content_snapshot=reminder_text,
             )
-            ok, err = self.email.send(client.email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
+            ok, err = self.email.send(email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client reminder sent | client=%s", client_record_id)
@@ -275,27 +320,36 @@ class NotificationSendService:
         return True
 
     def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
-        """Send reminder to a client resolved from client_record_id."""
-        from app.clients.models.client_record import ClientRecord
+        """Send reminder to a client resolved from client_record_id via LegalEntity → Person."""
         try:
-            record = self.db.query(ClientRecord).filter(ClientRecord.id == client_record_id).first()
-            if not record:
-                logger.info("send_client_record_reminder: client_record %s not found", client_record_id)
+            person = (
+                self.db.query(Person)
+                .join(ClientRecord, ClientRecord.id == client_record_id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .join(
+                    PersonLegalEntityLink,
+                    (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                    & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+                )
+                .join(Person, Person.id == PersonLegalEntityLink.person_id)
+                .filter(ClientRecord.id == client_record_id)
+                .first()
+            )
+            if person is None:
+                logger.warning("send_client_record_reminder: client_record %s has no linked Person", client_record_id)
                 return True
-            client = self.db.query(Client).filter(
-                Client.id == record.legal_entity_id, Client.deleted_at.is_(None)
-            ).first()
-            if not client or not client.email:
+            email = person.email
+            if not email:
                 logger.info("send_client_record_reminder: client_record %s has no email", client_record_id)
                 return True
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
                 channel=NotificationChannel.EMAIL,
-                recipient=client.email,
+                recipient=email,
                 content_snapshot=reminder_text,
             )
-            ok, err = self.email.send(client.email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
+            ok, err = self.email.send(email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client record reminder sent | client_record=%s", client_record_id)

@@ -148,18 +148,18 @@ class AnnualReportReportRepository(BaseRepository):
         return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:
-        """Return (AnnualReport, client_record_id, Client.full_name) for status report."""
-        from app.clients.models.client import Client
+        """Return (AnnualReport, client_record_id, LegalEntity.official_name) for status report."""
+        from app.clients.models.legal_entity import LegalEntity
         from app.clients.models.client_record import ClientRecord
 
         return (
-            self.db.query(AnnualReport, AnnualReport.client_record_id, Client.full_name)
+            self.db.query(AnnualReport, AnnualReport.client_record_id, LegalEntity.official_name)
             .join(ClientRecord, ClientRecord.id == AnnualReport.client_record_id)
-            .join(Client, Client.id == ClientRecord.legal_entity_id)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .filter(
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
-                Client.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
             )
             .order_by(AnnualReport.filing_deadline.asc().nulls_last())
             .all()

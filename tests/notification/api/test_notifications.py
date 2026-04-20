@@ -1,8 +1,12 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
+from app.common.enums import EntityType, IdNumberType
 from app.clients.models.client import Client
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 
@@ -15,11 +19,41 @@ def _business(test_db, suffix: str) -> Business:
         phone=f"0500000{suffix}",
     )
     test_db.add(c)
-    test_db.commit()
-    test_db.refresh(c)
+    test_db.flush()
+
+    le = LegalEntity(
+        id_number=f"7300000{suffix}",
+        id_number_type=IdNumberType.INDIVIDUAL,
+        official_name=f"Notification API Client {suffix}",
+    )
+    test_db.add(le)
+    test_db.flush()
+
+    cr = ClientRecord(legal_entity_id=le.id)
+    test_db.add(cr)
+    test_db.flush()
+
+    person = Person(
+        full_name=f"Notification API Client {suffix}",
+        id_number=f"7300000{suffix}",
+        id_number_type=IdNumberType.INDIVIDUAL,
+        email=f"n{suffix}@example.com",
+        phone=f"0500000{suffix}",
+    )
+    test_db.add(person)
+    test_db.flush()
+
+    link = PersonLegalEntityLink(
+        person_id=person.id,
+        legal_entity_id=le.id,
+        role=PersonLegalEntityRole.OWNER,
+    )
+    test_db.add(link)
+    test_db.flush()
 
     b = Business(
         client_id=c.id,
+        legal_entity_id=le.id,
         business_name=f"Notification API Biz {suffix}",
         opened_at=date.today(),
     )

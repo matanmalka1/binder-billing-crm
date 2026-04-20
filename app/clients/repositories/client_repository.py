@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+# Re-export so callers can access new ClientRecord+LegalEntity query methods
+# without changing their import path. The Client-based methods below remain
+# until step 5.8 removes the Client model entirely.
+from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: F401
+
 from typing import Optional
 
 from sqlalchemy import asc, desc, func

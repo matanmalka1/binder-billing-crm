@@ -23,27 +23,29 @@ class BusinessRepositoryRead(BaseRepository):
         search: Optional[str] = None,
     ) -> SAQuery:
         """Shared filter chain for list() and count()."""
-        from app.clients.models.client import Client
+        from app.clients.models.legal_entity import LegalEntity
+        from app.clients.models.client_record import ClientRecord
 
         query = (
             self.db.query(Business)
-            .join(Client, Client.id == Business.client_id)
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+            .join(LegalEntity, LegalEntity.id == Business.legal_entity_id)
             .filter(
                 Business.deleted_at.is_(None),
-                Client.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
             )
         )
         if status:
             query = query.filter(Business.status == status)
         if entity_type:
-            query = query.filter(Client.entity_type == entity_type)
+            query = query.filter(LegalEntity.entity_type == entity_type)
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
                 Business.business_name.ilike(term)
-                | Client.full_name.ilike(term)
-                | Client.id_number.ilike(term)
-                | cast(Client.id, String).ilike(term)
+                | LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
+                | cast(LegalEntity.id, String).ilike(term)
                 | cast(Business.id, String).ilike(term)
             )
         return query
