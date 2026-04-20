@@ -8,6 +8,7 @@ from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _client(db) -> Client:
@@ -16,6 +17,8 @@ def _client(db) -> Client:
         id_number="RMA001",
     )
     db.add(crm_client)
+    db.flush()
+    _ensure_client_identity_graph(db, crm_client)
     db.commit()
     db.refresh(crm_client)
     return crm_client
@@ -70,6 +73,7 @@ def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_he
     business = _business(test_db, crm_client.id, test_user.id)
     reminder = ReminderRepository(test_db).create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -106,6 +110,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
     business = _business(test_db, crm_client.id, test_user.id)
     binder = Binder(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         binder_number="RMA-B",
         period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
@@ -113,6 +118,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
     )
     charge = Charge(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         amount=10,
         charge_type=ChargeType.OTHER,

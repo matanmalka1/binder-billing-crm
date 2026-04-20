@@ -5,6 +5,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_list_service import BinderListService
 from app.clients.models.client import Client
 from app.clients.repositories.client_repository import ClientRepository
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _seed_binders(db, user_id: int):
@@ -17,12 +18,16 @@ def _seed_binders(db, user_id: int):
         id_number="BLS002",
     )
     db.add_all([c1, c2])
+    db.flush()
+    _ensure_client_identity_graph(db, c1)
+    _ensure_client_identity_graph(db, c2)
     db.commit()
     db.refresh(c1)
     db.refresh(c2)
 
     b1 = Binder(
         client_id=c1.id,
+        client_record_id=c1.id,
         binder_number="AA-100",
         period_start=date.today() - timedelta(days=15),
         status=BinderStatus.IN_OFFICE,
@@ -30,6 +35,7 @@ def _seed_binders(db, user_id: int):
     )
     b2 = Binder(
         client_id=c2.id,
+        client_record_id=c2.id,
         binder_number="BB-200",
         period_start=date.today() - timedelta(days=5),
         status=BinderStatus.READY_FOR_PICKUP,
@@ -84,6 +90,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
     c1, _c2, b1, b2 = _seed_binders(test_db, test_user.id)
     returned = Binder(
         client_id=c1.id,
+        client_record_id=c1.id,
         binder_number="AA-300",
         period_start=date.today() - timedelta(days=1),
         status=BinderStatus.RETURNED,
@@ -124,11 +131,14 @@ def test_get_binder_with_client_name_returns_none_for_missing(test_db, test_user
 def test_build_binder_response_handles_null_period_start(test_db, test_user):
     client = Client(full_name="Null Period Client", id_number="BLSNULL")
     test_db.add(client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
     test_db.commit()
     test_db.refresh(client)
 
     binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="NULL-100",
         period_start=None,
         status=BinderStatus.IN_OFFICE,

@@ -5,6 +5,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _user(test_db):
@@ -27,6 +28,8 @@ def _client(test_db, name: str, id_number: str):
         id_number=id_number,
     )
     test_db.add(client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
     test_db.commit()
     test_db.refresh(client)
     return client
@@ -40,12 +43,14 @@ def test_active_queries_and_soft_delete(test_db):
 
     binder_active = repo.create(
         client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="BA-1",
         period_start=date(2024, 3, 1),
         created_by=user.id,
     )
     binder_returned = repo.create(
         client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="BA-2",
         period_start=date(2024, 3, 2),
         created_by=user.id,
@@ -54,6 +59,7 @@ def test_active_queries_and_soft_delete(test_db):
 
     binder_other = repo.create(
         client_id=client_b.id,
+        client_record_id=client_b.id,
         binder_number="BB-1",
         period_start=date(2024, 3, 3),
         created_by=user.id,
@@ -83,12 +89,14 @@ def test_list_active_respects_sort_and_filters(test_db):
 
     older = repo.create(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="BG-1",
         period_start=date(2024, 1, 1),
         created_by=user.id,
     )
     newer = repo.create(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="BG-2",
         period_start=date(2024, 2, 1),
         created_by=user.id,
@@ -111,12 +119,14 @@ def test_list_open_binders_sorts_null_period_start_last(test_db):
 
     with_period = repo.create(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="NULL-1",
         period_start=date(2024, 4, 1),
         created_by=user.id,
     )
     without_period = repo.create(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="NULL-2",
         period_start=None,
         created_by=user.id,

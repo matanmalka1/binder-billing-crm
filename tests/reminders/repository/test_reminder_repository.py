@@ -6,6 +6,7 @@ from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow
+from tests.conftest import _ensure_client_identity_graph
 
 
 _seq = count(1)
@@ -18,6 +19,8 @@ def _client(db) -> Client:
         id_number=f"RMR{idx:03d}",
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -40,6 +43,7 @@ def _create_reminder(repo: ReminderRepository, business_id: int, *, send_on: dat
     business = repo.db.get(Business, business_id)
     return repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=send_on + timedelta(days=5),

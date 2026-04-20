@@ -8,6 +8,7 @@ from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.reminder_service import ReminderService
 from app.core.exceptions import AppError, NotFoundError
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _client(db) -> Client:
@@ -16,6 +17,8 @@ def _client(db) -> Client:
         id_number="333333333",
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -38,6 +41,7 @@ def _reminder(repo: ReminderRepository, business_id: int, *, status: ReminderSta
     business = repo.db.get(Business, business_id)
     reminder = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -103,6 +107,7 @@ def test_get_pending_respects_reference_date(test_db):
     today = date.today()
     repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today,
@@ -112,6 +117,7 @@ def test_get_pending_respects_reference_date(test_db):
     )
     repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today + timedelta(days=5),
@@ -134,6 +140,7 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
     today = date.today()
     repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today,
@@ -143,6 +150,7 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
     )
     repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=today + timedelta(days=2),

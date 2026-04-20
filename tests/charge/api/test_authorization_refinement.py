@@ -1,8 +1,8 @@
 from datetime import date
 
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
+from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client import Client
+from tests.conftest import _ensure_client_identity_graph
 
 
 def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_headers, test_db):
@@ -12,9 +12,18 @@ def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_
         id_number="700000002",
     )
     test_db.add(test_client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, test_client)
+    test_business = Business(
+        client_id=test_client.id,
+        business_name=test_client.full_name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+    )
+    test_db.add(test_business)
     test_db.commit()
     test_db.refresh(test_client)
-    test_business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
+    test_db.refresh(test_business)
 
     create_response = client.post(
         "/api/v1/charges",

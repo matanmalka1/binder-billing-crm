@@ -7,6 +7,7 @@ from app.binders.services.binder_intake_service import BinderIntakeService
 from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client import Client
 from app.core.exceptions import AppError
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _client(db, id_number: str, office_client_number: int) -> Client:
@@ -16,6 +17,8 @@ def _client(db, id_number: str, office_client_number: int) -> Client:
         office_client_number=office_client_number,
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -68,6 +71,7 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     _business(test_db, client.id)
     existing = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="302/1",
         period_start=date.today(),
         created_by=test_user.id,
@@ -96,6 +100,7 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
     _business(test_db, client.id)
     existing = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="307/1",
         period_start=None,
         created_by=test_user.id,
@@ -146,6 +151,7 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
 
     existing = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="304/1",
         period_start=date.today(),
         created_by=test_user.id,
@@ -173,6 +179,7 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
 
     old_binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="305/1",
         period_start=date(2026, 1, 1),
         period_end=date(2026, 2, 28),
@@ -181,6 +188,7 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
     )
     active_binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="305/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,
@@ -213,6 +221,7 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
 
     closed_binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="306/1",
         period_start=date(2026, 1, 1),
         period_end=date(2026, 1, 31),
@@ -221,6 +230,7 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
     )
     active_binder = Binder(
         client_id=client.id,
+        client_record_id=client.id,
         binder_number="306/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,

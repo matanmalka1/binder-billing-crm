@@ -1,13 +1,13 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
+from app.businesses.models.business import Business, BusinessStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _user(test_db):
@@ -27,9 +27,18 @@ def _user(test_db):
 def _business(test_db, name: str, id_number: str):
     client = Client(full_name=name, id_number=id_number)
     test_db.add(client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
+    business = Business(
+        client_id=client.id,
+        business_name=name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+    )
+    test_db.add(business)
     test_db.commit()
     test_db.refresh(client)
-    business = test_db.query(Business).filter(Business.client_id == client.id).first()
+    test_db.refresh(business)
     return business
 
 
@@ -41,6 +50,7 @@ def test_list_count_and_soft_delete(test_db):
 
     draft = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
@@ -48,6 +58,7 @@ def test_list_count_and_soft_delete(test_db):
     )
     paid = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("200.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -57,6 +68,7 @@ def test_list_count_and_soft_delete(test_db):
 
     other = repo.create(
         client_id=other_business.client_id,
+        client_record_id=other_business.client_id,
         business_id=other_business.id,
         amount=Decimal("50.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
@@ -89,18 +101,21 @@ def test_get_aging_buckets_includes_only_issued_and_not_deleted(test_db):
 
     current = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.CONSULTATION_FEE,
     )
     old = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("250.00"),
         charge_type=ChargeType.MONTHLY_RETAINER,
     )
     draft = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("999.00"),
         charge_type=ChargeType.OTHER,

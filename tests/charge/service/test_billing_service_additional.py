@@ -3,23 +3,29 @@ from datetime import date
 import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.common.enums import EntityType
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from app.charge.services.charge_query_service import ChargeQueryService
 from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _business(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE):
     client = Client(full_name="Billing Extra Client", id_number=f"BSE{status.value}")
     test_db.add(client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        status=status,
+        opened_at=date.today(),
+    )
+    test_db.add(business)
     test_db.commit()
     test_db.refresh(client)
-    business = test_db.query(Business).filter(Business.client_id == client.id).first()
-    business.status = status
-    test_db.commit()
     test_db.refresh(business)
     return business
 

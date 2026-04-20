@@ -20,6 +20,7 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.models.tax_deadline import DeadlineType
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _client(db) -> Client:
@@ -28,6 +29,8 @@ def _client(db) -> Client:
         id_number="RMF001",
     )
     db.add(crm_client)
+    db.flush()
+    _ensure_client_identity_graph(db, crm_client)
     db.commit()
     db.refresh(crm_client)
     return crm_client
@@ -54,6 +57,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
 
     tax_deadline = TaxDeadlineRepository(test_db).create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
     )
@@ -71,6 +75,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
 
     binder = Binder(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         binder_number="BF-1",
         period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
@@ -92,6 +97,7 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
 
     charge = Charge(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         amount=10,
         charge_type=ChargeType.OTHER,
@@ -179,6 +185,7 @@ def test_tax_deadline_factory_not_found_and_negative_days(test_db):
 
     existing = tax_repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
     )
@@ -202,6 +209,7 @@ def test_idle_binder_factory_rejects_negative_days(test_db, test_user):
 
     binder = Binder(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         binder_number="BF-NEG",
         period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
@@ -243,6 +251,7 @@ def test_unpaid_charge_factory_not_found_and_negative_days(test_db):
 
     charge = Charge(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         amount=55,
         charge_type=ChargeType.OTHER,

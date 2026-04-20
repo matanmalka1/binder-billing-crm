@@ -14,6 +14,7 @@ from app.clients.models.client import Client
 from app.common.enums import VatType
 from app.core.exceptions import AppError
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _client(db, suffix: str, office_client_number: int) -> Client:
@@ -23,6 +24,8 @@ def _client(db, suffix: str, office_client_number: int) -> Client:
         office_client_number=office_client_number,
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -57,6 +60,7 @@ def _annual_report(db, client_id: int, year: int) -> AnnualReport:
 def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkItem:
     item = VatWorkItem(
         client_id=client_id,
+        client_record_id=client_id,
         created_by=created_by,
         period=period,
         period_type=VatType.MONTHLY,
@@ -70,6 +74,7 @@ def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkI
 def _binder(db, client_id: int, number: str, created_by: int, status: BinderStatus = BinderStatus.IN_OFFICE) -> Binder:
     binder = Binder(
         client_id=client_id,
+        client_record_id=client_id,
         binder_number=number,
         period_start=date(2026, 1, 1),
         created_by=created_by,

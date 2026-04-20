@@ -14,11 +14,14 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_service import BinderService
 from app.clients.models.client import Client
 from app.core.exceptions import AppError
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _create_client(db):
     client = Client(full_name="Locking Binder Client", id_number="BINLOCK001")
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -28,6 +31,7 @@ def _create_binder(db, client_id, status=BinderStatus.IN_OFFICE):
     repo = BinderRepository(db)
     binder = repo.create(
         client_id=client_id,
+        client_record_id=client_id,
         binder_number=f"BIN-LOCK-{client_id}",
         period_start=date(2024, 1, 1),
         created_by=1,

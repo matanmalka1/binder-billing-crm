@@ -7,6 +7,7 @@ from app.binders.repositories.binder_repository_extensions import BinderReposito
 from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from tests.conftest import _ensure_client_identity_graph
 
 
 _client_seq = count(1)
@@ -33,6 +34,8 @@ def _client(db) -> Client:
         id_number=f"BER{idx:03d}",
     )
     db.add(c)
+    db.flush()
+    _ensure_client_identity_graph(db, c)
     db.commit()
     db.refresh(c)
     return c
@@ -47,24 +50,28 @@ def test_open_and_client_queries(test_db):
 
     old = base_repo.create(
         client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="BER-001",
         period_start=date(2026, 1, 1),
         created_by=user.id,
     )
     newer = base_repo.create(
         client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="BER-002",
         period_start=date(2026, 2, 1),
         created_by=user.id,
     )
     returned = base_repo.create(
         client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="BER-003",
         period_start=date(2026, 3, 1),
         created_by=user.id,
     )
     latest_other_client = base_repo.create(
         client_id=client_b.id,
+        client_record_id=client_b.id,
         binder_number="BER-004",
         period_start=date(2026, 4, 1),
         created_by=user.id,

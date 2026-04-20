@@ -1,16 +1,27 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
+from app.businesses.models.business import BusinessStatus
 from app.clients.models.client import Client
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _create_business(test_db) -> Business:
     client = Client(full_name="Client B", id_number="222222222")
     test_db.add(client)
+    test_db.flush()
+    _ensure_client_identity_graph(test_db, client)
+    business = Business(
+        client_id=client.id,
+        business_name=client.full_name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+    )
+    test_db.add(business)
     test_db.commit()
     test_db.refresh(client)
-    return test_db.query(Business).filter(Business.client_id == client.id).first()
+    test_db.refresh(business)
+    return business
 
 
 def _create_charge_via_api(client, advisor_headers, business) -> int:

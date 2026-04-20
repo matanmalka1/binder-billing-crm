@@ -99,6 +99,32 @@ def test_db():
     
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+    @event.listens_for(TestSessionLocal.class_, "before_flush")
+    def _autofill_client_record_ids(session, flush_context, instances):
+        for obj in list(session.new):
+            client_id = getattr(obj, "client_id", None)
+            if client_id is None or not hasattr(obj, "client_record_id"):
+                continue
+            if getattr(obj, "client_record_id", None) is not None:
+                continue
+
+            client_obj = session.get(Client, client_id)
+            if client_obj is None:
+                pending_client = next(
+                    (
+                        pending
+                        for pending in session.new
+                        if isinstance(pending, Client) and pending.id == client_id
+                    ),
+                    None,
+                )
+                client_obj = pending_client
+            if client_obj is None:
+                continue
+
+            _ensure_client_identity_graph(session, client_obj)
+            obj.client_record_id = client_id
+
     @event.listens_for(TestSessionLocal.class_, "before_commit")
     def _autocreate_client_identity_graph(session):
         if session.info.get("_auto_client_graph_running"):

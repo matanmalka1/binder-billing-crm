@@ -4,6 +4,7 @@ from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_operations_service import BinderOperationsService
 from app.clients.models.client import Client
+from tests.conftest import _ensure_client_identity_graph
 
 
 def _create_client(db, name: str, id_number: str) -> Client:
@@ -12,6 +13,8 @@ def _create_client(db, name: str, id_number: str) -> Client:
         id_number=id_number,
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -21,6 +24,7 @@ def _create_binder(db, client_id: int, user_id: int, number: str, period_start: 
     repo = BinderRepository(db)
     binder = repo.create(
         client_id=client_id,
+        client_record_id=client_id,
         binder_number=number,
         period_start=period_start,
         created_by=user_id,

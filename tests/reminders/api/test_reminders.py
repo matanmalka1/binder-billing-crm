@@ -9,6 +9,7 @@ from app.clients.models.client import Client
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
+from tests.conftest import _ensure_client_identity_graph
 
 
 _client_seq = count(1)
@@ -20,6 +21,8 @@ def _client(db) -> Client:
         id_number=f"22222222{next(_client_seq)}",
     )
     db.add(client)
+    db.flush()
+    _ensure_client_identity_graph(db, client)
     db.commit()
     db.refresh(client)
     return client
@@ -43,6 +46,7 @@ def _tax_deadline(db, business_id: int) -> TaxDeadline:
     business = db.get(Business, business_id)
     deadline = TaxDeadline(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         status=TaxDeadlineStatus.PENDING,
@@ -56,6 +60,7 @@ def _tax_deadline(db, business_id: int) -> TaxDeadline:
 def _binder(db, client_id: int, user_id: int) -> Binder:
     binder = Binder(
         client_id=client_id,
+        client_record_id=client_id,
         binder_number="B-1",
         period_start=date.today(),
         status=BinderStatus.IN_OFFICE,
@@ -70,6 +75,7 @@ def _binder(db, client_id: int, user_id: int) -> Binder:
 def _charge(db, business: Business) -> Charge:
     charge = Charge(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         amount=Decimal("100.00"),
         charge_type=ChargeType.OTHER,
@@ -129,6 +135,7 @@ def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_h
     repo = ReminderRepository(test_db)
     reminder = repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -157,6 +164,7 @@ def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_
     repo = ReminderRepository(test_db)
     repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -166,6 +174,7 @@ def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_
     )
     canceled = repo.create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -176,6 +185,7 @@ def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_
     repo.update_status(canceled.id, ReminderStatus.CANCELED, canceled_at=date.today())
     repo.create(
         client_id=other_client.id,
+        client_record_id=other_client.id,
         business_id=other_business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -223,6 +233,7 @@ def test_get_reminder_success_returns_200(client, test_db, advisor_headers, test
     business = _business(test_db, crm_client.id, test_user.id)
     reminder = ReminderRepository(test_db).create(
         client_id=crm_client.id,
+        client_record_id=crm_client.id,
         business_id=business.id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
