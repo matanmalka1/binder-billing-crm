@@ -62,7 +62,6 @@ class DashboardOverviewService:
             binder_repo=self.binder_repo,
             charge_repo=self.charge_repo,
             business_repo=self.business_repo,
-            client_repo=self.client_repo,
             vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
             user_role=user_role,

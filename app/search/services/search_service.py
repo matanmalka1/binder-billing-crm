@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.repositories.binder_repository import BinderRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
 from app.search.schemas.search import DocumentSearchResult
@@ -23,6 +24,7 @@ class SearchService:
         self.db = db
         self.client_repo = ClientRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
+        self.business_repo = BusinessRepository(db)
         self.binder_repo = BinderRepository(db)
 
     def search(
@@ -98,17 +100,22 @@ class SearchService:
                 page=1,
                 page_size=_MIXED_SEARCH_BINDER_LIMIT,
             )
-            binder_client_ids = [b.client_id for b in binders]
-            binder_client_map = {c.id: c for c in self.client_repo.list_by_ids(binder_client_ids)}
+            binder_cr_ids = [b.client_record_id for b in binders]
+            records = self.client_record_repo.list_by_ids(binder_cr_ids)
+            cr_to_legal = {r.id: r.legal_entity_id for r in records}
+            legal_entity_ids = list(cr_to_legal.values())
+            businesses = self.business_repo.list_by_legal_entity_ids(legal_entity_ids)
+            legal_to_business = {b.legal_entity_id: b for b in businesses}
             for binder in binders:
-                client = binder_client_map.get(binder.client_id)
+                legal_id = cr_to_legal.get(binder.client_record_id)
+                business = legal_to_business.get(legal_id) if legal_id else None
                 results.append(
                     {
                         "result_type": "binder",
-                        "client_id": binder.client_id,
-                        "office_client_number": client.office_client_number if client else None,
-                        "client_name": client.full_name if client else "לא ידוע",
-                        "id_number": client.id_number if client else None,
+                        "client_id": binder.client_record_id,
+                        "office_client_number": None,
+                        "client_name": business.full_name if business else "לא ידוע",
+                        "id_number": None,
                         "client_status": None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,

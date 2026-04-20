@@ -64,6 +64,15 @@ class ClientRecordRepository:
             .first()
         )
 
+    def list_by_ids(self, client_record_ids: list[int]) -> list[ClientRecord]:
+        if not client_record_ids:
+            return []
+        return (
+            self.db.query(ClientRecord)
+            .filter(ClientRecord.id.in_(client_record_ids), ClientRecord.deleted_at.is_(None))
+            .all()
+        )
+
     def update_status(self, client_record_id: int, status: ClientStatus) -> Optional[ClientRecord]:
         record = (
             self.db.query(ClientRecord)

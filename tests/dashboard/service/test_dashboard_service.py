@@ -5,11 +5,10 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.dashboard.services.dashboard_service import DashboardService
 
 
-def _binder(db, client_id: int, user_id: int, number: str, status: BinderStatus):
+def _binder(db, client_record_id: int, user_id: int, number: str, status: BinderStatus):
     repo = BinderRepository(db)
     binder = repo.create(
-        client_id=client_id,
-        client_record_id=client_id,
+        client_record_id=client_record_id,
         binder_number=number,
         period_start=date(2024, 1, 5),
         created_by=user_id,

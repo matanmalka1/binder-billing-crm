@@ -7,7 +7,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
     docs = [
         SimpleNamespace(
             id=1,
-            client_id=100,
+            client_record_id=100,
             business_id=10,
             document_type="id_copy",
             original_filename="id.pdf",
@@ -16,7 +16,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
         ),
         SimpleNamespace(
             id=2,
-            client_id=100,
+            client_record_id=100,
             business_id=10,
             document_type="power_of_attorney",
             original_filename="poa.pdf",
@@ -25,7 +25,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
         ),
         SimpleNamespace(
             id=3,
-            client_id=101,
+            client_record_id=101,
             business_id=11,
             document_type="engagement_agreement",
             original_filename="ea.pdf",
@@ -45,6 +45,7 @@ def test_document_search_builds_results_and_caches_client_lookup(test_db):
     svc = DocumentSearchService(test_db)
     svc.doc_repo = SimpleNamespace(search_by_query=lambda query, limit: docs)
     svc.business_repo = SimpleNamespace(get_by_id=_get_business)
+    svc.client_record_repo = SimpleNamespace(get_by_id=lambda cr_id: None)
 
     results = svc.search_documents("doc")
     assert len(results) == 3

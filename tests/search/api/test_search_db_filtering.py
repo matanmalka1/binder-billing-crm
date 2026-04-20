@@ -3,10 +3,9 @@ from datetime import date
 from app.binders.models.binder import Binder, BinderStatus
 
 
-def _make_binder(db, client_id: int, binder_number: str, user_id: int) -> Binder:
+def _make_binder(db, client_record_id: int, binder_number: str, user_id: int) -> Binder:
     b = Binder(
-        client_id=client_id,
-        client_record_id=client_id,
+        client_record_id=client_record_id,
         binder_number=binder_number,
         period_start=date.today(),
         created_by=user_id,

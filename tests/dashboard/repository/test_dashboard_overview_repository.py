@@ -39,14 +39,14 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     test_db.commit()
 
     binder_active = Binder(
-        client_id=client_a.id,
+        client_record_id=client_a.id,
         binder_number="B-1",
         period_start=date(2024, 3, 1),
         status=BinderStatus.IN_OFFICE,
         created_by=user.id,
     )
     binder_returned = Binder(
-        client_id=client_b.id,
+        client_record_id=client_b.id,
         binder_number="B-2",
         period_start=date(2024, 3, 2),
         returned_at=date(2024, 3, 5),

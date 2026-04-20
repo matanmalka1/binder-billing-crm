@@ -55,7 +55,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
 
     reports = [
         AnnualReport(
-            client_id=clients[0].id,
+            client_record_id=clients[0].id,
             created_by=creator_id,
             tax_year=tax_year,
             client_type=ClientTypeForReport.CORPORATION,
@@ -66,7 +66,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             tax_due=Decimal("50.00"),
         ),
         AnnualReport(
-            client_id=clients[1].id,
+            client_record_id=clients[1].id,
             created_by=creator_id,
             tax_year=tax_year,
             client_type=ClientTypeForReport.INDIVIDUAL,
@@ -77,7 +77,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             tax_due=Decimal("75.00"),
         ),
         AnnualReport(
-            client_id=clients[2].id,
+            client_record_id=clients[2].id,
             created_by=creator_id,
             tax_year=tax_year,
             client_type=ClientTypeForReport.SELF_EMPLOYED,
@@ -88,7 +88,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             tax_due=Decimal("0.00"),
         ),
         AnnualReport(
-            client_id=clients[3].id,
+            client_record_id=clients[3].id,
             created_by=creator_id,
             tax_year=tax_year,
             client_type=ClientTypeForReport.INDIVIDUAL,

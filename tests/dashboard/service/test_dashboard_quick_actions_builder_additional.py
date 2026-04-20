@@ -13,43 +13,59 @@ def test_period_label_invalid_input_returns_original():
 def test_build_binder_actions_covers_overdue_and_non_overdue_candidates():
     today = date.today()
     binders = [
-        SimpleNamespace(id=1, client_id=10, binder_number="B1", period_start=today - timedelta(days=120), status="in_office"),
-        SimpleNamespace(id=2, client_id=11, binder_number="B2", period_start=today - timedelta(days=10), status="in_office"),
-        SimpleNamespace(id=3, client_id=12, binder_number="B3", period_start=today - timedelta(days=130), status="ready_for_pickup"),
-        SimpleNamespace(id=4, client_id=13, binder_number="B4", period_start=today - timedelta(days=20), status="ready_for_pickup"),
+        SimpleNamespace(id=1, client_record_id=10, binder_number="B1", period_start=today - timedelta(days=120), status="in_office"),
+        SimpleNamespace(id=2, client_record_id=11, binder_number="B2", period_start=today - timedelta(days=10), status="in_office"),
+        SimpleNamespace(id=3, client_record_id=12, binder_number="B3", period_start=today - timedelta(days=130), status="ready_for_pickup"),
+        SimpleNamespace(id=4, client_record_id=13, binder_number="B4", period_start=today - timedelta(days=20), status="ready_for_pickup"),
     ]
     binder_repo = SimpleNamespace(list_active=lambda: binders)
+
+    def fake_get_by_id(cr_id):
+        return SimpleNamespace(legal_entity_id=cr_id * 100)
+
     business_repo = SimpleNamespace(
-        list_by_client=lambda cid, page=1, page_size=1: [SimpleNamespace(full_name=f"Client {cid}")]
+        db=SimpleNamespace(),
+        list_by_legal_entity=lambda le_id, page=1, page_size=1: [SimpleNamespace(full_name=f"Client {le_id}")],
     )
 
-    actions = helpers.build_binder_actions(binder_repo, business_repo)
+    import unittest.mock as mock
+    with mock.patch("app.dashboard.services._quick_actions_helpers.ClientRecordRepository") as MockCR:
+        MockCR.return_value.get_by_id = fake_get_by_id
+        actions = helpers.build_binder_actions(binder_repo, business_repo)
+
     assert [a["binder_number"] for a in actions] == ["B1", "B3", "B2", "B4"]
     assert all(a["category"] == "binders" for a in actions)
 
 
 def test_build_vat_and_annual_actions_include_due_labels():
+    import unittest.mock as mock
+
     vat_repo = SimpleNamespace(
         list_not_filed_for_period=lambda period, limit=3: [
-            SimpleNamespace(id=7, client_id=99),
+            SimpleNamespace(id=7, client_record_id=99),
         ]
     )
     annual_repo = SimpleNamespace(
         list_stuck_reports=lambda stale_days=7, limit=3: [
             SimpleNamespace(
                 id=8,
-                client_id=99,
+                client_record_id=99,
                 status="pending_client",
                 updated_at=datetime.now(timezone.utc) - timedelta(days=9),
             )
         ]
     )
-    client_repo = SimpleNamespace(
-        get_by_id=lambda cid: SimpleNamespace(id=cid, full_name=f"Client {cid}")
+    business_repo = SimpleNamespace(
+        db=SimpleNamespace(),
+        list_by_legal_entity=lambda le_id, page=1, page_size=1: [
+            SimpleNamespace(full_name=f"Client {le_id}")
+        ],
     )
 
-    vat_actions = helpers.build_vat_actions(vat_repo, client_repo, "2026-01")
-    annual_actions = helpers.build_annual_report_actions(annual_repo, client_repo)
+    with mock.patch("app.dashboard.services._quick_actions_helpers.ClientRecordRepository") as MockCR:
+        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(legal_entity_id=cr_id * 100)
+        vat_actions = helpers.build_vat_actions(vat_repo, business_repo, "2026-01")
+        annual_actions = helpers.build_annual_report_actions(annual_repo, business_repo)
 
     assert vat_actions[0]["due_label"].startswith("תקופה:")
     assert annual_actions[0]["category"] == "annual_reports"
@@ -63,7 +79,6 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
     business_repo = SimpleNamespace(
         get_by_id=lambda _id: SimpleNamespace(id=3, client_id=3, full_name="Charge Client")
     )
-    client_repo = object()
     charge_repo = SimpleNamespace(
         list_charges=lambda **kwargs: [SimpleNamespace(business_id=3)],
     )
@@ -89,7 +104,6 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
         binder_repo=binder_repo,
         charge_repo=charge_repo,
         business_repo=business_repo,
-        client_repo=client_repo,
         vat_repo=vat_repo,
         annual_report_repo=annual_repo,
         user_role=UserRole.ADVISOR,
