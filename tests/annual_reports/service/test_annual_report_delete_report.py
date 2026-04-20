@@ -20,7 +20,7 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_
     service = AnnualReportService(test_db)
     client = _client(test_db)
     report = service.create_report(
-        client_id=client.id,
+        client_record_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=test_user.id,

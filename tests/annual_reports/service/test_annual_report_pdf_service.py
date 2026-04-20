@@ -28,7 +28,7 @@ def test_generate_raises_not_found_when_report_missing(test_db):
 
 
 def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
-    fake_report = SimpleNamespace(id=7, client_id=10, tax_year=2026, client_type="corporation", status=SimpleNamespace(value="not_started"), ita_reference=None)
+    fake_report = SimpleNamespace(id=7, client_record_id=10, tax_year=2026, client_type="corporation", status=SimpleNamespace(value="not_started"), ita_reference=None)
 
     class _Repo:
         def __init__(self, db):

@@ -11,7 +11,7 @@ from app.audit.constants import (
 )
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
 from app.clients.models.client import ClientStatus
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.schemas.annual_report_financials import (
@@ -32,10 +32,10 @@ from app.annual_reports.services.messages import (
 
 class FinancialCrudMixin:
     def _assert_client_allows_create(self, client_record_id: int) -> None:
-        client = ClientRepository(self.db).get_by_id(client_record_id)
-        if client and client.status == ClientStatus.CLOSED:
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if client_record and client_record.status == ClientStatus.CLOSED:
             raise ForbiddenError(CLIENT_CLOSED_CREATE_WORK_ERROR, "CLIENT.CLOSED")
-        if client and client.status == ClientStatus.FROZEN:
+        if client_record and client_record.status == ClientStatus.FROZEN:
             raise ForbiddenError(CLIENT_FROZEN_CREATE_WORK_ERROR, "CLIENT.FROZEN")
 
     def add_income(

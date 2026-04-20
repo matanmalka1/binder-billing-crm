@@ -30,6 +30,7 @@ def _create_report(db):
     db.add(
         Business(
             client_id=crm_client.id,
+            legal_entity_id=legal.id,
             business_name=crm_client.full_name,
             status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
@@ -38,7 +39,7 @@ def _create_report(db):
     db.flush()
 
     report = AnnualReportService(db).create_report(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

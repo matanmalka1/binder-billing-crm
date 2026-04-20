@@ -70,7 +70,7 @@ class AnnualReportService:
         )
 
         report = self.repo.create(
-            client_id=client_id,
+            client_record_id=client_id,
             tax_year=tax_year,
             client_type=ct,
             form_type=form_type,

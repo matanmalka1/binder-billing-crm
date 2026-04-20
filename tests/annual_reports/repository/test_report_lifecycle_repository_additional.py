@@ -14,7 +14,7 @@ def _report(test_db):
     test_db.commit()
     test_db.refresh(crm_client)
     return AnnualReportService(test_db).create_report(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -31,5 +31,5 @@ def test_lifecycle_soft_delete_true_and_false(test_db):
     report = _report(test_db)
     assert repo.soft_delete(report.id, deleted_by=5) is True
 
-    refreshed = AnnualReportService(test_db).repo.get_by_client_year(report.client_id, 2026)
+    refreshed = AnnualReportService(test_db).repo.get_by_client_record_year(report.client_record_id, 2026)
     assert refreshed is None

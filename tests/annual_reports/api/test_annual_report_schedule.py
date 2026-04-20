@@ -16,7 +16,7 @@ def _create_report(db) -> int:
 
     svc = AnnualReportService(db)
     report = svc.create_report(
-        client_id=client.id,
+        client_record_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,

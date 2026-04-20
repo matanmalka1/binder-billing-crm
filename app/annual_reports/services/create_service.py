@@ -12,7 +12,6 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.users.services.user_lookup import get_user_or_raise
@@ -50,13 +49,12 @@ class AnnualReportCreateService(AnnualReportBaseService):
         has_exempt_rental: bool = False,
     ) -> AnnualReport:
         """Create an annual report and initial schedules/history."""
-        client_repo = ClientRepository(self.db)
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
-        assert_client_record_is_active(client_record)
-        client_record_id = client_record.id if client_record else None
-        if not client_repo.get_by_id(client_record_id):
+        if not client_record:
             from app.core.exceptions import NotFoundError
             raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+        assert_client_record_is_active(client_record)
+        client_record_id = client_record.id
 
         valid_client_types = {e.value for e in ClientAnnualFilingType}
         if client_type not in valid_client_types:

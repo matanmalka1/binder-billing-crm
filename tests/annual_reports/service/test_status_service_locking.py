@@ -48,7 +48,7 @@ def _create_report(db):
     db.add(ClientRecord(id=client.id, legal_entity_id=legal.id))
     db.flush()
     return AnnualReportService(db).create_report(
-        client_id=client.id,
+        client_record_id=client.id,
         tax_year=2027,
         client_type="corporation",
         created_by=1,

@@ -20,7 +20,7 @@ def _client(db, suffix: str) -> Client:
 def _create_report(db, user_id: int, client_id: int, tax_year: int = 2026) -> int:
     service = AnnualReportService(db)
     report = service.create_report(
-        client_id=client_id,
+        client_record_id=client_id,
         tax_year=tax_year,
         client_type="corporation",
         created_by=user_id,
@@ -44,7 +44,7 @@ def test_annual_report_overdue_endpoint(client, test_db, advisor_headers, test_u
     resp = client.get("/api/v1/annual-reports/overdue", headers=advisor_headers)
 
     assert resp.status_code == 200
-    overdue_ids = {item.get("business_id", item.get("client_id")) for item in resp.json()}
+    overdue_ids = {item.get("business_id", item.get("client_record_id")) for item in resp.json()}
     assert old_client.id in overdue_ids
     assert new_client.id not in overdue_ids
 

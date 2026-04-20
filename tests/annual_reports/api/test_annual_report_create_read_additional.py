@@ -15,7 +15,7 @@ def _create_report(db) -> int:
     db.refresh(crm_client)
 
     report = AnnualReportService(db).create_report(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -34,7 +34,7 @@ def test_get_report_not_found_and_delete_paths(client, test_db, advisor_headers)
     get_ok = client.get(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)
     assert get_ok.status_code == 200
     body = get_ok.json()
-    assert body["client_id"] is not None
+    assert body["client_record_id"] is not None
     assert body["client_name"] == "AR CreateRead Additional"
 
     del_ok = client.delete(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)

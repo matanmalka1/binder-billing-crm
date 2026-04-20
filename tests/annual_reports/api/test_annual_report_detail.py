@@ -16,7 +16,7 @@ def _create_report(test_db):
 
     service = AnnualReportService(test_db)
     report = service.create_report(
-        client_id=client.id,
+        client_record_id=client.id,
         tax_year=2025,
         client_type="corporation",
         created_by=1,

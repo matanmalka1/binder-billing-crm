@@ -71,6 +71,14 @@ def _ensure_client_identity_graph(session, client: Client) -> None:
     )
     if record:
         return
+    pending_records = [
+        obj for obj in session.new
+        if isinstance(obj, ClientRecord)
+        and obj.id == client.id
+        and obj.deleted_at is None
+    ]
+    if pending_records:
+        return
 
     session.add(
         ClientRecord(
@@ -131,6 +139,7 @@ def test_db():
             return
         session.info["_auto_client_graph_running"] = True
         try:
+            session.flush()
             clients = list(session.query(Client).filter(Client.deleted_at.is_(None)).all())
             for client in clients:
                 _ensure_client_identity_graph(session, client)

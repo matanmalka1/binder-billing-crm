@@ -24,7 +24,7 @@ def _client(db) -> Client:
 
 def _create_report(service: AnnualReportService, client_id: int, tax_year: int, created_by: int):
     return service.create_report(
-        client_id=client_id,
+        client_record_id=client_id,
         tax_year=tax_year,
         client_type="corporation",
         created_by=created_by,

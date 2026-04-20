@@ -44,7 +44,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
     c = _client(test_db, "B")
     service = AnnualReportService(test_db)
     report = service.create_report(
-        client_id=c.id,
+        client_record_id=c.id,
         tax_year=2025,
         client_type="corporation",
         created_by=1,
@@ -55,7 +55,7 @@ def test_create_report_custom_deadline_and_assigned_to_validation(test_db):
 
     with pytest.raises(Exception):
         service.create_report(
-            client_id=c.id,
+            client_record_id=c.id,
             tax_year=2024,
             client_type="corporation",
             created_by=1,
@@ -104,7 +104,7 @@ def test_tax_calculation_uses_detail_credit_components(monkeypatch, test_db):
     ])
     test_db.flush()
 
-    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_client_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_client_record_year", lambda *args, **kwargs: 0.0)
     monkeypatch.setattr(financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0)
     out = financial.get_tax_calculation(report.id)
     assert out.total_credit_points == 3.0

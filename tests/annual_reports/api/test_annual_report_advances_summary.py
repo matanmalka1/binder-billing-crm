@@ -21,7 +21,7 @@ def _create_report(db):
 
     svc = AnnualReportService(db)
     return svc.create_report(
-        client_id=client.id,
+        client_record_id=client.id,
         tax_year=2026,
         client_type="corporation",
         created_by=1,
@@ -48,7 +48,7 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
 
     repo = AdvancePaymentRepository(test_db)
     payment = repo.create(
-        client_id=report.client_id,
+        client_record_id=report.client_record_id,
         period="2026-01",
         period_months_count=1,
         due_date=date(2026, 2, 15),

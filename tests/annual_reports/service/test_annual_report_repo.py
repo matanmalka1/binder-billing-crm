@@ -30,12 +30,12 @@ class InMemoryRepo:
     def get_by_id(self, rid):
         return self._reports.get(rid)
 
-    def get_by_client_year(self, client_id, tax_year):
-        return next((r for r in self._reports.values() if r.client_id == client_id and r.tax_year == tax_year), None)
+    def get_by_client_year(self, client_record_id, tax_year):
+        return next((r for r in self._reports.values() if r.client_record_id == client_record_id and r.tax_year == tax_year), None)
 
-    def list_by_client(self, client_id):
+    def list_by_client(self, client_record_id):
         return sorted(
-            [r for r in self._reports.values() if r.client_id == client_id],
+            [r for r in self._reports.values() if r.client_record_id == client_record_id],
             key=lambda r: r.tax_year,
             reverse=True,
         )
