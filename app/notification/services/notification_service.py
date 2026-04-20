@@ -6,7 +6,6 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
-from app.clients.models.client import Client
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.logging_config import get_logger
 from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
@@ -40,28 +39,30 @@ class NotificationService:
 
     # ── Named trigger helpers ─────────────────────────────────────────────────
 
-    def notify_binder_received(self, binder: Binder, client: Client) -> bool:
-        name = client.full_name or FALLBACK_CLIENT_NAME
+    def notify_binder_received(self, binder: Binder, client_record_id: int) -> bool:
+        person = self._send_svc._get_client(client_record_id)
+        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
         content = BINDER_RECEIVED_NOTIFICATION_CONTENT.format(
             name=name,
             binder_number=binder.binder_number,
             period_start=binder.period_start,
         )
         return self._send_svc.send_client_notification(
-            client_record_id=client.id,
+            client_record_id=client_record_id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
             content=content,
             binder_id=binder.id,
         )
 
-    def notify_ready_for_pickup(self, binder: Binder, client: Client) -> bool:
-        name = client.full_name or FALLBACK_CLIENT_NAME
+    def notify_ready_for_pickup(self, binder: Binder, client_record_id: int) -> bool:
+        person = self._send_svc._get_client(client_record_id)
+        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
         content = BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT.format(
             name=name,
             binder_number=binder.binder_number,
         )
         return self._send_svc.send_client_notification(
-            client_record_id=client.id,
+            client_record_id=client_record_id,
             trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
             content=content,
             binder_id=binder.id,

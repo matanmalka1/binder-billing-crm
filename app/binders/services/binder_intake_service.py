@@ -146,14 +146,7 @@ class BinderIntakeService:
                 self.db.flush()
 
         if is_new_binder:
-            notify_client = self.client_repo.get_by_id(client_record_id)
-            if notify_client:
-                self.notification_service.notify_binder_received(binder, notify_client)
-            else:
-                _log.warning(
-                    "notify_binder_received skipped: client %s not found (binder %s)",
-                    client_record_id, binder.id,
-                )
+            self.notification_service.notify_binder_received(binder, client_record_id)
 
         return binder, intake, is_new_binder
 

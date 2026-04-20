@@ -5,19 +5,12 @@ import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.services.business_service import BusinessService
-from app.clients.models.client import Client
 from app.core.exceptions import ConflictError, ForbiddenError
 from app.users.models.user import UserRole
 
 
 def _create_business_row(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
-    client = Client(full_name="Service Test Client", id_number="BS-001")
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
     business = Business(
-        client_id=client.id,
         business_name="Service Test Business",
         opened_at=date(2026, 1, 1),
         status=status,
@@ -77,7 +70,7 @@ def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
     with pytest.raises(ForbiddenError) as exc:
         service.update_business(
             business_id=business.id,
-            client_id=business.client_id,
+            client_id=1,
             user_role=UserRole.SECRETARY,
             status=BusinessStatus.CLOSED.value,
         )
@@ -91,7 +84,7 @@ def test_update_business_sets_closed_at_for_close_action(test_db):
 
     result = service.update_business(
         business_id=business.id,
-        client_id=business.client_id,
+        client_id=1,
         user_role=UserRole.ADVISOR,
         status=BusinessStatus.CLOSED.value,
     )

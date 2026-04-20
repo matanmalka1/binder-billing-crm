@@ -106,7 +106,7 @@ class ClientCreationService:
                 accountant_name=accountant_name,
                 created_by=actor_id,
             )
-        create_initial_binder(self.db, client, actor_id, client_record_id=client_record.id)
+        create_initial_binder(self.db, client_record, actor_id)
         generate_client_obligations(
             self.db, client.id, actor_id=actor_id, entity_type=entity_type, best_effort=False,
         )

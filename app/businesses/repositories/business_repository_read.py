@@ -8,6 +8,8 @@ from sqlalchemy.orm import Query as SAQuery, Session, joinedload
 
 from app.common.repositories.base_repository import BaseRepository
 from app.businesses.models.business import Business
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person_legal_entity_link import PersonLegalEntityLink
 
 
 class BusinessRepositoryRead(BaseRepository):
@@ -137,9 +139,14 @@ class BusinessRepositoryRead(BaseRepository):
     def list_by_ids(self, business_ids: list[int]) -> list[Business]:
         if not business_ids:
             return []
+        from app.clients.models.person import Person
         return (
             self.db.query(Business)
-            .options(joinedload(Business.client))
+            .options(
+                joinedload(Business.legal_entity)
+                .joinedload(LegalEntity.person_links)
+                .joinedload(PersonLegalEntityLink.person)
+            )
             .filter(Business.id.in_(business_ids), Business.deleted_at.is_(None))
             .all()
         )

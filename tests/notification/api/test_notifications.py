@@ -2,7 +2,6 @@ from datetime import date
 
 from app.businesses.models.business import Business
 from app.common.enums import EntityType, IdNumberType
-from app.clients.models.client import Client
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.person import Person
@@ -12,15 +11,6 @@ from app.notification.repositories.notification_repository import NotificationRe
 
 
 def _business(test_db, suffix: str) -> Business:
-    c = Client(
-        full_name=f"Notification API Client {suffix}",
-        id_number=f"7300000{suffix}",
-        email=f"n{suffix}@example.com",
-        phone=f"0500000{suffix}",
-    )
-    test_db.add(c)
-    test_db.flush()
-
     le = LegalEntity(
         id_number=f"7300000{suffix}",
         id_number_type=IdNumberType.INDIVIDUAL,
@@ -52,7 +42,6 @@ def _business(test_db, suffix: str) -> Business:
     test_db.flush()
 
     b = Business(
-        client_id=c.id,
         legal_entity_id=le.id,
         business_name=f"Notification API Biz {suffix}",
         opened_at=date.today(),
@@ -65,9 +54,12 @@ def _business(test_db, suffix: str) -> Business:
 
 def _seed_notification(test_db, business_id: int, content: str):
     business = test_db.get(Business, business_id)
+    cr = test_db.query(ClientRecord).filter(
+        ClientRecord.legal_entity_id == business.legal_entity_id
+    ).first()
     repo = NotificationRepository(test_db)
     return repo.create(
-        client_id=business.client_id,
+        client_record_id=cr.id,
         business_id=business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         channel=NotificationChannel.EMAIL,

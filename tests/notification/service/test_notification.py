@@ -34,12 +34,15 @@ def test_notify_ready_for_pickup_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    service._send_svc = SimpleNamespace(send_client_notification=_fake_send_notification)
+    fake_person = SimpleNamespace(full_name="Pickup Client")
+    service._send_svc = SimpleNamespace(
+        _get_client=lambda cr_id: fake_person,
+        send_client_notification=_fake_send_notification,
+    )
     binder = SimpleNamespace(id=3, binder_number="BN-3")
-    client = SimpleNamespace(id=9, full_name="Pickup Client")
 
-    assert service.notify_ready_for_pickup(binder, client) is True
-    assert captured["client_id"] == 9
+    assert service.notify_ready_for_pickup(binder, 9) is True
+    assert captured["client_record_id"] == 9
     assert captured["binder_id"] == 3
     assert captured["trigger"] == NotificationTrigger.BINDER_READY_FOR_PICKUP
 
@@ -52,12 +55,15 @@ def test_notify_binder_received_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    service._send_svc = SimpleNamespace(send_client_notification=_fake_send_notification)
+    fake_person = SimpleNamespace(full_name="Acme Client")
+    service._send_svc = SimpleNamespace(
+        _get_client=lambda cr_id: fake_person,
+        send_client_notification=_fake_send_notification,
+    )
     binder = SimpleNamespace(id=11, binder_number="BND-001", period_start="2026-03")
-    client = SimpleNamespace(id=1, full_name="Acme Client")
 
-    assert service.notify_binder_received(binder, client) is True
-    assert captured["client_id"] == 1
+    assert service.notify_binder_received(binder, 1) is True
+    assert captured["client_record_id"] == 1
     assert captured["binder_id"] == 11
     assert captured["trigger"] == NotificationTrigger.BINDER_RECEIVED
     assert "BND-001" in captured["content"]

@@ -5,7 +5,6 @@ from app.businesses.services.business_guards import (
     assert_business_allows_create,
     validate_business_for_create,
 )
-from app.clients.models.client import Client
 from app.core.exceptions import ForbiddenError, NotFoundError
 
 
@@ -29,15 +28,10 @@ def test_assert_business_allows_create_blocks_closed_and_frozen():
 
 
 def _create_business(test_db, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
-    client = Client(full_name="Business Guard Client", id_number="BG-001")
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
+    from datetime import date
     business = Business(
-        client_id=client.id,
         business_name="Business Guard Business",
-        opened_at=client.created_at.date(),
+        opened_at=date.today(),
         status=status,
     )
     test_db.add(business)

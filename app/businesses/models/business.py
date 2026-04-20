@@ -7,6 +7,7 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures EntityNote is registered with SQLAlchemy before Business relationships are configured
+from app.clients.models.person_legal_entity_link import PersonLegalEntityRole
 
 
 class BusinessStatus(str, PyEnum):
@@ -26,19 +27,20 @@ class Business(Base):
 
     Contact details (email, phone):
     - email_override / phone_override = business-specific contact details (DB columns)
-    - contact_email / contact_phone = properties with fallback to client details
+    - contact_email / contact_phone = properties with fallback to Person (via LegalEntity owner link)
     """
     __tablename__ = "businesses"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # Link to client.
-    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
-    # Phase 3 migration: new FK to legal_entities (nullable until backfill).
     legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=True, index=True)
 
-    # Relationship: lazy="select"; use explicit joinedload when needed.
-    client = relationship("Client", foreign_keys=[client_id], lazy="select", viewonly=True)
+    legal_entity = relationship(
+        "LegalEntity",
+        foreign_keys=[legal_entity_id],
+        lazy="select",
+        viewonly=True,
+    )
 
     # Business details.
     business_name = Column(String, nullable=False)   # required: every activity must have a name
@@ -52,7 +54,7 @@ class Business(Base):
     closed_at = Column(Date, nullable=True)
 
     # Business-specific contact overrides.
-    # ── פרטי קשר (של העסק, עם fallback ללקוח ב-property) ─────────────────
+    # ── פרטי קשר (של העסק, עם fallback לבעלים ב-property) ────────────────────
     phone_override = Column(String(20), nullable=True)
     email_override = Column(String(254), nullable=True)
 
@@ -81,35 +83,45 @@ class Business(Base):
 
     @property
     def full_name(self) -> str:
-        """
-        Display name of the business.
-        If business_name exists, return it.
-        Otherwise, return the client name.
-        """
-        return self.business_name or (self.client.full_name if self.client else f"עסק #{self.id}")
+        if self.business_name:
+            return self.business_name
+        if self.legal_entity:
+            return self.legal_entity.official_name
+        return ""
 
     @property
     def contact_phone(self) -> str | None:
-        """Business phone, with fallback to client phone."""
-        return self.phone_override or (self.client.phone if self.client else None)
+        if self.phone_override:
+            return self.phone_override
+        person = self._get_owner_person()
+        return person.phone if person else None
 
     @property
     def contact_email(self) -> str | None:
-        """Business email, with fallback to client email."""
-        return self.email_override or (self.client.email if self.client else None)
+        if self.email_override:
+            return self.email_override
+        person = self._get_owner_person()
+        return person.email if person else None
+
+    def _get_owner_person(self):
+        if not self.legal_entity:
+            return None
+        for link in self.legal_entity.person_links:
+            if link.role == PersonLegalEntityRole.OWNER:
+                return link.person
+        return None
 
     def __repr__(self):
         return (
-            f"<Business(id={self.id}, client_id={self.client_id}, "
+            f"<Business(id={self.id}, legal_entity_id={self.legal_entity_id}, "
             f"name='{self.business_name}', status='{self.status}')>"
         )
 
     __table_args__ = (
-        Index("ix_business_client_id", "client_id"),
         Index("ix_business_status", "status"),
         Index(
-            "ix_business_client_name_active",
-            "client_id",
+            "ix_business_legal_entity_name_active",
+            "legal_entity_id",
             "business_name",
             unique=True,
             postgresql_where=and_(column("business_name").isnot(None), column("deleted_at").is_(None)),

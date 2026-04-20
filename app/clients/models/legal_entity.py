@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Date, DateTime, Index, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy.orm import relationship
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.common.enums import EntityType, VatType, IdNumberType
@@ -25,6 +26,13 @@ class LegalEntity(Base):
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+
+    person_links = relationship(
+        "PersonLegalEntityLink",
+        primaryjoin="LegalEntity.id == foreign(PersonLegalEntityLink.legal_entity_id)",
+        lazy="select",
+        viewonly=True,
+    )
 
     __table_args__ = (
         UniqueConstraint("id_number_type", "id_number", name="uq_legal_entity_registration_id"),

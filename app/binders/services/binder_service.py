@@ -79,11 +79,8 @@ class BinderService(BinderListService):
             notes=BINDER_MARKED_READY,
         )
 
-        client = self.client_repo.get_by_id(binder.client_record_id)
-        if client:
-            self.notification_service.notify_ready_for_pickup(updated, client)
-        else:
-            _log.warning("notify_ready_for_pickup skipped: client %s not found (binder %s)", binder.client_record_id, binder_id)
+        if binder.client_record_id:
+            self.notification_service.notify_ready_for_pickup(updated, binder.client_record_id)
 
         return updated
 

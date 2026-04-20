@@ -9,20 +9,13 @@ from app.audit.constants import ACTION_RESTORED, ENTITY_BUSINESS
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.services.business_service import BusinessService
-from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.utils.time_utils import utcnow
 from app.users.models.user import UserRole
 
 
 def _create_business_row(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
-    client = Client(full_name="Additional Service Client", id_number="BSA-001")
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
     business = Business(
-        client_id=client.id,
         business_name="Additional Service Business",
         opened_at=date(2026, 1, 1),
         status=status,
@@ -98,7 +91,7 @@ def test_update_business_rejects_invalid_status_value(test_db):
     with pytest.raises(AppError) as exc:
         service.update_business(
             business_id=business.id,
-            client_id=business.client_id,
+            client_id=1,
             user_role=UserRole.ADVISOR,
             status="not-a-real-status",
         )
@@ -113,7 +106,7 @@ def test_update_business_rejects_wrong_client_id(test_db):
     with pytest.raises(NotFoundError) as exc:
         service.update_business(
             business_id=business.id,
-            client_id=business.client_id + 999,
+            client_id=1 + 999,
             user_role=UserRole.ADVISOR,
             status=BusinessStatus.ACTIVE.value,
         )
@@ -128,7 +121,7 @@ def test_update_business_to_active_clears_closed_at(test_db):
 
     result = BusinessService(test_db).update_business(
         business_id=business.id,
-        client_id=business.client_id,
+        client_id=1,
         user_role=UserRole.ADVISOR,
         status=BusinessStatus.ACTIVE.value,
     )
