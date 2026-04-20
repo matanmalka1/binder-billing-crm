@@ -6,8 +6,8 @@ _today = date.today  # injectable for tests
 
 from app.common.enums import VatType
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.annual_reports.services.deadlines import standard_deadline
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
@@ -21,12 +21,14 @@ class DeadlineGeneratorService:
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
         self.deadline_service = TaxDeadlineService(db)
-        self.client_repo = ClientRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
 
     def _resolve_vat_type(self, client_record_id: int):
-        client = self.client_repo.get_by_id(client_record_id)
-        return client.vat_reporting_frequency if client else None
+        record = self.client_record_repo.get_by_id(client_record_id)
+        if not record:
+            return None
+        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+        return legal_entity.vat_reporting_frequency if legal_entity else None
 
     def _resolve_client_record_id(self, client_record_id: int) -> int:
         record = self.client_record_repo.get_by_id(client_record_id)
@@ -101,9 +103,14 @@ class DeadlineGeneratorService:
 
     def generate_annual_report_deadline(self, client_record_id: int, year: int) -> list:
         """Generate the annual report deadline using the filing profile."""
-        client = self.client_repo.get_by_id(client_record_id)
+        record = self.client_record_repo.get_by_id(client_record_id)
+        legal_entity = (
+            LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+            if record
+            else None
+        )
         client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(
-            client.entity_type if client else None
+            legal_entity.entity_type if legal_entity else None
         )
         due_date = standard_deadline(year, client_type=client_type).date()
         client_record_id = self._resolve_client_record_id(client_record_id)
@@ -124,9 +131,9 @@ class DeadlineGeneratorService:
         NI payment schedules require per-client calculation parameters
         not yet stored in the domain. Create manually via POST /api/v1/tax-deadlines.
         """
-        client = self.client_repo.get_by_id(client_record_id)
-        if not client:
-            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
+        record = self.client_record_repo.get_by_id(client_record_id)
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         created = []
         created += self.generate_vat_deadlines(client_record_id, year)
         created += self.generate_advance_payment_deadlines(client_record_id, year)

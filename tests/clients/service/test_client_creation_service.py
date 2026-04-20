@@ -12,7 +12,7 @@ from app.clients.services.client_creation_service import ClientCreationService
 def test_create_client_creates_legacy_and_identity_graph(test_db):
     service = ClientCreationService(test_db)
 
-    client, client_record = service.create_client(
+    client_record = service.create_client(
         full_name="Client Identity",
         id_number="123456780",
         id_number_type=IdNumberType.INDIVIDUAL,
@@ -35,10 +35,8 @@ def test_create_client_creates_legacy_and_identity_graph(test_db):
     )
     stored_record = test_db.query(ClientRecord).filter(ClientRecord.id == client_record.id).one()
 
-    assert client.id is not None
-    assert client.id_number == "123456780"
     assert stored_record.id == client_record.id
-    assert stored_record.office_client_number == client.office_client_number
+    assert stored_record.office_client_number == client_record.office_client_number
     assert stored_record.accountant_name == 'רו"ח בדיקה'
     assert legal_entity.id_number == "123456780"
     assert legal_entity.official_name == "Client Identity"
@@ -47,4 +45,3 @@ def test_create_client_creates_legacy_and_identity_graph(test_db):
     assert person.email == "client@example.com"
     assert person.address_city == "תל אביב"
     assert link.role == PersonLegalEntityRole.OWNER
-

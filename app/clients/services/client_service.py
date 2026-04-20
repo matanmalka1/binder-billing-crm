@@ -39,7 +39,7 @@ class ClientService:
         self,
         full_name: str,
         id_number: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
@@ -53,7 +53,7 @@ class ClientService:
         advance_rate=None,
         accountant_name: Optional[str] = None,
         actor_id: Optional[int] = None,
-    ) -> tuple[Client, ClientRecord]:
+    ) -> ClientRecord:
         return self._creation.create_client(
             full_name=full_name,
             id_number=id_number,

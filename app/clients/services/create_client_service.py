@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.businesses.models.business import Business
 from app.businesses.services.business_service import BusinessService
-from app.clients.models.client import Client, IdNumberType
+from app.clients.models.client import IdNumberType
 from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_service import ClientService
 from app.common.enums import EntityType, VatType
@@ -25,7 +25,7 @@ class CreateClientService:
         full_name: str,
         id_number: str,
         business_name: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
@@ -41,7 +41,7 @@ class CreateClientService:
         business_opened_at: Optional[date] = None,
         business_notes: Optional[str] = None,
         actor_id: Optional[int] = None,
-    ) -> tuple[Client, ClientRecord, Business]:
+    ) -> tuple[ClientRecord, Business]:
         """
         Create all records in the current DB transaction.
 
@@ -52,7 +52,7 @@ class CreateClientService:
         if not normalized_business_name:
             raise ValueError("יש להזין שם עסק")
 
-        client, client_record = self.client_service.create_client(
+        client_record = self.client_service.create_client(
             full_name=full_name,
             id_number=id_number,
             id_number_type=id_number_type,
@@ -70,11 +70,11 @@ class CreateClientService:
             accountant_name=accountant_name,
             actor_id=actor_id,
         )
-        business = self.business_service.create_business(
-            client_id=client.id,
+        business = self.business_service.create_business_for_client_record(
+            client_record_id=client_record.id,
             opened_at=business_opened_at,
             business_name=normalized_business_name,
             notes=business_notes,
             actor_id=actor_id,
         )
-        return client, client_record, business
+        return client_record, business

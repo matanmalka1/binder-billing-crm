@@ -83,6 +83,60 @@ class BusinessService:
             )
         return business
 
+    def create_business_for_client_record(
+        self,
+        client_record_id: int,
+        opened_at: Optional[date] = None,
+        business_name: Optional[str] = None,
+        notes: Optional[str] = None,
+        actor_id: Optional[int] = None,
+    ) -> Business:
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+
+        effective_opened_at = opened_at or date.today()
+        legal_entity_id = record.legal_entity_id
+
+        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(legal_entity_id):
+            raise AppError(
+                "כל העסקים של לקוח זה סגורים — לא ניתן להוסיף עסק חדש ללא אישור מפורש",
+                "BUSINESS.CLIENT_ALL_CLOSED",
+                status_code=409,
+            )
+
+        if business_name:
+            for b in self.business_repo.list_by_legal_entity(legal_entity_id, page=1, page_size=10_000):
+                if b.business_name and b.business_name.strip().lower() == business_name.strip().lower():
+                    raise ConflictError(
+                        f"עסק בשם '{business_name}' כבר קיים ללקוח זה",
+                        "BUSINESS.NAME_CONFLICT",
+                    )
+
+        try:
+            business = self.business_repo.create_for_legal_entity(
+                legal_entity_id=legal_entity_id,
+                opened_at=effective_opened_at,
+                business_name=business_name,
+                notes=notes,
+                created_by=actor_id,
+            )
+        except IntegrityError:
+            raise ConflictError(
+                f"שגיאת כפילות ביצירת עסק ללקוח {client_record_id}",
+                "BUSINESS.CONFLICT",
+            )
+
+        if actor_id:
+            self._audit.append(
+                entity_type=ENTITY_BUSINESS,
+                entity_id=business.id,
+                performed_by=actor_id,
+                action=ACTION_CREATED,
+                new_value=json.dumps({"client_record_id": client_record_id}),
+            )
+        return business
+
     # ─── Read ─────────────────────────────────────────────────────────────────
 
     def get_business(self, business_id: int) -> Optional[Business]:

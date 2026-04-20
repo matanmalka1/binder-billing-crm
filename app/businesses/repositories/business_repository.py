@@ -53,6 +53,25 @@ class BusinessRepository(BusinessRepositoryRead):
         self.db.flush()
         return business
 
+    def create_for_legal_entity(
+        self,
+        legal_entity_id: int,
+        opened_at: date,
+        business_name: Optional[str] = None,
+        notes: Optional[str] = None,
+        created_by: Optional[int] = None,
+    ) -> Business:
+        business = Business(
+            legal_entity_id=legal_entity_id,
+            business_name=business_name,
+            opened_at=opened_at,
+            notes=notes,
+            created_by=created_by,
+        )
+        self.db.add(business)
+        self.db.flush()
+        return business
+
     def update(self, business_id: int, **fields) -> Optional[Business]:
         business = self.get_by_id(business_id)
         return self._update_entity(business, **fields)

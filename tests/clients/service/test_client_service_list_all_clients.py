@@ -4,19 +4,19 @@ from app.clients.services.client_service import ClientService
 
 def test_list_all_clients_returns_only_active_sorted(test_db):
     service = ClientService(test_db)
-    b, _ = service.create_client(
+    b = service.create_client(
         full_name="B Client",
         id_number="680000007",
         id_number_type=IdNumberType.CORPORATION,
         actor_id=1,
     )
-    a, _ = service.create_client(
+    a = service.create_client(
         full_name="A Client",
         id_number="680000015",
         id_number_type=IdNumberType.CORPORATION,
         actor_id=1,
     )
-    d, _ = service.create_client(
+    d = service.create_client(
         full_name="D Client",
         id_number="680000023",
         id_number_type=IdNumberType.CORPORATION,

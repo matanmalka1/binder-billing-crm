@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.common.enums import EntityType
 from app.core.exceptions import ConflictError, NotFoundError
@@ -29,6 +30,14 @@ def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
 
 def _derive_client_type(entity_type: Optional[EntityType]) -> ClientTypeForReport:
     return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type, ClientTypeForReport.INDIVIDUAL)
+
+
+def _resolve_client_record_id(db: Session, client_or_record_id: int) -> int | None:
+    record = ClientRecordRepository(db).get_by_id(client_or_record_id)
+    if record:
+        return record.id
+    linked = ClientRecordLinkService(db).get_client_record_by_client_id(client_or_record_id)
+    return linked.id if linked else None
 
 
 def generate_client_obligations(
@@ -55,12 +64,20 @@ def generate_client_obligations(
     """
     years = _years_to_generate(reference_date)
     total = 0
+    client_record_id = _resolve_client_record_id(db, client_id)
+    if client_record_id is None:
+        if best_effort:
+            return total
+        raise NotFoundError(
+            f"רשומת לקוח עבור מזהה {client_id} לא נמצאה",
+            "CLIENT_RECORD.NOT_FOUND",
+        )
 
     deadline_generator = DeadlineGeneratorService(db)
     for year in years:
         sp = db.begin_nested()  # SAVEPOINT — חוסם rollback של הטרנזקציה הראשית
         try:
-            total += deadline_generator.generate_all(client_id, year)
+            total += deadline_generator.generate_all(client_record_id, year)
             sp.commit()  # RELEASE SAVEPOINT
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
@@ -69,21 +86,13 @@ def generate_client_obligations(
                 raise
 
     report_service = AnnualReportService(db)
-    client_record = ClientRecordLinkService(db).get_client_record_by_client_id(client_id)
-    if not client_record:
-        if best_effort:
-            return total
-        raise NotFoundError(
-            f"רשומת לקוח עבור לקוח {client_id} לא נמצאה",
-            "CLIENT_RECORD.NOT_FOUND",
-        )
     client_type = _derive_client_type(entity_type).value
     _actor_name = actor_name or ""
     for year in years:
         sp = db.begin_nested()  # SAVEPOINT
         try:
             report_service.create_report(
-                client_record_id=client_record.id,
+                client_record_id=client_record_id,
                 tax_year=year,
                 client_type=client_type,
                 created_by=actor_id,

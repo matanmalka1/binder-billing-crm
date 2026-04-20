@@ -150,7 +150,7 @@ def create_client(
     """Create a reporting entity and its first business in one request."""
     service = CreateClientService(db)
     try:
-        _client, client_record, business = service.create_client(
+        client_record, business = service.create_client(
             full_name=request.client.full_name,
             id_number=request.client.id_number,
             id_number_type=request.client.id_number_type,
@@ -181,10 +181,9 @@ def create_client(
         vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
     full = _full_record_or_404(db, client_record.id)
-    full = _apply_legacy_client_overlay(full, _client)
     business_payload = {
         **business.__dict__,
-        "client_id": _client.id,
+        "client_id": client_record.id,
     }
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
