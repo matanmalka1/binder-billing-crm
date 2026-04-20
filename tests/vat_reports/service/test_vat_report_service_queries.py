@@ -45,13 +45,15 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     now = datetime.now(UTC)
 
     older = service.work_item_repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
+        client_record_id=business.client_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
     newer = service.work_item_repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
+        client_record_id=business.client_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,

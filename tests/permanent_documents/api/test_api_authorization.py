@@ -2,8 +2,8 @@ from datetime import date
 from io import BytesIO
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 def _create_business(test_db) -> Business:
@@ -15,9 +15,11 @@ def _create_business(test_db) -> Business:
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
+    client_record = ClientRecordRepository(test_db).get_by_client_id(client.id)
 
     business = Business(
         client_id=client.id,
+        legal_entity_id=client_record.legal_entity_id,
         business_name="API Test Biz",
         opened_at=date.today(),
     )

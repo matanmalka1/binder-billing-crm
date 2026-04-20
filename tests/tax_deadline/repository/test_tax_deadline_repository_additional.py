@@ -11,27 +11,27 @@ def test_list_by_business_ids_and_filters(test_db):
     business_b = create_business(test_db, name_prefix="Repo B")
 
     a_vat = repo.create(
-        business_id=business_a.id,
+        client_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=1),
     )
     b_vat = repo.create(
-        business_id=business_b.id,
+        client_id=business_b.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
     )
     b_other = repo.create(
-        business_id=business_b.id,
+        client_id=business_b.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=3),
     )
     repo.update_status(b_other.id, TaxDeadlineStatus.COMPLETED)
 
-    all_items = repo.list_by_business_ids([business_a.id, business_b.id])
+    all_items = repo.list_by_client_ids([business_a.client_id, business_b.client_id])
     assert {d.id for d in all_items} == {a_vat.id, b_vat.id, b_other.id}
 
-    filtered = repo.list_by_business_ids(
-        [business_a.id, business_b.id],
+    filtered = repo.list_by_client_ids(
+        [business_a.client_id, business_b.client_id],
         status=TaxDeadlineStatus.COMPLETED.value,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
     )
@@ -43,12 +43,12 @@ def test_list_overdue_and_list_by_business(test_db):
     business = create_business(test_db, name_prefix="Repo Overdue")
 
     overdue = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() - timedelta(days=1),
     )
     upcoming = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=10),
     )
@@ -56,11 +56,11 @@ def test_list_overdue_and_list_by_business(test_db):
     overdue_items = repo.list_overdue(reference_date=date.today())
     assert [d.id for d in overdue_items] == [overdue.id]
 
-    by_business = repo.list_by_business(business.id)
-    assert {d.id for d in by_business} == {overdue.id, upcoming.id}
+    by_client = repo.list_by_client(business.client_id)
+    assert {d.id for d in by_client} == {overdue.id, upcoming.id}
 
-    filtered = repo.list_by_business(
-        business.id,
+    filtered = repo.list_by_client(
+        business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
     )
     assert [d.id for d in filtered] == [upcoming.id]

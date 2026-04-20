@@ -57,8 +57,8 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
     )
 
     assert total == 2
-    assert rows[0][1] == b1.client.full_name
-    assert rows[1][1] == b2.client.full_name
+    assert rows[0][2] == b1.client.full_name
+    assert rows[1][2] == b2.client.full_name
 
 
 def test_get_overview_kpis_collection_rate_rounds(test_db):

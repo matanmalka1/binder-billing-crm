@@ -54,21 +54,21 @@ def test_status_listing_totals_and_audit_trail(test_db):
     now = utcnow()
 
     oldest = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
     newest = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-03",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
     middle = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,
@@ -117,7 +117,7 @@ def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     user = _user(test_db)
     business = _business(test_db)
     item = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-11",
         period_type=VatType.MONTHLY,
         created_by=user.id,

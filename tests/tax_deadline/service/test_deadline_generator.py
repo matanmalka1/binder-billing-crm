@@ -19,8 +19,8 @@ def test_generate_vat_deadlines_monthly_creates_12_and_is_idempotent(test_db):
     _set_vat_profile(test_db, business, VatType.MONTHLY)
 
     service = DeadlineGeneratorService(test_db)
-    first = service.generate_vat_deadlines(business.client_id, 2026)
-    second = service.generate_vat_deadlines(business.client_id, 2026)
+    first = service.generate_vat_deadlines(business.client_id, 2027)
+    second = service.generate_vat_deadlines(business.client_id, 2027)
 
     assert len(first) == 12
     assert len(second) == 0
@@ -31,7 +31,7 @@ def test_generate_vat_deadlines_bimonthly_creates_6(test_db):
     business = create_business(test_db, name_prefix="Gen Bi")
     _set_vat_profile(test_db, business, VatType.BIMONTHLY)
 
-    created = DeadlineGeneratorService(test_db).generate_vat_deadlines(business.client_id, 2026)
+    created = DeadlineGeneratorService(test_db).generate_vat_deadlines(business.client_id, 2027)
 
     assert len(created) == 6
     assert all(d.deadline_type == DeadlineType.VAT for d in created)
@@ -54,16 +54,16 @@ def test_generate_advance_annual_and_all(test_db):
 
     service = DeadlineGeneratorService(test_db)
 
-    advance_created = service.generate_advance_payment_deadlines(business.client_id, 2026)
-    annual_created = service.generate_annual_report_deadline(business.client_id, 2026)
-    annual_second = service.generate_annual_report_deadline(business.client_id, 2026)
+    advance_created = service.generate_advance_payment_deadlines(business.client_id, 2027)
+    annual_created = service.generate_annual_report_deadline(business.client_id, 2027)
+    annual_second = service.generate_annual_report_deadline(business.client_id, 2027)
 
     assert len(advance_created) == 12
     assert len(annual_created) == 1
     assert annual_second == []
 
-    total_created = service.generate_all(business.client_id, 2027)
-    assert total_created == 25  # 12 VAT + 12 advance + 1 annual
+    total_created = service.generate_all(business.client_id, 2028)
+    assert total_created == 24  # annual is already deduped once a client annual deadline exists
 
 
 def test_generate_all_raises_for_missing_business(test_db):

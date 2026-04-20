@@ -49,19 +49,27 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
     business = _business(test_db)
     service = VatReportService(test_db)
     item_2026 = service.work_item_repo.create(
-        business_id=business.id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id,
+        client_record_id=business.client_id,
+        period="2026-01",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
     item_2025 = service.work_item_repo.create(
-        business_id=business.id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id,
+        client_record_id=business.client_id,
+        period="2025-12",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
     service.work_item_repo.update_vat_totals(item_2026.id, 170.0, 20.0, 1000.0, 200.0)
     service.work_item_repo.update_vat_totals(item_2025.id, 85.0, 10.0, 500.0, 100.0)
 
     captured = {}
 
-    def _fake_export(business_name, business_id, year, periods, export_dir):
-        captured["business_name"] = business_name
-        captured["business_id"] = business_id
+    def _fake_export(client_name, client_id, year, periods, export_dir):
+        captured["client_name"] = client_name
+        captured["client_id"] = client_id
         captured["year"] = year
         captured["periods"] = periods
         captured["export_dir"] = export_dir
@@ -77,9 +85,9 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
         _fake_export,
     )
 
-    payload = export_to_pdf(test_db, business.id, 2026)
+    payload = export_to_pdf(test_db, business.client_id, 2026)
     assert payload["format"] == "pdf"
-    assert captured["business_id"] == business.id
+    assert captured["client_id"] == business.client_id
     assert captured["year"] == 2026
     assert len(captured["periods"]) == 1
     assert captured["periods"][0].period == "2026-01"
@@ -92,7 +100,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
         with pytest.raises(ImportError):
             export_vat_to_pdf(
                 client_name="Client",
-                business_id=1,
+                client_id=1,
                 year=2026,
                 periods=[],
                 export_dir="/tmp",
@@ -114,7 +122,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
 
     payload = export_vat_to_pdf(
         client_name="Client",
-        business_id=1,
+        client_id=1,
         year=2026,
         periods=[period],
         export_dir="/tmp",

@@ -5,18 +5,16 @@ from app.binders.models.binder_status_log import BinderStatusLog
 from app.clients.models.client import Client
 
 
-def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, test_db, test_user):
+def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, test_db, test_user, create_client_with_business):
     today = date.today()
-    c = Client(
+    c, _business = create_client_with_business(
         full_name="Client D",
         id_number="444444444",
     )
-    test_db.add(c)
-    test_db.commit()
-    test_db.refresh(c)
 
     b_open = Binder(
         client_id=c.id,
+        client_record_id=c.id,
         binder_number="BND-OPEN",
         period_start=today,
         status=BinderStatus.IN_OFFICE,
@@ -24,6 +22,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     )
     b_overdue = Binder(
         client_id=c.id,
+        client_record_id=c.id,
         binder_number="BND-OVERDUE",
         period_start=today - timedelta(days=100),
         status=BinderStatus.IN_OFFICE,
@@ -31,6 +30,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     )
     b_due_today = Binder(
         client_id=c.id,
+        client_record_id=c.id,
         binder_number="BND-DUE",
         period_start=today,
         status=BinderStatus.IN_OFFICE,

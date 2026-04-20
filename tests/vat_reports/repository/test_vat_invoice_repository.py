@@ -57,10 +57,10 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     item = work_item_repo.create(
-        business_id=business.id, period="2026-05", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-05", period_type=VatType.MONTHLY, created_by=user.id
     )
     other_item = work_item_repo.create(
-        business_id=business.id, period="2026-06", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-06", period_type=VatType.MONTHLY, created_by=user.id
     )
 
     expense = invoice_repo.create(
@@ -113,13 +113,13 @@ def test_sum_income_net_by_business_year_filters_by_business_year_and_income_onl
     invoice_repo = VatInvoiceRepository(test_db)
 
     target_item = work_item_repo.create(
-        business_id=business.id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
     )
     previous_year_item = work_item_repo.create(
-        business_id=business.id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
     )
     other_business_item = work_item_repo.create(
-        business_id=other_business.id, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=other_business.client_id, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id
     )
 
     invoice_repo.create(
@@ -164,8 +164,8 @@ def test_sum_income_net_by_business_year_filters_by_business_year_and_income_onl
         vat_amount=119.0,
     )
 
-    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 1000.0
-    assert invoice_repo.sum_income_net_by_business_year(business.id, 2024) == 0.0
+    assert invoice_repo.sum_income_net_by_client_year(business.client_id, 2026) == 1000.0
+    assert invoice_repo.sum_income_net_by_client_year(business.client_id, 2024) == 0.0
 
 
 def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
@@ -176,10 +176,10 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     active_item = work_item_repo.create(
-        business_id=business.id, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id
     )
     deleted_item = work_item_repo.create(
-        business_id=business.id, period="2026-04", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-04", period_type=VatType.MONTHLY, created_by=user.id
     )
 
     invoice_repo.create(
@@ -208,7 +208,7 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
     test_db.commit()
 
     # Only the active item's invoices should count toward the ceiling
-    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 5000.0
+    assert invoice_repo.sum_income_net_by_client_year(business.client_id, 2026) == 5000.0
 
 
 def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
@@ -218,7 +218,7 @@ def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     item = work_item_repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-07",
         period_type=VatType.MONTHLY,
         created_by=user.id,
@@ -282,7 +282,7 @@ def test_credit_notes_reduce_vat_and_net_totals(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     item = work_item_repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         period="2026-08",
         period_type=VatType.MONTHLY,
         created_by=user.id,
@@ -349,7 +349,7 @@ def test_credit_notes_reduce_income_turnover_for_yearly_ceiling(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     item = work_item_repo.create(
-        business_id=business.id, period="2026-09", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-09", period_type=VatType.MONTHLY, created_by=user.id
     )
 
     invoice_repo.create(
@@ -374,7 +374,7 @@ def test_credit_notes_reduce_income_turnover_for_yearly_ceiling(test_db):
         document_type=DocumentType.CREDIT_NOTE,
     )
 
-    assert invoice_repo.sum_income_net_by_business_year(business.id, 2026) == 750.0
+    assert invoice_repo.sum_income_net_by_client_year(business.client_id, 2026) == 750.0
 
 
 def test_credit_notes_reduce_grouped_expense_totals(test_db):
@@ -385,7 +385,7 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
     invoice_repo = VatInvoiceRepository(test_db)
 
     item = work_item_repo.create(
-        business_id=business.id, period="2026-10", period_type=VatType.MONTHLY, created_by=user.id
+        client_id=business.client_id, period="2026-10", period_type=VatType.MONTHLY, created_by=user.id
     )
 
     invoice_repo.create(
@@ -412,7 +412,7 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
         document_type=DocumentType.CREDIT_NOTE,
     )
 
-    assert invoice_repo._agg.sum_expense_net_by_business_year_grouped(business.id, 2026) == {
+    assert invoice_repo.sum_expense_net_by_client_year_grouped(business.client_id, 2026) == {
         "office": 450.0
     }
 

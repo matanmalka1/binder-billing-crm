@@ -11,7 +11,7 @@ def test_get_by_id_skips_soft_deleted_and_status_update_sets_completed_at(test_d
     business = create_business(test_db, name_prefix="Repo Missing")
 
     item = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=5),
     )
@@ -29,7 +29,7 @@ def test_update_status_with_completed_at_and_update_due_date(test_db):
     business = create_business(test_db, name_prefix="Repo Edge")
 
     item = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
     )

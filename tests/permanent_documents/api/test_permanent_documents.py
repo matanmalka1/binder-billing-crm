@@ -3,8 +3,8 @@ from io import BytesIO
 from itertools import count
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
 
@@ -22,9 +22,11 @@ def _business(db) -> Business:
     db.add(c)
     db.commit()
     db.refresh(c)
+    client_record = ClientRecordRepository(db).get_by_client_id(c.id)
 
     b = Business(
         client_id=c.id,
+        legal_entity_id=client_record.legal_entity_id,
         business_name=f"PermDoc Biz {suffix}",
         opened_at=date.today(),
     )
@@ -49,6 +51,7 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
     assert doc["client_id"] == business.client_id
     assert doc["business_id"] == business.id
     assert doc["document_type"] == "id_copy"
+    assert doc["scope"] == "business"
     assert doc["is_present"] is True
     doc_id = doc["id"]
 
@@ -64,6 +67,7 @@ def test_get_download_url_and_replace_document(client, test_db, advisor_headers)
     repo = PermanentDocumentRepository(test_db)
     doc = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
@@ -91,6 +95,7 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     repo = PermanentDocumentRepository(test_db)
     doc = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.POWER_OF_ATTORNEY,

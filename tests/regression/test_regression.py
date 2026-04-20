@@ -1,20 +1,15 @@
 from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.businesses.models.business import Business
-from app.clients.models.client import Client
 
 
-def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_headers, test_db):
+def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_headers, create_client_with_business):
     """Regression: binder receive endpoint unchanged."""
-    test_client = Client(
+    test_client, _business = create_client_with_business(
         full_name="Regression Test Client",
         id_number="000000003",
         office_client_number=601,
     )
-    test_db.add(test_client)
-    test_db.commit()
-    test_db.refresh(test_client)
 
     response = client.post(
         "/api/v1/binders/receive",
@@ -40,18 +35,16 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
     assert data["binder"]["status"] == "in_office"
 
 
-def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, test_user):
+def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, test_user, create_client_with_business):
     """Regression: operational endpoints unchanged."""
-    test_client = Client(
+    test_client, _business = create_client_with_business(
         full_name="Regression Client",
         id_number="000000004",
     )
-    test_db.add(test_client)
-    test_db.commit()
-    test_db.refresh(test_client)
 
     binder = Binder(
         client_id=test_client.id,
+        client_record_id=test_client.id,
         binder_number="REG-002",
         period_start=date.today() - timedelta(days=100),
         status=BinderStatus.IN_OFFICE,
@@ -66,16 +59,12 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, t
     assert "items" in response.json()
 
 
-def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers, test_db):
+def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers, create_client_with_business):
     """Regression: billing endpoints unchanged."""
-    test_client = Client(
+    test_client, business = create_client_with_business(
         full_name="Regression Client",
         id_number="000000005",
     )
-    test_db.add(test_client)
-    test_db.commit()
-    test_db.refresh(test_client)
-    business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
 
     # Test charge creation
     response = client.post(

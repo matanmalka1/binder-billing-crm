@@ -6,7 +6,7 @@ def test_materials_complete_transitions_pending_to_material_received(client, adv
         "/api/v1/vat/work-items",
         headers=advisor_headers,
         json={
-            "business_id": vat_client.id,
+            "client_id": vat_client.id,
             "period": "2026-12",
             "mark_pending": True,
             "pending_materials_note": "Missing statements",

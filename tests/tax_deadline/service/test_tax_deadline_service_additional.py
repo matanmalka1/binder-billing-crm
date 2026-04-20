@@ -12,10 +12,10 @@ def test_compute_urgency_cases(test_db):
     service = TaxDeadlineQueryService(test_db)
     reference = date.today()
 
-    overdue = writer.create_deadline(business.id, DeadlineType.VAT, reference - timedelta(days=1))
-    red = writer.create_deadline(business.id, DeadlineType.ADVANCE_PAYMENT, reference + timedelta(days=2))
-    yellow = writer.create_deadline(business.id, DeadlineType.NATIONAL_INSURANCE, reference + timedelta(days=5))
-    green = writer.create_deadline(business.id, DeadlineType.ANNUAL_REPORT, reference + timedelta(days=30))
+    overdue = writer.create_deadline(business.client_id, DeadlineType.VAT, reference - timedelta(days=1))
+    red = writer.create_deadline(business.client_id, DeadlineType.ADVANCE_PAYMENT, reference + timedelta(days=2))
+    yellow = writer.create_deadline(business.client_id, DeadlineType.NATIONAL_INSURANCE, reference + timedelta(days=5))
+    green = writer.create_deadline(business.client_id, DeadlineType.ANNUAL_REPORT, reference + timedelta(days=30))
 
     assert service.compute_urgency(overdue, reference) == UrgencyLevel.OVERDUE
     assert service.compute_urgency(red, reference) == UrgencyLevel.RED
@@ -34,11 +34,11 @@ def test_upcoming_overdue_name_search_and_summary(test_db):
     service = TaxDeadlineQueryService(test_db)
     today = date.today()
 
-    overdue = writer.create_deadline(business.id, DeadlineType.VAT, today - timedelta(days=1))
-    red = writer.create_deadline(business.id, DeadlineType.ADVANCE_PAYMENT, today + timedelta(days=1))
-    yellow = writer.create_deadline(business.id, DeadlineType.ANNUAL_REPORT, today + timedelta(days=5))
-    green = writer.create_deadline(business.id, DeadlineType.OTHER, today + timedelta(days=20))
-    other_due = writer.create_deadline(other.id, DeadlineType.OTHER, today + timedelta(days=3))
+    overdue = writer.create_deadline(business.client_id, DeadlineType.VAT, today - timedelta(days=1))
+    red = writer.create_deadline(business.client_id, DeadlineType.ADVANCE_PAYMENT, today + timedelta(days=1))
+    yellow = writer.create_deadline(business.client_id, DeadlineType.ANNUAL_REPORT, today + timedelta(days=5))
+    green = writer.create_deadline(business.client_id, DeadlineType.OTHER, today + timedelta(days=20))
+    other_due = writer.create_deadline(other.client_id, DeadlineType.OTHER, today + timedelta(days=3))
 
     upcoming = service.get_upcoming_deadlines(days_ahead=7, reference_date=today)
     assert {d.id for d in upcoming} == {red.id, yellow.id, other_due.id}
@@ -46,13 +46,13 @@ def test_upcoming_overdue_name_search_and_summary(test_db):
     overdue_list = service.get_overdue_deadlines(reference_date=today)
     assert [d.id for d in overdue_list] == [overdue.id]
 
-    by_name = service.get_deadlines_by_client_name("Query Search")
+    by_name = service.get_deadlines_by_business_name("Query Search")
     assert {d.id for d in by_name} == {overdue.id, red.id, yellow.id, green.id}
 
-    assert service.get_deadlines_by_client_name("no-match") == []
+    assert service.get_deadlines_by_business_name("no-match") == []
 
-    name_map = service.build_business_name_map([overdue, red])
-    assert name_map[business.id].startswith("Query Search")
+    name_map = service.build_client_name_map([overdue, red])
+    assert name_map[business.client_id].startswith("Query Search")
 
     summary = service.get_urgent_deadlines_summary(reference_date=today)
     urgent_ids = {item["deadline"].id for item in summary["urgent"]}
@@ -66,7 +66,7 @@ def test_query_service_default_reference_date_paths(test_db):
     service = TaxDeadlineQueryService(test_db)
 
     due_tomorrow = writer.create_deadline(
-        business.id,
+        business.client_id,
         DeadlineType.VAT,
         date.today() + timedelta(days=1),
     )

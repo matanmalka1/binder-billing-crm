@@ -2,8 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.businesses.models.business import BusinessStatus
-from app.core.exceptions import AppError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, NotFoundError
 from app.reminders.models.reminder import Reminder
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
@@ -15,13 +14,13 @@ def test_create_update_complete_get_delete_flow(test_db):
     service = TaxDeadlineService(test_db)
 
     created = service.create_deadline(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         payment_amount=5000.00,
         description="February VAT",
     )
-    assert created.business_id == business.id
+    assert created.client_id == business.client_id
     assert created.status == TaxDeadlineStatus.PENDING
 
     reminder = test_db.query(Reminder).filter(Reminder.tax_deadline_id == created.id).first()
@@ -48,16 +47,19 @@ def test_create_update_complete_get_delete_flow(test_db):
         service.get_deadline(created.id)
 
 
-def test_create_rejects_closed_or_frozen_business(test_db):
-    closed = create_business(test_db, name_prefix="Closed Biz", status=BusinessStatus.CLOSED)
-    frozen = create_business(test_db, name_prefix="Frozen Biz", status=BusinessStatus.FROZEN)
+def test_create_allows_closed_or_frozen_business(test_db):
+    closed = create_business(test_db, name_prefix="Closed Biz")
+    frozen = create_business(test_db, name_prefix="Frozen Biz")
     service = TaxDeadlineService(test_db)
 
-    with pytest.raises(ForbiddenError):
-        service.create_deadline(closed.id, DeadlineType.VAT, date.today() + timedelta(days=2))
-
-    with pytest.raises(ForbiddenError):
-        service.create_deadline(frozen.id, DeadlineType.VAT, date.today() + timedelta(days=2))
+    closed_deadline = service.create_deadline(
+        closed.client_id, DeadlineType.VAT, date.today() + timedelta(days=2)
+    )
+    frozen_deadline = service.create_deadline(
+        frozen.client_id, DeadlineType.VAT, date.today() + timedelta(days=2)
+    )
+    assert closed_deadline.client_id == closed.client_id
+    assert frozen_deadline.client_id == frozen.client_id
 
 
 def test_service_not_found_and_validation_paths(test_db):
@@ -81,19 +83,19 @@ def test_list_all_pending_and_get_business_deadlines(test_db):
     business_b = create_business(test_db, name_prefix="Service B")
     service = TaxDeadlineService(test_db)
 
-    a_vat = service.create_deadline(business_a.id, DeadlineType.VAT, date.today() + timedelta(days=1))
-    a_adv = service.create_deadline(business_a.id, DeadlineType.ADVANCE_PAYMENT, date.today() + timedelta(days=2))
-    b_vat = service.create_deadline(business_b.id, DeadlineType.VAT, date.today() + timedelta(days=3))
+    a_vat = service.create_deadline(business_a.client_id, DeadlineType.VAT, date.today() + timedelta(days=1))
+    a_adv = service.create_deadline(business_a.client_id, DeadlineType.ADVANCE_PAYMENT, date.today() + timedelta(days=2))
+    b_vat = service.create_deadline(business_b.client_id, DeadlineType.VAT, date.today() + timedelta(days=3))
     service.mark_completed(a_adv.id)
 
     pending = service.list_all_pending()
     assert {d.id for d in pending} == {a_vat.id, b_vat.id}
 
-    all_for_a = service.get_business_deadlines(business_a.id)
+    all_for_a = service.get_client_deadlines(business_a.client_id)
     assert {d.id for d in all_for_a} == {a_vat.id, a_adv.id}
 
-    completed_for_a = service.get_business_deadlines(
-        business_a.id,
+    completed_for_a = service.get_client_deadlines(
+        business_a.client_id,
         status=TaxDeadlineStatus.COMPLETED.value,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
     )

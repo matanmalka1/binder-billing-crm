@@ -11,7 +11,7 @@ def test_tax_deadline_full_crud_flow(client, test_db, advisor_headers):
         "/api/v1/tax-deadlines",
         headers=advisor_headers,
         json={
-            "business_id": business.id,
+            "client_id": business.client_id,
             "deadline_type": "vat",
             "due_date": due_date.isoformat(),
             "period": "2026-04",
@@ -31,7 +31,7 @@ def test_tax_deadline_full_crud_flow(client, test_db, advisor_headers):
 
     get_resp = client.get(f"/api/v1/tax-deadlines/{deadline_id}", headers=advisor_headers)
     assert get_resp.status_code == 200
-    assert get_resp.json()["business_id"] == business.id
+    assert get_resp.json()["client_id"] == business.client_id
 
     update_resp = client.put(
         f"/api/v1/tax-deadlines/{deadline_id}",
@@ -61,7 +61,7 @@ def test_tax_deadline_rejects_invalid_period_format(client, test_db, advisor_hea
         "/api/v1/tax-deadlines",
         headers=advisor_headers,
         json={
-            "business_id": business.id,
+            "client_id": business.client_id,
             "deadline_type": "vat",
             "due_date": due_date.isoformat(),
             "period": "2026",

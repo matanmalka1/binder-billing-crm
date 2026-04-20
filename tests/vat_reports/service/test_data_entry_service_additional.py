@@ -38,7 +38,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
             vat_amount=1.7,
         )
 
-    item = SimpleNamespace(id=1, business_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
+    item = SimpleNamespace(id=1, client_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
     work_item_repo = SimpleNamespace(
         db=object(),
         get_by_id=lambda _id: item,
@@ -63,7 +63,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
 
 
 def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
-    item = SimpleNamespace(id=1, business_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+    item = SimpleNamespace(id=1, client_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
     created = {}
     work_item_repo = SimpleNamespace(
         db=object(),
@@ -107,7 +107,7 @@ def test_data_entry_common_invalid_transition_and_ceiling():
     osek_business = SimpleNamespace(entity_type=EntityType.OSEK_PATUR)
 
     class _InvoiceRepo:
-        def sum_income_net_by_business_year(self, business_id, year):
+        def sum_income_net_by_client_year(self, client_id, year):
             return 2000000
 
     with pytest.raises(AppError):
@@ -131,7 +131,7 @@ def test_osek_patur_ceiling_uses_2026_threshold_and_boundary_behavior():
         def __init__(self, total):
             self.total = total
 
-        def sum_income_net_by_business_year(self, business_id, year):
+        def sum_income_net_by_client_year(self, client_id, year):
             assert year == 2026
             return self.total
 
@@ -166,7 +166,7 @@ def test_osek_patur_ceiling_warning_threshold_is_80_percent():
         def __init__(self, total):
             self.total = total
 
-        def sum_income_net_by_business_year(self, business_id, year):
+        def sum_income_net_by_client_year(self, client_id, year):
             return self.total
 
     below_warning = check_osek_patur_ceiling(

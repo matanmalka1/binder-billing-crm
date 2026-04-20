@@ -4,8 +4,8 @@ from sqlalchemy import String, cast
 from sqlalchemy.dialects import postgresql
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
     DocumentType,
@@ -41,9 +41,11 @@ def _business(test_db, *, suffix: str) -> Business:
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
+    client_record = ClientRecordRepository(test_db).get_by_client_id(client.id)
 
     business = Business(
         client_id=client.id,
+        legal_entity_id=client_record.legal_entity_id,
         business_name=f"Permanent Biz {suffix}",
         opened_at=date(2024, 1, 1),
     )
@@ -61,6 +63,7 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
 
     active = repo.create(
         client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         business_id=business_a.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
@@ -69,6 +72,7 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
     )
     deleted = repo.create(
         client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         business_id=business_a.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.POWER_OF_ATTORNEY,
@@ -77,6 +81,7 @@ def test_count_by_business_ignores_soft_deleted_documents(test_db):
     )
     repo.create(
         client_id=business_b.client_id,
+        client_record_id=business_b.client_id,
         business_id=business_b.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.ENGAGEMENT_AGREEMENT,

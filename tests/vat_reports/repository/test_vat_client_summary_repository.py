@@ -64,10 +64,10 @@ def test_vat_client_summary_repository_periods_and_annual_aggregates(test_db):
     work_repo.update_vat_totals(i1.id, total_output_vat=170.0, total_input_vat=20.0, total_output_net=1000.0, total_input_net=200.0)
     work_repo.update_vat_totals(i2.id, total_output_vat=85.0, total_input_vat=10.0, total_output_net=500.0, total_input_net=100.0)
 
-    periods = summary_repo.get_periods_for_business(business.id)
+    periods = summary_repo.get_periods_for_client(business.client_id)
     assert [work_item.period for work_item, _output_net, _input_net in periods] == ["2026-02", "2026-01"]
 
-    annual = summary_repo.get_annual_aggregates(business.id)
+    annual = summary_repo.get_annual_aggregates(business.client_id)
     assert len(annual) == 1
     assert annual[0]["year"] == 2026
     assert float(annual[0]["total_output_vat"]) == 255.0
@@ -99,7 +99,7 @@ def test_vat_work_item_repository_list_by_business(test_db):
     b = repo.create(b1.id, "2026-01", VatType.MONTHLY, user.id)
     repo.create(b2.id, "2026-02", VatType.MONTHLY, user.id)
 
-    rows = repo.list_by_business(b1.id)
+    rows = repo.list_by_client(b1.client_id)
     assert [r.id for r in rows] == [a.id, b.id]
 
 
@@ -113,7 +113,7 @@ def test_vat_work_item_repository_list_by_business_applies_limit(test_db):
         month_in_year = ((month - 1) % 12) + 1
         repo.create(business.id, f"{year:04d}-{month_in_year:02d}", VatType.MONTHLY, user.id)
 
-    rows = repo.list_by_business(business.id)
+    rows = repo.list_by_client(business.client_id)
 
     assert len(rows) == 200
     assert rows[0].period == "2050-12"

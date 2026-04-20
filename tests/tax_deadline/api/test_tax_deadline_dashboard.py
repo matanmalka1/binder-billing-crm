@@ -13,25 +13,29 @@ def _seed_deadlines(db):
 
     deadlines = [
         TaxDeadline(
-            business_id=business_a.id,
+            client_id=business_a.client_id,
+            client_record_id=business_a.client_id,
             deadline_type=DeadlineType.VAT,
             due_date=today - timedelta(days=1),
             payment_amount=Decimal("100.00"),
         ),
         TaxDeadline(
-            business_id=business_b.id,
+            client_id=business_b.client_id,
+            client_record_id=business_b.client_id,
             deadline_type=DeadlineType.ANNUAL_REPORT,
             due_date=today + timedelta(days=1),
             payment_amount=Decimal("200.00"),
         ),
         TaxDeadline(
-            business_id=business_c.id,
+            client_id=business_c.client_id,
+            client_record_id=business_c.client_id,
             deadline_type=DeadlineType.ADVANCE_PAYMENT,
             due_date=today + timedelta(days=5),
             payment_amount=Decimal("300.00"),
         ),
         TaxDeadline(
-            business_id=business_c.id,
+            client_id=business_c.client_id,
+            client_record_id=business_c.client_id,
             deadline_type=DeadlineType.OTHER,
             due_date=today + timedelta(days=10),
             payment_amount=Decimal("400.00"),

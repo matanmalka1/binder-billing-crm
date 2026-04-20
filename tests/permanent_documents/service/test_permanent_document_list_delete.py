@@ -3,8 +3,8 @@ from datetime import date
 import pytest
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
 from app.permanent_documents.repositories.permanent_document_repository import (
@@ -40,9 +40,11 @@ def _business(test_db) -> Business:
     test_db.add(client)
     test_db.commit()
     test_db.refresh(client)
+    client_record = ClientRecordRepository(test_db).get_by_client_id(client.id)
 
     business = Business(
         client_id=client.id,
+        legal_entity_id=client_record.legal_entity_id,
         business_name="Permanent Service Biz",
         opened_at=date.today(),
     )
@@ -60,6 +62,7 @@ def test_list_business_documents_and_delete_document(test_db):
 
     doc_2025 = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
@@ -69,6 +72,7 @@ def test_list_business_documents_and_delete_document(test_db):
     )
     doc_2024 = repo.create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.POWER_OF_ATTORNEY,

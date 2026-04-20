@@ -31,25 +31,25 @@ def test_build_binder_actions_covers_overdue_and_non_overdue_candidates():
 def test_build_vat_and_annual_actions_include_due_labels():
     vat_repo = SimpleNamespace(
         list_not_filed_for_period=lambda period, limit=3: [
-            SimpleNamespace(id=7, business_id=99),
+            SimpleNamespace(id=7, client_id=99),
         ]
     )
     annual_repo = SimpleNamespace(
         list_stuck_reports=lambda stale_days=7, limit=3: [
             SimpleNamespace(
                 id=8,
-                business_id=99,
+                client_id=99,
                 status="pending_client",
                 updated_at=datetime.now(timezone.utc) - timedelta(days=9),
             )
         ]
     )
-    business_repo = SimpleNamespace(
-        get_by_id=lambda bid: SimpleNamespace(id=bid, client_id=bid, full_name=f"Business {bid}")
+    client_repo = SimpleNamespace(
+        get_by_id=lambda cid: SimpleNamespace(id=cid, full_name=f"Client {cid}")
     )
 
-    vat_actions = helpers.build_vat_actions(vat_repo, business_repo, "2026-01")
-    annual_actions = helpers.build_annual_report_actions(annual_repo, business_repo)
+    vat_actions = helpers.build_vat_actions(vat_repo, client_repo, "2026-01")
+    annual_actions = helpers.build_annual_report_actions(annual_repo, client_repo)
 
     assert vat_actions[0]["due_label"].startswith("תקופה:")
     assert annual_actions[0]["category"] == "annual_reports"
@@ -63,6 +63,7 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
     business_repo = SimpleNamespace(
         get_by_id=lambda _id: SimpleNamespace(id=3, client_id=3, full_name="Charge Client")
     )
+    client_repo = object()
     charge_repo = SimpleNamespace(
         list_charges=lambda **kwargs: [SimpleNamespace(business_id=3)],
     )
@@ -88,6 +89,7 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
         binder_repo=binder_repo,
         charge_repo=charge_repo,
         business_repo=business_repo,
+        client_repo=client_repo,
         vat_repo=vat_repo,
         annual_report_repo=annual_repo,
         user_role=UserRole.ADVISOR,

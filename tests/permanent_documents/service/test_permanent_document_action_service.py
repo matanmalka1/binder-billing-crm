@@ -3,12 +3,11 @@ from datetime import date
 import pytest
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.clients.models.client import Client, IdNumberType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
-    DocumentStatus,
     DocumentType,
     PermanentDocument,
 )
@@ -25,9 +24,11 @@ def _business(db) -> Business:
     db.add(client)
     db.commit()
     db.refresh(client)
+    client_record = ClientRecordRepository(db).get_by_client_id(client.id)
 
     business = Business(
         client_id=client.id,
+        legal_entity_id=client_record.legal_entity_id,
         business_name="Perm Action Biz",
         opened_at=date.today(),
     )
@@ -40,6 +41,7 @@ def _business(db) -> Business:
 def _doc(db, business: Business, annual_report_id: int | None = None) -> PermanentDocument:
     return PermanentDocumentRepository(db).create(
         client_id=business.client_id,
+        client_record_id=business.client_id,
         business_id=business.id,
         scope=DocumentScope.CLIENT,
         document_type=DocumentType.ID_COPY,
@@ -49,21 +51,10 @@ def _doc(db, business: Business, annual_report_id: int | None = None) -> Permane
     )
 
 
-def test_approve_reject_update_notes_and_list_versions(test_db):
+def test_update_notes_and_list_versions(test_db):
     business = _business(test_db)
     doc = _doc(test_db, business, annual_report_id=10)
     service = PermanentDocumentActionService(test_db)
-
-    approved = service.approve_document(doc.id, approved_by=7)
-    assert approved.status == DocumentStatus.APPROVED
-    assert approved.approved_by == 7
-    assert approved.approved_at is not None
-
-    rejected = service.reject_document(doc.id, notes="bad", rejected_by=8)
-    assert rejected.status == DocumentStatus.REJECTED
-    assert rejected.notes == "bad"
-    assert rejected.rejected_by == 8
-    assert rejected.rejected_at is not None
 
     noted = service.update_notes(doc.id, notes="final note")
     assert noted.notes == "final note"
@@ -81,9 +72,6 @@ def test_action_service_not_found_or_deleted_raises(test_db):
     test_db.commit()
 
     service = PermanentDocumentActionService(test_db)
-
-    with pytest.raises(NotFoundError):
-        service.approve_document(doc.id, approved_by=1)
 
     with pytest.raises(NotFoundError):
         service.update_notes(999999, notes="x")

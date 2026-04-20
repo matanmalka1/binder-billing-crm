@@ -11,28 +11,28 @@ def test_list_pending_due_by_date_filters_completed_deleted_and_window(test_db):
     base = date.today()
 
     expected_1 = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=base + timedelta(days=2),
     )
     expected_2 = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=base + timedelta(days=4),
     )
 
-    repo.create(business_id=business.id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=1))
-    repo.create(business_id=business.id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=6))
+    repo.create(client_id=business.client_id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=1))
+    repo.create(client_id=business.client_id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=6))
 
     completed = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=base + timedelta(days=3),
     )
     repo.update_status(completed.id, TaxDeadlineStatus.COMPLETED)
 
     deleted = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=base + timedelta(days=5),
     )
@@ -53,13 +53,13 @@ def test_update_exists_and_delete_paths(test_db):
 
     due_date = date.today() + timedelta(days=10)
     deadline = repo.create(
-        business_id=business.id,
+        client_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=due_date,
     )
 
-    assert repo.exists(business.id, DeadlineType.VAT, due_date) is True
-    assert repo.exists(business.id, DeadlineType.VAT, due_date + timedelta(days=1)) is False
+    assert repo.exists(business.client_id, DeadlineType.VAT, due_date) is True
+    assert repo.exists(business.client_id, DeadlineType.VAT, due_date + timedelta(days=1)) is False
 
     updated = repo.update(
         deadline.id,

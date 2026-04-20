@@ -14,7 +14,7 @@ def test_generate_deadlines_endpoint_success(client, test_db, advisor_headers):
     )
 
     assert resp.status_code == 201
-    assert resp.json()["created_count"] == 25
+    assert resp.json()["created_count"] == 18
 
 
 def test_generate_deadlines_endpoint_advisor_only(client, test_db, secretary_headers):

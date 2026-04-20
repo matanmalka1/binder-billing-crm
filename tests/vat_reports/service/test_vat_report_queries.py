@@ -20,12 +20,23 @@ def test_get_work_item_not_found_raises_not_found_error():
 
 def test_list_client_work_items_forwards_repository_call():
     work_item_repo = MagicMock()
+    work_item_repo.db = MagicMock()
     expected = [make_item(id=1), make_item(id=2)]
-    work_item_repo.list_by_client.return_value = expected
+    work_item_repo.list_by_client_record.return_value = expected
 
-    result = vat_report_queries.list_client_work_items(work_item_repo, client_id=11)
+    class _ClientRecordRepo:
+        def __init__(self, db):
+            self.db = db
 
-    work_item_repo.list_by_client.assert_called_once_with(11)
+        def get_by_client_id(self, client_id):
+            assert client_id == 11
+            return MagicMock(id=31)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(vat_report_queries, "ClientRecordRepository", _ClientRecordRepo)
+        result = vat_report_queries.list_client_work_items(work_item_repo, client_id=11)
+
+    work_item_repo.list_by_client_record.assert_called_once_with(31)
     assert result == expected
 
 
