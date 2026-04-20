@@ -12,8 +12,6 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.businesses.services.business_update_service import BusinessUpdateService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
-from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.users.models.user import UserRole
 
@@ -24,7 +22,6 @@ class BusinessService:
     def __init__(self, db: Session):
         self.db = db
         self.business_repo = BusinessRepository(db)
-        self.client_repo = ClientRepository(db)
         self._lifecycle = BusinessLifecycleService(db)
         self._update = BusinessUpdateService(db)
         self._audit = EntityAuditLogRepository(db)
@@ -39,9 +36,9 @@ class BusinessService:
         notes: Optional[str] = None,
         actor_id: Optional[int] = None,
     ) -> Business:
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+        record = ClientRecordRepository(self.db).get_by_id(client_id)
+        if not record:
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
 
         effective_opened_at = opened_at or date.today()
 
@@ -152,9 +149,8 @@ class BusinessService:
     def list_businesses_for_client(
         self, client_id: int, page: int = 1, page_size: int = 20
     ) -> tuple[list[Business], int]:
-        client = self.client_repo.get_by_id(client_id)
-        if not client:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+        if not ClientRecordRepository(self.db).get_by_id(client_id):
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         items = self.business_repo.list_by_client(client_id, page=page, page_size=page_size)
         total = self.business_repo.count_by_client(client_id)
         return items, total
@@ -171,15 +167,7 @@ class BusinessService:
                 business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,
                 legal_entity_id=None, **fields
             )
-        client = self.client_repo.get_by_id(client_id)
-        record = None
-        if client:
-            legal_entity = LegalEntityRepository(self.db).get_by_id_number(
-                client.id_number_type,
-                client.id_number,
-            )
-            if legal_entity:
-                record = ClientRecordRepository(self.db).get_by_legal_entity_id(legal_entity.id)
+        record = ClientRecordRepository(self.db).get_by_id(client_id)
         legal_entity_id = record.legal_entity_id if record else None
         return self._update.update_business(
             business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,

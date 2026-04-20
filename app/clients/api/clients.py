@@ -21,9 +21,7 @@ from app.clients.schemas.client_record_response import (
 from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
-from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.clients.services.impact_preview_service import compute_creation_impact
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
@@ -69,53 +67,6 @@ def _full_record_or_404(db, client_record_id: int) -> ClientRecordResponse:
     if not data:
         raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
     return ClientRecordResponse(**data)
-
-
-def _apply_legacy_client_overlay(
-    response: ClientRecordResponse, legacy_client
-) -> ClientRecordResponse:
-    response.full_name = legacy_client.full_name
-    response.official_name = response.official_name or legacy_client.full_name
-    response.id_number = legacy_client.id_number
-    response.id_number_type = legacy_client.id_number_type
-    response.entity_type = legacy_client.entity_type
-    response.status = legacy_client.status
-    response.phone = legacy_client.phone
-    response.email = legacy_client.email
-    response.address_street = legacy_client.address_street
-    response.address_building_number = legacy_client.address_building_number
-    response.address_apartment = legacy_client.address_apartment
-    response.address_city = legacy_client.address_city
-    response.address_zip_code = legacy_client.address_zip_code
-    response.office_client_number = legacy_client.office_client_number
-    response.notes = legacy_client.notes
-    response.vat_reporting_frequency = legacy_client.vat_reporting_frequency
-    response.vat_exempt_ceiling = legacy_client.vat_exempt_ceiling
-    response.advance_rate = legacy_client.advance_rate
-    response.advance_rate_updated_at = legacy_client.advance_rate_updated_at
-    response.accountant_name = legacy_client.accountant_name
-    response.created_at = legacy_client.created_at
-    response.updated_at = legacy_client.updated_at
-    return response
-
-
-def _full_record_for_legacy_client_or_404(db, client_id: int) -> ClientRecordResponse:
-    client_repo = ClientRepository(db)
-    legacy_client = client_repo.get_by_id(client_id)
-    if legacy_client:
-        record_id = _resolve_record_id_or_404(db, client_id)
-        return _apply_legacy_client_overlay(_full_record_or_404(db, record_id), legacy_client)
-    deleted_legacy_client = client_repo.get_by_id_including_deleted(client_id)
-    if deleted_legacy_client and deleted_legacy_client.deleted_at is not None:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-    return _full_record_or_404(db, client_id)
-
-
-def _resolve_record_id_or_404(db, client_id: int) -> int:
-    record = ClientRecordLinkService(db).get_client_record_by_client_id(client_id)
-    if not record:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-    return record.id
 
 
 # ─── Create ───────────────────────────────────────────────────────────────────
@@ -238,7 +189,7 @@ def list_clients(
 @router.get("/{client_id}", response_model=ClientRecordResponse)
 def get_client(client_id: int, db: DBSession):
     """Get client by ID (client_id = ClientRecord.id)."""
-    return enrich_single(_full_record_for_legacy_client_or_404(db, client_id), db)
+    return enrich_single(_full_record_or_404(db, client_id), db)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
@@ -265,16 +216,15 @@ def update_client(
     db: DBSession,
     user: CurrentUser,
 ):
-    """Update client identity fields. client_id is the legacy Client.id during migration."""
+    """Update client identity fields by ClientRecord.id."""
     service = ClientService(db)
-    updated = service.update_client(
+    service.update_client(
         client_id,
         actor_id=user.id,
         actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
-    record = _full_record_or_404(db, _resolve_record_id_or_404(db, client_id))
-    return enrich_single(_apply_legacy_client_overlay(record, updated), db)
+    return enrich_single(_full_record_or_404(db, client_id), db)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
@@ -299,9 +249,8 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
 def restore_client(client_id: int, db: DBSession, user: CurrentUser):
     """Restore a soft-deleted client (ADVISOR only)."""
     service = ClientService(db)
-    restored = service.restore_client(client_id, actor_id=user.id)
-    record_id = _resolve_record_id_or_404(db, client_id)
-    data = get_full_record_including_deleted(db, record_id)
+    service.restore_client(client_id, actor_id=user.id)
+    data = get_full_record_including_deleted(db, client_id)
     if not data:
-        raise NotFoundError(f"רשומת לקוח {record_id} לא נמצאה", "CLIENT.NOT_FOUND")
-    return _apply_legacy_client_overlay(ClientRecordResponse(**data), restored)
+        raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT.NOT_FOUND")
+    return ClientRecordResponse(**data)

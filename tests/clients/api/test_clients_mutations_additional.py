@@ -1,5 +1,5 @@
-from app.clients.models.client import IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
+from app.common.enums import IdNumberType
 from tests.clients.helpers import create_client_via_api
 
 

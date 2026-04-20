@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -22,7 +21,6 @@ class TaxDeadlineService:
     def __init__(self, db: Session):
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
-        self.client_repo = ClientRepository(db)
 
     def create_deadline(
         self,
@@ -34,11 +32,9 @@ class TaxDeadlineService:
         description: Optional[str] = None,
     ) -> TaxDeadline:
         """Create new tax deadline."""
-        client = self.client_repo.get_by_id(client_record_id)
-        if not client:
-            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
-
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not client_record:
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         assert_client_record_is_active(client_record)
         client_record_id = client_record.id
 

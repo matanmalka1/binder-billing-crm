@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Iterable
 
 from sqlalchemy.orm import Session
 
-from app.clients.models.client import Client
 from app.clients.constants import (
     CLIENT_EXCEL_FREEZE_PANES,
     CLIENT_EXCEL_SHEET_TITLE,
@@ -34,7 +33,7 @@ class ClientExcelService:
         self.export_dir = Path(tempfile.gettempdir()) / "exports" / "clients"
         self.export_dir.mkdir(parents=True, exist_ok=True)
 
-    def export_clients(self, clients: Iterable[Client]) -> dict:
+    def export_clients(self, clients: Iterable[object]) -> dict:
         """Create an Excel file containing the provided clients."""
         wb, ws = self._create_workbook_with_columns(CLIENT_EXPORT_COLUMNS)
         for row_index, client in enumerate(clients, start=2):
@@ -149,7 +148,7 @@ class ClientExcelService:
         )
         return {"created": created, "total_rows": total_rows, "errors": errors}
 
-    def _value_from_client(self, client: Client, attr: str):
+    def _value_from_client(self, client: object, attr: str):
         value = getattr(client, attr, "")
         return value or ""
 

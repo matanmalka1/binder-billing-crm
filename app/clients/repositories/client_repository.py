@@ -1,17 +1,9 @@
 from __future__ import annotations
 
-# Re-export so callers can access new ClientRecord+LegalEntity query methods
-# without changing their import path. The Client-based methods below remain
-# until step 5.8 removes the Client model entirely.
-from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: F401
-
 from dataclasses import dataclass
 from typing import Optional
 
-from sqlalchemy import asc, desc, func
-
-from app.common.repositories.base_repository import BaseRepository
-from app.clients.models.client import Client
+from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
@@ -19,10 +11,11 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
-from app.clients.enums import ClientStatus
-from app.clients.models.client import IdNumberType
-from app.common.enums import EntityType, VatType
-from app.utils.time_utils import utcnow
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.clients.repositories.person_repository import PersonRepository
+from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.repositories.base_repository import BaseRepository
 
 
 @dataclass
@@ -31,7 +24,7 @@ class LegacyClientView:
     client_record_id: int
     full_name: str
     id_number: str
-    id_number_type: Optional[IdNumberType] # type: ignore
+    id_number_type: Optional[IdNumberType]
     entity_type: Optional[EntityType]
     status: ClientStatus
     phone: Optional[str]
@@ -57,78 +50,17 @@ class LegacyClientView:
 
 
 class ClientRepository(BaseRepository):
-    """Data access layer for Client entities — identity only, no business logic."""
+    """Legacy-shaped client reads/writes backed by ClientRecord + LegalEntity + Person."""
 
-    def _legacy_client_active_query(self):
-        return self.db.query(Client).filter(Client.deleted_at.is_(None))
+    _SORTABLE_FIELDS = {
+        "full_name": LegalEntity.official_name,
+        "official_name": LegalEntity.official_name,
+        "created_at": ClientRecord.created_at,
+        "status": ClientRecord.status,
+    }
 
-    def _legacy_client_deleted_query(self):
-        return self.db.query(Client).filter(Client.deleted_at.isnot(None))
-
-    def create(
-        self,
-        full_name: str,
-        id_number: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
-        entity_type: Optional[EntityType] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        address_street: Optional[str] = None,
-        address_building_number: Optional[str] = None,
-        address_apartment: Optional[str] = None,
-        address_city: Optional[str] = None,
-        address_zip_code: Optional[str] = None,
-        vat_reporting_frequency: Optional[VatType] = None,
-        vat_exempt_ceiling=None,
-        advance_rate=None,
-        advance_rate_updated_at=None,
-        accountant_name: Optional[str] = None,
-        office_client_number: Optional[int] = None,
-        created_by: Optional[int] = None,
-    ) -> Client:
-        """Create a new client (identity + tax profile)."""
-        client = Client(
-            full_name=full_name,
-            id_number=id_number,
-            id_number_type=id_number_type,
-            entity_type=entity_type,
-            phone=phone,
-            email=email,
-            address_street=address_street,
-            address_building_number=address_building_number,
-            address_apartment=address_apartment,
-            address_city=address_city,
-            address_zip_code=address_zip_code,
-            vat_reporting_frequency=vat_reporting_frequency,
-            vat_exempt_ceiling=vat_exempt_ceiling,
-            advance_rate=advance_rate,
-            advance_rate_updated_at=advance_rate_updated_at,
-            accountant_name=accountant_name,
-            office_client_number=office_client_number,
-            created_by=created_by,
-        )
-        self.db.add(client)
-        self.db.flush()
-        return client
-
-    def get_by_id(self, client_id: int) -> Optional[Client]:
-        """Retrieve client by ID (excludes soft-deleted)."""
-        return (
-            self.db.query(Client)
-            .filter(Client.id == client_id, Client.deleted_at.is_(None))
-            .first()
-        )
-
-    def get_by_id_including_deleted(self, client_id: int) -> Optional[Client]:
-        """Retrieve client by ID regardless of deletion status."""
-        return (
-            self.db.query(Client)
-            .filter(Client.id == client_id)
-            .first()
-        )
-
-    def _legacy_query(self):
-        return (
+    def _base_query(self, *, include_deleted: bool = False):
+        query = (
             self.db.query(ClientRecord, LegalEntity, Person)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .outerjoin(
@@ -140,14 +72,21 @@ class ClientRepository(BaseRepository):
             )
             .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
         )
+        if not include_deleted:
+            query = query.filter(ClientRecord.deleted_at.is_(None))
+        return query
 
     def _to_legacy_view(
-        self, record: ClientRecord, legal_entity: LegalEntity, person: Optional[Person]
+        self,
+        record: ClientRecord,
+        legal_entity: LegalEntity,
+        person: Optional[Person],
     ) -> LegacyClientView:
+        full_name = person.full_name if person and person.full_name else legal_entity.official_name
         return LegacyClientView(
             id=record.id,
             client_record_id=record.id,
-            full_name=person.full_name if person and person.full_name else legal_entity.official_name,
+            full_name=full_name,
             id_number=legal_entity.id_number,
             id_number_type=legal_entity.id_number_type,
             entity_type=legal_entity.entity_type,
@@ -174,92 +113,110 @@ class ClientRepository(BaseRepository):
             restored_by=record.restored_by,
         )
 
-    def _legacy_list(self, query) -> list[LegacyClientView]:
-        return [self._to_legacy_view(record, legal_entity, person) for record, legal_entity, person in query.all()]
+    def _first_view(self, query) -> Optional[LegacyClientView]:
+        row = query.first()
+        return self._to_legacy_view(*row) if row else None
+
+    def _list_views(self, query) -> list[LegacyClientView]:
+        return [self._to_legacy_view(*row) for row in query.all()]
+
+    def create(
+        self,
+        full_name: str,
+        id_number: str,
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
+        entity_type: Optional[EntityType] = None,
+        phone: Optional[str] = None,
+        email: Optional[str] = None,
+        address_street: Optional[str] = None,
+        address_building_number: Optional[str] = None,
+        address_apartment: Optional[str] = None,
+        address_city: Optional[str] = None,
+        address_zip_code: Optional[str] = None,
+        vat_reporting_frequency: Optional[VatType] = None,
+        vat_exempt_ceiling=None,
+        advance_rate=None,
+        advance_rate_updated_at=None,
+        accountant_name: Optional[str] = None,
+        office_client_number: Optional[int] = None,
+        created_by: Optional[int] = None,
+    ) -> LegacyClientView:
+        legal_entity_repo = LegalEntityRepository(self.db)
+        legal_entity = legal_entity_repo.get_by_id_number(id_number_type, id_number)
+        if not legal_entity:
+            legal_entity = legal_entity_repo.create(
+                id_number=id_number,
+                id_number_type=id_number_type,
+                official_name=full_name,
+                entity_type=entity_type,
+                vat_reporting_frequency=vat_reporting_frequency,
+                vat_exempt_ceiling=vat_exempt_ceiling,
+                advance_rate=advance_rate,
+            )
+        else:
+            legal_entity.official_name = full_name
+            legal_entity.entity_type = entity_type
+            legal_entity.vat_reporting_frequency = vat_reporting_frequency
+            legal_entity.vat_exempt_ceiling = vat_exempt_ceiling
+            legal_entity.advance_rate = advance_rate
+        if advance_rate_updated_at is not None:
+            legal_entity.advance_rate_updated_at = advance_rate_updated_at
+        PersonRepository(self.db).ensure_owner(
+            legal_entity_id=legal_entity.id,
+            full_name=full_name,
+            id_number=id_number,
+            id_number_type=id_number_type,
+            phone=phone,
+            email=email,
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
+        )
+        record = ClientRecordRepository(self.db).create(
+            legal_entity_id=legal_entity.id,
+            office_client_number=office_client_number or self.get_next_office_client_number(),
+            accountant_name=accountant_name,
+            created_by=created_by,
+        )
+        return self.get_by_id(record.id)
+
+    def get_by_id(self, client_id: int) -> Optional[LegacyClientView]:
+        return self._first_view(
+            self._base_query().filter(ClientRecord.id == client_id)
+        )
+
+    def get_by_id_including_deleted(self, client_id: int) -> Optional[LegacyClientView]:
+        return self._first_view(
+            self._base_query(include_deleted=True).filter(ClientRecord.id == client_id)
+        )
 
     def get_active_by_id_number(self, id_number: str) -> list[LegacyClientView]:
-        """Retrieve active ClientRecords by ID number in legacy Client shape."""
-        legacy_any = self.db.query(Client.id).filter(Client.id_number == id_number).first()
-        if legacy_any:
-            return (
-                self._legacy_client_active_query()
-                .filter(Client.id_number == id_number)
-                .all()
-            )
-        query = (
-            self._legacy_query()
-            .filter(
-                LegalEntity.id_number == id_number,
-                ClientRecord.deleted_at.is_(None),
-            )
+        return self._list_views(
+            self._base_query()
+            .filter(LegalEntity.id_number == id_number)
             .order_by(ClientRecord.id.asc())
         )
-        return self._legacy_list(query)
 
     def get_deleted_by_id_number(self, id_number: str) -> list[LegacyClientView]:
-        """Retrieve deleted ClientRecords by ID number in legacy Client shape."""
-        legacy_any = self.db.query(Client.id).filter(Client.id_number == id_number).first()
-        if legacy_any:
-            return (
-                self._legacy_client_deleted_query()
-                .filter(Client.id_number == id_number)
-                .order_by(Client.deleted_at.desc())
-                .all()
-            )
-        query = (
-            self._legacy_query()
+        return self._list_views(
+            self._base_query(include_deleted=True)
             .filter(
                 LegalEntity.id_number == id_number,
                 ClientRecord.deleted_at.isnot(None),
             )
             .order_by(ClientRecord.deleted_at.desc())
         )
-        return self._legacy_list(query)
 
-    def restore(self, client_id: int, restored_by: int) -> Optional[Client]:
-        """Restore a soft-deleted client."""
-        client = self.db.query(Client).filter(Client.id == client_id).first()
-        if not client or client.deleted_at is None:
-            return None
-        client.deleted_at = None
-        client.deleted_by = None
-        client.restored_at = utcnow()
-        client.restored_by = restored_by
-        self.db.flush()
-        return client
+    def restore(self, client_id: int, restored_by: int) -> Optional[LegacyClientView]:
+        record = ClientRecordRepository(self.db).restore(client_id, restored_by)
+        return self.get_by_id_including_deleted(record.id) if record else None
 
     def soft_delete(self, client_id: int, deleted_by: int) -> bool:
-        """Soft-delete a client by setting deleted_at."""
-        client = self.db.query(Client).filter(Client.id == client_id).first()
-        if not client:
-            return False
-        client.deleted_at = utcnow()
-        client.deleted_by = deleted_by
-        self.db.flush()
-        return True
-
-    _SORTABLE_FIELDS = {
-        "full_name": LegalEntity.official_name,
-        "official_name": LegalEntity.official_name,
-        "created_at": ClientRecord.created_at,
-        "status": ClientRecord.status,
-    }
-
-    def _active_query(self):
-        if self.db.query(Client.id).first():
-            return self._legacy_client_active_query()
-        return self._legacy_query().filter(ClientRecord.deleted_at.is_(None))
+        return ClientRecordRepository(self.db).soft_delete(client_id, deleted_by)
 
     def _apply_list_filters(self, query, search=None, status=None):
-        if getattr(query.column_descriptions[0].get("entity"), "__name__", None) == "Client":
-            if search:
-                term = f"%{search.strip()}%"
-                query = query.filter(
-                    Client.full_name.ilike(term) | Client.id_number.ilike(term)
-                )
-            if status:
-                query = query.filter(Client.status == status)
-            return query
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
@@ -278,31 +235,20 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[LegacyClientView]:
-        """List active clients with optional search, status filter, and sorting."""
-        query = self._apply_list_filters(self._active_query(), search, status)
-        if getattr(query.column_descriptions[0].get("entity"), "__name__", None) == "Client":
-            col = {
-                "full_name": Client.full_name,
-                "created_at": Client.created_at,
-                "status": Client.status,
-            }.get(sort_by, Client.full_name)
-            query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
-            return self._paginate(query, page, page_size)
-        if sort_by == "full_name":
-            sort_by = "official_name"
+        from sqlalchemy import asc, desc
+
+        query = self._apply_list_filters(self._base_query(), search, status)
         col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
         query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
         query = query.offset((page - 1) * page_size).limit(page_size)
-        return self._legacy_list(query)
+        return self._list_views(query)
 
     def count(
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
     ) -> int:
-        """Count active clients with optional search and status filter."""
-        query = self._apply_list_filters(self._active_query(), search, status)
-        return query.count()
+        return self._apply_list_filters(self._base_query(), search, status).count()
 
     def search(
         self,
@@ -312,19 +258,7 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[LegacyClientView], int]:
-        """Cross-domain search — used by search and tax_deadline domains."""
-        q = self._active_query()
-        if getattr(q.column_descriptions[0].get("entity"), "__name__", None) == "Client":
-            if query:
-                term = f"%{query.strip()}%"
-                q = q.filter(Client.full_name.ilike(term) | Client.id_number.ilike(term))
-            if client_name:
-                q = q.filter(Client.full_name.ilike(f"%{client_name.strip()}%"))
-            if id_number:
-                q = q.filter(Client.id_number.ilike(f"%{id_number.strip()}%"))
-            total = q.count()
-            items = self._paginate(q.order_by(Client.full_name.asc()), page, page_size)
-            return items, total
+        q = self._base_query()
         if query:
             term = f"%{query.strip()}%"
             q = q.filter(LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term))
@@ -333,53 +267,74 @@ class ClientRepository(BaseRepository):
         if id_number:
             q = q.filter(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
         total = q.count()
-        items = (
-            q.order_by(LegalEntity.official_name.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-        return self._legacy_list(items), total
+        items = q.order_by(LegalEntity.official_name.asc()).offset((page - 1) * page_size).limit(page_size)
+        return self._list_views(items), total
 
     def list_by_ids(self, client_ids: list[int]) -> list[LegacyClientView]:
-        """Batch fetch clients by a list of IDs."""
         if not client_ids:
             return []
-        legacy = (
-            self._legacy_client_active_query()
-            .filter(Client.id.in_(client_ids))
-            .all()
+        return self._list_views(
+            self._base_query().filter(ClientRecord.id.in_(client_ids))
         )
-        if legacy:
-            return legacy
-        query = (
-            self._legacy_query()
-            .filter(ClientRecord.id.in_(client_ids), ClientRecord.deleted_at.is_(None))
-        )
-        return self._legacy_list(query)
 
     def list_all(self) -> list[LegacyClientView]:
-        """List all active clients ordered by name."""
-        legacy = self._legacy_client_active_query().order_by(Client.full_name.asc()).all()
-        if legacy:
-            return legacy
-        query = self._active_query().order_by(LegalEntity.official_name.asc())
-        return self._legacy_list(query)
+        return self._list_views(
+            self._base_query().order_by(LegalEntity.official_name.asc())
+        )
 
-    def update(self, client_id: int, **fields) -> Optional[Client]:
-        """Update client identity fields."""
-        client = self.get_by_id(client_id)
-        return self._update_entity(client, **fields)
+    def update(self, client_id: int, **fields) -> Optional[LegacyClientView]:
+        row = (
+            self._base_query()
+            .filter(ClientRecord.id == client_id)
+            .first()
+        )
+        if not row:
+            return None
+        record, legal_entity, person = row
+        person_fields = {
+            "phone",
+            "email",
+            "address_street",
+            "address_building_number",
+            "address_apartment",
+            "address_city",
+            "address_zip_code",
+        }
+        legal_entity_fields = {
+            "entity_type",
+            "vat_reporting_frequency",
+            "vat_exempt_ceiling",
+            "advance_rate",
+            "advance_rate_updated_at",
+        }
+        record_fields = {"status", "accountant_name", "notes"}
+        owner_requested = "full_name" in fields or bool(person_fields.intersection(fields))
+        if owner_requested and person is None:
+            PersonRepository(self.db).ensure_owner(
+                legal_entity_id=legal_entity.id,
+                full_name=fields.get("full_name", legal_entity.official_name),
+                id_number=legal_entity.id_number,
+                id_number_type=legal_entity.id_number_type,
+            )
+            person = PersonRepository(self.db).get_owner_for_legal_entity(legal_entity.id)
+
+        if "full_name" in fields:
+            legal_entity.official_name = fields["full_name"]
+            if person:
+                person.full_name = fields["full_name"]
+        for key, value in fields.items():
+            if key in person_fields and person is not None:
+                setattr(person, key, value)
+            elif key in legal_entity_fields:
+                setattr(legal_entity, key, value)
+            elif key in record_fields:
+                setattr(record, key, value)
+        self.db.flush()
+        return self.get_by_id(client_id)
 
     def count_by_status(self) -> dict[ClientStatus, int]:
-        """Count active (non-deleted) clients grouped by status."""
-        if self.db.query(Client.id).first():
-            rows = (
-                self.db.query(Client.status, func.count(Client.id))
-                .filter(Client.deleted_at.is_(None))
-                .group_by(Client.status)
-                .all()
-            )
-            return {status: count for status, count in rows}
+        from sqlalchemy import func
+
         rows = (
             self.db.query(ClientRecord.status, func.count(ClientRecord.id))
             .filter(ClientRecord.deleted_at.is_(None))
@@ -389,6 +344,4 @@ class ClientRepository(BaseRepository):
         return {status: count for status, count in rows}
 
     def get_next_office_client_number(self) -> int:
-        """Return the next office client number in ascending order."""
-        current_max = self.db.query(func.max(Client.office_client_number)).scalar()
-        return 1 if current_max is None else current_max + 1
+        return ClientRecordRepository(self.db).get_next_office_client_number()

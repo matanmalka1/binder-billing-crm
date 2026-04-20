@@ -7,8 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository_read import BusinessRepositoryRead
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
-from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.utils.time_utils import utcnow
 
 
@@ -19,17 +18,8 @@ class BusinessRepository(BusinessRepositoryRead):
         super().__init__(db)
 
     def _resolve_legal_entity_id(self, client_id: int) -> int | None:
-        row = (
-            self.db.query(LegalEntity.id)
-            .join(
-                Client,
-                (Client.id_number == LegalEntity.id_number)
-                & (Client.id_number_type == LegalEntity.id_number_type),
-            )
-            .filter(Client.id == client_id)
-            .first()
-        )
-        return row[0] if row else None
+        record = ClientRecordRepository(self.db).get_by_id(client_id)
+        return record.legal_entity_id if record else None
 
     # ─── Write ───────────────────────────────────────────────────────────────
 

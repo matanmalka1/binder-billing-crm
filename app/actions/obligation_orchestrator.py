@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.common.enums import EntityType
 from app.core.exceptions import ConflictError, NotFoundError
 from app.clients.constants import (
@@ -32,17 +31,9 @@ def _derive_client_type(entity_type: Optional[EntityType]) -> ClientTypeForRepor
     return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type, ClientTypeForReport.INDIVIDUAL)
 
 
-def _resolve_client_record_id(db: Session, client_or_record_id: int) -> int | None:
-    record = ClientRecordRepository(db).get_by_id(client_or_record_id)
-    if record:
-        return record.id
-    linked = ClientRecordLinkService(db).get_client_record_by_client_id(client_or_record_id)
-    return linked.id if linked else None
-
-
 def generate_client_obligations(
     db: Session,
-    client_id: int,
+    client_record_id: int,
     actor_id: Optional[int] = None,
     actor_name: Optional[str] = None,
     entity_type: Optional[EntityType] = None,
@@ -64,12 +55,11 @@ def generate_client_obligations(
     """
     years = _years_to_generate(reference_date)
     total = 0
-    client_record_id = _resolve_client_record_id(db, client_id)
-    if client_record_id is None:
+    if not ClientRecordRepository(db).get_by_id(client_record_id):
         if best_effort:
             return total
         raise NotFoundError(
-            f"רשומת לקוח עבור מזהה {client_id} לא נמצאה",
+            f"רשומת לקוח עבור מזהה {client_record_id} לא נמצאה",
             "CLIENT_RECORD.NOT_FOUND",
         )
 
@@ -81,7 +71,7 @@ def generate_client_obligations(
             sp.commit()  # RELEASE SAVEPOINT
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
-            _log.exception("שגיאה ביצירת מועדי מס ללקוח %s שנה %s", client_id, year)
+            _log.exception("שגיאה ביצירת מועדי מס ללקוח %s שנה %s", client_record_id, year)
             if not best_effort:
                 raise
 
@@ -104,7 +94,7 @@ def generate_client_obligations(
             sp.rollback()  # דוח קיים — מדלגים; חייבים לסיים את ה-savepoint
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
-            _log.exception("שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_id, year)
+            _log.exception("שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_record_id, year)
             if not best_effort:
                 raise
 

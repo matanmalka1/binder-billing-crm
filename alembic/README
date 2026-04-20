@@ -82,26 +82,36 @@ Notes:
 
 ## Migration chain
 
-0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null → 0019_drop_client_id_from_workflow_tables → 0020_add_domain_identity_unique_constraints → 0021_add_terminal_closure_states → 0022_add_official_name_to_legal_entities → **0023_set_official_name_not_null_on_legal_entities** (HEAD)
+0001_initial_schema → 0002 → 0003 → 0004 → 0005 → 0006_fix_annual_report_line_integrity → a61d76155e04_add_relationships_and_cascade_fks → 0009_add_office_client_number → 0010_binder_domain_alignment → 95cd4a1266d8_layer1_phase1_new_identity_models → 0002_add_legal_entity_id_to_businesses → 0003_add_client_record_id_to_annual_reports → 0004_add_client_record_id_to_vat_work_items → 0005_add_client_record_id_to_tax_deadlines → 0006_add_client_record_id_to_binders → 0007_add_client_record_id_to_advance_payments → 0008_backfill_client_record_ids_wave1 → 0009_add_client_record_id_to_reminders → 0010_add_client_record_id_to_charges → 0011_add_client_record_id_to_notifications → 0012_add_client_record_id_to_correspondence → 0013_add_client_record_id_to_signature_requests → 0014_add_client_record_id_to_authority_contacts → 0015_add_client_record_id_to_binder_handovers → 0016_add_client_record_id_to_permanent_documents → 0017_backfill_client_record_id_to_permanent_documents → 0018_make_client_record_id_not_null → 0019_drop_client_id_from_workflow_tables → 0020_add_domain_identity_unique_constraints → 0021_add_terminal_closure_states → 0022_add_official_name_to_legal_entities → 0023_set_official_name_not_null_on_legal_entities → 1d7068742798_remove_client_id_from_businesses → **00fa037f8cb3_drop_clients_table** (HEAD)
+
+### 00fa037f8cb3_drop_clients_table
+
+- Drops the legacy `clients` table now that runtime flows no longer read or write it.
+- Upgrade: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 00fa037f8cb3`
+- Downgrade recreates the old table and its partial indexes, but does not repopulate rows.
 
 ### 0023_set_official_name_not_null_on_legal_entities
+
 - Makes `legal_entities.official_name` NOT NULL (after data migration via `scripts/migrate_official_name.py`).
 - Pre-condition: run `scripts/migrate_official_name.py` first to ensure no NULL rows exist.
 - Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0023`
 
 ### 0022_add_official_name_to_legal_entities
+
 - Adds `legal_entities.official_name` (String, nullable) — entity's own registered trading name, independent of owner's name.
 - Adds index `ix_legal_entities_official_name` on `official_name`.
 - Also reconciles index drift from in-model renames across `advance_payments`, `annual_reports`, `authority_contacts`, `binders`, `businesses`, `charges`, `correspondence_entries`, `notifications`, `permanent_documents`, `person_legal_entity_links`, `reminders`, `signature_requests`, `tax_deadlines`, `vat_work_items`.
 - Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0022`
 
 ### 0021_add_terminal_closure_states
+
 - Adds terminal enum values:
   `vatworkitemstatus.canceled`, `vatworkitemstatus.archived`,
   `annualreportstatus.canceled`, `binderstatus.archived_in_office`.
 - Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0021_add_terminal_closure_states`
 
 ### 0020_add_domain_identity_unique_constraints
+
 - Additive only (indexes only, no column changes).
 - Adds 4 partial unique indexes enforcing domain identity:
   1. `uq_annual_reports_client_record_tax_year` — `annual_reports(client_record_id, tax_year)` WHERE `deleted_at IS NULL`
@@ -111,9 +121,11 @@ Notes:
 - Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0020_add_domain_identity_unique_constraints`
 
 ### 0019_drop_client_id_from_workflow_tables
+
 - Schema change: drops legacy `client_id` columns from all 13 workflow tables after `client_record_id` was made NOT NULL.
 
 ### 0018_make_client_record_id_not_null
+
 - Schema change: makes `client_record_id` NOT NULL on all 13 workflow tables.
 - Pre-flight: counts NULLs in each table before altering; raises RuntimeError if any found.
 - Tables: annual_reports, vat_work_items, tax_deadlines, binders, advance_payments,
@@ -122,34 +134,44 @@ Notes:
 - Run: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 0018_make_client_record_id_not_null`
 
 ### 0017_backfill_client_record_id_to_permanent_documents
+
 - Data migration only.
 - Backfills `permanent_documents.client_record_id` from legacy `client_id`.
 
 ### 0016_add_client_record_id_to_permanent_documents
+
 - Additive only. Adds `permanent_documents.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0015_add_client_record_id_to_binder_handovers
+
 - Additive only. Adds `binder_handovers.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0014_add_client_record_id_to_authority_contacts
+
 - Additive only. Adds `authority_contacts.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0013_add_client_record_id_to_signature_requests
+
 - Additive only. Adds `signature_requests.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0012_add_client_record_id_to_correspondence
+
 - Additive only. Adds `correspondence_entries.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0011_add_client_record_id_to_notifications
+
 - Additive only. Adds `notifications.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0010_add_client_record_id_to_charges
+
 - Additive only. Adds `charges.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0009_add_client_record_id_to_reminders
+
 - Additive only. Adds `reminders.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0008_backfill_client_record_ids_wave1
+
 - Data migration only.
 - Backfills `annual_reports.client_record_id`, `vat_work_items.client_record_id`,
   `tax_deadlines.client_record_id`, `binders.client_record_id`, and
@@ -158,18 +180,23 @@ Notes:
 - Mapping assumption: `client_records.id == clients.id` for existing seed data.
 
 ### 0007_add_client_record_id_to_advance_payments
+
 - Additive only. Adds `advance_payments.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0006_add_client_record_id_to_binders
+
 - Additive only. Adds `binders.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0005_add_client_record_id_to_tax_deadlines
+
 - Additive only. Adds `tax_deadlines.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0004_add_client_record_id_to_vat_work_items
+
 - Additive only. Adds `vat_work_items.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0003_add_client_record_id_to_annual_reports
+
 - Additive only. Adds `annual_reports.client_record_id` (nullable FK → `client_records.id`).
 
 ### 0002_add_legal_entity_id_to_businesses
@@ -211,6 +238,7 @@ Notes:
   Adds `clients.office_client_number` plus a partial unique index for active clients only.
 
 ## Run instructions
+
 ### a61d76155e04_add_relationships_and_cascade_fks
 
 - Command:
@@ -230,11 +258,11 @@ Notes:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
   Full initial schema — all tables, indexes, constraints, and enums from scratch.
-  Covers: users, clients, businesses, entity_notes, entity_audit_logs, binders, annual_reports,
+  Covers: users, clients, businesses, entity*notes, entity_audit_logs, binders, annual_reports,
   vat_work_items, vat_invoices, vat_audit_logs, charges, invoices, advance_payments,
   tax_deadlines, reminders, notifications, permanent_documents, signature_requests,
   signature_audit_events, correspondence_entries, authority_contacts, binder_intakes,
-  binder_intake_materials, binder_status_logs, annual_report_* sub-tables.
+  binder_intake_materials, binder_status_logs, annual_report*\* sub-tables.
   Important notes:
   - After autogenerate, manually wrap all partial-index `where` args with `sa.text(...)`.
   - Older migrations may still include dual `sqlite_where` / `postgresql_where` args from the previous SQLite-backed development setup.

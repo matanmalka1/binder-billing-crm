@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models.client import IdNumberType
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_service import ClientService
+from app.common.enums import IdNumberType
 from app.core.exceptions import ConflictError, NotFoundError
 
 
@@ -207,10 +207,10 @@ def test_create_client_does_not_reuse_deleted_office_client_number(test_db):
 def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch):
     service = ClientService(test_db)
 
-    def _raise_integrity(**_kwargs):
+    def _raise_integrity(*_args, **_kwargs):
         raise IntegrityError("insert", {}, Exception("ix_clients_id_number duplicate"))
 
-    monkeypatch.setattr(service.client_repo, "create", _raise_integrity)
+    monkeypatch.setattr(service._creation.record_repo, "create", _raise_integrity)
 
     with pytest.raises(ConflictError) as exc:
         service.create_client(
@@ -237,7 +237,7 @@ def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkey
     created = _svc_create(service, full_name="To Restore", id_number="690000013")
     service.delete_client(created.id, actor_id=1)
 
-    monkeypatch.setattr(service.client_repo, "restore", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(service._lifecycle.client_repo, "restore", lambda *_args, **_kwargs: None)
 
     with pytest.raises(NotFoundError) as exc:
         service.restore_client(created.id, actor_id=2)

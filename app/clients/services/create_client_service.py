@@ -5,10 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.businesses.models.business import Business
 from app.businesses.services.business_service import BusinessService
-from app.clients.models.client import IdNumberType
 from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_service import ClientService
-from app.common.enums import EntityType, VatType
+from app.common.enums import EntityType, IdNumberType, VatType
 
 
 class CreateClientService:

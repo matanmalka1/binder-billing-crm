@@ -1,5 +1,5 @@
-from app.clients.models.client import IdNumberType
 from app.clients.services.client_service import ClientService
+from app.common.enums import IdNumberType
 
 
 def test_list_all_clients_returns_only_active_sorted(test_db):

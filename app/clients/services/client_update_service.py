@@ -12,7 +12,6 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_repository import ClientRepository
-from app.clients.services.client_record_link_service import ClientRecordLinkService
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -27,7 +26,6 @@ class ClientUpdateService:
         self.db = db
         self.client_repo = ClientRepository(db)
         self._audit = EntityAuditLogRepository(db)
-        self._record_link = ClientRecordLinkService(db)
 
     def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields):
         existing = self.client_repo.get_by_id(client_id)
@@ -61,7 +59,7 @@ class ClientUpdateService:
         return updated
 
     def _update_client_record_status(self, client_id: int, new_status: ClientStatus) -> None:
-        record = self._record_link.get_client_record_by_client_id(client_id)
+        record = ClientRecordRepository(self.db).get_by_id(client_id)
         if not record:
             return
         ClientRecordRepository(self.db).update_status(record.id, new_status)
@@ -73,7 +71,7 @@ class ClientUpdateService:
             BinderRepository(self.db).archive_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(self, client_id: int, old_entity_type, new_entity_type, actor_id):
-        record = self._record_link.get_client_record_by_client_id(client_id)
+        record = ClientRecordRepository(self.db).get_by_id(client_id)
         if not record:
             return
         canceled = TaxDeadlineRepository(self.db).cancel_pending_by_client_record(record.id)
