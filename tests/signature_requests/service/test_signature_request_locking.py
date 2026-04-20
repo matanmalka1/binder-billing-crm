@@ -22,7 +22,6 @@ def _business(db) -> Business:
     client = Client(full_name="Signature Lock Client", id_number="999999998")
     db.add(client)
     db.flush()
-    business = Business(client_id=client.id, business_name="Signature Lock Business", opened_at=date(2026, 1, 1))
     db.add(business)
     db.commit()
     db.refresh(business)

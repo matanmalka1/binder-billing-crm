@@ -28,7 +28,6 @@ def _business(db):
     db.refresh(client)
 
     business = Business(
-        client_id=client.id,
         legal_entity_id=legal_entity.id,
         business_name="Advance Overview Business",
         opened_at=date.today(),

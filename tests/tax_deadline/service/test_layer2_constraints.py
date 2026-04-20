@@ -68,7 +68,6 @@ def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
     db.add(cr)
 
     user = _user(db)
-    biz = Business(client_id=client.id, business_name=client.full_name, opened_at=date(2026, 1, 1))
     db.add(biz)
     db.commit()
     db.refresh(client)
@@ -84,7 +83,6 @@ def test_annual_report_unique_client_record_tax_year(test_db):
 
     def _report():
         return AnnualReport(
-            client_id=client.id,
             client_record_id=cr.id,
             tax_year=2025,
             client_type=ClientAnnualFilingType.INDIVIDUAL,
@@ -108,7 +106,6 @@ def test_vat_work_item_unique_client_record_period(test_db):
 
     def _item():
         return VatWorkItem(
-            client_id=client.id,
             client_record_id=cr.id,
             created_by=user.id,
             period="2025-01",
@@ -132,7 +129,6 @@ def test_tax_deadline_exists_by_record_detects_duplicate_period(test_db):
     repo = TaxDeadlineRepository(test_db)
 
     test_db.add(TaxDeadline(
-        client_id=client.id,
         client_record_id=cr.id,
         deadline_type=DeadlineType.VAT,
         period="2025-01",
@@ -153,7 +149,6 @@ def test_tax_deadline_exists_by_record_detects_duplicate_annual(test_db):
     repo = TaxDeadlineRepository(test_db)
 
     test_db.add(TaxDeadline(
-        client_id=client.id,
         client_record_id=cr.id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,
@@ -174,7 +169,6 @@ def test_generator_vat_dedup_by_client_record_period(test_db):
 
     # Pre-insert a VAT deadline for 2026-05 with a different due_date
     existing = TaxDeadline(
-        client_id=client.id,
         client_record_id=cr.id,
         deadline_type=DeadlineType.VAT,
         period="2026-05",
@@ -196,7 +190,6 @@ def test_generator_annual_dedup_by_client_record(test_db):
     client, cr = _setup_client(test_db)
 
     existing = TaxDeadline(
-        client_id=client.id,
         client_record_id=cr.id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,

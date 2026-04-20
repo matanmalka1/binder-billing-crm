@@ -19,7 +19,6 @@ def _business(db, suffix: str = "A") -> Business:
     client = Client(full_name=f"Signature Service Client {suffix}", id_number=f"99999999{suffix}", email="svc@example.com")
     db.add(client)
     db.flush()
-    business = Business(client_id=client.id, business_name=f"Signature Service Business {suffix}", opened_at=date(2026, 1, 1))
     db.add(business)
     db.commit()
     db.refresh(business)

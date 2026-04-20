@@ -77,7 +77,6 @@ class TestPermanentDocumentClientRecord:
 
         client = _make_client(db, "C302")
         record = _make_client_record(db, client.id)
-        business = Business(client_id=client.id, business_name="Biz", status=BusinessStatus.ACTIVE, opened_at=date.today())
         db.add(business)
         db.flush()
         repo = PermanentDocumentRepository(db)

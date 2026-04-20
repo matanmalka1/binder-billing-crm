@@ -175,8 +175,14 @@ def create_client_with_business(test_db):
         test_db.add(client)
         test_db.flush()
         _ensure_client_identity_graph(test_db, client)
+        test_db.flush()
+        legal_entity = (
+            test_db.query(LegalEntity)
+            .filter(LegalEntity.id_number == client.id_number)
+            .first()
+        )
         business = Business(
-            client_id=client.id,
+            legal_entity_id=legal_entity.id if legal_entity else None,
             business_name=business_name or full_name,
             status=BusinessStatus.ACTIVE,
             opened_at=opened_at or date.today(),
@@ -274,9 +280,15 @@ def vat_client(test_db):
     test_db.add(client)
     test_db.flush()
     _ensure_client_identity_graph(test_db, client)
+    test_db.flush()
+    legal_entity = (
+        test_db.query(LegalEntity)
+        .filter(LegalEntity.id_number == client.id_number)
+        .first()
+    )
     test_db.add(
         Business(
-            client_id=client.id,
+            legal_entity_id=legal_entity.id if legal_entity else None,
             business_name=client.full_name,
             status=BusinessStatus.ACTIVE,
             opened_at=date.today(),

@@ -281,19 +281,7 @@ class NotificationSendService:
     def send_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         """Send reminder email directly to a client resolved via ClientRecord → LegalEntity → Person."""
         try:
-            person = (
-                self.db.query(Person)
-                .join(ClientRecord, ClientRecord.id == client_record_id)
-                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-                .join(
-                    PersonLegalEntityLink,
-                    (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
-                    & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
-                )
-                .join(Person, Person.id == PersonLegalEntityLink.person_id)
-                .filter(ClientRecord.id == client_record_id)
-                .first()
-            )
+            person = self._get_client(client_record_id)
             if person is None:
                 logger.warning("send_client_reminder: client_record %s has no linked Person", client_record_id)
                 return True
@@ -322,19 +310,7 @@ class NotificationSendService:
     def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         """Send reminder to a client resolved from client_record_id via LegalEntity → Person."""
         try:
-            person = (
-                self.db.query(Person)
-                .join(ClientRecord, ClientRecord.id == client_record_id)
-                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-                .join(
-                    PersonLegalEntityLink,
-                    (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
-                    & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
-                )
-                .join(Person, Person.id == PersonLegalEntityLink.person_id)
-                .filter(ClientRecord.id == client_record_id)
-                .first()
-            )
+            person = self._get_client(client_record_id)
             if person is None:
                 logger.warning("send_client_record_reminder: client_record %s has no linked Person", client_record_id)
                 return True

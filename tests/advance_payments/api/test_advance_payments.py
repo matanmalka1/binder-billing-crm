@@ -20,7 +20,6 @@ def _create_business(test_db) -> Business:
     test_db.commit()
     test_db.refresh(client)
     business = Business(
-        client_id=client.id,
         legal_entity_id=legal_entity.id,
         business_name="Advance Payment Business",
         opened_at=date.today(),

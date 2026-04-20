@@ -30,7 +30,6 @@ def _business(test_db) -> Business:
     test_db.commit()
     test_db.refresh(client)
     business = Business(
-        client_id=client.id,
         legal_entity_id=legal_entity.id,
         business_name="Advance Repo Missing Business",
         opened_at=date(2024, 1, 1),

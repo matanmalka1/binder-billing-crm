@@ -53,7 +53,6 @@ def _create_business(test_db, name: str, id_number: str):
     test_db.commit()
     test_db.refresh(client)
     business = Business(
-        client_id=client.id,
         legal_entity_id=legal_entity.id,
         business_name=f"{name} Business",
         opened_at=date(2024, 1, 1),

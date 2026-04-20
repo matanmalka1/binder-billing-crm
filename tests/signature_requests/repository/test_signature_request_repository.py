@@ -21,7 +21,6 @@ def _business(test_db, *, suffix: str) -> Business:
     client = Client(full_name=f"Signature Repo Client {suffix}", id_number=f"SIG-R-{suffix}")
     test_db.add(client)
     test_db.flush()
-    business = Business(client_id=client.id, business_name=f"Signature Repo Business {suffix}", opened_at=date(2026, 1, 1))
     test_db.add(business)
     test_db.commit()
     test_db.refresh(business)

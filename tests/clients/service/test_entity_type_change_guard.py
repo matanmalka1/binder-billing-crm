@@ -62,7 +62,7 @@ def _setup(db) -> tuple:
     cr = ClientRecord(id=client.id, legal_entity_id=le.id)
     db.add(cr)
 
-    biz = Business(client_id=client.id, business_name=client.full_name, opened_at=date(2026, 1, 1))
+    biz = Business(legal_entity_id=le.id, business_name=client.full_name, opened_at=date(2026, 1, 1))
     db.add(biz)
     db.commit()
     db.refresh(client)

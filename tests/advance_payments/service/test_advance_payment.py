@@ -43,7 +43,6 @@ def _business(db) -> Business:
     db.commit()
     db.refresh(client)
     business = Business(
-        client_id=client.id,
         legal_entity_id=legal_entity.id,
         business_name=f"Advance Service Business {idx}",
         opened_at=date.today(),
