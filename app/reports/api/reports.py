@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 
 from app.users.api.deps import DBSession, require_role
@@ -13,7 +13,7 @@ from app.reports.schemas import (
     VatComplianceReportResponse,
 )
 from app.reports.services.reports_service import AgingReportService
-from app.reports.services.export_service import ExportService
+from app.reports.services.reports_export_service import ReportsExportService
 from app.reports.services.annual_report_status_report import AnnualReportStatusReportService
 from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.vat_compliance_report import VatComplianceReportService
@@ -69,35 +69,13 @@ def export_aging_report(
     format: str = Query(..., pattern="^(excel|pdf)$"),
     as_of_date: Optional[date] = Query(None),
 ):
-    report_service = AgingReportService(db)
-    report = report_service.generate_aging_report(as_of_date=as_of_date)
-
-    export_service = ExportService()
-
-    try:
-        if format == "excel":
-            result = export_service.export_aging_report_to_excel(report)
-            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        else:
-            result = export_service.export_aging_report_to_pdf(report)
-            media_type = "application/pdf"
-
-        return FileResponse(
-            path=result["filepath"],
-            media_type=media_type,
-            filename=result["filename"],
-            headers={
-                "Content-Disposition": f'attachment; filename="{result["filename"]}"'
-            }
-        )
-
-    except ImportError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"ספריית הייצוא אינה מותקנת: {str(e)}",
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"הייצוא נכשל: {str(e)}",
-        )
+    result = ReportsExportService(db).export_aging_report(
+        export_format=format,
+        as_of_date=as_of_date,
+    )
+    return FileResponse(
+        path=result.filepath,
+        media_type=result.media_type,
+        filename=result.filename,
+        headers={"Content-Disposition": f'attachment; filename="{result.filename}"'},
+    )

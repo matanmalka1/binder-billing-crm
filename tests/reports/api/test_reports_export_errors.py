@@ -1,4 +1,4 @@
-from app.reports.api import reports as reports_api
+from app.reports.services import reports_export_service
 
 
 class _FakeExportService:
@@ -21,8 +21,8 @@ class _FakeAgingService:
 
 
 def test_export_aging_report_import_error_maps_to_500(client, advisor_headers, monkeypatch):
-    monkeypatch.setattr(reports_api, "AgingReportService", _FakeAgingService)
-    monkeypatch.setattr(reports_api, "ExportService", _FakeExportService)
+    monkeypatch.setattr(reports_export_service, "AgingReportService", _FakeAgingService)
+    monkeypatch.setattr(reports_export_service, "ExportService", _FakeExportService)
 
     resp = client.get("/api/v1/reports/aging/export?format=excel", headers=advisor_headers)
 
@@ -31,8 +31,8 @@ def test_export_aging_report_import_error_maps_to_500(client, advisor_headers, m
 
 
 def test_export_aging_report_generic_error_maps_to_500(client, advisor_headers, monkeypatch):
-    monkeypatch.setattr(reports_api, "AgingReportService", _FakeAgingService)
-    monkeypatch.setattr(reports_api, "ExportService", _FakeExportService)
+    monkeypatch.setattr(reports_export_service, "AgingReportService", _FakeAgingService)
+    monkeypatch.setattr(reports_export_service, "ExportService", _FakeExportService)
 
     resp = client.get("/api/v1/reports/aging/export?format=pdf", headers=advisor_headers)
 

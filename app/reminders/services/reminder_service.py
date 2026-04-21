@@ -9,8 +9,9 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.reminders.schemas.reminders import ReminderCreateRequest
 from app.reminders.services import factory as reminder_factory
-from app.reminders.services import reminder_queries, status_changes
+from app.reminders.services import reminder_queries, request_dispatch, status_changes
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 
@@ -29,6 +30,9 @@ class ReminderService:
         self.advance_payment_repo = AdvancePaymentRepository(db)
 
     # ── Creation flows ────────────────────────────────────────────────────────
+
+    def create_from_request(self, request: ReminderCreateRequest, *, created_by: int):
+        return request_dispatch.create_from_request(self, request, created_by=created_by)
 
     def create_tax_deadline_reminder(self, **kwargs):
         return reminder_factory.create_tax_deadline_reminder(
