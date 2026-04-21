@@ -18,6 +18,7 @@ from app.clients.schemas.client_record_response import (
     ClientRecordListStats,
     ClientRecordResponse,
 )
+from app.clients.services.client_enrichment_service import ClientEnrichmentService
 from app.core.exceptions import NotFoundError
 
 
@@ -76,7 +77,7 @@ class ClientQueryService:
         data = get_full_record(self.db, client_record_id)
         if not data:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
-        return ClientRecordResponse(**data)
+        return ClientEnrichmentService(self.db).enrich_single(ClientRecordResponse(**data))
 
     def get_full_client_including_deleted(self, client_record_id: int) -> ClientRecordResponse:
         data = get_full_record_including_deleted(self.db, client_record_id)
@@ -105,6 +106,7 @@ class ClientQueryService:
         record_ids = [r.id for r in records]
         full_map = get_full_records_bulk(self.db, record_ids)
         items = [ClientRecordResponse(**full_map[rid]) for rid in record_ids if rid in full_map]
+        items = ClientEnrichmentService(self.db).enrich_list(items)
         counts = self.record_repo.count_by_status()
         stats = ClientRecordListStats(
             active=counts.get(ClientStatus.ACTIVE, 0),

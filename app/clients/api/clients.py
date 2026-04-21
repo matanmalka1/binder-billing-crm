@@ -18,41 +18,18 @@ from app.clients.schemas.client_record_response import (
     CreateClientRecordResponse,
 )
 from app.clients.schemas.impact import ClientCreationImpactResponse
-from app.clients.services.create_client_service import CreateClientService
+from app.clients.services.create_client_service import (
+    ClientCreationConflictError,
+    CreateClientService,
+)
 from app.clients.services.client_service import ClientService
 from app.clients.services.impact_preview_service import compute_creation_impact
-from app.core.exceptions import ConflictError
-from app.clients.api.client_enrichment import enrich_single, enrich_list
 
 router = APIRouter(
     prefix="/clients",
     tags=["clients"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-
-
-# ─── Helpers ─────────────────────────────────────────────────────────────────
-
-def _raise_client_conflict(service: ClientService, id_number: str, error: ConflictError):
-    conflict_info = service.get_conflict_info(id_number)
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail={
-            "error": error.code,
-            "detail": str(error),
-            "conflict": ClientConflictInfo(
-                id_number=id_number,
-                active_clients=[
-                    ActiveClientSummary.model_validate(c)
-                    for c in conflict_info["active_clients"]
-                ],
-                deleted_clients=[
-                    DeletedClientSummary.model_validate(c)
-                    for c in conflict_info["deleted_clients"]
-                ],
-            ).model_dump(mode="json"),
-        },
-    )
 
 
 # ─── Create ───────────────────────────────────────────────────────────────────
@@ -108,10 +85,11 @@ def create_client(
             business_notes=request.business.notes,
             actor_id=user.id,
         )
-    except ConflictError as e:
-        if e.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
-            raise
-        _raise_client_conflict(service.client_service, request.client.id_number, e)
+    except ClientCreationConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=exc.detail,
+        ) from exc
 
     impact = compute_creation_impact(
         entity_type=request.client.entity_type,
@@ -120,7 +98,7 @@ def create_client(
     full = service.client_service.get_full_client(client_record.id)
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
-        client=enrich_single(full, db),
+        client=full,
         business=business,
         impact=impact,
     )
@@ -148,7 +126,6 @@ def list_clients(
         page=page,
         page_size=page_size,
     )
-    result.items = enrich_list(result.items, db)
     return result
 
 
@@ -156,7 +133,7 @@ def list_clients(
 def get_client(client_id: int, db: DBSession):
     """Get client by ID (client_id = ClientRecord.id)."""
     service = ClientService(db)
-    return enrich_single(service.get_full_client(client_id), db)
+    return service.get_full_client(client_id)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
@@ -191,7 +168,7 @@ def update_client(
         actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
-    return enrich_single(service.get_full_client(client_id), db)
+    return service.get_full_client(client_id)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────

@@ -6,8 +6,16 @@ from sqlalchemy.orm import Session
 from app.businesses.models.business import Business
 from app.businesses.services.business_service import BusinessService
 from app.clients.models.client_record import ClientRecord
+from app.clients.schemas.client import ActiveClientSummary, ClientConflictInfo, DeletedClientSummary
 from app.clients.services.client_service import ClientService
 from app.common.enums import EntityType, IdNumberType, VatType
+from app.core.exceptions import ConflictError
+
+
+class ClientCreationConflictError(Exception):
+    def __init__(self, detail: dict):
+        super().__init__(detail.get("detail"))
+        self.detail = detail
 
 
 class CreateClientService:
@@ -51,24 +59,29 @@ class CreateClientService:
         if not normalized_business_name:
             raise ValueError("יש להזין שם עסק")
 
-        client_record = self.client_service.create_client(
-            full_name=full_name,
-            id_number=id_number,
-            id_number_type=id_number_type,
-            entity_type=entity_type,
-            phone=phone,
-            email=email,
-            address_street=address_street,
-            address_building_number=address_building_number,
-            address_apartment=address_apartment,
-            address_city=address_city,
-            address_zip_code=address_zip_code,
-            vat_reporting_frequency=vat_reporting_frequency,
-            vat_exempt_ceiling=vat_exempt_ceiling,
-            advance_rate=advance_rate,
-            accountant_name=accountant_name,
-            actor_id=actor_id,
-        )
+        try:
+            client_record = self.client_service.create_client(
+                full_name=full_name,
+                id_number=id_number,
+                id_number_type=id_number_type,
+                entity_type=entity_type,
+                phone=phone,
+                email=email,
+                address_street=address_street,
+                address_building_number=address_building_number,
+                address_apartment=address_apartment,
+                address_city=address_city,
+                address_zip_code=address_zip_code,
+                vat_reporting_frequency=vat_reporting_frequency,
+                vat_exempt_ceiling=vat_exempt_ceiling,
+                advance_rate=advance_rate,
+                accountant_name=accountant_name,
+                actor_id=actor_id,
+            )
+        except ConflictError as exc:
+            if exc.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
+                raise
+            raise ClientCreationConflictError(self._client_conflict_detail(id_number, exc)) from exc
         business = self.business_service.create_business_for_client_record(
             client_record_id=client_record.id,
             opened_at=business_opened_at,
@@ -77,3 +90,22 @@ class CreateClientService:
             actor_id=actor_id,
         )
         return client_record, business
+
+    def _client_conflict_detail(self, id_number: str, error: ConflictError) -> dict:
+        conflict_info = self.client_service.get_conflict_info(id_number)
+        conflict = ClientConflictInfo(
+            id_number=id_number,
+            active_clients=[
+                ActiveClientSummary.model_validate(c)
+                for c in conflict_info["active_clients"]
+            ],
+            deleted_clients=[
+                DeletedClientSummary.model_validate(c)
+                for c in conflict_info["deleted_clients"]
+            ],
+        )
+        return {
+            "error": error.code,
+            "detail": str(error),
+            "conflict": conflict.model_dump(mode="json"),
+        }
