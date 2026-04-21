@@ -3,29 +3,27 @@ from datetime import UTC, date, datetime
 import pytest
 
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.charge.services.billing_service import BillingService
 from app.invoice.services.invoice_service import InvoiceService
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _create_business(test_db) -> Business:
-    client = Client(
+    client = seed_client_identity(
+        test_db,
         full_name="Client C",
         id_number="333333333",
     )
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-
-    business = Business(
-        client_id=client.id,
+    business = seed_business(
+        test_db,
+        legal_entity_id=client.legal_entity_id,
+        business_name=client.full_name,
         opened_at=date.today(),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
+    business.client_id = client.id
     return business
 
 
@@ -34,7 +32,12 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     billing = BillingService(test_db)
     invoices = InvoiceService(test_db)
 
-    draft = billing.create_charge(client_id=business.client_id, business_id=business.id, amount=10.0, charge_type="consultation_fee")
+    draft = billing.create_charge(
+        client_record_id=business.client_id,
+        business_id=business.id,
+        amount=10.0,
+        charge_type="consultation_fee",
+    )
     with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
             draft.id, "icount", "INV-1", issued_at=datetime.now(UTC).replace(tzinfo=None)
@@ -60,7 +63,12 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
     canceled_id = billing.issue_charge(
-        billing.create_charge(client_id=business.client_id, business_id=business.id, amount=30.0, charge_type="consultation_fee").id
+        billing.create_charge(
+            client_record_id=business.client_id,
+            business_id=business.id,
+            amount=30.0,
+            charge_type="consultation_fee",
+        ).id
     ).id
     billing.cancel_charge(canceled_id)
     with pytest.raises(AppError) as exc_info:
@@ -76,7 +84,12 @@ def test_attach_invoice_fails_if_already_attached(test_db):
     invoices = InvoiceService(test_db)
 
     ch = billing.issue_charge(
-        billing.create_charge(client_id=business.client_id, business_id=business.id, amount=20.0, charge_type="monthly_retainer").id
+        billing.create_charge(
+            client_record_id=business.client_id,
+            business_id=business.id,
+            amount=20.0,
+            charge_type="monthly_retainer",
+        ).id
     )
     invoices.attach_invoice_to_charge(
         ch.id, "icount", "INV-10", issued_at=datetime.now(UTC).replace(tzinfo=None)

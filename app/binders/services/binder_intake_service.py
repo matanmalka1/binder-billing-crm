@@ -18,10 +18,8 @@ from app.binders.repositories.binder_intake_repository import BinderIntakeReposi
 from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
-from app.clients.services.client_service import ClientService
 from app.notification.services.notification_service import NotificationService
 
 _log = logging.getLogger(__name__)
@@ -36,7 +34,6 @@ class BinderIntakeService:
         self.status_log_repo = BinderStatusLogRepository(db)
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
-        self.client_repo = ClientRepository(db)
         # Used for the "all businesses locked" guard before intake is accepted.
         self.business_repo = BusinessRepository(db)
         self.notification_service = NotificationService(db)
@@ -64,7 +61,6 @@ class BinderIntakeService:
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
-        client_record_id = client_record.legal_entity_id
 
         businesses = self.business_repo.list_by_client(client_record_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
@@ -91,13 +87,12 @@ class BinderIntakeService:
                 active_binder.status = BinderStatus.CLOSED_IN_OFFICE
                 self.db.flush()
 
-            client = self.client_repo.get_by_id(client_record_id)
-            if not client or client.office_client_number is None:
+            if client_record.office_client_number is None:
                 raise AppError(BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING")
             seq = self.binder_repo.count_all_by_client(client_record_id) + 1
             binder = self.binder_repo.create(
                 client_record_id=client_record_id,
-                binder_number=self._build_binder_number(client.office_client_number, seq),
+                binder_number=self._build_binder_number(client_record.office_client_number, seq),
                 period_start=None,
                 created_by=received_by,
             )

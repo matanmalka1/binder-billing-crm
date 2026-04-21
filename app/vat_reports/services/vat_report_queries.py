@@ -4,7 +4,8 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -80,31 +81,35 @@ def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_
 
 
 def _resolve_client_ids_by_name(
-    client_repo: ClientRepository,
+    db,
     client_name: Optional[str],
 ) -> Optional[list[int]]:
-    """Resolve client IDs from a name/id_number search against the clients table."""
+    """Resolve client record IDs from a name/id_number search against ClientRecord + LegalEntity."""
     if not client_name:
         return None
-    clients = client_repo.list(search=client_name, page=1, page_size=500)
-    if len(clients) >= 500:
+    client_records, total = ClientRecordRepository(db).search(
+        query=client_name,
+        page=1,
+        page_size=500,
+    )
+    if total >= 500:
         logger.warning(
             "Client name search '%s' returned max results, may be truncated",
             client_name,
         )
-    return [c.id for c in clients]
+    return [record.id for record in client_records]
 
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    db,
     status: VatWorkItemStatus,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
 ):
-    client_record_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    client_record_ids = _resolve_client_ids_by_name(db, client_name)
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
@@ -116,13 +121,13 @@ def list_work_items_by_status(
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    db,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
 ):
-    client_record_ids = _resolve_client_ids_by_name(client_repo, client_name)
+    client_record_ids = _resolve_client_ids_by_name(db, client_name)
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(

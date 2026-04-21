@@ -132,14 +132,10 @@ def create_client(
         vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
     full = _full_record_or_404(db, client_record.id)
-    business_payload = {
-        **business.__dict__,
-        "client_id": client_record.id,
-    }
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
         client=enrich_single(full, db),
-        business=business_payload,
+        business=business,
         impact=impact,
     )
 

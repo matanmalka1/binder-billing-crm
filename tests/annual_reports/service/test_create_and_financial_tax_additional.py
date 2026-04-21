@@ -10,20 +10,12 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.clients.models.client import Client
 from app.core.exceptions import AppError, ConflictError
+from tests.helpers.identity import seed_client_identity
 
 
 def _client(db, suffix="1"):
-    c = Client(
-        full_name=f"AR create extra {suffix}",
-        id_number=f"ARCE{suffix}",
-
-    )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
+    return seed_client_identity(db, full_name=f"AR create extra {suffix}", id_number=f"ARCE{suffix}")
 
 
 def test_create_report_validation_errors(test_db):

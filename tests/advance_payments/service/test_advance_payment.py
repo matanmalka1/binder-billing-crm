@@ -12,13 +12,10 @@ from app.advance_payments.services.advance_payment_calculator import (
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.businesses.models.business import Business
 from app.common.enums import VatType
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
 from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from tests.helpers.identity import seed_client_identity
 
 
 _seq = count(1)
@@ -26,24 +23,14 @@ _seq = count(1)
 
 def _business(db) -> Business:
     idx = next(_seq)
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, 
+    client = seed_client_identity(
+        db,
+        full_name=f"Advance Service Client {idx}",
         id_number=f"777777{idx:03d}",
         vat_reporting_frequency=VatType.MONTHLY,
-        official_name=f"777777{idx:03d}",
     )
-    db.add(legal_entity)
-    db.commit()
-    db.refresh(legal_entity)
-
-    client = Client(
-        full_name=f"Advance Service Client {idx}",
-        id_number=legal_entity.id_number,
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
     business = Business(
-        legal_entity_id=legal_entity.id,
+        legal_entity_id=client.legal_entity_id,
         business_name=f"Advance Service Business {idx}",
         opened_at=date.today(),
     )
@@ -51,7 +38,6 @@ def _business(db) -> Business:
     db.commit()
     db.refresh(business)
     business.client_record_id = client.id
-    business.legal_entity = legal_entity
     return business
 
 

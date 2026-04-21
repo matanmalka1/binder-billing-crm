@@ -2,41 +2,36 @@ from datetime import date, timedelta
 from decimal import Decimal
 from itertools import count
 
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 _client_seq = count(1)
 
 
-def _client_and_business(db) -> tuple[Client, Business]:
+def _client_and_business(db):
     seq = next(_client_seq)
-    client = Client(
+    client = seed_client_identity(
+        db,
         full_name=f"Aging Client {seq}",
         id_number=f"11111111{seq}",
     )
-    db.add(client)
+    business = seed_business(
+        db,
+        legal_entity_id=client.legal_entity_id,
+        business_name=client.full_name,
+        opened_at=date.today(),
+    )
     db.commit()
-    db.refresh(client)
-    business = db.query(Business).filter(Business.client_id == client.id).first()
-    if business is None:
-        business = Business(
-            client_id=client.id,
-            business_name=client.full_name,
-            opened_at=date.today(),
-        )
-        db.add(business)
-        db.commit()
-        db.refresh(business)
+    db.refresh(business)
+    business.client_id = client.id
     return client, business
 
 
 def _charge(db, client_id: int, business_id: int, amount: Decimal, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
-        client_id=client_id,
+        client_record_id=client_id,
         business_id=business_id,
         amount=amount,
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -76,7 +71,7 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
     items = body["items"]
     assert len(items) == 2
     # Sorted by total outstanding desc
-    assert items[0]["client_id"] == client_a.id
+    assert items[0]["client_record_id"] == client_a.id
     assert items[0]["current"] == 100.0
     assert items[0]["days_30"] == 200.0
     assert items[0]["days_60"] == 300.0

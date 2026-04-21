@@ -8,7 +8,7 @@ from app.binders.services.binder_helpers import validate_ready_transition, valid
 
 def _binder(status: BinderStatus) -> Binder:
     return Binder(
-        client_id=1,
+        client_record_id=1,
         binder_number="BDR-HELPER-1",
         period_start=date.today(),
         created_by=1,

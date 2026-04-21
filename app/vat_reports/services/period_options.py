@@ -4,7 +4,8 @@ from datetime import date
 from typing import Optional
 
 from app.common.enums import VatType
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.messages import VAT_CLIENT_EXEMPT, VAT_CLIENT_NOT_FOUND
@@ -19,20 +20,23 @@ def _period_label(period_type: VatType, year: int, month: int) -> str:
 
 def get_period_options(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    db,
     *,
     client_record_id: int,
     year: Optional[int] = None,
     period_type_override: Optional[VatType] = None,
 ):
     """Return period options for UI selection based on client VAT frequency."""
-    client = client_repo.get_by_id(client_record_id)
-    if not client:
+    client_record = ClientRecordRepository(db).get_by_id(client_record_id)
+    if not client_record:
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+    legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
+    if not legal_entity:
         raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
 
     selected_year = year or date.today().year
 
-    period_type = period_type_override or resolve_effective_vat_type(client)
+    period_type = period_type_override or resolve_effective_vat_type(legal_entity)
     if period_type == VatType.EXEMPT:
         raise AppError(
             VAT_CLIENT_EXEMPT,

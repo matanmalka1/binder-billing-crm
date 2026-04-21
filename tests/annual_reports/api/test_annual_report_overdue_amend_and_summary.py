@@ -2,19 +2,15 @@ from datetime import date
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
-def _client(db, suffix: str) -> Client:
-    c = Client(
+def _client(db, suffix: str):
+    return seed_client_identity(
+        db,
         full_name=f"Annual Missing API Client {suffix}",
         id_number=f"AR-MISS-{suffix}",
-
     )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
 
 
 def _create_report(db, user_id: int, client_id: int, tax_year: int = 2026) -> int:

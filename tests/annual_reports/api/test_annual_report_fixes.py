@@ -2,19 +2,11 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
-def _create_client(db, id_number: str = "AR_FIX_001") -> Client:
-    c = Client(
-        full_name="Annual Fix Client",
-        id_number=id_number,
-
-    )
-    db.add(c)
-    db.commit()
-    db.refresh(c)
-    return c
+def _create_client(db, id_number: str = "AR_FIX_001"):
+    return seed_client_identity(db, full_name="Annual Fix Client", id_number=id_number)
 
 
 def test_kanban_days_until_due_uses_filing_deadline(client, test_db, advisor_headers, test_user):

@@ -15,9 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base
-from app.clients.models.client import Client
 from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity  # noqa: F401
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
 from app.users.models.user import User, UserRole
@@ -44,9 +43,10 @@ def db():
 
 def _make_client(db, id_number="C001", vat_type=None):
     from app.common.enums import VatType
-    client = Client(
-        full_name="Test Client",
+    client = LegalEntity(
+        official_name="Test Client",
         id_number=id_number,
+        id_number_type=IdNumberType.INDIVIDUAL,
         vat_reporting_frequency=vat_type or VatType.MONTHLY,
     )
     db.add(client)
@@ -54,14 +54,8 @@ def _make_client(db, id_number="C001", vat_type=None):
     return client
 
 
-def _make_client_record(db, client_id):
-    from app.clients.models.legal_entity import LegalEntity
-    from app.common.enums import IdNumberType
-    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal)
-    db.flush()
-    # Use client_id as pk to match ClientRecordRepository.get_by_client_id assumption
-    record = ClientRecord(id=client_id, legal_entity_id=legal.id)
+def _make_client_record(db, legal_entity_id):
+    record = ClientRecord(legal_entity_id=legal_entity_id)
     db.add(record)
     db.flush()
     return record

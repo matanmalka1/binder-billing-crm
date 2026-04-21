@@ -3,12 +3,12 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, List, Optional, Tuple, TypedDict
 
+from app.clients.models.legal_entity import LegalEntity
 from app.core.exceptions import AppError
 from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
 _DEADLINE_TYPE_LABELS: Dict[str, str] = {
@@ -31,7 +31,7 @@ class ReminderContext(TypedDict):
 
 
 def _build_context_map(
-    client_repo: ClientRepository,
+    db,
     business_repo: BusinessRepository,
     items: List[Reminder],
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
@@ -40,7 +40,13 @@ def _build_context_map(
     client_record_ids = list({r.client_record_id for r in items})
     business_ids = list({r.business_id for r in items if r.business_id is not None})
 
-    clients = {c.id: c for c in client_repo.list_by_ids(client_record_ids)}
+    client_records = ClientRecordRepository(db).list_by_ids(client_record_ids)
+    record_by_id = {record.id: record for record in client_records}
+    legal_entity_ids = list({record.legal_entity_id for record in client_records})
+    legal_entity_by_id = {
+        entity.id: entity
+        for entity in db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
+    } if legal_entity_ids else {}
     businesses = {b.id: b for b in business_repo.list_by_ids(business_ids)} if business_ids else {}
 
     # Resolve display_label for reminders linked to a tax_deadline
@@ -56,15 +62,15 @@ def _build_context_map(
 
     result: Dict[int, ReminderContext] = {}
     for r in items:
-        # client_record_id == legacy client_record_id (same PK by migration convention)
-        client = clients.get(r.client_record_id)
+        client_record = record_by_id.get(r.client_record_id)
+        legal_entity = legal_entity_by_id.get(client_record.legal_entity_id) if client_record else None
         business = businesses.get(r.business_id) if r.business_id else None
         display_label = deadline_label_map.get(r.tax_deadline_id) if r.tax_deadline_id else None
         result[r.id] = ReminderContext(
             client_record_id=r.client_record_id,
-            client_name=client.full_name if client else f"לקוח #{r.client_record_id}",
-            client_id_number=client.id_number if client else None,
-            office_client_number=client.office_client_number if client else None,
+            client_name=legal_entity.official_name if legal_entity else f"לקוח #{r.client_record_id}",
+            client_id_number=legal_entity.id_number if legal_entity else None,
+            office_client_number=client_record.office_client_number if client_record else None,
             business_id=r.business_id,
             business_name=business.business_name if business else None,
             display_label=display_label,
@@ -74,7 +80,6 @@ def _build_context_map(
 
 def get_reminders(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     business_repo: BusinessRepository,
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
     *,
@@ -94,12 +99,11 @@ def get_reminders(
     status_enum = ReminderStatus(status)
     items = reminder_repo.list_by_status(status=status_enum, page=page, page_size=page_size)
     total = reminder_repo.count_by_status(status_enum)
-    return items, total, _build_context_map(client_repo, business_repo, items, tax_deadline_repo)
+    return items, total, _build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)
 
 
 def get_pending_reminders(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     business_repo: BusinessRepository,
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
     *,
@@ -112,12 +116,11 @@ def get_pending_reminders(
 
     items = reminder_repo.list_pending_by_date(reference_date=reference_date, page=page, page_size=page_size)
     total = reminder_repo.count_pending_by_date(reference_date)
-    return items, total, _build_context_map(client_repo, business_repo, items, tax_deadline_repo)
+    return items, total, _build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)
 
 
 def get_reminders_by_business(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     business_repo: BusinessRepository,
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
     *,
@@ -127,12 +130,11 @@ def get_reminders_by_business(
 ) -> Tuple[List[Reminder], int, Dict[int, ReminderContext]]:
     items = reminder_repo.list_by_business(business_id=business_id, page=page, page_size=page_size)
     total = reminder_repo.count_by_business(business_id)
-    return items, total, _build_context_map(client_repo, business_repo, items, tax_deadline_repo)
+    return items, total, _build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)
 
 
 def get_reminders_by_client(
     reminder_repo: ReminderRepository,
-    client_repo: ClientRepository,
     business_repo: BusinessRepository,
     tax_deadline_repo: Optional[TaxDeadlineRepository] = None,
     *,
@@ -143,7 +145,7 @@ def get_reminders_by_client(
     client_record_id = ClientRecordRepository(reminder_repo.db).get_by_id(client_record_id).id
     items = reminder_repo.list_by_client_record(client_record_id, page=page, page_size=page_size)
     total = reminder_repo.count_by_client_record(client_record_id)
-    return items, total, _build_context_map(client_repo, business_repo, items, tax_deadline_repo)
+    return items, total, _build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)
 
 
 def get_reminder(reminder_repo: ReminderRepository, reminder_id: int) -> Optional[Reminder]:

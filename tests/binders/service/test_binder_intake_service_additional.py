@@ -5,35 +5,32 @@ import pytest
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
 from app.core.exceptions import AppError
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
-def _client(db, id_number: str, office_client_number: int) -> Client:
-    client = Client(
+def _client(db, id_number: str, office_client_number: int) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name=f"Binder Intake {id_number}",
         id_number=id_number,
         office_client_number=office_client_number,
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
 def _business(db, client_id: int, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
-    biz = Business(
-        client_id=client_id,
+    client_record = db.get(ClientRecord, client_id)
+    biz = seed_business(
+        db,
+        legal_entity_id=client_record.legal_entity_id,
         business_name=f"Business {client_id}",
         status=status,
         opened_at=date.today(),
     )
-    db.add(biz)
     db.commit()
     db.refresh(biz)
+    biz.client_id = client_id
     return biz
 
 
@@ -55,7 +52,7 @@ def test_receive_creates_composite_binder_label(test_db, test_user):
 
     service = BinderIntakeService(test_db)
     binder, _, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date.today(),
         received_by=test_user.id,
         materials=_materials(),
@@ -70,7 +67,6 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
     client = _client(test_db, "BI-SVC-003", office_client_number=302)
     _business(test_db, client.id)
     existing = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="302/1",
         period_start=date.today(),
@@ -83,7 +79,7 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
 
     service = BinderIntakeService(test_db)
     binder, intake, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date.today(),
         received_by=test_user.id,
         notes="existing binder path",
@@ -99,7 +95,6 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
     client = _client(test_db, "BI-SVC-BACKFILL-001", office_client_number=307)
     _business(test_db, client.id)
     existing = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="307/1",
         period_start=None,
@@ -112,7 +107,7 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
 
     service = BinderIntakeService(test_db)
     binder, intake, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date.today(),
         received_by=test_user.id,
         notes="backfill period start",
@@ -128,7 +123,7 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
 def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=303)
     _business(test_db, client.id)
-    test_db.query(Business).filter(Business.client_id == client.id).update(
+    test_db.query(Business).filter(Business.legal_entity_id == client.legal_entity_id).update(
         {"status": BusinessStatus.FROZEN}
     )
     test_db.commit()
@@ -136,7 +131,7 @@ def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     service = BinderIntakeService(test_db)
     with pytest.raises(AppError) as exc_info:
         service.receive(
-            client_id=client.id,
+            client_record_id=client.id,
             received_at=date.today(),
             received_by=test_user.id,
             materials=_materials(),
@@ -150,7 +145,6 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
     _business(test_db, client.id)
 
     existing = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="304/1",
         period_start=date.today(),
@@ -162,7 +156,7 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
 
     service = BinderIntakeService(test_db)
     binder, _, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date.today(),
         received_by=test_user.id,
         materials=_materials(month=3),
@@ -178,7 +172,6 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
     _business(test_db, client.id)
 
     old_binder = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="305/1",
         period_start=date(2026, 1, 1),
@@ -187,7 +180,6 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
         status=BinderStatus.CLOSED_IN_OFFICE,
     )
     active_binder = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="305/2",
         period_start=date(2026, 3, 1),
@@ -202,7 +194,7 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
 
     service = BinderIntakeService(test_db)
     binder, intake, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date(2026, 4, 5),
         received_by=test_user.id,
         open_new_binder=True,
@@ -220,7 +212,6 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
     _business(test_db, client.id)
 
     closed_binder = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="306/1",
         period_start=date(2026, 1, 1),
@@ -229,7 +220,6 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
         status=BinderStatus.CLOSED_IN_OFFICE,
     )
     active_binder = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="306/2",
         period_start=date(2026, 3, 1),
@@ -243,7 +233,7 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
 
     service = BinderIntakeService(test_db)
     binder, intake, is_new = service.receive(
-        client_id=client.id,
+        client_record_id=client.id,
         received_at=date(2026, 4, 5),
         received_by=test_user.id,
         open_new_binder=True,

@@ -1,19 +1,11 @@
 from datetime import date
 
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
-def _client(db) -> Client:
-    client = Client(
-        full_name="Annual Delete Client",
-        id_number="ADS001",
-
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return client
+def _client(db):
+    return seed_client_identity(db, full_name="Annual Delete Client", id_number="ADS001")
 
 
 def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_db, test_user):

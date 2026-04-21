@@ -3,28 +3,28 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from app.binders.models.binder import BinderStatus
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.notification.models.notification import NotificationChannel, NotificationTrigger
 from app.core.exceptions import NotFoundError
 from app.timeline.services.timeline_service import TimelineService
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
-def _business(test_db) -> Business:
-    client = Client(full_name="Timeline Service Client", id_number="TS100")
-    test_db.add(client)
-    test_db.flush()
-
-    business = Business(
-        client_id=client.id,
+def _business(test_db):
+    client = seed_client_identity(
+        test_db,
+        full_name="Timeline Service Client",
+        id_number="TS100",
+    )
+    business = seed_business(
+        test_db,
+        legal_entity_id=client.legal_entity_id,
         business_name="Timeline Service Business",
         opened_at=date(2026, 1, 1),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
+    business.client_id = client.id
     return business
 
 
@@ -34,7 +34,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
 
     binder = SimpleNamespace(
         id=1,
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         binder_number="TL-1",
         period_start=date(2026, 1, 1),
         returned_at=date(2026, 1, 3),
@@ -65,11 +65,11 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
 
     captured = {}
 
-    def _list_by_client(client_id):
+    def _list_by_client_record(client_id):
         captured["client_id"] = client_id
         return [binder]
 
-    monkeypatch.setattr(service.binder_repo, "list_by_client", _list_by_client)
+    monkeypatch.setattr(service.binder_repo, "list_by_client_record", _list_by_client_record)
     monkeypatch.setattr(
         service,
         "_append_status_change_events",
@@ -94,7 +94,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     monkeypatch.setattr(
         service,
         "_build_tax_deadline_events",
-        lambda client_id, business_ids: [
+        lambda business_ids, client_record_id: [
             {"event_type": "tax_deadline_due", "timestamp": datetime(2025, 12, 31, 9, 0)}
         ],
     )
@@ -116,7 +116,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
 
     events, total = service.get_client_timeline(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         page=1,
         page_size=3,
     )
@@ -134,7 +134,7 @@ def test_get_client_timeline_raises_for_missing_client(test_db):
     service = TimelineService(test_db)
 
     try:
-        service.get_client_timeline(client_id=99999)
+        service.get_client_timeline(client_record_id=99999)
     except NotFoundError as exc:
         assert exc.code == "TIMELINE.CLIENT_NOT_FOUND"
     else:

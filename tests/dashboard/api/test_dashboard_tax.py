@@ -8,50 +8,49 @@ from app.annual_reports.models.annual_report_enums import (
     FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
     """Create businesses and reports across submission stages for dashboard widget."""
     clients = [
-        Client(full_name="Submitted Corp", id_number="DASH-001"),
-        Client(full_name="In Prep", id_number="DASH-002"),
-        Client(full_name="Collecting Docs", id_number="DASH-003"),
-        Client(full_name="Not Started", id_number="DASH-004"),
+        seed_client_identity(db, full_name="Submitted Corp", id_number="DASH-001"),
+        seed_client_identity(db, full_name="In Prep", id_number="DASH-002"),
+        seed_client_identity(db, full_name="Collecting Docs", id_number="DASH-003"),
+        seed_client_identity(db, full_name="Not Started", id_number="DASH-004"),
     ]
-    db.add_all(clients)
-    db.commit()
-    for client in clients:
-        db.refresh(client)
 
     businesses = [
-        Business(
-            client_id=clients[0].id,
+        seed_business(
+            db,
+            legal_entity_id=clients[0].legal_entity_id,
             business_name="Submitted Corp Biz",
             opened_at=date.today(),
         ),
-        Business(
-            client_id=clients[1].id,
+        seed_business(
+            db,
+            legal_entity_id=clients[1].legal_entity_id,
             business_name="In Prep Biz",
             opened_at=date.today(),
         ),
-        Business(
-            client_id=clients[2].id,
+        seed_business(
+            db,
+            legal_entity_id=clients[2].legal_entity_id,
             business_name="Collecting Docs Biz",
             opened_at=date.today(),
         ),
-        Business(
-            client_id=clients[3].id,
+        seed_business(
+            db,
+            legal_entity_id=clients[3].legal_entity_id,
             business_name="Not Started Biz",
             opened_at=date.today(),
         ),
     ]
-    db.add_all(businesses)
     db.commit()
     for business in businesses:
         db.refresh(business)
+    for business, crm_client in zip(businesses, clients, strict=False):
+        business.client_id = crm_client.id
 
     reports = [
         AnnualReport(

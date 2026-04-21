@@ -10,43 +10,40 @@ from app.binders.models.binder_intake_material import BinderIntakeMaterial, Mate
 from app.binders.repositories.binder_intake_edit_log_repository import BinderIntakeEditLogRepository
 from app.binders.services.binder_intake_edit_service import BinderIntakeEditService
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
 from app.common.enums import VatType
 from app.core.exceptions import AppError
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
-def _client(db, suffix: str, office_client_number: int) -> Client:
-    client = Client(
+def _client(db, suffix: str, office_client_number: int) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name=f"Edit Intake {suffix}",
         id_number=f"EDIT-{suffix}",
         office_client_number=office_client_number,
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
 def _business(db, client_id: int, name: str) -> Business:
-    business = Business(
-        client_id=client_id,
+    client_record = db.get(ClientRecord, client_id)
+    business = seed_business(
+        db,
+        legal_entity_id=client_record.legal_entity_id,
         business_name=name,
         status=BusinessStatus.ACTIVE,
         opened_at=date(2026, 1, 1),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_id = client_id
     return business
 
 
 def _annual_report(db, client_id: int, year: int) -> AnnualReport:
     report = AnnualReport(
-        client_id=client_id,
+        client_record_id=client_id,
         tax_year=year,
         client_type=ClientAnnualFilingType.SELF_EMPLOYED,
         form_type=PrimaryAnnualReportForm.FORM_1301,
@@ -59,7 +56,6 @@ def _annual_report(db, client_id: int, year: int) -> AnnualReport:
 
 def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkItem:
     item = VatWorkItem(
-        client_id=client_id,
         client_record_id=client_id,
         created_by=created_by,
         period=period,
@@ -73,7 +69,6 @@ def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkI
 
 def _binder(db, client_id: int, number: str, created_by: int, status: BinderStatus = BinderStatus.IN_OFFICE) -> Binder:
     binder = Binder(
-        client_id=client_id,
         client_record_id=client_id,
         binder_number=number,
         period_start=date(2026, 1, 1),
@@ -147,7 +142,7 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(te
         intake_id=intake.id,
         actor_id=test_user.id,
         patch={
-            "client_id": target_client.id,
+            "client_record_id": target_client.id,
             "business_ids": [target_business.id],
             "annual_report_ids": [target_report.id],
             "vat_report_ids": [target_vat.id],
@@ -162,7 +157,7 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(te
 
     logs = BinderIntakeEditLogRepository(test_db).list_by_intake(updated.id)
     assert {log.field_name for log in logs} == {
-        "client_id",
+        "client_record_id",
         "binder_id",
         f"material:{materials[0].id}.business_id",
         f"material:{materials[0].id}.annual_report_id",
@@ -195,7 +190,7 @@ def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(
             intake_id=intake.id,
             actor_id=test_user.id,
             patch={
-                "client_id": target_client.id,
+                "client_record_id": target_client.id,
                 "business_ids": [source_business.id],
             },
         )

@@ -9,7 +9,8 @@ from typing import Dict
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
@@ -24,10 +25,11 @@ def _get_export_dir() -> str:
 
 
 def _load(db: Session, client_record_id: int, year: int):
-    client = ClientRepository(db).get_by_id(client_record_id)
-    if not client:
+    client_record = ClientRecordRepository(db).get_by_id(client_record_id)
+    if not client_record:
         raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
-    display_name = client.full_name
+    legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
+    display_name = legal_entity.official_name if legal_entity else f"לקוח #{client_record_id}"
     all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_record_id)
     periods = [
         VatPeriodRow.model_validate(work_item)

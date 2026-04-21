@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 
 
@@ -16,7 +16,6 @@ class BinderOperationsService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = BinderRepository(db)
-        self.client_repo = ClientRepository(db)
 
     def get_open_binders(
         self,
@@ -56,7 +55,7 @@ class BinderOperationsService:
 
     def client_exists(self, client_record_id: int) -> bool:
         """Compatibility helper for callers that still query client existence here."""
-        return self.client_repo.get_by_id(client_record_id) is not None
+        return ClientRecordRepository(self.db).get_by_id(client_record_id) is not None
 
     def enrich_binder(
         self,
@@ -72,10 +71,15 @@ class BinderOperationsService:
         """
         ref_date = reference_date or date.today()
 
-        client = self.client_repo.get_by_id(binder.client_record_id)
-        office_client_number = client.office_client_number if client else None
-        client_name = client.full_name if client else None
-        client_id_number = client.id_number if client else None
+        client_record = ClientRecordRepository(self.db).get_by_id(binder.client_record_id)
+        legal_entity = (
+            self.db.query(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id).first()
+            if client_record
+            else None
+        )
+        office_client_number = client_record.office_client_number if client_record else None
+        client_name = legal_entity.official_name if legal_entity else None
+        client_id_number = legal_entity.id_number if legal_entity else None
 
         # days_in_office is only defined once the binder has a derived period_start.
         days_in_office = (

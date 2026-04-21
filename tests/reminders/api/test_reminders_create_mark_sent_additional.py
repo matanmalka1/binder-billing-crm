@@ -3,44 +3,39 @@ from datetime import date
 import pytest
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models.client import Client
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
-def _client(db) -> Client:
-    crm_client = Client(
+def _client(db) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name="Reminder API Additional Client",
         id_number="RMA001",
     )
-    db.add(crm_client)
-    db.flush()
-    _ensure_client_identity_graph(db, crm_client)
-    db.commit()
-    db.refresh(crm_client)
-    return crm_client
 
 
-def _business(db, client_id: int, user_id: int) -> Business:
-    business = Business(
-        client_id=client_id,
-        business_name=f"Reminder API Biz {client_id}",
+def _business(db, crm_client: SeededClient, user_id: int):
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
+        business_name=f"Reminder API Biz {crm_client.id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
         created_by=user_id,
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_id = crm_client.id
     return business
 
 
 def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id, test_user.id)
+    business = _business(test_db, crm_client, test_user.id)
 
     idle = client.post(
         "/api/v1/reminders",
@@ -70,7 +65,7 @@ def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, tes
 
 def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id, test_user.id)
+    business = _business(test_db, crm_client, test_user.id)
     reminder = ReminderRepository(test_db).create(
         client_record_id=crm_client.id,
         business_id=business.id,
@@ -89,12 +84,12 @@ def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_he
 
 def test_create_tax_deadline_missing_id_returns_422(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id, test_user.id)
+    business = _business(test_db, crm_client, test_user.id)
     resp = client.post(
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "client_record_id": crm_client.id,
             "reminder_type": "tax_deadline_approaching",
             "target_date": date.today().isoformat(),
             "days_before": 2,
@@ -106,7 +101,7 @@ def test_create_tax_deadline_missing_id_returns_422(client, test_db, advisor_hea
 
 def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id, test_user.id)
+    business = _business(test_db, crm_client, test_user.id)
     binder = Binder(
         client_record_id=crm_client.id,
         binder_number="RMA-B",
@@ -143,7 +138,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
         "/api/v1/reminders",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "client_record_id": crm_client.id,
             "business_id": business.id,
             "reminder_type": "unpaid_charge",
             "target_date": date.today().isoformat(),
@@ -170,7 +165,7 @@ def test_create_binder_idle_and_unpaid_charge_and_custom_success(client, test_db
 
 def test_create_annual_report_and_advance_payment_missing_ids_return_422(client, test_db, advisor_headers, test_user):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id, test_user.id)
+    business = _business(test_db, crm_client, test_user.id)
 
     annual = client.post(
         "/api/v1/reminders",

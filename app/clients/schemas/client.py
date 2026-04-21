@@ -162,7 +162,7 @@ class ClientResponse(BaseModel):
     accountant_name: Optional[str] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
-    # ── Enriched field (set by API layer, not stored on Client) ───────────────
+    # ── Enriched field (set by API layer, not stored on ClientRecord) ─────────
     active_binder_number: Optional[str] = None
 
     model_config = {"from_attributes": True}

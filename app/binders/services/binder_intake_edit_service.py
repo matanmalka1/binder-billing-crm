@@ -20,7 +20,6 @@ from app.binders.services.messages import (
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
@@ -41,7 +40,7 @@ class BinderIntakeEditService:
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.edit_log_repo = BinderIntakeEditLogRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.binder_repo = BinderRepository(db)
         self.business_repo = BusinessRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
@@ -112,7 +111,7 @@ class BinderIntakeEditService:
 
         target_binder = self._resolve_target_binder(current_binder=current_binder, patch=patch)
         target_client_id = target_binder.client_record_id
-        if not self.client_repo.get_by_id(target_client_id):
+        if not self.client_record_repo.get_by_id(target_client_id):
             raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
 
         if current_binder.client_record_id != target_client_id:

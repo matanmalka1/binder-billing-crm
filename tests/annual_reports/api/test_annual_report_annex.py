@@ -6,21 +6,14 @@ import pytest
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
 _client_seq = count(1)
 
 
 def _create_report(db):
-    client = Client(
-        full_name="Annex Client",
-        id_number=f"45454545{next(_client_seq)}",
-
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
+    client = seed_client_identity(db, full_name="Annex Client", id_number=f"45454545{next(_client_seq)}")
 
     svc = AnnualReportService(db)
     return svc.create_report(

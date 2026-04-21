@@ -6,7 +6,7 @@ from app.dashboard.services.dashboard_overview_service import DashboardOverviewS
 
 def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch):
     service = DashboardOverviewService(test_db)
-    monkeypatch.setattr(service.client_repo, "count", lambda **kwargs: 4)
+    monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 4)
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 5)
     monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 2)
     monkeypatch.setattr(service.reminder_repo, "count_pending_by_date", lambda _d: 3)

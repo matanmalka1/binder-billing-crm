@@ -2,45 +2,45 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
+from app.businesses.models.business import BusinessStatus
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.reminder_service import ReminderService
 from app.core.exceptions import AppError, NotFoundError
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
-def _client(db) -> Client:
-    client = Client(
+def _client(db) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name="Reminder Service Client",
         id_number="333333333",
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
-def _business(db, client_id: int) -> Business:
-    business = Business(
-        client_id=client_id,
-        business_name=f"Reminder Service Biz {client_id}",
+def _business(db, crm_client: SeededClient):
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
+        business_name=f"Reminder Service Biz {crm_client.id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_id = crm_client.id
     return business
 
 
-def _reminder(repo: ReminderRepository, business_id: int, *, status: ReminderStatus = ReminderStatus.PENDING):
-    business = repo.db.get(Business, business_id)
+def _reminder(
+    repo: ReminderRepository,
+    business_id: int,
+    *,
+    client_record_id: int,
+    status: ReminderStatus = ReminderStatus.PENDING,
+):
     reminder = repo.create(
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=date.today(),
@@ -55,7 +55,7 @@ def _reminder(repo: ReminderRepository, business_id: int, *, status: ReminderSta
 
 def test_custom_negative_days_raises_app_error(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     service = ReminderService(test_db)
 
     with pytest.raises(AppError) as exc_info:
@@ -72,7 +72,7 @@ def test_custom_negative_days_raises_app_error(test_db):
 
 def test_custom_missing_message_raises_app_error(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     service = ReminderService(test_db)
 
     with pytest.raises(AppError) as exc_info:
@@ -89,9 +89,9 @@ def test_custom_missing_message_raises_app_error(test_db):
 
 def test_mark_sent_enforces_pending_status(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
-    reminder = _reminder(repo, business.id, status=ReminderStatus.SENT)
+    reminder = _reminder(repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT)
 
     with pytest.raises(AppError) as exc_info:
         ReminderService(test_db).mark_sent(reminder.id, actor_id=1)
@@ -101,7 +101,7 @@ def test_mark_sent_enforces_pending_status(test_db):
 
 def test_get_pending_respects_reference_date(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
@@ -132,7 +132,7 @@ def test_get_pending_respects_reference_date(test_db):
 
 def test_get_reminders_without_status_defaults_to_pending(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
     today = date.today()
     repo.create(
@@ -173,9 +173,9 @@ def test_mark_sent_missing_reminder_raises_not_found(test_db):
 
 def test_cancel_enforces_pending_status(test_db):
     crm_client = _client(test_db)
-    business = _business(test_db, crm_client.id)
+    business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
-    reminder = _reminder(repo, business.id, status=ReminderStatus.SENT)
+    reminder = _reminder(repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT)
 
     with pytest.raises(AppError) as exc_info:
         ReminderService(test_db).cancel_reminder(reminder.id, actor_id=1)

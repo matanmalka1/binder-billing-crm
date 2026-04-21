@@ -3,27 +3,20 @@ from datetime import date, timedelta
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_operations_service import BinderOperationsService
-from app.clients.models.client import Client
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_client_identity
 
 
-def _create_client(db, name: str, id_number: str) -> Client:
-    client = Client(
+def _create_client(db, name: str, id_number: str) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name=name,
         id_number=id_number,
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
 def _create_binder(db, client_id: int, user_id: int, number: str, period_start: date, status: BinderStatus):
     repo = BinderRepository(db)
     binder = repo.create(
-        client_id=client_id,
         client_record_id=client_id,
         binder_number=number,
         period_start=period_start,
@@ -66,7 +59,7 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
     )
 
     service = BinderOperationsService(test_db)
-    items, total = service.get_client_binders(client_id=client_a.id, page=1, page_size=10)
+    items, total = service.get_client_binders(client_record_id=client_a.id, page=1, page_size=10)
 
     assert total == 1
     assert items[0].id == target.id

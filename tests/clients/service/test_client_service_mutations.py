@@ -151,14 +151,7 @@ def test_restore_raises_when_not_deleted(test_db):
 
 def test_restore_raises_when_active_duplicate_exists(test_db):
     deleted = _create_client(test_db, full_name="Old", id_number="660000001", deleted=True)
-    test_db.add(
-        ClientRecord(
-            legal_entity_id=deleted.legal_entity_id,
-            office_client_number=99,
-            created_by=1,
-        )
-    )
-    test_db.flush()
+    _create_client(test_db, full_name="New Active", id_number="660000001")
 
     service = ClientService(test_db)
     with pytest.raises(ConflictError) as exc:
@@ -230,7 +223,7 @@ def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkey
     created = _svc_create(service, full_name="To Restore", id_number="690000013")
     service.delete_client(created.id, actor_id=1)
 
-    monkeypatch.setattr(service._lifecycle.client_repo, "restore", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(service._lifecycle.record_repo, "restore", lambda *_args, **_kwargs: None)
 
     with pytest.raises(NotFoundError) as exc:
         service.restore_client(created.id, actor_id=2)

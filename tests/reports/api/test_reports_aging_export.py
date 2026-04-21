@@ -4,35 +4,28 @@ from decimal import Decimal
 
 import openpyxl
 
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _seed_charges(db):
-    client = Client(
+    client = seed_client_identity(
+        db,
         full_name="Export Aging Client",
         id_number="AGING-EXP-1",
     )
-    db.add(client)
+    business = seed_business(
+        db,
+        legal_entity_id=client.legal_entity_id,
+        business_name=client.full_name,
+        opened_at=date.today(),
+    )
     db.commit()
-    db.refresh(client)
-
-    business = db.query(Business).filter(Business.client_id == client.id).first()
-    if business is None:
-        business = Business(
-            client_id=client.id,
-            business_name=client.full_name,
-            opened_at=date.today(),
-        )
-        db.add(business)
-        db.commit()
-        db.refresh(business)
+    db.refresh(business)
 
     issued_at = date.today() - timedelta(days=40)
     charge = Charge(
-        client_id=client.id,
+        client_record_id=client.id,
         business_id=business.id,
         amount=Decimal("250.00"),
         charge_type=ChargeType.CONSULTATION_FEE,

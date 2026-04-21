@@ -22,7 +22,6 @@ from app.charge.services.messages import (
     CLIENT_NOT_FOUND,
 )
 from app.clients.guards.client_record_guards import assert_client_record_is_active
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.reminders.services.reminder_service import ReminderService
@@ -35,7 +34,6 @@ class BillingService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self.client_repo = ClientRepository(db)
         self._audit = EntityAuditLogRepository(db)
 
     def _validate_charge_scope(
@@ -44,8 +42,8 @@ class BillingService:
         business_id: Optional[int],
         legal_entity_id: Optional[int] = None,
     ) -> Optional[int]:
-        client = self.client_repo.get_by_id(client_record_id)
-        if not client:
+        client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not client_record:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "CHARGE.CLIENT_NOT_FOUND")
         if business_id is None:
             return None

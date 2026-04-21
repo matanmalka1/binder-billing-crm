@@ -11,11 +11,8 @@ import pytest
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
 from app.core.exceptions import AppError
+from tests.helpers.identity import seed_client_identity
 
 
 def _stub_sig_service():
@@ -38,15 +35,7 @@ def _stub_sig_service():
 
 
 def _create_report(db):
-    client = Client(full_name="Locking AR Client", id_number="ARLOCK001")
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    legal = LegalEntity(id_number="LE-ARLOCK001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal)
-    db.flush()
-    db.add(ClientRecord(id=client.id, legal_entity_id=legal.id))
-    db.flush()
+    client = seed_client_identity(db, full_name="Locking AR Client", id_number="ARLOCK001")
     return AnnualReportService(db).create_report(
         client_record_id=client.id,
         tax_year=2027,

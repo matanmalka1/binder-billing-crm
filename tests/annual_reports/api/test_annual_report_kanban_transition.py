@@ -1,18 +1,11 @@
 from datetime import date
 
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db) -> int:
-    crm_client = Client(
-        full_name="AR Kanban Transition",
-        id_number="ARKAN001",
-
-    )
-    db.add(crm_client)
-    db.commit()
-    db.refresh(crm_client)
+    crm_client = seed_client_identity(db, full_name="AR Kanban Transition", id_number="ARKAN001")
 
     report = AnnualReportService(db).create_report(
         client_record_id=crm_client.id,

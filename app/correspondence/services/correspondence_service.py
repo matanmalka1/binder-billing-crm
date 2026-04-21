@@ -9,7 +9,6 @@ from app.correspondence.repositories.correspondence_repository import Correspond
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
@@ -22,13 +21,6 @@ class CorrespondenceService:
         self.repo = CorrespondenceRepository(db)
         self.contact_repo = AuthorityContactRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.client_repo = ClientRepository(db)
-
-    def _get_client_or_raise(self, client_record_id: int):
-        client = self.client_repo.get_by_id(client_record_id)
-        if not client:
-            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
-        return client
 
     def _assert_business_belongs_to_client(self, business_id: int, legal_entity_id: int) -> None:
         """Validate optional business context belongs to the same client."""
@@ -78,7 +70,6 @@ class CorrespondenceService:
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
-        self._get_client_or_raise(client_record_id)
         client_record = self._get_client_record_or_raise(client_record_id)
         if business_id is not None:
             self._assert_business_belongs_to_client(business_id, client_record.legal_entity_id)
@@ -98,11 +89,10 @@ class CorrespondenceService:
         )
 
     def get_entry(self, entry_id: int, client_record_id: int) -> Correspondence:
-        self._get_client_or_raise(client_record_id)
+        self._get_client_record_or_raise(client_record_id)
         return self._get_entry_or_raise(entry_id, client_record_id)
 
     def update_entry(self, entry_id: int, client_record_id: int, **fields) -> Correspondence:
-        self._get_client_or_raise(client_record_id)
         client_record = self._get_client_record_or_raise(client_record_id)
         entry = self._get_entry_or_raise(entry_id, client_record_id)
 
@@ -123,7 +113,7 @@ class CorrespondenceService:
         return updated
 
     def delete_entry(self, entry_id: int, client_record_id: int, actor_id: int) -> None:
-        self._get_client_or_raise(client_record_id)
+        self._get_client_record_or_raise(client_record_id)
         self._get_entry_or_raise(entry_id, client_record_id)
         self.repo.soft_delete(entry_id, deleted_by=actor_id)
 
@@ -141,7 +131,6 @@ class CorrespondenceService:
         sort_dir: str = "desc",
     ) -> tuple[list[Correspondence], int]:
         """All correspondence for a client, optionally filtered by business context."""
-        self._get_client_or_raise(client_record_id)
         client_record = self._get_client_record_or_raise(client_record_id)
         if business_id is not None:
             self._assert_business_belongs_to_client(business_id, client_record.legal_entity_id)

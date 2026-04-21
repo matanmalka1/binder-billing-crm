@@ -5,7 +5,6 @@ from decimal import Decimal
 from typing import Optional
 
 from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.clients.repositories.client_repository import ClientRepository
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -36,7 +35,6 @@ from app.vat_reports.services.messages import (
 def update_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
-    client_repo: ClientRepository,
     *,
     item_id: int,
     invoice_id: int,

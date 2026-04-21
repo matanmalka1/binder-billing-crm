@@ -8,7 +8,6 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services import factory as reminder_factory
 from app.reminders.services import reminder_queries, status_changes
@@ -22,7 +21,7 @@ class ReminderService:
         self.db = db
         self.reminder_repo = ReminderRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.binder_repo = BinderRepository(db)
         self.tax_deadline_repo = TaxDeadlineRepository(db)
@@ -33,7 +32,7 @@ class ReminderService:
 
     def create_tax_deadline_reminder(self, **kwargs):
         return reminder_factory.create_tax_deadline_reminder(
-            self.reminder_repo, self.client_repo, self.tax_deadline_repo, **kwargs
+            self.reminder_repo, self.client_record_repo, self.tax_deadline_repo, **kwargs
         )
 
     def create_vat_filing_reminder(self, **kwargs):
@@ -77,16 +76,16 @@ class ReminderService:
     # ── Queries ───────────────────────────────────────────────────────────────
 
     def get_reminders(self, **kwargs):
-        return reminder_queries.get_reminders(self.reminder_repo, self.client_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
+        return reminder_queries.get_reminders(self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
 
     def get_pending_reminders(self, **kwargs):
-        return reminder_queries.get_pending_reminders(self.reminder_repo, self.client_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
+        return reminder_queries.get_pending_reminders(self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
 
     def get_reminders_by_business(self, **kwargs):
-        return reminder_queries.get_reminders_by_business(self.reminder_repo, self.client_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
+        return reminder_queries.get_reminders_by_business(self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
 
     def get_reminders_by_client(self, **kwargs):
-        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.client_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
+        return reminder_queries.get_reminders_by_client(self.reminder_repo, self.business_repo, self.tax_deadline_repo, **kwargs)
 
     def get_reminder(self, reminder_id: int):
         return reminder_queries.get_reminder(self.reminder_repo, reminder_id)

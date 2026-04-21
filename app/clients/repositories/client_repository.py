@@ -50,7 +50,7 @@ class ClientRecordView:
 
 
 class ClientRepository(BaseRepository):
-    """Client reads/writes backed by ClientRecord + LegalEntity + Person."""
+    """ClientRecord-centered read/write repository over LegalEntity + Person."""
 
     _SORTABLE_FIELDS = {
         "full_name": LegalEntity.official_name,

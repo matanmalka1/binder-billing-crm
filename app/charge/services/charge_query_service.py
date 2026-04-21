@@ -6,8 +6,8 @@ from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeListStats, ChargeStatusStat, ChargeResponse, ChargeResponseSecretary
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.users.models.user import UserRole
 
 
@@ -18,18 +18,21 @@ class ChargeQueryService:
         self.db = db
         self.charge_repo = ChargeRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.client_repo = ClientRepository(db)
 
     def enrich_charge_context(self, charge: Charge) -> tuple[str | None, int | None]:
         """Return display name and office client number for a single charge."""
+        client_record = ClientRecordRepository(self.db).get_by_id(charge.client_record_id)
+        legal_entity = (
+            self.db.query(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id).first()
+            if client_record
+            else None
+        )
         if charge.business_id is not None:
             businesses = self.business_repo.list_by_ids([charge.business_id])
             if businesses:
-                client = self.client_repo.get_by_id(charge.client_record_id)
-                return businesses[0].full_name, client.office_client_number if client else None
-        client = self.client_repo.get_by_id(charge.client_record_id)
-        if client:
-            return client.full_name, client.office_client_number
+                return businesses[0].full_name, client_record.office_client_number if client_record else None
+        if client_record and legal_entity:
+            return legal_entity.official_name, client_record.office_client_number
         return None, None
 
     def list_charges(
@@ -82,15 +85,25 @@ class ChargeQueryService:
         businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
         business_name_by_id: dict[int, str] = {c.id: c.full_name for c in businesses}
         client_record_ids = list({c.client_record_id for c in items})
-        clients = self.client_repo.list_by_ids(client_record_ids) if client_record_ids else []
-        client_name_by_id = {c.id: c.full_name for c in clients}
-        office_client_number_by_id = {c.id: c.office_client_number for c in clients}
+        client_records = ClientRecordRepository(self.db).list_by_ids(client_record_ids) if client_record_ids else []
+        record_by_id = {record.id: record for record in client_records}
+        legal_entity_ids = list({record.legal_entity_id for record in client_records})
+        legal_entity_by_id = {
+            entity.id: entity
+            for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
+        } if legal_entity_ids else {}
         business_name_map: dict[int, str] = {
-            c.id: business_name_by_id.get(c.business_id) or client_name_by_id.get(c.client_record_id)
+            c.id: business_name_by_id.get(c.business_id)
+            or (
+                legal_entity_by_id[record_by_id[c.client_record_id].legal_entity_id].official_name
+                if c.client_record_id in record_by_id
+                and record_by_id[c.client_record_id].legal_entity_id in legal_entity_by_id
+                else None
+            )
             for c in items
         }
         office_client_number_map: dict[int, int | None] = {
-            c.id: office_client_number_by_id.get(c.client_record_id)
+            c.id: record_by_id[c.client_record_id].office_client_number if c.client_record_id in record_by_id else None
             for c in items
         }
 

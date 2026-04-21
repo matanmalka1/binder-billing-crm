@@ -1,18 +1,15 @@
 from datetime import date
 
-from app.clients.models.client import Client
+from tests.helpers.identity import SeededClient, seed_client_identity
 
 
-def _seed_client(test_db, id_number: str, office_client_number: int) -> Client:
-    test_client = Client(
+def _seed_client(test_db, id_number: str, office_client_number: int) -> SeededClient:
+    return seed_client_identity(
+        test_db,
         full_name="Test Client",
         id_number=id_number,
         office_client_number=office_client_number,
     )
-    test_db.add(test_client)
-    test_db.commit()
-    test_db.refresh(test_client)
-    return test_client
 
 
 def _receive_payload(payload: dict) -> dict:
@@ -20,9 +17,9 @@ def _receive_payload(payload: dict) -> dict:
     return payload["binder"] if "binder" in payload else payload
 
 
-def _receive_request(client_id: int, received_by: int, received_at: str = "2026-02-08") -> dict:
+def _receive_request(client_record_id: int, received_by: int, received_at: str = "2026-02-08") -> dict:
     return {
-        "client_id": client_id,
+        "client_record_id": client_record_id,
         "received_at": received_at,
         "received_by": received_by,
         "materials": [
@@ -164,7 +161,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
         "/api/v1/binders/receive",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "received_at": "2026-02-08",
             "received_by": test_user.id,
             "materials": [
@@ -184,7 +181,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
         "/api/v1/binders/receive",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "received_at": "2026-03-10",
             "received_by": test_user.id,
             "open_new_binder": True,
@@ -205,7 +202,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
         "/api/v1/binders/mark-ready-bulk",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "until_period_year": 2026,
             "until_period_month": 2,
         },
@@ -217,7 +214,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
     assert data[0]["status"] == "ready_for_pickup"
 
     binders = client.get(
-        f"/api/v1/binders?client_id={test_client.id}&status=ready_for_pickup",
+        f"/api/v1/binders?client_record_id={test_client.id}&status=ready_for_pickup",
         headers={"Authorization": f"Bearer {auth_token}"},
     )
     assert binders.status_code == 200

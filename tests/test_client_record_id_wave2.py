@@ -6,8 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base
-from app.clients.models.client import Client
 from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -30,11 +31,10 @@ def db():
 
 
 def _make_client(db, id_number: str = "C201"):
-    from app.common.enums import VatType
-
-    client = Client(
-        full_name="Wave 2 Client",
+    client = LegalEntity(
+        official_name="Wave 2 Client",
         id_number=id_number,
+        id_number_type=IdNumberType.INDIVIDUAL,
         vat_reporting_frequency=VatType.MONTHLY,
     )
     db.add(client)
@@ -42,14 +42,8 @@ def _make_client(db, id_number: str = "C201"):
     return client
 
 
-def _make_client_record(db, client_id: int):
-    from app.clients.models.legal_entity import LegalEntity
-    from app.common.enums import IdNumberType
-
-    legal = LegalEntity(id_number=f"LE-{client_id}", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal)
-    db.flush()
-    record = ClientRecord(id=client_id, legal_entity_id=legal.id)
+def _make_client_record(db, legal_entity_id: int):
+    record = ClientRecord(legal_entity_id=legal_entity_id)
     db.add(record)
     db.flush()
     return record
@@ -354,4 +348,3 @@ class TestO7BinderHandover:
             actor_id=user.id,
         )
         assert handover.client_record_id == record.id
-

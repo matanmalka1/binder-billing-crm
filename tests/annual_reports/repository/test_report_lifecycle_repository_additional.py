@@ -1,18 +1,11 @@
 from datetime import date
 
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
 def _report(test_db):
-    crm_client = Client(
-        full_name="Lifecycle Repo Extra",
-        id_number="LRX001",
-
-    )
-    test_db.add(crm_client)
-    test_db.commit()
-    test_db.refresh(crm_client)
+    crm_client = seed_client_identity(test_db, full_name="Lifecycle Repo Extra", id_number="LRX001")
     return AnnualReportService(test_db).create_report(
         client_record_id=crm_client.id,
         tax_year=2026,

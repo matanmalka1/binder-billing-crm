@@ -2,6 +2,7 @@
 
 from datetime import date
 
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 
 
@@ -14,11 +15,11 @@ _MILESTONE_LABELS: dict[str, str] = {
 }
 
 
-def build_timeline(client_record_id: int, client_repo, deadline_repo) -> list[dict]:
+def build_timeline(client_record_id: int, db, deadline_repo) -> list[dict]:
     """Return deadlines sorted by due_date asc with days_remaining and milestone_label."""
-    client = client_repo.get_by_id(client_record_id)
-    if not client:
-        raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
+    client_record = ClientRecordRepository(db).get_by_id(client_record_id)
+    if not client_record:
+        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
     deadlines = deadline_repo.list_by_client(client_record_id)
     today = date.today()
     result = []

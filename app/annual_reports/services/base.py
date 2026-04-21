@@ -1,5 +1,7 @@
 from typing import Any
 
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
@@ -27,23 +29,28 @@ class AnnualReportBaseService:
         """
         if not reports:
             return []
-
-        from app.clients.repositories.client_repository import ClientRepository
-        client_repo = ClientRepository(self.db)
-
         client_record_ids = {r.client_record_id for r in reports}
-        clients = {c.id: c for c in client_repo.list_by_ids(list(client_record_ids))} if client_record_ids else {}
+        records = {
+            record.id: record
+            for record in ClientRecordRepository(self.db).list_by_ids(list(client_record_ids))
+        } if client_record_ids else {}
+        legal_entity_ids = {record.legal_entity_id for record in records.values()}
+        legal_entities = {
+            entity.id: entity
+            for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
+        } if legal_entity_ids else {}
 
         from app.actions.report_deadline_actions import get_annual_report_actions
         result = []
         for r in reports:
             obj = AnnualReportResponse.model_validate(r)
-            client = clients.get(r.client_record_id)
-            if client:
-                obj.office_client_number = client.office_client_number
-                obj.client_name = client.full_name
-                obj.client_id_number = client.id_number
-                obj.business_name = client.full_name
+            record = records.get(r.client_record_id)
+            legal_entity = legal_entities.get(record.legal_entity_id) if record else None
+            if record and legal_entity:
+                obj.office_client_number = record.office_client_number
+                obj.client_name = legal_entity.official_name
+                obj.client_id_number = legal_entity.id_number
+                obj.business_name = legal_entity.official_name
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
             result.append(obj)
         return result

@@ -1,18 +1,11 @@
 from datetime import date, datetime
 
-from app.clients.models.client import Client
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(test_db):
-    client = Client(
-        full_name="Annual Report Client",
-        id_number="333333333",
-
-    )
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
+    client = seed_client_identity(test_db, full_name="Annual Report Client", id_number="333333333")
 
     service = AnnualReportService(test_db)
     report = service.create_report(

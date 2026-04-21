@@ -18,7 +18,6 @@ from app.binders.repositories.binder_intake_material_repository import BinderInt
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
 from app.binders.services import binder_helpers
 
 _log = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ class BinderService(BinderListService):
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.status_log_repo = BinderStatusLogRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)

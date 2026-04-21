@@ -27,7 +27,7 @@ def test_get_summary_counts_statuses_and_attention(monkeypatch, test_db, test_us
     _binder(test_db, client.id, test_user.id, "D-002", BinderStatus.READY_FOR_PICKUP)
 
     service = DashboardService(test_db)
-    monkeypatch.setattr(service.client_repo, "count", lambda **kwargs: 1)
+    monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 1)
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 2)
     monkeypatch.setattr(service.extended_service, "get_attention_items", lambda user_role=None: [{"id": 1}])
 

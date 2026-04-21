@@ -2,10 +2,9 @@ from datetime import date
 
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import seed_client_identity
 
 
 def _user(test_db):
@@ -23,15 +22,11 @@ def _user(test_db):
 
 
 def _client(test_db, name: str, id_number: str):
-    client = Client(
+    client = seed_client_identity(
+        test_db,
         full_name=name,
         id_number=id_number,
     )
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    test_db.commit()
-    test_db.refresh(client)
     return client
 
 
@@ -42,14 +37,12 @@ def test_active_queries_and_soft_delete(test_db):
     client_b = _client(test_db, "Beta", "B002")
 
     binder_active = repo.create(
-        client_id=client_a.id,
         client_record_id=client_a.id,
         binder_number="BA-1",
         period_start=date(2024, 3, 1),
         created_by=user.id,
     )
     binder_returned = repo.create(
-        client_id=client_a.id,
         client_record_id=client_a.id,
         binder_number="BA-2",
         period_start=date(2024, 3, 2),
@@ -58,7 +51,6 @@ def test_active_queries_and_soft_delete(test_db):
     repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
 
     binder_other = repo.create(
-        client_id=client_b.id,
         client_record_id=client_b.id,
         binder_number="BB-1",
         period_start=date(2024, 3, 3),
@@ -68,18 +60,18 @@ def test_active_queries_and_soft_delete(test_db):
     assert repo.get_active_by_number("BA-1").id == binder_active.id
     assert repo.get_active_by_number("BA-2") is None
 
-    active_for_client = repo.list_active(client_id=client_a.id)
+    active_for_client = repo.list_active(client_record_id=client_a.id)
     assert [b.id for b in active_for_client] == [binder_active.id]
 
     assert repo.count_active() == 2  # binder_active + binder_other
-    assert repo.count_active(client_id=client_a.id) == 1
+    assert repo.count_active(client_record_id=client_a.id) == 1
     assert repo.count_by_status(BinderStatus.IN_OFFICE) == 2
 
     deleted = repo.soft_delete(binder_active.id, deleted_by=user.id)
     assert deleted is True
     assert repo.get_active_by_number("BA-1") is None
     assert repo.count_active() == 1
-    assert repo.list_active(client_id=client_a.id) == []
+    assert repo.list_active(client_record_id=client_a.id) == []
 
 
 def test_list_active_respects_sort_and_filters(test_db):
@@ -88,14 +80,12 @@ def test_list_active_respects_sort_and_filters(test_db):
     client = _client(test_db, "Gamma", "B003")
 
     older = repo.create(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="BG-1",
         period_start=date(2024, 1, 1),
         created_by=user.id,
     )
     newer = repo.create(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="BG-2",
         period_start=date(2024, 2, 1),
@@ -118,14 +108,12 @@ def test_list_open_binders_sorts_null_period_start_last(test_db):
     client = _client(test_db, "Null Sort", "B004")
 
     with_period = repo.create(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="NULL-1",
         period_start=date(2024, 4, 1),
         created_by=user.id,
     )
     without_period = repo.create(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="NULL-2",
         period_start=None,

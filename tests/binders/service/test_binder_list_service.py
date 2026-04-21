@@ -3,30 +3,23 @@ from datetime import date, timedelta
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_list_service import BinderListService
-from app.clients.models.client import Client
-from app.clients.repositories.client_repository import ClientRepository
-from tests.conftest import _ensure_client_identity_graph
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from tests.helpers.identity import seed_client_identity
 
 
 def _seed_binders(db, user_id: int):
-    c1 = Client(
+    c1 = seed_client_identity(
+        db,
         full_name="Alpha Client",
         id_number="BLS001",
     )
-    c2 = Client(
+    c2 = seed_client_identity(
+        db,
         full_name="Beta Client",
         id_number="BLS002",
     )
-    db.add_all([c1, c2])
-    db.flush()
-    _ensure_client_identity_graph(db, c1)
-    _ensure_client_identity_graph(db, c2)
-    db.commit()
-    db.refresh(c1)
-    db.refresh(c2)
 
     b1 = Binder(
-        client_id=c1.id,
         client_record_id=c1.id,
         binder_number="AA-100",
         period_start=date.today() - timedelta(days=15),
@@ -34,7 +27,6 @@ def _seed_binders(db, user_id: int):
         created_by=user_id,
     )
     b2 = Binder(
-        client_id=c2.id,
         client_record_id=c2.id,
         binder_number="BB-200",
         period_start=date.today() - timedelta(days=5),
@@ -53,7 +45,7 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     service = BinderListService()
     service.db = test_db
     service.binder_repo = BinderRepository(test_db)
-    service.client_repo = ClientRepository(test_db)
+    service.client_record_repo = ClientRecordRepository(test_db)
 
     items, total, counters = service.list_binders_enriched(
         sort_by="client_name",
@@ -89,7 +81,6 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
 def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_user):
     c1, _c2, b1, b2 = _seed_binders(test_db, test_user.id)
     returned = Binder(
-        client_id=c1.id,
         client_record_id=c1.id,
         binder_number="AA-300",
         period_start=date.today() - timedelta(days=1),
@@ -103,7 +94,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
     service = BinderListService()
     service.db = test_db
     service.binder_repo = BinderRepository(test_db)
-    service.client_repo = ClientRepository(test_db)
+    service.client_record_repo = ClientRecordRepository(test_db)
 
     items, total, counters = service.list_binders_enriched()
 
@@ -123,21 +114,15 @@ def test_get_binder_with_client_name_returns_none_for_missing(test_db, test_user
     service = BinderListService()
     service.db = test_db
     service.binder_repo = BinderRepository(test_db)
-    service.client_repo = ClientRepository(test_db)
+    service.client_record_repo = ClientRecordRepository(test_db)
 
     assert service.get_binder_with_client_name(999999) is None
 
 
 def test_build_binder_response_handles_null_period_start(test_db, test_user):
-    client = Client(full_name="Null Period Client", id_number="BLSNULL")
-    test_db.add(client)
-    test_db.flush()
-    _ensure_client_identity_graph(test_db, client)
-    test_db.commit()
-    test_db.refresh(client)
+    client = seed_client_identity(test_db, full_name="Null Period Client", id_number="BLSNULL")
 
     binder = Binder(
-        client_id=client.id,
         client_record_id=client.id,
         binder_number="NULL-100",
         period_start=None,
@@ -151,7 +136,7 @@ def test_build_binder_response_handles_null_period_start(test_db, test_user):
     service = BinderListService()
     service.db = test_db
     service.binder_repo = BinderRepository(test_db)
-    service.client_repo = ClientRepository(test_db)
+    service.client_record_repo = ClientRecordRepository(test_db)
 
     response = service.build_binder_response(binder, client_name=client.full_name)
 

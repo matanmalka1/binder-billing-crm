@@ -5,27 +5,20 @@ from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_service import BinderService
-from app.clients.models.client import Client
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_client_identity
 
 
-def _create_client(db) -> Client:
-    client = Client(
+def _create_client(db) -> SeededClient:
+    return seed_client_identity(
+        db,
         full_name="Binder Client",
         id_number="B-100",
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
 def _create_binder(db, client_id: int, user_id: int, number: str, status: BinderStatus):
     repo = BinderRepository(db)
     binder = repo.create(
-        client_id=client_id,
         client_record_id=client_id,
         binder_number=number,
         period_start=date(2024, 1, 10),
@@ -72,7 +65,7 @@ def test_list_active_binders_excludes_returned(test_db, test_user):
     _create_binder(test_db, client.id, test_user.id, "BIN-004", BinderStatus.RETURNED)
 
     service = BinderService(test_db)
-    active = service.list_active_binders(client_id=client.id)
+    active = service.list_active_binders(client_record_id=client.id)
 
     assert len(active) == 1
     assert active[0].status == BinderStatus.IN_OFFICE
@@ -106,7 +99,7 @@ def test_mark_ready_bulk_marks_only_eligible_binders(test_db, test_user):
 
     service = BinderService(test_db)
     updated = service.mark_ready_bulk(
-        client_id=client.id,
+        client_record_id=client.id,
         until_period_year=2026,
         until_period_month=2,
         user_id=test_user.id,

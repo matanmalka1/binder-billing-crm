@@ -4,6 +4,7 @@ from typing import Optional
 from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.schemas.binder import BinderResponse
+from app.clients.models.legal_entity import LegalEntity
 
 
 _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
@@ -11,6 +12,28 @@ _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
 
 class BinderListService:
     """Read helpers for binder enrichment and listing."""
+
+    def _build_client_context_maps(self, client_record_ids: list[int]) -> tuple[dict[int, int | None], dict[int, str], dict[int, str | None]]:
+        client_records = self.client_record_repo.list_by_ids(client_record_ids) if client_record_ids else []
+        record_by_id = {record.id: record for record in client_records}
+        legal_entity_ids = list({record.legal_entity_id for record in client_records})
+        legal_entity_by_id = {
+            entity.id: entity
+            for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
+        } if legal_entity_ids else {}
+        return (
+            {record.id: record.office_client_number for record in client_records},
+            {
+                record.id: legal_entity_by_id[record.legal_entity_id].official_name
+                for record in client_records
+                if record.legal_entity_id in legal_entity_by_id
+            },
+            {
+                record.id: legal_entity_by_id[record.legal_entity_id].id_number
+                for record in client_records
+                if record.legal_entity_id in legal_entity_by_id
+            },
+        )
 
     def _matches_non_status_filters(
         self,
@@ -83,13 +106,13 @@ class BinderListService:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None
-        client = self.client_repo.get_by_id(binder.client_record_id)
+        office_client_number_map, client_name_map, client_id_number_map = self._build_client_context_maps([binder.client_record_id])
         return self.build_binder_response(
             binder,
             reference_date=date.today(),
-            office_client_number=client.office_client_number if client else None,
-            client_name=client.full_name if client else None,
-            client_id_number=client.id_number if client else None,
+            office_client_number=office_client_number_map.get(binder.client_record_id),
+            client_name=client_name_map.get(binder.client_record_id),
+            client_id_number=client_id_number_map.get(binder.client_record_id),
         )
 
     def list_binders_enriched(
@@ -121,10 +144,7 @@ class BinderListService:
         )
 
         client_record_ids = list({binder.client_record_id for binder in binders})
-        clients = self.client_repo.list_by_ids(client_record_ids) if client_record_ids else []
-        office_client_number_map = {c.id: c.office_client_number for c in clients}
-        client_name_map = {c.id: c.full_name for c in clients}
-        client_id_number_map = {c.id: c.id_number for c in clients}
+        office_client_number_map, client_name_map, client_id_number_map = self._build_client_context_maps(client_record_ids)
 
         filtered_binders: list[tuple[Binder, Optional[str]]] = []
         for binder in binders:

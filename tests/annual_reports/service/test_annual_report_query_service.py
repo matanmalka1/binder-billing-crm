@@ -3,23 +3,15 @@ from itertools import count
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
 _client_seq = count(1)
 
 
-def _client(db) -> Client:
+def _client(db):
     idx = next(_client_seq)
-    client = Client(
-        full_name=f"Annual Query Client {idx}",
-        id_number=f"AQS{idx:03d}",
-
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return client
+    return seed_client_identity(db, full_name=f"Annual Query Client {idx}", id_number=f"AQS{idx:03d}")
 
 
 def _create_report(service: AnnualReportService, client_id: int, tax_year: int, created_by: int):

@@ -25,13 +25,13 @@ class BusinessRepository(BusinessRepositoryRead):
 
     def create(
         self,
-        client_id: int,
+        client_record_id: int,
         opened_at: date,
         business_name: Optional[str] = None,
         notes: Optional[str] = None,
         created_by: Optional[int] = None,
     ) -> Business:
-        legal_entity_id = self._resolve_legal_entity_id(client_id)
+        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
         business = Business(
             legal_entity_id=legal_entity_id,
             business_name=business_name,
@@ -98,22 +98,22 @@ class BusinessRepository(BusinessRepositoryRead):
     def get_by_id_including_deleted(self, business_id: int) -> Optional[Business]:
         return self.db.query(Business).filter(Business.id == business_id).first()
 
-    def exists_for_client(self, client_id: int) -> bool:
-        legal_entity_id = self._resolve_legal_entity_id(client_id)
+    def exists_for_client(self, client_record_id: int) -> bool:
+        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
         if legal_entity_id is None:
             return False
         return self.exists_for_legal_entity(legal_entity_id)
 
-    def all_non_deleted_are_closed(self, client_id: int) -> bool:
-        """Returns True if the client has at least one non-deleted business and all are CLOSED."""
-        legal_entity_id = self._resolve_legal_entity_id(client_id)
+    def all_non_deleted_are_closed(self, client_record_id: int) -> bool:
+        """Returns True if the client record has at least one non-deleted business and all are CLOSED."""
+        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
         if legal_entity_id is None:
             return False
         return self.all_non_deleted_are_closed_for_legal_entity(legal_entity_id)
 
-    def get_ids_by_client(self, client_id: int) -> list[int]:
-        """Return all non-deleted business IDs for a client."""
-        legal_entity_id = self._resolve_legal_entity_id(client_id)
+    def get_ids_by_client(self, client_record_id: int) -> list[int]:
+        """Return all non-deleted business IDs for a client record."""
+        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
         if legal_entity_id is None:
             return []
         return self.get_ids_by_legal_entity(legal_entity_id)
@@ -143,7 +143,7 @@ class BusinessRepository(BusinessRepositoryRead):
 
     def has_conflicting_sole_trader(
         self,
-        client_id: int,
+        client_record_id: int,
         new_type,
         exclude_business_id: int | None = None,
     ) -> bool:

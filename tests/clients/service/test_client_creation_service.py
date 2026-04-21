@@ -9,7 +9,7 @@ from app.clients.services.client_creation_service import ClientCreationService
 from app.common.enums import IdNumberType
 
 
-def test_create_client_creates_legacy_and_identity_graph(test_db):
+def test_create_client_creates_identity_graph(test_db):
     service = ClientCreationService(test_db)
 
     client_record = service.create_client(

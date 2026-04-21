@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import (
     FAR_FUTURE_DATE,
@@ -22,7 +22,6 @@ class TaxDeadlineQueryService:
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.client_repo = ClientRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
 
     def list_deadlines(
@@ -178,25 +177,34 @@ class TaxDeadlineQueryService:
     def get_timeline(self, client_record_id: int) -> list:
         """Return deadlines for a client sorted by due_date asc with days_remaining and milestone_label."""
         from app.tax_deadline.services.timeline_service import build_timeline
-        return build_timeline(client_record_id, self.client_repo, self.deadline_repo)
+        return build_timeline(client_record_id, self.db, self.deadline_repo)
 
     def build_client_name_map(self, deadlines: list[TaxDeadline]) -> dict[int, str]:
         """Return {client_record_id: client_full_name} for the given deadlines."""
-        client_record_ids = list({d.client_record_id for d in deadlines})
-        clients = self.client_repo.list_by_ids(client_record_ids) if client_record_ids else []
-        return {c.id: c.full_name for c in clients}
+        return {
+            record.id: legal_entity.official_name
+            for record, legal_entity in self._get_client_context_rows(deadlines)
+        }
 
     def build_client_context_map(self, deadlines: list[TaxDeadline]) -> dict[int, dict[str, str | int | None]]:
         """Return client display context keyed by client_record_id for the given deadlines."""
-        client_record_ids = list({d.client_record_id for d in deadlines})
-        clients = self.client_repo.list_by_ids(client_record_ids) if client_record_ids else []
         return {
-            c.id: {
-                "full_name": c.full_name,
-                "office_client_number": c.office_client_number,
+            record.id: {
+                "full_name": legal_entity.official_name,
+                "office_client_number": record.office_client_number,
             }
-            for c in clients
+            for record, legal_entity in self._get_client_context_rows(deadlines)
         }
+
+    def _get_client_context_rows(self, deadlines: list[TaxDeadline]) -> list[tuple]:
+        client_record_ids = list({d.client_record_id for d in deadlines})
+        records = self.client_record_repo.list_by_ids(client_record_ids) if client_record_ids else []
+        legal_repo = LegalEntityRepository(self.db)
+        return [
+            (record, legal_entity)
+            for record in records
+            if (legal_entity := legal_repo.get_by_id(record.legal_entity_id)) is not None
+        ]
 
     def get_urgent_deadlines_summary(
         self,

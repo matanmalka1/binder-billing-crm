@@ -1,26 +1,23 @@
 from datetime import date
 
-from app.clients.models.client import Client
+from tests.helpers.identity import SeededClient, seed_client_identity
 
 
-def _create_client(test_db, suffix: str) -> Client:
-    crm_client = Client(
+def _create_client(test_db, suffix: str) -> SeededClient:
+    return seed_client_identity(
+        test_db,
         full_name=f"Binders List Client {suffix}",
         id_number=f"BDL{suffix}",
         office_client_number=400 + int(suffix),
     )
-    test_db.add(crm_client)
-    test_db.commit()
-    test_db.refresh(crm_client)
-    return crm_client
 
 
-def _create_binder_via_api(client, advisor_headers, crm_client_id: int, user_id: int) -> int:
+def _create_binder_via_api(client, advisor_headers, client_record_id: int, user_id: int) -> int:
     res = client.post(
         "/api/v1/binders/receive",
         headers=advisor_headers,
         json={
-            "client_id": crm_client_id,
+            "client_record_id": client_record_id,
             "received_at": date.today().isoformat(),
             "received_by": user_id,
             "materials": [
@@ -68,7 +65,7 @@ def test_receive_allows_reusing_number_after_soft_delete(client, test_db, adviso
         "/api/v1/binders/receive",
         headers=advisor_headers,
         json={
-            "client_id": crm_client.id,
+            "client_record_id": crm_client.id,
             "received_at": date.today().isoformat(),
             "received_by": test_user.id,
             "materials": [

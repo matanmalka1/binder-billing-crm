@@ -4,7 +4,6 @@ import json
 from typing import Optional
 
 from app.common.enums import VatType
-from app.clients.repositories.client_repository import ClientRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
@@ -45,7 +44,7 @@ def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
 
 def create_work_item(
     work_item_repo: VatWorkItemRepository,
-    client_repo: ClientRepository,
+    db,
     *,
     client_record_id: Optional[int] = None,
     client_id: Optional[int] = None,
@@ -70,32 +69,22 @@ def create_work_item(
     if client_record_id is None:
         raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=""), "VAT.NOT_FOUND")
 
-    if client_id is not None:
-        client = client_repo.get_by_id(client_id)
-        if not client:
-            raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
-        if client.status == ClientStatus.CLOSED:
-            raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
-        if client.status == ClientStatus.FROZEN:
-            raise AppError(VAT_CLIENT_FROZEN_CREATE_ITEM, "VAT.CLIENT_FROZEN")
-        effective_vat_type = resolve_effective_vat_type(client)
-    else:
-        client_record = ClientRecordRepository(client_repo.db).get_by_id(client_record_id)
-        if not client_record:
-            raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
-        assert_client_record_is_active(client_record)
-        client_record_id = client_record.id
-        legal_entity = LegalEntityRepository(client_repo.db).get_by_id(client_record.legal_entity_id)
-        if not legal_entity:
-            raise NotFoundError(
-                VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
-                "VAT.NOT_FOUND",
-            )
-        if client_record.status == ClientStatus.CLOSED:
-            raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
-        if client_record.status == ClientStatus.FROZEN:
-            raise AppError(VAT_CLIENT_FROZEN_CREATE_ITEM, "VAT.CLIENT_FROZEN")
-        effective_vat_type = resolve_effective_vat_type(legal_entity)
+    client_record = ClientRecordRepository(db).get_by_id(client_record_id)
+    if not client_record:
+        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+    assert_client_record_is_active(client_record)
+    client_record_id = client_record.id
+    legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
+    if not legal_entity:
+        raise NotFoundError(
+            VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+            "VAT.NOT_FOUND",
+        )
+    if client_record.status == ClientStatus.CLOSED:
+        raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
+    if client_record.status == ClientStatus.FROZEN:
+        raise AppError(VAT_CLIENT_FROZEN_CREATE_ITEM, "VAT.CLIENT_FROZEN")
+    effective_vat_type = resolve_effective_vat_type(legal_entity)
     _validate_period_for_vat_type(period, effective_vat_type)
 
     # WARNING: This check only filters for non-deleted items (deleted_at IS NULL).

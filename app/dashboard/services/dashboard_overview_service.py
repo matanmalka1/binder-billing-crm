@@ -7,7 +7,7 @@ from app.annual_reports.repositories.annual_report_repository import AnnualRepor
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.models.binder import BinderStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.users.models.user import UserRole
@@ -23,7 +23,7 @@ class DashboardOverviewService:
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.charge_repo = ChargeRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
@@ -43,7 +43,7 @@ class DashboardOverviewService:
         quick_actions = self._build_quick_actions(user_role, current_period)
         return {
             "total_clients": self.business_repo.count(),
-            "active_clients": self.client_repo.count(),
+            "active_clients": self.client_record_repo.count(),
             "active_binders": self.binder_repo.count_active(),
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),

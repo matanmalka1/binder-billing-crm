@@ -15,14 +15,11 @@ from app.advance_payments.repositories.advance_payment_repository import (
 )
 from app.businesses.models.business import Business
 from app.common.enums import VatType
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from tests.helpers.identity import seed_client_identity
 
 
 _seq = count(1)
@@ -43,17 +40,9 @@ def _create_user(test_db):
 
 
 def _create_business(test_db, name: str, id_number: str):
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=id_number, official_name=id_number)
-    test_db.add(legal_entity)
-    test_db.commit()
-    test_db.refresh(legal_entity)
-
-    client = Client(full_name=name, id_number=id_number)
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
+    client = seed_client_identity(test_db, full_name=name, id_number=id_number)
     business = Business(
-        legal_entity_id=legal_entity.id,
+        legal_entity_id=client.legal_entity_id,
         business_name=f"{name} Business",
         opened_at=date(2024, 1, 1),
     )

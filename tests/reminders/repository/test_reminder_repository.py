@@ -1,48 +1,49 @@
 from datetime import date, timedelta
 from itertools import count
 
-from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
+from app.businesses.models.business import BusinessStatus
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow
-from tests.conftest import _ensure_client_identity_graph
+from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
 _seq = count(1)
 
 
-def _client(db) -> Client:
+def _client(db) -> SeededClient:
     idx = next(_seq)
-    client = Client(
+    return seed_client_identity(
+        db,
         full_name=f"Reminder Repo Client {idx}",
         id_number=f"RMR{idx:03d}",
     )
-    db.add(client)
-    db.flush()
-    _ensure_client_identity_graph(db, client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
-def _business(db, client_id: int) -> Business:
-    business = Business(
-        client_id=client_id,
-        business_name=f"Reminder Repo Biz {client_id}",
+def _business(db, crm_client: SeededClient):
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
+        business_name=f"Reminder Repo Biz {crm_client.id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_id = crm_client.id
     return business
 
 
-def _create_reminder(repo: ReminderRepository, business_id: int, *, send_on: date, message: str):
-    business = repo.db.get(Business, business_id)
+def _create_reminder(
+    repo: ReminderRepository,
+    business_id: int,
+    *,
+    client_record_id: int,
+    send_on: date,
+    message: str,
+):
     return repo.create(
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         business_id=business_id,
         reminder_type=ReminderType.CUSTOM,
         target_date=send_on + timedelta(days=5),
@@ -58,14 +59,24 @@ def test_pending_status_and_business_queries(test_db):
     now = utcnow()
     client_a = _client(test_db)
     client_b = _client(test_db)
-    business_a = _business(test_db, client_a.id)
-    business_b = _business(test_db, client_b.id)
+    business_a = _business(test_db, client_a)
+    business_b = _business(test_db, client_b)
 
-    due_earliest = _create_reminder(repo, business_b.id, send_on=today - timedelta(days=2), message="due earliest")
-    due_old = _create_reminder(repo, business_a.id, send_on=today - timedelta(days=1), message="due old")
-    due_today = _create_reminder(repo, business_a.id, send_on=today, message="due today")
-    future = _create_reminder(repo, business_a.id, send_on=today + timedelta(days=3), message="future")
-    sent = _create_reminder(repo, business_a.id, send_on=today - timedelta(days=3), message="sent")
+    due_earliest = _create_reminder(
+        repo, business_b.id, client_record_id=client_b.id, send_on=today - timedelta(days=2), message="due earliest"
+    )
+    due_old = _create_reminder(
+        repo, business_a.id, client_record_id=client_a.id, send_on=today - timedelta(days=1), message="due old"
+    )
+    due_today = _create_reminder(
+        repo, business_a.id, client_record_id=client_a.id, send_on=today, message="due today"
+    )
+    future = _create_reminder(
+        repo, business_a.id, client_record_id=client_a.id, send_on=today + timedelta(days=3), message="future"
+    )
+    sent = _create_reminder(
+        repo, business_a.id, client_record_id=client_a.id, send_on=today - timedelta(days=3), message="sent"
+    )
 
     repo.update_status(sent.id, ReminderStatus.SENT, sent_at=now)
 

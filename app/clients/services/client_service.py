@@ -18,7 +18,7 @@ from app.core.exceptions import NotFoundError
 
 class ClientService:
     """
-    Client identity management.
+    ClientRecord identity management.
     עסקים (Business) מנוהלים ב-BusinessService.
     """
 

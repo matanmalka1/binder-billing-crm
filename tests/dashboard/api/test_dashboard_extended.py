@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.clients.models.client import Client
 
 def test_attention_endpoint(client, advisor_headers):
     """Test attention endpoint."""

@@ -11,30 +11,25 @@ from app.annual_reports.models.annual_report_enums import (
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.businesses.models.business import Business
 from app.common.enums import VatType
-from app.clients.models.client import Client
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
-def _create_client_and_business(test_db, suffix: str) -> tuple[Client, Business]:
-    crm_client = Client(
+def _create_client_and_business(test_db, suffix: str):
+    crm_client = seed_client_identity(
+        test_db,
         full_name=f"Reports Client {suffix}",
         id_number=f"RPT-{suffix}",
     )
-    test_db.add(crm_client)
+    business = seed_business(
+        test_db,
+        legal_entity_id=crm_client.legal_entity_id,
+        business_name=crm_client.full_name,
+        opened_at=date(2025, 1, 1),
+    )
     test_db.commit()
-    test_db.refresh(crm_client)
-
-    business = test_db.query(Business).filter(Business.client_id == crm_client.id).first()
-    if business is None:
-        business = Business(
-            client_id=crm_client.id,
-            business_name=crm_client.full_name,
-            opened_at=date(2025, 1, 1),
-        )
-        test_db.add(business)
-        test_db.commit()
-        test_db.refresh(business)
+    test_db.refresh(business)
     return crm_client, business
 
 
@@ -43,7 +38,7 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
     now = datetime.now(UTC)
 
     filed = VatWorkItem(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         created_by=test_user.id,
         period="2026-01",
         period_type=VatType.MONTHLY,
@@ -52,7 +47,7 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
         updated_at=now,
     )
     stale_pending = VatWorkItem(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         created_by=test_user.id,
         period="2026-02",
         period_type=VatType.MONTHLY,
@@ -60,7 +55,7 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
         updated_at=now - timedelta(days=40),
     )
     stale_pending_other_year = VatWorkItem(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         created_by=test_user.id,
         period="2025-12",
         period_type=VatType.MONTHLY,
@@ -88,7 +83,7 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
     crm_client, _ = _create_client_and_business(test_db, "ADV")
 
     jan = AdvancePayment(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         period="2026-01",
         period_months_count=1,
         expected_amount=Decimal("1000.00"),
@@ -97,7 +92,7 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
         due_date=date(2026, 1, 15),
     )
     feb = AdvancePayment(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         period="2026-02",
         period_months_count=1,
         expected_amount=Decimal("700.00"),
@@ -128,7 +123,7 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
 def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_user):
     crm_client, business = _create_client_and_business(test_db, "ANR")
     report = AnnualReport(
-        client_id=crm_client.id,
+        client_record_id=crm_client.id,
         created_by=test_user.id,
         tax_year=2026,
         client_type=ClientTypeForReport.CORPORATION,

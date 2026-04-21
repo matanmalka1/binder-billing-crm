@@ -1,43 +1,39 @@
 from io import BytesIO
 from datetime import date
 
-from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _create_client(db):
-    client = Client(
+    return seed_client_identity(
+        db,
         full_name="Docs Client",
         id_number="DOC-001",
     )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return client
 
 
-def _create_business(db, client_id: int):
-    business = Business(
-        client_id=client_id,
+def _create_business(db, crm_client):
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
         business_name="Docs Client Business",
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
+    business.client_id = crm_client.id
     return business
 
 
 def test_document_download_and_replace(client, test_db, advisor_headers):
     crm_client = _create_client(test_db)
-    business = _create_business(test_db, crm_client.id)
+    business = _create_business(test_db, crm_client)
 
     upload_resp = client.post(
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", BytesIO(b"orig"), "application/pdf")},
-        data={"client_id": crm_client.id, "business_id": business.id, "document_type": "id_copy"},
+        data={"client_record_id": crm_client.id, "business_id": business.id, "document_type": "id_copy"},
     )
     assert upload_resp.status_code == 201
     doc_id = upload_resp.json()["id"]

@@ -10,6 +10,7 @@ from app.annual_reports.schemas.annual_report_responses import (
     StatusHistoryResponse,
 )
 from app.core.exceptions import ConflictError
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from .base import AnnualReportBaseService
 from .messages import REPORT_AMEND_ONLY_SUBMITTED_ERROR
@@ -133,10 +134,17 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
     def kanban_view(self) -> list[dict]:
         """Group reports by stage for Kanban board."""
-        from app.clients.repositories.client_repository import ClientRepository
         reports = self.repo.list_all_with_businesses()
         client_record_ids = {r.client_record_id for r in reports}
-        clients = {c.id: c for c in ClientRepository(self.db).list_by_ids(list(client_record_ids))} if client_record_ids else {}
+        records = {
+            record.id: record
+            for record in ClientRecordRepository(self.db).list_by_ids(list(client_record_ids))
+        } if client_record_ids else {}
+        legal_entity_ids = {record.legal_entity_id for record in records.values()}
+        legal_entities = {
+            entity.id: entity
+            for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
+        } if legal_entity_ids else {}
 
         stages = {stage.value: [] for stage in ReportStage}
         for report in reports:
@@ -154,15 +162,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
             else:  # submitted, accepted, closed
                 stage_key = ReportStage.TRANSMITTED
 
-            client = clients.get(report.client_record_id)
+            record = records.get(report.client_record_id)
+            legal_entity = legal_entities.get(record.legal_entity_id) if record else None
             stages[stage_key.value].append(
                 {
                     "id": report.id,
                     "client_record_id": report.client_record_id,
-                    "office_client_number": client.office_client_number if client else None,
-                    "client_name": client.full_name if client else None,
-                    "client_id_number": client.id_number if client else None,
-                    "business_name": client.full_name if client else None,
+                    "office_client_number": record.office_client_number if record else None,
+                    "client_name": legal_entity.official_name if legal_entity else None,
+                    "client_id_number": legal_entity.id_number if legal_entity else None,
+                    "business_name": legal_entity.official_name if legal_entity else None,
                     "tax_year": report.tax_year,
                     "days_until_due": (
                         None if not report.filing_deadline

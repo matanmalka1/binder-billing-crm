@@ -6,18 +6,11 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.ni_engine import calculate_national_insurance as _calculate_ni
 from app.annual_reports.services.tax_engine import calculate_tax as _calculate_tax
-from app.clients.models.client import Client
+from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    client = Client(
-        full_name="Advances Client",
-        id_number="878787878",
-
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
+    client = seed_client_identity(db, full_name="Advances Client", id_number="878787878")
 
     svc = AnnualReportService(db)
     return svc.create_report(

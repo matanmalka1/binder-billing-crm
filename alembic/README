@@ -86,9 +86,9 @@ Notes:
 
 ### 00fa037f8cb3_drop_clients_table
 
-- Drops the legacy `clients` table now that runtime flows no longer read or write it.
+- Drops the legacy `clients` table after the clients domain stopped importing `app.clients.models.client`.
 - Upgrade: `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 00fa037f8cb3`
-- Downgrade recreates the old table and its partial indexes, but does not repopulate rows.
+- Downgrade recreates the old table and its partial indexes for emergency rollback only; it does not repopulate rows.
 
 ### 0023_set_official_name_not_null_on_legal_entities
 
