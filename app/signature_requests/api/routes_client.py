@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     SignatureRequestListResponse,
@@ -37,10 +37,9 @@ def list_client_signature_requests(
         page=page,
         page_size=page_size,
     )
-    client_repo = ClientRepository(db)
     office_number_map = {
-        client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
+        record.id: record.office_client_number
+        for record in ClientRecordRepository(db).list_by_ids(sorted({item.client_record_id for item in items}))
     }
     return SignatureRequestListResponse(
         items=[
@@ -75,10 +74,9 @@ def list_business_signature_requests(
         page=page,
         page_size=page_size,
     )
-    client_repo = ClientRepository(db)
     office_number_map = {
-        client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
+        record.id: record.office_client_number
+        for record in ClientRecordRepository(db).list_by_ids(sorted({item.client_record_id for item in items}))
     }
     return SignatureRequestListResponse(
         items=[

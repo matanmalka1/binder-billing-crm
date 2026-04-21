@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
@@ -39,9 +39,9 @@ def _enrich_client_office_number(
     response: SignatureRequestResponse,
     db: DBSession,
 ) -> SignatureRequestResponse:
-    client = ClientRepository(db).get_by_id(response.client_record_id)
-    if client:
-        response.office_client_number = client.office_client_number
+    client_record = ClientRecordRepository(db).get_by_id(response.client_record_id)
+    if client_record:
+        response.office_client_number = client_record.office_client_number
     return response
 
 
@@ -95,10 +95,9 @@ def list_pending_requests(
         for b in business_repo.list_by_ids(sorted(business_ids))
     }
     responses = []
-    client_repo = ClientRepository(db)
     office_number_map = {
-        client.id: client.office_client_number
-        for client in client_repo.list_by_ids(sorted({item.client_record_id for item in items}))
+        record.id: record.office_client_number
+        for record in ClientRecordRepository(db).list_by_ids(sorted({item.client_record_id for item in items}))
     }
     for r in items:
         resp = SignatureRequestResponse.model_validate(r)

@@ -3,23 +3,34 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 
 
 class AdvancePaymentReportService:
     def __init__(self, db: Session):
         self.repo = AdvancePaymentRepository(db)
-        self.client_repo = ClientRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
+        self.legal_entity_repo = LegalEntityRepository(db)
 
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
         rows = self.repo.get_collections_aggregates(year, month)
         client_record_ids = [row.client_record_id for row in rows]
-        clients = {client.id: client for client in self.client_repo.list_by_ids(client_record_ids)}
+        records = {record.id: record for record in self.client_record_repo.list_by_ids(client_record_ids)}
+        legal_entities = {
+            legal_id: self.legal_entity_repo.get_by_id(legal_id)
+            for legal_id in {record.legal_entity_id for record in records.values()}
+        }
 
         items = [
             {
                 "client_record_id": r.client_record_id,
-                "client_name": clients[r.client_record_id].full_name if r.client_record_id in clients else f"לקוח #{r.client_record_id}",
+                "client_name": (
+                    legal_entities[records[r.client_record_id].legal_entity_id].official_name
+                    if r.client_record_id in records
+                    and legal_entities.get(records[r.client_record_id].legal_entity_id)
+                    else f"לקוח #{r.client_record_id}"
+                ),
                 "total_expected": float(r.total_expected),
                 "total_paid": float(r.total_paid),
                 "overdue_count": int(r.overdue_count),

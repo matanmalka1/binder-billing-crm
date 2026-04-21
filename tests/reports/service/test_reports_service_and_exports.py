@@ -7,38 +7,28 @@ import pytest
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.clients.models.client import Client
+from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.export_service import ExportService
 from app.reports.services.reports_service import AgingReportService
+from tests.helpers.identity import seed_client_with_business
 
 
-def _client_and_business(db, suffix: str) -> tuple[Client, Business]:
-    c = Client(
+def _client_and_business(db, suffix: str):
+    client, business = seed_client_with_business(
+        db,
         full_name=f"Aging Service Client {suffix}",
-        id_number=f"AGING-SVC-{suffix}",
+        id_number=f"{100000000 + int(suffix):09d}",
+        business_name=f"Aging Service Client {suffix}",
+        opened_at=date.today(),
     )
-    db.add(c)
     db.commit()
-    db.refresh(c)
-
-    b = db.query(Business).filter(Business.client_id == c.id).first()
-    if b is None:
-        b = Business(
-            client_id=c.id,
-            business_name=c.full_name,
-            opened_at=date.today(),
-        )
-        db.add(b)
-        db.commit()
-        db.refresh(b)
-    return c, b
+    return client, business
 
 
-def _charge(db, client_id: int, business_id: int, amount: str, issued_days_ago: int):
+def _charge(db, client_record_id: int, business_id: int, amount: str, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
-        client_id=client_id,
+        client_record_id=client_record_id,
         business_id=business_id,
         amount=Decimal(amount),
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -90,7 +80,7 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
     service.charge_repo = SimpleNamespace(
         get_aging_buckets=lambda as_of_date: [
             SimpleNamespace(
-                client_id=999_999,
+                client_record_id=999_999,
                 total=100,
                 current=100,
                 days_30=0,
@@ -100,7 +90,7 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
             )
         ]
     )
-    service.client_repo = SimpleNamespace(list_by_ids=lambda ids: [])
+    service.client_record_repo = SimpleNamespace(list_by_ids=lambda ids: [])
 
     report = service.generate_aging_report(as_of_date=date(2026, 3, 1))
 
@@ -147,3 +137,36 @@ def test_export_service_pdf_import_error(monkeypatch):
             {"report_date": date.today(), "items": [], "summary": {}, "total_outstanding": 0},
             "/tmp",
         )
+
+
+def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):
+    service = AdvancePaymentReportService(test_db)
+    service.repo = SimpleNamespace(
+        get_collections_aggregates=lambda year, month: [
+            SimpleNamespace(
+                client_record_id=7,
+                total_expected=Decimal("300.00"),
+                total_paid=Decimal("120.00"),
+                overdue_count=2,
+            )
+        ]
+    )
+    service.client_record_repo = SimpleNamespace(
+        list_by_ids=lambda ids: [SimpleNamespace(id=7, legal_entity_id=70)]
+    )
+    service.legal_entity_repo = SimpleNamespace(
+        get_by_id=lambda legal_id: SimpleNamespace(id=legal_id, official_name="Advance Client")
+    )
+
+    report = service.get_collections_report(year=2026, month=3)
+
+    assert report["items"] == [
+        {
+            "client_record_id": 7,
+            "client_name": "Advance Client",
+            "total_expected": 300.0,
+            "total_paid": 120.0,
+            "overdue_count": 2,
+            "gap": 180.0,
+        }
+    ]
