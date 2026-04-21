@@ -1,81 +1,91 @@
 # Clients Module
 
-> Last audited: 2026-04-16
+> Last audited: 2026-04-21
 
-Manages CRM clients at the identity level only. Business-level state (status, tax profile, VAT/report workflows, etc.) is handled under `app/businesses/` and related domains.
+Manages CRM clients as a two-layer identity model: `LegalEntity` (tax/legal identity, globally unique) and `ClientRecord` (office CRM anchor, one active record per legal entity). Business-level state (binders, VAT/report workflows, etc.) is handled under `app/businesses/` and related domains.
 
 ## Scope
 
-- CRUD for `clients` identity data
-- Search + pagination for active clients
+- CRUD for `ClientRecord` and underlying `LegalEntity`
+- Optional `Person` + `PersonLegalEntityLink` for natural-person associations
+- Search + pagination + status filtering for clients
 - Soft delete + restore flow with audit columns
-- Conflict detection by `id_number` (active vs soft-deleted records)
+- Conflict detection by `id_number`
 - Excel export/template/import endpoints
+- Impact preview for client creation (projected obligations)
 
 Comments:
-- This module should stay identity-only. If a field is business-process related, it belongs in `businesses` (or a dedicated domain), not here.
+- This module is identity-only. Business-process fields belong in `businesses` or a dedicated domain.
 - Soft delete is part of the domain contract. Avoid hard deletes unless there is a migration/maintenance requirement.
 
 ## Implementation Map
 
-- Model: `app/clients/models/client.py`
-- Schemas: `app/clients/schemas/client.py`
-- Repository: `app/clients/repositories/client_repository.py`
-- Service: `app/clients/services/client_service.py`
-- Create-client orchestration: `app/clients/services/create_client_service.py`
-- Query service: `app/clients/services/client_query_service.py`
-- API: `app/clients/api/clients.py`
-- Enrichment (active binder number): `app/clients/services/client_enrichment_service.py`
-- Excel API/service: `app/clients/api/clients_excel.py`, `app/clients/services/client_excel_service.py`
+- Models: `app/clients/models/legal_entity.py`, `app/clients/models/client_record.py`, `app/clients/models/person.py`, `app/clients/models/person_legal_entity_link.py`
+- Schemas: `app/clients/schemas/client.py`, `app/clients/schemas/client_record_response.py`, `app/clients/schemas/impact.py`
+- Repositories: `app/clients/repositories/client_record_repository.py`, `app/clients/repositories/client_record_read_repository.py`, `app/clients/repositories/legal_entity_repository.py`, `app/clients/repositories/person_repository.py`, `app/clients/repositories/client_repository.py`
+- Services: `app/clients/services/client_service.py`, `app/clients/services/create_client_service.py`, `app/clients/services/client_creation_service.py`, `app/clients/services/client_query_service.py`, `app/clients/services/client_enrichment_service.py`, `app/clients/services/client_update_service.py`, `app/clients/services/client_lifecycle_service.py`, `app/clients/services/impact_preview_service.py`
+- Guards: `app/clients/guards/client_record_guards.py`
+- API: `app/clients/api/clients.py`, `app/clients/api/clients_excel.py`
+- Enums: `app/clients/enums.py` (`ClientStatus`); entity/VAT/ID-type enums live in `app/common/enums.py`
 
 ## Domain Model
 
-Primary `Client` fields:
+### LegalEntity
 
+The stable tax/legal identity. Globally unique by `(id_number_type, id_number)`.
+
+Key fields:
 - `id` (PK)
-- `full_name` (required)
-- `id_number` (required)
-- `id_number_type` (`individual`, `corporation`, `passport`, `other`; default `individual`)
-- Optional contact/address fields: `phone`, `email`, `address_*`
-- `notes`
-- Audit fields: `created_by`, `created_at`, `updated_at`
-- Soft-delete fields: `deleted_at`, `deleted_by`, `restored_at`, `restored_by`
+- `id_number`, `id_number_type` (`EntityType` enum)
+- `official_name`
+- `entity_type` (`EntityType`)
+- `vat_reporting_frequency` (`VatType`)
+- `vat_exempt_ceiling`, `advance_rate`, `advance_rate_updated_at`
+- `created_at`, `updated_at`
 
 Indexes/uniqueness:
+- `UniqueConstraint("id_number_type", "id_number")` — global, not soft-delete-aware
+- Index on `official_name`
 
-- Partial unique index on `id_number` for active (non-deleted) clients only
-- Index on `full_name`
+### ClientRecord
 
-Validation highlights:
+Office CRM record anchored to a `LegalEntity`. One active record per entity (soft-delete-aware unique index).
 
-- `id_number` must be exactly 9 digits for all ID types (schema-level validation)
-- Israeli checksum validation is applied only when `id_number_type == individual`
+Key fields:
+- `id` (PK) — this is `client_record_id` across the codebase
+- `legal_entity_id` (FK → `legal_entities.id`)
+- `office_client_number` (optional, unique among active records)
+- `accountant_name`, `status` (`ClientStatus`: `active`, `frozen`, `closed`), `notes`
+- Audit: `created_by`, `created_at`, `updated_at`
+- Soft-delete: `deleted_at`, `deleted_by`, `restored_at`, `restored_by`
 
-Comments:
-- The 9-digit rule is currently global across ID types by design in `ClientCreateRequest`; changing this affects API behavior and tests.
+### Person / PersonLegalEntityLink
+
+Optional natural-person identity linked to a `LegalEntity`. Used for sole traders and similar.
 
 ## API
 
-Routers are mounted with `/api/v1` in `app/router_registry.py`, so clients endpoints are under `/api/v1/clients`.
+Routers mounted at `/api/v1/clients` via `app/router_registry.py`.
 
-- `POST /api/v1/clients` (`ADVISOR` only) - create client and first business together
-- `GET /api/v1/clients` (`ADVISOR`, `SECRETARY`) - list clients (`search`, `page`, `page_size<=100`)
-- `GET /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) - get by id
-- `PATCH /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) - partial update
-- `DELETE /api/v1/clients/{client_id}` (`ADVISOR` only) - soft delete
-- `POST /api/v1/clients/{client_id}/restore` (`ADVISOR` only) - restore soft-deleted client
-- `GET /api/v1/clients/conflict/{id_number}` (`ADVISOR`, `SECRETARY`) - active/deleted conflict info
+- `POST /api/v1/clients/preview-impact` (`ADVISOR`) — dry-run: returns projected obligations without writing
+- `POST /api/v1/clients` (`ADVISOR`) — create `LegalEntity` + `ClientRecord` + first business in one request
+- `GET /api/v1/clients` (`ADVISOR`, `SECRETARY`) — list clients (`search`, `status`, `sort_by`, `sort_order`, `page`, `page_size<=100`)
+- `GET /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) — get by `ClientRecord.id`
+- `PATCH /api/v1/clients/{client_id}` (`ADVISOR`, `SECRETARY`) — partial update
+- `DELETE /api/v1/clients/{client_id}` (`ADVISOR`) — soft delete
+- `POST /api/v1/clients/{client_id}/restore` (`ADVISOR`) — restore soft-deleted client
+- `GET /api/v1/clients/conflict/{id_number}` (`ADVISOR`, `SECRETARY`) — active/deleted conflict info
 
 Excel endpoints:
-
 - `GET /api/v1/clients/export` (`ADVISOR`, `SECRETARY`)
 - `GET /api/v1/clients/template` (`ADVISOR`, `SECRETARY`)
-- `POST /api/v1/clients/import` (`ADVISOR` only, max upload 10MB)
+- `POST /api/v1/clients/import` (`ADVISOR`, max upload 10MB)
 
 Comments:
-- Import is partial-success by design: valid rows are created, invalid rows are returned in the `errors` array.
+- `client_id` in all route params refers to `ClientRecord.id`, not `LegalEntity.id`.
+- Import is partial-success: valid rows are created, invalid rows returned in the `errors` array.
 - Import requires `Full Name`, `Business Name`, and `ID Number`; valid rows create a client and first business together.
-- Identity-only client creation is not exposed through the API.
+- Identity-only client creation (no business) is not exposed through the API.
 
 ## Error Codes
 
@@ -89,31 +99,33 @@ Comments:
 - A client can have multiple businesses (`app/businesses/`).
 - `GET /api/v1/clients/{client_id}/binders` — served by `app/binders/api/client_binders_router.py`.
 - `GET /api/v1/clients/{client_id}/status-card` — served by `app/businesses/api/client_status_card_router.py`.
-- Initial binder creation on client creation is handled by `app/binders/services/client_onboarding_service.py`.
-- Obligation generation (tax deadlines + annual reports) on client create/update is handled by `app/actions/obligation_orchestrator.py`.
-- Business guard helpers (`assert_business_allows_create`, `assert_business_not_closed`) are in `app/businesses/services/business_guards.py`.
+- Initial binder creation on client creation: `app/binders/services/client_onboarding_service.py`.
+- Obligation generation (tax deadlines + annual reports) on client create/update: `app/actions/obligation_orchestrator.py`.
+- Business guard helpers: `app/businesses/services/business_guards.py`.
 
 Comments:
-- If client deletion/restoration rules change, check downstream flows that resolve binders/status via `client_id`.
+- If client deletion/restoration rules change, check downstream flows that resolve binders/status via `client_record_id`.
 
 ## Tests
-
-Current clients domain test files:
 
 - `tests/clients/api/test_clients.py`
 - `tests/clients/api/test_clients_mutations_additional.py`
 - `tests/clients/api/test_clients_excel.py`
+- `tests/clients/api/test_onboarding_layer1.py`
 - `tests/clients/service/test_client_service_mutations.py`
 - `tests/clients/service/test_client_service_list_all_clients.py`
 - `tests/clients/service/test_client_excel_service.py`
 - `tests/clients/service/test_client_schema_and_model.py`
+- `tests/clients/service/test_client_creation_service.py`
+- `tests/clients/service/test_entity_type_change_guard.py`
 - `tests/clients/repository/test_client_repository.py`
+- `tests/clients/repository/test_client_record_repository.py`
 
 Run clients tests:
 
 ```bash
-pytest -q tests/clients
+JWT_SECRET=test-secret pytest -q tests/clients
 ```
 
 Comments:
-- Run this suite after changing schemas, conflict logic, or Excel import/export behavior.
+- Run after changing schemas, conflict logic, entity model, or Excel import/export behavior.
