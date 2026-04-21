@@ -6,10 +6,7 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_analytics_repository import AdvancePaymentAnalyticsRepository
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 _seq = count(1)
@@ -17,24 +14,17 @@ _seq = count(1)
 
 def _business(test_db) -> Business:
     idx = next(_seq)
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=f"100001{idx:03d}", official_name=f"100001{idx:03d}")
-    test_db.add(legal_entity)
-    test_db.commit()
-    test_db.refresh(legal_entity)
-
-    client = Client(
+    client = seed_client_identity(
+        test_db,
         full_name="Advance Repo Missing Client",
-        id_number=legal_entity.id_number,
+        id_number=f"100001{idx:03d}",
     )
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-    business = Business(
-        legal_entity_id=legal_entity.id,
+    business = seed_business(
+        test_db,
+        legal_entity_id=client.legal_entity_id,
         business_name="Advance Repo Missing Business",
         opened_at=date(2024, 1, 1),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
     business.client_record_id = client.id

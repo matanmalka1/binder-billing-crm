@@ -10,7 +10,7 @@ from tests.tax_deadline.factories import create_business
 
 
 def _set_vat_profile(test_db, business, vat_type: VatType) -> None:
-    business.client.vat_reporting_frequency = vat_type
+    business.legal_entity.vat_reporting_frequency = vat_type
     test_db.commit()
 
 

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from random import Random
+from typing import Any
 
 from sqlalchemy import func, select
 
 from app.audit.constants import ACTION_CREATED, ACTION_UPDATED, ENTITY_BUSINESS, ENTITY_CLIENT
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
@@ -78,7 +78,7 @@ def create_entity_audit_logs(
     rng: Random,
     users: list[User],
     businesses: list[Business],
-    clients: list[Client],
+    clients: list[Any],
 ) -> None:
     actor = users[0]
     for client in clients:

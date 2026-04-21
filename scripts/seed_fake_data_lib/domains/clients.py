@@ -6,8 +6,14 @@ from random import Random
 from sqlalchemy import func, select
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client, IdNumberType
-from app.common.enums import EntityType, VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
+from app.common.enums import EntityType, IdNumberType, VatType
 from app.notes.models.entity_note import EntityNote
 
 from ..demo_catalog import (
@@ -21,12 +27,13 @@ from ..demo_catalog import (
     mobile_phone,
 )
 from ..random_utils import full_name, generate_valid_israeli_id
+from .client_graph import SeedClient
 
 
-def create_clients(db, rng: Random, cfg) -> list[Client]:
-    clients: list[Client] = []
-    existing_clients = int(db.execute(select(func.count()).select_from(Client)).scalar_one())
-    existing_max_office_number = db.execute(select(func.max(Client.office_client_number))).scalar_one()
+def create_clients(db, rng: Random, cfg) -> list[SeedClient]:
+    clients: list[SeedClient] = []
+    existing_clients = int(db.execute(select(func.count()).select_from(ClientRecord)).scalar_one())
+    existing_max_office_number = db.execute(select(func.max(ClientRecord.office_client_number))).scalar_one()
     next_office_client_number = (existing_max_office_number or 0) + 1
     for i in range(cfg.clients):
         serial = existing_clients + i + 1
@@ -69,35 +76,67 @@ def create_clients(db, rng: Random, cfg) -> list[Client]:
             if advance_rate is not None
             else None
         )
-
-        client = Client(
-            full_name=full_name_value,
+        phone = mobile_phone(rng)
+        email = demo_email("client", serial)
+        legal_entity = LegalEntity(
+            official_name=full_name_value,
             id_number=id_number,
             id_number_type=id_number_type,
-            phone=mobile_phone(rng),
-            email=demo_email("client", serial),
-            notes=rng.choice(CLIENT_NOTES),
-            address_street=address_street,
-            address_building_number=address_building_number,
-            address_apartment=address_apartment,
-            address_city=address_city,
-            address_zip_code=address_zip_code,
             entity_type=entity_type,
             vat_reporting_frequency=vat_reporting_frequency,
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
             advance_rate_updated_at=advance_rate_updated_at,
-            accountant_name=rng.choice(ACCOUNTANT_NAMES),
-            office_client_number=next_office_client_number,
         )
-        db.add(client)
+        db.add(legal_entity)
+        db.flush()
+        person = Person(
+            full_name=full_name_value,
+            id_number=id_number,
+            id_number_type=IdNumberType.OTHER if id_number_type == IdNumberType.CORPORATION else id_number_type,
+            phone=phone,
+            email=email,
+            address_street=address_street,
+            address_building_number=address_building_number,
+            address_apartment=address_apartment,
+            address_city=address_city,
+            address_zip_code=address_zip_code,
+        )
+        db.add(person)
+        db.flush()
+        db.add(
+            PersonLegalEntityLink(
+                person_id=person.id,
+                legal_entity_id=legal_entity.id,
+                role=PersonLegalEntityRole.OWNER,
+            )
+        )
+        db.flush()
+        client_record = ClientRecord(
+            legal_entity_id=legal_entity.id,
+            office_client_number=next_office_client_number,
+            notes=rng.choice(CLIENT_NOTES),
+            accountant_name=rng.choice(ACCOUNTANT_NAMES),
+        )
+        db.add(client_record)
+        db.flush()
+        client = SeedClient(
+            id=client_record.id,
+            legal_entity_id=legal_entity.id,
+            office_client_number=client_record.office_client_number,
+            full_name=full_name_value,
+            email=email,
+            phone=phone,
+            entity_type=entity_type,
+            vat_reporting_frequency=vat_reporting_frequency,
+        )
         clients.append(client)
         next_office_client_number += 1
     db.flush()
     return clients
 
 
-def create_businesses(db, rng: Random, clients: list[Client], users=None) -> list[Business]:
+def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) -> list[Business]:
     businesses: list[Business] = []
     existing_businesses = int(db.execute(select(func.count()).select_from(Business)).scalar_one())
     multi_business_target = max(1, round(len(clients) * 0.2))
@@ -152,7 +191,7 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
                 )
 
             business = Business(
-                client_id=client.id,
+                legal_entity_id=client.legal_entity_id,
                 business_name=business_name,
                 status=status,
                 opened_at=opened_at,
@@ -164,11 +203,14 @@ def create_businesses(db, rng: Random, clients: list[Client], users=None) -> lis
             )
             db.add(business)
             businesses.append(business)
+            business.client_id = client.id
+            business.client_record_id = client.id
+            business.client = client
     db.flush()
     return businesses
 
 
-def create_entity_notes(db, rng: Random, clients: list[Client], users) -> None:
+def create_entity_notes(db, rng: Random, clients: list[SeedClient], users) -> None:
     for client in rng.sample(clients, min(len(clients), max(1, len(clients) // 2))):
         note = EntityNote(
             entity_type="client",

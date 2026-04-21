@@ -1,17 +1,15 @@
-from app.clients.models.client import Client
-from app.businesses.models.business import Business
+from tests.helpers.identity import seed_client_identity, seed_client_with_business
 
 
 def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_db):
     """Regression: binder receive still creates IN_OFFICE binder."""
-    test_client = Client(
+    test_client = seed_client_identity(
+        test_db,
         full_name="S5 Regression Client",
         id_number="555555550",
         office_client_number=501,
     )
-    test_db.add(test_client)
     test_db.commit()
-    test_db.refresh(test_client)
 
     response = client.post(
         "/api/v1/binders/receive",
@@ -46,14 +44,12 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers):
 
 def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db):
     """Regression: charge creation still returns draft status."""
-    test_client = Client(
+    test_client, business = seed_client_with_business(
+        test_db,
         full_name="S5 Billing Client",
         id_number="555555551",
     )
-    test_db.add(test_client)
     test_db.commit()
-    test_db.refresh(test_client)
-    business = test_db.query(Business).filter(Business.client_id == test_client.id).first()
 
     response = client.post(
         "/api/v1/charges",
@@ -73,13 +69,12 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
 
 def test_document_signals_endpoint_lists_missing_documents(client, advisor_headers, secretary_headers, test_db):
     """Regression: document signals still list missing documents."""
-    test_client = Client(
+    test_client = seed_client_identity(
+        test_db,
         full_name="S5 Notification Client",
         id_number="555555552",
     )
-    test_db.add(test_client)
     test_db.commit()
-    test_db.refresh(test_client)
 
     response = client.get(
         f"/api/v1/documents/client/{test_client.id}/signals",

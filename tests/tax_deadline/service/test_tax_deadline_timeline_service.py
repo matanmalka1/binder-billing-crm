@@ -2,7 +2,6 @@ from datetime import date, timedelta
 
 import pytest
 
-from app.clients.repositories.client_repository import ClientRepository
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -15,19 +14,19 @@ def test_build_timeline_sorts_and_computes_fields(test_db):
     deadline_repo = TaxDeadlineRepository(test_db)
 
     later = deadline_repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=date.today() + timedelta(days=20),
     )
     sooner = deadline_repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=4),
     )
 
     items = build_timeline(
         business.client_id,
-        client_repo=ClientRepository(test_db),
+        db=test_db,
         deadline_repo=deadline_repo,
     )
 
@@ -41,6 +40,6 @@ def test_build_timeline_raises_when_business_missing(test_db):
     with pytest.raises(NotFoundError):
         build_timeline(
             999999,
-            client_repo=ClientRepository(test_db),
+            db=test_db,
             deadline_repo=TaxDeadlineRepository(test_db),
         )

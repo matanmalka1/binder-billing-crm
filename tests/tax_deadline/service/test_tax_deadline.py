@@ -14,13 +14,13 @@ def test_create_update_complete_get_delete_flow(test_db):
     service = TaxDeadlineService(test_db)
 
     created = service.create_deadline(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
         payment_amount=5000.00,
         description="February VAT",
     )
-    assert created.client_id == business.client_id
+    assert created.client_record_id == business.client_id
     assert created.status == TaxDeadlineStatus.PENDING
 
     reminder = test_db.query(Reminder).filter(Reminder.tax_deadline_id == created.id).first()
@@ -58,8 +58,8 @@ def test_create_allows_closed_or_frozen_business(test_db):
     frozen_deadline = service.create_deadline(
         frozen.client_id, DeadlineType.VAT, date.today() + timedelta(days=2)
     )
-    assert closed_deadline.client_id == closed.client_id
-    assert frozen_deadline.client_id == frozen.client_id
+    assert closed_deadline.client_record_id == closed.client_id
+    assert frozen_deadline.client_record_id == frozen.client_id
 
 
 def test_service_not_found_and_validation_paths(test_db):

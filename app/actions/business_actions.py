@@ -13,7 +13,12 @@ def get_business_actions(
 ) -> list[dict[str, Any]]:
     """Return executable actions for a business (role-aware)."""
     status = _value(business.status)
-    endpoint = f"/client-records/{business.legal_entity_id}/businesses/{business.id}"
+    legal_entity_id = getattr(business, "legal_entity_id", None)
+    client_id = getattr(business, "client_id", None)
+    if legal_entity_id is None and client_id is not None:
+        endpoint = f"/clients/{client_id}/businesses/{business.id}"
+    else:
+        endpoint = f"/client-records/{legal_entity_id}/businesses/{business.id}"
     actions: list[dict[str, Any]] = []
 
     if status == BusinessStatus.ACTIVE.value and user_role == UserRole.ADVISOR:

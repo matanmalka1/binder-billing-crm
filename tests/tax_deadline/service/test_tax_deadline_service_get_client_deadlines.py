@@ -12,24 +12,24 @@ def test_get_business_deadlines_with_status_and_type_filters(test_db):
     today = date.today()
 
     pending_vat = service.create_deadline(
-        client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=today + timedelta(days=1),
     )
     completed_vat = service.create_deadline(
-        client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=today + timedelta(days=2),
     )
     service.mark_completed(completed_vat.id)
 
     annual_report = service.create_deadline(
-        client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=today + timedelta(days=3),
     )
     service.create_deadline(
-        client_id=business_b.client_id,
+        client_record_id=business_b.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=today + timedelta(days=4),
     )
@@ -38,7 +38,7 @@ def test_get_business_deadlines_with_status_and_type_filters(test_db):
     assert {d.id for d in all_for_a} == {pending_vat.id, completed_vat.id, annual_report.id}
 
     filtered = service.get_client_deadlines(
-        client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         status=TaxDeadlineStatus.COMPLETED.value,
         deadline_type=DeadlineType.VAT,
     )

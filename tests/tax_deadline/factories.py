@@ -25,6 +25,7 @@ def create_business(test_db, *, name_prefix: str = "Tax Deadline", status: Busin
     )
     test_db.commit()
     business.client_id = client.id
+    business.client_record_id = client.id
 
     if business.status != status:
         business.status = status

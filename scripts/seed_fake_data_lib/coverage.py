@@ -26,7 +26,13 @@ class SeedCoverageValidator:
         from app.binders.models.binder_intake_material import BinderIntakeMaterial
         from app.businesses.models.business import Business
         from app.charge.models.charge import Charge, ChargeStatus
-        from app.clients.models.client import Client
+        from app.clients.models.client_record import ClientRecord
+        from app.clients.models.legal_entity import LegalEntity
+        from app.clients.models.person import Person
+        from app.clients.models.person_legal_entity_link import (
+            PersonLegalEntityLink,
+            PersonLegalEntityRole,
+        )
         from app.notification.models.notification import Notification, NotificationChannel, NotificationStatus
         from app.permanent_documents.models.permanent_document import PermanentDocument
         from app.reminders.models.reminder import Reminder, ReminderType
@@ -53,7 +59,7 @@ class SeedCoverageValidator:
 
         if not getattr(self.cfg, "preserve_users", False):
             self._expect_exact_count(errors, counts, "users", self.cfg.users)
-        self._expect_exact_count(errors, counts, "clients", self.cfg.clients)
+        self._expect_exact_count(errors, counts, "client_records", self.cfg.clients)
         self._expect_exact_count(errors, counts, "annual_reports", expected_reports)
         self._expect_exact_count(errors, counts, "signature_requests", expected_signature_requests)
         self._expect_exact_count(errors, counts, "annual_report_schedules", expected_schedule_entries)
@@ -68,13 +74,16 @@ class SeedCoverageValidator:
         self._expect_min_count(errors, counts, "annual_report_credit_points", expected_reports)
         self._expect_min_count(errors, counts, "binder_intake_materials", self.cfg.clients)
 
-        client_ids = [client_id for (client_id,) in db.execute(select(Client.id)).all()]
+        client_ids = [client_id for (client_id,) in db.execute(select(ClientRecord.id)).all()]
         if len(client_ids) != self.cfg.clients:
             errors.append(
                 f"expected {self.cfg.clients} clients for coverage checks, found {len(client_ids)}"
             )
         from app.common.enums import EntityType
-        business_rows = db.execute(select(Business.id, Business.client_id)).all()
+        business_rows = db.execute(
+            select(Business.id, ClientRecord.id)
+            .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+        ).all()
         business_client_map = {int(business_id): int(client_id) for business_id, client_id in business_rows}
         if len(business_client_map) < len(client_ids):
             errors.append(
@@ -84,9 +93,11 @@ class SeedCoverageValidator:
         non_employee_client_ids = [
             int(client_id)
             for client_id, in db.execute(
-                select(Business.client_id)
-                .join(Client, Client.id == Business.client_id)
-                .where(Client.entity_type != EntityType.EMPLOYEE)
+                select(ClientRecord.id)
+                .select_from(Business)
+                .join(ClientRecord, ClientRecord.legal_entity_id == Business.legal_entity_id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .where(LegalEntity.entity_type != EntityType.EMPLOYEE)
                 .distinct()
             ).all()
         ]
@@ -95,7 +106,7 @@ class SeedCoverageValidator:
             errors,
             label="binders/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, Binder, Binder.client_id),
+            per_client_counts=self._count_by_fk(db, Binder, Binder.client_record_id),
             minimum=self.cfg.min_binders_per_client,
             maximum=self.cfg.max_binders_per_client,
         )
@@ -110,9 +121,9 @@ class SeedCoverageValidator:
         non_advance_deadline_counts = {
             int(fk_id): int(count)
             for fk_id, count in db.execute(
-                select(TaxDeadline.client_id, func.count())
+                select(TaxDeadline.client_record_id, func.count())
                 .where(TaxDeadline.deadline_type != "advance_payment")
-                .group_by(TaxDeadline.client_id)
+                .group_by(TaxDeadline.client_record_id)
             ).all()
             if fk_id is not None
         }
@@ -128,23 +139,24 @@ class SeedCoverageValidator:
             errors,
             label="authority_contacts/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, AuthorityContact, AuthorityContact.client_id),
+            per_client_counts=self._count_by_fk(db, AuthorityContact, AuthorityContact.client_record_id),
             minimum=self.cfg.min_authority_contacts_per_client,
             maximum=self.cfg.max_authority_contacts_per_client,
         )
-        from app.clients.models.client import Client as ClientModel
         from app.common.enums import VatType
         vat_eligible_client_ids = [
             int(cid)
             for (cid,) in db.execute(
-                select(ClientModel.id).where(ClientModel.vat_reporting_frequency != VatType.EXEMPT)
+                select(ClientRecord.id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .where(LegalEntity.vat_reporting_frequency != VatType.EXEMPT)
             ).all()
         ]
         self._assert_per_client_bounds(
             errors,
             label="vat_work_items/client",
             client_ids=vat_eligible_client_ids,
-            per_client_counts=self._count_by_fk(db, VatWorkItem, VatWorkItem.client_id),
+            per_client_counts=self._count_by_fk(db, VatWorkItem, VatWorkItem.client_record_id),
             minimum=self.cfg.min_vat_work_items_per_client,
             maximum=self.cfg.max_vat_work_items_per_client,
         )
@@ -152,7 +164,7 @@ class SeedCoverageValidator:
             errors,
             label="annual_reports/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, AnnualReport, AnnualReport.client_id),
+            per_client_counts=self._count_by_fk(db, AnnualReport, AnnualReport.client_record_id),
             minimum=expected_reports_per_client,
             maximum=expected_reports_per_client,
         )
@@ -168,7 +180,7 @@ class SeedCoverageValidator:
             errors,
             label="permanent_documents/client",
             client_ids=client_ids,
-            per_client_counts=self._count_by_fk(db, PermanentDocument, PermanentDocument.client_id),
+            per_client_counts=self._count_by_fk(db, PermanentDocument, PermanentDocument.client_record_id),
             minimum=2,
             maximum=4,
         )
@@ -176,7 +188,7 @@ class SeedCoverageValidator:
             errors,
             label="advance_payments/client",
             client_ids=non_employee_client_ids,
-            per_client_counts=self._count_by_fk(db, AdvancePayment, AdvancePayment.client_id),
+            per_client_counts=self._count_by_fk(db, AdvancePayment, AdvancePayment.client_record_id),
             minimum=3,
             maximum=7,
         )
@@ -317,7 +329,23 @@ class SeedCoverageValidator:
                 )
 
         self._assert_ascii_email_column(errors, "users.email", db.execute(select(User.id, User.email)).all())
-        self._assert_ascii_email_column(errors, "clients.email", db.execute(select(Client.id, Client.email)).all())
+        self._assert_ascii_email_column(
+            errors,
+            "clients.email",
+            db.execute(
+                select(ClientRecord.id, Person.email)
+                .select_from(ClientRecord)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .join(
+                    PersonLegalEntityLink,
+                    (
+                        (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                        & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER)
+                    ),
+                )
+                .join(Person, Person.id == PersonLegalEntityLink.person_id)
+            ).all(),
+        )
         self._assert_ascii_email_column(
             errors,
             "authority_contacts.email",

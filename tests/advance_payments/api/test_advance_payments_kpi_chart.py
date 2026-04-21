@@ -4,29 +4,17 @@ from decimal import Decimal
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _business(db) -> Business:
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="APKPI-1", official_name="APKPI-1")
-    db.add(legal_entity)
-    db.commit()
-    db.refresh(legal_entity)
-
-    crm_client = Client(full_name="AP KPI Client", id_number="APKPI-1")
-    db.add(crm_client)
-    db.commit()
-    db.refresh(crm_client)
-    business = Business(
-        client_id=crm_client.id,
-        legal_entity_id=legal_entity.id,
+    crm_client = seed_client_identity(db, full_name="AP KPI Client", id_number="APKPI-1")
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
         business_name="AP KPI Business",
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
     business.client_record_id = crm_client.id

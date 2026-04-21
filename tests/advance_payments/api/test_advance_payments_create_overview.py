@@ -5,12 +5,10 @@ from itertools import count
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType, VatType
+from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 _client_seq = count(1)
@@ -18,25 +16,16 @@ _client_seq = count(1)
 
 def _business(db):
     id_number = f"66666666{next(_client_seq)}"
-    client = Client(full_name="Advance Client", id_number=id_number)
-    db.add(client)
-    db.flush()
-    legal_entity = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal_entity)
-    db.flush()
-    db.commit()
-    db.refresh(client)
-
-    business = Business(
-        legal_entity_id=legal_entity.id,
+    client = seed_client_identity(db, full_name="Advance Client", id_number=id_number)
+    business = seed_business(
+        db,
+        legal_entity_id=client.legal_entity_id,
         business_name="Advance Overview Business",
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
     business.client_record_id = client.id
-    business.legal_entity = legal_entity
     return business
 
 

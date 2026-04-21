@@ -10,9 +10,6 @@ from itertools import count
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_enums import (
@@ -25,6 +22,7 @@ from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
 from app.tax_deadline.services.deadline_generator import DeadlineGeneratorService
+from tests.helpers.identity import seed_client_identity
 
 _seq = count(1)
 
@@ -43,47 +41,38 @@ def _user(db) -> User:
 
 
 def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
-    """Create Client + LegalEntity + ClientRecord + Business. Returns (client, client_record)."""
+    """Create client identity + business. Returns (client_record, client_record_id)."""
     idx = next(_seq)
-    le = LegalEntity(
-        id_number=f"LE{idx:06d}",
-        id_number_type=IdNumberType.CORPORATION,
-        entity_type=EntityType.COMPANY_LTD,
-        vat_reporting_frequency=vat_type,
-        official_name=f"LE{idx:06d}",
-    )
-    db.add(le)
-    db.flush()
-
-    client = Client(
+    client = seed_client_identity(
+        db,
         full_name=f"Layer2 Client {idx}",
         id_number=f"LE{idx:06d}",
+        id_number_type=IdNumberType.CORPORATION,
         vat_reporting_frequency=vat_type,
         entity_type=EntityType.COMPANY_LTD,
     )
-    db.add(client)
-    db.flush()
-
-    cr = ClientRecord(id=client.id, legal_entity_id=le.id)
-    db.add(cr)
-
     user = _user(db)
+    biz = Business(
+        legal_entity_id=client.legal_entity_id,
+        business_name=client.full_name,
+        opened_at=date.today(),
+    )
     db.add(biz)
+    biz.client_record_id = client.id
+    biz.client_id = client.id
     db.commit()
-    db.refresh(client)
-    db.refresh(cr)
-    return client, cr
+    return client, client.id
 
 
 # ── Step 1: Unique constraint enforcement ─────────────────────────────────────
 
 def test_annual_report_unique_client_record_tax_year(test_db):
     """DB rejects duplicate (client_record_id, tax_year) for non-deleted annual reports."""
-    client, cr = _setup_client(test_db)
+    client, client_record_id = _setup_client(test_db)
 
     def _report():
         return AnnualReport(
-            client_record_id=cr.id,
+            client_record_id=client_record_id,
             tax_year=2025,
             client_type=ClientAnnualFilingType.INDIVIDUAL,
             form_type=PrimaryAnnualReportForm.FORM_1301,
@@ -101,12 +90,12 @@ def test_annual_report_unique_client_record_tax_year(test_db):
 
 def test_vat_work_item_unique_client_record_period(test_db):
     """DB rejects duplicate (client_record_id, period) for non-deleted VAT work items."""
-    client, cr = _setup_client(test_db)
+    client, client_record_id = _setup_client(test_db)
     user = _user(test_db)
 
     def _item():
         return VatWorkItem(
-            client_record_id=cr.id,
+            client_record_id=client_record_id,
             created_by=user.id,
             period="2025-01",
             period_type=VatType.MONTHLY,
@@ -125,11 +114,11 @@ def test_tax_deadline_exists_by_record_detects_duplicate_period(test_db):
     """exists_by_record returns True when same (client_record_id, deadline_type, period) exists."""
     from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
-    client, cr = _setup_client(test_db)
+    client, client_record_id = _setup_client(test_db)
     repo = TaxDeadlineRepository(test_db)
 
     test_db.add(TaxDeadline(
-        client_record_id=cr.id,
+        client_record_id=client_record_id,
         deadline_type=DeadlineType.VAT,
         period="2025-01",
         due_date=date(2025, 2, 15),
@@ -137,19 +126,19 @@ def test_tax_deadline_exists_by_record_detects_duplicate_period(test_db):
     ))
     test_db.flush()
 
-    assert repo.exists_by_record(cr.id, DeadlineType.VAT, period="2025-01") is True
-    assert repo.exists_by_record(cr.id, DeadlineType.VAT, period="2025-02") is False
+    assert repo.exists_by_record(client_record_id, DeadlineType.VAT, period="2025-01") is True
+    assert repo.exists_by_record(client_record_id, DeadlineType.VAT, period="2025-02") is False
 
 
 def test_tax_deadline_exists_by_record_detects_duplicate_annual(test_db):
     """exists_by_record returns True when same (client_record_id, annual_report, period=None) exists."""
     from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
-    client, cr = _setup_client(test_db)
+    client, client_record_id = _setup_client(test_db)
     repo = TaxDeadlineRepository(test_db)
 
     test_db.add(TaxDeadline(
-        client_record_id=cr.id,
+        client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,
         due_date=date(2025, 4, 30),
@@ -157,19 +146,19 @@ def test_tax_deadline_exists_by_record_detects_duplicate_annual(test_db):
     ))
     test_db.flush()
 
-    assert repo.exists_by_record(cr.id, DeadlineType.ANNUAL_REPORT) is True
-    assert repo.exists_by_record(cr.id, DeadlineType.VAT) is False
+    assert repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT) is True
+    assert repo.exists_by_record(client_record_id, DeadlineType.VAT) is False
 
 
 # ── Step 2: Generator deduplication by domain identity ────────────────────────
 
 def test_generator_vat_dedup_by_client_record_period(test_db):
     """Generator skips VAT deadline if same (client_record_id, period) exists, even different due_date."""
-    client, cr = _setup_client(test_db, vat_type=VatType.MONTHLY)
+    client, client_record_id = _setup_client(test_db, vat_type=VatType.MONTHLY)
 
     # Pre-insert a VAT deadline for 2026-05 with a different due_date
     existing = TaxDeadline(
-        client_record_id=cr.id,
+        client_record_id=client_record_id,
         deadline_type=DeadlineType.VAT,
         period="2026-05",
         due_date=date(2026, 6, 1),  # different from standard day
@@ -187,10 +176,10 @@ def test_generator_vat_dedup_by_client_record_period(test_db):
 
 def test_generator_annual_dedup_by_client_record(test_db):
     """Generator skips annual report deadline if one already exists for client_record."""
-    client, cr = _setup_client(test_db)
+    client, client_record_id = _setup_client(test_db)
 
     existing = TaxDeadline(
-        client_record_id=cr.id,
+        client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,
         due_date=date(2027, 4, 30),

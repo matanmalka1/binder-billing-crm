@@ -8,6 +8,8 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
 from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -49,6 +51,26 @@ def _make_client_record(db, legal_entity_id: int):
     return record
 
 
+def _attach_owner_person(db, legal_entity_id: int, *, email: str | None = None):
+    person = Person(
+        full_name="Wave 2 Owner",
+        id_number=f"P-{legal_entity_id}",
+        id_number_type=IdNumberType.OTHER,
+        email=email,
+    )
+    db.add(person)
+    db.flush()
+    db.add(
+        PersonLegalEntityLink(
+            person_id=person.id,
+            legal_entity_id=legal_entity_id,
+            role=PersonLegalEntityRole.OWNER,
+        )
+    )
+    db.flush()
+    return person
+
+
 def _make_user(db):
     user = User(
         full_name="Tester",
@@ -64,15 +86,17 @@ def _make_user(db):
 
 def _make_business(db, client_id: int):
     from app.businesses.models.business import Business, BusinessStatus
+    record = db.get(ClientRecord, client_id)
 
     business = Business(
-        client_record_id=client_record_id,
+        legal_entity_id=record.legal_entity_id if record else None,
         business_name=f"Biz-{client_id}",
         status=BusinessStatus.ACTIVE,
         opened_at=date.today(),
     )
     db.add(business)
     db.flush()
+    business.client_id = client_id
     return business
 
 
@@ -180,8 +204,8 @@ class TestO3Notification:
         from app.notification.services.notification_send_service import NotificationSendService
 
         client = _make_client(db, "C208")
-        client.email = "client@test.com"
         record = _make_client_record(db, client.id)
+        _attach_owner_person(db, client.id, email="client@test.com")
         db.flush()
         svc = NotificationSendService(db)
         monkeypatch.setattr(svc.email, "send", lambda *args, **kwargs: (True, None))

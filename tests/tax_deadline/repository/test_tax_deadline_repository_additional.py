@@ -11,17 +11,17 @@ def test_list_by_business_ids_and_filters(test_db):
     business_b = create_business(test_db, name_prefix="Repo B")
 
     a_vat = repo.create(
-        client_id=business_a.client_id,
+        client_record_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=1),
     )
     b_vat = repo.create(
-        client_id=business_b.client_id,
+        client_record_id=business_b.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
     )
     b_other = repo.create(
-        client_id=business_b.client_id,
+        client_record_id=business_b.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=3),
     )
@@ -43,12 +43,12 @@ def test_list_overdue_and_list_by_business(test_db):
     business = create_business(test_db, name_prefix="Repo Overdue")
 
     overdue = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() - timedelta(days=1),
     )
     upcoming = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=10),
     )

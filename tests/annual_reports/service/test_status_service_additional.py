@@ -6,36 +6,21 @@ import pytest
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
 from app.core.exceptions import AppError
+from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    crm_client = Client(
-        full_name="AR Status Additional",
-        id_number="ARSTAT001",
-
+    crm_client = seed_client_identity(db, full_name="AR Status Additional", id_number="ARSTAT001")
+    business = Business(
+        legal_entity_id=crm_client.legal_entity_id,
+        business_name=crm_client.full_name,
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
     )
-    db.add(crm_client)
-    db.commit()
-    db.refresh(crm_client)
-    legal = LegalEntity(id_number="LE-ARSTAT001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal)
-    db.flush()
-    db.add(ClientRecord(id=crm_client.id, legal_entity_id=legal.id))
-    db.flush()
-    db.add(
-        Business(
-            client_id=crm_client.id,
-            legal_entity_id=legal.id,
-            business_name=crm_client.full_name,
-            status=BusinessStatus.ACTIVE,
-            opened_at=date.today(),
-        )
-    )
+    db.add(business)
+    business.client_id = crm_client.id
+    business.client_record_id = crm_client.id
     db.flush()
 
     report = AnnualReportService(db).create_report(

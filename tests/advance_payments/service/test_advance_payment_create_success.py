@@ -5,12 +5,10 @@ from itertools import count
 import pytest
 
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.clients.models.client import Client
 from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
 from app.core.exceptions import NotFoundError, ForbiddenError
+from tests.helpers.identity import seed_client_identity
 
 
 _seq = count(1)
@@ -18,29 +16,14 @@ _seq = count(1)
 
 def _client_record(db, *, status: ClientStatus = ClientStatus.ACTIVE) -> ClientRecord:
     idx = next(_seq)
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number=f"991199{idx:03d}", official_name=f"991199{idx:03d}")
-    db.add(legal_entity)
-    db.commit()
-    db.refresh(legal_entity)
-
-    client = Client(
+    client = seed_client_identity(
+        db,
         full_name=f"AP Create Client {idx}",
-        id_number=legal_entity.id_number,
+        id_number=f"991199{idx:03d}",
         status=status,
     )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
     record = db.get(ClientRecord, client.id)
-    if record is None:
-        record = ClientRecord(
-            id=client.id,
-            legal_entity_id=legal_entity.id,
-            status=status,
-        )
-        db.add(record)
-        db.commit()
-        db.refresh(record)
+    assert record is not None
     return record
 
 

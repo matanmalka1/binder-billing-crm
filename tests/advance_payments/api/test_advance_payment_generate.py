@@ -1,29 +1,21 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _business(db) -> Business:
-    crm_client = Client(full_name="Advance Gen API Client", id_number="APGAPI001")
-    db.add(crm_client)
-    db.flush()
-    legal_entity = LegalEntity(id_number="APGAPI001", id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
-    db.add(legal_entity)
-    db.flush()
-    db.commit()
-    db.refresh(crm_client)
-
-    business = Business(
-        client_id=crm_client.id,
-        legal_entity_id=legal_entity.id,
+    crm_client = seed_client_identity(
+        db,
+        full_name="Advance Gen API Client",
+        id_number="APGAPI001",
+    )
+    business = seed_business(
+        db,
+        legal_entity_id=crm_client.legal_entity_id,
         business_name="Advance Gen Business",
         opened_at=date.today(),
     )
-    db.add(business)
     db.commit()
     db.refresh(business)
     business.client_record_id = crm_client.id

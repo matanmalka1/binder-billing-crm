@@ -11,19 +11,19 @@ def test_tax_deadline_timeline_returns_sorted_with_labels(client, test_db, advis
     repo = TaxDeadlineRepository(test_db)
 
     later = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_date=date.today() + timedelta(days=15),
         payment_amount=Decimal("1200.50"),
     )
     sooner = repo.create(
-        client_id=business.client_id,
+        client_record_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=3),
     )
 
     resp = client.get(
-        f"/api/v1/tax-deadlines/timeline?client_id={business.client_id}",
+        f"/api/v1/tax-deadlines/timeline?client_record_id={business.client_id}",
         headers=advisor_headers,
     )
 

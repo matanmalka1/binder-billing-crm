@@ -17,6 +17,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
 from app.users.models.user import User, UserRole
@@ -178,7 +179,7 @@ class TestW2VatWorkItem:
 
         item = create_work_item(
             VatWorkItemRepository(db),
-            ClientRepository(db),
+            db,
             client_record_id=record.id,
             period="2024-03",
             created_by=user.id,

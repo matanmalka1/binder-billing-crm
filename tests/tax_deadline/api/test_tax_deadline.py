@@ -14,7 +14,7 @@ def test_create_and_get_tax_deadline(client, test_db, advisor_headers, test_user
         "/api/v1/tax-deadlines",
         headers=advisor_headers,
         json={
-            "client_id": business.client_id,
+            "client_record_id": business.client_id,
             "deadline_type": "vat",
             "due_date": due.isoformat(),
             "period": "2026-03",
@@ -25,7 +25,7 @@ def test_create_and_get_tax_deadline(client, test_db, advisor_headers, test_user
     assert create.status_code == 201
     payload = create.json()
     deadline_id = payload["id"]
-    assert payload["client_id"] == business.client_id
+    assert payload["client_record_id"] == business.client_id
     assert payload["deadline_type"] == "vat"
     assert payload["status"] == "pending"
     assert payload["period"] == "2026-03"
@@ -43,7 +43,6 @@ def test_complete_update_delete_and_query_filters(client, test_db, advisor_heade
     repo = TaxDeadlineRepository(test_db)
 
     deadline = repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=3),
@@ -71,24 +70,22 @@ def test_complete_update_delete_and_query_filters(client, test_db, advisor_heade
     assert float(update.json()["payment_amount"]) == 200.5
 
     repo.create(
-        client_id=business_a.client_id,
         client_record_id=business_a.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
     )
     repo.create(
-        client_id=business_b.client_id,
         client_record_id=business_b.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
     )
 
     filtered = client.get(
-        f"/api/v1/tax-deadlines?client_id={business_a.client_id}&deadline_type=vat",
+        f"/api/v1/tax-deadlines?client_record_id={business_a.client_id}&deadline_type=vat",
         headers=advisor_headers,
     )
     assert filtered.status_code == 200
-    assert all(item["client_id"] == business_a.client_id for item in filtered.json()["items"])
+    assert all(item["client_record_id"] == business_a.client_id for item in filtered.json()["items"])
 
     completed = client.get(
         "/api/v1/tax-deadlines?status=completed",
@@ -112,7 +109,6 @@ def test_update_without_fields_returns_400(client, test_db, advisor_headers):
     business = create_business(test_db, name_prefix="API NoFields")
     repo = TaxDeadlineRepository(test_db)
     deadline = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=10),
@@ -127,7 +123,6 @@ def test_list_by_client_name_and_build_response_business_name(client, test_db, a
     business = create_business(test_db, name_prefix="Client Name Filter")
     repo = TaxDeadlineRepository(test_db)
     deadline = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),
@@ -153,7 +148,6 @@ def test_list_tax_deadlines_enriches_fallback_business_name_for_sole_proprietor(
     business = create_business(test_db, name_prefix="Sole Prop")
     repo = TaxDeadlineRepository(test_db)
     deadline = repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         deadline_type=DeadlineType.ADVANCE_PAYMENT,
         due_date=date.today() + timedelta(days=1),
@@ -164,7 +158,7 @@ def test_list_tax_deadlines_enriches_fallback_business_name_for_sole_proprietor(
 
     item = next((row for row in resp.json()["items"] if row["id"] == deadline.id), None)
     assert item is not None
-    assert item["client_id"] == business.client_id
+    assert item["client_record_id"] == business.client_id
     assert item["business_name"] == business.full_name
 
 
@@ -172,7 +166,6 @@ def test_secretary_list_has_no_available_actions(client, test_db, secretary_head
     business = create_business(test_db, name_prefix="Secretary View")
     repo = TaxDeadlineRepository(test_db)
     repo.create(
-        client_id=business.client_id,
         client_record_id=business.client_id,
         deadline_type=DeadlineType.VAT,
         due_date=date.today() + timedelta(days=2),

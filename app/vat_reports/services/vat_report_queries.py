@@ -102,38 +102,48 @@ def _resolve_client_ids_by_name(
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
-    db,
+    db=None,
     status: VatWorkItemStatus,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
+    client_repo=None,
 ):
-    client_record_ids = _resolve_client_ids_by_name(db, client_name)
+    search_source = db or getattr(client_repo, "db", None)
+    client_record_ids = _resolve_client_ids_by_name(search_source, client_name) if search_source else None
+    if client_record_ids is None and client_name and client_repo is not None:
+        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
+        status, page=page, page_size=page_size, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
     )
-    total = work_item_repo.count_by_status(status, period=period, client_record_ids=client_record_ids)
+    total = work_item_repo.count_by_status(
+        status, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
+    )
     return items, total
 
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
-    db,
+    db=None,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
+    client_repo=None,
 ):
-    client_record_ids = _resolve_client_ids_by_name(db, client_name)
+    search_source = db or getattr(client_repo, "db", None)
+    client_record_ids = _resolve_client_ids_by_name(search_source, client_name) if search_source else None
+    if client_record_ids is None and client_name and client_repo is not None:
+        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
+        page=page, page_size=page_size, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
     )
-    total = work_item_repo.count_all(period=period, client_record_ids=client_record_ids)
+    total = work_item_repo.count_all(period=period, client_ids=client_record_ids, client_record_ids=client_record_ids)
     return items, total
 
 

@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_status_log import BinderStatusLog
-from app.clients.models.client import Client
+from app.clients.models.client_record import ClientRecord
 
 
 def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, test_db, test_user, create_client_with_business):
@@ -53,7 +53,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     baseline = {
         "binders": test_db.query(Binder).count(),
         "logs": test_db.query(BinderStatusLog).count(),
-        "clients": test_db.query(Client).count(),
+        "clients": test_db.query(ClientRecord).count(),
         "statuses": {b.id: b.status.value for b in test_db.query(Binder).all()},
     }
 
@@ -76,5 +76,5 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
 
     assert test_db.query(Binder).count() == baseline["binders"]
     assert test_db.query(BinderStatusLog).count() == baseline["logs"]
-    assert test_db.query(Client).count() == baseline["clients"]
+    assert test_db.query(ClientRecord).count() == baseline["clients"]
     assert {b.id: b.status.value for b in test_db.query(Binder).all()} == baseline["statuses"]

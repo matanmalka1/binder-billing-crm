@@ -2,28 +2,21 @@ from datetime import date
 
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
-from app.clients.models.client import Client
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import IdNumberType
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _create_business(test_db) -> Business:
-    legal_entity = LegalEntity(id_number_type=IdNumberType.INDIVIDUAL, id_number="ADV-DEL-001", official_name="ADV-DEL-001")
-    test_db.add(legal_entity)
-    test_db.commit()
-    test_db.refresh(legal_entity)
-
-    client = Client(full_name="Advance Delete Client", id_number="ADV-DEL-001")
-    test_db.add(client)
-    test_db.commit()
-    test_db.refresh(client)
-    business = Business(
-        legal_entity_id=legal_entity.id,
+    client = seed_client_identity(
+        test_db,
+        full_name="Advance Delete Client",
+        id_number="ADV-DEL-001",
+    )
+    business = seed_business(
+        test_db,
+        legal_entity_id=client.legal_entity_id,
         business_name="Advance Delete Business",
         opened_at=date.today(),
     )
-    test_db.add(business)
     test_db.commit()
     test_db.refresh(business)
     business.client_record_id = client.id
