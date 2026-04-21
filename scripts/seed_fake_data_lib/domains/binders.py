@@ -61,7 +61,7 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 cursor = period_end + timedelta(days=rng.randint(1, 14))
 
             binder = Binder(
-                client_id=client_id,
+                client_record_id=client_id,
                 binder_number=f"{office_num}/{seq}",
                 period_start=period_start,
                 period_end=period_end,
@@ -71,6 +71,7 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 pickup_person_name=(full_name(rng) if status == BinderStatus.RETURNED else None),
                 notes=rng.choice(BUSINESS_NOTES),
             )
+            binder.client_id = client_id
             db.add(binder)
             binders.append(binder)
     db.flush()
@@ -102,7 +103,7 @@ def _ensure_binder_status_coverage(db, binders: list) -> None:
                 else None
             )
             clone = Binder(
-                client_id=source.client_id,
+                client_record_id=source.client_record_id,
                 binder_number=f"{source.binder_number.split('/')[0]}/x{len(binders)+1}",
                 period_start=source.period_start,
                 period_end=clone_period_end,
@@ -112,6 +113,7 @@ def _ensure_binder_status_coverage(db, binders: list) -> None:
                 pickup_person_name=None,
                 notes=source.notes,
             )
+            clone.client_id = source.client_id
             db.add(clone)
             binders.append(clone)
             counts[status] = counts.get(status, 0) + 1
@@ -268,7 +270,7 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
                 for binder in handover_binders
             )
             handover = BinderHandover(
-                client_id=client_id,
+                client_record_id=client_id,
                 received_by_name=handover_binders[-1].pickup_person_name or full_name(rng),
                 handed_over_at=handed_over_at,
                 until_period_year=handed_over_at.year,
@@ -283,6 +285,7 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
                 created_at=datetime.combine(handed_over_at, datetime.min.time(), tzinfo=UTC)
                 + timedelta(hours=rng.randint(9, 18)),
             )
+            handover.client_id = client_id
             db.add(handover)
             db.flush()
             handovers.append(handover)

@@ -201,6 +201,10 @@ def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) ->
                 created_by=rng.choice(users).id if users else None,
                 notes=rng.choice(BUSINESS_NOTES),
             )
+            # Seed helpers still group businesses through the owning client record.
+            # Keep that linkage in-memory without reintroducing a DB column.
+            business.client_id = client.id
+            business.client = client
             db.add(business)
             businesses.append(business)
     db.flush()

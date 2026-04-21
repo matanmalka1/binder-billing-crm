@@ -239,6 +239,17 @@ Notes:
 
 ## Run instructions
 
+### 6392237139d9_add_missing_seed_tables
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 6392237139d9`
+- What it does:
+  Adds the missing `annual_report_details` and `binder_intake_edit_logs` tables so the
+  schema matches the current ORM metadata and seed script expectations.
+- Notes:
+  Alembic autogenerate will only detect new ORM tables when their model modules are
+  explicitly imported in `alembic/env.py`.
+
 ### a61d76155e04_add_relationships_and_cascade_fks
 
 - Command:

@@ -20,10 +20,12 @@ import app.clients.models.person_legal_entity_link                      # noqa
 import app.businesses.models.business                                   # noqa
 import app.binders.models.binder                                        # noqa
 import app.binders.models.binder_intake                                 # noqa
+import app.binders.models.binder_intake_edit_log                        # noqa
 import app.binders.models.binder_intake_material                        # noqa
 import app.binders.models.binder_status_log                             # noqa
 import app.binders.models.binder_handover                               # noqa
 import app.annual_reports.models.annual_report_model                    # noqa
+import app.annual_reports.models.annual_report_detail                   # noqa
 import app.annual_reports.models.annual_report_status_history           # noqa
 import app.annual_reports.models.annual_report_schedule_entry           # noqa
 import app.annual_reports.models.annual_report_annex_data               # noqa
