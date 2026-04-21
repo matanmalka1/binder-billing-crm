@@ -10,7 +10,6 @@ from app.permanent_documents.schemas.permanent_document import (
     PermanentDocumentListResponse,
     PermanentDocumentResponse,
 )
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
 
 router = APIRouter(
@@ -36,8 +35,6 @@ def upload_permanent_document(
     notes: Annotated[Optional[str], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
-    record = ClientRecordRepository(db).get_by_id(client_record_id)
-    legal_entity_id = record.legal_entity_id if record else None
     service = PermanentDocumentService(db)
     document = service.upload_document(
         client_record_id=client_record_id,
@@ -50,7 +47,6 @@ def upload_permanent_document(
         annual_report_id=annual_report_id,
         notes=notes,
         mime_type=file.content_type,
-        legal_entity_id=legal_entity_id,
     )
     return PermanentDocumentResponse.model_validate(document)
 

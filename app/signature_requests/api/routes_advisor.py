@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
@@ -15,34 +13,9 @@ from app.signature_requests.schemas.signature_request import (
     SignatureRequestSentResponse,
     SignatureRequestWithAuditResponse,
 )
+from app.signature_requests.services.response_builder import SignatureRequestResponseBuilder
 from app.signature_requests.services.signature_request_service import SignatureRequestService
 from app.users.api.deps import CurrentUser, DBSession, require_role
-
-
-def _enrich_business_name(
-    response: SignatureRequestResponse,
-    db: DBSession,
-) -> SignatureRequestResponse:
-    """Attach business_name when the request is scoped to a business.
-
-    client_record_id is already on the DB row — no need to derive it from a join.
-    """
-    if response.business_id is None:
-        return response
-    business = BusinessRepository(db).get_by_id(response.business_id)
-    if business:
-        response.business_name = business.business_name
-    return response
-
-
-def _enrich_client_office_number(
-    response: SignatureRequestResponse,
-    db: DBSession,
-) -> SignatureRequestResponse:
-    client_record = ClientRecordRepository(db).get_by_id(response.client_record_id)
-    if client_record:
-        response.office_client_number = client_record.office_client_number
-    return response
 
 
 advisor_router = APIRouter(
@@ -74,9 +47,7 @@ def create_signature_request(
         document_id=request.document_id,
         content_to_hash=request.content_to_hash,
     )
-    response = SignatureRequestResponse.model_validate(req)
-    _enrich_client_office_number(response, db)
-    return _enrich_business_name(response, db)
+    return SignatureRequestResponseBuilder(db).build(req)
 
 
 @advisor_router.get("/pending", response_model=SignatureRequestListResponse)
@@ -88,28 +59,11 @@ def list_pending_requests(
 ):
     service = SignatureRequestService(db)
     items, total = service.list_pending_requests(page=page, page_size=page_size)
-    business_repo = BusinessRepository(db)
-    business_ids = {item.business_id for item in items if item.business_id is not None}
-    name_map = {
-        b.id: b.business_name
-        for b in business_repo.list_by_ids(sorted(business_ids))
-    }
-    responses = []
-    office_number_map = {
-        record.id: record.office_client_number
-        for record in ClientRecordRepository(db).list_by_ids(sorted({item.client_record_id for item in items}))
-    }
-    for r in items:
-        resp = SignatureRequestResponse.model_validate(r)
-        resp.office_client_number = office_number_map.get(r.client_record_id)
-        if r.business_id:
-            resp.business_name = name_map.get(r.business_id)
-        responses.append(resp)
-    return SignatureRequestListResponse(
-        items=responses,
+    return SignatureRequestResponseBuilder(db).build_list(
+        items,
+        total,
         page=page,
         page_size=page_size,
-        total=total,
     )
 
 
@@ -128,11 +82,7 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה")
 
     audit_events = service.get_audit_trail(request_id)
-    response = SignatureRequestWithAuditResponse.model_validate(req)
-    _enrich_client_office_number(response, db)
-    _enrich_business_name(response, db)
-    response.audit_trail = [SignatureAuditEventResponse.model_validate(e) for e in audit_events]
-    return response
+    return SignatureRequestResponseBuilder(db).build_with_audit(req, audit_events)
 
 
 @advisor_router.post("/{request_id}/send", response_model=SignatureRequestSentResponse)
@@ -149,12 +99,7 @@ def send_signature_request(
         sent_by_name=user.full_name,
         expiry_days=body.expiry_days,
     )
-    response = SignatureRequestSentResponse.model_validate(req)
-    _enrich_client_office_number(response, db)
-    _enrich_business_name(response, db)
-    response.signing_token = req.signing_token
-    response.signing_url_hint = f"/sign/{req.signing_token}"
-    return response
+    return SignatureRequestResponseBuilder(db).build_sent(req)
 
 
 @advisor_router.post("/{request_id}/cancel", response_model=SignatureRequestResponse)
@@ -171,6 +116,4 @@ def cancel_signature_request(
         canceled_by_name=user.full_name,
         reason=body.reason,
     )
-    response = SignatureRequestResponse.model_validate(req)
-    _enrich_client_office_number(response, db)
-    return _enrich_business_name(response, db)
+    return SignatureRequestResponseBuilder(db).build(req)

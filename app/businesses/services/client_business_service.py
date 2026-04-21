@@ -1,0 +1,79 @@
+"""Service layer for client-scoped business routes."""
+
+from sqlalchemy.orm import Session
+
+from app.actions.action_contracts import get_business_actions
+from app.businesses.models.business import Business
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.schemas.business_schemas import BusinessResponse, ClientBusinessesResponse
+from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_service import BusinessService
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
+from app.users.models.user import UserRole
+
+
+class ClientBusinessService:
+    def __init__(self, db: Session):
+        self.business_service = BusinessService(db)
+        self.business_repo = BusinessRepository(db)
+        self.client_repo = ClientRecordRepository(db)
+
+    def to_response(self, business: Business, user_role: UserRole) -> BusinessResponse:
+        response = BusinessResponse.model_validate(business)
+        response.available_actions = get_business_actions(business, user_role=user_role)
+        return response
+
+    def list_for_client(
+        self,
+        client_id: int,
+        user_role: UserRole,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> ClientBusinessesResponse:
+        items, total = self.business_service.list_businesses_for_client(
+            client_id,
+            page=page,
+            page_size=page_size,
+        )
+        return ClientBusinessesResponse(
+            client_id=client_id,
+            items=[self.to_response(business, user_role) for business in items],
+            page=page,
+            page_size=page_size,
+            total=total,
+        )
+
+    def get_for_client(self, client_id: int, business_id: int) -> Business:
+        business = self.business_service.get_business_or_raise(business_id)
+        self._assert_business_belongs_to_client(business, client_id)
+        return business
+
+    def delete_for_client(self, client_id: int, business_id: int, actor_id: int) -> None:
+        self.get_for_client(client_id, business_id)
+        self.business_service.delete_business(business_id, actor_id=actor_id)
+
+    def restore_for_client(
+        self,
+        client_id: int,
+        business_id: int,
+        *,
+        actor_id: int,
+        actor_role: UserRole,
+    ) -> Business:
+        business = self.business_repo.get_by_id_including_deleted(business_id)
+        if not business:
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        self._assert_business_belongs_to_client(business, client_id)
+        return self.business_service.restore_business(
+            business_id,
+            actor_id=actor_id,
+            actor_role=actor_role,
+        )
+
+    def _assert_business_belongs_to_client(self, business: Business, client_id: int) -> None:
+        client_record = self.client_repo.get_by_id(client_id)
+        if not client_record:
+            raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")
+        assert_business_belongs_to_legal_entity(business, client_record.legal_entity_id)

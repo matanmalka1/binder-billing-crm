@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Query, Response, status
-from sqlalchemy.orm import Session
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -9,25 +8,8 @@ from app.businesses.schemas.business_schemas import (
     BusinessUpdateRequest,
     ClientBusinessesResponse,
 )
+from app.businesses.services.client_business_service import ClientBusinessService
 from app.businesses.services.business_service import BusinessService
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
-from app.businesses.models.business import Business
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import NotFoundError
-from app.actions.action_contracts import get_business_actions
-
-
-def _assert_business_belongs_to_client(db: Session, business: Business, client_id: int) -> None:
-    client_record = ClientRecordRepository(db).get_by_id(client_id)
-    if not client_record:
-        raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")
-    assert_business_belongs_to_legal_entity(business, client_record.legal_entity_id)
-
-
-def _to_business_response(business, user_role: UserRole) -> BusinessResponse:
-    response = BusinessResponse.model_validate(business)
-    response.available_actions = get_business_actions(business, user_role=user_role)
-    return response
 
 
 client_businesses_router = APIRouter(
@@ -52,7 +34,7 @@ def create_business(client_id: int, request: BusinessCreateRequest, db: DBSessio
         notes=request.notes,
         actor_id=user.id,
     )
-    return _to_business_response(business, user.role)
+    return ClientBusinessService(db).to_response(business, user.role)
 
 
 @client_businesses_router.get("", response_model=ClientBusinessesResponse)
@@ -63,23 +45,19 @@ def list_client_businesses(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    service = BusinessService(db)
-    items, total = service.list_businesses_for_client(client_id, page=page, page_size=page_size)
-    return ClientBusinessesResponse(
-        client_id=client_id,
-        items=[_to_business_response(b, user.role) for b in items],
+    return ClientBusinessService(db).list_for_client(
+        client_id,
+        user.role,
         page=page,
         page_size=page_size,
-        total=total,
     )
 
 
 @client_businesses_router.get("/{business_id}", response_model=BusinessResponse)
 def get_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
-    service = BusinessService(db)
-    business = service.get_business_or_raise(business_id)
-    _assert_business_belongs_to_client(db, business, client_id)
-    return _to_business_response(business, user.role)
+    service = ClientBusinessService(db)
+    business = service.get_for_client(client_id, business_id)
+    return service.to_response(business, user.role)
 
 
 @client_businesses_router.patch("/{business_id}", response_model=BusinessResponse)
@@ -97,7 +75,7 @@ def update_business(
         actor_id=user.id,
         **request.model_dump(exclude_unset=True),
     )
-    return _to_business_response(business, user.role)
+    return ClientBusinessService(db).to_response(business, user.role)
 
 
 @client_businesses_router.delete(
@@ -106,10 +84,7 @@ def update_business(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def delete_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
-    service = BusinessService(db)
-    business = service.get_business_or_raise(business_id)
-    _assert_business_belongs_to_client(db, business, client_id)
-    service.delete_business(business_id, actor_id=user.id)
+    ClientBusinessService(db).delete_for_client(client_id, business_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -119,13 +94,11 @@ def delete_business(client_id: int, business_id: int, db: DBSession, user: Curre
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def restore_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
-    service = BusinessService(db)
-    # IDOR check: verify business belongs to client before restore
-    from app.businesses.repositories.business_repository import BusinessRepository
-    repo = BusinessRepository(db)
-    existing = repo.get_by_id_including_deleted(business_id)
-    if not existing:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-    _assert_business_belongs_to_client(db, existing, client_id)
-    business = service.restore_business(business_id, actor_id=user.id, actor_role=user.role)
-    return _to_business_response(business, user.role)
+    service = ClientBusinessService(db)
+    business = service.restore_for_client(
+        client_id,
+        business_id,
+        actor_id=user.id,
+        actor_role=user.role,
+    )
+    return service.to_response(business, user.role)

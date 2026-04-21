@@ -2,36 +2,19 @@ from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import NotFoundError
 from app.notes.schemas.entity_note import (
     EntityNoteCreateRequest,
     EntityNoteListResponse,
     EntityNoteResponse,
     EntityNoteUpdateRequest,
 )
-from app.notes.services.entity_note_service import EntityNoteService
+from app.notes.services.business_note_service import BusinessNoteService
 
 router = APIRouter(
     prefix="/clients/{client_id}/businesses/{business_id}/notes",
     tags=["notes"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-
-_ENTITY_TYPE = "business"
-
-
-def _assert_business_belongs_to_client(db, business_id: int, client_id: int) -> None:
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-    record = ClientRecordRepository(db).get_by_id(client_id)
-    if not record:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-    assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
-
 
 @router.get("", response_model=EntityNoteListResponse)
 def list_notes(
@@ -41,11 +24,9 @@ def list_notes(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=100),
 ):
-    _assert_business_belongs_to_client(db, business_id, client_id)
-    service = EntityNoteService(db)
-    items, total = service.list_notes(
-        entity_type=_ENTITY_TYPE,
-        entity_id=business_id,
+    items, total = BusinessNoteService(db).list_notes(
+        client_id=client_id,
+        business_id=business_id,
         page=page,
         page_size=page_size,
     )
@@ -65,11 +46,9 @@ def add_note(
     db: DBSession,
     user: CurrentUser,
 ):
-    _assert_business_belongs_to_client(db, business_id, client_id)
-    service = EntityNoteService(db)
-    note = service.add_note(
-        entity_type=_ENTITY_TYPE,
-        entity_id=business_id,
+    note = BusinessNoteService(db).add_note(
+        client_id=client_id,
+        business_id=business_id,
         note=request.note,
         created_by=user.id,
     )
@@ -85,12 +64,10 @@ def update_note(
     db: DBSession,
     user: CurrentUser,
 ):
-    _assert_business_belongs_to_client(db, business_id, client_id)
-    service = EntityNoteService(db)
-    note = service.update_note(
+    note = BusinessNoteService(db).update_note(
+        client_id=client_id,
+        business_id=business_id,
         note_id=note_id,
-        entity_type=_ENTITY_TYPE,
-        entity_id=business_id,
         note=request.note,
         actor_id=user.id,
     )
@@ -105,12 +82,10 @@ def delete_note(
     db: DBSession,
     user: CurrentUser,
 ):
-    _assert_business_belongs_to_client(db, business_id, client_id)
-    service = EntityNoteService(db)
-    service.delete_note(
+    BusinessNoteService(db).delete_note(
+        client_id=client_id,
+        business_id=business_id,
         note_id=note_id,
-        entity_type=_ENTITY_TYPE,
-        entity_id=business_id,
         actor_id=user.id,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
