@@ -175,7 +175,7 @@ class TestW2VatWorkItem:
         client = _make_client(db)
         record = _make_client_record(db, client.id)
         business = Business(
-            client_id=client.id, business_name="Biz", status=BusinessStatus.ACTIVE,
+            legal_entity_id=record.legal_entity_id, business_name="Biz", status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )
         db.add(business)
@@ -262,12 +262,12 @@ class TestW4Binder:
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
-        user = _make_user(db)
-        client.office_client_number = 99
+        record.office_client_number = 99
         db.flush()
+        user = _make_user(db)
 
         business = Business(
-            client_id=client.id, business_name="B", status=BusinessStatus.ACTIVE,
+            legal_entity_id=record.legal_entity_id, business_name="B", status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )
         db.add(business)

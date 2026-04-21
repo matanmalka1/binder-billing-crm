@@ -1,8 +1,9 @@
 from datetime import UTC, date, datetime, timedelta
 
 from app.businesses.models.business import Business
-from app.common.enums import VatType
-from app.clients.models.client import Client
+from app.common.enums import IdNumberType, VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_report_service import VatReportService
@@ -22,38 +23,46 @@ def _user(test_db) -> User:
     return user
 
 
-def _business(test_db) -> Business:
-    client = Client(full_name="VAT Query Client", id_number="VQS001")
-    test_db.add(client)
-    test_db.flush()
+def _business(test_db) -> tuple[Business, int]:
+    legal_entity = LegalEntity(
+        official_name="VAT Query Client",
+        id_number="VQS001",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    test_db.add(legal_entity)
+    test_db.commit()
+    test_db.refresh(legal_entity)
+
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    test_db.add(client_record)
+    test_db.commit()
+    test_db.refresh(client_record)
+
     business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
+        legal_entity_id=legal_entity.id,
+        business_name=legal_entity.official_name,
         opened_at=date(2026, 1, 1),
     )
     test_db.add(business)
     test_db.commit()
-    test_db.refresh(client)
     test_db.refresh(business)
-    return business
+    return business, client_record.id
 
 
 def test_list_all_work_items_and_get_audit_trail(test_db):
     user = _user(test_db)
-    business = _business(test_db)
+    _, client_record_id = _business(test_db)
     service = VatReportService(test_db)
     now = datetime.now(UTC)
 
     older = service.work_item_repo.create(
-        client_id=business.client_id,
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
     newer = service.work_item_repo.create(
-        client_id=business.client_id,
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,

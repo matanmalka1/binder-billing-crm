@@ -3,7 +3,8 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 
-from app.clients.models.client import Client, IdNumberType
+from app.common.enums import IdNumberType
+from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.client_repository import ClientRepository
 from app.clients.services.client_excel_service import ClientExcelService
 
@@ -68,22 +69,19 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
 
     assert created == 0
     assert len(errors) == 1
-    assert test_db.query(Client).filter(Client.id_number == "ROLLBACK-1").count() == 0
+    assert test_db.query(ClientRecord).count() == 0
 
 
 def test_client_excel_export_and_template_generate_files(test_db):
     service = ClientExcelService(test_db)
 
-    crm_client = Client(
+    crm_client = ClientRepository(test_db).create(
         full_name="Excel Name",
         id_number="750000001",
         id_number_type=IdNumberType.CORPORATION,
         phone="0501234567",
         email="excel@test.com",
     )
-    test_db.add(crm_client)
-    test_db.commit()
-    test_db.refresh(crm_client)
 
     exported = service.export_clients([crm_client])
     template = service.generate_template()

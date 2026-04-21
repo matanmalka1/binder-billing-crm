@@ -3,9 +3,10 @@ from datetime import date
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.models.client import Client
+from app.common.enums import IdNumberType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -20,18 +21,23 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     )
     test_db.add(user)
 
-    client_a = Client(full_name="Alpha Ltd", id_number="C001")
-    client_b = Client(full_name="Beta LLC", id_number="C002")
-    test_db.add_all([client_a, client_b])
+    le_a = LegalEntity(official_name="Alpha Ltd", id_number="C001", id_number_type=IdNumberType.INDIVIDUAL)
+    le_b = LegalEntity(official_name="Beta LLC", id_number="C002", id_number_type=IdNumberType.INDIVIDUAL)
+    test_db.add_all([le_a, le_b])
+    test_db.commit()
+
+    cr_a = ClientRecord(legal_entity_id=le_a.id)
+    cr_b = ClientRecord(legal_entity_id=le_b.id)
+    test_db.add_all([cr_a, cr_b])
     test_db.commit()
 
     business_active = Business(
-        client_id=client_a.id,
+        legal_entity_id=le_a.id,
         business_name="Alpha Business",
         opened_at=date(2024, 1, 1),
     )
     business_other = Business(
-        client_id=client_b.id,
+        legal_entity_id=le_b.id,
         business_name="Beta Business",
         opened_at=date(2024, 2, 1),
     )
@@ -39,14 +45,14 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     test_db.commit()
 
     binder_active = Binder(
-        client_record_id=client_a.id,
+        client_record_id=cr_a.id,
         binder_number="B-1",
         period_start=date(2024, 3, 1),
         status=BinderStatus.IN_OFFICE,
         created_by=user.id,
     )
     binder_returned = Binder(
-        client_record_id=client_b.id,
+        client_record_id=cr_b.id,
         binder_number="B-2",
         period_start=date(2024, 3, 2),
         returned_at=date(2024, 3, 5),

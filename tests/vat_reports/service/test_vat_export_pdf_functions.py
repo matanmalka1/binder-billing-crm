@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 
 from app.businesses.models.business import Business
-from app.common.enums import VatType
-from app.clients.models.client import Client
+from app.common.enums import IdNumberType, VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
@@ -28,36 +29,44 @@ def _user(test_db) -> User:
     return user
 
 
-def _business(test_db) -> Business:
-    client = Client(full_name="VAT Export Client", id_number="VEP001")
-    test_db.add(client)
-    test_db.flush()
+def _business(test_db) -> tuple[Business, int]:
+    legal_entity = LegalEntity(
+        official_name="VAT Export Client",
+        id_number="VEP001",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    test_db.add(legal_entity)
+    test_db.commit()
+    test_db.refresh(legal_entity)
+
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    test_db.add(client_record)
+    test_db.commit()
+    test_db.refresh(client_record)
+
     business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
+        legal_entity_id=legal_entity.id,
+        business_name=legal_entity.official_name,
         opened_at=date(2026, 1, 1),
     )
     test_db.add(business)
     test_db.commit()
-    test_db.refresh(client)
     test_db.refresh(business)
-    return business
+    return business, client_record.id
 
 
 def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatch):
     user = _user(test_db)
-    business = _business(test_db)
+    _, client_record_id = _business(test_db)
     service = VatReportService(test_db)
     item_2026 = service.work_item_repo.create(
-        client_id=business.client_id,
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
     item_2025 = service.work_item_repo.create(
-        client_id=business.client_id,
-        client_record_id=business.client_id,
+        client_record_id=client_record_id,
         period="2025-12",
         period_type=VatType.MONTHLY,
         created_by=user.id,
@@ -85,9 +94,9 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
         _fake_export,
     )
 
-    payload = export_to_pdf(test_db, business.client_id, 2026)
+    payload = export_to_pdf(test_db, client_record_id, 2026)
     assert payload["format"] == "pdf"
-    assert captured["client_id"] == business.client_id
+    assert captured["client_id"] == client_record_id
     assert captured["year"] == 2026
     assert len(captured["periods"]) == 1
     assert captured["periods"][0].period == "2026-01"
@@ -100,7 +109,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
         with pytest.raises(ImportError):
             export_vat_to_pdf(
                 client_name="Client",
-                client_id=1,
+                client_record_id=1,
                 year=2026,
                 periods=[],
                 export_dir="/tmp",
@@ -122,7 +131,7 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
 
     payload = export_vat_to_pdf(
         client_name="Client",
-        client_id=1,
+        client_record_id=1,
         year=2026,
         periods=[period],
         export_dir="/tmp",

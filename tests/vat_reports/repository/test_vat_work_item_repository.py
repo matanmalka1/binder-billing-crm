@@ -3,9 +3,9 @@ from itertools import count
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import Business
-from app.common.enums import EntityType
-from app.common.enums import VatType
-from app.clients.models.client import Client
+from app.common.enums import EntityType, IdNumberType, VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
@@ -30,45 +30,55 @@ def _user(test_db) -> User:
     return user
 
 
-def _business(db) -> Business:
+def _business(db) -> tuple[Business, int]:
     idx = next(_client_seq)
-    client = Client(full_name=f"VAT Work Repo Client {idx}", id_number=f"VWR{idx:03d}")
-    db.add(client)
-    db.flush()
+    legal_entity = LegalEntity(
+        official_name=f"VAT Work Repo Client {idx}",
+        id_number=f"VWR{idx:03d}",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    db.add(legal_entity)
+    db.commit()
+    db.refresh(legal_entity)
+
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    db.add(client_record)
+    db.commit()
+    db.refresh(client_record)
+
     business = Business(
-        client_id=client.id,
-        business_name=client.full_name,
+        legal_entity_id=legal_entity.id,
+        business_name=legal_entity.official_name,
         opened_at=date(2026, 1, 1),
     )
     db.add(business)
     db.commit()
-    db.refresh(client)
     db.refresh(business)
-    return business
+    return business, client_record.id
 
 
 def test_status_listing_totals_and_audit_trail(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
-    business = _business(test_db)
+    _, client_record_id = _business(test_db)
     now = utcnow()
 
     oldest = repo.create(
-        client_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
     newest = repo.create(
-        client_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-03",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
     middle = repo.create(
-        client_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,
@@ -115,9 +125,9 @@ def test_status_listing_totals_and_audit_trail(test_db):
 def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
-    business = _business(test_db)
+    _, client_record_id = _business(test_db)
     item = repo.create(
-        client_id=business.client_id,
+        client_record_id=client_record_id,
         period="2026-11",
         period_type=VatType.MONTHLY,
         created_by=user.id,
