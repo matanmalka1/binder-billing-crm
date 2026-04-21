@@ -89,8 +89,8 @@ def get_list_enriched(
     """Return paginated work items + enrichment data."""
     if status_filter:
         items, total = list_work_items_by_status(
-            work_item_repo, work_item_repo.db,
-            status=status_filter, page=page, page_size=page_size,
+            work_item_repo, status_filter,
+            db=work_item_repo.db, page=page, page_size=page_size,
             period=period, client_name=client_name,
         )
     else:

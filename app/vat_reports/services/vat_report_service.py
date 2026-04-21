@@ -74,7 +74,7 @@ class VatReportService:
 
     def list_work_items_by_status(self, **kwargs):
         return vat_report_queries.list_work_items_by_status(
-            self.work_item_repo, self.db, **kwargs
+            self.work_item_repo, db=self.db, **kwargs
         )
 
     def list_all_work_items(self, **kwargs):

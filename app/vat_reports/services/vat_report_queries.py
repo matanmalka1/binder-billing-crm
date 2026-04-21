@@ -102,8 +102,8 @@ def _resolve_client_ids_by_name(
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
-    db=None,
     status: VatWorkItemStatus,
+    db=None,
     page: int = 1,
     page_size: int = 50,
     period: Optional[str] = None,
