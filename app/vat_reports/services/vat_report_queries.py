@@ -19,7 +19,6 @@ from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
-
 def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
     """Derive statutory and extended deadline fields from period.
 
@@ -68,7 +67,6 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
             "is_overdue": None,
         }
 
-
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     item = work_item_repo.get_by_id(item_id)
     if not item:
@@ -78,7 +76,6 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
 
 def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_id: int):
     return work_item_repo.list_by_client_record(client_record_id)
-
 
 def _resolve_client_ids_by_name(
     db,
@@ -99,7 +96,6 @@ def _resolve_client_ids_by_name(
         )
     return [record.id for record in client_records]
 
-
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
     status: VatWorkItemStatus,
@@ -117,13 +113,12 @@ def list_work_items_by_status(
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
+        status, page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
     )
     total = work_item_repo.count_by_status(
-        status, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
+        status, period=period, client_record_ids=client_record_ids
     )
     return items, total
-
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
@@ -141,11 +136,10 @@ def list_all_work_items(
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, client_ids=client_record_ids, client_record_ids=client_record_ids
+        page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
     )
-    total = work_item_repo.count_all(period=period, client_ids=client_record_ids, client_record_ids=client_record_ids)
+    total = work_item_repo.count_all(period=period, client_record_ids=client_record_ids)
     return items, total
-
 
 def list_invoices(
     invoice_repo: VatInvoiceRepository,
@@ -153,7 +147,6 @@ def list_invoices(
     invoice_type: Optional[InvoiceType] = None,
 ):
     return invoice_repo.list_by_work_item(item_id, invoice_type=invoice_type)
-
 
 def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
     return work_item_repo.get_audit_trail(item_id)

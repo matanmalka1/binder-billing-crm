@@ -20,33 +20,24 @@ def test_get_work_item_not_found_raises_not_found_error():
 
 def test_list_client_work_items_forwards_repository_call():
     work_item_repo = MagicMock()
-    work_item_repo.db = MagicMock()
     expected = [make_item(id=1), make_item(id=2)]
     work_item_repo.list_by_client_record.return_value = expected
 
-    class _ClientRecordRepo:
-        def __init__(self, db):
-            self.db = db
+    result = vat_report_queries.list_client_work_items(work_item_repo, client_record_id=11)
 
-        def get_by_client_id(self, client_id):
-            assert client_id == 11
-            return MagicMock(id=31)
-
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(vat_report_queries, "ClientRecordRepository", _ClientRecordRepo)
-        result = vat_report_queries.list_client_work_items(work_item_repo, client_id=11)
-
-    work_item_repo.list_by_client_record.assert_called_once_with(31)
+    work_item_repo.list_by_client_record.assert_called_once_with(11)
     assert result == expected
 
 
 def test_list_work_items_by_status_short_circuits_when_client_search_empty():
     work_item_repo = MagicMock()
     client_repo = MagicMock()
+    client_repo.db = None
     client_repo.list.return_value = []
 
     items, total = vat_report_queries.list_work_items_by_status(
         work_item_repo=work_item_repo,
+        db=None,
         client_repo=client_repo,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
         client_name="no match",
@@ -61,12 +52,14 @@ def test_list_work_items_by_status_short_circuits_when_client_search_empty():
 def test_list_work_items_by_status_uses_resolved_client_ids():
     work_item_repo = MagicMock()
     client_repo = MagicMock()
+    client_repo.db = None
     client_repo.list.return_value = [MagicMock(id=7), MagicMock(id=8)]
     work_item_repo.list_by_status.return_value = [make_item(id=1)]
     work_item_repo.count_by_status.return_value = 1
 
     items, total = vat_report_queries.list_work_items_by_status(
         work_item_repo=work_item_repo,
+        db=None,
         client_repo=client_repo,
         status=VatWorkItemStatus.PENDING_MATERIALS,
         client_name="Acme",
@@ -82,12 +75,12 @@ def test_list_work_items_by_status_uses_resolved_client_ids():
         page=2,
         page_size=25,
         period="2026-01",
-        client_ids=[7, 8],
+        client_record_ids=[7, 8],
     )
     work_item_repo.count_by_status.assert_called_once_with(
         VatWorkItemStatus.PENDING_MATERIALS,
         period="2026-01",
-        client_ids=[7, 8],
+        client_record_ids=[7, 8],
     )
 
 
@@ -99,6 +92,7 @@ def test_list_all_work_items_without_name_filter_passes_none_client_ids():
 
     items, total = vat_report_queries.list_all_work_items(
         work_item_repo=work_item_repo,
+        db=None,
         client_repo=client_repo,
         page=1,
         page_size=10,
@@ -109,10 +103,10 @@ def test_list_all_work_items_without_name_filter_passes_none_client_ids():
     assert total == 1
     client_repo.list.assert_not_called()
     work_item_repo.list_all.assert_called_once_with(
-        page=1, page_size=10, period="2026-02", client_ids=None
+        page=1, page_size=10, period="2026-02", client_record_ids=None
     )
     work_item_repo.count_all.assert_called_once_with(
-        period="2026-02", client_ids=None
+        period="2026-02", client_record_ids=None
     )
 
 

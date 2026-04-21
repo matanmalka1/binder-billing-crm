@@ -30,7 +30,7 @@ def test_get_work_item_includes_user_names_and_deadline_fields(
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,
-        json={"client_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
+        json={"client_record_id": vat_client.id, "period": "2026-08", "assigned_to": assignee.id},
     )
     assert create_resp.status_code == 201
     item_id = create_resp.json()["id"]
@@ -148,13 +148,15 @@ def test_period_options_default_monthly_returns_12_periods(
 def test_period_options_bimonthly_uses_odd_months_and_marks_opened(
     client, advisor_headers, vat_client, test_db
 ):
-    vat_client.vat_reporting_frequency = VatType.BIMONTHLY
+    from app.clients.models.legal_entity import LegalEntity
+    le = test_db.query(LegalEntity).filter(LegalEntity.id == vat_client.legal_entity_id).first()
+    le.vat_reporting_frequency = VatType.BIMONTHLY
     test_db.commit()
 
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,
-        json={"client_id": vat_client.id, "period": "2026-03"},
+        json={"client_record_id": vat_client.id, "period": "2026-03"},
     )
     assert create_resp.status_code == 201
 

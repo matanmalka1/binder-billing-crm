@@ -11,7 +11,7 @@ class TestCreateWorkItem:
         assert isinstance(item_id, int)
 
     def test_duplicate_period_400(self, client, advisor_headers, vat_client):
-        payload = {"client_id": vat_client.id, "period": "2026-02"}
+        payload = {"client_record_id": vat_client.id, "period": "2026-02"}
         client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         response = client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         assert response.status_code == 409
@@ -21,7 +21,7 @@ class TestCreateWorkItem:
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
-            json={"client_id": vat_client.id, "period": "01-2026"},
+            json={"client_record_id": vat_client.id, "period": "01-2026"},
         )
         assert response.status_code == 422
 
@@ -29,7 +29,7 @@ class TestCreateWorkItem:
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
-            json={"client_id": vat_client.id, "period": "2026-03", "mark_pending": True},
+            json={"client_record_id": vat_client.id, "period": "2026-03", "mark_pending": True},
         )
         assert response.status_code == 400
         assert response.json()["error"] == "VAT.PENDING_NOTE_REQUIRED"
@@ -37,7 +37,7 @@ class TestCreateWorkItem:
     def test_unauthenticated_401(self, client, vat_client):
         response = client.post(
             "/api/v1/vat/work-items",
-            json={"client_id": vat_client.id, "period": "2026-04"},
+            json={"client_record_id": vat_client.id, "period": "2026-04"},
         )
         assert response.status_code == 401
 
@@ -56,12 +56,12 @@ class TestCreateWorkItem:
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
-            json={"client_id": vat_client.id, "period": "2026-05", "assigned_to": assignee.id},
+            json={"client_record_id": vat_client.id, "period": "2026-05", "assigned_to": assignee.id},
         )
 
         assert response.status_code == 201
         body = response.json()
         assert body["client_name"] == vat_client.full_name
-        assert body["client_id"] == vat_client.id
+        assert body["client_record_id"] == vat_client.id
         assert body["assigned_to_name"] == "VAT Assignee"
         assert body["submission_deadline"] == "2026-06-15"

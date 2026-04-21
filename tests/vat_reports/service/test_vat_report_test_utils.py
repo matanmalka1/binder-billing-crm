@@ -14,7 +14,7 @@ def make_item(
     item = MagicMock()
     item.id = id
     item.business_id = business_id
-    item.client_id = business_id
+    item.client_record_id = business_id
     item.period = period
     item.status = status
     item.net_vat = net_vat

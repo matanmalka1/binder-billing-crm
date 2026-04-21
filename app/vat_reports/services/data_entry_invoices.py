@@ -48,7 +48,6 @@ from app.vat_reports.services.messages import (
 def add_invoice(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
-    repo_or_client_repo,
     *,
     item_id: int,
     created_by: int,
@@ -72,7 +71,7 @@ def add_invoice(
 
     assert_editable(item)
 
-    db = getattr(repo_or_client_repo, "db", None) or getattr(work_item_repo, "db", None)
+    db = getattr(work_item_repo, "db", None)
     record = ClientRecordRepository(db).get_by_id(item.client_record_id) if db else None
     if not record:
         raise NotFoundError(

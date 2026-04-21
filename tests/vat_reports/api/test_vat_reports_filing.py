@@ -108,6 +108,6 @@ class TestFiling:
         assert response.status_code == 200
         data = response.json()
         assert data["client_name"] == vat_client.full_name
-        assert data["client_id"] == vat_client.id
+        assert data["client_record_id"] == vat_client.id
         assert data["filed_by_name"] == test_user.full_name
         assert data["submission_deadline"] == "2026-09-19"

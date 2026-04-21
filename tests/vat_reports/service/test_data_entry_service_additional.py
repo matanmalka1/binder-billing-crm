@@ -27,7 +27,6 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
         add_invoice(
             work_item_repo,
             invoice_repo,
-            business_repo,
             item_id=1,
             created_by=1,
             invoice_type=InvoiceType.INCOME,
@@ -38,9 +37,9 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
             vat_amount=1.7,
         )
 
-    item = SimpleNamespace(id=1, client_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
+    item = SimpleNamespace(id=1, client_record_id=1, period="2026-01", status=VatWorkItemStatus.PENDING_MATERIALS)
     work_item_repo = SimpleNamespace(
-        db=object(),
+        db=None,
         get_by_id=lambda _id: item,
         update_status=lambda *args, **kwargs: None,
         append_audit=lambda **kwargs: None,
@@ -50,7 +49,6 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
         add_invoice(
             work_item_repo,
             invoice_repo,
-            business_repo,
             item_id=1,
             created_by=1,
             invoice_type=InvoiceType.INCOME,
@@ -63,10 +61,12 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
 
 
 def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
-    item = SimpleNamespace(id=1, client_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+    item = SimpleNamespace(id=1, client_record_id=1, period="2026-03", status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+    mock_record = SimpleNamespace(id=1, legal_entity_id=1, status="active")
     created = {}
+    fake_db = object()
     work_item_repo = SimpleNamespace(
-        db=object(),
+        db=fake_db,
         get_by_id=lambda _id: item,
         update_status=lambda *args, **kwargs: None,
         append_audit=lambda **kwargs: None,
@@ -75,16 +75,22 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
         get_by_number=lambda *args, **kwargs: None,
         create=lambda **kwargs: created.setdefault("invoice", SimpleNamespace(id=44, **kwargs)),
     )
-    business_repo = SimpleNamespace(get_by_id=lambda _id: None)
     monkeypatch.setattr(
         "app.vat_reports.services.data_entry_invoices.recalculate_totals",
         lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "app.vat_reports.services.data_entry_invoices.ClientRecordRepository",
+        lambda db: SimpleNamespace(get_by_id=lambda _id: mock_record),
+    )
+    monkeypatch.setattr(
+        "app.vat_reports.services.data_entry_invoices.LegalEntityRepository",
+        lambda db: SimpleNamespace(get_by_id=lambda _id: SimpleNamespace(entity_type=None)),
     )
 
     income, ceiling_warning = add_invoice(
         work_item_repo,
         invoice_repo,
-        business_repo,
         item_id=1,
         created_by=1,
         invoice_type=InvoiceType.INCOME,

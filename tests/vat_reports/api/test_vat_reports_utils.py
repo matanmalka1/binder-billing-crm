@@ -2,7 +2,7 @@ def create_work_item(client, headers, vat_client, period):
     response = client.post(
         "/api/v1/vat/work-items",
         headers=headers,
-        json={"client_id": vat_client.id, "period": period},
+        json={"client_record_id": vat_client.id, "period": period},
     )
     assert response.status_code == 201
     return response.json()["id"]

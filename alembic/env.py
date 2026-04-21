@@ -13,7 +13,6 @@ from app.database import Base
 # Add new model files here when introducing new ORM models.
 import app.users.models.user                                            # noqa
 import app.users.models.user_audit_log                                  # noqa
-import app.clients.models.client                                        # noqa
 import app.clients.models.person                                        # noqa
 import app.clients.models.legal_entity                                  # noqa
 import app.clients.models.client_record                                 # noqa

@@ -12,10 +12,10 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-def _seed_work_items(db, client_id: int, created_by: int):
+def _seed_work_items(db, client_record_id: int, created_by: int):
     items = [
         VatWorkItem(
-            client_id=client_id,
+            client_record_id=client_record_id,
             created_by=created_by,
             period="2026-02",
             period_type=VatType.MONTHLY,
@@ -28,7 +28,7 @@ def _seed_work_items(db, client_id: int, created_by: int):
             final_vat_amount=None,
         ),
         VatWorkItem(
-            client_id=client_id,
+            client_record_id=client_record_id,
             created_by=created_by,
             period="2026-01",
             period_type=VatType.MONTHLY,
@@ -56,7 +56,7 @@ def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_
     resp = client.get(f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers)
     assert resp.status_code == 200
     payload = resp.json()
-    assert payload["client_id"] == vat_client.id
+    assert payload["client_record_id"] == vat_client.id
     assert [row["period"] for row in payload["periods"]] == ["2026-02", "2026-01"]
     assert len(payload["annual"]) == 1
     assert payload["annual"][0]["year"] == 2026

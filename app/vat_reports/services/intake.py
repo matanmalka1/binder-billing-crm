@@ -2,13 +2,12 @@
 
 import json
 from typing import Optional
-from types import SimpleNamespace
 
 from app.common.enums import VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.enums import ClientStatus
+from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -47,8 +46,7 @@ def create_work_item(
     work_item_repo: VatWorkItemRepository,
     db,
     *,
-    client_record_id: Optional[int] = None,
-    client_id: Optional[int] = None,
+    client_record_id: int,
     period: str,
     created_by: int,
     assigned_to: Optional[int] = None,
@@ -65,31 +63,16 @@ def create_work_item(
     - If mark_pending=True the item starts in PENDING_MATERIALS; note is required.
     - Otherwise starts in MATERIAL_RECEIVED.
     """
-    legacy_client_repo = db if hasattr(db, "db") and hasattr(db, "get_by_id") else None
-    db_session = legacy_client_repo.db if legacy_client_repo is not None else db
-    if client_record_id is None:
-        client_record_id = client_id
-    if client_record_id is None:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=""), "VAT.NOT_FOUND")
-
-    client_record = ClientRecordRepository(db_session).get_by_id(client_record_id)
-    if client_record:
-        assert_client_record_is_active(client_record)
-        client_record_id = client_record.id
-        legal_entity = LegalEntityRepository(db_session).get_by_id(client_record.legal_entity_id)
-        if not legal_entity:
-            raise NotFoundError(
-                VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
-                "VAT.NOT_FOUND",
-            )
-    elif legacy_client_repo is not None:
-        legacy_client = legacy_client_repo.get_by_id(client_record_id)
-        if not legacy_client:
-            raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
-        client_record = SimpleNamespace(id=client_record_id, status=getattr(legacy_client, "status", ClientStatus.ACTIVE))
-        legal_entity = legacy_client
-    else:
+    client_record = ClientRecordRepository(db).get_by_id(client_record_id)
+    if not client_record:
         raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+    assert_client_record_is_active(client_record)
+    legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
+    if not legal_entity:
+        raise NotFoundError(
+            VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+            "VAT.NOT_FOUND",
+        )
     if client_record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
     if client_record.status == ClientStatus.FROZEN:
