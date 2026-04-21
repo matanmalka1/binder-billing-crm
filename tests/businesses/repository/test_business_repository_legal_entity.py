@@ -91,7 +91,7 @@ def test_create_resolves_legal_entity_from_client_record(test_db, repo, legal_en
     test_db.flush()
 
     business = repo.create(
-        client_id=client_record.id,
+        client_record_id=client_record.id,
         opened_at=date(2024, 1, 1),
         business_name="Created From Record",
     )

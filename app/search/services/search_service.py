@@ -112,7 +112,8 @@ class SearchService:
             binder_cr_ids = [b.client_record_id for b in binders]
             records = {record.id: record for record in self.client_record_repo.list_by_ids(binder_cr_ids)}
             cr_to_legal = {record.id: record.legal_entity_id for record in records.values()}
-            legal_map = self._legal_entity_map(list(cr_to_legal.values()))
+            legal_entity_ids = list(cr_to_legal.values())
+            legal_map = self._legal_entity_map(legal_entity_ids)
             businesses = self.business_repo.list_by_legal_entity_ids(legal_entity_ids)
             legal_to_business = {b.legal_entity_id: b for b in businesses}
             for binder in binders:

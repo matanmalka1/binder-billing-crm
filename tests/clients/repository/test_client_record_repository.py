@@ -55,7 +55,7 @@ def test_get_legal_entity_id_by_client_record_id_raises_for_unknown(test_db):
 
 # ── Fix 2: guard assert_business_belongs_to_legal_entity end-to-end ──────────
 
-def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalEntity, Business]:
+def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalEntity, ClientRecord, Business]:
     le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
     db.add(le)
     db.flush()
@@ -63,7 +63,6 @@ def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalE
     db.add(cr)
     db.flush()
     biz = Business(
-        client_id=cr.id,
         legal_entity_id=le.id,
         business_name="Guard Test Biz",
         opened_at=date(2026, 1, 1),
@@ -72,18 +71,19 @@ def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalE
     db.add(biz)
     db.commit()
     db.refresh(le)
+    db.refresh(cr)
     db.refresh(biz)
-    return le, biz
+    return le, cr, biz
 
 
 def test_assert_business_belongs_to_legal_entity_passes_on_match(test_db):
-    le, biz = _seed_business_with_legal_entity(test_db)
+    le, _, biz = _seed_business_with_legal_entity(test_db)
     # Must not raise
     assert_business_belongs_to_legal_entity(biz, le.id)
 
 
 def test_assert_business_belongs_to_legal_entity_raises_on_mismatch(test_db):
-    _, biz = _seed_business_with_legal_entity(test_db, id_number="LE-BIZ-002")
+    _, _, biz = _seed_business_with_legal_entity(test_db, id_number="LE-BIZ-002")
     with pytest.raises(NotFoundError) as exc:
         assert_business_belongs_to_legal_entity(biz, 999999)
     assert exc.value.code == "BUSINESS.NOT_FOUND"
@@ -96,22 +96,12 @@ def test_update_business_via_legal_entity_id(test_db):
     from app.businesses.services.business_service import BusinessService
     from app.users.models.user import UserRole
 
-    le, biz = _seed_business_with_legal_entity(test_db, id_number="LE-UPD-001")
-    # ClientRecord must exist with id == biz.client_id for the direct record lookup.
-    cr = ClientRecord(id=biz.client_id, legal_entity_id=le.id)
-    # ClientRecord with same PK may already exist from _seed; skip if so
-    existing = test_db.query(ClientRecord).filter(ClientRecord.id == biz.client_id).first()
-    if existing:
-        existing.legal_entity_id = le.id
-        test_db.commit()
-    else:
-        test_db.add(cr)
-        test_db.commit()
+    le, cr, biz = _seed_business_with_legal_entity(test_db, id_number="LE-UPD-001")
 
     service = BusinessService(test_db)
     updated = service.update_business(
         biz.id,
-        client_id=biz.client_id,
+        client_id=cr.id,
         user_role=UserRole.ADVISOR,
         business_name="Updated Name",
     )
@@ -132,7 +122,7 @@ def test_correspondence_ownership_raises_not_found_error(test_db):
     test_db.add_all([client_a, client_b])
     test_db.flush()
     biz = Business(
-        client_id=client_a.id,
+        legal_entity_id=le_a.id,
         business_name="Biz A",
         opened_at=date(2026, 1, 1),
         status=BusinessStatus.ACTIVE,

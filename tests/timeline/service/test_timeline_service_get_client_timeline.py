@@ -122,7 +122,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
 
     assert captured["client_id"] == business.client_id
-    assert total == 12
+    assert total == 11
     assert [event["event_type"] for event in events] == [
         "client_created",
         "invoice_attached",

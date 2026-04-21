@@ -106,16 +106,19 @@ def test_update_delete_restore_flow(test_db):
         full_name="After Update",
         phone="0501234567",
     )
-    assert updated.full_name == "After Update"
-    assert updated.phone == "0501234567"
+    assert updated["full_name"] == "After Update"
+    assert updated["phone"] == "0501234567"
 
     service.delete_client(created.id, actor_id=11)
     with pytest.raises(NotFoundError):
         service.get_client_or_raise(created.id)
 
     restored = service.restore_client(created.id, actor_id=12)
-    assert restored.deleted_at is None
-    assert restored.restored_by == 12
+    restored_record = service.client_repo.get_by_id(created.id)
+    assert restored_record is not None
+    assert restored_record.deleted_at is None
+    assert restored_record.restored_by == 12
+    assert restored["id"] == created.id
 
 
 def test_create_client_always_creates_initial_binder(test_db):
@@ -151,7 +154,9 @@ def test_restore_raises_when_not_deleted(test_db):
 
 def test_restore_raises_when_active_duplicate_exists(test_db):
     deleted = _create_client(test_db, full_name="Old", id_number="660000001", deleted=True)
-    _create_client(test_db, full_name="New Active", id_number="660000001")
+    active = ClientRecord(legal_entity_id=deleted.legal_entity_id, created_by=1)
+    test_db.add(active)
+    test_db.commit()
 
     service = ClientService(test_db)
     with pytest.raises(ConflictError) as exc:

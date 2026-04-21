@@ -88,7 +88,13 @@ def get_reminders(
     page_size: int = 20,
 ) -> Tuple[List[Reminder], int, Dict[int, ReminderContext]]:
     if status is None:
-        return get_pending_reminders(reminder_repo, client_repo, business_repo, tax_deadline_repo, page=page, page_size=page_size)
+        return get_pending_reminders(
+            reminder_repo,
+            business_repo,
+            tax_deadline_repo,
+            page=page,
+            page_size=page_size,
+        )
 
     valid_statuses = {e.value for e in ReminderStatus}
     if status not in valid_statuses:

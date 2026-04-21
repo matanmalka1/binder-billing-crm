@@ -10,7 +10,8 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.enums import ClientStatus
-from app.clients.models.person_legal_entity_link import PersonLegalEntityRole
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.clients.repositories.person_repository import PersonRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_record_read_repository import get_full_record
 from app.core.exceptions import ForbiddenError, NotFoundError
@@ -66,17 +67,10 @@ class ClientUpdateService:
 
     def _update_client_record_graph(self, client_id: int, **fields):
         record = self.record_repo.get_by_id(client_id)
-        if not record or not record.legal_entity:
+        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id) if record else None
+        if not record or not legal_entity:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-        legal_entity = record.legal_entity
-        person = next(
-            (
-                link.person
-                for link in legal_entity.person_links
-                if link.role == PersonLegalEntityRole.OWNER and link.person is not None
-            ),
-            None,
-        )
+        person = PersonRepository(self.db).get_owner_for_legal_entity(legal_entity.id)
         person_fields = {
             "phone",
             "email",

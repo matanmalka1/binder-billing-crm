@@ -17,7 +17,7 @@ def test_vat_module_keeps_binder_receive_working(client, advisor_headers, test_d
         "/api/v1/binders/receive",
         headers=advisor_headers,
         json={
-            "client_id": c.id,
+            "client_record_id": c.id,
             "received_at": "2026-02-01",
             "received_by": 1,
             "materials": [
@@ -46,7 +46,7 @@ def test_vat_module_keeps_charge_creation_working(client, advisor_headers, test_
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": c.id,
+            "client_record_id": c.id,
             "business_id": business.id if business else None,
             "amount": 500.0,
             "charge_type": "other",

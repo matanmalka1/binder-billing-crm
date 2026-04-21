@@ -111,8 +111,10 @@ class BinderIntakeEditService:
 
         target_binder = self._resolve_target_binder(current_binder=current_binder, patch=patch)
         target_client_id = target_binder.client_record_id
-        if not self.client_record_repo.get_by_id(target_client_id):
+        target_client_record = self.client_record_repo.get_by_id(target_client_id)
+        if not target_client_record:
             raise AppError(BINDER_INTAKE_CROSS_CLIENT_VALIDATION_FAILED, "BINDER.CROSS_CLIENT")
+        target_legal_entity_id = target_client_record.legal_entity_id
 
         if current_binder.client_record_id != target_client_id:
             self.edit_log_repo.append(
@@ -130,9 +132,9 @@ class BinderIntakeEditService:
             materials=materials,
             attr_name="business_id",
             replacements=patch.get("business_ids"),
-            client_record_id=target_client_id,
+            client_record_id=target_legal_entity_id,
             loader=self.business_repo.get_by_id,
-            owner_attr="client_record_id",
+            owner_attr="legal_entity_id",
         )
         self._validate_and_apply_fk_updates(
             intake_id=intake.id,

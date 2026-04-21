@@ -12,13 +12,20 @@ from app.businesses.services.business_service import BusinessService
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.utils.time_utils import utcnow
 from app.users.models.user import UserRole
+from tests.helpers.identity import seed_client_identity
 
 
-def _create_business_row(test_db, *, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
+def _create_business_row(
+    test_db,
+    *,
+    status: BusinessStatus = BusinessStatus.ACTIVE,
+    legal_entity_id: int | None = None,
+) -> Business:
     business = Business(
         business_name="Additional Service Business",
         opened_at=date(2026, 1, 1),
         status=status,
+        legal_entity_id=legal_entity_id,
     )
     test_db.add(business)
     test_db.commit()
@@ -85,13 +92,14 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(mon
 
 
 def test_update_business_rejects_invalid_status_value(test_db):
-    business = _create_business_row(test_db)
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD001")
+    business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
     with pytest.raises(AppError) as exc:
         service.update_business(
             business_id=business.id,
-            client_id=1,
+            client_id=client.id,
             user_role=UserRole.ADVISOR,
             status="not-a-real-status",
         )
@@ -100,7 +108,8 @@ def test_update_business_rejects_invalid_status_value(test_db):
 
 
 def test_update_business_rejects_wrong_client_id(test_db):
-    business = _create_business_row(test_db)
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD002")
+    business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
     with pytest.raises(NotFoundError) as exc:
@@ -115,13 +124,18 @@ def test_update_business_rejects_wrong_client_id(test_db):
 
 
 def test_update_business_to_active_clears_closed_at(test_db):
-    business = _create_business_row(test_db, status=BusinessStatus.CLOSED)
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD003")
+    business = _create_business_row(
+        test_db,
+        status=BusinessStatus.CLOSED,
+        legal_entity_id=client.legal_entity_id,
+    )
     business.closed_at = date(2026, 2, 1)
     test_db.commit()
 
     result = BusinessService(test_db).update_business(
         business_id=business.id,
-        client_id=1,
+        client_id=client.id,
         user_role=UserRole.ADVISOR,
         status=BusinessStatus.ACTIVE.value,
     )

@@ -83,6 +83,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         test_db.add(tax_deadline)
 
         sig = SignatureRequest(
+            client_record_id=business.client_id,
             business_id=business.id,
             created_by=test_user.id,
             request_type=SignatureRequestType.CUSTOM,

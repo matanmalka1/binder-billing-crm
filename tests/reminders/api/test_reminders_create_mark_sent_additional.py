@@ -54,7 +54,7 @@ def test_create_binder_idle_and_unpaid_charge_missing_ids_return_400(client, tes
         headers=advisor_headers,
         json={
             "business_id": business.id,
-            "client_id": crm_client.id,
+            "client_record_id": crm_client.id,
             "reminder_type": "unpaid_charge",
             "target_date": date.today().isoformat(),
             "days_before": 3,

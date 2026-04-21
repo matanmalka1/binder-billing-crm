@@ -13,7 +13,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     )
 
     b_open = Binder(
-        client_id=c.id,
         client_record_id=c.id,
         binder_number="BND-OPEN",
         period_start=today,
@@ -21,7 +20,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
         created_by=test_user.id,
     )
     b_overdue = Binder(
-        client_id=c.id,
         client_record_id=c.id,
         binder_number="BND-OVERDUE",
         period_start=today - timedelta(days=100),
@@ -29,7 +27,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
         created_by=test_user.id,
     )
     b_due_today = Binder(
-        client_id=c.id,
         client_record_id=c.id,
         binder_number="BND-DUE",
         period_start=today,
@@ -57,7 +54,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
         "statuses": {b.id: b.status.value for b in test_db.query(Binder).all()},
     }
 
-    r_client_binders = client.get(f"/api/v1/binders?client_id={c.id}", headers=advisor_headers)
+    r_client_binders = client.get(f"/api/v1/binders?client_record_id={c.id}", headers=advisor_headers)
     assert r_client_binders.status_code == 200
     assert r_client_binders.json()["total"] == 3
 

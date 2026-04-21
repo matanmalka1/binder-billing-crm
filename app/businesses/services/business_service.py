@@ -21,6 +21,7 @@ class BusinessService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.client_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
         self._lifecycle = BusinessLifecycleService(db)
         self._update = BusinessUpdateService(db)
@@ -52,14 +53,13 @@ class BusinessService:
         notes: Optional[str] = None,
         actor_id: Optional[int] = None,
     ) -> Business:
-        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        record = self.client_repo.get_by_id(client_record_id)
         if not record:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+            raise NotFoundError(f"לקוח {client_record_id} לא נמצא", "CLIENT.NOT_FOUND")
 
         effective_opened_at = opened_at or date.today()
-        legal_entity_id = record.legal_entity_id
 
-        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(legal_entity_id):
+        if self.business_repo.all_non_deleted_are_closed(client_record_id):
             raise AppError(
                 "כל העסקים של לקוח זה סגורים — לא ניתן להוסיף עסק חדש ללא אישור מפורש",
                 "BUSINESS.CLIENT_ALL_CLOSED",
@@ -67,7 +67,7 @@ class BusinessService:
             )
 
         if business_name:
-            for b in self.business_repo.list_by_legal_entity(legal_entity_id, page=1, page_size=10_000):
+            for b in self.business_repo.list_by_client(client_record_id, page=1, page_size=10_000):
                 if b.business_name and b.business_name.strip().lower() == business_name.strip().lower():
                     raise ConflictError(
                         f"עסק בשם '{business_name}' כבר קיים ללקוח זה",
@@ -75,8 +75,8 @@ class BusinessService:
                     )
 
         try:
-            business = self.business_repo.create_for_legal_entity(
-                legal_entity_id=legal_entity_id,
+            business = self.business_repo.create(
+                client_record_id=client_record_id,
                 opened_at=effective_opened_at,
                 business_name=business_name,
                 notes=notes,
@@ -113,8 +113,8 @@ class BusinessService:
     def list_businesses_for_client(
         self, client_id: int, page: int = 1, page_size: int = 20
     ) -> tuple[list[Business], int]:
-        if not ClientRecordRepository(self.db).get_by_id(client_id):
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        if not self.client_repo.get_by_id(client_id):
+            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
         items = self.business_repo.list_by_client(client_id, page=page, page_size=page_size)
         total = self.business_repo.count_by_client(client_id)
         return items, total
@@ -125,13 +125,10 @@ class BusinessService:
         self, business_id: int, client_id: int, user_role: UserRole,
         actor_id: Optional[int] = None, **fields
     ) -> Business:
-        record = ClientRecordRepository(self.db).get_by_id(client_id)
+        record = self.client_repo.get_by_id(client_id)
         if not record:
-            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
-        return self._update.update_business(
-            business_id, client_id=client_id, user_role=user_role, actor_id=actor_id,
-            legal_entity_id=record.legal_entity_id, **fields
-        )
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        return self._update.update_business(business_id, client_id=client_id, user_role=user_role, actor_id=actor_id, **fields)
 
     # ─── Delete / Restore (delegated) ────────────────────────────────────────
 

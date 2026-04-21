@@ -15,7 +15,7 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
         "/api/v1/binders/receive",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "received_at": "2026-02-09",
             "received_by": 1,
             "materials": [
@@ -43,7 +43,6 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, t
     )
 
     binder = Binder(
-        client_id=test_client.id,
         client_record_id=test_client.id,
         binder_number="REG-002",
         period_start=date.today() - timedelta(days=100),
@@ -71,7 +70,7 @@ def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers,
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "business_id": business.id if business else None,
             "amount": 100.0,
             "charge_type": "other",

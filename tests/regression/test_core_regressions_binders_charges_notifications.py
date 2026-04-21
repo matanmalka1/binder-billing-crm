@@ -15,7 +15,7 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
         "/api/v1/binders/receive",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "received_at": "2026-02-09",
             "received_by": 1,
             "materials": [
@@ -55,7 +55,7 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
         "/api/v1/charges",
         headers=advisor_headers,
         json={
-            "client_id": test_client.id,
+            "client_record_id": test_client.id,
             "business_id": business.id if business else None,
             "amount": 100.0,
             "charge_type": "other",
