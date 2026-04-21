@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from random import Random
 
-EMAIL_DOMAIN = "demo-accounting.test"
+EMAIL_DOMAIN = "demo-accounting.com"
 INVOICE_BASE_URL = "https://files.demo-accounting.test/invoices"
 
 MOBILE_PREFIXES = ["050", "052", "053", "054", "055", "058"]
@@ -67,11 +67,11 @@ ACCOUNTANT_NAMES = [
 ]
 
 AUTHORITY_CONTACTS = [
-    {"name": "אילה בן דוד", "office": "פקיד שומה תל אביב 1", "email": "ayala.bendavid@tax.demo-accounting.test"},
-    {"name": "אופיר צדוק", "office": "משרד מע\"מ ירושלים", "email": "ofir.tsadok@tax.demo-accounting.test"},
-    {"name": "ניב רחמים", "office": "ביטוח לאומי חיפה", "email": "niv.rahamim@btl.demo-accounting.test"},
-    {"name": "מורן טל", "office": "משרד מע\"מ באר שבע", "email": "moran.tal@tax.demo-accounting.test"},
-    {"name": "סיון הדר", "office": "פקיד שומה נתניה", "email": "sivan.hadar@tax.demo-accounting.test"},
+    {"name": "אילה בן דוד", "office": "פקיד שומה תל אביב 1", "email": "ayala.bendavid@tax.demo-accounting.com"},
+    {"name": "אופיר צדוק", "office": "משרד מע\"מ ירושלים", "email": "ofir.tsadok@tax.demo-accounting.com"},
+    {"name": "ניב רחמים", "office": "ביטוח לאומי חיפה", "email": "niv.rahamim@btl.demo-accounting.com"},
+    {"name": "מורן טל", "office": "משרד מע\"מ באר שבע", "email": "moran.tal@tax.demo-accounting.com"},
+    {"name": "סיון הדר", "office": "פקיד שומה נתניה", "email": "sivan.hadar@tax.demo-accounting.com"},
 ]
 
 CORRESPONDENCE_SUBJECTS = [
