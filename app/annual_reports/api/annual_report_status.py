@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+
+from app.core.api_types import PaginatedResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -99,7 +101,17 @@ def update_deadline(
     return report
 
 
-@router.get("/{report_id}/history", response_model=list[StatusHistoryResponse])
-def get_status_history(report_id: int, db: DBSession, user: CurrentUser):
+@router.get("/{report_id}/history", response_model=PaginatedResponse[StatusHistoryResponse])
+def get_status_history(
+    report_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+):
     service = AnnualReportService(db)
-    return service.get_status_history(report_id)
+    all_history = service.get_status_history(report_id)
+    total = len(all_history)
+    start = (page - 1) * page_size
+    items = all_history[start:start + page_size]
+    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)

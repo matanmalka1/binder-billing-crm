@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from app.core.api_types import PaginatedResponse
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
@@ -67,11 +68,20 @@ def list_pending_requests(
     )
 
 
-@advisor_router.get("/{request_id}/audit-trail", response_model=list[SignatureAuditEventResponse])
-def get_signature_request_audit_trail(request_id: int, db: DBSession, user: CurrentUser):
+@advisor_router.get("/{request_id}/audit-trail", response_model=PaginatedResponse[SignatureAuditEventResponse])
+def get_signature_request_audit_trail(
+    request_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+):
     service = SignatureRequestService(db)
-    audit_events = service.get_audit_trail(request_id)
-    return [SignatureAuditEventResponse.model_validate(e) for e in audit_events]
+    all_events = service.get_audit_trail(request_id)
+    total = len(all_events)
+    start = (page - 1) * page_size
+    items = [SignatureAuditEventResponse.model_validate(e) for e in all_events[start:start + page_size]]
+    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @advisor_router.get("/{request_id}", response_model=SignatureRequestWithAuditResponse)

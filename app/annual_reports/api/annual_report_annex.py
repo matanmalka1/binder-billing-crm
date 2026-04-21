@@ -1,6 +1,8 @@
 """Endpoints for annex (schedule) data lines."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.api_types import PaginatedResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -22,16 +24,22 @@ router = APIRouter(
 
 @router.get(
     "/{report_id}/annex/{schedule}",
-    response_model=list[AnnexDataLineResponse],
+    response_model=PaginatedResponse[AnnexDataLineResponse],
 )
 def list_annex_lines(
     report_id: int,
     schedule: AnnualReportSchedule,
     db: DBSession,
     user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
 ):
     svc = AnnualReportService(db)
-    return svc.get_annex_lines(report_id, schedule)
+    all_lines = svc.get_annex_lines(report_id, schedule)
+    total = len(all_lines)
+    start = (page - 1) * page_size
+    items = all_lines[start:start + page_size]
+    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @router.post(

@@ -7,18 +7,18 @@ from sqlalchemy.orm import Session
 from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
 from app.audit.constants import ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.binders.repositories.binder_repository import BinderRepository
+from app.annual_reports.services.client_status_service import AnnualReportClientStatusService
+from app.binders.services.client_status_service import BinderClientStatusService
 from app.clients.enums import ClientStatus
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.repositories.person_repository import PersonRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_record_read_repository import get_full_record
 from app.core.exceptions import ForbiddenError, NotFoundError
-from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
+from app.reminders.services.client_status_service import ReminderClientStatusService
+from app.tax_deadline.services.client_status_service import TaxDeadlineClientStatusService
 from app.users.models.user import UserRole
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository
+from app.vat_reports.services.client_status_service import VatWorkItemClientStatusService
 
 _log = logging.getLogger(__name__)
 
@@ -111,17 +111,17 @@ class ClientUpdateService:
             return
         self.record_repo.update_status(record.id, new_status)
         if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
-            ReminderRepository(self.db).cancel_pending_by_client_record(record.id)
-            TaxDeadlineRepository(self.db).cancel_pending_by_client_record(record.id)
-            VatWorkItemWriteRepository(self.db).cancel_open_by_client_record(record.id)
-            AnnualReportReportRepository(self.db).cancel_open_by_client_record(record.id)
-            BinderRepository(self.db).archive_in_office_by_client_record(record.id)
+            ReminderClientStatusService(self.db).cancel_pending_by_client_record(record.id)
+            TaxDeadlineClientStatusService(self.db).cancel_pending_by_client_record(record.id)
+            VatWorkItemClientStatusService(self.db).cancel_open_by_client_record(record.id)
+            AnnualReportClientStatusService(self.db).cancel_open_by_client_record(record.id)
+            BinderClientStatusService(self.db).archive_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(self, client_id: int, old_entity_type, new_entity_type, actor_id):
         record = self.record_repo.get_by_id(client_id)
         if not record:
             return
-        canceled = TaxDeadlineRepository(self.db).cancel_pending_by_client_record(record.id)
+        canceled = TaxDeadlineClientStatusService(self.db).cancel_pending_by_client_record(record.id)
         _log.warning(
             "entity_type_changed: client_id=%s old=%s new=%s canceled_deadlines=%s actor=%s",
             client_id, old_entity_type, new_entity_type, canceled, actor_id,

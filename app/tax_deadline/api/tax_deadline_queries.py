@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.users.models.user import UserRole
+from app.core.api_types import PaginatedResponse
 from app.tax_deadline.schemas.tax_deadline import (
     DashboardDeadlinesResponse,
     DeadlineUrgentItem,
@@ -83,16 +84,21 @@ def list_tax_deadlines(
     )
 
 
-@router.get("/timeline", response_model=list[TimelineEntry])
+@router.get("/timeline", response_model=PaginatedResponse[TimelineEntry])
 def get_timeline(
     client_record_id: int,
     db: DBSession,
     user: CurrentUser,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
 ):
     """Return all deadlines for a client sorted by due_date asc."""
     service = TaxDeadlineQueryService(db)
-    entries = service.get_timeline(client_record_id)
-    return [TimelineEntry(**e) for e in entries]
+    all_entries = service.get_timeline(client_record_id)
+    total = len(all_entries)
+    start = (page - 1) * page_size
+    items = [TimelineEntry(**e) for e in all_entries[start:start + page_size]]
+    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @router.get("/dashboard/urgent", response_model=DashboardDeadlinesResponse)
