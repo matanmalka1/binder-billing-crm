@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -11,34 +9,13 @@ from app.tax_deadline.schemas.tax_deadline import (
     TaxDeadlineUpdateRequest,
 )
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.actions.report_deadline_actions import get_tax_deadline_actions
+from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
 
 router = APIRouter(
     prefix="/tax-deadlines",
     tags=["tax-deadlines"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-
-
-def _build_response(
-    deadline,
-    db=None,
-    business_name: Optional[str] = None,
-    user_role: UserRole | str | None = None,
-) -> TaxDeadlineResponse:
-    r = TaxDeadlineResponse.model_validate(deadline)
-    if db is not None and business_name is None:
-        client_record = ClientRecordRepository(db).get_by_id(deadline.client_record_id)
-        if client_record:
-            legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
-            business_name = legal_entity.official_name if legal_entity else None
-    if business_name is not None:
-        r.business_name = business_name
-    r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
-    return r
-
 
 @router.post(
     "",
@@ -61,7 +38,7 @@ def create_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return _build_response(deadline, db=db, user_role=user.role)
+    return TaxDeadlineResponseBuilder(db).build(deadline, user_role=user.role)
 
 
 @router.get("/{deadline_id:int}", response_model=TaxDeadlineResponse)
@@ -69,7 +46,7 @@ def get_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Get tax deadline by ID."""
     service = TaxDeadlineService(db)
     deadline = service.get_deadline(deadline_id)
-    return _build_response(deadline, db=db, user_role=user.role)
+    return TaxDeadlineResponseBuilder(db).build(deadline, user_role=user.role)
 
 
 @router.post(
@@ -81,7 +58,7 @@ def complete_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Mark deadline as completed."""
     service = TaxDeadlineService(db)
     deadline = service.mark_completed(deadline_id, completed_by=user.id)
-    return _build_response(deadline, db=db, user_role=user.role)
+    return TaxDeadlineResponseBuilder(db).build(deadline, user_role=user.role)
 
 
 @router.post(
@@ -93,7 +70,7 @@ def reopen_tax_deadline(deadline_id: int, db: DBSession, user: CurrentUser):
     """Revert a completed deadline back to pending."""
     service = TaxDeadlineService(db)
     deadline = service.reopen_deadline(deadline_id)
-    return _build_response(deadline, db=db, user_role=user.role)
+    return TaxDeadlineResponseBuilder(db).build(deadline, user_role=user.role)
 
 
 @router.put(
@@ -118,7 +95,7 @@ def update_tax_deadline(
         payment_amount=request.payment_amount,
         description=request.description,
     )
-    return _build_response(deadline, db=db, user_role=user.role)
+    return TaxDeadlineResponseBuilder(db).build(deadline, user_role=user.role)
 
 
 @router.delete(
