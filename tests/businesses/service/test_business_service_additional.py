@@ -48,10 +48,10 @@ def test_create_business_raises_not_found_when_client_missing(test_db):
 
 def test_create_business_maps_integrity_error_to_conflict(test_db):
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: object())
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
     service.business_repo = SimpleNamespace(
-        all_non_deleted_are_closed=lambda _client_id: False,
-        list_by_client=lambda _client_id, **_kwargs: [],
+        all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
+        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
         create=lambda **_kwargs: (_ for _ in ()).throw(IntegrityError("stmt", "params", Exception("db"))),
     )
 
@@ -73,10 +73,10 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(mon
         return SimpleNamespace(id=15, **kwargs)
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace())
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
     service.business_repo = SimpleNamespace(
-        all_non_deleted_are_closed=lambda _client_id: False,
-        list_by_client=lambda _client_id, **_kwargs: [],
+        all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
+        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
         create=_create,
     )
 
@@ -240,14 +240,14 @@ def test_list_businesses_for_client_raises_when_client_missing(test_db):
 
 def test_list_businesses_for_client_delegates_to_repository(test_db):
     service = BusinessService(test_db)
-    client = SimpleNamespace(id=2)
+    client = SimpleNamespace(id=2, legal_entity_id=20)
     expected_items = [SimpleNamespace(id=5)]
     service.client_repo = SimpleNamespace(get_by_id=lambda client_id: client if client_id == 2 else None)
     service.business_repo = SimpleNamespace(
-        list_by_client=lambda client_id, page, page_size: expected_items
-        if (client_id, page, page_size) == (2, 3, 10)
+        list_by_legal_entity=lambda legal_entity_id, page, page_size: expected_items
+        if (legal_entity_id, page, page_size) == (20, 3, 10)
         else [],
-        count_by_client=lambda client_id: 1 if client_id == 2 else 0,
+        count_by_legal_entity=lambda legal_entity_id: 1 if legal_entity_id == 20 else 0,
     )
 
     assert service.list_businesses_for_client(2, page=3, page_size=10) == (expected_items, 1)

@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository_read import BusinessRepositoryRead
 from app.businesses.models.business import Business, BusinessStatus
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.utils.time_utils import utcnow
 
 
@@ -17,33 +16,9 @@ class BusinessRepository(BusinessRepositoryRead):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def _resolve_legal_entity_id(self, client_record_id: int) -> int | None:
-        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
-        return record.legal_entity_id if record else None
-
     # ─── Write ───────────────────────────────────────────────────────────────
 
     def create(
-        self,
-        client_record_id: int,
-        opened_at: date,
-        business_name: Optional[str] = None,
-        notes: Optional[str] = None,
-        created_by: Optional[int] = None,
-    ) -> Business:
-        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
-        business = Business(
-            legal_entity_id=legal_entity_id,
-            business_name=business_name,
-            opened_at=opened_at,
-            notes=notes,
-            created_by=created_by,
-        )
-        self.db.add(business)
-        self.db.flush()
-        return business
-
-    def create_for_legal_entity(
         self,
         legal_entity_id: int,
         opened_at: date,
@@ -97,26 +72,6 @@ class BusinessRepository(BusinessRepositoryRead):
 
     def get_by_id_including_deleted(self, business_id: int) -> Optional[Business]:
         return self.db.query(Business).filter(Business.id == business_id).first()
-
-    def exists_for_client(self, client_record_id: int) -> bool:
-        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
-        if legal_entity_id is None:
-            return False
-        return self.exists_for_legal_entity(legal_entity_id)
-
-    def all_non_deleted_are_closed(self, client_record_id: int) -> bool:
-        """Returns True if the client record has at least one non-deleted business and all are CLOSED."""
-        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
-        if legal_entity_id is None:
-            return False
-        return self.all_non_deleted_are_closed_for_legal_entity(legal_entity_id)
-
-    def get_ids_by_client(self, client_record_id: int) -> list[int]:
-        """Return all non-deleted business IDs for a client record."""
-        legal_entity_id = self._resolve_legal_entity_id(client_record_id)
-        if legal_entity_id is None:
-            return []
-        return self.get_ids_by_legal_entity(legal_entity_id)
 
     def exists_for_legal_entity(self, legal_entity_id: int) -> bool:
         return (

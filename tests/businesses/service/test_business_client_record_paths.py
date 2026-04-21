@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from app.businesses.api.client_businesses_router import _assert_business_belongs_to_client
 from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.services.client_business_service import ClientBusinessService
 from app.businesses.services.business_update_service import BusinessUpdateService
 from app.businesses.services.status_card_service import StatusCardService
 from app.clients.models.client_record import ClientRecord
@@ -62,14 +62,15 @@ def test_status_card_raises_when_client_record_missing(test_db):
     assert exc.value.code == "CLIENT_RECORD.NOT_FOUND"
 
 
-def test_router_guard_uses_client_record_legal_entity(test_db):
+def test_client_business_service_uses_client_record_legal_entity(test_db):
     owner = _seed_client_record(test_db, "OWNER")
     other = _seed_client_record(test_db, "OTHER")
     business = _seed_business(test_db, owner.legal_entity_id)
 
-    _assert_business_belongs_to_client(test_db, business, owner.id)
+    service = ClientBusinessService(test_db)
+    assert service.get_for_client(owner.id, business.id).id == business.id
 
     with pytest.raises(NotFoundError) as exc:
-        _assert_business_belongs_to_client(test_db, business, other.id)
+        service.get_for_client(other.id, business.id)
 
     assert exc.value.code == "BUSINESS.NOT_FOUND"

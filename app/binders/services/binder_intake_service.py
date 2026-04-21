@@ -62,7 +62,7 @@ class BinderIntakeService:
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
 
-        businesses = self.business_repo.list_by_client(client_record_id)
+        businesses = self.business_repo.list_by_legal_entity(client_record.legal_entity_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")

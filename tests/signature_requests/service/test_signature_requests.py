@@ -102,6 +102,10 @@ def test_create_request_raises_on_invalid_type():
     business_repo = SimpleNamespace(get_by_id=lambda _business_id: SimpleNamespace(legal_entity_id=1, contact_email=None, contact_phone=None))
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("app.signature_requests.services.create_request.ClientRecordRepository", lambda _db: client_record_repo)
+        mp.setattr(
+            "app.signature_requests.services.create_request.BusinessContactService",
+            lambda _db: SimpleNamespace(contact_email=lambda _business: None, contact_phone=lambda _business: None),
+        )
         with pytest.raises(AppError) as exc_info:
             create_request_module.create_request(repo, business_repo, client_record_id=1, business_id=1, created_by=1, created_by_name="Advisor", request_type="not-a-valid-type", title="Bad type", signer_name="Signer")
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_TYPE"
@@ -117,6 +121,13 @@ def test_create_request_falls_back_to_business_contact_details():
     business_repo = SimpleNamespace(get_by_id=lambda _business_id: SimpleNamespace(id=1, legal_entity_id=9, contact_email="biz@example.com", contact_phone="050-1111111"))
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("app.signature_requests.services.create_request.ClientRecordRepository", lambda _db: client_record_repo)
+        mp.setattr(
+            "app.signature_requests.services.create_request.BusinessContactService",
+            lambda _db: SimpleNamespace(
+                contact_email=lambda _business: "biz@example.com",
+                contact_phone=lambda _business: "050-1111111",
+            ),
+        )
         create_request_module.create_request(repo, business_repo, client_record_id=5, business_id=1, created_by=9, created_by_name="Advisor", request_type="custom", title="Fallback contact", signer_name="Signer", signer_email=None, signer_phone=None)
     assert captured["create"]["signer_email"] == "biz@example.com"
     assert captured["create"]["signer_phone"] == "050-1111111"

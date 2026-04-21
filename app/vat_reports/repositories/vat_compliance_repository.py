@@ -5,8 +5,6 @@ from datetime import date
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
-from app.clients.models.legal_entity import LegalEntity
-from app.clients.models.client_record import ClientRecord
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -24,19 +22,15 @@ class VatComplianceRepository:
         return (
             self.db.query(
                 VatWorkItem.client_record_id,
-                LegalEntity.official_name.label("client_name"),
                 func.count(VatWorkItem.id).label("periods_expected"),
                 func.sum(filed_case).label("periods_filed"),
             )
-            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .filter(
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
-                ClientRecord.deleted_at.is_(None),
             )
-            .group_by(VatWorkItem.client_record_id, LegalEntity.official_name)
-            .order_by(LegalEntity.official_name)
+            .group_by(VatWorkItem.client_record_id)
+            .order_by(VatWorkItem.client_record_id)
             .all()
         )
 
@@ -64,14 +58,10 @@ class VatComplianceRepository:
             self.db.query(
                 VatWorkItem.client_record_id,
                 VatWorkItem.period,
-                LegalEntity.official_name.label("client_name"),
             )
-            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .filter(
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
-                ClientRecord.deleted_at.is_(None),
                 func.substr(VatWorkItem.period, 1, 7) < reference_date.strftime("%Y-%m"),
             )
             .order_by(VatWorkItem.period.asc())
@@ -84,17 +74,13 @@ class VatComplianceRepository:
         return (
             self.db.query(
                 VatWorkItem.client_record_id,
-                LegalEntity.official_name.label("client_name"),
                 VatWorkItem.period,
                 VatWorkItem.updated_at,
             )
-            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .filter(
                 VatWorkItem.status == VatWorkItemStatus.PENDING_MATERIALS,
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
-                ClientRecord.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.updated_at.asc())
             .all()

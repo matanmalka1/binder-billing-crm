@@ -30,10 +30,10 @@ def _create_business_row(
 
 def test_create_business_rejects_duplicate_name_for_client(test_db):
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: object())
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
     service.business_repo = SimpleNamespace(
-        all_non_deleted_are_closed=lambda _client_id: False,
-        list_by_client=lambda _client_id, **_kwargs: [SimpleNamespace(business_name="Dup Name")]
+        all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
+        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [SimpleNamespace(business_name="Dup Name")]
     )
 
     with pytest.raises(ConflictError) as exc:
@@ -54,10 +54,10 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
         return SimpleNamespace(id=12, **kwargs)
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace())
+    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
     service.business_repo = SimpleNamespace(
-        all_non_deleted_are_closed=lambda _client_id: False,
-        list_by_client=lambda _client_id, **_kwargs: [],
+        all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
+        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
         create=_create,
     )
 

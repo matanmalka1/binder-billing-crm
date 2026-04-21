@@ -1,13 +1,11 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, column, and_
-from sqlalchemy.orm import relationship, foreign
+from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.notes.models.entity_note import EntityNote  # noqa: F401 — ensures EntityNote is registered with SQLAlchemy before Business relationships are configured
-from app.clients.models.person_legal_entity_link import PersonLegalEntityRole
 
 
 class BusinessStatus(str, PyEnum):
@@ -25,9 +23,7 @@ class Business(Base):
     legally scoped to the client keep their primary ownership on Client and may only tag individual
     records to a business.
 
-    Contact details (email, phone):
-    - email_override / phone_override = business-specific contact details (DB columns)
-    - contact_email / contact_phone = properties with fallback to Person (via LegalEntity owner link)
+    Contact override columns are persisted here. Owner fallback is resolved in the service layer.
     """
     __tablename__ = "businesses"
 
@@ -54,7 +50,6 @@ class Business(Base):
     closed_at = Column(Date, nullable=True)
 
     # Business-specific contact overrides.
-    # ── פרטי קשר (של העסק, עם fallback לבעלים ב-property) ────────────────────
     phone_override = Column(String(20), nullable=True)
     email_override = Column(String(254), nullable=True)
 
@@ -63,14 +58,6 @@ class Business(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-
-    # Centralized notes attached to this business.
-    entity_notes = relationship(
-        "EntityNote",
-        primaryjoin="and_(foreign(EntityNote.entity_id) == Business.id, EntityNote.entity_type == 'business')",
-        viewonly=True,
-        lazy="select",
-    )
 
     # Soft delete
     deleted_at = Column(DateTime, nullable=True)
@@ -88,28 +75,6 @@ class Business(Base):
         if self.legal_entity:
             return self.legal_entity.official_name
         return ""
-
-    @property
-    def contact_phone(self) -> str | None:
-        if self.phone_override:
-            return self.phone_override
-        person = self._get_owner_person()
-        return person.phone if person else None
-
-    @property
-    def contact_email(self) -> str | None:
-        if self.email_override:
-            return self.email_override
-        person = self._get_owner_person()
-        return person.email if person else None
-
-    def _get_owner_person(self):
-        if not self.legal_entity:
-            return None
-        for link in self.legal_entity.person_links:
-            if link.role == PersonLegalEntityRole.OWNER:
-                return link.person
-        return None
 
     def __repr__(self):
         return (

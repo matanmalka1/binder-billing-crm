@@ -21,7 +21,11 @@ class AnnualReportSignatureHelper:
 
     def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
         from app.signature_requests.services.signature_request_service import SignatureRequestService
-        businesses = self.business_repo.list_by_client(report.client_record_id)  # type: ignore[attr-defined]
+        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)  # type: ignore[attr-defined]
+        if not record:
+            return
+        businesses = self.business_repo.list_by_legal_entity(record.legal_entity_id)  # type: ignore[attr-defined]
         business = businesses[0] if businesses else None
         if not business:
             return
@@ -32,6 +36,6 @@ class AnnualReportSignatureHelper:
             created_by_name=created_by_name,
             request_type="ANNUAL_REPORT_APPROVAL",
             title=ANNUAL_REPORT_APPROVAL_TITLE.format(tax_year=report.tax_year),
-            signer_name=business.full_name,
+            signer_name=business.business_name,
             annual_report_id=report.id,
         )

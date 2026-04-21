@@ -203,9 +203,6 @@ def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) ->
             )
             db.add(business)
             businesses.append(business)
-            business.client_id = client.id
-            business.client_record_id = client.id
-            business.client = client
     db.flush()
     return businesses
 

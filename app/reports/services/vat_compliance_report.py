@@ -4,6 +4,8 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.reports.constants import VAT_STALE_PENDING_DAYS
 from app.utils.time_utils import utcnow
 from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
@@ -11,11 +13,14 @@ from app.vat_reports.repositories.vat_compliance_repository import VatCompliance
 
 class VatComplianceReportService:
     def __init__(self, db: Session):
+        self.db = db
         self.repo = VatComplianceRepository(db)
+        self.client_repo = ClientRecordRepository(db)
 
     def get_vat_compliance_report(self, year: int) -> dict:
         rows = self.repo.get_compliance_aggregates(year)
         filed_items = self.repo.get_filed_items(year)
+        client_name_map = self._client_name_map([r.client_record_id for r in rows])
 
         # ── On-time / late counts per business ───────────────────────────────
         on_time_map: dict[int, int] = {}
@@ -34,6 +39,9 @@ class VatComplianceReportService:
 
         items = []
         for r in rows:
+            client_name = client_name_map.get(r.client_record_id)
+            if client_name is None:
+                continue
             expected = int(r.periods_expected)
             filed = int(r.periods_filed or 0)
             on_time = on_time_map.get(r.client_record_id, 0)
@@ -41,7 +49,7 @@ class VatComplianceReportService:
             items.append(
                 {
                     "client_record_id": r.client_record_id,
-                    "client_name": r.client_name,
+                    "client_name": client_name,
                     "periods_expected": expected,
                     "periods_filed": filed,
                     "periods_open": expected - filed,
@@ -54,13 +62,18 @@ class VatComplianceReportService:
         # ── Stale PENDING_MATERIALS ───────────────────────────────────────────
         threshold = utcnow().replace(tzinfo=None)
         stale_pending = []
-        for sr in self.repo.get_stale_pending(year):
+        stale_rows = self.repo.get_stale_pending(year)
+        stale_name_map = self._client_name_map([r.client_record_id for r in stale_rows])
+        for sr in stale_rows:
+            client_name = stale_name_map.get(sr.client_record_id)
+            if client_name is None:
+                continue
             days_pending = (threshold - sr.updated_at).days
             if days_pending >= VAT_STALE_PENDING_DAYS:
                 stale_pending.append(
                     {
                         "client_record_id": sr.client_record_id,
-                        "client_name": sr.client_name,
+                        "client_name": client_name,
                         "period": sr.period,
                         "days_pending": days_pending,
                     }
@@ -71,4 +84,21 @@ class VatComplianceReportService:
             "total_clients": len(items),
             "items": items,
             "stale_pending": stale_pending,
+        }
+
+    def _client_name_map(self, client_record_ids: list[int]) -> dict[int, str]:
+        records = self.client_repo.list_by_ids(list(set(client_record_ids)))
+        legal_entity_ids = list({record.legal_entity_id for record in records})
+        entities = (
+            self.db.query(LegalEntity)
+            .filter(LegalEntity.id.in_(legal_entity_ids))
+            .all()
+            if legal_entity_ids
+            else []
+        )
+        entity_map = {entity.id: entity.official_name for entity in entities}
+        return {
+            record.id: entity_map[record.legal_entity_id]
+            for record in records
+            if record.legal_entity_id in entity_map
         }

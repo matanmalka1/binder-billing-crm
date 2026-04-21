@@ -11,6 +11,7 @@ from app.signature_requests.services.messages import (
 )
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_contact_service import BusinessContactService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -53,11 +54,13 @@ def create_request(
         if not business:
             raise NotFoundError(BUSINESS_NOT_FOUND.format(business_id=business_id), "BUSINESS.NOT_FOUND")
         assert_business_belongs_to_legal_entity(business, client_record.legal_entity_id)
-        # Fall back to business contact details when caller omits them
-        if not signer_email and business.contact_email:
-            signer_email = business.contact_email
-        if not signer_phone and business.contact_phone:
-            signer_phone = business.contact_phone
+        contact_service = BusinessContactService(repo.db)
+        contact_email = contact_service.contact_email(business)
+        contact_phone = contact_service.contact_phone(business)
+        if not signer_email and contact_email:
+            signer_email = contact_email
+        if not signer_phone and contact_phone:
+            signer_phone = contact_phone
 
     valid_types = {e.value for e in SignatureRequestType}
     if request_type not in valid_types:

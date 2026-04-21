@@ -85,13 +85,13 @@ def test_get_ids_by_legal_entity_returns_ids(test_db, repo, legal_entity):
     assert set(ids) == {b1.id, b2.id}
 
 
-def test_create_resolves_legal_entity_from_client_record(test_db, repo, legal_entity):
+def test_create_sets_legal_entity(test_db, repo, legal_entity):
     client_record = ClientRecord(legal_entity_id=legal_entity.id)
     test_db.add(client_record)
     test_db.flush()
 
     business = repo.create(
-        client_record_id=client_record.id,
+        legal_entity_id=legal_entity.id,
         opened_at=date(2024, 1, 1),
         business_name="Created From Record",
     )
