@@ -66,7 +66,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             triggered_by = rng.choice(users).id
 
         notification = Notification(
-            client_id=business.client_id,
+            client_record_id=business.client_id,
             business_id=business.id,
             binder_id=binder.id,
             trigger=trigger,
@@ -81,6 +81,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             triggered_by=triggered_by,
             created_at=created_at,
         )
+        notification.client_id = business.client_id
         db.add(notification)
         created_any = True
 
@@ -93,7 +94,7 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             if client:
                 db.add(
                     Notification(
-                        client_id=business.client_id,
+                        client_record_id=business.client_id,
                         business_id=business.id,
                         binder_id=fallback_binder.id,
                         trigger=NotificationTrigger.BINDER_RECEIVED,
@@ -135,7 +136,7 @@ def _ensure_notification_enum_coverage(db, rng, clients_by_id, businesses_by_cli
         if status == NotificationStatus.FAILED:
             failed_at = now - timedelta(hours=1)
         db.add(Notification(
-            client_id=business.client_id,
+            client_record_id=business.client_id,
             business_id=business.id,
             binder_id=binder.id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
@@ -152,7 +153,7 @@ def _ensure_notification_enum_coverage(db, rng, clients_by_id, businesses_by_cli
 
     for channel in [NotificationChannel.EMAIL, NotificationChannel.WHATSAPP]:
         db.add(Notification(
-            client_id=business.client_id,
+            client_record_id=business.client_id,
             business_id=business.id,
             binder_id=binder.id,
             trigger=NotificationTrigger.BINDER_RECEIVED,

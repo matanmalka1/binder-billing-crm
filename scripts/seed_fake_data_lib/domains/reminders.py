@@ -36,7 +36,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
             send_on = max(today, deadline.due_date - timedelta(days=days_before))
             deadline_label = DEADLINE_LABELS.get(deadline.deadline_type, "מועד מס")
             reminder = Reminder(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 business_id=business.id,
                 reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
                 status=ReminderStatus.PENDING,
@@ -55,7 +55,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
             binder = rng.choice(idle_binders)
             days_idle = max(14, (today - binder.period_start).days)
             reminder = Reminder(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 business_id=business.id,
                 reminder_type=ReminderType.BINDER_IDLE,
                 status=ReminderStatus.PENDING,
@@ -80,7 +80,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
             charge = rng.choice(unpaid_charges)
             days_unpaid = (today - charge.issued_at.date()).days
             reminder = Reminder(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 business_id=business.id,
                 reminder_type=ReminderType.UNPAID_CHARGE,
                 status=ReminderStatus.PENDING,

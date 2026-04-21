@@ -45,7 +45,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))
 
             document = PermanentDocument(
-                client_id=client.id,
+                client_record_id=client.id,
                 business_id=None,
                 scope=DocumentScope.CLIENT,
                 document_type=doc_type,
@@ -67,6 +67,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_by=rejected_by,
                 rejected_at=rejected_at,
             )
+            document.client_id = client.id
             db.add(document)
             documents.append(document)
 
@@ -101,7 +102,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))
 
             document = PermanentDocument(
-                client_id=client.id,
+                client_record_id=client.id,
                 business_id=business.id,
                 scope=DocumentScope.BUSINESS,
                 document_type=rng.choice([DocumentType.INVOICE_DOC, DocumentType.RECEIPT, DocumentType.TAX_FORM]),
@@ -123,6 +124,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_by=rejected_by,
                 rejected_at=rejected_at,
             )
+            document.client_id = client.id
             db.add(document)
             documents.append(document)
     db.flush()

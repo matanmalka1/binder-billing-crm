@@ -99,6 +99,7 @@ SEEDABLE_STATUSES = [
     AnnualReportStatus.ASSESSMENT_ISSUED,
     AnnualReportStatus.OBJECTION_FILED,
     AnnualReportStatus.CLOSED,
+    AnnualReportStatus.CANCELED,
 ]
 
 COUNTRIES = ["ארצות הברית", "בריטניה", "גרמניה", "צרפת", "קפריסין", "פורטוגל"]
@@ -239,6 +240,10 @@ def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
         # in VALID_TRANSITIONS from NOT_STARTED to AMENDED.
         return [AnnualReportStatus.AMENDED]
 
+    if target == AnnualReportStatus.CANCELED:
+        # Cancellation is an operational terminal override.
+        return [AnnualReportStatus.CANCELED]
+
     if target == AnnualReportStatus.NOT_STARTED:
         return [AnnualReportStatus.NOT_STARTED]
 
@@ -333,7 +338,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                     updated_at = submitted_at
 
             report = AnnualReport(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 tax_year=year,
                 client_type=client_type_for_report,
                 form_type=form_type,
@@ -358,6 +363,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 created_by=rng.choice(advisors) if advisors else fallback_user_id,
                 assigned_to=rng.choice(advisors) if advisors else None,
             )
+            report.client_id = business.client_id
             db.add(report)
             reports.append(report)
     db.flush()

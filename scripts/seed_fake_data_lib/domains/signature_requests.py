@@ -139,7 +139,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 signing_token = None
 
             request = SignatureRequest(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 business_id=business.id,
                 created_by=rng.choice(users).id,
                 annual_report_id=report.id if report else None,
@@ -172,6 +172,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                     else None
                 ),
             )
+            request.client_id = business.client_id
             db.add(request)
             requests.append(request)
     db.flush()

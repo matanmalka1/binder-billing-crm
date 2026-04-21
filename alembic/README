@@ -239,6 +239,17 @@ Notes:
 
 ## Run instructions
 
+### 7a9c5f4d2e11_add_canceled_to_tax_deadline_status
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade 7a9c5f4d2e11`
+- What it does:
+  Adds `canceled` to the PostgreSQL `taxdeadlinestatus` enum so the database matches
+  the current `TaxDeadlineStatus` model and seed data flow.
+- Notes:
+  SQLite does not require enum DDL here, so the migration is a no-op outside PostgreSQL.
+  Downgrade stays a no-op because PostgreSQL enum values are not removed safely.
+
 ### 6392237139d9_add_missing_seed_tables
 
 - Command:

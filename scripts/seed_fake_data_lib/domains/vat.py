@@ -126,7 +126,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
             work_item = VatWorkItem(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 created_by=created_by,
                 assigned_to=rng.choice(advisors) if advisors and rng.random() < 0.7 else None,
                 period=period,
@@ -138,7 +138,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
                 else None,
             )
-
+            work_item.client_id = business.client_id
             if status == VatWorkItemStatus.FILED:
                 work_item.submission_method = rng.choice(list(SubmissionMethod))
                 filed_at_candidate = max(created_at, datetime.now(UTC) - timedelta(days=rng.randint(1, 90)))

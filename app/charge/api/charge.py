@@ -8,12 +8,17 @@ from app.charge.schemas.charge import BulkChargeActionRequest, BulkChargeActionR
 from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
 from app.charge.services.charge_query_service import ChargeQueryService
+from app.charge.services.charge_response_builder import ChargeResponseBuilder
 
 
 router = APIRouter(
     prefix="/charges",
     tags=["charges"],
 )
+
+
+def _response_builder(db: DBSession) -> ChargeResponseBuilder:
+    return ChargeResponseBuilder(ChargeQueryService(db))
 
 
 @router.post(
@@ -33,11 +38,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         months_covered=request.months_covered,
         actor_id=user.id,
     )
-    data = ChargeResponse.model_validate(charge).model_dump()
-    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
-    data["business_name"] = business_name
-    data["office_client_number"] = office_client_number
-    return ChargeResponse(**data)
+    return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
 @router.post(
@@ -48,11 +49,7 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
 def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Issue a draft charge (ADVISOR only)."""
     charge = BillingService(db).issue_charge(charge_id, actor_id=user.id)
-    data = ChargeResponse.model_validate(charge).model_dump()
-    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
-    data["business_name"] = business_name
-    data["office_client_number"] = office_client_number
-    return ChargeResponse(**data)
+    return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
 @router.post(
@@ -63,11 +60,7 @@ def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
 def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     """Mark issued charge as paid (ADVISOR only)."""
     charge = BillingService(db).mark_charge_paid(charge_id, actor_id=user.id)
-    data = ChargeResponse.model_validate(charge).model_dump()
-    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
-    data["business_name"] = business_name
-    data["office_client_number"] = office_client_number
-    return ChargeResponse(**data)
+    return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
 @router.post(
@@ -78,11 +71,7 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
 def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest)):
     """Cancel a charge (ADVISOR only)."""
     charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
-    data = ChargeResponse.model_validate(charge).model_dump()
-    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
-    data["business_name"] = business_name
-    data["office_client_number"] = office_client_number
-    return ChargeResponse(**data)
+    return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
 @router.get(
@@ -119,18 +108,7 @@ def list_charges(
 def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
     """Get charge by ID (authenticated users)."""
     charge = BillingService(db).get_charge(charge_id)
-    business_name, office_client_number = ChargeQueryService(db).enrich_charge_context(charge)
-
-    if user.role == UserRole.SECRETARY:
-        data = ChargeResponseSecretary.model_validate(charge).model_dump()
-        data["business_name"] = business_name
-        data["office_client_number"] = office_client_number
-        return ChargeResponseSecretary(**data)
-
-    data = ChargeResponse.model_validate(charge).model_dump()
-    data["business_name"] = business_name
-    data["office_client_number"] = office_client_number
-    return ChargeResponse(**data)
+    return _response_builder(db).build(charge, user.role)
 
 
 @router.post(

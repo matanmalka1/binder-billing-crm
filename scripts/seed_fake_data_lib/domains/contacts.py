@@ -27,7 +27,7 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
             updated_at = min(now, created_at + timedelta(days=rng.randint(0, 90)))
             contact_profile = AUTHORITY_CONTACTS[(client.id + idx - 1) % len(AUTHORITY_CONTACTS)]
             contact = AuthorityContact(
-                client_id=client.id,
+                client_record_id=client.id,
                 contact_type=rng.choice(list(ContactType)),
                 name=contact_profile["name"],
                 office=contact_profile["office"],
@@ -37,6 +37,7 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
                 created_at=created_at,
                 updated_at=updated_at,
             )
+            contact.client_id = client.id
             db.add(contact)
             contacts.append(contact)
     db.flush()
@@ -56,7 +57,7 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
             candidate_contacts = contacts_by_client_id.get(business.client_id, [])
             contact = rng.choice(candidate_contacts) if candidate_contacts and rng.random() < 0.65 else None
             entry = Correspondence(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 business_id=business.id,
                 contact_id=contact.id if contact else None,
                 correspondence_type=rng.choice(list(CorrespondenceType)),

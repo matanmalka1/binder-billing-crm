@@ -73,7 +73,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             period = f"{due_date.year}-{due_date.month:02d}" if deadline_type != TaxDeadlineType.OTHER else None
             description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 deadline_type=deadline_type,
                 period=period,
                 due_date=due_date,
@@ -84,6 +84,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
                 completed_at=completed_at,
                 completed_by=completed_by,
             )
+            deadline.client_id = business.client_id
             db.add(deadline)
             deadlines.append(deadline)
     db.flush()
@@ -97,26 +98,33 @@ def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> Non
     required = [TaxDeadlineType.VAT, TaxDeadlineType.ANNUAL_REPORT,
                 TaxDeadlineType.NATIONAL_INSURANCE, TaxDeadlineType.OTHER]
     missing = [t for t in required if t not in present]
-    if not missing:
-        return
-    today = date.today()
-    fallback_business = businesses[0]
-    for dtype in missing:
-        due_date = today + timedelta(days=rng.randint(1, 30))
-        period = f"{due_date.year}-{due_date.month:02d}" if dtype != TaxDeadlineType.OTHER else None
-        deadline = TaxDeadline(
-            client_id=fallback_business.client_id,
-            deadline_type=dtype,
-            period=period,
-            due_date=due_date,
-            status=TaxDeadlineStatus.PENDING,
-            payment_amount=Decimal("1000.00"),
-            description=f"תזכורת עבור {DEADLINE_LABELS.get(dtype, 'מועד מס')}",
-            created_at=datetime.now(UTC),
-        )
-        db.add(deadline)
-        deadlines.append(deadline)
-    db.flush()
+    if missing:
+        today = date.today()
+        fallback_business = businesses[0]
+        for dtype in missing:
+            due_date = today + timedelta(days=rng.randint(1, 30))
+            period = f"{due_date.year}-{due_date.month:02d}" if dtype != TaxDeadlineType.OTHER else None
+            deadline = TaxDeadline(
+                client_record_id=fallback_business.client_id,
+                deadline_type=dtype,
+                period=period,
+                due_date=due_date,
+                status=TaxDeadlineStatus.PENDING,
+                payment_amount=Decimal("1000.00"),
+                description=f"תזכורת עבור {DEADLINE_LABELS.get(dtype, 'מועד מס')}",
+                created_at=datetime.now(UTC),
+            )
+            deadline.client_id = fallback_business.client_id
+            db.add(deadline)
+            deadlines.append(deadline)
+        db.flush()
+
+    present_statuses = {deadline.status for deadline in deadlines}
+    if TaxDeadlineStatus.CANCELED not in present_statuses and deadlines:
+        canceled_deadline = deadlines[0]
+        canceled_deadline.status = TaxDeadlineStatus.CANCELED
+        canceled_deadline.completed_at = None
+        canceled_deadline.completed_by = None
 
 
 def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
@@ -165,7 +173,7 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
                     paid_at = datetime.now(UTC)
 
             payment = AdvancePayment(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 period=period,
                 period_months_count=rng.choice([1, 1, 2]),
                 due_date=due_date,
@@ -181,12 +189,13 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
                 created_at=created_at,
                 updated_at=None,
             )
+            payment.client_id = business.client_id
             db.add(payment)
             payments.append(payment)
             db.flush()
             # Create a matching ADVANCE_PAYMENT tax deadline linked to this payment
             adv_deadline = TaxDeadline(
-                client_id=business.client_id,
+                client_record_id=business.client_id,
                 deadline_type=TaxDeadlineType.ADVANCE_PAYMENT,
                 period=period,
                 due_date=due_date,
@@ -200,6 +209,7 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
                 created_at=created_at,
                 advance_payment_id=payment.id,
             )
+            adv_deadline.client_id = business.client_id
             db.add(adv_deadline)
             db.flush()
     db.flush()
