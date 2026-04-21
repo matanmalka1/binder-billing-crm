@@ -10,8 +10,7 @@ Also owns cross-domain application workflows that do not belong to a single doma
 This module provides:
 - Canonical action-contract builder (`build_action`)
 - Stable action-id generation convention (`{resource}-{id}-{key}`)
-- Domain action factories for binders, businesses, and charges
-- Domain action factories for tax deadlines and annual reports
+- Domain action factories for binders, businesses, charges, tax deadlines, and annual reports
 - Role-aware action filtering (for example advisor-only actions)
 - Confirm-dialog metadata and optional payload contracts for frontend executors
 - `obligation_orchestrator.py` — cross-domain workflow that generates tax deadlines and annual reports for a client (idempotent; used on client create/update and business create)
@@ -38,6 +37,10 @@ Common action producers:
 
 Implementation references:
 - Contracts: `app/actions/action_contracts.py`
+- Shared helpers: `app/actions/action_helpers.py`
+- Binder actions: `app/actions/binder_actions.py`
+- Business actions: `app/actions/business_actions.py`
+- Charge actions: `app/actions/charge_actions.py`
 - Tax/annual actions: `app/actions/report_deadline_actions.py`
 - Obligation workflow: `app/actions/obligation_orchestrator.py`
 
@@ -85,9 +88,8 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 
 ## Tests
 
-No dedicated actions-only test package currently exists.
-
-Actions behavior is covered indirectly by domain tests, including:
+Actions behavior is covered by direct and domain tests, including:
+- `tests/actions/test_binder_actions.py`
 - `tests/businesses/api/test_businesses.py`
 - `tests/binders/api/test_binders.py`
 - `tests/timeline/service/test_timeline_event_builders.py`
@@ -97,5 +99,5 @@ Actions behavior is covered indirectly by domain tests, including:
 Run related suites:
 
 ```bash
-pytest tests/businesses tests/binders tests/timeline -q
+JWT_SECRET=test-secret pytest -q tests/actions/test_binder_actions.py tests/businesses tests/binders tests/timeline
 ```

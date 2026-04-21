@@ -100,7 +100,7 @@ Routers are mounted under `/api/v1`.
 Base prefix: `/api/v1/users`
 
 - `POST /api/v1/users` create user
-- `GET /api/v1/users` list users (`page`, `page_size`, `is_active`)
+- `GET /api/v1/users` list users (`page`, `page_size`, `is_active`, `search`)
 - `GET /api/v1/users/{user_id}` get user
 - `PATCH /api/v1/users/{user_id}` partial update (`full_name`, `phone`, `role`, `email`)
 - `POST /api/v1/users/{user_id}/activate` activate user

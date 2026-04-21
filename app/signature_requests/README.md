@@ -2,7 +2,7 @@
 
 > Last audited: 2026-03-22
 
-Manages the digital-signature request lifecycle for business documents and approvals, including advisor workflows, public signer token flows, and immutable audit events.
+Manages the digital-signature request lifecycle for client-record documents and optional business-scoped approvals, including advisor workflows, public signer token flows, and immutable audit events.
 
 ## Audit Summary
 
@@ -10,7 +10,7 @@ Manages the digital-signature request lifecycle for business documents and appro
   - Authenticated routes are included under `/api/v1`.
   - Public signer routes are exposed under `/sign/*` without JWT.
 - Service/repository flow is consistent and covered by tests.
-- Domain naming is `business` (not `client`) in request fields and list routes.
+- Domain naming uses `client_record_id` as the primary anchor; `business_id` is optional context for business-scoped requests and list routes.
 - Test suite for this domain passes: `27 passed`.
 
 ## Scope
@@ -20,7 +20,7 @@ This module provides:
 - Sending request links with expiring signing tokens
 - Public signer actions (`view`, `approve`, `decline`)
 - Advisor actions (`cancel`, `audit trail`, `pending list`)
-- Business-scoped signature request listing
+- Client-record and business-scoped signature request listing
 - Automatic expiry handling for overdue pending requests
 - Immutable audit event logging per lifecycle action
 
@@ -30,7 +30,8 @@ This module provides:
 
 Core fields:
 - `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
+- `client_record_id` (FK -> `client_records.id`, required primary anchor)
+- `business_id` (FK -> `businesses.id`, optional context)
 - `created_by` (FK -> `users.id`, required)
 - Optional links:
   - `annual_report_id` (FK -> `annual_reports.id`)
@@ -108,10 +109,11 @@ Roles: `ADVISOR`, `SECRETARY`
 - `POST /api/v1/signature-requests/{request_id}/cancel`
   - Cancel request (allowed from `draft`/`pending_signature`)
 
-### Business-scoped listing (`/api/v1/businesses/{business_id}/signature-requests`)
+### Client-record and business-scoped listing
 
 Roles: `ADVISOR`, `SECRETARY`
 
+- `GET /api/v1/clients/{client_record_id}/signature-requests`
 - `GET /api/v1/businesses/{business_id}/signature-requests`
 - Query params:
   - `status` (optional)
@@ -142,7 +144,7 @@ Auth: no JWT (token-based)
 - Batch expiry handling:
   - `expire_overdue_requests()` marks overdue pending requests as `expired` and appends audit events.
 - Create request behavior:
-  - Validates business exists (`BUSINESS.NOT_FOUND`).
+  - Validates client record exists; validates business ownership when `business_id` is provided.
   - Validates `request_type` (`SIGNATURE_REQUEST.INVALID_TYPE`).
   - Optionally computes SHA-256 `content_hash` from `content_to_hash`.
   - Falls back signer email/phone from business profile when missing.
@@ -167,8 +169,10 @@ Common domain error codes:
 
 ## Cross-Domain Integration
 
+- `clients` integration:
+  - Request creation/listing is anchored by `client_record_id`.
 - `businesses` integration:
-  - Request creation/listing is business-scoped; contact fallback uses business email/phone.
+  - Requests may be business-scoped; contact fallback uses business email/phone when available.
 - `annual_reports` integration:
   - Signed annual-report approval can trigger automatic status transition and `client_approved_at` update.
 - `permanent_documents` integration:
@@ -189,5 +193,5 @@ Signature-requests test suites:
 Run only this domain:
 
 ```bash
-pytest tests/signature_requests -q
+JWT_SECRET=test-secret pytest -q tests/signature_requests
 ```

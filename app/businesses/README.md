@@ -35,7 +35,7 @@ Implementation references:
 
 `Business` fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `legal_entity_id` (FK -> `legal_entities.id`, nullable for legacy rows)
 - `business_name` (required at DB level)
 - `status` (`active`, `frozen`, `closed`)
 - `opened_at` (required)
@@ -52,8 +52,8 @@ Computed properties on the model:
 
 Notes:
 - Default repository reads exclude soft-deleted businesses.
-- `contact_phone` and `contact_email` fall back to the linked client if no override is set on the business.
-- A unique partial index prevents duplicate active `business_name` values per client.
+- `contact_phone` and `contact_email` fall back to the linked owner person if no override is set on the business.
+- A unique partial index prevents duplicate active `business_name` values per legal entity.
 
 ## API
 
@@ -190,7 +190,9 @@ Common domain error codes here include:
 Business-domain test suites currently present in the repository:
 - `tests/businesses/service/test_business_service.py`
 - `tests/businesses/service/test_business_service_additional.py`
+- `tests/businesses/service/test_business_client_record_paths.py`
 - `tests/businesses/service/test_business_guards.py`
+- `tests/businesses/repository/test_business_repository_legal_entity.py`
 - `tests/businesses/api/test_business_binders_api.py`
 - `tests/actions/test_business_actions.py`
 

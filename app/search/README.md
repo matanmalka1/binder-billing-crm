@@ -49,12 +49,12 @@ This module does not define DB models. It is an orchestration layer over existin
 - `total: int` (count of `results`, not `documents`)
 
 `SearchResult` (`result_type: "client" | "binder"`):
-- `client_id`, `client_name`
-- `binder_id`, `binder_number` (binder rows only)
+- `client_id`, `office_client_number`, `client_name`, `id_number`
+- `binder_id`, `binder_number` (binder rows and client rows with an active binder)
 - `client_status` is currently always `null`
 
 `DocumentSearchResult`:
-- `id`, `business_id`, `business_name`, `document_type`, `original_filename`, `tax_year`, `status`
+- `id`, `client_record_id`, `office_client_number`, `business_id`, `business_name`, `document_type`, `original_filename`, `tax_year`, `status`
 - `business_name` is populated from `Business.full_name`
 
 ## Execution Modes
@@ -65,8 +65,8 @@ Triggered when:
 - and `binder_number` is not provided
 
 Behavior:
-- Uses `ClientRepository.search(...)` with DB pagination (`page`, `page_size`)
-- Returns only `client`-type rows in `results`
+- Uses `ClientRecordRepository.search(...)` with DB pagination (`page`, `page_size`)
+- Returns only `client`-type rows in `results`, enriched with the active binder number when one exists
 
 ### 2) Mixed mode (in-memory post-filter + pagination)
 Triggered for binder-related filtering/search.

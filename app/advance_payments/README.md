@@ -1,13 +1,13 @@
 # Advance Payments
 
-> Owns client advance-tax payment records (`מקדמות`), annual schedule generation, and payment analytics.
+> Owns client-record advance-tax payment records (`מקדמות`), annual schedule generation, and payment analytics.
 
 ---
 
 ## Responsibilities
 
-- Store one active advance payment per client and period.
-- Expose client-scoped CRUD, suggestion, KPI, and chart endpoints.
+- Store one active advance payment per client record and period.
+- Expose client-record-scoped CRUD, suggestion, KPI, and chart endpoints.
 - Generate monthly or bi-monthly yearly schedules.
 - Calculate suggested expected amounts from prior-year VAT and client advance rate.
 - Aggregate overview and collection KPIs across clients.
@@ -21,7 +21,7 @@
 | Field | Type | Notes |
 |-------|------|-------|
 | `id` | `Integer` | PK |
-| `client_id` | `Integer` | FK -> `clients.id`, indexed |
+| `client_record_id` | `Integer` | FK -> `client_records.id`, indexed |
 | `period` | `String(7)` | `YYYY-MM`, first month in the reporting period |
 | `period_months_count` | `Integer` | `1` monthly, `2` bi-monthly |
 | `due_date` | `Date` | Payment due date |
@@ -39,7 +39,7 @@
 
 Relationships declared via foreign keys:
 
-- `client_id` -> `clients.id`
+- `client_record_id` -> `client_records.id`
 - `annual_report_id` -> `annual_reports.id`
 - `deleted_by` -> `users.id`
 
@@ -50,8 +50,8 @@ Enums:
 
 Indexes:
 
-- Partial unique index on `client_id + period` where `deleted_at IS NULL`
-- Secondary indexes on `client_id + period`, `status`, `due_date`
+- Partial unique index on `client_record_id + period` where `deleted_at IS NULL`
+- Secondary indexes on `client_record_id + period`, `status`, `due_date`
 
 ---
 
@@ -86,23 +86,23 @@ Shared API types:
 
 ## Services
 
-### `AdvancePaymentService.list_payments_for_client(client_id, year=None, status=None, page=1, page_size=20) -> tuple[list[AdvancePayment], int]`
+### `AdvancePaymentService.list_payments_for_client(client_record_id, year=None, status=None, page=1, page_size=20) -> tuple[list[AdvancePayment], int]`
 
 Checks that the client exists, defaults `year` to the current UTC year, and returns paginated payments for that client/year.
 
-### `AdvancePaymentService.create_payment_for_client(client_id, period, period_months_count, due_date, expected_amount=None, paid_amount=None, payment_method=None, annual_report_id=None, notes=None) -> AdvancePayment`
+### `AdvancePaymentService.create_payment_for_client(client_record_id, period, period_months_count, due_date, expected_amount=None, paid_amount=None, payment_method=None, annual_report_id=None, notes=None) -> AdvancePayment`
 
 Blocks creation for closed or frozen clients, rejects duplicate active periods, and inserts a new payment with initial `pending` status.
 
-### `AdvancePaymentService.update_payment_for_client(client_id, payment_id, **fields) -> AdvancePayment`
+### `AdvancePaymentService.update_payment_for_client(client_record_id, payment_id, **fields) -> AdvancePayment`
 
 Loads the client-scoped payment, filters allowed fields, derives `status` from `paid_amount` when `status` is not supplied, and persists the update.
 
-### `AdvancePaymentService.delete_payment_for_client(client_id, payment_id, actor_id) -> None`
+### `AdvancePaymentService.delete_payment_for_client(client_record_id, payment_id, actor_id) -> None`
 
 Loads the client-scoped payment and soft-deletes it by setting `deleted_at` and `deleted_by`.
 
-### `AdvancePaymentService.suggest_expected_amount_for_client(client_id, year, period_months_count=1) -> Decimal | None`
+### `AdvancePaymentService.suggest_expected_amount_for_client(client_record_id, year, period_months_count=1) -> Decimal | None`
 
 Reads the client advance rate and prior-year VAT summary, derives annual income from VAT using `VAT_RATE`, and returns the rounded expected amount or `None` if data is missing.
 
@@ -110,19 +110,19 @@ Reads the client advance rate and prior-year VAT summary, derives annual income 
 
 Loads matching payments for the year/month/status filters, fetches client names, sorts rows by client name and period, and slices them for pagination.
 
-### `AdvancePaymentAnalyticsService.get_annual_kpis_for_client(client_id, year) -> dict`
+### `AdvancePaymentAnalyticsService.get_annual_kpis_for_client(client_record_id, year) -> dict`
 
-Validates that the client exists, loads yearly aggregates, and adds `client_id`, `year`, and `collection_rate`.
+Validates that the client record exists, loads yearly aggregates, and adds `client_record_id`, `year`, and `collection_rate`.
 
 ### `AdvancePaymentAnalyticsService.get_overview_kpis(year, month=None, statuses=None) -> dict`
 
 Loads overview totals and adds `collection_rate`.
 
-### `AdvancePaymentAnalyticsService.get_chart_data_for_client(client_id, year) -> dict`
+### `AdvancePaymentAnalyticsService.get_chart_data_for_client(client_record_id, year) -> dict`
 
 Validates that the client exists and returns monthly expected, paid, and overdue amounts.
 
-### `generate_annual_schedule(client_id, year, db, period_months_count=1) -> tuple[list[AdvancePayment], int]`
+### `generate_annual_schedule(client_record_id, year, db, period_months_count=1) -> tuple[list[AdvancePayment], int]`
 
 Generates monthly or bi-monthly periods for the year, skips periods that already exist, creates missing payments with due date on the 15th of the following month, and returns `(created_records, skipped_count)`.
 
@@ -146,15 +146,15 @@ Creates and commits a new `AdvancePayment` row.
 
 Returns one active payment by id.
 
-### `AdvancePaymentRepository.get_by_id_for_client(payment_id, client_id) -> AdvancePayment | None`
+### `AdvancePaymentRepository.get_by_id_for_client(payment_id, client_record_id) -> AdvancePayment | None`
 
 Returns one active payment scoped to a client.
 
-### `AdvancePaymentRepository.list_by_client_year(client_id, year, status=None, page=1, page_size=50) -> tuple[list[AdvancePayment], int]`
+### `AdvancePaymentRepository.list_by_client_year(client_record_id, year, status=None, page=1, page_size=50) -> tuple[list[AdvancePayment], int]`
 
 Filters active payments by client and `YYYY-%`, optionally filters by status, orders by period, and applies DB pagination.
 
-### `AdvancePaymentRepository.exists_for_period(client_id, period) -> bool`
+### `AdvancePaymentRepository.exists_for_period(client_record_id, period) -> bool`
 
 Checks whether an active payment already exists for the client and period.
 
@@ -170,7 +170,7 @@ Marks a payment as deleted and commits.
 
 Delegates overview payment loading to `AdvancePaymentAggregationRepository`.
 
-### `AdvancePaymentRepository.sum_paid_by_client_year(client_id, year) -> float`
+### `AdvancePaymentRepository.sum_paid_by_client_year(client_record_id, year) -> float`
 
 Delegates yearly paid sum aggregation to `AdvancePaymentAggregationRepository`.
 
@@ -182,15 +182,15 @@ Delegates per-client collection aggregates to `AdvancePaymentAggregationReposito
 
 Returns all active payments for the year, optionally filtered by month coverage and status.
 
-### `AdvancePaymentAggregationRepository.sum_paid_by_client_year(client_id, year) -> float`
+### `AdvancePaymentAggregationRepository.sum_paid_by_client_year(client_record_id, year) -> float`
 
 Returns the total `paid_amount` for `paid` payments in the client/year scope.
 
 ### `AdvancePaymentAggregationRepository.get_collections_aggregates(year, month=None) -> list`
 
-Joins `clients` and returns per-client expected amount, paid amount, and overdue count aggregates. Contains a cross-domain repository import from `app.clients.models.client`.
+Joins client records/legal entities and returns per-client expected amount, paid amount, and overdue count aggregates.
 
-### `AdvancePaymentAnalyticsRepository.get_annual_kpis_for_client(client_id, year) -> dict`
+### `AdvancePaymentAnalyticsRepository.get_annual_kpis_for_client(client_record_id, year) -> dict`
 
 Groups the client’s payments by status and returns yearly totals plus overdue and paid counts.
 
@@ -198,7 +198,7 @@ Groups the client’s payments by status and returns yearly totals plus overdue 
 
 Returns overview totals for expected and paid amounts.
 
-### `AdvancePaymentAnalyticsRepository.monthly_chart_data_for_client(client_id, year) -> list[dict]`
+### `AdvancePaymentAnalyticsRepository.monthly_chart_data_for_client(client_record_id, year) -> list[dict]`
 
 Returns grouped monthly chart rows with expected, paid, and overdue amounts.
 
@@ -218,14 +218,14 @@ Raw SQL:
 
 | Method | Path | Auth | Role | Description |
 |--------|------|------|------|-------------|
-| `GET` | `/clients/{client_id}/advance-payments` | `require_role(...)` | `ADVISOR`, `SECRETARY` | List client payments for a year with status filter and pagination |
-| `POST` | `/clients/{client_id}/advance-payments` | `require_role(...)` | `ADVISOR` | Create a new advance payment |
-| `GET` | `/clients/{client_id}/advance-payments/suggest` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Suggest expected amount from prior-year VAT |
-| `GET` | `/clients/{client_id}/advance-payments/kpi` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return annual KPIs for one client |
-| `GET` | `/clients/{client_id}/advance-payments/chart` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return monthly chart data for one client |
-| `PATCH` | `/clients/{client_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Update one client payment |
-| `DELETE` | `/clients/{client_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Soft-delete one client payment |
-| `POST` | `/clients/{client_id}/advance-payments/generate` | `require_role(...)` | `ADVISOR` | Generate yearly monthly or bi-monthly schedule |
+| `GET` | `/clients/{client_record_id}/advance-payments` | `require_role(...)` | `ADVISOR`, `SECRETARY` | List client payments for a year with status filter and pagination |
+| `POST` | `/clients/{client_record_id}/advance-payments` | `require_role(...)` | `ADVISOR` | Create a new advance payment |
+| `GET` | `/clients/{client_record_id}/advance-payments/suggest` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Suggest expected amount from prior-year VAT |
+| `GET` | `/clients/{client_record_id}/advance-payments/kpi` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return annual KPIs for one client |
+| `GET` | `/clients/{client_record_id}/advance-payments/chart` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return monthly chart data for one client |
+| `PATCH` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Update one client payment |
+| `DELETE` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Soft-delete one client payment |
+| `POST` | `/clients/{client_record_id}/advance-payments/generate` | `require_role(...)` | `ADVISOR` | Generate yearly monthly or bi-monthly schedule |
 | `GET` | `/advance-payments/overview` | `require_role(...)` | `ADVISOR`, `SECRETARY` | List cross-client overview rows and KPI totals |
 
 ---
@@ -234,8 +234,8 @@ Raw SQL:
 
 | Imported From | What | Why |
 |---------------|------|-----|
-| `app.clients.models.client` | `ClientStatus`, `Client` | Block create for closed/frozen clients; join client name in overview aggregates |
-| `app.clients.repositories.client_repository` | `ClientRepository` | Load clients in services and schedule generation |
+| `app.clients.enums` / `app.clients.models.client_record` | `ClientStatus`, `ClientRecord` | Block create for closed/frozen clients; join client name in overview aggregates |
+| `app.clients.repositories.client_record_repository` | `ClientRecordRepository` | Load client records in services and schedule generation |
 | `app.vat_reports.repositories.vat_client_summary_repository` | `VatClientSummaryRepository` | Read prior-year output VAT for suggestions |
 | `app.annual_reports.services.financial_service` | `AnnualReportFinancialService` | Invalidate annual-report tax calculation after marking a payment as paid |
 | `app.users.api.deps` | `CurrentUser`, `DBSession`, `require_role` | API auth and injected DB session |
@@ -251,3 +251,9 @@ Dependency direction:
 - `advance_payments -> core/common`
 
 ---
+
+## Tests
+
+```bash
+JWT_SECRET=test-secret pytest -q tests/advance_payments
+```

@@ -63,8 +63,8 @@ There is currently no dedicated middleware-only test suite.
 
 Middleware behavior is validated indirectly through API/integration tests where requests traverse the full FastAPI stack.
 
-Run broad API coverage:
+Middleware behavior is covered through API/integration tests for the affected routes.
 
 ```bash
-pytest tests -q
+JWT_SECRET=test-secret pytest -q tests/<relevant_api_suite>
 ```

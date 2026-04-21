@@ -6,7 +6,7 @@
 
 ## Responsibilities
 
-Manages the full lifecycle of Israeli annual income-tax reports, scoped **per client** (legal entity). A report is not per business — it belongs to the client (the tax-bearing entity).
+Manages the full lifecycle of Israeli annual income-tax reports, scoped **per client record** (legal entity). A report is not per business — it belongs to the client record (the tax-bearing entity).
 
 Covers:
 - Report creation with automatic schedule generation and deadline assignment
@@ -14,7 +14,7 @@ Covers:
 - Annex / schedule tracking (required ITA schedules per report)
 - Income and expense line CRUD
 - Tax (income tax + NI) and readiness calculation via pure-function engines
-- Advances summary linked to the report via `client_id + tax_year`
+- Advances summary linked to the report via `client_record_id + tax_year`
 - Kanban stage view and season-level aggregation
 - Cross-domain sync: tax deadlines completed/reopened on status transition
 - Signature request lifecycle around the `PENDING_CLIENT` status
@@ -26,7 +26,7 @@ Covers:
 
 | Entity | Table | Notes |
 |---|---|---|
-| `AnnualReport` | `annual_reports` | Root aggregate. One main annual return per `(client_id, tax_year)`. Soft-deleted. |
+| `AnnualReport` | `annual_reports` | Root aggregate. One main annual return per `(client_record_id, tax_year)`. Soft-deleted. |
 | `AnnualReportDetail` | `annual_report_details` | 1:1 extension. Metadata only: approval, notes, deductions, amendment reason. |
 | `AnnualReportIncomeLine` | `annual_report_income_lines` | Income line items. Multiple types per report. |
 | `AnnualReportExpenseLine` | `annual_report_expense_lines` | Expense lines with statutory recognition rates. |
@@ -92,10 +92,10 @@ Important scope clarification:
 
 ### Creation flow
 
-1. Validate `client_id` exists
+1. Validate `client_record_id` exists
 2. Validate `client_type` and `deadline_type`
 3. Validate `assigned_to` user exists (if provided)
-4. Check uniqueness: `(client_id, tax_year)` — raises `ConflictError` if a main annual return already exists
+4. Check uniqueness: `(client_record_id, tax_year)` — raises `ConflictError` if a main annual return already exists
 5. Derive `form_type` snapshot from `client_type` via `FORM_MAP`
 6. Compute `filing_deadline` from `deadline_type` and `tax_year`
 7. Persist `AnnualReport`
@@ -144,7 +144,7 @@ To persist results, advisor explicitly calls `POST /tax-calculation/save`. This 
 1. Validate report exists and is in a pre-submission status
 2. If lines already exist and `force=False`: raise `ConflictError`
 3. If `force=True`: delete all existing income/expense lines
-4. Aggregate VAT income by `(client_id, tax_year)` → create one `BUSINESS` income line
+4. Aggregate VAT income by `(client_record_id, tax_year)` → create one `BUSINESS` income line
 5. Aggregate VAT expense categories → merge into annual report expense categories → create lines
 6. Return creation summary
 
@@ -158,11 +158,11 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 
 ## Invariants (non-negotiable rules)
 
-- **One main annual report per `(client_id, tax_year)`** — enforced by partial unique index and `ConflictError` in service. Soft-deleted reports are excluded from the constraint.
-- **Status transitions are strictly gated** — no direct status writes outside `transition_status()`. All transitions use `VALID_TRANSITIONS`. Exception: `amend_report()` currently bypasses this (known bug — see Open Tasks).
+- **One main annual report per `(client_record_id, tax_year)`** — enforced by partial unique index and `ConflictError` in service. Soft-deleted reports are excluded from the constraint.
+- **Status transitions are strictly gated** — no direct status writes outside `transition_status()`. All transitions use `VALID_TRANSITIONS`.
 - **Submission requires readiness** — `transition_status(SUBMITTED)` always calls `_assert_filing_readiness()`.
 - **Row-level lock on status transitions** — `get_by_id_for_update()` prevents concurrent status changes.
-- **Annual reports are client-scoped** — `client_id` is the primary ownership key. Business references (for signature requests) are resolved dynamically, never stored on the report.
+- **Annual reports are client-record-scoped** — `client_record_id` is the primary ownership key. Business references are optional context and are not the report scope.
 - **Credit points come from rows, not cached columns** — aggregate from `AnnualReportCreditPoint` whenever tax or detail responses need them. `AnnualReportDetail` stores only metadata and deduction inputs.
 - **Tax calculation is never auto-persisted** — `get_tax_calculation()` is always on-demand. `save_tax_calculation()` requires explicit advisor action.
 - **Status history is append-only** — no updates or deletes on `AnnualReportStatusHistory`.
@@ -177,7 +177,7 @@ When leaving a filed status (amend/rollback): reopen the tax deadline and recrea
 | `clients` | Inbound | Ownership, existence check, `full_name` resolution, status guards (CLOSED/FROZEN) |
 | `users` | Inbound | RBAC (`require_role`), actor attribution |
 | `signature_requests` | Outbound | Auto-create on `PENDING_CLIENT`, cancel on leaving |
-| `advance_payments` | Outbound (read) | Advances paid by `(client_id, tax_year)` for balance computation |
+| `advance_payments` | Outbound (read) | Advances paid by `(client_record_id, tax_year)` for balance computation |
 | `vat_reports` | Outbound (read) | VAT net balance included in `TaxCalculationResponse`; VAT invoice aggregation for auto-populate |
 | `tax_deadline` | Outbound (write) | Complete/reopen `ANNUAL_REPORT` deadline entries on status transitions |
 | `reminders` | Outbound (write) | Create/cancel reminders when deadline is reopened |
@@ -207,8 +207,8 @@ These are intentional constraints — not bugs. Do not work around without a pla
 
 | Location | Limitation | Behavior |
 |---|---|---|
-| `query_service.py::kanban_view` | No pagination — loads all reports | No cap currently. Document in CLAUDE.md architectural debt table. |
-| `vat_import_service.py::auto_populate` | Aggregates by `client_id`, merges all businesses | Incorrect for clients with multiple businesses. |
+| `query_service.py::kanban_view` | No pagination — loads all reports | No cap currently. |
+| `vat_import_service.py::auto_populate` | Aggregates by `client_record_id`, merges all businesses | Incorrect for clients with multiple businesses. |
 | `status_signature_helper.py` | Resolves business from first non-deleted business of client | Silent skip if client has no businesses |
 
 ---
@@ -249,6 +249,8 @@ All routes under `/api/v1/`. All require at minimum `SECRETARY` role unless note
 | `GET` | `/{id}/advances-summary` | ADVISOR, SECRETARY | Advance payments and final balance |
 | `GET` | `/{id}/readiness` | ADVISOR, SECRETARY | Filing readiness check |
 | `POST` | `/{id}/auto-populate` | ADVISOR | Import income/expenses from VAT data |
+| `GET` | `/{id}/charges` | ADVISOR, SECRETARY | Charges linked to the report |
+| `GET` | `/{id}/export/pdf` | ADVISOR, SECRETARY | Working-draft PDF export |
 | `POST` | `/{id}/income` | ADVISOR, SECRETARY | Add income line |
 | `PATCH` | `/{id}/income/{line_id}` | ADVISOR | Update income line |
 | `DELETE` | `/{id}/income/{line_id}` | ADVISOR | Delete income line |
@@ -274,7 +276,7 @@ All routes under `/api/v1/`. All require at minimum `SECRETARY` role unless note
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/clients/{client_id}/annual-reports` | List reports for a client |
+| `GET` | `/clients/{client_record_id}/annual-reports` | List reports for a client record |
 | `GET` | `/tax-year/{year}/reports` | Reports by tax year |
 | `GET` | `/tax-year/{year}/summary` | Season summary |
 
@@ -283,7 +285,7 @@ All routes under `/api/v1/`. All require at minimum `SECRETARY` role unless note
 ## Tests
 
 ```bash
-pytest tests/annual_reports -q
+JWT_SECRET=test-secret pytest -q tests/annual_reports
 ```
 
 ---
@@ -300,9 +302,9 @@ Issues found during 2026-04-13 audit, ordered by severity:
 - [ ] **[HIGH]** 2026 NI ceiling in `ni_engine.py` is `622_920` — likely a data entry error; verify against 2026 NII circular and correct
 - [ ] **[HIGH]** 2026 tax brackets in `tax_engine.py` show 5th-bracket ceiling lower than 2025 — verify against 2026 ITA circular; consider removing 2026 until confirmed
 - [ ] **[HIGH]** `readiness_check` uses stale persisted `tax_due/refund_due` as the "tax saved" gate, but income/expense mutations don't trigger `invalidate_tax_if_open` — wire income/expense add/update/delete through the invalidation path
-- [ ] **[HIGH]** `VatImportService.auto_populate` aggregates VAT by `client_id`, mixing all businesses — require explicit `business_id` or guard against multi-business clients
+- [ ] **[HIGH]** `VatImportService.auto_populate` aggregates VAT by `client_record_id`, mixing all businesses — require explicit `business_id` or guard against multi-business clients
 - [ ] **[MEDIUM]** `get_detail_report` fetches the same report three times — consolidate to one fetch
-- [ ] **[MEDIUM]** `kanban_view()` has no cap — add `_KANBAN_REPORT_LIMIT` and document in CLAUDE.md architectural debt table
+- [ ] **[MEDIUM]** `kanban_view()` has no cap — add `_KANBAN_REPORT_LIMIT` and document the architectural debt
 - [ ] **[MEDIUM]** `business_name` field in `AnnualReportResponse` is always set to `client.full_name` — remove the field or set to `None`; annual reports are client-scoped
 - [ ] **[MEDIUM]** `advances_summary_service.py` and `get_detail_report` both compute final balance independently and can diverge — consolidate
 - [ ] **[MEDIUM]** `invalidate_tax_if_open` calls `get_by_client_year()` which returns only one report — for clients with multiple report types per year, only one is invalidated; use `list_by_client` and iterate

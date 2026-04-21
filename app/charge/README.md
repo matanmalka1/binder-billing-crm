@@ -17,7 +17,7 @@ This module provides:
 
 `Charge` fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required, source of truth)
+- `client_record_id` (FK -> `client_records.id`, required, source of truth)
 - `business_id` (FK -> `businesses.id`, optional, operational affiliation only)
 - `annual_report_id` (optional FK -> `annual_reports.id`)
 - `charge_type` (enum, required)
@@ -25,7 +25,7 @@ This module provides:
 - `amount` (required, always ILS)
 - `period` (optional, `YYYY-MM` — first month of the billing period)
 - `months_covered` (default `1`)
-- `description` (optional)
+- `description` (optional; response/storage field, not accepted by current create request)
 - `created_at`, `issued_at`, `paid_at`
 - `created_by`, `issued_by`, `paid_by`, `canceled_by`
 - `canceled_at`, `cancellation_reason`
@@ -69,7 +69,7 @@ All API route handlers import both `BillingService` and `ChargeQueryService` dir
 
 ## API
 
-Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
+Router prefix is `/api/v1/charges` (mounted through `app/router_registry.py`).
 
 ### Create charge
 - `POST /api/v1/charges`
@@ -78,13 +78,12 @@ Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
 
 ```json
 {
-  "client_id": 456,
+  "client_record_id": 456,
   "business_id": 123,
   "amount": 1500.00,
   "charge_type": "monthly_retainer",
   "period": "2026-03",
-  "months_covered": 1,
-  "description": "Optional free-text label"
+  "months_covered": 1
 }
 ```
 
@@ -93,7 +92,7 @@ Router prefix is `/api/v1/charges` (mounted in `app/main.py`).
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `business_id` (optional)
-  - `client_id` (optional)
+  - `client_record_id` (optional)
   - `status` (optional)
   - `charge_type` (optional)
   - `page` (default `1`, min `1`)
@@ -207,5 +206,5 @@ Cross-domain regression coverage that includes charge flows:
 Run only this domain:
 
 ```bash
-pytest tests/charge tests/regression/test_core_regressions_binders_charges_notifications.py -q
+JWT_SECRET=test-secret pytest -q tests/charge tests/regression/test_core_regressions_binders_charges_notifications.py
 ```

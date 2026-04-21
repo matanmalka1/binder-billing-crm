@@ -2,11 +2,11 @@
 
 > Last audited: 2026-04-11
 
-Manages VAT work-item lifecycle per client and period: intake, data entry, review, filing, audit trail, and client-level summary/export.
+Manages VAT work-item lifecycle per client record and period: intake, data entry, review, filing, audit trail, and client-level summary/export.
 
 ## Scope
 
-- Create one VAT work item per `client_id + period` (Israeli law: one aggregated VAT return per client, not per business activity)
+- Create one VAT work item per `client_record_id + period` (Israeli law: one aggregated VAT return per client record, not per business activity)
 - Track lifecycle states until filed (immutable after filing)
 - Add/update/delete invoices and recalculate VAT totals
 - Advisor filing flow with optional override + mandatory justification
@@ -31,7 +31,7 @@ Router is mounted under `/api/v1/vat` (via `app/router_registry.py` + `app/vat_r
 
 Core fields:
 - `id`
-- `client_id` (FK → `clients.id`, required) — scope is always at client level
+- `client_record_id` (FK → `client_records.id`, required) — scope is always at client-record level
 - `created_by` (FK, required)
 - `assigned_to` (FK, optional)
 - `period` (`YYYY-MM`, required)
@@ -50,7 +50,7 @@ Core fields:
 - soft-delete fields: `deleted_at`, `deleted_by`
 
 Constraint:
-- unique per (`client_id`, `period`)
+- unique per (`client_record_id`, `period`)
 
 ### `VatInvoice`
 
@@ -83,7 +83,7 @@ Constraint:
 ### Intake
 
 - `POST /api/v1/vat/work-items`
-  - body: `client_id`, `period`, `assigned_to?`, `mark_pending?`, `pending_materials_note?`
+  - body: `client_record_id`, `period`, `assigned_to?`, `mark_pending?`, `pending_materials_note?`
 - `POST /api/v1/vat/work-items/{item_id}/materials-complete`
   - transition: `pending_materials -> material_received`
 
@@ -110,18 +110,18 @@ Constraint:
 ### Queries
 
 - `GET /api/v1/vat/work-items/{item_id}`
-- `GET /api/v1/vat/clients/{client_id}/work-items`
+- `GET /api/v1/vat/clients/{client_record_id}/work-items`
 - `GET /api/v1/vat/work-items`
   - query: `status?`, `page` (default `1`), `page_size` (default `20`, max `200`), `period?`, `client_name?`
 - `GET /api/v1/vat/work-items/{item_id}/audit`
-- `GET /api/v1/vat/clients/{client_id}/summary`
-- `GET /api/v1/vat/clients/{client_id}/export`
+- `GET /api/v1/vat/clients/{client_record_id}/summary`
+- `GET /api/v1/vat/clients/{client_record_id}/export`
   - query: `format=excel|pdf`, `year` (`2000-2100`)
 
 ## Business Rules
 
 - `period` must match `YYYY-MM`
-- duplicate work item for the same (`client_id`, `period`) is rejected
+- duplicate work item for the same (`client_record_id`, `period`) is rejected
 - if `mark_pending=true`, `pending_materials_note` is required
 - VAT-exempt businesses cannot open VAT work items
 - bi-monthly businesses cannot open even-month periods
@@ -137,7 +137,7 @@ Constraint:
 
 ## Notes
 
-- Work items are scoped to `client_id`, not `business_id`. One client may have multiple business activities, but they share one VAT obligation under Israeli law.
+- Work items are scoped to `client_record_id`, not `business_id`. One client record may have multiple business activities, but they share one VAT obligation under Israeli law.
 - Individual invoices may optionally carry a `business_activity_id` tag (to associate them with a specific business activity), but this does not affect the scoping of the work item itself.
 - filing field is `submission_method` (not `filing_method`)
 - query endpoints expose deadline enrichment fields on work-item responses: `submission_deadline`, `statutory_deadline`, `extended_deadline`, `days_until_deadline`, `is_overdue`
@@ -197,5 +197,5 @@ VAT reports test suites:
 Run only this domain:
 
 ```bash
-pytest tests/vat_reports -q
+JWT_SECRET=test-secret pytest -q tests/vat_reports
 ```

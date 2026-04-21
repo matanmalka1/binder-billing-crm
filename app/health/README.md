@@ -19,11 +19,13 @@ This module does not define persistent database models.
 
 It defines health-check components:
 - API endpoint (`health_check`)
+- Response schema (`HealthCheckResponse`)
 - `HealthService`
 - `HealthRepository`
 
 Implementation references:
 - API: `app/health/api/health.py`
+- Schemas: `app/health/schemas.py`
 - Service: `app/health/services/health_service.py`
 - Repository: `app/health/repositories/health_repository.py`
 

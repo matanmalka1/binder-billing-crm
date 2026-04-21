@@ -26,6 +26,7 @@ This module provides:
 
 Implementation references:
 - Model: `app/invoice/models/invoice.py`
+- Schemas: `app/invoice/schemas/invoice_schemas.py`
 - Repository: `app/invoice/repositories/invoice_repository.py`
 - Service: `app/invoice/services/invoice_service.py`
 
@@ -46,6 +47,7 @@ Invoice operations are currently exposed as internal service/repository logic an
   - `create`
   - `get_by_id`
   - `get_by_charge_id`
+  - `list_by_charge_ids`
   - `exists_for_charge`
 - `charge_id` uniqueness is enforced at both service and DB-model level.
 

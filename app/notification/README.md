@@ -12,13 +12,14 @@ This module provides:
 - Advisor-only manual send endpoint
 - Channel orchestration (WhatsApp first when requested/configured, email fallback)
 - Non-blocking send behavior (caller flow is not interrupted on delivery failures)
-- `business_name` enrichment on list responses
+- `business_name` enrichment when notifications are scoped to a business
 
 ## Domain Model
 
 `Notification` fields:
 - `id` (PK)
-- `business_id` (FK -> `businesses.id`, required)
+- `client_record_id` (FK -> `client_records.id`, required primary anchor)
+- `business_id` (FK -> `businesses.id`, optional context)
 - `binder_id` (FK -> `binders.id`, optional)
 - `trigger` (enum, required)
 - `channel` (enum, required)
@@ -28,6 +29,7 @@ This module provides:
 - `content_snapshot` (required)
 - `sent_at`, `failed_at`, `error_message`
 - `is_read` (default `false`), `read_at`
+- `retry_count`
 - `created_at`
 - `triggered_by` (FK -> `users.id`, optional)
 
@@ -71,13 +73,14 @@ All domain callers (`BinderService`, `BillingService`, etc.) import and instanti
 
 ## API
 
-Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
+Router prefix is `/api/v1/notifications` (mounted through `app/router_registry.py`).
 
 ### List recent notifications
 - `GET /api/v1/notifications`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
-  - `business_id` (optional)
+  - `client_record_id` (optional)
+  - `business_id` (optional; narrows a client-scoped view)
   - `page` (default `1`)
   - `page_size` (default `20`, min `1`, max `100`)
 - Response items include `business_name` (enriched from `BusinessRepository`).
@@ -86,6 +89,7 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
 - `GET /api/v1/notifications/unread-count`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
+  - `client_record_id` (optional)
   - `business_id` (optional)
 
 ### Mark specific notifications as read
@@ -103,6 +107,7 @@ Router prefix is `/api/v1/notifications` (mounted in `app/main.py`).
 - `POST /api/v1/notifications/mark-all-read`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
+  - `client_record_id` (optional)
   - `business_id` (optional)
 
 ### Send manual notification
@@ -138,8 +143,8 @@ Notes:
 - `notify_binder_received` uses `binder.period_start` for the date in the message body.
 - Read-state operations:
   - `mark_read(notification_ids)` updates unread target rows.
-  - `mark_all_read(business_id?)` supports global or per-business bulk mark.
-- `business_name` enrichment in list responses uses `Business.full_name` (falls back to `client.full_name` for sole proprietors) via a single batch query.
+  - `mark_all_read(client_record_id?, business_id?)` supports global, per-client-record, or per-business bulk mark.
+- `business_name` enrichment in list responses is attached only when `business_id` is present.
 - If a trigger has no entry in `_SUBJECTS`, a warning is logged and a generic Hebrew subject is used.
 
 ## Error Envelope
@@ -160,7 +165,7 @@ Notification delivery failures are recorded in persistence/logs rather than surf
 - `binders` integration:
   - Binder receive/ready flows call `NotificationService.notify_binder_received` / `notify_ready_for_pickup`.
 - `businesses` + `clients` integration:
-  - Business owner client contact data (phone/email) is used for channel routing/fallback inside `NotificationSendService`.
+  - Client-record and business contact data (phone/email) is used for channel routing/fallback inside `NotificationSendService`.
   - `business_name` is enriched in `NotificationService` via `BusinessRepository.list_by_ids`.
 - `infrastructure` integration:
   - Uses `EmailChannel` and `WhatsAppChannel` from `app/infrastructure/notifications.py`.
@@ -179,5 +184,5 @@ Related regression coverage:
 Run only this domain:
 
 ```bash
-pytest tests/notification -q
+JWT_SECRET=test-secret pytest -q tests/notification
 ```

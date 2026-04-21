@@ -2,14 +2,14 @@
 
 > Last audited: 2026-03-22.
 
-Manages client tax deadlines lifecycle (create/list/update/complete/delete), urgency views for dashboard, timeline projection, and yearly deadline generation.
+Manages client-record tax deadlines lifecycle (create/list/update/complete/reopen/delete), urgency views for dashboard, timeline projection, and yearly deadline generation.
 
 ## Scope
 
 This module provides:
 - Tax-deadline CRUD lifecycle over `tax_deadlines`
 - Deadline completion tracking
-- `completed` is terminal in the current implementation; there is no reopen action/API
+- Reopen flow from `completed` back to `pending`
 - Dashboard urgent/upcoming summary
 - Client timeline endpoint
 - Idempotent yearly deadline generation by client tax profile
@@ -20,11 +20,11 @@ This module provides:
 
 `TaxDeadline` (`app/tax_deadline/models/tax_deadline.py`) fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `client_record_id` (FK -> `client_records.id`, required)
 - `deadline_type` (enum, required)
 - `period` (`YYYY-MM`, optional)
 - `due_date` (required)
-- `status` (`pending`/`completed`, default `pending`)
+- `status` (`pending`/`completed`/`canceled`, default `pending`)
 - `completed_at` (optional)
 - `completed_by` (optional FK -> `users.id`)
 - `advance_payment_id` (optional FK -> `advance_payments.id`)
@@ -57,6 +57,7 @@ Default tax-deadline router access: `ADVISOR`, `SECRETARY`.
 Advisor-only endpoints:
 - `POST /api/v1/tax-deadlines`
 - `POST /api/v1/tax-deadlines/{deadline_id}/complete`
+- `POST /api/v1/tax-deadlines/{deadline_id}/reopen`
 - `PUT /api/v1/tax-deadlines/{deadline_id}`
 - `DELETE /api/v1/tax-deadlines/{deadline_id}`
 - `POST /api/v1/tax-deadlines/generate`
@@ -75,9 +76,9 @@ Body:
 
 ```json
 {
-  "client_id": 123,
+  "client_record_id": 123,
   "deadline_type": "vat",
-  "due_date": "2026-04-19",
+  "due_date": "2026-04-15",
   "period": "2026-03",
   "payment_amount": 1500.5,
   "description": "VAT filing"
@@ -88,7 +89,7 @@ Body:
 
 - `GET /api/v1/tax-deadlines`
 - Query params:
-  - `client_id` (optional)
+  - `client_record_id` (optional)
   - `business_name` (optional client-name substring filter)
   - `client_name` (legacy alias for `business_name`)
   - `deadline_type` (optional)
@@ -100,7 +101,7 @@ Body:
   - `page_size` (default `20`, min `1`, max `100`)
 
 Behavior:
-- `client_id` present: returns all matching deadlines for that client.
+- `client_record_id` present: returns all matching deadlines for that client record.
 - `business_name` / `client_name` present: resolves client IDs by name then returns matching deadlines.
 - no filters: returns paginated pending deadlines only, from today forward.
 
@@ -112,7 +113,11 @@ Behavior:
 
 - `POST /api/v1/tax-deadlines/{deadline_id}/complete`
 - Idempotent if already completed.
-- `completed` is terminal; there is currently no `completed -> pending` transition.
+
+### Reopen deadline
+
+- `POST /api/v1/tax-deadlines/{deadline_id}/reopen`
+- Reverts a completed deadline to `pending`.
 
 ### Update deadline
 
@@ -135,7 +140,7 @@ Behavior:
 
 - `GET /api/v1/tax-deadlines/timeline`
 - Query params:
-  - `client_id` (required)
+  - `client_record_id` (required)
 - Returns due-date sorted entries with:
   - `days_remaining`
   - `milestone_label`
@@ -155,7 +160,7 @@ Body:
 
 ```json
 {
-  "client_id": 123,
+  "client_record_id": 123,
   "year": 2026
 }
 ```
@@ -182,7 +187,7 @@ Response:
   - corporation/control-holder: `July 31` of `year + 1`
 - National-insurance deadlines are not auto-generated.
 
-Generation is idempotent via repository `exists(client_id, deadline_type, due_date)` checks.
+Generation is idempotent via repository `exists(client_record_id, deadline_type, due_date)` checks.
 
 ## Urgency Rules
 
@@ -222,5 +227,5 @@ Domain tests are under:
 Run:
 
 ```bash
-pytest tests/tax_deadline -q
+JWT_SECRET=test-secret pytest -q tests/tax_deadline
 ```

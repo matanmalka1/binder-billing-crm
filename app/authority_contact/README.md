@@ -8,7 +8,7 @@ Manages government-authority contacts for a client, such as tax office, VAT bran
 
 This module provides:
 - CRUD for `authority_contacts`
-- Filtering and pagination by client and contact type
+- Filtering and pagination by client record and contact type
 - Soft delete with audit fields (`deleted_at`, `deleted_by`)
 - Role-based API access
 
@@ -23,7 +23,7 @@ Implementation references:
 
 `AuthorityContact` fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `client_record_id` (FK -> `client_records.id`, required)
 - `contact_type` (enum, required)
 - `name` (required)
 - `office`, `phone`, `email`, `notes` (optional)
@@ -37,16 +37,16 @@ Contact type enum values:
 - `other`
 
 Notes:
-- Contacts are client-scoped in the current implementation.
+- Contacts are client-record-scoped in the current implementation.
 - The model does not currently include `business_id`.
 - Reads exclude soft-deleted rows.
 
 ## API
 
-The router is mounted under `/api/v1` and uses a local router prefix of `/clients`, so the effective paths are:
+The router is mounted via `app/router_registry.py` under `/api/v1` and uses a local router prefix of `/clients`, so the effective paths are:
 
 ### Create contact
-- `POST /api/v1/clients/{client_id}/authority-contacts`
+- `POST /api/v1/clients/{client_record_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Body:
 
@@ -62,7 +62,7 @@ The router is mounted under `/api/v1` and uses a local router prefix of `/client
 ```
 
 ### List contacts by client
-- `GET /api/v1/clients/{client_id}/authority-contacts`
+- `GET /api/v1/clients/{client_record_id}/authority-contacts`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `contact_type` (optional enum)
@@ -97,10 +97,10 @@ Response shape:
 
 ## Behavior Notes
 
-- Creating a contact validates that the client exists and raises `CLIENT.NOT_FOUND` if it does not.
+- Creating/listing contacts validates that the client record exists and raises `CLIENT.NOT_FOUND` if it does not.
 - `contact_type` is validated against the enum in both request parsing and service-level conversion.
 - Get, update, and delete for unknown or soft-deleted contacts raise `AUTHORITY_CONTACT.NOT_FOUND`.
-- Repository list and count operations are client-scoped and exclude soft-deleted records.
+- Repository list and count operations are client-record-scoped and exclude soft-deleted records.
 - Delete does not remove rows; it sets `deleted_at` and `deleted_by`.
 - Results are ordered by `created_at DESC`.
 
@@ -119,9 +119,9 @@ Domain errors used here include:
 
 `correspondence` can reference an authority contact via `contact_id` (`authority_contacts.id`).
 
-That integration validates client ownership, not business ownership:
+That integration validates client-record ownership, not business ownership:
 - the contact must exist
-- the contact's `client_id` must match the correspondence `client_id`
+- the contact's `client_record_id` must match the correspondence `client_record_id`
 
 Reference:
 - `app/correspondence/services/correspondence_service.py`

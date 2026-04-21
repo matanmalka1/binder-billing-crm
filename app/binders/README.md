@@ -23,6 +23,7 @@ Implementation references:
 - Intake model: `app/binders/models/binder_intake.py`
 - Intake material model: `app/binders/models/binder_intake_material.py`
 - Status log model: `app/binders/models/binder_status_log.py`
+- Handover model: `app/binders/models/binder_handover.py`
 - Schemas: `app/binders/schemas/binder.py`
 - Extended schemas: `app/binders/schemas/binder_extended.py`
 - Repository: `app/binders/repositories/binder_repository.py`
@@ -31,17 +32,18 @@ Implementation references:
 - List service: `app/binders/services/binder_list_service.py`
 - Operations service: `app/binders/services/binder_operations_service.py`
 - History service: `app/binders/services/binder_history_service.py`
+- Handover service: `app/binders/services/binder_handover_service.py`
 - Helpers: `app/binders/services/binder_helpers.py`
 
 ### `Binder`
 
 Primary fields:
 - `id` (PK)
-- `client_id` (FK -> `clients.id`, required)
+- `client_record_id` (FK -> `client_records.id`, required)
 - `binder_number` (required)
 - `period_start` (optional; derived from the first structured material period)
 - `period_end` (optional)
-- `status` (`in_office`, `closed_in_office`, `ready_for_pickup`, `returned`)
+- `status` (`in_office`, `closed_in_office`, `archived_in_office`, `ready_for_pickup`, `returned`)
 - `returned_at` (optional)
 - `pickup_person_name` (optional)
 - `notes` (optional)
@@ -123,7 +125,7 @@ Request body:
 
 ```json
 {
-  "client_id": 123,
+  "client_record_id": 123,
   "received_at": "2026-04-13",
   "received_by": 7,
   "open_new_binder": false,
@@ -174,7 +176,7 @@ Request body:
 
 ```json
 {
-  "client_id": 123,
+  "client_record_id": 123,
   "until_period_year": 2026,
   "until_period_month": 4
 }
@@ -198,6 +200,15 @@ Behavior:
 - if `period_end` is still null, it is set to the effective return date
 - writes a status log entry
 
+### Handover binders
+- `POST /api/v1/binders/handover`
+- Response model: `BinderHandoverResponse`
+
+Behavior:
+- returns multiple `ready_for_pickup` binders for one `client_record_id` in a single grouped handover event
+- records `received_by_name`, `handed_over_at`, cutoff period, returned binder IDs, and optional notes
+- transitions each binder to `returned` and writes status log entries
+
 ### Revert ready state
 - `POST /api/v1/binders/{binder_id}/revert-ready`
 - Response model: `BinderResponse`
@@ -213,7 +224,7 @@ Behavior:
 
 Query params:
 - `status`
-- `client_id`
+- `client_record_id`
 - `query`
 - `client_name`
 - `binder_number`
@@ -264,7 +275,7 @@ The client-scoped binder list is served by this module:
 - `app/binders/api/client_binders_router.py`
 
 Route:
-- `GET /api/v1/clients/{client_id}/binders`
+- `GET /api/v1/clients/{client_record_id}/binders`
 
 Behavior:
 - validates the client exists (via `ClientService`)
@@ -330,5 +341,5 @@ Binder-domain test suites currently present in the repository:
 Run binder-related tests:
 
 ```bash
-pytest tests/binders tests/actions/test_binder_actions.py tests/businesses/api/test_business_binders_api.py tests/regression/test_core_regressions_binders_charges_notifications.py -q
+JWT_SECRET=test-secret pytest -q tests/binders tests/actions/test_binder_actions.py tests/businesses/api/test_business_binders_api.py tests/regression/test_core_regressions_binders_charges_notifications.py
 ```

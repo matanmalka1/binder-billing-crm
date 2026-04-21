@@ -34,7 +34,7 @@ Implementation references:
 
 ## API
 
-Router prefix is `/api/v1/dashboard` (mounted in `app/main.py`).
+Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
 ### Summary
 - `GET /api/v1/dashboard/summary`
@@ -129,5 +129,5 @@ Dashboard test suites:
 Run only this domain:
 
 ```bash
-pytest tests/dashboard -q
+JWT_SECRET=test-secret pytest -q tests/dashboard
 ```

@@ -36,7 +36,7 @@ The stable tax/legal identity. Globally unique by `(id_number_type, id_number)`.
 
 Key fields:
 - `id` (PK)
-- `id_number`, `id_number_type` (`EntityType` enum)
+- `id_number`, `id_number_type` (`IdNumberType` enum)
 - `official_name`
 - `entity_type` (`EntityType`)
 - `vat_reporting_frequency` (`VatType`)
@@ -84,6 +84,7 @@ Excel endpoints:
 Comments:
 - `client_id` in all route params refers to `ClientRecord.id`, not `LegalEntity.id`.
 - Import is partial-success: valid rows are created, invalid rows returned in the `errors` array.
+- Import requires `X-Idempotency-Key`.
 - Import requires `Full Name`, `Business Name`, and `ID Number`; valid rows create a client and first business together.
 - Identity-only client creation (no business) is not exposed through the API.
 

@@ -19,7 +19,7 @@ This module provides:
 
 This module currently does not define its own persistent domain tables.
 
-Reports are computed from other domains and returned as derived payloads (dict-based responses):
+Reports are computed from other domains and returned as derived payloads through `app/reports/schemas.py` response models:
 - Aging report payload (`report_date`, `items`, `summary`, `capped`, etc.)
 - VAT compliance payload (`items`, `stale_pending`)
 - Advance-payment collections payload (`collection_rate`, `items`, etc.; client-scoped aggregates)
@@ -27,6 +27,8 @@ Reports are computed from other domains and returned as derived payloads (dict-b
 
 Implementation references:
 - API: `app/reports/api/reports.py`
+- Constants: `app/reports/constants.py`
+- Schemas: `app/reports/schemas.py`
 - Services:
   - `app/reports/services/reports_service.py`
   - `app/reports/services/vat_compliance_report.py`
@@ -85,7 +87,7 @@ Returns downloadable file (`FileResponse`):
 
 - Aging report considers only charges with status `issued` and a non-null `issued_at`.
 - Aging report applies an in-memory cap for unpaid charges:
-  - `_AGING_CHARGE_FETCH_LIMIT = 2000`
+  - `AGING_CHARGE_FETCH_LIMIT = 2000`
   - response includes:
     - `capped` (`true` when total unpaid exceeds cap)
     - `cap_limit` (current cap)
@@ -120,6 +122,9 @@ Reports aggregate from:
 Reports test suites:
 - `tests/reports/api/test_reports_aging.py`
 - `tests/reports/api/test_reports_aging_export.py`
+- `tests/reports/api/test_reports_additional_endpoints.py`
+- `tests/reports/api/test_reports_export_errors.py`
+- `tests/reports/service/test_reports_service_and_exports.py`
 
 Related regression coverage:
 - `tests/regression/test_reports_export_manual.py`

@@ -2,17 +2,17 @@
 
 > Last audited: 2026-03-22 (domain-by-domain backend sync).
 
-Provides unified per-business timeline aggregation across operational domains (binders, charges, notifications, tax deadlines, annual reports, reminders, documents, and signature requests).
+Provides unified per-client-record timeline aggregation across operational domains (binders, charges, notifications, tax deadlines, annual reports, reminders, documents, and signature requests).
 
 ## Scope
 
 This module provides:
-- Unified business timeline endpoint
+- Unified client timeline endpoint
 - Event normalization into a shared timeline event schema
 - Reverse-chronological ordering and pagination
 - Backward-compatible action fields (`actions` + `available_actions`)
 - Cross-domain event aggregation via dedicated builder modules
-- Business existence validation on timeline fetch (raises `TIMELINE.BUSINESS_NOT_FOUND` if missing)
+- Client-record existence validation on timeline fetch (raises `TIMELINE.CLIENT_NOT_FOUND` if missing)
 
 ## Domain Model
 
@@ -40,17 +40,17 @@ Note: `timeline_event_builders.py` has been split into `timeline_binder_event_bu
 
 ## API
 
-Router prefix is `/api/v1/businesses` (mounted in `app/main.py`).
+Router prefix is `/api/v1/clients` (mounted via `app/router_registry.py`).
 
-### Get business timeline
-- `GET /api/v1/businesses/{business_id}/timeline`
+### Get client timeline
+- `GET /api/v1/clients/{client_record_id}/timeline`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `page` (default `1`, min `1`)
   - `page_size` (default `20`, min `1`, max `200`)
 
 Response:
-- `business_id`
+- `client_record_id`
 - `events` (list of normalized timeline events)
 - `page`
 - `page_size`
@@ -60,8 +60,8 @@ Response:
 
 - Timeline is aggregated from multiple domain sources, then sorted by `timestamp` descending.
 - Pagination is applied after full event aggregation/sort.
-- Business existence is validated at the start of every timeline fetch; missing or deleted businesses raise `NotFoundError` (`TIMELINE.BUSINESS_NOT_FOUND`).
-- Binders are fetched via `business.client_id` (binders belong to clients, not businesses directly).
+- Client-record existence is validated at the start of every timeline fetch; missing records raise `NotFoundError` (`TIMELINE.CLIENT_NOT_FOUND`).
+- Businesses are resolved from the client record's `legal_entity_id`; business-scoped sources are queried across those businesses.
 - Event schema includes:
   - `event_type`
   - `timestamp`
@@ -72,11 +72,11 @@ Response:
 - Action compatibility:
   - `available_actions` is the canonical field for frontend executors.
   - `actions` is kept for backward compatibility; both fields carry the same list.
-- Known per-business bulk safety limit:
+- Known per-client bulk safety limit:
   - `_TIMELINE_BULK_LIMIT = 500`
   - Applied to high-volume sources (notifications, charges, reminders, signature requests, documents, tax/annual queries).
   - Older events beyond the cap are silently truncated.
-- `client_info_updated_event` is only emitted when `business.updated_at` differs from `business.created_at` (avoids duplicate creation-time events).
+- `client_info_updated_event` is only emitted when the legal entity `updated_at` differs from `created_at` (avoids duplicate creation-time events).
 - Tax deadlines query filters soft-deleted rows (`deleted_at IS NULL`).
 - Annual reports query filters soft-deleted rows (`deleted_at IS NULL`).
 
@@ -90,7 +90,7 @@ Main event categories currently built:
 - Tax/annual events:
   - `tax_deadline_due`, `annual_report_status_changed`
 - Client/business context events:
-  - `client_created`, `client_info_updated`, `tax_profile_updated`, `reminder_created`, `document_uploaded`, `signature_request_created`
+  - `client_created`, `client_info_updated`, `reminder_created`, `document_uploaded`, `signature_request_created`
 
 ### Hebrew label maps
 
@@ -104,14 +104,15 @@ Errors follow the global app format from `app/core/exceptions.py`, including:
 - `error_meta`
 
 Domain error codes:
-- `TIMELINE.BUSINESS_NOT_FOUND` — business does not exist or is soft-deleted
+- `TIMELINE.CLIENT_NOT_FOUND` — client record does not exist
 
 Authorization failures are handled by shared role/auth dependencies.
 
 ## Cross-Domain Integration
 
 Timeline composes data from:
-- `businesses` (existence check; `client_id` resolution for binder queries)
+- `clients` (client-record existence check; `legal_entity_id` resolution)
+- `businesses` (business IDs for business-scoped event sources)
 - `binders` + `binder_status_logs`
 - `charge` + `invoice`
 - `notification`
@@ -120,7 +121,6 @@ Timeline composes data from:
 - `reminders`
 - `permanent_documents`
 - `signature_requests`
-- `businesses` + `business_tax_profile` (for client context events)
 
 ## Tests
 
@@ -130,7 +130,6 @@ Timeline test suites:
 - `tests/timeline/service/test_timeline_event_builders.py`
 - `tests/timeline/service/test_timeline_event_builders_additional.py`
 - `tests/timeline/service/test_timeline_tax_builders.py`
-- `tests/timeline/service/test_timeline_client_aggregator.py`
 - `tests/timeline/service/test_timeline_client_builders.py`
 - `tests/timeline/repository/test_timeline_repository.py`
 
