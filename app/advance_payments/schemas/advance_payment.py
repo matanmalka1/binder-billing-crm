@@ -10,7 +10,7 @@ from app.advance_payments.services.constants import (
     SUPPORTED_PERIOD_MONTH_COUNTS,
     parse_period_month,
 )
-from app.core.api_types import ApiDateTime, ApiDecimal
+from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 
 
 class AdvancePaymentRow(BaseModel):
@@ -41,11 +41,7 @@ class AdvancePaymentRow(BaseModel):
     model_config = {"from_attributes": True, "use_enum_values": True}
 
 
-class AdvancePaymentListResponse(BaseModel):
-    items: list[AdvancePaymentRow]
-    page: int
-    page_size: int
-    total: int
+AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 
 
 class AdvancePaymentCreateRequest(BaseModel):

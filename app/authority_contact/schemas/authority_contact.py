@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 from app.authority_contact.models.authority_contact import ContactType
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 
 
 class AuthorityContactCreateRequest(BaseModel):
@@ -40,8 +40,4 @@ class AuthorityContactResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AuthorityContactListResponse(BaseModel):
-    items: list[AuthorityContactResponse]
-    page: int
-    page_size: int
-    total: int
+AuthorityContactListResponse = PaginatedResponse[AuthorityContactResponse]

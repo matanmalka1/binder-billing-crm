@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.users.models.user import UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.services.user_management_policies import MIN_PASSWORD_LENGTH
@@ -48,11 +48,7 @@ class UserManagementResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class UserManagementListResponse(BaseModel):
-    items: list[UserManagementResponse]
-    page: int
-    page_size: int
-    total: int
+UserManagementListResponse = PaginatedResponse[UserManagementResponse]
 
 
 class UserAuditLogResponse(BaseModel):
@@ -69,8 +65,4 @@ class UserAuditLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class UserAuditLogListResponse(BaseModel):
-    items: list[UserAuditLogResponse]
-    page: int
-    page_size: int
-    total: int
+UserAuditLogListResponse = PaginatedResponse[UserAuditLogResponse]

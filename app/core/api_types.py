@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Annotated, Any
+from typing import Annotated, Any, Generic, TypeVar
 
-from pydantic import BeforeValidator, PlainSerializer, WithJsonSchema
+from pydantic import BaseModel, BeforeValidator, PlainSerializer, WithJsonSchema
+
+T = TypeVar("T")
 
 
 def _coerce_decimal(value: Any) -> Any:
@@ -38,6 +40,13 @@ ApiDecimal = Annotated[
     PlainSerializer(_serialize_decimal, return_type=str, when_used="json"),
     WithJsonSchema({"type": "string", "format": "decimal", "examples": ["123.45"]}),
 ]
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    page: int
+    page_size: int
+    total: int
+
 
 ApiDateTime = Annotated[
     datetime,

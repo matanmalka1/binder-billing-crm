@@ -29,9 +29,7 @@ def assert_business_allows_create(business: Business) -> None:
 
 def validate_business_for_create(db: Session, business_id: int) -> Business:
     """Fetch business and assert it allows new record creation."""
-    business = BusinessRepository(db).get_by_id(business_id)
-    if not business:
-        raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+    business = get_business_or_raise(db, business_id)
     assert_business_allows_create(business)
     return business
 

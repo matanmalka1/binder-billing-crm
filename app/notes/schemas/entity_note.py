@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 
 
 class EntityNoteResponse(BaseModel):
@@ -15,11 +15,7 @@ class EntityNoteResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class EntityNoteListResponse(BaseModel):
-    items: list[EntityNoteResponse]
-    page: int
-    page_size: int
-    total: int
+EntityNoteListResponse = PaginatedResponse[EntityNoteResponse]
 
 
 class EntityNoteCreateRequest(BaseModel):

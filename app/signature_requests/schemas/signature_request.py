@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
@@ -59,11 +59,7 @@ class SignatureRequestResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class SignatureRequestListResponse(BaseModel):
-    items: list[SignatureRequestResponse]
-    page: int
-    page_size: int
-    total: int
+SignatureRequestListResponse = PaginatedResponse[SignatureRequestResponse]
 
 
 class SignatureRequestWithAuditResponse(SignatureRequestResponse):

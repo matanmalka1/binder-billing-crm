@@ -3,8 +3,7 @@ from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
-
-from app.core.api_types import ApiDateTime, ApiDecimal
+from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 from app.annual_reports.models.annual_report_enums import (
     ClientAnnualFilingType,
     PrimaryAnnualReportForm,
@@ -52,11 +51,7 @@ class AnnualReportResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AnnualReportListResponse(BaseModel):
-    items: list[AnnualReportResponse]
-    page: int
-    page_size: int
-    total: int
+AnnualReportListResponse = PaginatedResponse[AnnualReportResponse]
 
 
 class ScheduleEntryResponse(BaseModel):

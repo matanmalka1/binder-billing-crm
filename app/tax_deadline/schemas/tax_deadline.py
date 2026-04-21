@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.core.api_types import ApiDateTime, ApiDecimal
+from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 from app.tax_deadline.models.tax_deadline import (
     DeadlineType,
     TaxDeadlineStatus,
@@ -61,11 +61,7 @@ class TaxDeadlineUpdateRequest(BaseModel):
     def validate_period(cls, value: Optional[str]) -> Optional[str]:
         return TaxDeadlineCreateRequest.validate_period(value)
 
-class TaxDeadlineListResponse(BaseModel):
-    items: list[TaxDeadlineResponse]
-    page: int
-    page_size: int
-    total: int
+TaxDeadlineListResponse = PaginatedResponse[TaxDeadlineResponse]
 
 class DeadlineUrgentItem(BaseModel):
     id: int

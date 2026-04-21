@@ -5,7 +5,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from app.businesses.models.business import BusinessStatus
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 
 
 # ─── Requests ────────────────────────────────────────────────────────────────
@@ -61,11 +61,7 @@ class BusinessWithClientResponse(BusinessResponse):
     model_config = {"from_attributes": True}
 
 
-class BusinessListResponse(BaseModel):
-    items: list[BusinessWithClientResponse]
-    page: int
-    page_size: int
-    total: int
+BusinessListResponse = PaginatedResponse[BusinessWithClientResponse]
 
 
 class ClientBusinessesResponse(BaseModel):

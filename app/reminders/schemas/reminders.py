@@ -5,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.reminders.models.reminder import ReminderType, ReminderStatus
-from app.core.api_types import ApiDateTime
+from app.core.api_types import ApiDateTime, PaginatedResponse
 
 _DATE_SUFFIX_RE = re.compile(r"\s*\(\d{4}-\d{2}-\d{2}\)$")
 
@@ -118,8 +118,4 @@ class ReminderResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ReminderListResponse(BaseModel):
-    items: list[ReminderResponse]
-    page: int
-    page_size: int
-    total: int
+ReminderListResponse = PaginatedResponse[ReminderResponse]

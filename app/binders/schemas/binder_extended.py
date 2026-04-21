@@ -2,6 +2,7 @@ from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel
+from app.core.api_types import PaginatedResponse
 
 from app.binders.models.binder import BinderStatus
 
@@ -26,8 +27,4 @@ class BinderDetailResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class BinderListResponseExtended(BaseModel):
-    items: list[BinderDetailResponse]
-    page: int
-    page_size: int
-    total: int
+BinderListResponseExtended = PaginatedResponse[BinderDetailResponse]

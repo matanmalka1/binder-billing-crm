@@ -22,21 +22,13 @@ MAX_COUNTERPARTY_ID_LENGTH = 32
 ANONYMOUS_COUNTERPARTY_ID = "999999999"
 
 
-class VatInvoiceCreateRequest(BaseModel):
-    invoice_type: InvoiceType
-    business_activity_id: Optional[int] = None
-    invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
-    invoice_date: Optional[date] = None    # Date — לא DateTime
-    counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
-    net_amount: ApiDecimal
-    vat_amount: ApiDecimal
-    counterparty_id: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
-    counterparty_id_type: Optional[CounterpartyIdType] = None  
-    expense_category: Optional[ExpenseCategory] = None
-    rate_type: VatRateType = VatRateType.STANDARD
-    document_type: Optional[DocumentType] = None
+class VatInvoiceValidatorMixin(BaseModel):
+    """Shared field validators for VAT invoice create and update schemas."""
 
-    @field_validator("invoice_number", "counterparty_name", "counterparty_id")
+    counterparty_id: Optional[str] = None
+    counterparty_id_type: Optional[CounterpartyIdType] = None
+
+    @field_validator("invoice_number", "counterparty_name", "counterparty_id", check_fields=False)
     @classmethod
     def normalize_optional_strings(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
@@ -44,22 +36,8 @@ class VatInvoiceCreateRequest(BaseModel):
         normalized = v.strip()
         return normalized or None
 
-    @field_validator("net_amount")
-    @classmethod
-    def net_positive(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError("הסכום נטו חייב להיות חיובי")
-        return v
-
-    @field_validator("vat_amount")
-    @classmethod
-    def vat_non_negative(cls, v: Decimal) -> Decimal:
-        if v < 0:
-            raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
-        return v
-
     @model_validator(mode="after")
-    def validate_counterparty_id(self) -> "VatInvoiceCreateRequest":
+    def validate_counterparty_id(self) -> "VatInvoiceValidatorMixin":
         cid = self.counterparty_id
         cid_type = self.counterparty_id_type
 
@@ -85,6 +63,35 @@ class VatInvoiceCreateRequest(BaseModel):
                 raise ValueError('עבור מזהה אנונימי יש להזין "999999999"')
 
         return self
+
+
+class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
+    invoice_type: InvoiceType
+    business_activity_id: Optional[int] = None
+    invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
+    invoice_date: Optional[date] = None    # Date — לא DateTime
+    counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
+    net_amount: ApiDecimal
+    vat_amount: ApiDecimal
+    counterparty_id: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
+    counterparty_id_type: Optional[CounterpartyIdType] = None
+    expense_category: Optional[ExpenseCategory] = None
+    rate_type: VatRateType = VatRateType.STANDARD
+    document_type: Optional[DocumentType] = None
+
+    @field_validator("net_amount")
+    @classmethod
+    def net_positive(cls, v: Decimal) -> Decimal:
+        if v <= 0:
+            raise ValueError("הסכום נטו חייב להיות חיובי")
+        return v
+
+    @field_validator("vat_amount")
+    @classmethod
+    def vat_non_negative(cls, v: Decimal) -> Decimal:
+        if v < 0:
+            raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
+        return v
 
 
 class VatInvoiceResponse(BaseModel):
