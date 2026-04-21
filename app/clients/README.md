@@ -25,7 +25,7 @@ Comments:
 - Create-client orchestration: `app/clients/services/create_client_service.py`
 - Query service: `app/clients/services/client_query_service.py`
 - API: `app/clients/api/clients.py`
-- Enrichment (active binder number): `app/clients/api/client_enrichment.py`
+- Enrichment (active binder number): `app/clients/services/client_enrichment_service.py`
 - Excel API/service: `app/clients/api/clients_excel.py`, `app/clients/services/client_excel_service.py`
 
 ## Domain Model

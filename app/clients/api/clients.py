@@ -13,22 +13,15 @@ from app.clients.schemas.client import (
     DeletedClientSummary,
 )
 from app.clients.schemas.client_record_response import (
-    ClientRecordResponse,
     ClientRecordListResponse,
-    ClientRecordListStats,
+    ClientRecordResponse,
     CreateClientRecordResponse,
 )
 from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
 from app.clients.services.impact_preview_service import compute_creation_impact
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_record_read_repository import (
-    get_full_record,
-    get_full_record_including_deleted,
-    get_full_records_bulk,
-)
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import ConflictError
 from app.clients.api.client_enrichment import enrich_single, enrich_list
 
 router = APIRouter(
@@ -60,13 +53,6 @@ def _raise_client_conflict(service: ClientService, id_number: str, error: Confli
             ).model_dump(mode="json"),
         },
     )
-
-
-def _full_record_or_404(db, client_record_id: int) -> ClientRecordResponse:
-    data = get_full_record(db, client_record_id)
-    if not data:
-        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
-    return ClientRecordResponse(**data)
 
 
 # ─── Create ───────────────────────────────────────────────────────────────────
@@ -131,7 +117,7 @@ def create_client(
         entity_type=request.client.entity_type,
         vat_reporting_frequency=request.client.vat_reporting_frequency,
     )
-    full = _full_record_or_404(db, client_record.id)
+    full = service.client_service.get_full_client(client_record.id)
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
         client=enrich_single(full, db),
@@ -153,39 +139,24 @@ def list_clients(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List clients with optional search, status filter, and sorting."""
-    repo = ClientRecordRepository(db)
-    records = repo.list(
+    service = ClientService(db)
+    result = service.list_full_clients(
         search=search,
         status=status,
-        sort_by="official_name" if sort_by == "full_name" else sort_by,
+        sort_by=sort_by,
         sort_order=sort_order,
         page=page,
         page_size=page_size,
     )
-    total = repo.count(search=search, status=status)
-    record_ids = [r.id for r in records]
-    full_map = get_full_records_bulk(db, record_ids)
-    items = [ClientRecordResponse(**full_map[rid]) for rid in record_ids if rid in full_map]
-    enriched = enrich_list(items, db)
-    counts = repo.count_by_status()
-    stats = ClientRecordListStats(
-        active=counts.get(ClientStatus.ACTIVE, 0),
-        frozen=counts.get(ClientStatus.FROZEN, 0),
-        closed=counts.get(ClientStatus.CLOSED, 0),
-    )
-    return ClientRecordListResponse(
-        items=enriched,
-        page=page,
-        page_size=page_size,
-        total=total,
-        stats=stats,
-    )
+    result.items = enrich_list(result.items, db)
+    return result
 
 
 @router.get("/{client_id}", response_model=ClientRecordResponse)
 def get_client(client_id: int, db: DBSession):
     """Get client by ID (client_id = ClientRecord.id)."""
-    return enrich_single(_full_record_or_404(db, client_id), db)
+    service = ClientService(db)
+    return enrich_single(service.get_full_client(client_id), db)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
@@ -220,7 +191,7 @@ def update_client(
         actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
-    return enrich_single(_full_record_or_404(db, client_id), db)
+    return enrich_single(service.get_full_client(client_id), db)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
@@ -246,7 +217,4 @@ def restore_client(client_id: int, db: DBSession, user: CurrentUser):
     """Restore a soft-deleted client (ADVISOR only)."""
     service = ClientService(db)
     service.restore_client(client_id, actor_id=user.id)
-    data = get_full_record_including_deleted(db, client_id)
-    if not data:
-        raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT.NOT_FOUND")
-    return ClientRecordResponse(**data)
+    return service.get_full_client_including_deleted(client_id)

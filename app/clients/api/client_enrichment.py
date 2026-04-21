@@ -1,7 +1,6 @@
 """Enrichment helpers for ClientRecordResponse — attaches derived fields."""
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.client_record_read_repository import get_full_records_bulk
 from app.clients.schemas.client_record_response import ClientRecordResponse
 from app.binders.services.binder_operations_service import BinderOperationsService
 

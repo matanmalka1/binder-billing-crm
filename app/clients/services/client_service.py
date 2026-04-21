@@ -6,6 +6,10 @@ from app.clients.models.client_record import ClientRecord
 from app.common.enums import IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
+from app.clients.schemas.client_record_response import (
+    ClientRecordListResponse,
+    ClientRecordResponse,
+)
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_lifecycle_service import ClientLifecycleService
@@ -98,3 +102,27 @@ class ClientService:
 
     def get_conflict_info(self, id_number: str) -> dict:
         return self._query.get_conflict_info(id_number)
+
+    def get_full_client(self, client_id: int) -> ClientRecordResponse:
+        return self._query.get_full_client(client_id)
+
+    def get_full_client_including_deleted(self, client_id: int) -> ClientRecordResponse:
+        return self._query.get_full_client_including_deleted(client_id)
+
+    def list_full_clients(
+        self,
+        search=None,
+        status=None,
+        sort_by="official_name",
+        sort_order="asc",
+        page=1,
+        page_size=20,
+    ) -> ClientRecordListResponse:
+        return self._query.list_full_clients(
+            search=search,
+            status=status,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
