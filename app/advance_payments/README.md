@@ -18,24 +18,24 @@
 
 ### `AdvancePayment`
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `id` | `Integer` | PK |
-| `client_record_id` | `Integer` | FK -> `client_records.id`, indexed |
-| `period` | `String(7)` | `YYYY-MM`, first month in the reporting period |
-| `period_months_count` | `Integer` | `1` monthly, `2` bi-monthly |
-| `due_date` | `Date` | Payment due date |
-| `expected_amount` | `Numeric(10,2) \| null` | Expected payment amount |
-| `paid_amount` | `Numeric(10,2)` | Defaults to `0` |
-| `status` | `AdvancePaymentStatus` | Defaults to `pending` |
-| `paid_at` | `DateTime \| null` | Actual payment timestamp |
-| `payment_method` | `PaymentMethod \| null` | Payment channel |
-| `annual_report_id` | `Integer \| null` | FK -> `annual_reports.id`, indexed |
-| `notes` | `String(500) \| null` | Free text |
-| `created_at` | `DateTime` | Defaults to `utcnow()` |
-| `updated_at` | `DateTime \| null` | Updated on repository writes |
-| `deleted_at` | `DateTime \| null` | Soft delete marker |
-| `deleted_by` | `Integer \| null` | FK -> `users.id` |
+| Field                 | Type                    | Notes                                          |
+| --------------------- | ----------------------- | ---------------------------------------------- |
+| `id`                  | `Integer`               | PK                                             |
+| `client_record_id`    | `Integer`               | FK -> `client_records.id`, indexed             |
+| `period`              | `String(7)`             | `YYYY-MM`, first month in the reporting period |
+| `period_months_count` | `Integer`               | `1` monthly, `2` bi-monthly                    |
+| `due_date`            | `Date`                  | Payment due date                               |
+| `expected_amount`     | `Numeric(10,2) \| null` | Expected payment amount                        |
+| `paid_amount`         | `Numeric(10,2)`         | Defaults to `0`                                |
+| `status`              | `AdvancePaymentStatus`  | Defaults to `pending`                          |
+| `paid_at`             | `DateTime \| null`      | Actual payment timestamp                       |
+| `payment_method`      | `PaymentMethod \| null` | Payment channel                                |
+| `annual_report_id`    | `Integer \| null`       | FK -> `annual_reports.id`, indexed             |
+| `notes`               | `String(500) \| null`   | Free text                                      |
+| `created_at`          | `DateTime`              | Defaults to `utcnow()`                         |
+| `updated_at`          | `DateTime \| null`      | Updated on repository writes                   |
+| `deleted_at`          | `DateTime \| null`      | Soft delete marker                             |
+| `deleted_by`          | `Integer \| null`       | FK -> `users.id`                               |
 
 Relationships declared via foreign keys:
 
@@ -57,20 +57,20 @@ Indexes:
 
 ## Schemas
 
-| Schema | Direction | Notes |
-|--------|-----------|-------|
-| `AdvancePaymentRow` | Response | Uses `from_attributes=True`; couples directly to ORM objects |
-| `AdvancePaymentListResponse` | Response | Paginated list envelope |
-| `AdvancePaymentCreateRequest` | Request | Validates `period` format, `period_months_count`, non-negative amounts, max `notes=500` |
-| `AdvancePaymentUpdateRequest` | Request | Partial update payload; rejects empty body |
-| `AdvancePaymentSuggestionResponse` | Response | Suggested amount + `has_data` |
-| `AdvancePaymentOverviewRow` | Response | Constructed manually in the router (not from ORM attributes directly) |
-| `AdvancePaymentOverviewResponse` | Response | Overview list + KPI totals |
-| `AnnualKPIResponse` | Response | Client-level yearly KPI payload |
-| `MonthlyChartRow` | Response | Monthly chart point |
-| `ChartDataResponse` | Response | Client-level chart payload |
-| `GenerateScheduleRequest` | Request | `year`, `period_months_count` |
-| `GenerateScheduleResponse` | Response | Bulk generation counters |
+| Schema                             | Direction | Notes                                                                                   |
+| ---------------------------------- | --------- | --------------------------------------------------------------------------------------- |
+| `AdvancePaymentRow`                | Response  | Uses `from_attributes=True`; couples directly to ORM objects                            |
+| `AdvancePaymentListResponse`       | Response  | Paginated list envelope                                                                 |
+| `AdvancePaymentCreateRequest`      | Request   | Validates `period` format, `period_months_count`, non-negative amounts, max `notes=500` |
+| `AdvancePaymentUpdateRequest`      | Request   | Partial update payload; rejects empty body                                              |
+| `AdvancePaymentSuggestionResponse` | Response  | Suggested amount + `has_data`                                                           |
+| `AdvancePaymentOverviewRow`        | Response  | Constructed manually in the router (not from ORM attributes directly)                   |
+| `AdvancePaymentOverviewResponse`   | Response  | Overview list + KPI totals                                                              |
+| `AnnualKPIResponse`                | Response  | Client-level yearly KPI payload                                                         |
+| `MonthlyChartRow`                  | Response  | Monthly chart point                                                                     |
+| `ChartDataResponse`                | Response  | Client-level chart payload                                                              |
+| `GenerateScheduleRequest`          | Request   | `year`, `period_months_count`                                                           |
+| `GenerateScheduleResponse`         | Response  | Bulk generation counters                                                                |
 
 Computed fields:
 
@@ -216,31 +216,31 @@ Raw SQL:
 
 ## API Endpoints
 
-| Method | Path | Auth | Role | Description |
-|--------|------|------|------|-------------|
-| `GET` | `/clients/{client_record_id}/advance-payments` | `require_role(...)` | `ADVISOR`, `SECRETARY` | List client payments for a year with status filter and pagination |
-| `POST` | `/clients/{client_record_id}/advance-payments` | `require_role(...)` | `ADVISOR` | Create a new advance payment |
-| `GET` | `/clients/{client_record_id}/advance-payments/suggest` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Suggest expected amount from prior-year VAT |
-| `GET` | `/clients/{client_record_id}/advance-payments/kpi` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return annual KPIs for one client |
-| `GET` | `/clients/{client_record_id}/advance-payments/chart` | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return monthly chart data for one client |
-| `PATCH` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Update one client payment |
-| `DELETE` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR` | Soft-delete one client payment |
-| `POST` | `/clients/{client_record_id}/advance-payments/generate` | `require_role(...)` | `ADVISOR` | Generate yearly monthly or bi-monthly schedule |
-| `GET` | `/advance-payments/overview` | `require_role(...)` | `ADVISOR`, `SECRETARY` | List cross-client overview rows and KPI totals |
+| Method   | Path                                                        | Auth                | Role                   | Description                                                       |
+| -------- | ----------------------------------------------------------- | ------------------- | ---------------------- | ----------------------------------------------------------------- |
+| `GET`    | `/clients/{client_record_id}/advance-payments`              | `require_role(...)` | `ADVISOR`, `SECRETARY` | List client payments for a year with status filter and pagination |
+| `POST`   | `/clients/{client_record_id}/advance-payments`              | `require_role(...)` | `ADVISOR`              | Create a new advance payment                                      |
+| `GET`    | `/clients/{client_record_id}/advance-payments/suggest`      | `require_role(...)` | `ADVISOR`, `SECRETARY` | Suggest expected amount from prior-year VAT                       |
+| `GET`    | `/clients/{client_record_id}/advance-payments/kpi`          | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return annual KPIs for one client                                 |
+| `GET`    | `/clients/{client_record_id}/advance-payments/chart`        | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return monthly chart data for one client                          |
+| `PATCH`  | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR`              | Update one client payment                                         |
+| `DELETE` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR`              | Soft-delete one client payment                                    |
+| `POST`   | `/clients/{client_record_id}/advance-payments/generate`     | `require_role(...)` | `ADVISOR`              | Generate yearly monthly or bi-monthly schedule                    |
+| `GET`    | `/advance-payments/overview`                                | `require_role(...)` | `ADVISOR`, `SECRETARY` | List cross-client overview rows and KPI totals                    |
 
 ---
 
 ## Cross-Domain Dependencies
 
-| Imported From | What | Why |
-|---------------|------|-----|
-| `app.clients.enums` / `app.clients.models.client_record` | `ClientStatus`, `ClientRecord` | Block create for closed/frozen clients; join client name in overview aggregates |
-| `app.clients.repositories.client_record_repository` | `ClientRecordRepository` | Load client records in services and schedule generation |
-| `app.vat_reports.repositories.vat_client_summary_repository` | `VatClientSummaryRepository` | Read prior-year output VAT for suggestions |
-| `app.annual_reports.services.financial_service` | `AnnualReportFinancialService` | Invalidate annual-report tax calculation after marking a payment as paid |
-| `app.users.api.deps` | `CurrentUser`, `DBSession`, `require_role` | API auth and injected DB session |
-| `app.users.models.user` | `UserRole` | Endpoint role guards |
-| `app.core.api_types` | `ApiDecimal`, `ApiDateTime` | Shared response/request serialization types |
+| Imported From                                                | What                                       | Why                                                                             |
+| ------------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `app.clients.enums` / `app.clients.models.client_record`     | `ClientStatus`, `ClientRecord`             | Block create for closed/frozen clients; join client name in overview aggregates |
+| `app.clients.repositories.client_record_repository`          | `ClientRecordRepository`                   | Load client records in services and schedule generation                         |
+| `app.vat_reports.repositories.vat_client_summary_repository` | `VatClientSummaryRepository`               | Read prior-year output VAT for suggestions                                      |
+| `app.annual_reports.services.financial_service`              | `AnnualReportFinancialService`             | Invalidate annual-report tax calculation after marking a payment as paid        |
+| `app.users.api.deps`                                         | `CurrentUser`, `DBSession`, `require_role` | API auth and injected DB session                                                |
+| `app.users.models.user`                                      | `UserRole`                                 | Endpoint role guards                                                            |
+| `app.core.api_types`                                         | `ApiDecimal`, `ApiDateTime`                | Shared response/request serialization types                                     |
 
 Dependency direction:
 

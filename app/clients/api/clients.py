@@ -8,6 +8,7 @@ from app.clients.enums import ClientStatus
 from app.clients.schemas.client import (
     ClientConflictInfo,
     CreateClientRequest,
+    ClientImpactPreviewRequest,
     ClientUpdateRequest,
     ActiveClientSummary,
     DeletedClientSummary,
@@ -40,7 +41,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def preview_creation_impact(
-    request: CreateClientRequest,
+    request: ClientImpactPreviewRequest,
     _db: DBSession,
 ):
     """מחזיר תצוגה מקדימה של הישויות שייווצרו אוטומטית עם פתיחת הלקוח. לא כותב לבסיס הנתונים."""

@@ -135,6 +135,17 @@ class CreateClientRequest(BaseModel):
         return self
 
 
+class ClientImpactPreviewClientRequest(BaseModel):
+    """שדות החובה היחידים לחישוב תצוגת ההשפעה לפני יצירת לקוח."""
+    entity_type: EntityType
+    vat_reporting_frequency: VatType
+
+
+class ClientImpactPreviewRequest(BaseModel):
+    """בקשת תצוגת השפעה מקדימה. שדות נוספים בבקשה המלאה מתעלמים מהם."""
+    client: ClientImpactPreviewClientRequest
+
+
 # ─── Responses ────────────────────────────────────────────────────────────────
 
 class ClientResponse(BaseModel):
