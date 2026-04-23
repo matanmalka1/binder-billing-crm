@@ -333,7 +333,6 @@ Binder-domain test suites currently present in the repository:
 - `tests/binders/service/test_binder_helpers.py`
 - `tests/binders/service/test_operational_signals.py`
 - `tests/binders/repository/test_binder_repository.py`
-- `tests/binders/repository/test_binder_repository_extensions.py`
 - `tests/actions/test_binder_actions.py`
 - `tests/businesses/api/test_business_binders_api.py`
 - `tests/regression/test_core_regressions_binders_charges_notifications.py`
