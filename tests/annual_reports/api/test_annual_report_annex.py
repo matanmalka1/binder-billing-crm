@@ -53,7 +53,8 @@ def test_annex_crud_flow(client, test_db, advisor_headers):
         headers=advisor_headers,
     )
     assert listing.status_code == 200
-    assert len(listing.json()) == 1
+    assert listing.json()["total"] == 1
+    assert len(listing.json()["items"]) == 1
 
     delete = client.delete(
         f"/api/v1/annual-reports/{report.id}/annex/{schedule}/{line_id}",
@@ -63,7 +64,7 @@ def test_annex_crud_flow(client, test_db, advisor_headers):
     assert client.get(
         f"/api/v1/annual-reports/{report.id}/annex/{schedule}",
         headers=advisor_headers,
-    ).json() == []
+    ).json()["items"] == []
 
 
 def test_add_annex_requires_report_exists(client, advisor_headers):

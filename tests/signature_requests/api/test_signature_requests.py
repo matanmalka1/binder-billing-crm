@@ -221,6 +221,6 @@ def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_header
     )
     assert audit_resp.status_code == 200
     payload = audit_resp.json()
-    assert isinstance(payload, list)
-    event_types = [e["event_type"] for e in payload]
+    assert isinstance(payload["items"], list)
+    event_types = [e["event_type"] for e in payload["items"]]
     assert {"created", "sent"} <= set(event_types)

@@ -28,7 +28,7 @@ def test_tax_deadline_timeline_returns_sorted_with_labels(client, test_db, advis
     )
 
     assert resp.status_code == 200
-    items = resp.json()
+    items = resp.json()["items"]
     assert [i["id"] for i in items] == [sooner.id, later.id]
     assert items[0]["milestone_label"] == "תשלום מקדמה"
     assert items[1]["milestone_label"] == "הגשת דוח שנתי"

@@ -29,11 +29,11 @@ def test_create_and_get_tax_deadline(client, test_db, advisor_headers, test_user
     assert payload["deadline_type"] == "vat"
     assert payload["status"] == "pending"
     assert payload["period"] == "2026-03"
-    assert payload["business_name"] == business.full_name
+    assert payload["client_name"] == business.full_name
 
     fetched = client.get(f"/api/v1/tax-deadlines/{deadline_id}", headers=advisor_headers)
     assert fetched.status_code == 200
-    assert fetched.json()["business_name"] == business.full_name
+    assert fetched.json()["client_name"] == business.full_name
     assert float(fetched.json()["payment_amount"]) == 1500.5
 
 
@@ -119,7 +119,7 @@ def test_update_without_fields_returns_400(client, test_db, advisor_headers):
     assert resp.json()["error"] == "TAX_DEADLINE.NO_FIELDS_PROVIDED"
 
 
-def test_list_by_client_name_and_build_response_business_name(client, test_db, advisor_headers):
+def test_list_by_client_name_and_build_response_client_name(client, test_db, advisor_headers):
     business = create_business(test_db, name_prefix="Client Name Filter")
     repo = TaxDeadlineRepository(test_db)
     deadline = repo.create(
@@ -136,13 +136,13 @@ def test_list_by_client_name_and_build_response_business_name(client, test_db, a
     items = resp.json()["items"]
     assert len(items) == 1
     assert items[0]["id"] == deadline.id
-    assert items[0]["business_name"].startswith("Client Name Filter")
+    assert items[0]["client_name"].startswith("Client Name Filter")
 
-    built = TaxDeadlineResponseBuilder(test_db).build(deadline, business_name="Manual Name")
-    assert built.business_name == "Manual Name"
+    built = TaxDeadlineResponseBuilder(test_db).build(deadline, client_name="Manual Name")
+    assert built.client_name == "Manual Name"
 
 
-def test_list_tax_deadlines_enriches_fallback_business_name_for_sole_proprietor(
+def test_list_tax_deadlines_enriches_fallback_client_name_for_sole_proprietor(
     client, test_db, advisor_headers,
 ):
     business = create_business(test_db, name_prefix="Sole Prop")
@@ -159,7 +159,7 @@ def test_list_tax_deadlines_enriches_fallback_business_name_for_sole_proprietor(
     item = next((row for row in resp.json()["items"] if row["id"] == deadline.id), None)
     assert item is not None
     assert item["client_record_id"] == business.client_id
-    assert item["business_name"] == business.full_name
+    assert item["client_name"] == business.full_name
 
 
 def test_secretary_list_has_no_available_actions(client, test_db, secretary_headers):

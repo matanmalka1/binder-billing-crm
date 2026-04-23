@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_service import ClientService
-from app.common.enums import IdNumberType
+from app.common.enums import EntityType, IdNumberType
 from app.core.exceptions import ConflictError, NotFoundError
 from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_identity
@@ -29,6 +29,7 @@ def _svc_create(service, *, full_name, id_number, actor_id=3):
         full_name=full_name,
         id_number=id_number,
         id_number_type=IdNumberType.CORPORATION,
+        entity_type=EntityType.COMPANY_LTD,
         actor_id=actor_id,
     )
 

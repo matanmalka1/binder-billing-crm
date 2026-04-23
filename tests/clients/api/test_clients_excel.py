@@ -37,7 +37,14 @@ def test_template_download(client, advisor_headers):
     assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"]
 
 
-def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers):
+def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers, monkeypatch):
+    calls = []
+
+    def _create_client_stub(self, **kwargs):
+        calls.append(kwargs)
+        return object(), object()
+
+    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
     payload = _workbook_bytes([
         ["full_name", "business_name", "id_number", "phone", "email"],
         ["Excel User", "Excel User Business", "710000001", "0500000000", "excel@example.com"],
@@ -60,9 +67,21 @@ def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_he
     assert body["created"] == 1
     assert body["total_rows"] == 1
     assert body["errors"] == []
+    assert len(calls) == 1
+    assert calls[0]["business_name"] == "Excel User Business"
 
 
-def test_import_clients_excel_returns_row_errors(client, advisor_headers):
+def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkeypatch):
+    seen = set()
+
+    def _create_client_stub(self, **kwargs):
+        id_number = kwargs["id_number"]
+        if id_number in seen:
+            raise ValueError("duplicate")
+        seen.add(id_number)
+        return object(), object()
+
+    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
     payload = _workbook_bytes([
         ["full_name", "business_name", "id_number", "phone", "email"],
         ["", "", "", None, None],

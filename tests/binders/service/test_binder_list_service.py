@@ -63,6 +63,7 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     assert counters["total"] == 1
     assert counters["in_office"] == 1
     assert counters["closed_in_office"] == 0
+    assert counters["archived_in_office"] == 0
     assert counters["ready_for_pickup"] == 0
     assert counters["returned"] == 0
 
@@ -73,6 +74,7 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
         "total": 0,
         "in_office": 0,
         "closed_in_office": 0,
+        "archived_in_office": 0,
         "ready_for_pickup": 0,
         "returned": 0,
     }
@@ -104,6 +106,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
         "total": 3,
         "in_office": 1,
         "closed_in_office": 0,
+        "archived_in_office": 0,
         "ready_for_pickup": 1,
         "returned": 1,
     }

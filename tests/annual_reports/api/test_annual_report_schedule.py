@@ -36,10 +36,10 @@ def test_get_schedules_returns_entries_for_report(client, test_db, advisor_heade
     )
     assert resp.status_code == 200
     body = resp.json()
-    assert isinstance(body, list)
-    assert len(body) >= 1
-    assert any(item["schedule"] == "schedule_b" for item in body)
-    assert all(item["annual_report_id"] == report_id for item in body)
+    assert body["total"] >= 1
+    assert isinstance(body["items"], list)
+    assert any(item["schedule"] == "schedule_b" for item in body["items"])
+    assert all(item["annual_report_id"] == report_id for item in body["items"])
 
 
 def test_get_schedules_returns_404_for_missing_report(client, advisor_headers):
