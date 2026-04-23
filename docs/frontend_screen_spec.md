@@ -2,7 +2,8 @@
 
 ## מטרה
 
-מסמך זה מגדיר איפיון אחיד למסכים הקיימים בפועל ב־`../frontend`.
+מסמך זה מגדיר איפיון אחיד למסכים הקיימים בפועל ב־`../frontend`,
+בהתאם לראוטים ולקומפוננטות הפעילים כיום.
 המטרה היא לייצר מקור אמת ברור ל־UX, להרשאות, לנתונים, לפעולות, ולפערים המבניים שגורמים לשבירות.
 
 ## תבנית איפיון אחידה לכל מסך
@@ -40,8 +41,8 @@
   - מצב redirect: משתמש מחובר מועבר ל־`/`.
 - תלותים במסכים אחרים: Dashboard לאחר login מוצלח.
 - פערים, כפילויות ושבירות נוכחית:
-  - הוחלף לשימוש בפרימיטיבים האחידים של המערכת (`Input`, `Button`, `Alert`), אך ה־toggle להצגת/הסתרת סיסמה עדיין ממומש מקומית בתוך השדה.
-  - שפת UI נפרדת משאר האפליקציה.
+  - המסך עבר לעיצוב דו־פאנלי ממותג ונשען על הפרימיטיבים האחידים של המערכת (`Input`, `Button`, `Alert`).
+  - ה־toggle להצגת/הסתרת סיסמה עדיין ממומש מקומית בתוך השדה.
 
 ### 2. Dashboard
 
@@ -58,8 +59,8 @@
   - error state.
 - תלותים במסכים אחרים: binders, deadlines, annual reports, operational flows.
 - פערים, כפילויות ושבירות נוכחית:
-  - תצוגה תלויה role ללא חוזה מסך מפורש.
-  - חלקים שלמים נעלמים לפי role במקום תבנית מסך יציבה.
+  - המסך נשען על branch לפי role view, אך בפועל כבר יש חלוקה יציבה יותר: attention panel משותף, ו־operational/season/today ליועץ בלבד.
+  - חוזה המסך עדיין לא מנסח במפורש אילו אזורים קבועים לכל role ואילו אזורים מותנים.
 
 ### 3. Binders
 
@@ -94,7 +95,7 @@
 
 - מטרה עסקית: ניהול רשימת לקוחות מלאה.
 - מי משתמש בו: `ADVISOR`, `SECRETARY`.
-- נתונים מוצגים: רשימת לקוחות, stats לפי status, total, pending actions.
+- נתונים מוצגים: רשימת לקוחות, stats לפי status, total.
 - פעולות מותרות:
   - `ADVISOR`: יצירה, עריכה, import/export, restore.
   - `SECRETARY`: צפייה בלבד.
@@ -121,11 +122,14 @@
   - פרטי לקוח.
   - binders.
   - charges.
+  - notes.
   - טאבים: details, documents, deadlines, timeline, vat, advance-payments, annual-reports, communication, finance.
 - פעולות מותרות:
   - עדכון לקוח.
   - מחיקת לקוח.
   - יצירת עסק.
+  - יצירת חיוב מתוך מסך לקוח.
+  - קליטת קלסר מתוך מסך לקוח.
   - פעולות פנימיות לפי טאב.
 - פילטרים, מיון, חיפוש, פגינציה:
   - לא ברמת המעטפת.
@@ -142,12 +146,17 @@
   - VAT.
   - advance payments.
   - annual reports.
+  - authority contacts.
   - communication.
   - finance.
+  - reminders.
+  - notifications.
+  - signature requests.
 - פערים, כפילויות ושבירות נוכחית:
-  - active tab לא מנוהל ב־URL.
-  - יש deeplink רק לחלק מהטאבים דרך route נפרד.
-  - refresh או שיתוף לינק לא שומרים תמיד הקשר מלא.
+  - active tab עדיין לא מנוהל ב־URL בזמן ניווט פנימי בתוך המסך.
+  - יש route-level deeplink לחלק מהטאבים (`documents`, `deadlines`, `timeline`, `vat`, `advance-payments`, `annual-reports`), אבל מעבר ידני בין טאבים לא מעדכן route.
+  - נוספו בפועל טאבי `communication` ו־`finance`, אך אין להם deep link ייעודי.
+  - refresh או שיתוף לינק שומרים הקשר חלקי בלבד.
 
 ### 6. Business Details
 
@@ -162,7 +171,7 @@
   - error.
 - תלותים במסכים אחרים: ClientDetails, Notes.
 - פערים, כפילויות ושבירות נוכחית:
-  - מסך דק מאוד שאינו מוגדר כמסך עשיר.
+  - המסך כיום ממומש כ־summary card + business notes בלבד.
   - אם יתווספו פעולות עסק, המבנה הנוכחי ידרוש refactor.
 
 ### 7. Search
@@ -231,6 +240,7 @@
 - תלותים במסכים אחרים: Annual Report Detail.
 - פערים, כפילויות ושבירות נוכחית:
   - naming לא עקבי: hook בשם Kanban אך UI מבוסס טבלה/summary.
+  - המסך נשען על `SeasonReportsTable`, `SeasonSummaryCards` ו־`SeasonProgressBar`, ולכן בפועל מדובר במסך season summary + table ולא kanban.
   - הרשאות לא מנוסחות בצורה גלויה במסך.
 
 ### 10. Annual Report Detail
@@ -265,6 +275,7 @@
   - client context.
 - פערים, כפילויות ושבירות נוכחית:
   - active section לא נשמר ב־URL.
+  - המסך עבר למבנה panel עם tab bar עליון ו־status strip, אך state הניווט נשאר לוקאלי.
   - מסך כבד מאוד עם state orchestration רב.
   - מסך detail מורכב אך לא מוגדר כחוזה מסך מפורט ברמת subsection.
 
@@ -286,7 +297,7 @@
   - modals ליצירה/עריכה/generate.
 - תלותים במסכים אחרים: dashboard/tax widgets, client workflows.
 - פערים, כפילויות ושבירות נוכחית:
-  - naming לא חד בין "דוחות מס" ל"מועדי מס".
+  - כותרת המסך בפועל היא "דוחות מס", בעוד שהישות והתוכן הם מועדי מס.
   - מסך משלב entity management עם operational dashboard.
 
 ### 12. Advance Payments
@@ -312,8 +323,9 @@
   - empty table.
 - תלותים במסכים אחרים: ClientDetails, reports.
 - פערים, כפילויות ושבירות נוכחית:
-  - שתי תצוגות שונות מאוד בתוך אותו מסך.
-  - ניהול URL ידני ולא אחיד עם שאר מסכי הרשימות.
+  - שתי תצוגות שונות מאוד בתוך אותו מסך: `overview` ו־`report`.
+  - התצוגה (`tab`) והפילטרים (`year`, `month`, `status`, `page`) נשמרים ב־query params.
+  - ניהול URL עדיין ידני ולא אחיד עם כל שאר מסכי הרשימות.
 
 ### 13. VAT Work Items
 
@@ -336,8 +348,9 @@
   - create modal.
 - תלותים במסכים אחרים: VAT Work Item Detail, ClientDetails.
 - פערים, כפילויות ושבירות נוכחית:
-  - create flow תלוי גם URL params וגם local state.
-  - update מוטבילי של `URLSearchParams` רגיש לשבירות.
+  - כותרת המסך בפועל היא `דוחות מע"מ (לקוח)` ולא `VAT Work Items`.
+  - create flow תלוי גם URL params (`create`, `client_id`, `period`) וגם local state.
+  - קיימת מוטציה ישירה על `URLSearchParams` בתוך ה־effect של פתיחת create modal, מה שמגדיל רגישות לשבירות.
 
 ### 14. VAT Work Item Detail
 
@@ -363,7 +376,7 @@
   - error alert.
 - תלותים במסכים אחרים: VAT list, client VAT context.
 - פערים, כפילויות ושבירות נוכחית:
-  - זה אחד המסכים היחידים עם tab sync ב־URL.
+  - זה אחד המסכים היחידים עם tab sync מלא ב־URL באמצעות `?tab=`.
   - מדגיש חוסר אחידות מול Client Details ו־Annual Report Detail.
 
 ### 15. VAT Compliance Report
@@ -420,6 +433,7 @@
   - advance payments.
 - פערים, כפילויות ושבירות נוכחית:
   - מסך אינטגרטיבי עם הרבה תלותים רוחביים.
+  - המסך נשען על `PageStateGuard`, summary cards, filters bar, table ו־drawer, אך עדיין ללא פגינציה.
   - סיכון גבוה לשבירה כשדומיין אחד משתנה.
 
 ### 17. Signature Requests
@@ -449,13 +463,14 @@
 - תלותים במסכים אחרים: Signing Page, ClientDetails.
 - פערים, כפילויות ושבירות נוכחית:
   - מסך queue בלי יכולות חיפוש/פילטור מספקות.
+  - toggle של `show all` מחליף בין active queue לארכיון חלקי, אך אינו מהווה מודל סינון עשיר.
   - columns נבנים inline ב־page ומכבידים על התחזוקה.
 
 ### 18. Users
 
 - מטרה עסקית: ניהול משתמשים, תפקידים והרשאות.
 - מי משתמש בו: `ADVISOR` בלבד.
-- נתונים מוצגים: users, filters, audit logs, current user context.
+- נתונים מוצגים: users, filters, current user context.
 - פעולות מותרות:
   - create user.
   - edit user.
@@ -474,6 +489,7 @@
 - תלותים במסכים אחרים: Auth state, audit logs.
 - פערים, כפילויות ושבירות נוכחית:
   - הרשאה נאכפת גם ב־router וגם ב־page.
+  - audit logs נפתחים ב־drawer נפרד ולא כחלק אינהרנטי מהמסך הראשי.
   - כפילות באכיפת access.
 
 ### 19. Public Signing
@@ -499,25 +515,29 @@
 - תלותים במסכים אחרים: Signature Requests.
 - פערים, כפילויות ושבירות נוכחית:
   - אין איפיון מפורש למעברי state בין ready / confirm / terminal.
+  - קיימים בפועל מצבי terminal ברורים (`loading`, `error`, `signed`, `declined`) לצד `expired` וזרימת confirm כפולה.
   - שפה ויזואלית נפרדת, ללא מסמך UX משלים.
 
 ## תבניות שבירה רוחביות
 
 ### A. אחידות state management
 
-- יש ערבוב בין `PageStateGuard`, `PageLoading`, `Alert`, וטעינה ידנית.
-- אין חוזה אחיד למסך רשימה מול מסך detail.
+- עדיין יש ערבוב בין `PageStateGuard`, `PageLoading`, `Alert`, `StateCard`, וטעינה ידנית.
+- קיימת התכנסות חלקית לתבניות אחידות, אבל אין חוזה מסך מלא ואחיד ל־list מול detail.
 
 ### B. אחידות URL state
 
 - `VAT Work Item Detail` שומר tab ב־URL.
-- `Client Details` ו־`Annual Report Detail` לא שומרים state זהה ב־URL.
+- `Advance Payments` שומר `tab` ופילטרים ב־query params.
+- `Client Details` מספק deeplink route-level רק לחלק מהטאבים, אבל active tab לא מסתנכרן ב־URL בניווט פנימי.
+- `Annual Report Detail` לא שומר section ב־URL.
 - התוצאה: deep link לא אחיד ושבירות ב־refresh/navigation.
 
 ### C. אחידות רשימות
 
-- יש `PaginatedDataTable`, `DataTable + PaginationCard`, וטבלאות HTML ידניות.
-- אין תבנית UX אחת למסכי list.
+- יש התכנסות ברורה ל־`PaginatedDataTable` ברוב מסכי ה־CRUD המרכזיים.
+- עדיין קיימים `DataTable + PaginationCard` וגם טבלאות HTML ידניות ב־search, reminders, signature requests ו־VAT compliance.
+- עדיין אין תבנית UX אחת שמכסה את כל מסכי list.
 
 ### D. הרשאות
 

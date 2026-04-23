@@ -69,6 +69,7 @@ class BinderListCounters(BaseModel):
     total: int
     in_office: int
     closed_in_office: int
+    archived_in_office: int
     ready_for_pickup: int
     returned: int
 

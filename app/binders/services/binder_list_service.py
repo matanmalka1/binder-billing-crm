@@ -80,6 +80,9 @@ class BinderListService:
             BinderStatus.RETURNED.value: sum(
                 1 for binder in binders if binder.status == BinderStatus.RETURNED
             ),
+            BinderStatus.ARCHIVED_IN_OFFICE.value: sum(
+                1 for binder in binders if binder.status == BinderStatus.ARCHIVED_IN_OFFICE
+            ),
         }
 
     def build_binder_response(
