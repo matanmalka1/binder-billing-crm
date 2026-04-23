@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from app.actions.action_helpers import _generate_action_id, _value, build_action
+from app.actions.action_helpers import (
+    ActionContract,
+    _generate_action_id,
+    _value,
+    build_action,
+    build_confirm,
+)
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.tax_deadline.models.tax_deadline import TaxDeadline, TaxDeadlineStatus
 from app.users.models.user import UserRole
@@ -23,15 +27,15 @@ def get_tax_deadline_actions(
     deadline: TaxDeadline,
     *,
     user_role: UserRole | str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[ActionContract]:
     """Return executable actions for a tax deadline."""
     if user_role not in (None, UserRole.ADVISOR, UserRole.ADVISOR.value):
         return []
 
     status = _value(deadline.status)
-    actions: list[dict[str, Any]] = []
+    actions: list[ActionContract] = []
 
-    if status != TaxDeadlineStatus.COMPLETED.value:
+    if status == TaxDeadlineStatus.PENDING.value:
         actions.append(
             build_action(
                 key="complete",
@@ -39,6 +43,31 @@ def get_tax_deadline_actions(
                 method="post",
                 endpoint=f"/tax-deadlines/{deadline.id}/complete",
                 action_id=_generate_action_id("tax_deadline", deadline.id, "complete"),
+            )
+        )
+
+        actions.append(
+            build_action(
+                key="edit",
+                label="עריכה",
+                method="put",
+                endpoint=f"/tax-deadlines/{deadline.id}",
+                action_id=_generate_action_id("tax_deadline", deadline.id, "edit"),
+            )
+        )
+
+        actions.append(
+            build_action(
+                key="delete",
+                label="מחיקה",
+                method="delete",
+                endpoint=f"/tax-deadlines/{deadline.id}",
+                action_id=_generate_action_id("tax_deadline", deadline.id, "delete"),
+                confirm=build_confirm(
+                    "אישור מחיקת מועד",
+                    "האם למחוק את המועד?",
+                    confirm_label="מחיקה",
+                ),
             )
         )
 
@@ -53,32 +82,12 @@ def get_tax_deadline_actions(
             )
         )
 
-    actions.append(
-        build_action(
-            key="edit",
-            label="עריכה",
-            method="put",
-            endpoint=f"/tax-deadlines/{deadline.id}",
-            action_id=_generate_action_id("tax_deadline", deadline.id, "edit"),
-        )
-    )
-
-    actions.append(
-        build_action(
-            key="delete",
-            label="מחיקה",
-            method="delete",
-            endpoint=f"/tax-deadlines/{deadline.id}",
-            action_id=_generate_action_id("tax_deadline", deadline.id, "delete"),
-        )
-    )
-
     return actions
 
 
-def get_annual_report_actions(report_id: int, status: str) -> list[dict[str, Any]]:
+def get_annual_report_actions(report_id: int, status: str) -> list[ActionContract]:
     """Return executable actions for an annual report based on its status."""
-    actions: list[dict[str, Any]] = []
+    actions: list[ActionContract] = []
 
     if status == AnnualReportStatus.SUBMITTED.value:
         actions.append(

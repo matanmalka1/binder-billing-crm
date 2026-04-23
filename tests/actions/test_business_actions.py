@@ -41,3 +41,26 @@ def test_frozen_business_secretary_only_gets_activate_action():
     actions = get_business_actions(business, user_role=UserRole.SECRETARY)
 
     assert [action["key"] for action in actions] == ["activate"]
+
+
+def test_business_actions_uses_client_id_even_when_legal_entity_id_exists():
+    business = SimpleNamespace(
+        id=8,
+        client_id=9,
+        legal_entity_id=77,
+        status=BusinessStatus.ACTIVE,
+    )
+
+    actions = get_business_actions(business, user_role=UserRole.ADVISOR)
+
+    assert actions[0]["endpoint"] == "/clients/9/businesses/8"
+
+
+def test_business_actions_raises_when_client_id_missing():
+    business = SimpleNamespace(id=8, legal_entity_id=77, status=BusinessStatus.ACTIVE)
+
+    try:
+        get_business_actions(business, user_role=UserRole.ADVISOR)
+        assert False, "Expected ValueError when client_id is missing"
+    except ValueError as exc:
+        assert str(exc) == "Business actions require client_id for endpoint construction"

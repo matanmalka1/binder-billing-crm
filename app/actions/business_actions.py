@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
-from app.actions.action_helpers import _generate_action_id, _value, build_action
+from app.actions.action_helpers import (
+    ActionContract,
+    _generate_action_id,
+    _value,
+    build_action,
+    build_confirm,
+)
 from app.businesses.models.business import Business, BusinessStatus
 from app.users.models.user import UserRole
 
@@ -10,16 +16,14 @@ from app.users.models.user import UserRole
 def get_business_actions(
     business: Business,
     user_role: Optional[UserRole] = None,
-) -> list[dict[str, Any]]:
+) -> list[ActionContract]:
     """Return executable actions for a business (role-aware)."""
     status = _value(business.status)
-    legal_entity_id = getattr(business, "legal_entity_id", None)
     client_id = getattr(business, "client_id", None)
-    if legal_entity_id is None and client_id is not None:
-        endpoint = f"/clients/{client_id}/businesses/{business.id}"
-    else:
-        endpoint = f"/client-records/{legal_entity_id}/businesses/{business.id}"
-    actions: list[dict[str, Any]] = []
+    if client_id is None:
+        raise ValueError("Business actions require client_id for endpoint construction")
+    endpoint = f"/clients/{client_id}/businesses/{business.id}"
+    actions: list[ActionContract] = []
 
     if status == BusinessStatus.ACTIVE.value and user_role == UserRole.ADVISOR:
         actions.append(
@@ -30,12 +34,11 @@ def get_business_actions(
                 endpoint=endpoint,
                 payload={"status": "frozen"},
                 action_id=_generate_action_id("business", business.id, "freeze"),
-                confirm={
-                    "title": "אישור הקפאת עסק",
-                    "message": "האם להקפיא את העסק?",
-                    "confirm_label": "הקפאה",
-                    "cancel_label": "ביטול",
-                },
+                confirm=build_confirm(
+                    "אישור הקפאת עסק",
+                    "האם להקפיא את העסק?",
+                    confirm_label="הקפאה",
+                ),
             )
         )
         actions.append(
@@ -46,12 +49,10 @@ def get_business_actions(
                 endpoint=endpoint,
                 payload={"status": "closed"},
                 action_id=_generate_action_id("business", business.id, "close"),
-                confirm={
-                    "title": "אישור סגירת עסק",
-                    "message": "האם לסגור את העסק?",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                },
+                confirm=build_confirm(
+                    "אישור סגירת עסק",
+                    "האם לסגור את העסק?",
+                ),
             )
         )
 
@@ -75,12 +76,10 @@ def get_business_actions(
                     endpoint=endpoint,
                     payload={"status": "closed"},
                     action_id=_generate_action_id("business", business.id, "close"),
-                    confirm={
-                        "title": "אישור סגירת עסק",
-                        "message": "האם לסגור את העסק?",
-                        "confirm_label": "אישור",
-                        "cancel_label": "ביטול",
-                    },
+                    confirm=build_confirm(
+                        "אישור סגירת עסק",
+                        "האם לסגור את העסק?",
+                    ),
                 )
             )
 

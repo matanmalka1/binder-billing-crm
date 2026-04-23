@@ -18,17 +18,23 @@ def test_get_tax_deadline_actions_non_completed_has_complete_and_edit():
     assert actions[0]["id"] == "tax_deadline-3-complete"
     assert actions[1]["id"] == "tax_deadline-3-edit"
     assert actions[2]["id"] == "tax_deadline-3-delete"
+    assert actions[2]["confirm"]["confirm_label"] == "מחיקה"
 
-
-def test_get_tax_deadline_actions_completed_has_only_edit():
+def test_get_tax_deadline_actions_completed_has_only_reopen():
     deadline = SimpleNamespace(id=4, status=TaxDeadlineStatus.COMPLETED)
 
     actions = get_tax_deadline_actions(deadline)
 
-    assert [action["key"] for action in actions] == ["reopen", "edit", "delete"]
+    assert [action["key"] for action in actions] == ["reopen"]
     assert actions[0]["endpoint"] == "/tax-deadlines/4/reopen"
-    assert actions[1]["endpoint"] == "/tax-deadlines/4"
-    assert actions[2]["endpoint"] == "/tax-deadlines/4"
+
+
+def test_get_tax_deadline_actions_canceled_has_no_actions():
+    deadline = SimpleNamespace(id=6, status=TaxDeadlineStatus.CANCELED)
+
+    actions = get_tax_deadline_actions(deadline)
+
+    assert actions == []
 
 
 def test_get_tax_deadline_actions_secretary_has_no_actions():

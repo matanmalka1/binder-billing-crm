@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from typing import Any
-
-from app.actions.action_helpers import _generate_action_id, _value, build_action
+from app.actions.action_helpers import (
+    ActionContract,
+    _generate_action_id,
+    _value,
+    build_action,
+    build_confirm,
+)
 from app.binders.models.binder import Binder, BinderStatus
 
 
-def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
+def get_binder_actions(binder: Binder) -> list[ActionContract]:
     """Return executable actions for a binder based on its current logistics status."""
     status = _value(binder.status)
-    actions: list[dict[str, Any]] = []
+    actions: list[ActionContract] = []
 
     if status in {
         BinderStatus.IN_OFFICE.value,
@@ -22,12 +26,10 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/binders/{binder.id}/ready",
                 action_id=_generate_action_id("binder", binder.id, "ready"),
-                confirm={
-                    "title": "אישור סימון כמוכן לאיסוף",
-                    "message": "האם לסמן את הקלסר כמוכן לאיסוף?",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                },
+                confirm=build_confirm(
+                    "אישור סימון כמוכן לאיסוף",
+                    "האם לסמן את הקלסר כמוכן לאיסוף?",
+                ),
             )
         )
 
@@ -39,12 +41,10 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/binders/{binder.id}/revert-ready",
                 action_id=_generate_action_id("binder", binder.id, "revert_ready"),
-                confirm={
-                    "title": "ביטול סטטוס מוכן לאיסוף",
-                    "message": "האם לבטל את הסימון כמוכן לאיסוף ולהחזיר את הקלסר לסטטוס במשרד?",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                },
+                confirm=build_confirm(
+                    "ביטול סטטוס מוכן לאיסוף",
+                    "האם לבטל את הסימון כמוכן לאיסוף ולהחזיר את הקלסר לסטטוס במשרד?",
+                ),
             )
         )
         actions.append(
@@ -54,12 +54,10 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/binders/{binder.id}/return",
                 action_id=_generate_action_id("binder", binder.id, "return"),
-                confirm={
-                    "title": "אישור החזרת קלסר",
-                    "message": "אנא הזן את שם האדם שאסף את הקלסר.",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                    "inputs": [
+                confirm=build_confirm(
+                    "אישור החזרת קלסר",
+                    "אנא הזן את שם האדם שאסף את הקלסר.",
+                    inputs=[
                         {
                             "name": "pickup_person_name",
                             "label": "שם האוסף",
@@ -67,7 +65,7 @@ def get_binder_actions(binder: Binder) -> list[dict[str, Any]]:
                             "required": True,
                         }
                     ],
-                },
+                ),
             )
         )
 

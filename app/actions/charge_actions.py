@@ -1,31 +1,35 @@
 from __future__ import annotations
 
-from typing import Any
-
-from app.actions.action_helpers import _generate_action_id, _value, build_action
+from app.actions.action_helpers import (
+    ActionContract,
+    _generate_action_id,
+    _value,
+    build_action,
+    build_confirm,
+)
 from app.charge.models.charge import Charge, ChargeStatus
 
 
-def _cancel_charge_action(charge_id: int) -> dict[str, Any]:
+def _cancel_charge_action(charge_id: int) -> ActionContract:
     return build_action(
         key="cancel_charge",
         label="ביטול חיוב",
         method="post",
         endpoint=f"/charges/{charge_id}/cancel",
         action_id=_generate_action_id("charge", charge_id, "cancel_charge"),
-        confirm={
-            "title": "אישור ביטול חיוב",
-            "message": "האם לבטל את החיוב?",
-            "confirm_label": "אשר ביטול",
-            "cancel_label": "חזרה",
-        },
+        confirm=build_confirm(
+            "אישור ביטול חיוב",
+            "האם לבטל את החיוב?",
+            confirm_label="אשר ביטול",
+            cancel_label="חזרה",
+        ),
     )
 
 
-def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
+def get_charge_actions(charge: Charge) -> list[ActionContract]:
     """Return executable actions for a charge."""
     status = _value(charge.status)
-    actions: list[dict[str, Any]] = []
+    actions: list[ActionContract] = []
 
     if status == ChargeStatus.DRAFT.value:
         actions.append(
@@ -47,12 +51,10 @@ def get_charge_actions(charge: Charge) -> list[dict[str, Any]]:
                 method="post",
                 endpoint=f"/charges/{charge.id}/mark-paid",
                 action_id=_generate_action_id("charge", charge.id, "mark_paid"),
-                confirm={
-                    "title": "אישור סימון חיוב כשולם",
-                    "message": "האם לסמן את החיוב כשולם?",
-                    "confirm_label": "אישור",
-                    "cancel_label": "ביטול",
-                },
+                confirm=build_confirm(
+                    "אישור סימון חיוב כשולם",
+                    "האם לסמן את החיוב כשולם?",
+                ),
             )
         )
         actions.append(_cancel_charge_action(charge.id))
