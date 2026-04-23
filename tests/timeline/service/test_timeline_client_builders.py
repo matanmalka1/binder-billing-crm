@@ -29,10 +29,14 @@ def test_client_builder_events():
     assert created["event_type"] == "client_created"
     assert created["description"] == "לקוח נוצר: Client Builder"
     assert created["metadata"] == {"entity_type": "company_ltd"}
+    assert "actions" not in created
+    assert created["available_actions"] == []
 
     updated = client_info_updated_event(client)
     assert updated["event_type"] == "client_info_updated"
     assert updated["timestamp"] == datetime(2026, 1, 2, 8, 0)
+    assert "actions" not in updated
+    assert updated["available_actions"] == []
 
 
 def test_reminder_document_and_signature_builder_events():
@@ -60,10 +64,14 @@ def test_reminder_document_and_signature_builder_events():
         "reminder_type": "custom",
         "send_on": "2026-01-10",
     }
+    assert "actions" not in reminder_event
+    assert reminder_event["available_actions"] == []
 
     document_event = document_uploaded_event(document)
     assert document_event["event_type"] == "document_uploaded"
     assert document_event["metadata"] == {"document_type": "id_copy"}
+    assert "actions" not in document_event
+    assert document_event["available_actions"] == []
 
     signature_event = signature_request_created_event(signature_request)
     assert signature_event["event_type"] == "signature_request_created"
@@ -71,3 +79,5 @@ def test_reminder_document_and_signature_builder_events():
         "signature_request_id": 15,
         "status": "pending_signature",
     }
+    assert "actions" not in signature_event
+    assert signature_event["available_actions"] == []

@@ -23,7 +23,8 @@ def test_notification_sent_event_includes_trigger_and_channel_metadata():
     assert event["timestamp"] == datetime(2026, 3, 8, 10, 0)
     assert event["binder_id"] == 44
     assert event["metadata"] == {"trigger": "binder_received", "channel": "email"}
-    assert event["actions"] == event["available_actions"] == []
+    assert "actions" not in event
+    assert event["available_actions"] == []
 
 
 def test_charge_issued_event_includes_available_charge_actions():
@@ -40,8 +41,10 @@ def test_charge_issued_event_includes_available_charge_actions():
     assert event["event_type"] == "charge_issued"
     assert event["timestamp"] == datetime(2026, 3, 9, 9, 15)
     assert event["metadata"] == {"amount": 320.0}
-    assert event["actions"] == event["available_actions"]
-    assert {action["key"] for action in event["actions"]} == {"mark_paid", "cancel_charge"}
-    mark_paid_action = next(action for action in event["actions"] if action["key"] == "mark_paid")
+    assert "actions" not in event
+    assert {action["key"] for action in event["available_actions"]} == {"mark_paid", "cancel_charge"}
+    mark_paid_action = next(
+        action for action in event["available_actions"] if action["key"] == "mark_paid"
+    )
     assert mark_paid_action["confirm"] is not None
     assert mark_paid_action["confirm"]["title"] == "אישור סימון חיוב כשולם"

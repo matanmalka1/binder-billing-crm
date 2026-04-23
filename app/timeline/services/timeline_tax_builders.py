@@ -16,7 +16,6 @@ def tax_deadline_due_event(deadline) -> dict:
         "charge_id": None,
         "description": f"מועד {type_he}: {due_str}{amount_part}",
         "metadata": {"tax_deadline_id": deadline.id},
-        "actions": [],
         "available_actions": [],
     }
 
@@ -31,6 +30,5 @@ def annual_report_status_changed_event(report) -> dict:
         "charge_id": None,
         "description": f"דוח שנתי {form_str} ({report.tax_year}): {status_he}",
         "metadata": {"annual_report_id": report.id},
-        "actions": [],
         "available_actions": [],
     }

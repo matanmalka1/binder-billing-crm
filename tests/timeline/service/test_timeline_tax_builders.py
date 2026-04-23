@@ -27,7 +27,8 @@ def test_tax_deadline_due_event_formats_description_and_amount():
     assert event["timestamp"] == datetime(2026, 2, 28)
     assert event["description"] == "מועד מע״מ: 28/02/2026 — ₪321.50"
     assert event["metadata"] == {"tax_deadline_id": 7}
-    assert event["actions"] == event["available_actions"] == []
+    assert "actions" not in event
+    assert event["available_actions"] == []
 
 
 def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
@@ -45,7 +46,8 @@ def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
     assert event["timestamp"] == datetime(2026, 1, 1, 12, 0)
     assert event["description"] == "דוח שנתי 1301 (2024): איסוף מסמכים"
     assert event["metadata"] == {"annual_report_id": 3}
-    assert event["actions"] == event["available_actions"] == []
+    assert "actions" not in event
+    assert event["available_actions"] == []
 
 
 def test_tax_deadline_due_event_without_amount_skips_currency_suffix():
@@ -59,4 +61,5 @@ def test_tax_deadline_due_event_without_amount_skips_currency_suffix():
     event = tax_deadline_due_event(deadline)
 
     assert event["description"] == "מועד דוח שנתי: 31/03/2026"
-    assert event["actions"] == event["available_actions"] == []
+    assert "actions" not in event
+    assert event["available_actions"] == []

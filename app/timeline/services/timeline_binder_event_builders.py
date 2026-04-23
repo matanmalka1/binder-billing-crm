@@ -5,13 +5,6 @@ from app.timeline.labels import BINDER_STATUS_HE, NOTIFICATION_TRIGGER_HE
 
 
 def _attach_actions(event: dict, actions: list) -> dict:
-    """
-    Attach actions to the event payload.
-
-    `available_actions` is kept for backward compatibility with older clients
-    that read that key; both keys intentionally reference the same list.
-    """
-    event["actions"] = actions
     event["available_actions"] = actions
     return event
 
