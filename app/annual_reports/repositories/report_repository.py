@@ -135,15 +135,6 @@ class AnnualReportReportRepository(BaseRepository):
         )
         return self._paginate(q, page, page_size)
 
-    def list_all_with_businesses(self) -> list[AnnualReport]:
-        """Return all non-deleted reports ordered for Kanban view."""
-        return (
-            self.db.query(AnnualReport)
-            .filter(AnnualReport.deleted_at.is_(None))
-            .order_by(AnnualReport.filing_deadline.asc().nulls_last(), AnnualReport.id.asc())
-            .all()
-        )
-
     def count_all(self) -> int:
         return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
 

@@ -15,7 +15,7 @@ Covers:
 - Income and expense line CRUD with statutory recognition rates
 - Tax (income tax + NI) and readiness calculation via pure-function engines
 - Advances summary linked to the report via `client_record_id + tax_year`
-- Kanban stage view and season-level aggregation
+- Season-level aggregation
 - Cross-domain sync: tax deadlines completed/reopened on status transition
 - Signature request lifecycle around the `PENDING_CLIENT` status
 - PDF export (working draft)
@@ -217,7 +217,6 @@ All routes under `/api/v1/`. Minimum role: `SECRETARY` unless noted.
 |---|---|---|---|
 | `POST` | `/annual-reports` | SECRETARY+ | Create report |
 | `GET` | `/annual-reports` | SECRETARY+ | List all (paginated, filterable by tax_year) |
-| `GET` | `/annual-reports/kanban/view` | SECRETARY+ | Kanban grouped by stage |
 | `GET` | `/annual-reports/overdue` | SECRETARY+ | Open reports past deadline |
 | `GET` | `/annual-reports/{id}` | SECRETARY+ | Full detail |
 | `DELETE` | `/annual-reports/{id}` | ADVISOR | Soft-delete |
@@ -230,7 +229,7 @@ All routes under `/api/v1/`. Minimum role: `SECRETARY` unless noted.
 | `POST` | `/{id}/status` | ADVISOR | Generic status transition |
 | `POST` | `/{id}/submit` | ADVISOR | Submit with ITA reference |
 | `POST` | `/{id}/deadline` | ADVISOR | Update deadline type |
-| `POST` | `/{id}/transition` | ADVISOR | Kanban stage shortcut |
+| `POST` | `/{id}/transition` | ADVISOR | Stage shortcut |
 | `GET` | `/{id}/history` | SECRETARY+ | Status history |
 
 ### Financial
@@ -290,7 +289,6 @@ Intentional constraints — do not work around without a plan.
 
 | Location | Limitation | Behavior |
 |---|---|---|
-| `kanban_service.py::kanban_view` | No pagination — loads all reports into memory | No cap; will degrade at scale |
 | `vat_import_service.py::auto_populate` | Aggregates VAT by `client_record_id`, merges all businesses | Incorrect for multi-business clients |
 | `status_signature_helper.py` | Resolves business as first non-deleted business of client | Silent skip if client has no businesses |
 | `deadline_sync.py` | Searches only `tax_year + 1` for matching deadlines | Misses EXTENDED deadlines that land in `tax_year + 2` |
@@ -312,12 +310,9 @@ Ordered by severity.
 - [ ] **[HIGH]** Readiness check uses stale `tax_due/refund_due` — income/expense mutations already call `_invalidate_tax_if_open` but readiness gate still reads persisted values; ensure gate fails when values are cleared
 - [ ] **[HIGH]** `VatImportService.auto_populate` aggregates by `client_record_id` — incorrect for multi-business clients; require explicit `business_id` or add guard
 - [ ] **[MEDIUM]** `amend_report()` lives in `query_service.py` — write operation misplaced; move to `status_service.py`
-- [ ] **[MEDIUM]** `/kanban/view` registered in both `annual_report_create_read.py` and `annual_report_kanban.py` — one is dead; remove duplicate
-- [ ] **[MEDIUM]** `kanban_view()` has no cap — add `_KANBAN_REPORT_LIMIT` and document
 - [ ] **[MEDIUM]** `business_name` in `AnnualReportResponse` always equals `client.full_name` — remove or set to `None`; annual reports are client-scoped, not business-scoped
 - [ ] **[MEDIUM]** `advances_summary_service.py` and `get_detail_report` independently compute final balance — consolidate
 - [ ] **[MEDIUM]** `AnnualReportAnnexData.line_number` — no unique constraint per `(annual_report_id, schedule, line_number)`; concurrent inserts can collide
 - [ ] **[MEDIUM]** `DONATION_MINIMUM_ILS = 190` — verify against current ITA Section 46 indexed amount (may be 180 ILS for 2024)
 - [ ] **[MEDIUM]** Signature creation runs inside the status transition transaction — failure rolls back the status change; decouple or wrap in try/except
 - [ ] **[LOW]** `AnnualReportDetail.updated_at` is `nullable=True` — change to `nullable=False, default=utcnow` with backfill migration
-- [ ] **[LOW]** `kanban_view()` uses hardcoded status strings — extract `STATUS_TO_STAGE` constant from `STAGE_TO_STATUS` in `constants.py`

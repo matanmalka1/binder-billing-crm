@@ -14,7 +14,7 @@ from .query_service import AnnualReportQueryService
 from .season_service import AnnualReportSeasonService
 from .schedule_service import AnnualReportScheduleService
 from .status_service import AnnualReportStatusService
-from .kanban_service import AnnualReportKanbanService
+from .stage_transition_service import AnnualReportStageTransitionService
 from .annex_service import AnnualReportAnnexService
 from .messages import ANNUAL_REPORT_DELETED_REASON, ANNUAL_REPORT_NOT_FOUND
 
@@ -22,7 +22,7 @@ from .messages import ANNUAL_REPORT_DELETED_REASON, ANNUAL_REPORT_NOT_FOUND
 class AnnualReportService(
     AnnualReportCreateService,
     AnnualReportStatusService,
-    AnnualReportKanbanService,
+    AnnualReportStageTransitionService,
     AnnualReportSeasonService,
     AnnualReportScheduleService,
     AnnualReportQueryService,

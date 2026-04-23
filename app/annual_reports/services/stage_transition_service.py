@@ -5,7 +5,7 @@ from .base import AnnualReportBaseService
 from .messages import INVALID_STAGE_ERROR
 
 
-class AnnualReportKanbanService(AnnualReportBaseService):
+class AnnualReportStageTransitionService(AnnualReportBaseService):
     def transition_stage(
         self,
         report_id: int,
@@ -24,4 +24,4 @@ class AnnualReportKanbanService(AnnualReportBaseService):
         )
 
 
-__all__ = ["AnnualReportKanbanService"]
+__all__ = ["AnnualReportStageTransitionService"]

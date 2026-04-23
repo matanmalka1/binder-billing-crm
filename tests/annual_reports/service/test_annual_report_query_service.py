@@ -25,7 +25,7 @@ def _create_report(service: AnnualReportService, client_id: int, tax_year: int, 
     )
 
 
-def test_query_service_list_detail_kanban_and_client_reports(test_db, test_user):
+def test_query_service_list_detail_and_client_reports(test_db, test_user):
     service = AnnualReportService(test_db)
     client_a = _client(test_db)
     client_b = _client(test_db)
@@ -56,9 +56,3 @@ def test_query_service_list_detail_kanban_and_client_reports(test_db, test_user)
     assert detail.total_income == 0.0
     assert detail.total_expenses == 0.0
     assert len(detail.status_history) >= 1
-
-    stages = service.kanban_view()
-    stage_map = {entry["stage"]: entry["reports"] for entry in stages}
-    assert report_a_2026.id in {r["id"] for r in stage_map["client_signature"]}
-    assert report_a_2025.id in {r["id"] for r in stage_map["transmitted"]}
-    assert report_b_2024.id in {r["id"] for r in stage_map["final_review"]}

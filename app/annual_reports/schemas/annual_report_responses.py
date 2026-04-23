@@ -11,7 +11,6 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportSchedule,
     FilingDeadlineType,
     ExtensionReason,
-    ReportStage,
     SubmissionMethod,
 )
 
@@ -123,23 +122,3 @@ class SeasonSummaryResponse(BaseModel):
     amended: int = 0
     completion_rate: float
     overdue_count: int
-
-
-class AnnualReportKanbanItemResponse(BaseModel):
-    id: int
-    client_record_id: int
-    office_client_number: Optional[int] = None
-    client_name: Optional[str] = None
-    client_id_number: Optional[str] = None
-    business_name: Optional[str] = None
-    tax_year: int
-    days_until_due: Optional[int] = None
-
-
-class AnnualReportKanbanStageResponse(BaseModel):
-    stage: ReportStage
-    reports: list[AnnualReportKanbanItemResponse]
-
-
-class AnnualReportKanbanViewResponse(BaseModel):
-    stages: list[AnnualReportKanbanStageResponse]

@@ -5,7 +5,7 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db) -> int:
-    crm_client = seed_client_identity(db, full_name="AR Kanban Transition", id_number="ARKAN001")
+    crm_client = seed_client_identity(db, full_name="AR Stage Transition", id_number="ARSTG001")
 
     report = AnnualReportService(db).create_report(
         client_record_id=crm_client.id,

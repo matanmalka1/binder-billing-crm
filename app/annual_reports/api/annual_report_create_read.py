@@ -6,7 +6,6 @@ from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_requests import AmendRequest, AnnualReportCreateRequest
 from app.annual_reports.schemas.annual_report_responses import (
     AnnualReportDetailResponse,
-    AnnualReportKanbanViewResponse,
     AnnualReportListResponse,
     AnnualReportResponse,
 )
@@ -68,14 +67,6 @@ def list_annual_reports(
         page_size=page_size,
         total=total,
     )
-
-
-@router.get("/kanban/view", response_model=AnnualReportKanbanViewResponse)
-def get_kanban_view(db: DBSession, user: CurrentUser):
-    """Kanban board view grouped by stage."""
-    service = AnnualReportService(db)
-    stages = service.kanban_view()
-    return {"stages": stages}
 
 
 @router.get("/overdue", response_model=list[AnnualReportResponse])

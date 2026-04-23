@@ -69,7 +69,7 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
     AnnualReportStatus.CLOSED: set(),
 }
 
-# ── Kanban stage → status mapping (one-way: promotes to first status in stage) ──
+# ── Stage shortcut → status mapping (one-way: promotes to first status in stage) ──
 # Note: this map intentionally moves to a single target status per stage.
 # Demoting within a stage requires direct status transition.
 STAGE_TO_STATUS: dict[str, str] = {

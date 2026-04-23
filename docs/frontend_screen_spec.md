@@ -9,12 +9,26 @@
 ## תבנית איפיון אחידה לכל מסך
 
 - מטרה עסקית
+- route contract: path, route params, query params, deep links
+- entry points / exit paths
 - מי משתמש בו: `ADVISOR` / `SECRETARY` / ציבורי
+- הרשאות: `view/create/edit/delete/export/approve/bulk/execute`
 - נתונים מוצגים
+- data contract: מקורות נתונים, required מול optional
+- CTA ראשי / CTA משני
 - פעולות מותרות
+- פעולות הרסניות: confirm, נעילות לפי סטטוס, guardrails
 - פילטרים, מיון, חיפוש, פגינציה
+- URL state: מה נשמר ב־URL, מה לוקאלי, מה נשמר רק ב־session
 - מצבי ריק / שגיאה / טעינה
+- מצבי הצלחה / system feedback
+- refresh behavior
+- unsaved changes behavior
+- responsive behavior
+- accessibility
 - תלותים במסכים אחרים
+- audit visibility
+- open questions
 - פערים, כפילויות ושבירות נוכחית
 
 ## עקרונות רוחביים
@@ -23,6 +37,11 @@
 - כל מסך detail חייב להגדיר: מזהה כניסה, invalid-id state, loading state, not-found/error state.
 - כל מסך עם טאבים חייב להגדיר האם הטאב נשמר ב־URL.
 - כל מסך חייב להגדיר הרשאות ברמת צפייה וברמת פעולה.
+- כל מסך חייב להגדיר אילו פרמטרים נשמרים ב־URL ואילו נשארים לוקאליים.
+- כל פעולה חייבת להגדיר feedback צפוי: toast, inline alert, optimistic update או retry.
+- כל מסך חייב להגדיר מה קורה ב־refresh, back/forward ו־deep link ישיר.
+- כל מסך רשימה חייב להגדיר חוקי bulk selection: מתי selection נשמר, מתי מתאפס.
+- כל מסך חייב להגדיר התנהגות מובייל/טאבלט אם הוא נתמך מחוץ לדסקטופ.
 - אין להסתמך על "מה שהקומפוננטה עושה כרגע" במקום על חוזה מסך כתוב.
 
 ## מסכים
@@ -562,6 +581,10 @@
 - להגדיר חוזה אחיד למסך detail.
 - להחליט שכל tab משמעותי נשמר ב־URL.
 - להגדיר matrix הרשאות מסכי מערכת.
+- להגדיר policy אחיד ל־URL state, refresh behavior ו־deep links.
+- להגדיר system feedback אחיד לפעולות create/update/delete/bulk.
+- להגדיר responsive rules אחידים למסכי table/detail/drawer.
+- להגדיר audit visibility אחיד במסכים עם פעולות רגישות.
 - להפריד בין screen shell, screen state, screen actions.
 - לצמצם page orchestration ולהעביר ל־screen controller hooks קטנים.
 
@@ -570,5 +593,80 @@
 1. חוזה אחיד ל־list screens.
 2. URL state אחיד למסכים עם tabs.
 3. matrix הרשאות מסודר לכל מסך.
-4. פירוק המסכים השמנים.
-5. איחוד empty/loading/error states.
+4. policy אחיד ל־refresh, success feedback ו־bulk selection.
+5. responsive/accessibility baseline לכל המסכים.
+6. פירוק המסכים השמנים.
+7. איחוד empty/loading/error states.
+
+## נספח מוצע להשלמה רוחבית
+
+### A. Route Contract
+
+- לכל מסך יש להגדיר:
+  - path מלא.
+  - route params.
+  - query params נתמכים.
+  - deep links רשמיים.
+  - invalid param behavior.
+
+### B. URL State Policy
+
+- נשמר ב־URL:
+  - tab פעיל.
+  - page.
+  - page size.
+  - sorting.
+  - filters משמעותיים.
+  - entity context שניתן לשתף בלינק.
+- נשאר לוקאלי:
+  - modal open state זמני.
+  - selection זמני שאינו בר שיתוף.
+  - draft inputs שעדיין לא הוחלו.
+- נשמר ב־session בלבד:
+  - העדפות תצוגה שאינן חלק מהקשר ניווט.
+
+### C. Success And Feedback
+
+- לכל פעולה יש להגדיר:
+  - success toast או inline success.
+  - error feedback.
+  - optimistic update או refetch.
+  - retry behavior.
+  - post-action redirect או השארה במקום.
+
+### D. Bulk Selection Rules
+
+- יש להגדיר האם selection:
+  - נשמר בעת pagination.
+  - מתאפס בעת filter change.
+  - מתאפס בעת refresh.
+  - נשמר רק על הדף הנוכחי או על כל תוצאת החיפוש.
+
+### E. Responsive And Accessibility Baseline
+
+- responsive:
+  - אילו טבלאות קורסות ל־cards.
+  - אילו עמודות מוסתרות.
+  - מתי drawer הופך ל־full-screen panel.
+- accessibility:
+  - keyboard navigation.
+  - focus order.
+  - dialog/drawer focus trap.
+  - aria labels לשדות ופעולות.
+
+### F. Audit Visibility
+
+- במסכים עם פעולות רגישות יש להגדיר:
+  - האם מוצג `last updated by / at`.
+  - האם יש audit drawer או timeline.
+  - אילו פעולות ניתנות למעקב משתמש.
+
+### G. Glossary And Naming
+
+- יש לאחד שמות ישויות וכותרות UI:
+  - `Tax Deadlines` מול `דוחות מס` מול `מועדי מס`.
+  - `VAT Work Item` מול `תיק מע"מ`.
+  - `Annual Reports List` מול `season summary`.
+- לכל ישות מרכזית צריך שם תצוגה אחד קבוע:
+  - בעברית ל־UI.
+  - באנגלית פנימית לשמות feature/routes/hooks.
