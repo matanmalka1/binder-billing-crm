@@ -26,6 +26,7 @@ from app.clients.services.create_client_service import (
 )
 from app.clients.services.client_service import ClientService
 from app.clients.services.impact_preview_service import compute_creation_impact
+from app.businesses.services.client_business_service import ClientBusinessService
 
 router = APIRouter(
     prefix="/clients",
@@ -104,10 +105,15 @@ def create_client(
         ),
     )
     full = service.client_service.get_full_client(client_record.id)
+    business_response = ClientBusinessService(db).to_response(
+        business,
+        user.role,
+        client_id=client_record.id,
+    )
     return CreateClientRecordResponse(
         client_record_id=client_record.id,
         client=full,
-        business=business,
+        business=business_response,
         impact=impact,
     )
 

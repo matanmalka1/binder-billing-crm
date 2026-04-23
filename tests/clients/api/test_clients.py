@@ -73,6 +73,7 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
     data = response.json()
     assert data["client"]["full_name"] == "Created Client"
     assert data["business"]["business_name"] == "Created Business"
+    assert data["business"]["client_id"] == data["client"]["id"]
     assert data["client"]["office_client_number"] == 1
 
     stored_business = (

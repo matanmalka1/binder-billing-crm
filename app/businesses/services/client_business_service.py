@@ -21,9 +21,13 @@ class ClientBusinessService:
 
     def to_response(self, business: Business, user_role: UserRole, client_id: int | None = None) -> BusinessResponse:
         response = BusinessResponse.model_validate(business)
-        response.available_actions = get_business_actions(business, user_role=user_role)
         if client_id is not None:
             response.client_id = client_id
+        response.available_actions = get_business_actions(
+            business,
+            user_role=user_role,
+            client_id=response.client_id,
+        )
         return response
 
     def list_for_client(
