@@ -36,8 +36,8 @@ class _FakeReminderService:
         self.claimed.append(reminder_id)
         return True
 
-    def mark_sent(self, reminder_id):
-        self.sent.append(reminder_id)
+    def mark_sent(self, reminder_id, actor_id):
+        self.sent.append((reminder_id, actor_id))
 
 
 def test_run_startup_expiry_uses_repo_and_closes_db(monkeypatch):
@@ -106,16 +106,44 @@ def test_daily_reminder_job_runs_one_iteration(monkeypatch):
     monkeypatch.setattr("app.reminders.services.reminder_service.ReminderService", lambda _db: fake_service)
     monkeypatch.setattr(
         "app.notification.services.notification_service.NotificationService",
-        lambda _db: SimpleNamespace(notify_payment_reminder=lambda **_kwargs: notify_calls.__setitem__("n", notify_calls["n"] + 1)),
+        lambda _db: SimpleNamespace(
+            notify_payment_reminder=lambda **_kwargs: notify_calls.__setitem__("n", notify_calls["n"] + 1) or True
+        ),
     )
     monkeypatch.setattr(background_jobs.asyncio, "sleep", _fake_sleep)
 
     with pytest.raises(_StopLoop):
         asyncio.run(background_jobs.daily_reminder_job())
 
-    assert fake_service.sent == [1]
+    assert fake_service.sent == [(1, 0)]
     assert fake_service.claimed == [1]
     assert notify_calls["n"] == 1
+    assert db.closed is True
+
+
+def test_daily_reminder_job_does_not_mark_sent_when_delivery_fails(monkeypatch):
+    db = _FakeDB()
+    fake_service = _FakeReminderService(db)
+    sleep_calls = {"n": 0}
+
+    async def _fake_sleep(_):
+        sleep_calls["n"] += 1
+        if sleep_calls["n"] > 1:
+            raise _StopLoop()
+
+    monkeypatch.setattr(background_jobs, "SessionLocal", lambda: db)
+    monkeypatch.setattr("app.reminders.services.reminder_service.ReminderService", lambda _db: fake_service)
+    monkeypatch.setattr(
+        "app.notification.services.notification_service.NotificationService",
+        lambda _db: SimpleNamespace(notify_payment_reminder=lambda **_kwargs: False),
+    )
+    monkeypatch.setattr(background_jobs.asyncio, "sleep", _fake_sleep)
+
+    with pytest.raises(_StopLoop):
+        asyncio.run(background_jobs.daily_reminder_job())
+
+    assert fake_service.sent == []
+    assert fake_service.claimed == [1]
     assert db.closed is True
 
 

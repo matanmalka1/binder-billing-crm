@@ -109,6 +109,9 @@ def test_factory_create_paths_and_default_messages(test_db, test_user):
         created_by=test_user.id,
     )
     assert "7" in unpaid.message
+    assert unpaid.target_date == date.today() + timedelta(days=7)
+    assert unpaid.send_on == date.today() + timedelta(days=7)
+    assert unpaid.days_before == 7
 
     custom = create_custom_reminder(
         reminder_repo,

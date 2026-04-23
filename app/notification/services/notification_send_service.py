@@ -147,7 +147,7 @@ class NotificationSendService:
             row = self._get_business_and_client(business_id)
             if not row:
                 logger.warning("send_notification: business %s not found", business_id)
-                return True
+                return False
             business, person = row
 
             subject = _SUBJECTS.get(trigger)
@@ -184,7 +184,7 @@ class NotificationSendService:
                     "send_notification: business %s has no email, skipping trigger=%s",
                     business_id, trigger.value,
                 )
-                return True
+                return False
 
             n = self.notification_repo.create(
                 client_record_id=cr_id,
@@ -201,19 +201,19 @@ class NotificationSendService:
             if success:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Notification sent | business=%s trigger=%s", business_id, trigger.value)
-            else:
-                self.notification_repo.mark_failed(n.id, error or "unknown error")
-                logger.error(
-                    "Notification failed | business=%s trigger=%s error=%s",
-                    business_id, trigger.value, error,
-                )
+                return True
+            self.notification_repo.mark_failed(n.id, error or "unknown error")
+            logger.error(
+                "Notification failed | business=%s trigger=%s error=%s",
+                business_id, trigger.value, error,
+            )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_notification | business=%s trigger=%s error=%s",
                 business_id, trigger, exc,
             )
-        return True
+        return False
 
     def send_client_notification(
         self,
@@ -229,7 +229,7 @@ class NotificationSendService:
             person = self._get_client(client_record_id)
             if not person:
                 logger.warning("send_client_notification: client %s not found", client_record_id)
-                return True
+                return False
 
             subject = _SUBJECTS.get(trigger)
             if subject is None:
@@ -263,7 +263,7 @@ class NotificationSendService:
                     "send_client_notification: client %s has no email, skipping trigger=%s",
                     client_record_id, trigger.value,
                 )
-                return True
+                return False
 
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
@@ -279,19 +279,19 @@ class NotificationSendService:
             if success:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client notification sent | client=%s trigger=%s", client_record_id, trigger.value)
-            else:
-                self.notification_repo.mark_failed(n.id, error or "unknown error")
-                logger.error(
-                    "Client notification failed | client=%s trigger=%s error=%s",
-                    client_record_id, trigger.value, error,
-                )
+                return True
+            self.notification_repo.mark_failed(n.id, error or "unknown error")
+            logger.error(
+                "Client notification failed | client=%s trigger=%s error=%s",
+                client_record_id, trigger.value, error,
+            )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_client_notification | client=%s trigger=%s error=%s",
                 client_record_id, trigger, exc,
             )
-        return True
+        return False
 
     def send_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         """Send reminder email directly to a client resolved via ClientRecord → LegalEntity → Person."""
@@ -299,11 +299,11 @@ class NotificationSendService:
             person = self._get_client(client_record_id)
             if person is None:
                 logger.warning("send_client_reminder: client_record %s has no linked Person", client_record_id)
-                return True
+                return False
             email = person.email
             if not email:
                 logger.info("send_client_reminder: client %s has no email or not found", client_record_id)
-                return True
+                return False
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
@@ -315,12 +315,12 @@ class NotificationSendService:
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client reminder sent | client=%s", client_record_id)
-            else:
-                self.notification_repo.mark_failed(n.id, err or "unknown error")
-                logger.error("send_client_reminder failed | client=%s error=%s", client_record_id, err)
+                return True
+            self.notification_repo.mark_failed(n.id, err or "unknown error")
+            logger.error("send_client_reminder failed | client=%s error=%s", client_record_id, err)
         except Exception as exc:  # noqa: BLE001
             logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_record_id, exc)
-        return True
+        return False
 
     def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         """Send reminder to a client resolved from client_record_id via LegalEntity → Person."""
@@ -328,11 +328,11 @@ class NotificationSendService:
             person = self._get_client(client_record_id)
             if person is None:
                 logger.warning("send_client_record_reminder: client_record %s has no linked Person", client_record_id)
-                return True
+                return False
             email = person.email
             if not email:
                 logger.info("send_client_record_reminder: client_record %s has no email", client_record_id)
-                return True
+                return False
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
                 trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
@@ -344,9 +344,9 @@ class NotificationSendService:
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client record reminder sent | client_record=%s", client_record_id)
-            else:
-                self.notification_repo.mark_failed(n.id, err or "unknown error")
-                logger.error("send_client_record_reminder failed | client_record=%s error=%s", client_record_id, err)
+                return True
+            self.notification_repo.mark_failed(n.id, err or "unknown error")
+            logger.error("send_client_record_reminder failed | client_record=%s error=%s", client_record_id, err)
         except Exception as exc:  # noqa: BLE001
             logger.error("Unexpected error in send_client_record_reminder | client_record=%s error=%s", client_record_id, exc)
-        return True
+        return False

@@ -34,7 +34,7 @@ def sync_annual_report_deadline(
         client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         due_from=date(report.tax_year + 1, 1, 1),
-        due_to=date(report.tax_year + 1, 12, 31),
+        due_to=date(report.tax_year + 2, 12, 31),
     )
     if not deadlines:
         return

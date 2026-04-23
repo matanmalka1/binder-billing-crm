@@ -103,7 +103,7 @@ def send_notification(
 ):
     """Send a manual notification to a business (ADVISOR only)."""
     svc = NotificationService(db)
-    svc.send_notification(
+    ok = svc.send_notification(
         business_id=body.business_id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         content=body.message,
@@ -111,4 +111,4 @@ def send_notification(
         preferred_channel=body.channel.value,
         severity=body.severity,
     )
-    return SendNotificationResponse(ok=True)
+    return SendNotificationResponse(ok=ok)

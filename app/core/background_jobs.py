@@ -23,6 +23,7 @@ except Exception:  # guard against import-time failures in tests
 # Maximum reminders to dispatch per job run.
 # Keeps the DB session short-lived even when many reminders accumulate.
 REMINDER_BATCH_SIZE = 200
+_SYSTEM_ACTOR_ID = 0
 
 
 def run_startup_expiry() -> None:
@@ -145,16 +146,26 @@ async def daily_reminder_job() -> None:
                     if not claimed:
                         continue
                     if reminder.business_id is not None:
-                        notification_svc.notify_payment_reminder(
+                        delivered = notification_svc.notify_payment_reminder(
                             business_id=reminder.business_id,
                             reminder_text=reminder.message,
                         )
                     else:
-                        notification_svc.notify_client_record_reminder(
+                        delivered = notification_svc.notify_client_record_reminder(
                             client_record_id=reminder.client_record_id,
                             reminder_text=reminder.message,
                         )
-                    reminder_svc.mark_sent(reminder.id)
+                    if not delivered:
+                        failed += 1
+                        logger.warning(
+                            "Reminder dispatch skipped/failed id=%d type=%s business_id=%s client_record_id=%s",
+                            reminder.id,
+                            reminder.reminder_type,
+                            reminder.business_id,
+                            reminder.client_record_id,
+                        )
+                        continue
+                    reminder_svc.mark_sent(reminder.id, actor_id=_SYSTEM_ACTOR_ID)
                     sent += 1
                     logger.info(
                         "Reminder dispatched id=%d type=%s business_id=%s client_record_id=%s",

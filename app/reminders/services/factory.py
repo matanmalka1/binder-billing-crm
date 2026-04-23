@@ -218,8 +218,9 @@ def create_unpaid_charge_reminder(
     assert_client_record_is_active(ClientRecordRepository(reminder_repo.db).get_by_id(client_record_id))
     _require_non_negative_days(days_unpaid)
 
-    target_date = date.today()
-    send_on = date.today()
+    issued_on = charge.issued_at.date() if charge.issued_at is not None else date.today()
+    target_date = issued_on + timedelta(days=days_unpaid)
+    send_on = target_date
     if message is None:
         message = UNPAID_CHARGE_REMINDER_DEFAULT.format(days_unpaid=days_unpaid)
 
@@ -228,7 +229,7 @@ def create_unpaid_charge_reminder(
         business_id=business_id,
         reminder_type=ReminderType.UNPAID_CHARGE,
         target_date=target_date,
-        days_before=0,
+        days_before=days_unpaid,
         send_on=send_on,
         message=message,
         charge_id=charge_id,
