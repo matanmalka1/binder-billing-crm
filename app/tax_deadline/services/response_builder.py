@@ -19,21 +19,21 @@ class TaxDeadlineResponseBuilder:
         self,
         deadline: TaxDeadline,
         *,
-        business_name: str | None = None,
+        client_name: str | None = None,
         user_role: UserRole | str | None = None,
     ) -> TaxDeadlineResponse:
         response = TaxDeadlineResponse.model_validate(deadline)
         resolved_name = (
-            business_name
-            if business_name is not None
-            else self._resolve_business_name(deadline.client_record_id)
+            client_name
+            if client_name is not None
+            else self._resolve_client_name(deadline.client_record_id)
         )
         if resolved_name is not None:
-            response.business_name = resolved_name
+            response.client_name = resolved_name
         response.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
         return response
 
-    def _resolve_business_name(self, client_record_id: int) -> str | None:
+    def _resolve_client_name(self, client_record_id: int) -> str | None:
         client_record = self.client_repo.get_by_id(client_record_id)
         if not client_record:
             return None

@@ -34,7 +34,7 @@ class TaxDeadlineResponse(BaseModel):
     id: int
     client_record_id: int
     office_client_number: Optional[int] = None
-    business_name: Optional[str] = None     # enriched by service (client full_name)
+    client_name: Optional[str] = None
     deadline_type: DeadlineType
     period: Optional[str] = None
     due_date: date
@@ -66,7 +66,7 @@ TaxDeadlineListResponse = PaginatedResponse[TaxDeadlineResponse]
 class DeadlineUrgentItem(BaseModel):
     id: int
     client_record_id: int
-    business_name: str
+    client_name: str
     deadline_type: DeadlineType
     due_date: date
     urgency: UrgencyLevel
