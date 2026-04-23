@@ -11,7 +11,7 @@ def client_created_event(client) -> dict:
         "timestamp": client.created_at,
         "binder_id": None,
         "charge_id": None,
-        "description": f"לקוח נוצר: {client.full_name}",
+        "description": f"לקוח נוצר: {client.official_name}",
         "metadata": {"entity_type": client.entity_type.value},
         "actions": [],
         "available_actions": [],

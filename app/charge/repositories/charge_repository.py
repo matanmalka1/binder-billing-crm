@@ -110,13 +110,17 @@ class ChargeRepository(BaseRepository):
     def list_charges_by_client_record(
         self,
         client_record_id: int,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
         return self.list_charges(
             client_record_id=client_record_id,
+            business_id=business_id,
             status=status,
+            charge_type=charge_type,
             page=page,
             page_size=page_size,
         )
@@ -138,9 +142,16 @@ class ChargeRepository(BaseRepository):
     def count_charges_by_client_record(
         self,
         client_record_id: int,
+        business_id: Optional[int] = None,
         status: Optional[str] = None,
+        charge_type: Optional[str] = None,
     ) -> int:
-        return self.count_charges(client_record_id=client_record_id, status=status)
+        return self.count_charges(
+            client_record_id=client_record_id,
+            business_id=business_id,
+            status=status,
+            charge_type=charge_type,
+        )
 
     def update_status(
         self,

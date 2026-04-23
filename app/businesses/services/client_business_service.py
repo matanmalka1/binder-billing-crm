@@ -19,9 +19,11 @@ class ClientBusinessService:
         self.business_repo = BusinessRepository(db)
         self.client_repo = ClientRecordRepository(db)
 
-    def to_response(self, business: Business, user_role: UserRole) -> BusinessResponse:
+    def to_response(self, business: Business, user_role: UserRole, client_id: int | None = None) -> BusinessResponse:
         response = BusinessResponse.model_validate(business)
         response.available_actions = get_business_actions(business, user_role=user_role)
+        if client_id is not None:
+            response.client_id = client_id
         return response
 
     def list_for_client(
@@ -39,7 +41,7 @@ class ClientBusinessService:
         )
         return ClientBusinessesResponse(
             client_id=client_id,
-            items=[self.to_response(business, user_role) for business in items],
+            items=[self.to_response(business, user_role, client_id=client_id) for business in items],
             page=page,
             page_size=page_size,
             total=total,
