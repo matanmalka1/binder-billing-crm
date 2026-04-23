@@ -1,16 +1,14 @@
 def make_client_create_payload(
     *,
     full_name="Test Client",
-    id_number="000000000",
-    id_number_type="corporation",
-    business_name=None,
-    opened_at="2026-04-19",
+    id_number="039337423",
+    business_name="Test Business",
+    opened_at=None,
     **client_overrides,
 ):
     client_payload = {
         "full_name": full_name,
         "id_number": id_number,
-        "id_number_type": id_number_type,
         "entity_type": "company_ltd",
         "phone": "050-1234567",
         "email": "test@example.com",
@@ -20,14 +18,13 @@ def make_client_create_payload(
         "address_city": "Tel Aviv",
         "address_zip_code": "1234567",
         "vat_reporting_frequency": "monthly",
-        "advance_rate": "8.5",
         "accountant_name": "CPA Name",
     }
     client_payload.update(client_overrides)
     return {
         "client": client_payload,
         "business": {
-            "business_name": business_name or f"{full_name} Business",
+            "business_name": business_name,
             "opened_at": opened_at,
         },
     }

@@ -121,7 +121,7 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
                 "full_name": "Checksum Invalid",
                 "id_number": "123456789",
                 "id_number_type": "individual",
-                "entity_type": "company_ltd",
+                "entity_type": "osek_murshe",
                 "phone": "050-1234567",
                 "email": "checksum@example.com",
                 "address_street": "Main",
@@ -130,7 +130,6 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "CPA Name",
             },
             "business": {"business_name": "Checksum Invalid Business", "opened_at": "2026-04-19"},
@@ -158,7 +157,6 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "CPA Name",
             },
             "business": {"business_name": "Bad Corp Business", "opened_at": "2026-04-19"},
@@ -166,6 +164,149 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
     )
 
     assert response.status_code == 422
+
+
+def test_create_rejects_manual_vat_frequency_for_osek_patur(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Exempt Client",
+            "id_number": "039337423",
+                "entity_type": "osek_patur",
+                "phone": "050-1234567",
+                "email": "exempt@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "vat_reporting_frequency": "exempt",
+                "accountant_name": "CPA Name",
+            },
+            "business": {"business_name": "Exempt Business"},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_rejects_manual_vat_exempt_ceiling(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Ceiling Client",
+                "id_number": "039337423",
+                "entity_type": "osek_patur",
+                "phone": "050-1234567",
+                "email": "ceiling@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "vat_exempt_ceiling": "120000",
+                "accountant_name": "CPA Name",
+            },
+            "business": {"business_name": "Ceiling Business"},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_rejects_unsupported_employee(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Employee Client",
+                "id_number": "039337423",
+                "entity_type": "employee",
+                "phone": "050-1234567",
+                "email": "employee@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "accountant_name": "CPA Name",
+            },
+            "business": {"business_name": "Employee Business"},
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_rejects_missing_company_business_name(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Company Client",
+                "id_number": "039337423",
+                "entity_type": "company_ltd",
+                "phone": "050-1234567",
+                "email": "company@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "vat_reporting_frequency": "monthly",
+                "accountant_name": "CPA Name",
+            },
+            "business": {"business_name": "", "opened_at": None},
+        },
+    )
+
+    assert response.status_code == 422
+    errors = response.json()["detail"]
+    assert any(error["msg"] == "Value error, יש להזין שם עסק" for error in errors)
+
+
+def test_update_rejects_manual_vat_exempt_ceiling_payload(client, advisor_headers):
+    created = client.post(
+        "/api/v1/clients",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "full_name": "Editable Ceiling",
+                "id_number": "039337423",
+                "entity_type": "osek_patur",
+                "phone": "050-1234567",
+                "email": "editable@example.com",
+                "address_street": "Main",
+                "address_building_number": "10",
+                "address_apartment": "5",
+                "address_city": "Tel Aviv",
+                "address_zip_code": "1234567",
+                "accountant_name": "CPA Name",
+            },
+            "business": {"business_name": "Editable Ceiling Business"},
+        },
+    )
+    assert created.status_code == 201
+    client_id = created.json()["client"]["id"]
+
+    response = client.patch(
+        f"/api/v1/clients/{client_id}",
+        headers=advisor_headers,
+        json={"vat_exempt_ceiling": "130000"},
+    )
+
+    assert response.status_code == 422
+    errors = response.json()["detail"]
+    assert any(
+        error["msg"] == 'Value error, תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+        for error in errors
+    )
 
 
 def test_list_clients_respects_search_and_pagination(client, advisor_headers):

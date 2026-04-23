@@ -1,35 +1,50 @@
 import pytest
 from pydantic import ValidationError
 
-from app.common.enums import IdNumberType
-from app.clients.schemas.client import ClientCreateRequest
+from app.clients.schemas.client import CreateClientRequest
 
 
-def test_client_create_request_rejects_non_digits():
+def _payload(**client_overrides):
+    client_payload = {
+        "full_name": "Bad",
+        "id_number": "123456789",
+        "entity_type": "osek_murshe",
+        "phone": "050-1234567",
+        "email": "bad@example.com",
+        "address_street": "Main",
+        "address_building_number": "1",
+        "address_apartment": "1",
+        "address_city": "Tel Aviv",
+        "address_zip_code": "1234567",
+        "accountant_name": "CPA Name",
+        "vat_reporting_frequency": "monthly",
+    }
+    client_payload.update(client_overrides)
+    return {
+        "client": client_payload,
+        "business": {"business_name": "Biz", "opened_at": None},
+    }
+
+
+def test_create_request_rejects_non_digits_for_osek():
     with pytest.raises(ValidationError):
-        ClientCreateRequest(full_name="Bad", id_number="12A456789")
+        CreateClientRequest.model_validate(_payload(id_number="12A456789"))
 
 
-def test_client_create_request_rejects_invalid_length():
+def test_create_request_rejects_invalid_length_for_osek():
     with pytest.raises(ValidationError):
-        ClientCreateRequest(full_name="Bad", id_number="12345")
+        CreateClientRequest.model_validate(_payload(id_number="12345"))
 
 
-def test_client_create_request_allows_passport_format():
-    req = ClientCreateRequest(
-        full_name="Foreign Client",
-        id_number="1234567",
-        id_number_type=IdNumberType.PASSPORT,
-    )
-
-    assert req.id_number == "1234567"
+def test_create_request_rejects_manual_vat_frequency_for_osek_patur():
+    with pytest.raises(ValidationError):
+        CreateClientRequest.model_validate(
+            _payload(entity_type="osek_patur", vat_reporting_frequency="exempt"),
+        )
 
 
-def test_client_create_request_allows_other_identifier_format():
-    req = ClientCreateRequest(
-        full_name="Misc Client",
-        id_number="EXT-55-AB",
-        id_number_type=IdNumberType.OTHER,
-    )
-
-    assert req.id_number == "EXT-55-AB"
+def test_create_request_rejects_conflicting_company_identifier_type():
+    with pytest.raises(ValidationError):
+        CreateClientRequest.model_validate(
+            _payload(entity_type="company_ltd", id_number="039337423", id_number_type="individual"),
+        )

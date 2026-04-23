@@ -14,6 +14,9 @@ def compute_creation_impact(
     vat_reporting_frequency: Optional[VatType],
     reference_date: Optional[date] = None,
 ) -> ClientCreationImpactResponse:
+    if entity_type == EntityType.EMPLOYEE:
+        raise ValueError("פתיחת לקוח מסוג שכיר אינה נתמכת במערכת")
+
     years = _years_to_generate(reference_date)
     n = len(years)
     is_exempt = vat_reporting_frequency in (VatType.EXEMPT, None)

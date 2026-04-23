@@ -5,6 +5,11 @@ from sqlalchemy.orm import Session
 
 from app.businesses.models.business import Business
 from app.businesses.services.business_service import BusinessService
+from app.clients.constants import UNSUPPORTED_EMPLOYEE_CREATE_ERROR
+from app.clients.create_policy import (
+    normalize_vat_exempt_ceiling,
+    normalize_vat_reporting_frequency,
+)
 from app.clients.models.client_record import ClientRecord
 from app.clients.schemas.client import ActiveClientSummary, ClientConflictInfo, DeletedClientSummary
 from app.clients.services.client_service import ClientService
@@ -58,6 +63,11 @@ class CreateClientService:
         normalized_business_name = business_name.strip()
         if not normalized_business_name:
             raise ValueError("יש להזין שם עסק")
+        if entity_type == EntityType.EMPLOYEE:
+            raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
+
+        normalized_vat_frequency = normalize_vat_reporting_frequency(entity_type, vat_reporting_frequency)
+        normalized_vat_ceiling = normalize_vat_exempt_ceiling(entity_type)
 
         try:
             client_record = self.client_service.create_client(
@@ -72,8 +82,8 @@ class CreateClientService:
                 address_apartment=address_apartment,
                 address_city=address_city,
                 address_zip_code=address_zip_code,
-                vat_reporting_frequency=vat_reporting_frequency,
-                vat_exempt_ceiling=vat_exempt_ceiling,
+                vat_reporting_frequency=normalized_vat_frequency,
+                vat_exempt_ceiling=normalized_vat_ceiling,
                 advance_rate=advance_rate,
                 accountant_name=accountant_name,
                 actor_id=actor_id,

@@ -303,7 +303,6 @@ class ClientRepository(BaseRepository):
         legal_entity_fields = {
             "entity_type",
             "vat_reporting_frequency",
-            "vat_exempt_ceiling",
             "advance_rate",
             "advance_rate_updated_at",
         }

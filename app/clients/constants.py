@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from app.common.enums import EntityType
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
@@ -32,6 +34,22 @@ CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({
     "entity_type",
     "vat_reporting_frequency",
 })
+DEFAULT_VAT_EXEMPT_CEILING = Decimal("120000")
+SUPPORTED_CREATE_ENTITY_TYPES = frozenset({
+    EntityType.OSEK_PATUR,
+    EntityType.OSEK_MURSHE,
+    EntityType.COMPANY_LTD,
+})
+
+UNSUPPORTED_EMPLOYEE_CREATE_ERROR = "פתיחת לקוח מסוג שכיר אינה נתמכת במערכת"
+CONFLICTING_ID_NUMBER_TYPE_ERROR = "סוג המזהה שסופק אינו תואם לסוג הישות"
+PATUR_MANUAL_VAT_FREQUENCY_ERROR = 'אין להזין תדירות דיווח מע"מ עבור עוסק פטור'
+SYSTEM_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת להזנה ידנית'
+EDIT_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+NON_PATUR_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ מותרת לעוסק פטור בלבד'
+VAT_FREQUENCY_REQUIRED_ERROR = 'יש לציין תדירות דיווח מע"מ עבור עוסק/חברה'
+COMPANY_EXEMPT_VAT_ERROR = 'חברה בע"מ אינה יכולה להיות מוגדרת כפטורה ממע"מ'
+COMPANY_CORPORATION_ID_ERROR = 'חברה בע"מ חייבת להיווצר עם ח.פ'
 
 ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] = {
     EntityType.OSEK_PATUR: ClientTypeForReport.EXEMPT_DEALER,

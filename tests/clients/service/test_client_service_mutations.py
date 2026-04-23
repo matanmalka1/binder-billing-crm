@@ -88,6 +88,32 @@ def test_create_client_deleted_exists_conflict(test_db):
     assert exc.value.code == "CLIENT.DELETED_EXISTS"
 
 
+def test_create_client_rejects_employee_entity_type(test_db):
+    service = ClientService(test_db)
+
+    with pytest.raises(ValueError, match="שכיר"):
+        service.create_client(
+            full_name="Employee",
+            id_number="087654321",
+            id_number_type=IdNumberType.INDIVIDUAL,
+            entity_type=EntityType.EMPLOYEE,
+            actor_id=1,
+        )
+
+
+def test_create_client_rejects_company_with_non_corporation_id_type(test_db):
+    service = ClientService(test_db)
+
+    with pytest.raises(ValueError, match='חייבת להיווצר עם ח.פ'):
+        service.create_client(
+            full_name="Bad Company",
+            id_number="039337423",
+            id_number_type=IdNumberType.INDIVIDUAL,
+            entity_type=EntityType.COMPANY_LTD,
+            actor_id=1,
+        )
+
+
 def test_get_client_or_raise_not_found(test_db):
     service = ClientService(test_db)
 

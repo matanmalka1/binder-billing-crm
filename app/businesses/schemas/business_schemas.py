@@ -16,7 +16,7 @@ class BusinessCreateRequest(BaseModel):
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
     opened_at: Optional[date] = None
-    business_name: str = Field(..., min_length=1, max_length=100)
+    business_name: str = Field(..., max_length=100)
     notes: Optional[str] = None
 
     @field_validator("business_name")

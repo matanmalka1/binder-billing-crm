@@ -1,7 +1,6 @@
 """
 Tests for POST/GET /api/v1/clients.
 Uses valid Israeli ID numbers (pass Luhn checksum).
-Valid test IDs: 039337423, 087654321 (verified below), use id_number_type=corporation to bypass checksum for convenience.
 """
 
 from app.businesses.models.business import Business
@@ -51,8 +50,7 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
         json={
             "client": {
                 "full_name": "Created Client",
-                "id_number": "ONB-001",
-                "id_number_type": "other",
+                "id_number": "039337423",
                 "entity_type": "company_ltd",
                 "phone": "050-1234567",
                 "email": "created@example.com",
@@ -62,7 +60,6 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
                 "address_city": "Haifa",
                 "address_zip_code": "1234567",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "Created CPA",
             },
             "business": {
@@ -95,8 +92,7 @@ def test_create_client_requires_advisor_role(client, secretary_headers):
         json={
             "client": {
                 "full_name": "Secretary Create",
-                "id_number": "ONB-SEC",
-                "id_number_type": "other",
+                "id_number": "039337423",
                 "entity_type": "company_ltd",
                 "phone": "050-1234567",
                 "email": "secretary@example.com",
@@ -106,7 +102,6 @@ def test_create_client_requires_advisor_role(client, secretary_headers):
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1111111",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "Secretary CPA",
             },
             "business": {"business_name": "Secretary Business", "opened_at": "2026-04-19"},
@@ -127,8 +122,7 @@ def test_create_client_rejects_blank_business_before_creating_client(
         json={
             "client": {
                 "full_name": "Invalid Create",
-                "id_number": "ONB-BLANK",
-                "id_number_type": "other",
+                "id_number": "039337423",
                 "entity_type": "company_ltd",
                 "phone": "050-1234567",
                 "email": "invalid@example.com",
@@ -138,7 +132,6 @@ def test_create_client_rejects_blank_business_before_creating_client(
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "Invalid CPA",
             },
             "business": {"business_name": "   ", "opened_at": "2026-04-19"},
@@ -165,8 +158,7 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
         json={
             "client": {
                 "full_name": "Friendly Error Client",
-                "id_number": "ONB-FRIENDLY",
-                "id_number_type": "other",
+                "id_number": "039337423",
                 "entity_type": "company_ltd",
                 "phone": "050-1234567",
                 "email": "friendly@example.com",
@@ -176,7 +168,6 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
                 "vat_reporting_frequency": "monthly",
-                "advance_rate": "8.5",
                 "accountant_name": "Friendly CPA",
             },
             "business": {"business_name": "Friendly Business", "opened_at": "2026-04-19"},

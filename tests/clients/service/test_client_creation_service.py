@@ -1,3 +1,5 @@
+import pytest
+
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
@@ -9,6 +11,23 @@ from app.clients.services.client_creation_service import ClientCreationService
 from app.common.enums import EntityType, IdNumberType
 
 
+def test_create_client_rejects_employee_entity_type(test_db):
+    service = ClientCreationService(test_db)
+
+    with pytest.raises(ValueError, match="שכיר"):
+        service.create_client(
+            full_name="Client Identity",
+            id_number="123456780",
+            id_number_type=IdNumberType.INDIVIDUAL,
+            entity_type=EntityType.EMPLOYEE,
+            phone="0501234567",
+            email="client@example.com",
+            address_city="תל אביב",
+            accountant_name='רו"ח בדיקה',
+            actor_id=7,
+        )
+
+
 def test_create_client_creates_identity_graph(test_db):
     service = ClientCreationService(test_db)
 
@@ -16,11 +35,11 @@ def test_create_client_creates_identity_graph(test_db):
         full_name="Client Identity",
         id_number="123456780",
         id_number_type=IdNumberType.INDIVIDUAL,
-        entity_type=EntityType.EMPLOYEE,
+        entity_type=EntityType.OSEK_MURSHE,
         phone="0501234567",
         email="client@example.com",
         address_city="תל אביב",
-        accountant_name="רו\"ח בדיקה",
+        accountant_name='רו"ח בדיקה',
         actor_id=7,
     )
 

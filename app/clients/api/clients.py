@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
+from app.clients.create_policy import derive_id_number_type, preview_vat_reporting_frequency
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.enums import ClientStatus
@@ -47,7 +48,10 @@ def preview_creation_impact(
     """מחזיר תצוגה מקדימה של הישויות שייווצרו אוטומטית עם פתיחת הלקוח. לא כותב לבסיס הנתונים."""
     return compute_creation_impact(
         entity_type=request.client.entity_type,
-        vat_reporting_frequency=request.client.vat_reporting_frequency,
+        vat_reporting_frequency=preview_vat_reporting_frequency(
+            request.client.entity_type,
+            request.client.vat_reporting_frequency,
+        ),
     )
 
 
@@ -68,7 +72,7 @@ def create_client(
         client_record, business = service.create_client(
             full_name=request.client.full_name,
             id_number=request.client.id_number,
-            id_number_type=request.client.id_number_type,
+            id_number_type=derive_id_number_type(request.client.entity_type),
             entity_type=request.client.entity_type,
             phone=request.client.phone,
             email=str(request.client.email) if request.client.email else None,
@@ -78,7 +82,7 @@ def create_client(
             address_city=request.client.address_city,
             address_zip_code=request.client.address_zip_code,
             vat_reporting_frequency=request.client.vat_reporting_frequency,
-            vat_exempt_ceiling=request.client.vat_exempt_ceiling,
+            vat_exempt_ceiling=None,
             advance_rate=request.client.advance_rate,
             accountant_name=request.client.accountant_name,
             business_name=request.business.business_name,
@@ -94,7 +98,10 @@ def create_client(
 
     impact = compute_creation_impact(
         entity_type=request.client.entity_type,
-        vat_reporting_frequency=request.client.vat_reporting_frequency,
+        vat_reporting_frequency=preview_vat_reporting_frequency(
+            request.client.entity_type,
+            request.client.vat_reporting_frequency,
+        ),
     )
     full = service.client_service.get_full_client(client_record.id)
     return CreateClientRecordResponse(
