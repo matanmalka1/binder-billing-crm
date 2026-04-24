@@ -143,13 +143,14 @@ Behavior:
   - `client_record_id` (required)
 - Returns due-date sorted entries with:
   - `days_remaining`
+  - `urgency_level`
   - `milestone_label`
 
 ### Dashboard urgent summary
 
 - `GET /api/v1/tax-deadlines/dashboard/urgent`
 - Returns:
-  - `urgent`: overdue + red + yellow deadlines
+  - `urgent`: overdue + critical + warning deadlines
   - `upcoming`: pending deadlines in `[today, today+7]`
 
 ### Generate yearly deadlines

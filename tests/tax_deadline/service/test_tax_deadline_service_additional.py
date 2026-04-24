@@ -13,18 +13,18 @@ def test_compute_urgency_cases(test_db):
     reference = date.today()
 
     overdue = writer.create_deadline(business.client_id, DeadlineType.VAT, reference - timedelta(days=1))
-    red = writer.create_deadline(business.client_id, DeadlineType.ADVANCE_PAYMENT, reference + timedelta(days=2))
-    yellow = writer.create_deadline(business.client_id, DeadlineType.NATIONAL_INSURANCE, reference + timedelta(days=5))
-    green = writer.create_deadline(business.client_id, DeadlineType.ANNUAL_REPORT, reference + timedelta(days=30))
+    critical = writer.create_deadline(business.client_id, DeadlineType.ADVANCE_PAYMENT, reference + timedelta(days=2))
+    warning = writer.create_deadline(business.client_id, DeadlineType.NATIONAL_INSURANCE, reference + timedelta(days=5))
+    normal = writer.create_deadline(business.client_id, DeadlineType.ANNUAL_REPORT, reference + timedelta(days=30))
 
     assert service.compute_urgency(overdue, reference) == UrgencyLevel.OVERDUE
-    assert service.compute_urgency(red, reference) == UrgencyLevel.RED
-    assert service.compute_urgency(yellow, reference) == UrgencyLevel.YELLOW
-    assert service.compute_urgency(green, reference) == UrgencyLevel.GREEN
+    assert service.compute_urgency(critical, reference) == UrgencyLevel.CRITICAL
+    assert service.compute_urgency(warning, reference) == UrgencyLevel.WARNING
+    assert service.compute_urgency(normal, reference) == UrgencyLevel.NORMAL
 
-    writer.mark_completed(red.id)
-    completed = writer.get_deadline(red.id)
-    assert service.compute_urgency(completed, reference) is None
+    writer.mark_completed(critical.id)
+    completed = writer.get_deadline(critical.id)
+    assert service.compute_urgency(completed, reference) == UrgencyLevel.NONE
 
 
 def test_upcoming_overdue_name_search_and_summary(test_db):
@@ -77,4 +77,4 @@ def test_query_service_default_reference_date_paths(test_db):
     overdue = service.get_overdue_deadlines()
     assert overdue == []
 
-    assert service.compute_urgency(due_tomorrow) in {UrgencyLevel.RED, UrgencyLevel.YELLOW}
+    assert service.compute_urgency(due_tomorrow) in {UrgencyLevel.CRITICAL, UrgencyLevel.WARNING}

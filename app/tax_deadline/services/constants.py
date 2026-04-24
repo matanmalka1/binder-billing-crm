@@ -13,9 +13,8 @@ from datetime import date
 VAT_FILING_DUE_DAY = 19        # 19th of following month — applies to both MONTHLY and BIMONTHLY VAT
 ADVANCE_PAYMENT_DUE_DAY = 15   # 15th of each month (מקדמות)
 # ── Urgency thresholds ────────────────────────────────────────────────────────
-# MUST MATCH frontend src/features/taxDeadlines/utils.ts urgency thresholds
-URGENCY_RED_DAYS = 2           # ≤ 2 days remaining → RED
-URGENCY_YELLOW_DAYS = 7        # ≤ 7 days remaining → YELLOW
+URGENCY_CRITICAL_DAYS = 2      # ≤ 2 days remaining → critical
+URGENCY_WARNING_DAYS = 7       # ≤ 7 days remaining → warning
 
 # ── Safety ceiling for global (non-client-scoped) deadline list ───────────────
 # Architectural debt — proper fix is DB-level pagination (see CLAUDE.md).

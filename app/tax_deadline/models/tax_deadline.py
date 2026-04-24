@@ -30,10 +30,11 @@ from app.utils.time_utils import utcnow
 
 class UrgencyLevel(str, PyEnum):
     """Derived in service layer — not stored in DB."""
-    OVERDUE = "overdue"
-    RED     = "red"      # ≤ 2 ימים
-    YELLOW  = "yellow"   # ≤ 7 ימים
-    GREEN   = "green"    # > 7 ימים
+    OVERDUE  = "overdue"
+    CRITICAL = "critical"
+    WARNING  = "warning"
+    NORMAL   = "normal"
+    NONE     = "none"
 
 
 class DeadlineType(str, PyEnum):

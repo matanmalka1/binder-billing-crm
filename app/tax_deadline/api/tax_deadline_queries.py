@@ -15,6 +15,7 @@ from app.tax_deadline.schemas.tax_deadline import (
 )
 from app.tax_deadline.services.tax_deadline_query_service import TaxDeadlineQueryService
 from app.actions.report_deadline_actions import get_tax_deadline_actions
+from app.tax_deadline.services.urgency import compute_deadline_urgency
 
 router = APIRouter(
     prefix="/tax-deadlines",
@@ -33,6 +34,7 @@ def _build_response(
     if client_name is not None:
         r.client_name = client_name
     r.office_client_number = office_client_number
+    r.urgency_level = compute_deadline_urgency(deadline)
     r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
     return r
 
@@ -120,7 +122,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
                 client_name=client_context_map.get(deadline.client_record_id, {}).get("full_name") or "לא ידוע",
                 deadline_type=deadline.deadline_type,
                 due_date=deadline.due_date,
-                urgency=item["urgency"],
+                urgency_level=item["urgency_level"],
                 days_remaining=item["days_remaining"],
                 payment_amount=deadline.payment_amount,
             )

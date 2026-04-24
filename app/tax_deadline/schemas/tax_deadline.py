@@ -45,6 +45,7 @@ class TaxDeadlineResponse(BaseModel):
     completed_by: Optional[int] = None
     advance_payment_id: Optional[int] = None
     created_at: ApiDateTime
+    urgency_level: UrgencyLevel = UrgencyLevel.NONE
     available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
@@ -69,7 +70,7 @@ class DeadlineUrgentItem(BaseModel):
     client_name: str
     deadline_type: DeadlineType
     due_date: date
-    urgency: UrgencyLevel
+    urgency_level: UrgencyLevel
     days_remaining: int
     payment_amount: Optional[ApiDecimal] = None
 
@@ -92,5 +93,6 @@ class TimelineEntry(BaseModel):
     due_date: date
     status: TaxDeadlineStatus
     days_remaining: int
+    urgency_level: UrgencyLevel = UrgencyLevel.NONE
     milestone_label: str
     payment_amount: Optional[ApiDecimal] = None

@@ -49,13 +49,13 @@ def test_dashboard_urgent_deadlines(client, test_db, advisor_headers):
     data = resp.json()
 
     urgent = data["urgent"]
-    urgencies = {item["urgency"] for item in urgent}
-    assert {"overdue", "red", "yellow"} == urgencies
+    urgencies = {item["urgency_level"] for item in urgent}
+    assert {"overdue", "critical", "warning"} == urgencies
 
-    amount_map = {item["urgency"]: item["payment_amount"] for item in urgent}
+    amount_map = {item["urgency_level"]: item["payment_amount"] for item in urgent}
     assert amount_map["overdue"] == "100.00"
-    assert amount_map["red"] == "200.00"
-    assert amount_map["yellow"] == "300.00"
+    assert amount_map["critical"] == "200.00"
+    assert amount_map["warning"] == "300.00"
 
     upcoming = data["upcoming"]
     assert len(upcoming) == 2

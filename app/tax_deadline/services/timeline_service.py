@@ -4,6 +4,7 @@ from datetime import date
 
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
+from app.tax_deadline.services.urgency import compute_deadline_urgency
 
 
 _MILESTONE_LABELS: dict[str, str] = {
@@ -34,6 +35,7 @@ def build_timeline(client_record_id: int, db, deadline_repo) -> list[dict]:
             "due_date": d.due_date,
             "status": d.status,
             "days_remaining": days_remaining,
+            "urgency_level": compute_deadline_urgency(d, today),
             "milestone_label": label,
             "payment_amount": d.payment_amount,
         })

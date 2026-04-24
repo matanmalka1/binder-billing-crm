@@ -10,9 +10,9 @@ from app.clients.repositories.legal_entity_repository import LegalEntityReposito
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import (
     FAR_FUTURE_DATE,
-    URGENCY_RED_DAYS,
-    URGENCY_YELLOW_DAYS,
+    URGENCY_WARNING_DAYS,
 )
+from app.tax_deadline.services.urgency import compute_deadline_urgency
 
 
 class TaxDeadlineQueryService:
@@ -143,23 +143,9 @@ class TaxDeadlineQueryService:
         self,
         deadline: TaxDeadline,
         reference_date: Optional[date] = None,
-    ) -> Optional[UrgencyLevel]:
+    ) -> UrgencyLevel:
         """Compute urgency level for a deadline."""
-        if deadline.status == TaxDeadlineStatus.COMPLETED:
-            return None
-        if reference_date is None:
-            reference_date = date.today()
-
-        days_remaining = (deadline.due_date - reference_date).days
-
-        if days_remaining < 0:
-            return UrgencyLevel.OVERDUE
-        elif days_remaining <= URGENCY_RED_DAYS:
-            return UrgencyLevel.RED
-        elif days_remaining <= URGENCY_YELLOW_DAYS:
-            return UrgencyLevel.YELLOW
-        else:
-            return UrgencyLevel.GREEN
+        return compute_deadline_urgency(deadline, reference_date)
 
     def get_deadlines_by_business_name(
         self,
@@ -214,23 +200,23 @@ class TaxDeadlineQueryService:
         if reference_date is None:
             reference_date = date.today()
 
-        upcoming = self.get_upcoming_deadlines(URGENCY_YELLOW_DAYS, reference_date)
+        upcoming = self.get_upcoming_deadlines(URGENCY_WARNING_DAYS, reference_date)
         overdue = self.get_overdue_deadlines(reference_date)
 
         urgent = []
         for deadline in overdue:
             urgent.append({
                 "deadline": deadline,
-                "urgency": UrgencyLevel.OVERDUE,
+                "urgency_level": UrgencyLevel.OVERDUE,
                 "days_remaining": (deadline.due_date - reference_date).days,
             })
 
         for deadline in upcoming:
             urgency = self.compute_urgency(deadline, reference_date)
-            if urgency in (UrgencyLevel.RED, UrgencyLevel.YELLOW):
+            if urgency in (UrgencyLevel.CRITICAL, UrgencyLevel.WARNING):
                 urgent.append({
                     "deadline": deadline,
-                    "urgency": urgency,
+                    "urgency_level": urgency,
                     "days_remaining": (deadline.due_date - reference_date).days,
                 })
 

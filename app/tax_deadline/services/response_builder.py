@@ -7,6 +7,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.tax_deadline.schemas.tax_deadline import TaxDeadlineResponse
+from app.tax_deadline.services.urgency import compute_deadline_urgency
 from app.users.models.user import UserRole
 
 
@@ -30,6 +31,7 @@ class TaxDeadlineResponseBuilder:
         )
         if resolved_name is not None:
             response.client_name = resolved_name
+        response.urgency_level = compute_deadline_urgency(deadline)
         response.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
         return response
 
