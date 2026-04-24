@@ -10,6 +10,7 @@ from app.permanent_documents.schemas.permanent_document import (
     PermanentDocumentResponse,
     UpdateNotesRequest,
 )
+from app.permanent_documents.services.response_builder import PermanentDocumentResponseBuilder
 
 router = APIRouter(
     prefix="/documents",
@@ -29,7 +30,7 @@ def get_document_versions(
     tax_year: Optional[int] = Query(default=None),
 ):
     docs = PermanentDocumentActionService(db).get_document_versions(client_record_id, document_type, tax_year)
-    return DocumentVersionsResponse(items=[PermanentDocumentResponse.model_validate(d) for d in docs])
+    return DocumentVersionsResponse(items=PermanentDocumentResponseBuilder(db).build_many(docs))
 
 
 @router.get(
@@ -43,7 +44,7 @@ def list_by_annual_report(
     user: CurrentUser,
 ):
     docs = PermanentDocumentActionService(db).list_by_annual_report(report_id)
-    return DocumentVersionsResponse(items=[PermanentDocumentResponse.model_validate(d) for d in docs])
+    return DocumentVersionsResponse(items=PermanentDocumentResponseBuilder(db).build_many(docs))
 
 
 @router.patch(
@@ -58,4 +59,4 @@ def update_notes(
     user: CurrentUser,
 ):
     doc = PermanentDocumentActionService(db).update_notes(document_id, body.notes)
-    return PermanentDocumentResponse.model_validate(doc)
+    return PermanentDocumentResponseBuilder(db).build_one(doc)

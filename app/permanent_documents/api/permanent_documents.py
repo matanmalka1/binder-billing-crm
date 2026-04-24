@@ -11,6 +11,7 @@ from app.permanent_documents.schemas.permanent_document import (
     PermanentDocumentResponse,
 )
 from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
+from app.permanent_documents.services.response_builder import PermanentDocumentResponseBuilder
 
 router = APIRouter(
     prefix="/documents",
@@ -48,7 +49,7 @@ def upload_permanent_document(
         notes=notes,
         mime_type=file.content_type,
     )
-    return PermanentDocumentResponse.model_validate(document)
+    return PermanentDocumentResponseBuilder(db).build_one(document)
 
 @router.get(
     "/client/{client_record_id}",
@@ -66,7 +67,7 @@ def list_client_documents(
     documents = service.list_client_documents(client_record_id, tax_year=tax_year)
 
     return PermanentDocumentListResponse(
-        items=[PermanentDocumentResponse.model_validate(doc) for doc in documents]
+        items=PermanentDocumentResponseBuilder(db).build_many(documents)
     )
 
 @router.get(
@@ -124,4 +125,4 @@ def replace_document(
         uploaded_by=user.id,
         mime_type=file.content_type,
     )
-    return PermanentDocumentResponse.model_validate(doc)
+    return PermanentDocumentResponseBuilder(db).build_one(doc)

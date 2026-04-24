@@ -14,6 +14,7 @@ from app.permanent_documents.models.permanent_document import (
 class PermanentDocumentResponse(BaseModel):
     id: int
     client_record_id: int                         
+    client_name: Optional[str] = None
     business_id: Optional[int] = None       # nullable — CLIENT scope
     scope: DocumentScope                   
     document_type: DocumentType            

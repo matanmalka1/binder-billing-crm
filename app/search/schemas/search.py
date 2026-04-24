@@ -22,8 +22,9 @@ class DocumentSearchResult(BaseModel):
     id: int
     client_record_id: int
     office_client_number: Optional[int] = None
-    business_id: int
-    business_name: str
+    client_name: str
+    business_id: Optional[int] = None
+    business_name: Optional[str] = None
     document_type: str
     original_filename: Optional[str] = None
     tax_year: Optional[int] = None
