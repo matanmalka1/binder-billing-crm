@@ -9,6 +9,10 @@ from app.annual_reports.models.annual_report_enums import AnnualReportForm, Annu
 class VatComplianceReportItemResponse(BaseModel):
     client_record_id: int
     client_name: str
+    year: int
+    period_type: str
+    reporting_frequency: str
+    grouping_key: str
     periods_expected: int
     periods_filed: int
     periods_open: int

@@ -23,8 +23,8 @@ class VatComplianceReportService:
         client_name_map = self._client_name_map([r.client_record_id for r in rows])
 
         # ── On-time / late counts per business ───────────────────────────────
-        on_time_map: dict[int, int] = {}
-        late_map: dict[int, int] = {}
+        on_time_map: dict[tuple[int, str], int] = {}
+        late_map: dict[tuple[int, str], int] = {}
         for fi in filed_items:
             period_year = int(fi.period[:4])
             period_month = int(fi.period[5:7])
@@ -35,21 +35,30 @@ class VatComplianceReportService:
             filed_date = fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
             is_late = filed_date > deadline
             bucket = late_map if is_late else on_time_map
-            bucket[fi.client_record_id] = bucket.get(fi.client_record_id, 0) + 1
+            period_type = str(fi.period_type.value)
+            key = (fi.client_record_id, period_type)
+            bucket[key] = bucket.get(key, 0) + 1
 
         items = []
         for r in rows:
             client_name = client_name_map.get(r.client_record_id)
             if client_name is None:
                 continue
+            period_type = str(r.period_type.value)
+            grouping_key = f"{r.client_record_id}:{year}:{period_type}"
+            count_key = (r.client_record_id, period_type)
             expected = int(r.periods_expected)
             filed = int(r.periods_filed or 0)
-            on_time = on_time_map.get(r.client_record_id, 0)
-            late = late_map.get(r.client_record_id, 0)
+            on_time = on_time_map.get(count_key, 0)
+            late = late_map.get(count_key, 0)
             items.append(
                 {
                     "client_record_id": r.client_record_id,
                     "client_name": client_name,
+                    "year": year,
+                    "period_type": period_type,
+                    "reporting_frequency": period_type,
+                    "grouping_key": grouping_key,
                     "periods_expected": expected,
                     "periods_filed": filed,
                     "periods_open": expected - filed,

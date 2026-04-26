@@ -22,6 +22,7 @@ class VatComplianceRepository:
         return (
             self.db.query(
                 VatWorkItem.client_record_id,
+                VatWorkItem.period_type,
                 func.count(VatWorkItem.id).label("periods_expected"),
                 func.sum(filed_case).label("periods_filed"),
             )
@@ -29,8 +30,8 @@ class VatComplianceRepository:
                 func.substr(VatWorkItem.period, 1, 4) == year_str,
                 VatWorkItem.deleted_at.is_(None),
             )
-            .group_by(VatWorkItem.client_record_id)
-            .order_by(VatWorkItem.client_record_id)
+            .group_by(VatWorkItem.client_record_id, VatWorkItem.period_type)
+            .order_by(VatWorkItem.client_record_id, VatWorkItem.period_type)
             .all()
         )
 
@@ -40,6 +41,7 @@ class VatComplianceRepository:
         return (
             self.db.query(
                 VatWorkItem.client_record_id,
+                VatWorkItem.period_type,
                 VatWorkItem.period,
                 VatWorkItem.filed_at,
             )
