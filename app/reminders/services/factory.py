@@ -21,7 +21,7 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.core.exceptions import AppError, NotFoundError
-from app.reminders.models.reminder import Reminder, ReminderType
+from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.messages import (
     ADVANCE_PAYMENT_NOT_FOUND,
@@ -223,6 +223,20 @@ def create_unpaid_charge_reminder(
     send_on = target_date
     if message is None:
         message = UNPAID_CHARGE_REMINDER_DEFAULT.format(days_unpaid=days_unpaid)
+
+    existing = (
+        reminder_repo.db.query(Reminder)
+        .filter(
+            Reminder.client_record_id == client_record_id,
+            Reminder.reminder_type == ReminderType.UNPAID_CHARGE,
+            Reminder.target_date == target_date,
+            Reminder.status != ReminderStatus.CANCELED,
+            Reminder.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if existing:
+        return existing
 
     return reminder_repo.create(
         client_record_id=client_record_id,

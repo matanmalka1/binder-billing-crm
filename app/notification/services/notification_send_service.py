@@ -41,8 +41,9 @@ class NotificationSendService:
     def __init__(self, db: Session):
         self.db = db
         self.notification_repo = NotificationRepository(db)
+        live_delivery = config.APP_ENV in ("staging", "production")
         self.email = EmailChannel(
-            enabled=config.NOTIFICATIONS_ENABLED,
+            enabled=config.NOTIFICATIONS_ENABLED and live_delivery,
             api_key=config.SENDGRID_API_KEY,
             api_url=config.SENDGRID_API_URL,
             from_address=config.EMAIL_FROM_ADDRESS,

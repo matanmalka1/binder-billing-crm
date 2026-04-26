@@ -21,6 +21,13 @@ def _create_business_row(
     status: BusinessStatus = BusinessStatus.ACTIVE,
     legal_entity_id: int | None = None,
 ) -> Business:
+    if legal_entity_id is None:
+        client = seed_client_identity(
+            test_db,
+            full_name=f"Additional Service Client {status.value}",
+            id_number=f"BADD-{status.value}",
+        )
+        legal_entity_id = client.legal_entity_id
     business = Business(
         business_name="Additional Service Business",
         opened_at=date(2026, 1, 1),

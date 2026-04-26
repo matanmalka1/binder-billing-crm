@@ -6,6 +6,7 @@ from app.businesses.services.business_guards import (
     validate_business_for_create,
 )
 from app.core.exceptions import ForbiddenError, NotFoundError
+from tests.helpers.identity import seed_client_identity
 
 
 class _Business:
@@ -29,7 +30,13 @@ def test_assert_business_allows_create_blocks_closed_and_frozen():
 
 def _create_business(test_db, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
     from datetime import date
+    client = seed_client_identity(
+        test_db,
+        full_name="Business Guard Client",
+        id_number=f"BG-{status.value}",
+    )
     business = Business(
+        legal_entity_id=client.legal_entity_id,
         business_name="Business Guard Business",
         opened_at=date.today(),
         status=status,

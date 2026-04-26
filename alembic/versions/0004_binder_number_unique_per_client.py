@@ -25,30 +25,36 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_index(
-        "idx_active_binder_unique",
-        table_name="binders",
-        postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"),
-    )
-    op.create_index(
-        "uq_binder_number_per_client",
-        "binders",
-        ["client_record_id", "binder_number"],
-        unique=True,
-        postgresql_where=sa.text("deleted_at IS NULL"),
-    )
+    existing = {idx["name"] for idx in sa.inspect(op.get_bind()).get_indexes("binders")}
+    if "idx_active_binder_unique" in existing:
+        op.drop_index(
+            "idx_active_binder_unique",
+            table_name="binders",
+            postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"),
+        )
+    if "uq_binder_number_per_client" not in existing:
+        op.create_index(
+            "uq_binder_number_per_client",
+            "binders",
+            ["client_record_id", "binder_number"],
+            unique=True,
+            postgresql_where=sa.text("deleted_at IS NULL"),
+        )
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "uq_binder_number_per_client",
-        table_name="binders",
-        postgresql_where=sa.text("deleted_at IS NULL"),
-    )
-    op.create_index(
-        "idx_active_binder_unique",
-        "binders",
-        ["binder_number"],
-        unique=True,
-        postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"),
-    )
+    existing = {idx["name"] for idx in sa.inspect(op.get_bind()).get_indexes("binders")}
+    if "uq_binder_number_per_client" in existing:
+        op.drop_index(
+            "uq_binder_number_per_client",
+            table_name="binders",
+            postgresql_where=sa.text("deleted_at IS NULL"),
+        )
+    if "idx_active_binder_unique" not in existing:
+        op.create_index(
+            "idx_active_binder_unique",
+            "binders",
+            ["binder_number"],
+            unique=True,
+            postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"),
+        )

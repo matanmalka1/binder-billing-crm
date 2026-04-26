@@ -11,12 +11,9 @@ Run:
 Notes:
 - Adds DB-level uniqueness for non-canceled active reminder identity.
 - Existing duplicate active rows must be resolved before upgrade if present.
+- No-op because the initial schema already creates this index.
 """
 from typing import Sequence, Union
-
-from alembic import op
-import sqlalchemy as sa
-
 
 revision: str = "0003"
 down_revision: Union[str, Sequence[str], None] = "0002"
@@ -25,18 +22,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.create_index(
-        "uq_reminder_active",
-        "reminders",
-        ["client_record_id", "reminder_type", "target_date"],
-        unique=True,
-        postgresql_where=sa.text("status != 'canceled' AND deleted_at IS NULL"),
-    )
+    pass
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "uq_reminder_active",
-        table_name="reminders",
-        postgresql_where=sa.text("status != 'canceled' AND deleted_at IS NULL"),
-    )
+    pass
