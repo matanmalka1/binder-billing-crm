@@ -57,14 +57,22 @@ class Config:
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
     ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
 
+    _CORS_ALLOWED_ORIGINS_ENV = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    if APP_ENV in ("staging", "production") and not _CORS_ALLOWED_ORIGINS_ENV:
+        raise AppError(
+            "CORS_ALLOWED_ORIGINS חייב להיות מוגדר",
+            "CONFIG.CORS_ALLOWED_ORIGINS_MISSING",
+            status_code=500,
+        )
+
     CORS_ALLOWED_ORIGINS: list[str] = [
         origin.strip()
-        for origin in os.getenv(
-            "CORS_ALLOWED_ORIGINS",
-            "http://localhost:3000,"
+        for origin in (
+            _CORS_ALLOWED_ORIGINS_ENV
+            or "http://localhost:3000,"
             "http://localhost:5173,"
             "http://127.0.0.1:3000,"
-            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5173"
         ).split(",")
         if origin.strip()
     ]
@@ -78,6 +86,10 @@ class Config:
 
     # SendGrid
     SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
+    SENDGRID_API_URL: str = os.getenv(
+        "SENDGRID_API_URL",
+        "https://api.sendgrid.com/v3/mail/send",
+    )
     EMAIL_FROM_ADDRESS: str = os.getenv("EMAIL_FROM_ADDRESS", "")   # must be verified in SendGrid
     EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "")
 
@@ -97,5 +109,7 @@ class Config:
     R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
     R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "")
     R2_ENDPOINT_URL: str = os.getenv("R2_ENDPOINT_URL", "")  # e.g. https://<id>.r2.cloudflarestorage.com
+    R2_REGION: str = os.getenv("R2_REGION", "auto")
+    LOCAL_STORAGE_PATH: str = os.getenv("LOCAL_STORAGE_PATH", "./storage")
 
 config = Config()

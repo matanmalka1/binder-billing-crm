@@ -44,6 +44,7 @@ class NotificationSendService:
         self.email = EmailChannel(
             enabled=config.NOTIFICATIONS_ENABLED,
             api_key=config.SENDGRID_API_KEY,
+            api_url=config.SENDGRID_API_URL,
             from_address=config.EMAIL_FROM_ADDRESS,
             from_name=config.EMAIL_FROM_NAME,
         )

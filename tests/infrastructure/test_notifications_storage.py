@@ -6,6 +6,8 @@ from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.infrastructure.notifications import _to_html
 from app.infrastructure import storage as storage_mod
 
+SENDGRID_API_URL = "https://sendgrid.test/mail/send"
+
 
 class _Resp:
     def __init__(self, status):
@@ -19,15 +21,30 @@ class _Resp:
 
 
 def test_email_channel_disabled_missing_config_and_success(monkeypatch):
-    disabled = EmailChannel(enabled=False, api_key="", from_address="")
+    disabled = EmailChannel(
+        enabled=False,
+        api_key="",
+        api_url=SENDGRID_API_URL,
+        from_address="",
+    )
     assert disabled.send("a@b.com", "hello") == (True, None)
 
-    missing_key = EmailChannel(enabled=True, api_key="", from_address="from@x.com")
+    missing_key = EmailChannel(
+        enabled=True,
+        api_key="",
+        api_url=SENDGRID_API_URL,
+        from_address="from@x.com",
+    )
     ok, msg = missing_key.send("a@b.com", "hello")
     assert ok is False
     assert "SENDGRID_API_KEY" in msg
 
-    missing_from = EmailChannel(enabled=True, api_key="k", from_address="")
+    missing_from = EmailChannel(
+        enabled=True,
+        api_key="k",
+        api_url=SENDGRID_API_URL,
+        from_address="",
+    )
     ok, msg = missing_from.send("a@b.com", "hello")
     assert ok is False
     assert "EMAIL_FROM_ADDRESS" in msg
@@ -36,7 +53,13 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
         return _Resp(202)
 
     monkeypatch.setattr("urllib.request.urlopen", _urlopen_ok)
-    enabled = EmailChannel(enabled=True, api_key="k", from_address="from@x.com", from_name="CRM")
+    enabled = EmailChannel(
+        enabled=True,
+        api_key="k",
+        api_url=SENDGRID_API_URL,
+        from_address="from@x.com",
+        from_name="CRM",
+    )
     assert enabled.send("a@b.com", "hello")[0] is True
 
 
@@ -70,6 +93,8 @@ def test_local_storage_and_provider_factory(monkeypatch, tmp_path):
         R2_SECRET_ACCESS_KEY = None
         R2_BUCKET_NAME = None
         R2_ENDPOINT_URL = None
+        R2_REGION = "auto"
+        LOCAL_STORAGE_PATH = str(tmp_path)
 
     import app.config as config_mod
 
@@ -85,6 +110,7 @@ def test_s3_provider_init_is_stable_with_or_without_boto3():
             secret_access_key="s",
             bucket_name="b",
             endpoint_url="https://x",
+            region="auto",
         )
         assert provider is not None
     except RuntimeError as exc:
@@ -100,6 +126,8 @@ def test_get_storage_provider_requires_r2_fields_in_production(monkeypatch):
         R2_SECRET_ACCESS_KEY = None
         R2_BUCKET_NAME = None
         R2_ENDPOINT_URL = None
+        R2_REGION = "auto"
+        LOCAL_STORAGE_PATH = "./storage"
 
     import app.config as config_mod
 
@@ -150,7 +178,12 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
 
     monkeypatch.setattr("urllib.request.urlopen", _raise_urlopen)
 
-    email = EmailChannel(enabled=True, api_key="k", from_address="from@x.com")
+    email = EmailChannel(
+        enabled=True,
+        api_key="k",
+        api_url=SENDGRID_API_URL,
+        from_address="from@x.com",
+    )
     ok, msg = email.send("to@x.com", "hello")
     assert ok is False
     assert "SendGrid error" in msg

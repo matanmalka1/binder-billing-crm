@@ -114,6 +114,15 @@ class Reminder(Base):
         Index("idx_reminder_status_send_on",   "status", "send_on"),
         Index("idx_reminder_client_record_type", "client_record_id", "reminder_type"),
         Index("idx_reminder_business_type",      "business_id", "reminder_type"),
+        Index(
+            "uq_reminder_active",
+            "client_record_id",
+            "reminder_type",
+            "target_date",
+            unique=True,
+            postgresql_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
+            sqlite_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
+        ),
     )
 
     def __repr__(self) -> str:

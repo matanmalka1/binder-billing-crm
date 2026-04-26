@@ -77,7 +77,6 @@ class Binder(Base):
     intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index("idx_binder_client_record", "client_record_id"),
         Index("idx_binder_status",        "status"),
         Index("idx_binder_period_start", "period_start"),
         # Unique binder_number among open (IN_OFFICE) non-deleted binders only.

@@ -50,7 +50,7 @@ class StorageProvider(ABC):
 class LocalStorageProvider(StorageProvider):
     """Local filesystem storage provider for development/testing."""
 
-    def __init__(self, base_path: str = "./storage"):
+    def __init__(self, base_path: str):
         self.base_path = os.path.realpath(base_path)
         os.makedirs(self.base_path, exist_ok=True)
 
@@ -113,7 +113,7 @@ class S3StorageProvider(StorageProvider):
         secret_access_key: str,
         bucket_name: str,
         endpoint_url: str | None = None,
-        region: str = "auto",
+        region: str,
     ) -> None:
         try:
             import boto3
@@ -193,7 +193,7 @@ def get_storage_provider() -> StorageProvider:
 
     if config.APP_ENV in ("development", "test"):
         logger.info("Storage: using LocalStorageProvider (env=%s)", config.APP_ENV)
-        return LocalStorageProvider()
+        return LocalStorageProvider(config.LOCAL_STORAGE_PATH)
 
     # Validate required config for cloud storage
     missing = [
@@ -216,5 +216,5 @@ def get_storage_provider() -> StorageProvider:
         secret_access_key=config.R2_SECRET_ACCESS_KEY,
         bucket_name=config.R2_BUCKET_NAME,
         endpoint_url=config.R2_ENDPOINT_URL,
-        region="auto",
+        region=config.R2_REGION,
     )

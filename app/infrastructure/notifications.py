@@ -35,11 +35,13 @@ class EmailChannel:
         *,
         enabled: bool,
         api_key: str,
+        api_url: str,
         from_address: str,
         from_name: str = "",
     ) -> None:
         self._enabled = enabled
         self._api_key = api_key
+        self._api_url = api_url
         self._from_address = from_address
         self._from_name = from_name
 
@@ -96,7 +98,7 @@ class EmailChannel:
 
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
-                "https://api.sendgrid.com/v3/mail/send",
+                self._api_url,
                 data=data,
                 headers={
                     "Authorization": f"Bearer {self._api_key}",

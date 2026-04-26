@@ -82,7 +82,6 @@ class Correspondence(Base):
     contact = relationship("AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True)
 
     __table_args__ = (
-        Index("idx_correspondence_client_record",     "client_record_id"),
         Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
         Index("idx_correspondence_occurred",          "occurred_at"),
     )

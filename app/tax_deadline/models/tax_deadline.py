@@ -94,6 +94,15 @@ class TaxDeadline(Base):
         Index("idx_tax_deadline_status",                "status"),
         Index("idx_tax_deadline_type",                  "deadline_type"),
         Index("idx_tax_deadline_client_record_period",  "client_record_id", "period"),
+        Index(
+            "uq_tax_deadline_active_period_identity",
+            "client_record_id",
+            "deadline_type",
+            "period",
+            unique=True,
+            postgresql_where=deleted_at.is_(None) & period.is_not(None),
+            sqlite_where=deleted_at.is_(None) & period.is_not(None),
+        ),
     )
 
     def __repr__(self):

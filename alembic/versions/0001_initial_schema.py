@@ -255,7 +255,6 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_authority_contact_client_record', 'authority_contacts', ['client_record_id'], unique=False)
     op.create_index('idx_authority_contact_type', 'authority_contacts', ['contact_type'], unique=False)
     op.create_index(op.f('ix_authority_contacts_client_record_id'), 'authority_contacts', ['client_record_id'], unique=False)
     op.create_table('binder_handovers',
@@ -293,7 +292,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_active_binder_unique', 'binders', ['binder_number'], unique=True, postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"))
-    op.create_index('idx_binder_client_record', 'binders', ['client_record_id'], unique=False)
     op.create_index('idx_binder_period_start', 'binders', ['period_start'], unique=False)
     op.create_index('idx_binder_status', 'binders', ['status'], unique=False)
     op.create_index(op.f('ix_binders_client_record_id'), 'binders', ['client_record_id'], unique=False)
@@ -528,7 +526,6 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_correspondence_business_occurred', 'correspondence_entries', ['business_id', 'occurred_at'], unique=False)
-    op.create_index('idx_correspondence_client_record', 'correspondence_entries', ['client_record_id'], unique=False)
     op.create_index('idx_correspondence_occurred', 'correspondence_entries', ['occurred_at'], unique=False)
     op.create_index(op.f('ix_correspondence_entries_business_id'), 'correspondence_entries', ['business_id'], unique=False)
     op.create_index(op.f('ix_correspondence_entries_client_record_id'), 'correspondence_entries', ['client_record_id'], unique=False)
@@ -851,6 +848,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_reminders_charge_id'), 'reminders', ['charge_id'], unique=False)
     op.create_index(op.f('ix_reminders_client_record_id'), 'reminders', ['client_record_id'], unique=False)
     op.create_index(op.f('ix_reminders_tax_deadline_id'), 'reminders', ['tax_deadline_id'], unique=False)
+    op.create_index('uq_reminder_active', 'reminders', ['client_record_id', 'reminder_type', 'target_date'], unique=True, postgresql_where=sa.text("status != 'canceled' AND deleted_at IS NULL"))
     op.create_table('signature_audit_events',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('signature_request_id', sa.Integer(), nullable=False),
@@ -885,6 +883,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_reminders_binder_id'), table_name='reminders')
     op.drop_index(op.f('ix_reminders_annual_report_id'), table_name='reminders')
     op.drop_index(op.f('ix_reminders_advance_payment_id'), table_name='reminders')
+    op.drop_index('uq_reminder_active', table_name='reminders', postgresql_where=sa.text("status != 'canceled' AND deleted_at IS NULL"))
     op.drop_index('idx_reminder_status_send_on', table_name='reminders')
     op.drop_index('idx_reminder_client_record_type', table_name='reminders')
     op.drop_index('idx_reminder_business_type', table_name='reminders')
@@ -947,7 +946,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_correspondence_entries_client_record_id'), table_name='correspondence_entries')
     op.drop_index(op.f('ix_correspondence_entries_business_id'), table_name='correspondence_entries')
     op.drop_index('idx_correspondence_occurred', table_name='correspondence_entries')
-    op.drop_index('idx_correspondence_client_record', table_name='correspondence_entries')
     op.drop_index('idx_correspondence_business_occurred', table_name='correspondence_entries')
     op.drop_table('correspondence_entries')
     op.drop_index(op.f('ix_charges_period'), table_name='charges')
@@ -989,14 +987,12 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_binders_client_record_id'), table_name='binders')
     op.drop_index('idx_binder_status', table_name='binders')
     op.drop_index('idx_binder_period_start', table_name='binders')
-    op.drop_index('idx_binder_client_record', table_name='binders')
     op.drop_index('idx_active_binder_unique', table_name='binders', postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"))
     op.drop_table('binders')
     op.drop_index(op.f('ix_binder_handovers_client_record_id'), table_name='binder_handovers')
     op.drop_table('binder_handovers')
     op.drop_index(op.f('ix_authority_contacts_client_record_id'), table_name='authority_contacts')
     op.drop_index('idx_authority_contact_type', table_name='authority_contacts')
-    op.drop_index('idx_authority_contact_client_record', table_name='authority_contacts')
     op.drop_table('authority_contacts')
     op.drop_index(op.f('ix_annual_reports_client_record_id'), table_name='annual_reports')
     op.drop_index('idx_annual_report_status', table_name='annual_reports')
