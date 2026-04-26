@@ -15,8 +15,7 @@ class AnnualReportStatusHistoryRepository:
         annual_report_id: int,
         from_status: AnnualReportStatus | None,
         to_status: AnnualReportStatus,
-        changed_by: int | None,
-        changed_by_name: str,
+        changed_by: int,
         note: str | None = None,
     ) -> AnnualReportStatusHistory:
         entry = AnnualReportStatusHistory(
@@ -24,7 +23,6 @@ class AnnualReportStatusHistoryRepository:
             from_status=from_status,
             to_status=to_status,
             changed_by=changed_by,
-            changed_by_name=changed_by_name,
             note=note,
         )
         self.db.add(entry)

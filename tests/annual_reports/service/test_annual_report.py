@@ -95,7 +95,7 @@ class AnnualReportService:
             if getattr(report, flag_attr, False):
                 self.repo.add_schedule(report.id, schedule, is_required=True)
 
-        self.repo.append_status_history(report.id, None, AnnualReportStatus.NOT_STARTED, created_by, created_by_name)
+        self.repo.append_status_history(report.id, None, AnnualReportStatus.NOT_STARTED, created_by)
         return report
 
     def transition_status(self, report_id, new_status, changed_by, changed_by_name, note=None, **kwargs):
@@ -117,7 +117,7 @@ class AnnualReportService:
             if kwargs.get("ita_reference"):
                 update["ita_reference"] = kwargs["ita_reference"]
         self.repo.update(report_id, **update)
-        self.repo.append_status_history(report_id, previous_status, ns, changed_by, changed_by_name, note)
+        self.repo.append_status_history(report_id, previous_status, ns, changed_by, note)
         return self.repo.get_by_id(report_id)
 
     def get_report(self, rid):

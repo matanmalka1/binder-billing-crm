@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -31,10 +31,6 @@ class BinderIntakeEditLog(Base):
 
     changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     changed_at = Column(DateTime, default=utcnow, nullable=False)
-
-    __table_args__ = (
-        Index("idx_intake_edit_log_intake", "intake_id"),
-    )
 
     def __repr__(self):
         return (

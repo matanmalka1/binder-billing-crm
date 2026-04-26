@@ -73,7 +73,6 @@ class StatusHistoryResponse(BaseModel):
     from_status: Optional[AnnualReportStatus] = None
     to_status: AnnualReportStatus
     changed_by: int
-    changed_by_name: Optional[str] = None
     note: Optional[str] = None
     occurred_at: ApiDateTime
 

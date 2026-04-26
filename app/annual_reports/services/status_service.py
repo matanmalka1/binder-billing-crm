@@ -107,7 +107,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         self.repo.append_status_history(
             annual_report_id=report_id,
             from_status=old_status, to_status=ns,
-            changed_by=changed_by, changed_by_name=changed_by_name, note=note,
+            changed_by=changed_by, note=note,
         )
 
         EntityAuditLogRepository(self.db).append(
@@ -162,7 +162,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         self.repo.append_status_history(
             annual_report_id=report_id,
             from_status=updated.status, to_status=updated.status,
-            changed_by=changed_by, changed_by_name=changed_by_name,
+            changed_by=changed_by,
             note=(
                 DEADLINE_UPDATED_NOTE.format(
                     deadline_type=dt.value,

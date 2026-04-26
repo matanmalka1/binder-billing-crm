@@ -99,12 +99,11 @@ class InMemoryRepo:
     def schedules_complete(self, rid):
         return all(s.is_complete for s in self._schedules.get(rid, []) if s.is_required)
 
-    def append_status_history(self, annual_report_id, from_status, to_status, changed_by, changed_by_name, note=None):
+    def append_status_history(self, annual_report_id, from_status, to_status, changed_by, note=None):
         history = MagicMock()
         history.from_status = from_status
         history.to_status = to_status
         history.changed_by = changed_by
-        history.changed_by_name = changed_by_name
         history.note = note
         history.occurred_at = utcnow()
         self._history.setdefault(annual_report_id, []).append(history)

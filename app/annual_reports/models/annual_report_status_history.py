@@ -1,6 +1,6 @@
 """Append-only status history for annual reports."""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -12,13 +12,6 @@ class AnnualReportStatusHistory(Base):
     """Audit trail for every status change on an annual report.
 
     Append-only — no soft delete, no updated_at.
-
-    changed_by_name:
-        Intentional denormalization. Stores the user's display name at the
-        moment of the status change. This protects the audit trail from user
-        renames — if a user's name changes later, the historical record still
-        reflects who actually performed the action. Do NOT derive this from
-        the users table at query time; read the stored snapshot.
     """
 
     __tablename__ = "annual_report_status_history"
@@ -27,8 +20,7 @@ class AnnualReportStatusHistory(Base):
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
     from_status = Column(pg_enum(AnnualReportStatus), nullable=True)
     to_status = Column(pg_enum(AnnualReportStatus), nullable=False)
-    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    changed_by_name = Column(String(255), nullable=True)
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     note = Column(Text, nullable=True)
     occurred_at = Column(DateTime, nullable=False, default=utcnow)
 

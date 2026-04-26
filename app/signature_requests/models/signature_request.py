@@ -133,7 +133,6 @@ class SignatureRequest(Base):
         Index("idx_sig_request_business",      "business_id"),
         Index("idx_sig_request_annual_report", "annual_report_id"),
         Index("idx_sig_request_status",        "status"),
-        Index("idx_sig_request_token",         "signing_token", unique=True),
     )
 
     def __repr__(self) -> str:
@@ -168,7 +167,6 @@ class SignatureAuditEvent(Base):
     signature_request = relationship("SignatureRequest", back_populates="audit_events")
 
     __table_args__ = (
-        Index("idx_sig_audit_request",  "signature_request_id"),
         Index("idx_sig_audit_occurred", "occurred_at"),
     )
 

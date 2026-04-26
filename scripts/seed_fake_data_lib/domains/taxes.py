@@ -40,6 +40,7 @@ def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
 
 def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
+    used_period_identities: set[tuple[int, TaxDeadlineType, str]] = set()
     today = date.today()
     for client_businesses in group_businesses_by_client(businesses).values():
         num = rng.randint(
@@ -47,9 +48,12 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             cfg.max_tax_deadlines_per_client,
         )
         for business in pick_businesses_for_client(rng, client_businesses, num):
-            due_offset = rng.randint(-30, 60)
-            due_date = today + timedelta(days=due_offset)
-            deadline_type = rng.choice(_eligible_deadline_types(business))
+            due_date, deadline_type, period = _pick_unique_deadline_identity(
+                rng,
+                today,
+                business,
+                used_period_identities,
+            )
             status = (
                 TaxDeadlineStatus.COMPLETED
                 if due_date < today and rng.random() < 0.5
@@ -70,7 +74,6 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
                 )
                 completed_by = rng.choice(users).id if users else None
             payment_amount = Decimal(str(round(rng.uniform(500, 15000), 2)))
-            period = f"{due_date.year}-{due_date.month:02d}" if deadline_type != TaxDeadlineType.OTHER else None
             description = f"תזכורת עבור {DEADLINE_LABELS.get(deadline_type, 'מועד מס')}"
             deadline = TaxDeadline(
                 client_record_id=business.client_id,
@@ -90,6 +93,49 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
     db.flush()
     _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng)
     return deadlines
+
+
+def _pick_unique_deadline_identity(
+    rng: Random,
+    today: date,
+    business,
+    used_period_identities: set[tuple[int, TaxDeadlineType, str]],
+) -> tuple[date, TaxDeadlineType, str | None]:
+    for _ in range(100):
+        due_date = today + timedelta(days=rng.randint(-30, 60))
+        deadline_type = rng.choice(_eligible_deadline_types(business))
+        period = _period_for_deadline(due_date, deadline_type)
+        if period is None:
+            return due_date, deadline_type, period
+        identity = (business.client_id, deadline_type, period)
+        if identity not in used_period_identities:
+            used_period_identities.add(identity)
+            return due_date, deadline_type, period
+
+    deadline_type = rng.choice(_eligible_deadline_types(business))
+    for month_offset in range(1, 25):
+        due_date = _add_months(today, month_offset)
+        period = _period_for_deadline(due_date, deadline_type)
+        if period is None:
+            return due_date, deadline_type, period
+        identity = (business.client_id, deadline_type, period)
+        if identity not in used_period_identities:
+            used_period_identities.add(identity)
+            return due_date, deadline_type, period
+    return today, TaxDeadlineType.OTHER, None
+
+
+def _period_for_deadline(due_date: date, deadline_type: TaxDeadlineType) -> str | None:
+    if deadline_type == TaxDeadlineType.OTHER:
+        return None
+    return f"{due_date.year}-{due_date.month:02d}"
+
+
+def _add_months(value: date, month_offset: int) -> date:
+    month_index = value.month - 1 + month_offset
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    return date(year, month, min(value.day, 28))
 
 
 def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> None:

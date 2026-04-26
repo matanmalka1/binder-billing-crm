@@ -13,6 +13,7 @@ from .taxes import DEADLINE_LABELS
 
 def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
     reminders = []
+    active_identities: set[tuple[int, ReminderType, date]] = set()
     today = date.today()
     binders_by_client = {}
     for binder in binders:
@@ -47,8 +48,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 message=f"תזכורת: מועדי מס מתקרבים ({deadline_label})",
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
-            db.add(reminder)
-            reminders.append(reminder)
+            _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
         idle_binders = [b for b in business_binders if b.status != BinderStatus.RETURNED]
         if idle_binders:
@@ -66,8 +66,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 message=f"תזכורת: תיק {binder.binder_number} לא טופל {days_idle} ימים",
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
-            db.add(reminder)
-            reminders.append(reminder)
+            _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
         unpaid_charges = [
             c
@@ -91,7 +90,19 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
                 message=f"תזכורת: חשבונית #{charge.id} לא שולמה {days_unpaid} ימים",
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
             )
-            db.add(reminder)
-            reminders.append(reminder)
+            _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
     db.flush()
+
+
+def _add_unique_active_reminder(db, reminders, active_identities, reminder: Reminder) -> None:
+    identity = (
+        reminder.client_record_id,
+        reminder.reminder_type,
+        reminder.target_date,
+    )
+    if identity in active_identities:
+        return
+    active_identities.add(identity)
+    db.add(reminder)
+    reminders.append(reminder)

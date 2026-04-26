@@ -174,7 +174,7 @@ Leaving a filed status → reopen deadline, create reminder if none exists.
 - **Credit points come from rows** — aggregate from `AnnualReportCreditPoint` always; never cached in detail columns.
 - **Tax calculation is never auto-persisted** — `get_tax_calculation()` is read-only; `save_tax_calculation()` requires explicit advisor action.
 - **Status history is append-only** — no updates or deletes on `AnnualReportStatusHistory`.
-- **`changed_by_name` is a snapshot** — stored at transition time from the actor's name. Do not derive retrospectively from the users table.
+- **Status history actor is mandatory** — `changed_by` is required for every annual report status history row.
 
 ---
 

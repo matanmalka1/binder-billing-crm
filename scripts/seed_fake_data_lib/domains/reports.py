@@ -562,7 +562,6 @@ def create_annual_report_annex_data(db, rng: Random, reports) -> None:
 
 def create_annual_report_status_history(db, rng: Random, reports, users) -> None:
     fallback_user = users[0] if users else None
-    users_by_id = {user.id: user for user in users}
     for report in reports:
         history_statuses = _status_path_to(report.status)
         previous = None
@@ -572,13 +571,11 @@ def create_annual_report_status_history(db, rng: Random, reports, users) -> None
             if actor_id is None and fallback_user:
                 actor_id = fallback_user.id
             occurred_at += timedelta(hours=rng.randint(1, 72))
-            actor = users_by_id.get(actor_id)
             entry = AnnualReportStatusHistory(
                 annual_report_id=report.id,
                 from_status=previous,
                 to_status=status,
                 changed_by=actor_id,
-                changed_by_name=actor.full_name if actor else None,
                 note=rng.choice(
                     [
                         "היסטוריית סטטוסים שנוצרה אוטומטית",

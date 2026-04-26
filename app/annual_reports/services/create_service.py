@@ -118,7 +118,6 @@ class AnnualReportCreateService(AnnualReportBaseService):
             from_status=None,
             to_status=AnnualReportStatus.NOT_STARTED,
             changed_by=created_by,
-            changed_by_name=created_by_name,
             note=ANNUAL_REPORT_CREATED_NOTE.format(
                 form_type=form_type.value,
                 filing_deadline=filing_deadline.strftime('%d/%m/%Y') if filing_deadline else DEADLINE_NOT_SET,
