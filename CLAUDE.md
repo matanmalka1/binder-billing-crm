@@ -55,7 +55,7 @@ JWT_SECRET=test-secret pytest -q tests/<domain_or_path>/...
 ## Stack
 
 - FastAPI, SQLAlchemy ORM (no raw SQL), Pydantic v2
-- Dev: SQLite; Prod: PostgreSQL
+- Dev: PostgreSQL; Prod: PostgreSQL
 - Migrations: Alembic (`alembic/`) — `Base.metadata.create_all()` is **never** used
 - Auth: JWT HS256, `token_version` invalidation on User model
 
