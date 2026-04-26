@@ -3,7 +3,6 @@ from enum import Enum as PyEnum
 from sqlalchemy import (
     Column, Date, DateTime, ForeignKey,
     Index, Integer, String, Text,
-    column, and_,
 )
 from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
@@ -26,10 +25,8 @@ class Binder(Base):
     """
     Physical binder belonging to a client.
 
-    A binder is identified by a globally unique number (binder_number)
-    assigned to the client and kept constant throughout the binder's lifecycle.
-    When a binder is full, a new binder is opened with the same number
-    and a new period.
+    A binder is identified by a number (binder_number) that is unique per
+    client_record_id while the binder is not soft-deleted.
 
     All materials from all of the client's businesses are stored in the same binder.
     The material type is defined at the BinderIntakeMaterial level, not at binder level.
@@ -79,20 +76,13 @@ class Binder(Base):
     __table_args__ = (
         Index("idx_binder_status",        "status"),
         Index("idx_binder_period_start", "period_start"),
-        # Unique binder_number among open (IN_OFFICE) non-deleted binders only.
-        # CLOSED_IN_OFFICE and RETURNED binders may share a number with a newer IN_OFFICE binder.
         Index(
-            "idx_active_binder_unique",
+            "uq_binder_number_per_client",
+            "client_record_id",
             "binder_number",
             unique=True,
-            postgresql_where=and_(
-                column("status") == BinderStatus.IN_OFFICE.value,
-                column("deleted_at").is_(None),
-            ),
-            sqlite_where=and_(
-                column("status") == BinderStatus.IN_OFFICE.value,
-                column("deleted_at").is_(None),
-            ),
+            postgresql_where=deleted_at.is_(None),
+            sqlite_where=deleted_at.is_(None),
         ),
     )
     def __repr__(self):

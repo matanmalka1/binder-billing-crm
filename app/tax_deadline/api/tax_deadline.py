@@ -35,6 +35,7 @@ def create_tax_deadline(
         deadline_type=DeadlineType(request.deadline_type),
         due_date=request.due_date,
         period=request.period,
+        tax_year=request.tax_year,
         payment_amount=request.payment_amount,
         description=request.description,
     )
@@ -92,6 +93,7 @@ def update_tax_deadline(
         deadline_type=deadline_type,
         due_date=request.due_date,
         period=request.period,
+        tax_year=request.tax_year,
         payment_amount=request.payment_amount,
         description=request.description,
     )

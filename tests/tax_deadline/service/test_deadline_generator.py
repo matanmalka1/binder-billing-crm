@@ -57,13 +57,15 @@ def test_generate_advance_annual_and_all(test_db):
     advance_created = service.generate_advance_payment_deadlines(business.client_id, 2027)
     annual_created = service.generate_annual_report_deadline(business.client_id, 2027)
     annual_second = service.generate_annual_report_deadline(business.client_id, 2027)
+    annual_next_year = service.generate_annual_report_deadline(business.client_id, 2028)
 
     assert len(advance_created) == 12
     assert len(annual_created) == 1
     assert annual_second == []
+    assert len(annual_next_year) == 1
 
     total_created = service.generate_all(business.client_id, 2028)
-    assert total_created == 24  # annual is already deduped once a client annual deadline exists
+    assert total_created == 24  # annual 2028 was already created above
 
 
 def test_generate_all_raises_for_missing_business(test_db):

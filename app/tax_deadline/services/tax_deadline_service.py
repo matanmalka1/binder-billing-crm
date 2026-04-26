@@ -28,6 +28,7 @@ class TaxDeadlineService:
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
@@ -39,19 +40,22 @@ class TaxDeadlineService:
         client_record_id = client_record.id
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
-            tax_year = due_date.year - 1
+            tax_year = tax_year or due_date.year - 1
             report = AnnualReportRepository(self.db).get_by_client_record_year(client_record_id, tax_year)
             if report and report.status in ANNUAL_REPORT_FILED_STATUSES:
                 raise AppError(
                     f"דוח שנתי לשנת {tax_year} כבר הוגש — לא ניתן ליצור מועד הגשה חדש",
                     "TAX_DEADLINE.ANNUAL_REPORT_ALREADY_FILED",
                 )
+        else:
+            tax_year = None
 
         deadline = self.deadline_repo.create(
             client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
+            tax_year=tax_year,
             payment_amount=payment_amount,
             description=description,
         )
@@ -104,6 +108,7 @@ class TaxDeadlineService:
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
@@ -112,6 +117,7 @@ class TaxDeadlineService:
             deadline_type,
             due_date,
             period is not None,
+            tax_year is not None,
             payment_amount is not None,
             description is not None,
         ]):
@@ -122,6 +128,7 @@ class TaxDeadlineService:
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
+            tax_year=tax_year,
             payment_amount=payment_amount,
             description=description,
         )

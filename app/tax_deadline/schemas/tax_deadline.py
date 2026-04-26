@@ -15,6 +15,7 @@ class TaxDeadlineCreateRequest(BaseModel):
     deadline_type: DeadlineType             # enum
     due_date: date
     period: Optional[str] = None            # "YYYY-MM" — קיים במודל
+    tax_year: Optional[int] = Field(None, ge=1900, le=2200)
     payment_amount: Optional[ApiDecimal] = Field(None, ge=0)
     description: Optional[str] = None
 
@@ -37,6 +38,7 @@ class TaxDeadlineResponse(BaseModel):
     client_name: Optional[str] = None
     deadline_type: DeadlineType
     period: Optional[str] = None
+    tax_year: Optional[int] = None
     due_date: date
     status: TaxDeadlineStatus
     payment_amount: Optional[ApiDecimal] = None
@@ -54,6 +56,7 @@ class TaxDeadlineUpdateRequest(BaseModel):
     deadline_type: Optional[DeadlineType] = None
     due_date: Optional[date] = None
     period: Optional[str] = None
+    tax_year: Optional[int] = Field(None, ge=1900, le=2200)
     payment_amount: Optional[ApiDecimal] = Field(None, ge=0)
     description: Optional[str] = None
 

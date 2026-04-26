@@ -114,12 +114,17 @@ class DeadlineGeneratorService:
         )
         due_date = standard_deadline(year, client_type=client_type).date()
         client_record_id = self._resolve_client_record_id(client_record_id)
-        if self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT):
+        if self.deadline_repo.exists_by_record(
+            client_record_id,
+            DeadlineType.ANNUAL_REPORT,
+            tax_year=year,
+        ):
             return []
         deadline = self.deadline_service.create_deadline(
             client_record_id=client_record_id,
             deadline_type=DeadlineType.ANNUAL_REPORT,
             due_date=due_date,
+            tax_year=year,
             description=f"דוח שנתי שנת {year}",
         )
         return [deadline]

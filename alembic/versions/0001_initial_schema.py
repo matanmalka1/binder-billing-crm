@@ -291,10 +291,10 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_active_binder_unique', 'binders', ['binder_number'], unique=True, postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"))
     op.create_index('idx_binder_period_start', 'binders', ['period_start'], unique=False)
     op.create_index('idx_binder_status', 'binders', ['status'], unique=False)
     op.create_index(op.f('ix_binders_client_record_id'), 'binders', ['client_record_id'], unique=False)
+    op.create_index('uq_binder_number_per_client', 'binders', ['client_record_id', 'binder_number'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'))
     op.create_table('vat_work_items',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('client_record_id', sa.Integer(), nullable=False),
@@ -985,9 +985,9 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_vat_work_items_client_record_id'), table_name='vat_work_items')
     op.drop_table('vat_work_items')
     op.drop_index(op.f('ix_binders_client_record_id'), table_name='binders')
+    op.drop_index('uq_binder_number_per_client', table_name='binders', postgresql_where=sa.text('deleted_at IS NULL'))
     op.drop_index('idx_binder_status', table_name='binders')
     op.drop_index('idx_binder_period_start', table_name='binders')
-    op.drop_index('idx_active_binder_unique', table_name='binders', postgresql_where=sa.text("status = 'in_office' AND deleted_at IS NULL"))
     op.drop_table('binders')
     op.drop_index(op.f('ix_binder_handovers_client_record_id'), table_name='binder_handovers')
     op.drop_table('binder_handovers')

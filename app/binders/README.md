@@ -54,7 +54,7 @@ Primary fields:
 Notes:
 - Binders belong to a client, not a business.
 - Only one active `in_office` binder exists per client in the receive flow.
-- The active-binder uniqueness index is on `binder_number` for `in_office`, non-deleted rows.
+- `binder_number` is unique per `client_record_id` for non-deleted rows, across all statuses.
 
 ### `BinderIntake`
 

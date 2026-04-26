@@ -142,8 +142,14 @@ class TaxDeadlineRepository:
         deadline_type: DeadlineType,
         *,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
     ) -> bool:
-        return self._q.exists_by_record(client_record_id, deadline_type, period=period)
+        return self._q.exists_by_record(
+            client_record_id,
+            deadline_type,
+            period=period,
+            tax_year=tax_year,
+        )
 
     # ── Write ─────────────────────────────────────────────────────────────────
 
@@ -153,6 +159,7 @@ class TaxDeadlineRepository:
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
@@ -161,6 +168,7 @@ class TaxDeadlineRepository:
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
+            tax_year=tax_year,
             payment_amount=payment_amount,
             description=description,
         )
@@ -180,6 +188,7 @@ class TaxDeadlineRepository:
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> Optional[TaxDeadline]:
@@ -188,6 +197,7 @@ class TaxDeadlineRepository:
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
+            tax_year=tax_year,
             payment_amount=payment_amount,
             description=description,
         )

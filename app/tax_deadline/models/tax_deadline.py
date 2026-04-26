@@ -20,9 +20,7 @@ Design decisions:
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import (
-    CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text,
-)
+from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -59,8 +57,9 @@ class TaxDeadline(Base):
 
     # ── Deadline identity ─────────────────────────────────────────────────────
     deadline_type = Column(pg_enum(DeadlineType), nullable=False)
-    period        = Column(String(7), nullable=True)      # "YYYY-MM" — התקופה שאליה מתייחס המועד
-    due_date      = Column(Date, nullable=False, index=True)
+    period   = Column(String(7), nullable=True)  # "YYYY-MM" — התקופה שאליה מתייחס המועד
+    tax_year = Column(Integer, nullable=True)    # שנת מס לדוח שנתי
+    due_date = Column(Date, nullable=False, index=True)
 
     # ── Status ────────────────────────────────────────────────────────────────
     status       = Column(pg_enum(TaxDeadlineStatus),
@@ -102,6 +101,22 @@ class TaxDeadline(Base):
             unique=True,
             postgresql_where=deleted_at.is_(None) & period.is_not(None),
             sqlite_where=deleted_at.is_(None) & period.is_not(None),
+        ),
+        Index(
+            "uq_tax_deadline_active_annual_identity",
+            "client_record_id",
+            "tax_year",
+            unique=True,
+            postgresql_where=(
+                deleted_at.is_(None)
+                & (deadline_type == DeadlineType.ANNUAL_REPORT.value)
+                & tax_year.is_not(None)
+            ),
+            sqlite_where=(
+                deleted_at.is_(None)
+                & (deadline_type == DeadlineType.ANNUAL_REPORT.value)
+                & tax_year.is_not(None)
+            ),
         ),
     )
 

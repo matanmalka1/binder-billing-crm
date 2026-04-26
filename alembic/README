@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0003_reminder_unique_identity.py`.
+- Current head is `0005_tax_deadline_annual_tax_year.py`.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,7 +82,28 @@ Notes:
 
 ## Migration chain
 
-`0003_reminder_unique_identity` is the current head.
+`0005_tax_deadline_annual_tax_year` is the current head.
+
+### 0005_tax_deadline_annual_tax_year
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Adds `tax_year` to `tax_deadlines` and enforces one active annual report
+  deadline per `(client_record_id, tax_year)`.
+- Notes:
+  Existing active duplicate annual report deadlines per client/year must be
+  resolved before upgrading.
+
+### 0004_binder_number_unique_per_client
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Replaces in-office-only binder number uniqueness with
+  `(client_record_id, binder_number)` uniqueness for non-deleted binders.
+- Notes:
+  Existing duplicate non-deleted binders per client must be resolved before upgrading.
 
 ### 0003_reminder_unique_identity
 

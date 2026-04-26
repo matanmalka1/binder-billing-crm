@@ -25,6 +25,7 @@ class TaxDeadlineWriteRepository:
         deadline_type: DeadlineType,
         due_date: date,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
@@ -33,6 +34,7 @@ class TaxDeadlineWriteRepository:
             deadline_type=deadline_type,
             due_date=due_date,
             period=period,
+            tax_year=tax_year,
             payment_amount=payment_amount,
             description=description,
             status=TaxDeadlineStatus.PENDING,
@@ -68,6 +70,7 @@ class TaxDeadlineWriteRepository:
         deadline_type: Optional[DeadlineType] = None,
         due_date: Optional[date] = None,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> Optional[TaxDeadline]:
@@ -80,6 +83,8 @@ class TaxDeadlineWriteRepository:
             deadline.due_date = due_date
         if period is not None:
             deadline.period = period
+        if tax_year is not None:
+            deadline.tax_year = tax_year
         if payment_amount is not None:
             deadline.payment_amount = payment_amount
         if description is not None:

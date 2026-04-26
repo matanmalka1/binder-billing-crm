@@ -233,19 +233,22 @@ class TaxDeadlineQueryRepository:
         deadline_type: DeadlineType,
         *,
         period: Optional[str] = None,
+        tax_year: Optional[int] = None,
     ) -> bool:
-        """Dedup by domain identity: (client_record_id, deadline_type, period).
+        """Dedup by domain identity.
 
         For period-based types (VAT, advance_payment): pass period="YYYY-MM".
-        For period-less types (annual_report): omit period — matches WHERE period IS NULL.
+        For annual_report: pass tax_year.
         """
         q = self.db.query(TaxDeadline.id).filter(
             TaxDeadline.deleted_at.is_(None),
             TaxDeadline.client_record_id == client_record_id,
             TaxDeadline.deadline_type == deadline_type,
         )
-        if period is not None:
+        if tax_year is not None:
+            q = q.filter(TaxDeadline.tax_year == tax_year)
+        elif period is not None:
             q = q.filter(TaxDeadline.period == period)
         else:
-            q = q.filter(TaxDeadline.period.is_(None))
+            return False
         return q.first() is not None

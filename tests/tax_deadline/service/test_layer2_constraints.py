@@ -131,7 +131,7 @@ def test_tax_deadline_exists_by_record_detects_duplicate_period(test_db):
 
 
 def test_tax_deadline_exists_by_record_detects_duplicate_annual(test_db):
-    """exists_by_record returns True when same (client_record_id, annual_report, period=None) exists."""
+    """exists_by_record returns True for same annual report tax year."""
     from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
     client, client_record_id = _setup_client(test_db)
@@ -141,13 +141,36 @@ def test_tax_deadline_exists_by_record_detects_duplicate_annual(test_db):
         client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,
+        tax_year=2025,
         due_date=date(2025, 4, 30),
         status=TaxDeadlineStatus.PENDING,
     ))
     test_db.flush()
 
-    assert repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT) is True
-    assert repo.exists_by_record(client_record_id, DeadlineType.VAT) is False
+    assert repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT, tax_year=2025) is True
+    assert repo.exists_by_record(client_record_id, DeadlineType.ANNUAL_REPORT, tax_year=2026) is False
+
+
+def test_tax_deadline_unique_active_annual_identity(test_db):
+    """DB rejects duplicate active annual_report deadlines for the same client/year."""
+    client, client_record_id = _setup_client(test_db)
+
+    def _deadline():
+        return TaxDeadline(
+            client_record_id=client_record_id,
+            deadline_type=DeadlineType.ANNUAL_REPORT,
+            period=None,
+            tax_year=2025,
+            due_date=date(2026, 4, 30),
+            status=TaxDeadlineStatus.PENDING,
+        )
+
+    test_db.add(_deadline())
+    test_db.flush()
+
+    test_db.add(_deadline())
+    with pytest.raises(IntegrityError):
+        test_db.flush()
 
 
 # ── Step 2: Generator deduplication by domain identity ────────────────────────
@@ -175,13 +198,14 @@ def test_generator_vat_dedup_by_client_record_period(test_db):
 
 
 def test_generator_annual_dedup_by_client_record(test_db):
-    """Generator skips annual report deadline if one already exists for client_record."""
+    """Generator skips annual report deadline only for the same client/year."""
     client, client_record_id = _setup_client(test_db)
 
     existing = TaxDeadline(
         client_record_id=client_record_id,
         deadline_type=DeadlineType.ANNUAL_REPORT,
         period=None,
+        tax_year=2026,
         due_date=date(2027, 4, 30),
         status=TaxDeadlineStatus.PENDING,
     )
@@ -190,5 +214,7 @@ def test_generator_annual_dedup_by_client_record(test_db):
 
     service = DeadlineGeneratorService(test_db)
     result = service.generate_annual_report_deadline(client.id, 2026)
+    next_year = service.generate_annual_report_deadline(client.id, 2027)
 
     assert result == [], "Generator must skip annual when client_record already has one"
+    assert len(next_year) == 1
