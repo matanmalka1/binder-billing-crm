@@ -306,7 +306,7 @@ class ClientRepository(BaseRepository):
             "advance_rate",
             "advance_rate_updated_at",
         }
-        record_fields = {"status", "accountant_id", "notes"}
+        record_fields = {"status", "accountant_id"}
         owner_requested = "full_name" in fields or bool(person_fields.intersection(fields))
         if owner_requested and person is None:
             PersonRepository(self.db).ensure_owner(

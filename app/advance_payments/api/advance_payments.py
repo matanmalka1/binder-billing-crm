@@ -10,7 +10,6 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentSuggestionResponse,
     AdvancePaymentUpdateRequest,
     AnnualKPIResponse,
-    ChartDataResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
@@ -104,18 +103,6 @@ def get_annual_kpis(
     service = AdvancePaymentAnalyticsService(db)
     data = service.get_annual_kpis_for_client(client_record_id=client_record_id, year=year)
     return AnnualKPIResponse(**data)
-
-
-@router.get("/chart", response_model=ChartDataResponse)
-def get_chart_data(
-    client_record_id: int,
-    db: DBSession,
-    user: CurrentUser,
-    year: int = Query(...),
-):
-    service = AdvancePaymentAnalyticsService(db)
-    data = service.get_chart_data_for_client(client_record_id=client_record_id, year=year)
-    return ChartDataResponse(**data)
 
 
 @router.patch(

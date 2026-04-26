@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import case, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -8,9 +8,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment, AdvanceP
 from app.advance_payments.repositories.advance_payment_repository import (
     advance_payment_status_text_expr,
 )
-from app.advance_payments.repositories.advance_payment_aggregation_repository import (
-    advance_payment_matches_month_expr,
-)
+from app.advance_payments.repositories.advance_payment_aggregation_repository import advance_payment_matches_month_expr
 
 
 class AdvancePaymentAnalyticsRepository(BaseRepository):
@@ -63,43 +61,3 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
             "total_expected": float(total_expected),
             "total_paid": float(total_paid),
         }
-
-    def monthly_chart_data_for_client(self, client_record_id: int, year: int) -> list[dict]:
-        rows = (
-            self.db.query(
-                AdvancePayment.period,
-                AdvancePayment.period_months_count,
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("expected_amount"),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("paid_amount"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (
-                                advance_payment_status_text_expr() == AdvancePaymentStatus.OVERDUE.value,
-                                AdvancePayment.expected_amount,
-                            ),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                ).label("overdue_amount"),
-            )
-            .filter(
-                AdvancePayment.client_record_id == client_record_id,
-                AdvancePayment.period.like(f"{year}-%"),
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .group_by(AdvancePayment.period, AdvancePayment.period_months_count)
-            .order_by(AdvancePayment.period.asc())
-            .all()
-        )
-        return [
-            {
-                "period": r.period,
-                "period_months_count": int(r.period_months_count),
-                "expected_amount": float(r.expected_amount),
-                "paid_amount": float(r.paid_amount),
-                "overdue_amount": float(r.overdue_amount),
-            }
-            for r in rows
-        ]

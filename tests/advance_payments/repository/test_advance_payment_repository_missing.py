@@ -78,7 +78,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     assert repo.sum_paid_by_client_year(business.client_record_id, 2026) == 100.0
 
 
-def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
+def test_advance_payment_analytics_annual_kpis(test_db):
     repo = AdvancePaymentRepository(test_db)
     analytics = AdvancePaymentAnalyticsRepository(test_db)
     business = _business(test_db)
@@ -106,10 +106,3 @@ def test_advance_payment_analytics_annual_kpis_and_monthly_chart(test_db):
     assert kpis["total_paid"] == 100.0
     assert kpis["overdue_count"] == 1
     assert kpis["on_time_count"] == 1
-
-    monthly = analytics.monthly_chart_data_for_client(business.client_record_id, 2026)
-    assert len(monthly) == 2
-    assert monthly[0]["period"] == "2026-01"
-    assert monthly[0]["expected_amount"] == 100.0
-    assert monthly[0]["paid_amount"] == 100.0
-    assert monthly[1]["overdue_amount"] == 200.0

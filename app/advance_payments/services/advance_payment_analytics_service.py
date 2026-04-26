@@ -92,9 +92,3 @@ class AdvancePaymentAnalyticsService:
             statuses = list(AdvancePaymentStatus)
         data = self.analytics_repo.get_overview_kpis(year, month, statuses)
         return {**data, "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"])}
-
-    def get_chart_data_for_client(self, client_record_id: int, year: int) -> dict:
-        if not ClientRecordRepository(self.db).get_by_id(client_record_id):
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "ADVANCE_PAYMENT.CLIENT_NOT_FOUND")
-        months = self.analytics_repo.monthly_chart_data_for_client(client_record_id, year)
-        return {"client_record_id": client_record_id, "year": year, "months": months}

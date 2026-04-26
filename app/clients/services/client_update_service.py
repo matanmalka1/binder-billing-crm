@@ -86,7 +86,7 @@ class ClientUpdateService:
             "advance_rate",
             "advance_rate_updated_at",
         }
-        record_fields = {"status", "accountant_id", "notes"}
+        record_fields = {"status", "accountant_id"}
         if "full_name" in fields:
             legal_entity.official_name = fields["full_name"]
             if person is not None:

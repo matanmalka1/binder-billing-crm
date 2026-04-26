@@ -5,8 +5,8 @@ Usage example (production):
 APP_ENV=production ENV_FILE=.env.production JWT_SECRET=... \
 python scripts/bootstrap_user.py \
   --full-name "Admin" \
-  --email admin@example.com \
-  --password 'StrongPass123' \
+  --email Matan1391@gmail.com \
+  --password 'Aa100100!!' \
   --role advisor
 """
 
@@ -71,6 +71,7 @@ def main() -> int:
             role=role,
             phone=args.phone,
         )
+        db.commit()
 
         print(f"Created user: id={user.id} email={user.email} role={user.role.value}")
         return 0

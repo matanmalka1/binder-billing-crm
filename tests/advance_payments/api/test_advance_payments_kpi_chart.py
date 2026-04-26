@@ -42,28 +42,6 @@ def _seed_payments(db, client_record_id: int):
     repo.update(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.OVERDUE)
 
 
-def test_chart_endpoint_returns_12_months(client, test_db, advisor_headers):
-    business = _business(test_db)
-    _seed_payments(test_db, business.client_record_id)
-
-    resp = client.get(
-        f"/api/v1/clients/{business.client_record_id}/advance-payments/chart?year=2026",
-        headers=advisor_headers,
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["client_record_id"] == business.client_record_id
-    assert body["year"] == 2026
-    months = body["months"]
-    assert len(months) == 2
-    month1 = next(m for m in months if m["period"] == "2026-01")
-    assert Decimal(str(month1["expected_amount"])) == Decimal("100")
-    assert Decimal(str(month1["paid_amount"])) == Decimal("80")
-    month3 = next(m for m in months if m["period"] == "2026-03")
-    assert Decimal(str(month3["expected_amount"])) == Decimal("50")
-    assert Decimal(str(month3["overdue_amount"])) == Decimal("50")
-
-
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):
     business = _business(test_db)
     _seed_payments(test_db, business.client_record_id)

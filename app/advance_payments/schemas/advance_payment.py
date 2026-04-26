@@ -12,13 +12,12 @@ from app.advance_payments.services.constants import (
 )
 from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 
-
 class AdvancePaymentRow(BaseModel):
     id: int
     client_record_id: int
     business_name: Optional[str] = None
-    period: str                          # "YYYY-MM"
-    period_months_count: int             # 1=חודשי, 2=דו-חודשי
+    period: str
+    period_months_count: int
     due_date: date
     expected_amount: Optional[ApiDecimal] = None
     paid_amount: Optional[ApiDecimal] = None
@@ -33,7 +32,6 @@ class AdvancePaymentRow(BaseModel):
     @computed_field
     @property
     def delta(self) -> Optional[Decimal]:
-        """expected - paid. שלילי = חוסר תשלום."""
         if self.expected_amount is None or self.paid_amount is None:
             return None
         return self.expected_amount - self.paid_amount
@@ -43,10 +41,9 @@ class AdvancePaymentRow(BaseModel):
 
 AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 
-
 class AdvancePaymentCreateRequest(BaseModel):
-    period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")  # "YYYY-MM"
-    period_months_count: int = Field(1, ge=1, le=2)                 # 1=חודשי, 2=דו-חודשי
+    period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    period_months_count: int = Field(1, ge=1, le=2)
     due_date: date
     expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
@@ -73,7 +70,6 @@ class AdvancePaymentCreateRequest(BaseModel):
         "expected_amount": "2500.00",
     }}}
 
-
 class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
     expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
@@ -92,13 +88,11 @@ class AdvancePaymentUpdateRequest(BaseModel):
             raise ValueError("יש לספק לפחות שדה אחד לעדכון")
         return self
 
-
 class AdvancePaymentSuggestionResponse(BaseModel):
     client_record_id: int
     year: int
     suggested_amount: Optional[ApiDecimal] = None
     has_data: bool
-
 
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
@@ -115,13 +109,11 @@ class AdvancePaymentOverviewRow(BaseModel):
     @computed_field
     @property
     def delta(self) -> Optional[Decimal]:
-        """expected - paid. שלילי = חוסר תשלום."""
         if self.expected_amount is None or self.paid_amount is None:
             return None
         return self.expected_amount - self.paid_amount
 
     model_config = {"from_attributes": True, "use_enum_values": True}
-
 
 class AdvancePaymentOverviewResponse(BaseModel):
     items: list[AdvancePaymentOverviewRow]
@@ -132,7 +124,6 @@ class AdvancePaymentOverviewResponse(BaseModel):
     total_paid: Optional[ApiDecimal] = None
     collection_rate: Optional[float] = None  # 0.0–100.0
 
-
 class AnnualKPIResponse(BaseModel):
     client_record_id: int
     year: int
@@ -142,25 +133,9 @@ class AnnualKPIResponse(BaseModel):
     overdue_count: int
     on_time_count: int
 
-
-class MonthlyChartRow(BaseModel):
-    period: str          # "YYYY-MM"
-    period_months_count: int
-    expected_amount: ApiDecimal
-    paid_amount: ApiDecimal
-    overdue_amount: ApiDecimal
-
-
-class ChartDataResponse(BaseModel):
-    client_record_id: int
-    year: int
-    months: list[MonthlyChartRow]
-
-
 class GenerateScheduleRequest(BaseModel):
     year: int
-    period_months_count: int = Field(1, ge=1, le=2)  # 1=חודשי, 2=דו-חודשי
-
+    period_months_count: int = Field(1, ge=1, le=2)
 
 class GenerateScheduleResponse(BaseModel):
     created: int

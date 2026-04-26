@@ -7,7 +7,7 @@
 ## Responsibilities
 
 - Store one active advance payment per client record and period.
-- Expose client-record-scoped CRUD, suggestion, KPI, and chart endpoints.
+- Expose client-record-scoped CRUD, suggestion, and KPI endpoints.
 - Generate monthly or bi-monthly yearly schedules.
 - Calculate suggested expected amounts from prior-year VAT and client advance rate.
 - Aggregate overview and collection KPIs across clients.
@@ -67,8 +67,6 @@ Indexes:
 | `AdvancePaymentOverviewRow`        | Response  | Constructed manually in the router (not from ORM attributes directly)                   |
 | `AdvancePaymentOverviewResponse`   | Response  | Overview list + KPI totals                                                              |
 | `AnnualKPIResponse`                | Response  | Client-level yearly KPI payload                                                         |
-| `MonthlyChartRow`                  | Response  | Monthly chart point                                                                     |
-| `ChartDataResponse`                | Response  | Client-level chart payload                                                              |
 | `GenerateScheduleRequest`          | Request   | `year`, `period_months_count`                                                           |
 | `GenerateScheduleResponse`         | Response  | Bulk generation counters                                                                |
 
@@ -117,10 +115,6 @@ Validates that the client record exists, loads yearly aggregates, and adds `clie
 ### `AdvancePaymentAnalyticsService.get_overview_kpis(year, month=None, statuses=None) -> dict`
 
 Loads overview totals and adds `collection_rate`.
-
-### `AdvancePaymentAnalyticsService.get_chart_data_for_client(client_record_id, year) -> dict`
-
-Validates that the client exists and returns monthly expected, paid, and overdue amounts.
 
 ### `generate_annual_schedule(client_record_id, year, db, period_months_count=1) -> tuple[list[AdvancePayment], int]`
 
@@ -198,10 +192,6 @@ Groups the client’s payments by status and returns yearly totals plus overdue 
 
 Returns overview totals for expected and paid amounts.
 
-### `AdvancePaymentAnalyticsRepository.monthly_chart_data_for_client(client_record_id, year) -> list[dict]`
-
-Returns grouped monthly chart rows with expected, paid, and overdue amounts.
-
 Helper expressions:
 
 - `advance_payment_status_text_expr()` normalizes enum status to lowercase text
@@ -222,7 +212,6 @@ Raw SQL:
 | `POST`   | `/clients/{client_record_id}/advance-payments`              | `require_role(...)` | `ADVISOR`              | Create a new advance payment                                      |
 | `GET`    | `/clients/{client_record_id}/advance-payments/suggest`      | `require_role(...)` | `ADVISOR`, `SECRETARY` | Suggest expected amount from prior-year VAT                       |
 | `GET`    | `/clients/{client_record_id}/advance-payments/kpi`          | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return annual KPIs for one client                                 |
-| `GET`    | `/clients/{client_record_id}/advance-payments/chart`        | `require_role(...)` | `ADVISOR`, `SECRETARY` | Return monthly chart data for one client                          |
 | `PATCH`  | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR`              | Update one client payment                                         |
 | `DELETE` | `/clients/{client_record_id}/advance-payments/{payment_id}` | `require_role(...)` | `ADVISOR`              | Soft-delete one client payment                                    |
 | `POST`   | `/clients/{client_record_id}/advance-payments/generate`     | `require_role(...)` | `ADVISOR`              | Generate yearly monthly or bi-monthly schedule                    |
