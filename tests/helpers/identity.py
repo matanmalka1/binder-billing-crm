@@ -39,7 +39,7 @@ class SeededClient:
     vat_exempt_ceiling: Optional[object]
     advance_rate: Optional[object]
     advance_rate_updated_at: Optional[date]
-    accountant_name: Optional[str]
+    accountant_id: Optional[int]
     status: ClientStatus
     created_by: Optional[int]
     deleted_at: Optional[object]
@@ -65,7 +65,7 @@ def seed_client_identity(
     vat_exempt_ceiling=None,
     advance_rate=None,
     advance_rate_updated_at: Optional[date] = None,
-    accountant_name: Optional[str] = None,
+    accountant_id: Optional[int] = None,
     status: ClientStatus = ClientStatus.ACTIVE,
     created_by: Optional[int] = None,
     deleted_at=None,
@@ -114,7 +114,7 @@ def seed_client_identity(
         id=client_record_id,
         legal_entity_id=legal_entity.id,
         office_client_number=office_client_number,
-        accountant_name=accountant_name,
+        accountant_id=accountant_id,
         status=status,
         notes=notes,
         created_by=created_by,
@@ -143,7 +143,7 @@ def seed_client_identity(
         vat_exempt_ceiling=vat_exempt_ceiling,
         advance_rate=advance_rate,
         advance_rate_updated_at=advance_rate_updated_at,
-        accountant_name=accountant_name,
+        accountant_id=accountant_id,
         status=status,
         created_by=created_by,
         deleted_at=deleted_at,

@@ -17,7 +17,6 @@ from app.common.enums import EntityType, IdNumberType, VatType
 from app.notes.models.entity_note import EntityNote
 
 from ..demo_catalog import (
-    ACCOUNTANT_NAMES,
     BUSINESS_CATALOG,
     BUSINESS_NOTES,
     CLIENT_NOTES,
@@ -30,7 +29,7 @@ from ..random_utils import full_name, generate_valid_israeli_id
 from .client_graph import SeedClient
 
 
-def create_clients(db, rng: Random, cfg) -> list[SeedClient]:
+def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
     clients: list[SeedClient] = []
     existing_clients = int(db.execute(select(func.count()).select_from(ClientRecord)).scalar_one())
     existing_max_office_number = db.execute(select(func.max(ClientRecord.office_client_number))).scalar_one()
@@ -116,7 +115,7 @@ def create_clients(db, rng: Random, cfg) -> list[SeedClient]:
             legal_entity_id=legal_entity.id,
             office_client_number=next_office_client_number,
             notes=rng.choice(CLIENT_NOTES),
-            accountant_name=rng.choice(ACCOUNTANT_NAMES),
+            accountant_id=rng.choice(users).id if users else None,
         )
         db.add(client_record)
         db.flush()

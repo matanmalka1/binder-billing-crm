@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Index, Integer, String
+from sqlalchemy import CheckConstraint, Column, DateTime, Index, Integer, String, UniqueConstraint
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.common.enums import IdNumberType
@@ -37,6 +37,7 @@ class Person(Base):
             "id_number_type IN ('individual', 'passport', 'other')",
             name="ck_persons_id_number_type_not_corporation",
         ),
+        UniqueConstraint("id_number_type", "id_number", name="uq_person_identity_id"),
         Index("ix_persons_full_name", "full_name"),
         Index("ix_persons_id_number", "id_number"),
     )

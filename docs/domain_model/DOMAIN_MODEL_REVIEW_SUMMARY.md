@@ -48,7 +48,7 @@ Scope: current-state analysis of the existing internal workflow system for Israe
 - `Office CRM Record`
   - `status`
   - `office_client_number`
-  - `accountant_name`
+  - `accountant_id`
   - `notes`
 
 Severity: High
@@ -750,7 +750,7 @@ The current `Client` concept must be split into separate identity and operationa
 - `id`
 - `legal_entity_id`
 - `office_client_number`
-- `accountant_name`
+- `accountant_id`
 - `notes`
 - `status`
 

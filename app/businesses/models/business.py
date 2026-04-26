@@ -29,7 +29,7 @@ class Business(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=True, index=True)
+    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
 
     legal_entity = relationship(
         "LegalEntity",

@@ -16,7 +16,7 @@ def _payload(**client_overrides):
         "address_apartment": "1",
         "address_city": "Tel Aviv",
         "address_zip_code": "1234567",
-        "accountant_name": "CPA Name",
+        "accountant_id": 1,
         "vat_reporting_frequency": "monthly",
     }
     client_payload.update(client_overrides)

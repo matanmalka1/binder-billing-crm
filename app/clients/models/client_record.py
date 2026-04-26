@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text, column
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, column
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.clients.enums import ClientStatus
@@ -15,7 +15,7 @@ class ClientRecord(Base):
     legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
 
     office_client_number = Column(Integer, nullable=True)
-    accountant_name = Column(String(100), nullable=True)
+    accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
     notes = Column(Text, nullable=True)
 

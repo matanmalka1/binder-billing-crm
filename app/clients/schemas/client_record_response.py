@@ -19,7 +19,7 @@ class ClientRecordResponse(BaseModel):
     entity_type: Optional[EntityType] = None        # LegalEntity.entity_type
     status: ClientStatus = ClientStatus.ACTIVE      # ClientRecord.status
     office_client_number: Optional[int] = None      # ClientRecord.office_client_number
-    accountant_name: Optional[str] = None           # ClientRecord.accountant_name
+    accountant_id: Optional[int] = None            # ClientRecord.accountant_id
     notes: Optional[str] = None                     # ClientRecord.notes
     # ── Tax reporting (LegalEntity) ───────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None

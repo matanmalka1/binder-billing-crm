@@ -18,7 +18,7 @@ def make_client_create_payload(
         "address_city": "Tel Aviv",
         "address_zip_code": "1234567",
         "vat_reporting_frequency": "monthly",
-        "accountant_name": "CPA Name",
+        "accountant_id": 1,
     }
     client_payload.update(client_overrides)
     return {

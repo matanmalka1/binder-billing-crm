@@ -24,7 +24,7 @@ _CREATE_PAYLOAD = {
         "address_zip_code": "0000001",
         "vat_reporting_frequency": "monthly",
         "advance_rate": "5.0",
-        "accountant_name": "Test CPA",
+        "accountant_id": 1,
     },
     "business": {
         "business_name": "Layer1 Business",

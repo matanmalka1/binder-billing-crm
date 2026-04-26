@@ -40,7 +40,7 @@ class ClientRecordView:
     vat_exempt_ceiling: Optional[object]
     advance_rate: Optional[object]
     advance_rate_updated_at: Optional[object]
-    accountant_name: Optional[str]
+    accountant_id: Optional[int]
     created_at: Optional[object]
     updated_at: Optional[object]
     deleted_at: Optional[object]
@@ -104,7 +104,7 @@ class ClientRepository(BaseRepository):
             vat_exempt_ceiling=legal_entity.vat_exempt_ceiling,
             advance_rate=legal_entity.advance_rate,
             advance_rate_updated_at=legal_entity.advance_rate_updated_at,
-            accountant_name=record.accountant_name,
+            accountant_id=record.accountant_id,
             created_at=record.created_at,
             updated_at=record.updated_at,
             deleted_at=record.deleted_at,
@@ -137,7 +137,7 @@ class ClientRepository(BaseRepository):
         vat_exempt_ceiling=None,
         advance_rate=None,
         advance_rate_updated_at=None,
-        accountant_name: Optional[str] = None,
+        accountant_id: Optional[int] = None,
         office_client_number: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> ClientRecordView:
@@ -177,7 +177,7 @@ class ClientRepository(BaseRepository):
         record = ClientRecordRepository(self.db).create(
             legal_entity_id=legal_entity.id,
             office_client_number=office_client_number or self.get_next_office_client_number(),
-            accountant_name=accountant_name,
+            accountant_id=accountant_id,
             created_by=created_by,
         )
         return self.get_by_id(record.id)
@@ -306,7 +306,7 @@ class ClientRepository(BaseRepository):
             "advance_rate",
             "advance_rate_updated_at",
         }
-        record_fields = {"status", "accountant_name", "notes"}
+        record_fields = {"status", "accountant_id", "notes"}
         owner_requested = "full_name" in fields or bool(person_fields.intersection(fields))
         if owner_requested and person is None:
             PersonRepository(self.db).ensure_owner(

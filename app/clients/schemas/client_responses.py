@@ -30,7 +30,7 @@ class ClientResponse(BaseModel):
     vat_exempt_ceiling: Optional[ApiDecimal] = None
     advance_rate: Optional[ApiDecimal] = None
     advance_rate_updated_at: Optional[date] = None
-    accountant_name: Optional[str] = None
+    accountant_id: Optional[int] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
     active_binder_number: Optional[str] = None

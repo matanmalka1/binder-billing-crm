@@ -89,6 +89,7 @@ class ClientQueryService:
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
+        accountant_id: Optional[int] = None,
         sort_by: str = "official_name",
         sort_order: str = "asc",
         page: int = 1,
@@ -97,12 +98,13 @@ class ClientQueryService:
         records = self.record_repo.list(
             search=search,
             status=status,
+            accountant_id=accountant_id,
             sort_by="official_name" if sort_by == "full_name" else sort_by,
             sort_order=sort_order,
             page=page,
             page_size=page_size,
         )
-        total = self.record_repo.count(search=search, status=status)
+        total = self.record_repo.count(search=search, status=status, accountant_id=accountant_id)
         record_ids = [r.id for r in records]
         full_map = get_full_records_bulk(self.db, record_ids)
         items = [ClientRecordResponse(**full_map[rid]) for rid in record_ids if rid in full_map]

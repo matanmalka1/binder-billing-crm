@@ -50,7 +50,7 @@ class ClientService:
         vat_reporting_frequency: Optional[VatType] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        accountant_name: Optional[str] = None,
+        accountant_id: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> ClientRecord:
         return self._creation.create_client(
@@ -68,7 +68,7 @@ class ClientService:
             vat_reporting_frequency=vat_reporting_frequency,
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
-            accountant_name=accountant_name,
+            accountant_id=accountant_id,
             actor_id=actor_id,
         )
 
@@ -113,6 +113,7 @@ class ClientService:
         self,
         search=None,
         status=None,
+        accountant_id=None,
         sort_by="official_name",
         sort_order="asc",
         page=1,
@@ -121,6 +122,7 @@ class ClientService:
         return self._query.list_full_clients(
             search=search,
             status=status,
+            accountant_id=accountant_id,
             sort_by=sort_by,
             sort_order=sort_order,
             page=page,

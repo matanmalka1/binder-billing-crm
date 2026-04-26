@@ -49,7 +49,7 @@ class CreateClientService:
         vat_reporting_frequency: Optional[VatType] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        accountant_name: Optional[str] = None,
+        accountant_id: Optional[int] = None,
         business_opened_at: Optional[date] = None,
         business_notes: Optional[str] = None,
         actor_id: Optional[int] = None,
@@ -85,7 +85,7 @@ class CreateClientService:
                 vat_reporting_frequency=normalized_vat_frequency,
                 vat_exempt_ceiling=normalized_vat_ceiling,
                 advance_rate=advance_rate,
-                accountant_name=accountant_name,
+                accountant_id=accountant_id,
                 actor_id=actor_id,
             )
         except ConflictError as exc:

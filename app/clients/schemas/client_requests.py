@@ -21,7 +21,7 @@ CREATE_CLIENT_REQUIRED_LABELS = {
     "address_apartment": "דירה",
     "address_city": "עיר",
     "address_zip_code": "מיקוד",
-    "accountant_name": "רואה חשבון מלווה",
+    "accountant_id": "רואה חשבון מלווה",
 }
 
 
@@ -40,7 +40,7 @@ class ClientCreateRequest(BaseModel):
     vat_reporting_frequency: Optional[VatType] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
-    accountant_name: Optional[str] = None
+    accountant_id: Optional[int] = None
 
     @field_validator("id_number")
     @classmethod
@@ -79,7 +79,7 @@ class ClientUpdateRequest(BaseModel):
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
     advance_rate_updated_at: Optional[date] = None
-    accountant_name: Optional[str] = None
+    accountant_id: Optional[int] = None
 
     @model_validator(mode="after")
     def validate_update_rules(self) -> "ClientUpdateRequest":
@@ -103,10 +103,10 @@ class CreateClientRequest(BaseModel):
             ("address_apartment", self.client.address_apartment),
             ("address_city", self.client.address_city),
             ("address_zip_code", self.client.address_zip_code),
-            ("accountant_name", self.client.accountant_name),
+            ("accountant_id", self.client.accountant_id),
         )
         for field_name, value in required_values:
-            if value is None or not value.strip():
+            if value is None or (isinstance(value, str) and not value.strip()):
                 raise ValueError(f"יש להזין {CREATE_CLIENT_REQUIRED_LABELS[field_name]}")
         if self.client.entity_type is None:
             raise ValueError("יש לבחור סוג ישות")

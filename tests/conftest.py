@@ -56,7 +56,7 @@ def _ensure_client_identity_graph(session, client) -> None:
         vat_exempt_ceiling=getattr(client, "vat_exempt_ceiling", None),
         advance_rate=getattr(client, "advance_rate", None),
         advance_rate_updated_at=getattr(client, "advance_rate_updated_at", None),
-        accountant_name=getattr(client, "accountant_name", None),
+        accountant_id=getattr(client, "accountant_id", None),
         status=getattr(client, "status", None) or ClientStatus.ACTIVE,
         created_by=getattr(client, "created_by", None),
         deleted_at=getattr(client, "deleted_at", None),

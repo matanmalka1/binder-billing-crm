@@ -32,7 +32,7 @@ def _row_to_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> di
         "entity_type": le.entity_type,
         "status": cr.status,
         "office_client_number": cr.office_client_number,
-        "accountant_name": cr.accountant_name,
+        "accountant_id": cr.accountant_id,
         "notes": cr.notes,
         "vat_reporting_frequency": le.vat_reporting_frequency,
         "vat_exempt_ceiling": le.vat_exempt_ceiling,

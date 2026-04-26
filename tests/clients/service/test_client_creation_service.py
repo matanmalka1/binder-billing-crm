@@ -23,7 +23,7 @@ def test_create_client_rejects_employee_entity_type(test_db):
             phone="0501234567",
             email="client@example.com",
             address_city="תל אביב",
-            accountant_name='רו"ח בדיקה',
+            accountant_id=1,
             actor_id=7,
         )
 
@@ -39,7 +39,7 @@ def test_create_client_creates_identity_graph(test_db):
         phone="0501234567",
         email="client@example.com",
         address_city="תל אביב",
-        accountant_name='רו"ח בדיקה',
+        accountant_id=1,
         actor_id=7,
     )
 
@@ -57,7 +57,7 @@ def test_create_client_creates_identity_graph(test_db):
 
     assert stored_record.id == client_record.id
     assert stored_record.office_client_number == client_record.office_client_number
-    assert stored_record.accountant_name == 'רו"ח בדיקה'
+    assert stored_record.accountant_id == 1
     assert legal_entity.id_number == "123456780"
     assert legal_entity.official_name == "Client Identity"
     assert person.full_name == "Client Identity"

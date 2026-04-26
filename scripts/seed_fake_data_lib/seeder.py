@@ -100,7 +100,7 @@ class Seeder:
                 self._print_counts(self._collect_counts(db))
                 return
 
-            seeded_clients = clients.create_clients(db, self.rng, self.cfg)
+            seeded_clients = clients.create_clients(db, self.rng, self.cfg, seeded_users)
             seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
             clients.create_entity_notes(db, self.rng, seeded_clients, seeded_users)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_businesses, seeded_users)

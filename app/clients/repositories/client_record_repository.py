@@ -25,7 +25,7 @@ class ClientRecordRepository:
         *,
         legal_entity_id: int,
         office_client_number: Optional[int] = None,
-        accountant_name: Optional[str] = None,
+        accountant_id: Optional[int] = None,
         status: ClientStatus = ClientStatus.ACTIVE,
         notes: Optional[str] = None,
         created_by: Optional[int] = None,
@@ -33,7 +33,7 @@ class ClientRecordRepository:
         record = ClientRecord(
             legal_entity_id=legal_entity_id,
             office_client_number=office_client_number,
-            accountant_name=accountant_name,
+            accountant_id=accountant_id,
             status=status,
             notes=notes,
             created_by=created_by,
@@ -169,7 +169,7 @@ class ClientRecordRepository:
             .filter(ClientRecord.deleted_at.is_(None))
         )
 
-    def _apply_list_filters(self, query, search=None, status=None):
+    def _apply_list_filters(self, query, search=None, status=None, accountant_id=None):
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
@@ -177,18 +177,21 @@ class ClientRecordRepository:
             )
         if status:
             query = query.filter(ClientRecord.status == status)
+        if accountant_id is not None:
+            query = query.filter(ClientRecord.accountant_id == accountant_id)
         return query
 
     def list(
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
+        accountant_id: Optional[int] = None,
         sort_by: str = "official_name",
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
     ) -> list[ClientRecord]:
-        query = self._apply_list_filters(self._active_query(), search, status)
+        query = self._apply_list_filters(self._active_query(), search, status, accountant_id)
         col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
         query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
         offset = (page - 1) * page_size
@@ -198,8 +201,9 @@ class ClientRecordRepository:
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
+        accountant_id: Optional[int] = None,
     ) -> int:
-        return self._apply_list_filters(self._active_query(), search, status).count()
+        return self._apply_list_filters(self._active_query(), search, status, accountant_id).count()
 
     def search(
         self,

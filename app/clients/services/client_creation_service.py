@@ -47,7 +47,7 @@ class ClientCreationService:
         vat_reporting_frequency: Optional[VatType] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        accountant_name: Optional[str] = None,
+        accountant_id: Optional[int] = None,
         actor_id: Optional[int] = None,
     ) -> ClientRecord:
         if entity_type == EntityType.EMPLOYEE:
@@ -95,7 +95,7 @@ class ClientCreationService:
             client_record = self.record_repo.create(
                 legal_entity_id=legal_entity.id,
                 office_client_number=self.record_repo.get_next_office_client_number(),
-                accountant_name=accountant_name,
+                accountant_id=accountant_id,
                 created_by=actor_id,
             )
         except IntegrityError as exc:
