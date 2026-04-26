@@ -177,5 +177,8 @@ class VatWorkItemWriteRepository:
     def append_audit(self, **kwargs) -> VatAuditLog:
         return self._audit.append(**kwargs)
 
-    def get_audit_trail(self, work_item_id: int) -> list[VatAuditLog]:
-        return self._audit.get_audit_trail(work_item_id)
+    def count_audit_trail(self, work_item_id: int) -> int:
+        return self._audit.count_audit_trail(work_item_id)
+
+    def get_audit_trail(self, work_item_id: int, limit: int, offset: int) -> list[VatAuditLog]:
+        return self._audit.get_audit_trail(work_item_id, limit, offset)

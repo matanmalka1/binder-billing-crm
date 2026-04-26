@@ -88,8 +88,8 @@ class VatReportService:
     def get_work_item_by_client_period(self, client_record_id: int, period: str):
         return self.work_item_repo.get_by_client_record_period(client_record_id, period)
 
-    def get_audit_trail(self, item_id: int):
-        return vat_report_queries.get_audit_trail(self.work_item_repo, item_id)
+    def get_audit_trail(self, item_id: int, limit: int, offset: int):
+        return vat_report_queries.get_audit_trail(self.work_item_repo, item_id, limit, offset)
 
     def get_work_item_enriched(self, item_id: int) -> dict:
         return vat_report_enrichment.get_work_item_enriched(
@@ -106,7 +106,7 @@ class VatReportService:
             self.work_item_repo, self.user_repo, **kwargs
         )
 
-    def get_audit_trail_enriched(self, item_id: int) -> dict:
+    def get_audit_trail_enriched(self, item_id: int, limit: int, offset: int) -> dict:
         return vat_report_enrichment.get_audit_trail_enriched(
-            self.work_item_repo, self.user_repo, item_id
+            self.work_item_repo, self.user_repo, item_id, limit, offset
         )

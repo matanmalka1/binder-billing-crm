@@ -24,3 +24,4 @@ class VatAuditLogResponse(BaseModel):
 
 class VatAuditTrailResponse(BaseModel):
     items: list[VatAuditLogResponse]
+    total: int

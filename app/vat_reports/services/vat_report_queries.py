@@ -20,14 +20,6 @@ from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 logger = logging.getLogger(__name__)
 
 def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
-    """Derive statutory and extended deadline fields from period.
-
-    - statutory_deadline: 15th (legal baseline)
-    - extended_deadline: 19th (digital filing extension)
-    - submission_deadline: statutory by default; extended if submission_method is ONLINE
-    - days_until_deadline: days remaining until submission_deadline
-    - is_overdue: True if submission_deadline has passed
-    """
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
         deadline_year = year + 1 if month == 12 else year
@@ -148,5 +140,8 @@ def list_invoices(
 ):
     return invoice_repo.list_by_work_item(item_id, invoice_type=invoice_type)
 
-def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
-    return work_item_repo.get_audit_trail(item_id)
+def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int, limit: int, offset: int):
+    return work_item_repo.get_audit_trail(item_id, limit, offset)
+
+def count_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
+    return work_item_repo.count_audit_trail(item_id)

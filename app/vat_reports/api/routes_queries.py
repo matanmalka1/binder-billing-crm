@@ -136,13 +136,14 @@ def list_work_items(
     response_model=VatAuditTrailResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser):
-    """Get the full audit trail for a work item."""
+def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser,
+                    limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0)):
+    """Get a paginated audit trail for a work item."""
     service = VatReportService(db)
-    enriched = service.get_audit_trail_enriched(item_id)
+    enriched = service.get_audit_trail_enriched(item_id, limit, offset)
     items = []
     for e in enriched["entries"]:
         row = VatAuditLogResponse.model_validate(e)
         row.performed_by_name = enriched["user_map"].get(e.performed_by)
         items.append(row)
-    return VatAuditTrailResponse(items=items)
+    return VatAuditTrailResponse(items=items, total=enriched["total"])

@@ -7,6 +7,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.vat_report_queries import (
+    count_audit_trail,
     get_audit_trail,
     get_work_item,
     list_all_work_items,
@@ -115,8 +116,14 @@ def get_audit_trail_enriched(
     work_item_repo: VatWorkItemRepository,
     user_repo: UserRepository,
     item_id: int,
+    limit: int,
+    offset: int,
 ) -> dict:
-    entries = get_audit_trail(work_item_repo, item_id)
+    entries = get_audit_trail(work_item_repo, item_id, limit, offset)
     user_ids = list({e.performed_by for e in entries})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
-    return {"entries": entries, "user_map": {u.id: u.full_name for u in users}}
+    return {
+        "entries": entries,
+        "total": count_audit_trail(work_item_repo, item_id),
+        "user_map": {u.id: u.full_name for u in users},
+    }
