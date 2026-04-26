@@ -130,6 +130,42 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     ]
 
 
+def test_get_client_timeline_skips_unreceived_binder_event(test_db, monkeypatch):
+    service = TimelineService(test_db)
+    business = _business(test_db)
+
+    binder = SimpleNamespace(
+        id=1,
+        client_record_id=business.client_id,
+        binder_number="TL-EMPTY",
+        period_start=None,
+        returned_at=None,
+        status=BinderStatus.IN_OFFICE,
+        pickup_person_name=None,
+    )
+
+    monkeypatch.setattr(service.binder_repo, "list_by_client_record", lambda client_id: [binder])
+    monkeypatch.setattr(service, "_append_status_change_events", lambda events, binder: None)
+    monkeypatch.setattr(service.notification_repo, "list_by_business", lambda business_id, page, page_size: [])
+    monkeypatch.setattr(service.charge_repo, "list_charges", lambda **kwargs: [])
+    monkeypatch.setattr(service.invoice_repo, "list_by_charge_ids", lambda charge_ids: [])
+    monkeypatch.setattr(service, "_build_tax_deadline_events", lambda business_ids, client_record_id: [])
+    monkeypatch.setattr(service, "_build_annual_report_events", lambda client_id: [])
+    monkeypatch.setattr(
+        "app.timeline.services.timeline_service.build_client_events",
+        lambda db, client_id, business_ids, reminder_repo, sig_repo: [],
+    )
+
+    events, total = service.get_client_timeline(
+        client_record_id=business.client_id,
+        page=1,
+        page_size=20,
+    )
+
+    assert events == []
+    assert total == 0
+
+
 def test_get_client_timeline_raises_for_missing_client(test_db):
     service = TimelineService(test_db)
 

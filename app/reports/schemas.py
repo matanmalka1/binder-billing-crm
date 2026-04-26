@@ -33,6 +33,7 @@ class VatComplianceReportResponse(BaseModel):
 
 class AdvancePaymentReportItemResponse(BaseModel):
     client_record_id: int
+    office_client_number: Optional[int] = None
     client_name: str
     total_expected: float
     total_paid: float

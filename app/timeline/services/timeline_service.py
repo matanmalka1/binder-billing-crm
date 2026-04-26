@@ -71,7 +71,8 @@ class TimelineService:
         # Bounded: _TIMELINE_BULK_LIMIT — older binders silently excluded if exceeded.
         binders = self.binder_repo.list_by_client_record(client_record_id)
         for binder in binders:
-            events.append(binder_received_event(binder))
+            if getattr(binder, "received_at", None) or getattr(binder, "period_start", None):
+                events.append(binder_received_event(binder))
             if binder.returned_at:
                 events.append(binder_returned_event(binder))
             self._append_status_change_events(events, binder)

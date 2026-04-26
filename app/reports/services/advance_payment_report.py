@@ -25,6 +25,11 @@ class AdvancePaymentReportService:
         items = [
             {
                 "client_record_id": r.client_record_id,
+                "office_client_number": (
+                    records[r.client_record_id].office_client_number
+                    if r.client_record_id in records
+                    else None
+                ),
                 "client_name": (
                     legal_entities[records[r.client_record_id].legal_entity_id].official_name
                     if r.client_record_id in records

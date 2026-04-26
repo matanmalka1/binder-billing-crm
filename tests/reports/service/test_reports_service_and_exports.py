@@ -152,7 +152,7 @@ def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):
         ]
     )
     service.client_record_repo = SimpleNamespace(
-        list_by_ids=lambda ids: [SimpleNamespace(id=7, legal_entity_id=70)]
+        list_by_ids=lambda ids: [SimpleNamespace(id=7, legal_entity_id=70, office_client_number=1234)]
     )
     service.legal_entity_repo = SimpleNamespace(
         get_by_id=lambda legal_id: SimpleNamespace(id=legal_id, official_name="Advance Client")
@@ -163,6 +163,7 @@ def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):
     assert report["items"] == [
         {
             "client_record_id": 7,
+            "office_client_number": 1234,
             "client_name": "Advance Client",
             "total_expected": 300.0,
             "total_paid": 120.0,
