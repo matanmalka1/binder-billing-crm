@@ -184,15 +184,7 @@ All endpoints that return sensitive data scope queries by `business_id` or perfo
 
 ---
 
-## Future Constraints
-
-- **VAT soft-delete + uniqueness gap**: The duplicate-period check in `app/vat_reports/services/intake.py` filters for non-deleted items only (`deleted_at IS NULL`). If soft-deleting FILED items is ever allowed, the guard must also block creation when a FILED item exists for the same period, even if deleted. See warning comment in `create_work_item`.
-
----
-
 ## Frontend-Backend Sync
-
-- **Urgency thresholds**: `URGENCY_RED_DAYS = 2` and `URGENCY_YELLOW_DAYS = 7` are intentionally duplicated in `app/tax_deadline/services/constants.py` (backend) and `src/features/taxDeadlines/utils.ts` (frontend). Both files have cross-reference comments. Update both when changing thresholds.
 - **Enum fields**: Any field backed by a backend enum MUST use a `z.enum([...])` in the frontend Zod schema. Define the array in `constants.ts`, not inline in the schema or component.
 
 ---

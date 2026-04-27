@@ -13,7 +13,6 @@ router = APIRouter(
     tags=["advance-payments"],
 )
 
-
 @router.post(
     "/generate",
     response_model=GenerateScheduleResponse,
