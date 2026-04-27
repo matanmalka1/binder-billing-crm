@@ -11,6 +11,7 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
+from app.clients.repositories.client_record_read_repository import get_full_record
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -20,7 +21,6 @@ _MONTH_HE = {
     5: "מאי", 6: "יוני", 7: "יולי", 8: "אוגוסט",
     9: "ספטמבר", 10: "אוקטובר", 11: "נובמבר", 12: "דצמבר",
 }
-
 _STATUS_LABEL_HE = {
     AnnualReportStatus.PENDING_CLIENT: "ממתין לאישור לקוח",
     AnnualReportStatus.COLLECTING_DOCS: "מאסף מסמכים",
@@ -46,7 +46,7 @@ def period_label(period: str) -> str:
 
 
 def days_since(d: date) -> int:
-    return (date.today() - d).days
+    return max(0, (date.today() - d).days)
 
 
 def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessRepository) -> list[dict]:
@@ -107,8 +107,7 @@ def build_vat_actions(
         record = cr_repo.get_by_id(item.client_record_id)
         if not record:
             continue
-        businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1)
-        business = businesses[0] if businesses else None
+        client = get_full_record(business_repo.db, item.client_record_id)
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
@@ -116,7 +115,7 @@ def build_vat_actions(
             endpoint=f"/client-records/{item.client_record_id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
-        action["client_name"] = business.full_name if business else None
+        action["client_name"] = client["full_name"] if client else None
         enrich(action, "vat", f"תקופה: {plabel}")
         result.append(action)
     return result

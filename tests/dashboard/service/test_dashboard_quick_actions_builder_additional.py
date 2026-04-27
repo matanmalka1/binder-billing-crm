@@ -37,6 +37,31 @@ def test_build_binder_actions_covers_overdue_and_non_overdue_candidates():
     assert all(a["category"] == "binders" for a in actions)
 
 
+def test_build_binder_actions_clamps_future_period_start_to_zero_days():
+    today = date.today()
+    binders = [
+        SimpleNamespace(
+            id=5,
+            client_record_id=15,
+            binder_number="B5",
+            period_start=today + timedelta(days=5),
+            status="ready_for_pickup",
+        ),
+    ]
+    binder_repo = SimpleNamespace(list_active=lambda: binders)
+    business_repo = SimpleNamespace(
+        db=SimpleNamespace(),
+        list_by_legal_entity=lambda le_id, page=1, page_size=1: [SimpleNamespace(full_name="Client")],
+    )
+
+    import unittest.mock as mock
+    with mock.patch("app.dashboard.services._quick_actions_helpers.ClientRecordRepository") as MockCR:
+        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(legal_entity_id=cr_id * 100)
+        actions = helpers.build_binder_actions(binder_repo, business_repo)
+
+    assert actions[0]["due_label"] == "0 ימים במשרד"
+
+
 def test_build_vat_and_annual_actions_include_due_labels():
     import unittest.mock as mock
 
@@ -58,15 +83,18 @@ def test_build_vat_and_annual_actions_include_due_labels():
     business_repo = SimpleNamespace(
         db=SimpleNamespace(),
         list_by_legal_entity=lambda le_id, page=1, page_size=1: [
-            SimpleNamespace(full_name=f"Client {le_id}")
+            SimpleNamespace(full_name=f"Business {le_id}")
         ],
     )
 
     with mock.patch("app.dashboard.services._quick_actions_helpers.ClientRecordRepository") as MockCR:
         MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(legal_entity_id=cr_id * 100)
-        vat_actions = helpers.build_vat_actions(vat_repo, business_repo, "2026-01")
+        with mock.patch("app.dashboard.services._quick_actions_helpers.get_full_record") as full_record:
+            full_record.return_value = {"full_name": "Official Client"}
+            vat_actions = helpers.build_vat_actions(vat_repo, business_repo, "2026-01")
         annual_actions = helpers.build_annual_report_actions(annual_repo, business_repo)
 
+    assert vat_actions[0]["client_name"] == "Official Client"
     assert vat_actions[0]["due_label"].startswith("תקופה:")
     assert annual_actions[0]["category"] == "annual_reports"
     assert "ימים" in annual_actions[0]["due_label"]
