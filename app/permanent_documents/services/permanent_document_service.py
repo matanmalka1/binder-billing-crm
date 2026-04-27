@@ -86,7 +86,6 @@ class PermanentDocumentService:
         business_id: Optional[int] = None,
         tax_year: Optional[int] = None,
         annual_report_id: Optional[int] = None,
-        notes: Optional[str] = None,
         mime_type: Optional[str] = None,
         legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
@@ -149,7 +148,6 @@ class PermanentDocumentService:
             original_filename=filename,
             file_size_bytes=file_size,
             mime_type=resolved_mime,
-            notes=notes,
         )
         document.approved_by = uploaded_by
         document.approved_at = utcnow()

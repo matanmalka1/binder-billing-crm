@@ -102,7 +102,6 @@ class PermanentDocument(Base):
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    notes       = Column(String,   nullable=True)
     uploaded_by = Column(Integer,  ForeignKey("users.id"), nullable=False)
     uploaded_at = Column(DateTime, default=utcnow, nullable=False)
     approved_by = Column(Integer,  ForeignKey("users.id"), nullable=True)

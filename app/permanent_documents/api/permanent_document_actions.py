@@ -7,8 +7,6 @@ from app.users.models.user import UserRole
 from app.permanent_documents.services.permanent_document_action_service import PermanentDocumentActionService
 from app.permanent_documents.schemas.permanent_document import (
     DocumentVersionsResponse,
-    PermanentDocumentResponse,
-    UpdateNotesRequest,
 )
 from app.permanent_documents.services.response_builder import PermanentDocumentResponseBuilder
 
@@ -45,18 +43,3 @@ def list_by_annual_report(
 ):
     docs = PermanentDocumentActionService(db).list_by_annual_report(report_id)
     return DocumentVersionsResponse(items=PermanentDocumentResponseBuilder(db).build_many(docs))
-
-
-@router.patch(
-    "/{document_id}/notes",
-    response_model=PermanentDocumentResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
-)
-def update_notes(
-    document_id: int,
-    body: UpdateNotesRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    doc = PermanentDocumentActionService(db).update_notes(document_id, body.notes)
-    return PermanentDocumentResponseBuilder(db).build_one(doc)

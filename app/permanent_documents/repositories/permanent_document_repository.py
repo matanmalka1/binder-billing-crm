@@ -27,7 +27,6 @@ class PermanentDocumentRepository:
         original_filename: Optional[str] = None,
         file_size_bytes: Optional[int] = None,
         mime_type: Optional[str] = None,
-        notes: Optional[str] = None,
     ) -> PermanentDocument:
         document = PermanentDocument(
             client_record_id=client_record_id,
@@ -44,7 +43,6 @@ class PermanentDocumentRepository:
             original_filename=original_filename,
             file_size_bytes=file_size_bytes,
             mime_type=mime_type,
-            notes=notes,
         )
         self.db.add(document)
         self.db.flush()

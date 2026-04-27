@@ -1,5 +1,3 @@
-from datetime import date
-
 from app.businesses.models.business import Business
 from app.common.enums import IdNumberType
 from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
@@ -30,17 +28,9 @@ def _doc(db, business: Business, annual_report_id: int | None = None):
     )
 
 
-def test_actions_endpoints_notes_versions_and_list(client, test_db, advisor_headers):
+def test_actions_endpoints_versions_and_list(client, test_db, advisor_headers):
     business = _business(test_db)
-    doc = _doc(test_db, business, annual_report_id=55)
-
-    notes = client.patch(
-        f"/api/v1/documents/{doc.id}/notes",
-        headers=advisor_headers,
-        json={"notes": "fixed"},
-    )
-    assert notes.status_code == 200
-    assert notes.json()["notes"] == "fixed"
+    _doc(test_db, business, annual_report_id=55)
 
     versions = client.get(
         f"/api/v1/documents/client/{business.client_id}/versions?document_type=id_copy",

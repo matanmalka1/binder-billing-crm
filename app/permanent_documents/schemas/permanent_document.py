@@ -29,7 +29,6 @@ class PermanentDocumentResponse(BaseModel):
     version: int
     superseded_by: Optional[int] = None
     annual_report_id: Optional[int] = None
-    notes: Optional[str] = None
     uploaded_by: int
     uploaded_at: ApiDateTime
     approved_by: Optional[int] = None
@@ -55,11 +54,3 @@ class OperationalSignalsResponse(BaseModel):
 
 class DocumentDownloadUrlResponse(BaseModel):
     url: str
-
-
-class RejectDocumentRequest(BaseModel):
-    notes: str
-
-
-class UpdateNotesRequest(BaseModel):
-    notes: str

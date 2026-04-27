@@ -10,7 +10,7 @@ This module provides:
 - Permanent-document upload and retrieval
 - Client document listing with optional tax-year filtering
 - Document replacement and soft delete
-- Document workflow actions (update notes, version history, annual-report listing)
+- Document workflow actions (version history, annual-report listing)
 - Version history queries by document type/year
 - Annual-report scoped document listing
 - Operational missing-document signals per client record
@@ -34,7 +34,7 @@ This module provides:
 - `superseded_by` (self-reference FK to newer version)
 - `status` (enum, default `pending`)
 - `annual_report_id` (optional FK -> `annual_reports.id`)
-- `original_filename`, `file_size_bytes`, `mime_type`, `notes` (optional metadata)
+- `original_filename`, `file_size_bytes`, `mime_type` (optional metadata)
 - `approved_by`, `approved_at`
 - `rejected_by`, `rejected_at`
 
@@ -83,7 +83,6 @@ Router prefix is `/api/v1/documents` (mounted via `app/router_registry.py`).
   - `business_id` (optional; when present the document is business-scoped)
   - `tax_year` (optional)
   - `annual_report_id` (optional)
-  - `notes` (optional)
 
 ### List client documents
 - `GET /api/v1/documents/client/{client_record_id}`
@@ -116,17 +115,6 @@ Router prefix is `/api/v1/documents` (mounted via `app/router_registry.py`).
 - `PUT /api/v1/documents/{document_id}/replace`
 - Role: `ADVISOR` only
 - Multipart form with `file`
-
-### Update document notes
-- `PATCH /api/v1/documents/{document_id}/notes`
-- Roles: `ADVISOR`, `SECRETARY`
-- Body:
-
-```json
-{
-  "notes": "updated notes"
-}
-```
 
 ### Get document versions
 - `GET /api/v1/documents/client/{client_record_id}/versions`

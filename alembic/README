@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0001_initial_schema.py`.
+- Current head is `0002_remove_permanent_document_notes.py`.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,7 +82,16 @@ Notes:
 
 ## Migration chain
 
-`0001_initial_schema` is the current head.
+`0002_remove_permanent_document_notes` is the current head.
+
+### 0002_remove_permanent_document_notes
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes the nullable `notes` column from `permanent_documents`.
+- Notes:
+  Downgrade restores the nullable column, but previous note values are not recoverable.
 
 ### 0001_initial_schema
 

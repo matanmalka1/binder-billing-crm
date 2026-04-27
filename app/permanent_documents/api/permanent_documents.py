@@ -33,7 +33,6 @@ def upload_permanent_document(
     business_id: Annotated[Optional[int], Form()] = None,
     tax_year: Annotated[Optional[int], Form()] = None,
     annual_report_id: Annotated[Optional[int], Form()] = None,
-    notes: Annotated[Optional[str], Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
@@ -46,7 +45,6 @@ def upload_permanent_document(
         business_id=business_id,
         tax_year=tax_year,
         annual_report_id=annual_report_id,
-        notes=notes,
         mime_type=file.content_type,
     )
     return PermanentDocumentResponseBuilder(db).build_one(document)

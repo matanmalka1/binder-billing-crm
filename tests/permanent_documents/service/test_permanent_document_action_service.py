@@ -1,10 +1,5 @@
-from datetime import date
-
-import pytest
-
 from app.businesses.models.business import Business
 from app.common.enums import IdNumberType
-from app.core.exceptions import NotFoundError
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
     DocumentType,
@@ -38,13 +33,10 @@ def _doc(db, business: Business, annual_report_id: int | None = None) -> Permane
     )
 
 
-def test_update_notes_and_list_versions(test_db):
+def test_list_versions_and_annual_report_documents(test_db):
     business = _business(test_db)
-    doc = _doc(test_db, business, annual_report_id=10)
+    _doc(test_db, business, annual_report_id=10)
     service = PermanentDocumentActionService(test_db)
-
-    noted = service.update_notes(doc.id, notes="final note")
-    assert noted.notes == "final note"
 
     versions = service.get_document_versions(business.client_id, DocumentType.ID_COPY)
     assert len(versions) == 1
@@ -52,13 +44,9 @@ def test_update_notes_and_list_versions(test_db):
     assert len(by_report) == 1
 
 
-def test_action_service_not_found_or_deleted_raises(test_db):
+def test_list_versions_returns_empty_for_missing_document_type(test_db):
     business = _business(test_db)
-    doc = _doc(test_db, business)
-    doc.is_deleted = True
-    test_db.commit()
-
     service = PermanentDocumentActionService(test_db)
 
-    with pytest.raises(NotFoundError):
-        service.update_notes(999999, notes="x")
+    versions = service.get_document_versions(business.client_id, DocumentType.POWER_OF_ATTORNEY)
+    assert versions == []
