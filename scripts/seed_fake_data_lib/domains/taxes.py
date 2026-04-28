@@ -5,6 +5,8 @@ from decimal import Decimal
 from random import Random
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus, PaymentMethod
+from app.annual_reports.services.deadlines import standard_deadline
+from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import EntityType
 from app.tax_deadline.models.tax_deadline import (
     TaxDeadline,
@@ -26,13 +28,11 @@ DEADLINE_LABELS = {
 
 def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
     client = business.client
-    types = [
-        TaxDeadlineType.ANNUAL_REPORT,
-        TaxDeadlineType.NATIONAL_INSURANCE,
-    ]
+    # ANNUAL_REPORT excluded — created separately via _create_annual_report_deadlines
+    # ADVANCE_PAYMENT excluded — created via create_advance_payments
+    types = [TaxDeadlineType.NATIONAL_INSURANCE]
     if client.vat_reporting_frequency in ("monthly", "bimonthly"):
         types.append(TaxDeadlineType.VAT)
-    # ADVANCE_PAYMENT deadlines are created via create_advance_payments, not here
     return types
 
 
@@ -89,8 +89,38 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             db.add(deadline)
             deadlines.append(deadline)
     db.flush()
+    _create_annual_report_deadlines(db, deadlines, businesses)
     _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng)
     return deadlines
+
+
+def _create_annual_report_deadlines(db, deadlines: list, businesses) -> None:
+    """Create one annual_report deadline per client using the statutory deadline."""
+    year = date.today().year
+    seen_clients: set[int] = set()
+    for business in businesses:
+        cid = business.client_id
+        if cid in seen_clients:
+            continue
+        seen_clients.add(cid)
+        client = business.client
+        client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(
+            getattr(client, "entity_type", None)
+        )
+        due_date = standard_deadline(year, client_type=client_type).date()
+        deadline = TaxDeadline(
+            client_record_id=cid,
+            deadline_type=TaxDeadlineType.ANNUAL_REPORT,
+            tax_year=year,
+            due_date=due_date,
+            status=TaxDeadlineStatus.PENDING,
+            description=f"דוח שנתי שנת {year}",
+            created_at=datetime.now(UTC),
+        )
+        deadline.client_id = cid
+        db.add(deadline)
+        deadlines.append(deadline)
+    db.flush()
 
 
 def _pick_unique_deadline_identity(
@@ -99,49 +129,47 @@ def _pick_unique_deadline_identity(
     business,
     used_period_identities: set[tuple[int, TaxDeadlineType, str]],
 ) -> tuple[date, TaxDeadlineType, str | None]:
-    for _ in range(100):
-        due_date = today + timedelta(days=rng.randint(-30, 60))
-        deadline_type = rng.choice(_eligible_deadline_types(business))
-        period = _period_for_deadline(due_date, deadline_type)
-        if period is None:
-            return due_date, deadline_type, period
-        identity = (business.client_id, deadline_type, period)
-        if identity not in used_period_identities:
-            used_period_identities.add(identity)
-            return due_date, deadline_type, period
-
     deadline_type = rng.choice(_eligible_deadline_types(business))
-    for month_offset in range(1, 25):
-        due_date = _add_months(today, month_offset)
-        period = _period_for_deadline(due_date, deadline_type)
-        if period is None:
-            return due_date, deadline_type, period
+    for month_offset in range(-1, 25):
+        anchor = _add_months(today, month_offset)
+        due_date = _statutory_due_date(deadline_type, anchor)
+        period = f"{due_date.year}-{due_date.month:02d}"
         identity = (business.client_id, deadline_type, period)
         if identity not in used_period_identities:
             used_period_identities.add(identity)
             return due_date, deadline_type, period
-    return today, TaxDeadlineType.NATIONAL_INSURANCE, _period_for_deadline(
+    return (
         today,
         TaxDeadlineType.NATIONAL_INSURANCE,
+        f"{today.year}-{today.month:02d}",
     )
 
 
-def _period_for_deadline(due_date: date, deadline_type: TaxDeadlineType) -> str | None:
-    return f"{due_date.year}-{due_date.month:02d}"
+def _statutory_due_date(deadline_type: TaxDeadlineType, anchor: date) -> date:
+    """Return the correct statutory due date for a deadline type given a month anchor."""
+    from app.tax_deadline.services.constants import VAT_FILING_DUE_DAY, ADVANCE_PAYMENT_DUE_DAY
+    if deadline_type == TaxDeadlineType.VAT:
+        # VAT filed on 19th of month following reporting period
+        filing_month = anchor.month + 1 if anchor.month < 12 else 1
+        filing_year = anchor.year if anchor.month < 12 else anchor.year + 1
+        return date(filing_year, filing_month, VAT_FILING_DUE_DAY)
+    if deadline_type == TaxDeadlineType.ADVANCE_PAYMENT:
+        return date(anchor.year, anchor.month, ADVANCE_PAYMENT_DUE_DAY)
+    # NATIONAL_INSURANCE: 15th of month (approximation — no statutory formula in system)
+    return date(anchor.year, anchor.month, 15)
 
 
 def _add_months(value: date, month_offset: int) -> date:
     month_index = value.month - 1 + month_offset
     year = value.year + month_index // 12
     month = month_index % 12 + 1
-    return date(year, month, min(value.day, 28))
+    return date(year, month, 1)
 
 
 def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> None:
     present = {d.deadline_type for d in deadlines}
-    # ADVANCE_PAYMENT is seeded separately; only check non-advance types
-    required = [TaxDeadlineType.VAT, TaxDeadlineType.ANNUAL_REPORT,
-                TaxDeadlineType.NATIONAL_INSURANCE]
+    # ADVANCE_PAYMENT and ANNUAL_REPORT are seeded separately
+    required = [TaxDeadlineType.VAT, TaxDeadlineType.NATIONAL_INSURANCE]
     missing = [t for t in required if t not in present]
     if missing:
         today = date.today()
@@ -188,7 +216,7 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
         for month in months:
             business = rng.choice(client_businesses)
             period = f"{year}-{month:02d}"
-            due_date = date(year, month, min(rng.randint(10, 28), 28))
+            due_date = date(year, month, 15)
             deadline = deadlines_by_client_period.get((business.client_id, period))
             status = rng.choice(list(AdvancePaymentStatus))
             expected_amount = Decimal(str(round(rng.uniform(500, 6000), 2)))
