@@ -21,7 +21,6 @@ DEADLINE_LABELS = {
     TaxDeadlineType.ANNUAL_REPORT: "דוח שנתי",
     TaxDeadlineType.NATIONAL_INSURANCE: "ביטוח לאומי",
     TaxDeadlineType.VAT: 'מע"מ',
-    TaxDeadlineType.OTHER: "אחר",
 }
 
 
@@ -30,7 +29,6 @@ def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
     types = [
         TaxDeadlineType.ANNUAL_REPORT,
         TaxDeadlineType.NATIONAL_INSURANCE,
-        TaxDeadlineType.OTHER,
     ]
     if client.vat_reporting_frequency in ("monthly", "bimonthly"):
         types.append(TaxDeadlineType.VAT)
@@ -122,12 +120,13 @@ def _pick_unique_deadline_identity(
         if identity not in used_period_identities:
             used_period_identities.add(identity)
             return due_date, deadline_type, period
-    return today, TaxDeadlineType.OTHER, None
+    return today, TaxDeadlineType.NATIONAL_INSURANCE, _period_for_deadline(
+        today,
+        TaxDeadlineType.NATIONAL_INSURANCE,
+    )
 
 
 def _period_for_deadline(due_date: date, deadline_type: TaxDeadlineType) -> str | None:
-    if deadline_type == TaxDeadlineType.OTHER:
-        return None
     return f"{due_date.year}-{due_date.month:02d}"
 
 
@@ -142,14 +141,14 @@ def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> Non
     present = {d.deadline_type for d in deadlines}
     # ADVANCE_PAYMENT is seeded separately; only check non-advance types
     required = [TaxDeadlineType.VAT, TaxDeadlineType.ANNUAL_REPORT,
-                TaxDeadlineType.NATIONAL_INSURANCE, TaxDeadlineType.OTHER]
+                TaxDeadlineType.NATIONAL_INSURANCE]
     missing = [t for t in required if t not in present]
     if missing:
         today = date.today()
         fallback_business = businesses[0]
         for dtype in missing:
             due_date = today + timedelta(days=rng.randint(1, 30))
-            period = f"{due_date.year}-{due_date.month:02d}" if dtype != TaxDeadlineType.OTHER else None
+            period = f"{due_date.year}-{due_date.month:02d}"
             deadline = TaxDeadline(
                 client_record_id=fallback_business.client_id,
                 deadline_type=dtype,
