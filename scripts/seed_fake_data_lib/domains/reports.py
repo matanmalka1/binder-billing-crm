@@ -31,19 +31,13 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.services.deadlines import standard_deadline, extended_deadline
+from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import EntityType
 from app.users.models.user import UserRole
 
 from ._business_groups import group_businesses_by_client
 from ..realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
-
-
-def standard_deadline(tax_year: int) -> datetime:
-    return datetime(tax_year + 1, 4, 30, 23, 59, 59)
-
-
-def extended_deadline(tax_year: int) -> datetime:
-    return datetime(tax_year + 2, 1, 31, 23, 59, 59)
 
 
 VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
@@ -295,13 +289,6 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 status = rng.choice(SEEDABLE_STATUSES)
             deadline_type = rng.choice(list(DeadlineType))
             custom_deadline_note = None
-            if deadline_type == DeadlineType.STANDARD:
-                filing_deadline = standard_deadline(year)
-            elif deadline_type == DeadlineType.EXTENDED:
-                filing_deadline = extended_deadline(year)
-            else:
-                filing_deadline = None
-                custom_deadline_note = "המועד עודכן בהתאם לאישור ארכה שהתקבל עבור הלקוח"
             submission_method = (
                 rng.choice(list(SubmissionMethod))
                 if status
@@ -314,6 +301,17 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
                 )
                 else None
             )
+            if deadline_type == DeadlineType.STANDARD:
+                filing_deadline = standard_deadline(
+                    year,
+                    client_type=client_type_for_report,
+                    submission_method=submission_method,
+                )
+            elif deadline_type == DeadlineType.EXTENDED:
+                filing_deadline = extended_deadline(year)
+            else:
+                filing_deadline = None
+                custom_deadline_note = "המועד עודכן בהתאם לאישור ארכה שהתקבל עבור הלקוח"
             extension_reason = (
                 rng.choice(list(ExtensionReason))
                 if deadline_type == DeadlineType.EXTENDED

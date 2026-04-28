@@ -175,7 +175,8 @@ def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> Non
         today = date.today()
         fallback_business = businesses[0]
         for dtype in missing:
-            due_date = today + timedelta(days=rng.randint(1, 30))
+            anchor = _add_months(today, 1)
+            due_date = _statutory_due_date(dtype, anchor)
             period = f"{due_date.year}-{due_date.month:02d}"
             deadline = TaxDeadline(
                 client_record_id=fallback_business.client_id,
@@ -224,7 +225,9 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
                 paid_amount = Decimal(str(round(rng.uniform(200, float(expected_amount)), 2)))
             if status == AdvancePaymentStatus.OVERDUE:
-                due_date = min(due_date, date.today() - timedelta(days=rng.randint(1, 60)))
+                # Keep due_date on the 15th but pick a past month
+                past_month = _add_months(date.today(), -rng.randint(1, 6))
+                due_date = date(past_month.year, past_month.month, 15)
             if status == AdvancePaymentStatus.PAID:
                 paid_amount = expected_amount
             elif status == AdvancePaymentStatus.PARTIAL:
