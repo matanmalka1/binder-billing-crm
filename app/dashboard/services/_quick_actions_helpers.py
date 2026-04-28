@@ -134,12 +134,7 @@ def build_annual_report_actions(
         else:
             continue
 
-        record = ClientRecordRepository(business_repo.db).get_by_id(report.client_record_id)
-        if not record:
-            continue
-        businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1)
-        business = businesses[0] if businesses else None
-        client_name = business.full_name if business else None
+        client_name = _client_name(business_repo.db, report.client_record_id, business_repo)
 
         is_pending_client = report.status == AnnualReportStatus.PENDING_CLIENT
         pending_days = 0
@@ -177,7 +172,7 @@ def build_annual_report_actions(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
             method="get",
-            endpoint=f"/clients/{report.client_record_id}/annual-reports",
+            endpoint=f"/tax/reports/{report.id}",
             action_id=f"annual-{report.id}-navigate",
         )
         action["client_name"] = client_name

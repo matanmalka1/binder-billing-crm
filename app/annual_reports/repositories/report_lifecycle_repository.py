@@ -76,12 +76,15 @@ class AnnualReportLifecycleRepository:
         )
 
     def list_for_dashboard(self, limit: int = 50) -> list[AnnualReport]:
-        """Return non-final reports with a filing_deadline set, ordered by deadline asc."""
+        """Return non-final reports with a filing_deadline set, ordered by deadline asc.
+        Excludes reports older than 2 years to avoid unsupported tax year errors."""
+        cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=730)
         return (
             self.db.query(AnnualReport)
             .filter(
                 AnnualReport.status.notin_(list(DASHBOARD_FINAL_STATUSES)),
                 AnnualReport.filing_deadline.isnot(None),
+                AnnualReport.filing_deadline >= cutoff,
                 AnnualReport.deleted_at.is_(None),
             )
             .order_by(AnnualReport.filing_deadline.asc())
