@@ -9,8 +9,10 @@ from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_edit_log import BinderIntakeEditLog
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
 from app.binders.models.binder_status_log import BinderStatusLog
+from app.common.enums import VatType
 
 from ..demo_catalog import BUSINESS_NOTES
+from ..realistic_seed_text import MATERIAL_DESCRIPTIONS
 from ..random_utils import full_name
 
 
@@ -215,23 +217,26 @@ def create_binder_intake_materials(db, rng: Random, binders, businesses, reports
         for _ in range(items_per_intake):
             business = rng.choice(candidate_businesses) if candidate_businesses else None
             report = None
+            material_type = rng.choice(list(MaterialType))
             if business and rng.random() < 0.45:
                 client_reports = reports_by_client_id.get(business.client_id, [])
                 if client_reports:
                     report = rng.choice(client_reports)
+            period_year = report.tax_year if report and material_type == MaterialType.ANNUAL_REPORT else binder.period_start.year
+            period_month_start = binder.period_start.month
+            period_month_end = period_month_start
+            if material_type == MaterialType.VAT and business:
+                if getattr(business.client, "vat_reporting_frequency", None) == VatType.BIMONTHLY:
+                    period_month_end = min(12, period_month_start + 1)
             item = BinderIntakeMaterial(
                 intake_id=intake.id,
                 business_id=business.id if business else None,
-                material_type=rng.choice(list(MaterialType)),
+                material_type=material_type,
                 annual_report_id=report.id if report else None,
-                description=rng.choice(
-                    [
-                        None,
-                        "חשבוניות ספקים",
-                        "דפי בנק ותדפיסים",
-                        "אישורי מס וניכויים",
-                    ]
-                ),
+                period_year=period_year,
+                period_month_start=period_month_start,
+                period_month_end=period_month_end,
+                description=MATERIAL_DESCRIPTIONS[material_type],
                 created_at=min(
                     now,
                     datetime.combine(intake.received_at, datetime.min.time(), tzinfo=UTC)

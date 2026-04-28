@@ -14,6 +14,7 @@ from app.signature_requests.models.signature_request import (
 )
 
 from ._business_groups import group_businesses_by_client, pick_businesses_for_client
+from ..realistic_seed_text import SIGNATURE_COPY
 
 
 def _pick_related_for_client(rng: Random, rows_by_client: dict[int, list], client_id: int):
@@ -125,6 +126,7 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 type_cycle_idx += 1
             else:
                 request_type = rng.choice(type_cycle)
+            title_prefix, request_description = SIGNATURE_COPY[request_type]
 
             canceled_by = None
             if status == SignatureRequestStatus.CANCELED:
@@ -145,8 +147,8 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 annual_report_id=report.id if report else None,
                 document_id=document.id if document else None,
                 request_type=request_type,
-                title=f"חתימה על מסמך עבור {client.full_name}",
-                description="נא לעבור על המסמך, לחתום דיגיטלית ולהחזיר לאישור סופי",
+                title=f"{title_prefix} - {client.full_name}",
+                description=request_description,
                 content_hash=None,
                 storage_key=document.storage_key if document else None,
                 signer_name=client.full_name,

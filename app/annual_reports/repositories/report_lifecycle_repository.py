@@ -15,6 +15,7 @@ DASHBOARD_FINAL_STATUSES = frozenset({
     AnnualReportStatus.SUBMITTED,
     AnnualReportStatus.ACCEPTED,
     AnnualReportStatus.CLOSED,
+    AnnualReportStatus.CANCELED,
 })
 
 

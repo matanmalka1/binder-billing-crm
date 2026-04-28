@@ -35,6 +35,7 @@ from app.common.enums import EntityType
 from app.users.models.user import UserRole
 
 from ._business_groups import group_businesses_by_client
+from ..realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
 
 
 def standard_deadline(tax_year: int) -> datetime:
@@ -460,9 +461,7 @@ def create_annual_report_income_lines(db, rng: Random, reports) -> None:
                 annual_report_id=report.id,
                 source_type=source_type,
                 amount=Decimal(str(round(rng.uniform(2_500, 120_000), 2))),
-                description=rng.choice(
-                    [None, "שורה שנוצרה אוטומטית", "נדרש אימות מסמכים תומכים"]
-                ),
+                description=INCOME_DESCRIPTIONS.get(source_type.value, "הכנסה נוספת לפי מסמכי הלקוח"),
                 created_at=report.created_at,
             )
             db.add(line)
@@ -527,9 +526,7 @@ def create_annual_report_expense_lines(
                     else (f"EXP-{report.tax_year}-{rng.randint(1000, 9999)}" if rng.random() < 0.35 else None)
                 ),
                 supporting_document_id=linked_document.id if linked_document else None,
-                description=rng.choice(
-                    [None, "הוצאה מוכרת", "לבדוק התאמה לחשבונית", "מסמך תומך קיים בתיק הלקוח"]
-                ),
+                description=EXPENSE_DESCRIPTIONS.get(category.value, "הוצאה עסקית לפי מסמך תומך"),
                 created_at=report.created_at,
             )
             db.add(expense_line)

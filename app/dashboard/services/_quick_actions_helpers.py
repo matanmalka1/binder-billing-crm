@@ -97,7 +97,7 @@ def build_vat_actions(
             key="vat_navigate",
             label='פתח דוח מע"מ',
             method="get",
-            endpoint=f"/client-records/{item.client_record_id}/vat",
+            endpoint=f"/clients/{item.client_record_id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
         action["client_name"] = client_name
@@ -177,7 +177,7 @@ def build_annual_report_actions(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
             method="get",
-            endpoint=f"/client-records/{report.client_record_id}/annual-reports",
+            endpoint=f"/clients/{report.client_record_id}/annual-reports",
             action_id=f"annual-{report.id}-navigate",
         )
         action["client_name"] = client_name

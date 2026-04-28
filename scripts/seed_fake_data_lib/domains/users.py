@@ -13,7 +13,8 @@ from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
 from ..constants import DEFAULT_PASSWORD_HASH
-from ..demo_catalog import demo_email, mobile_phone
+from ..demo_catalog import mobile_phone
+from ..realistic_seed_text import STAFF_DIRECTORY
 from ..random_utils import full_name
 
 
@@ -26,10 +27,11 @@ def create_users(db, rng: Random, cfg) -> list[User]:
     existing_users = int(db.execute(select(func.count()).select_from(User)).scalar_one())
     for i in range(cfg.users):
         serial = existing_users + i + 1
-        role = UserRole.ADVISOR if i % 3 == 0 else UserRole.SECRETARY
+        staff_profile = STAFF_DIRECTORY[i % len(STAFF_DIRECTORY)]
+        role = UserRole[staff_profile["role"]]
         user = User(
-            full_name=full_name(rng),
-            email=demo_email("staff", serial),
+            full_name=staff_profile["name"] if serial <= len(STAFF_DIRECTORY) else full_name(rng),
+            email=f"matan{1390 + serial}@gmail.com",
             phone=mobile_phone(rng),
             password_hash=DEFAULT_PASSWORD_HASH,
             role=role,

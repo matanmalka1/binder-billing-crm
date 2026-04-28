@@ -23,6 +23,7 @@ from ._business_groups import group_businesses_by_client
 from app.common.enums import VatType
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from ..demo_catalog import VAT_COUNTERPARTIES
+from ..realistic_seed_text import VAT_COUNTERPARTY_DETAILS, VAT_INCOME_COUNTERPARTIES
 from ..random_utils import generate_valid_israeli_id
 
 DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
@@ -53,6 +54,11 @@ def _choose_periods(rng: Random, count: int) -> list[str]:
         if len(periods) >= count:
             break
     return periods[:count]
+
+
+def _invoice_date_for_period(rng: Random, period: str):
+    period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
+    return (period_start + timedelta(days=rng.randint(0, 27))).date()
 
 
 def _ensure_vat_status_coverage(db, work_items: list[VatWorkItem]) -> None:
@@ -196,9 +202,16 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
         num_invoices = rng.randint(cfg.min_vat_invoices_per_work_item, cfg.max_vat_invoices_per_work_item)
         for _ in range(num_invoices):
             invoice_type = rng.choice(list(InvoiceType))
-            base_amount = Decimal(str(round(rng.uniform(250, 30000), 2)))
             if invoice_type == InvoiceType.EXPENSE:
-                expense_category = rng.choice(list(ExpenseCategory))
+                category_pool = list(VAT_COUNTERPARTY_DETAILS)
+                if rng.random() < 0.2:
+                    category_pool = list(ExpenseCategory)
+                expense_category = rng.choice(category_pool)
+                counterparty_name, min_amount, max_amount = VAT_COUNTERPARTY_DETAILS.get(
+                    expense_category,
+                    (rng.choice(VAT_COUNTERPARTIES), 250, 12000),
+                )
+                base_amount = Decimal(str(round(rng.uniform(min_amount, max_amount), 2)))
                 document_type = rng.choice(
                     [
                         DocumentType.TAX_INVOICE,
@@ -211,6 +224,8 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 deduction_rate = DEDUCTION_RATES.get(expense_category, Decimal("1.0000"))
             else:
                 expense_category = None
+                counterparty_name, min_amount, max_amount = rng.choice(VAT_INCOME_COUNTERPARTIES)
+                base_amount = Decimal(str(round(rng.uniform(min_amount, max_amount), 2)))
                 document_type = rng.choice(
                     [
                         DocumentType.TAX_INVOICE,
@@ -254,8 +269,8 @@ def create_vat_invoices(db, rng: Random, cfg, work_items, users) -> list[VatInvo
                 invoice_type=invoice_type,
                 document_type=document_type,
                 invoice_number=invoice_number,
-                invoice_date=(datetime.now(UTC) - timedelta(days=rng.randint(1, 60))).date(),
-                counterparty_name=rng.choice(VAT_COUNTERPARTIES),
+                invoice_date=_invoice_date_for_period(rng, work_item.period),
+                counterparty_name=counterparty_name,
                 counterparty_id=counterparty_id,
                 counterparty_id_type=counterparty_id_type,
                 net_amount=base_amount,

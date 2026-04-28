@@ -9,7 +9,7 @@ from app.permanent_documents.models.permanent_document import (
     DocumentType,
     PermanentDocument,
 )
-from ..demo_catalog import DOCUMENT_NOTES
+from ..realistic_seed_text import DOCUMENT_TYPE_DETAILS
 
 
 def create_documents(db, rng: Random, clients, businesses, users):
@@ -23,7 +23,10 @@ def create_documents(db, rng: Random, clients, businesses, users):
         docs = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]
         if rng.random() < 0.8:
             docs.append(DocumentType.ENGAGEMENT_AGREEMENT)
+        if rng.random() < 0.55:
+            docs.append(DocumentType.BANK_APPROVAL)
         for doc_type in docs:
+            doc_label, filename = DOCUMENT_TYPE_DETAILS[doc_type]
             uploaded_at = now - timedelta(days=rng.randint(0, 500))
             status = rng.choices(
                 [DocumentStatus.PENDING, DocumentStatus.RECEIVED, DocumentStatus.APPROVED, DocumentStatus.REJECTED],
@@ -53,13 +56,12 @@ def create_documents(db, rng: Random, clients, businesses, users):
                     f"clients/{client.id}/"
                     f"{doc_type.value}_{rng.randint(1000, 9999)}.pdf"
                 ),
-                original_filename=f"{doc_type.value}.pdf",
+                original_filename=filename,
                 file_size_bytes=rng.randint(50000, 500000),
                 mime_type="application/pdf",
                 tax_year=None,
                 status=status,
                 is_present=is_present,
-                notes=rng.choice(DOCUMENT_NOTES),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,
@@ -101,22 +103,29 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_by = rng.choice(users).id
                 rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))
 
+            doc_type = rng.choice([
+                DocumentType.INVOICE_DOC,
+                DocumentType.RECEIPT,
+                DocumentType.TAX_FORM,
+                DocumentType.WITHHOLDING_CERTIFICATE,
+                DocumentType.NII_APPROVAL,
+            ])
+            doc_label, filename = DOCUMENT_TYPE_DETAILS[doc_type]
             document = PermanentDocument(
                 client_record_id=client.id,
                 business_id=business.id,
                 scope=DocumentScope.BUSINESS,
-                document_type=rng.choice([DocumentType.INVOICE_DOC, DocumentType.RECEIPT, DocumentType.TAX_FORM]),
+                document_type=doc_type,
                 storage_key=(
                     f"clients/{client.id}/businesses/{business.id}/"
                     f"doc_{rng.randint(1000, 9999)}.pdf"
                 ),
-                original_filename=f"document_{rng.randint(1000, 9999)}.pdf",
+                original_filename=f"{business.business_name}_{filename}",
                 file_size_bytes=rng.randint(50000, 500000),
                 mime_type="application/pdf",
                 tax_year=rng.choice([uploaded_at.year, uploaded_at.year - 1, None]),
                 status=status,
                 is_present=is_present,
-                notes=rng.choice(DOCUMENT_NOTES),
                 uploaded_by=rng.choice(users).id,
                 uploaded_at=uploaded_at,
                 approved_by=approved_by,

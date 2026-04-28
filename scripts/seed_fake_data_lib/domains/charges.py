@@ -6,7 +6,8 @@ from random import Random
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
-from ..demo_catalog import CHARGE_DESCRIPTIONS, INVOICE_BASE_URL
+from ..demo_catalog import INVOICE_BASE_URL
+from ..realistic_seed_text import CHARGE_TYPE_DETAILS
 
 from ._business_groups import group_businesses_by_client, pick_businesses_for_client
 
@@ -36,25 +37,41 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 paid_at = issued_at + timedelta(days=rng.randint(0, 20))
                 paid_by = rng.choice(users).id if users else None
 
-            charge_type = rng.choice(list(ChargeType))
+            charge_type = rng.choices(
+                list(ChargeType),
+                weights=[35, 20, 18, 8, 12, 7],
+                k=1,
+            )[0]
             period = None
             months_covered = 1
             if charge_type == ChargeType.MONTHLY_RETAINER:
                 month = rng.randint(1, 12)
                 year = date.today().year - rng.randint(0, 1)
                 period = f"{year}-{month:02d}"
+                months_covered = rng.choice([1, 1, 1, 2])
+            elif charge_type == ChargeType.ANNUAL_REPORT_FEE:
+                period = f"{date.today().year - rng.randint(1, 3)}-12"
             elif charge_type in (ChargeType.VAT_FILING_FEE, ChargeType.OTHER) and rng.random() < 0.4:
                 month = rng.randint(1, 12)
                 year = date.today().year - rng.randint(0, 1)
                 period = f"{year}-{month:02d}"
                 months_covered = rng.choice([1, 2])
 
-            amount = Decimal(str(round(rng.uniform(250, 7500), 2)))
+            base_description, min_amount, max_amount = CHARGE_TYPE_DETAILS[charge_type]
+            amount = Decimal(str(round(rng.uniform(min_amount, max_amount), 2)))
             canceled_at = None
             canceled_by = None
+            cancellation_reason = None
             if status == ChargeStatus.CANCELED:
                 canceled_at = created_at + timedelta(days=rng.randint(1, 8))
                 canceled_by = rng.choice(users).id if users else None
+                cancellation_reason = rng.choice([
+                    "החיוב בוטל לאחר זיכוי הלקוח",
+                    "החיוב נפתח בטעות ונסגר לפני הפקה",
+                ])
+            description_parts = [base_description, business.business_name]
+            if period:
+                description_parts.append(f"תקופה {period}")
 
             charge = Charge(
                 client_record_id=business.client_id,
@@ -64,7 +81,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 period=period,
                 months_covered=months_covered,
                 status=status,
-                description=rng.choice(CHARGE_DESCRIPTIONS),
+                description=" | ".join(description_parts),
                 created_at=created_at,
                 created_by=rng.choice(users).id if users else None,
                 issued_at=issued_at,
@@ -73,6 +90,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 paid_by=paid_by,
                 canceled_at=canceled_at,
                 canceled_by=canceled_by,
+                cancellation_reason=cancellation_reason,
             )
             charge.client_id = business.client_id
             db.add(charge)
