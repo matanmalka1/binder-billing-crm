@@ -39,7 +39,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(
         service,
         "_build_quick_actions",
-        lambda user_role, current_period: [{"key": "ready", "period": current_period}],
+        lambda current_period: [{"key": "ready", "period": current_period}],
     )
     monkeypatch.setattr(
         service.extended_service,

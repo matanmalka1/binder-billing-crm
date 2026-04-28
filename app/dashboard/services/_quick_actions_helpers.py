@@ -26,7 +26,7 @@ _STATUS_LABEL_HE = {
     AnnualReportStatus.COLLECTING_DOCS: "מאסף מסמכים",
 }
 
-CATEGORY_ORDER = {"binders": 0, "vat": 1, "annual_reports": 2, "charges": 3, "clients": 4}
+CATEGORY_ORDER = {"binders": 0, "vat": 1, "annual_reports": 2}
 
 
 def enrich(action: dict, category: str, due_label: Optional[str] = None) -> dict:
@@ -50,36 +50,31 @@ def days_since(d: date) -> int:
 
 
 def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessRepository) -> list[dict]:
-    """Return urgency-ordered binder quick actions (overdue first)."""
+    """Return only overdue binder quick actions."""
     binders = binder_repo.list_active()
-    ready_candidate = overdue_ready = return_candidate = overdue_return = None
+    overdue_ready = overdue_return = None
 
     for binder in binders:
         binder_acts = get_binder_actions(binder)
         d = days_since(binder.period_start) if binder.period_start else 0
-        overdue = d > 90
+        if d <= 90:
+            continue
 
         if binder.status in (BinderStatus.IN_OFFICE, BinderStatus.IN_OFFICE.value):
             act = next((a for a in binder_acts if a["key"] == "ready"), None)
-            if act:
-                if overdue and overdue_ready is None:
-                    overdue_ready = (binder, act, d)
-                elif not overdue and ready_candidate is None:
-                    ready_candidate = (binder, act, d)
+            if act and overdue_ready is None:
+                overdue_ready = (binder, act, d)
 
         if binder.status in (BinderStatus.READY_FOR_PICKUP, BinderStatus.READY_FOR_PICKUP.value):
             act = next((a for a in binder_acts if a["key"] == "return"), None)
-            if act:
-                if overdue and overdue_return is None:
-                    overdue_return = (binder, act, d)
-                elif not overdue and return_candidate is None:
-                    return_candidate = (binder, act, d)
+            if act and overdue_return is None:
+                overdue_return = (binder, act, d)
 
-        if overdue_ready and overdue_return and ready_candidate and return_candidate:
+        if overdue_ready and overdue_return:
             break
 
     result: list[dict] = []
-    for candidate in [overdue_ready, overdue_return, ready_candidate, return_candidate]:
+    for candidate in [overdue_ready, overdue_return]:
         if candidate is None:
             continue
         binder, action, d = candidate
@@ -88,7 +83,7 @@ def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessR
         business = businesses[0] if businesses else None
         action["client_name"] = business.full_name if business else None
         action["binder_number"] = binder.binder_number
-        label = f"פג תוקף לפני {d - 90} ימים" if d > 90 else f"{d} ימים במשרד"
+        label = f"פג תוקף לפני {d - 90} ימים"
         enrich(action, "binders", label)
         result.append(action)
     return result

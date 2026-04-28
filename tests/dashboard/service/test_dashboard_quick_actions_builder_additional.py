@@ -3,14 +3,13 @@ from types import SimpleNamespace
 
 from app.dashboard.services import _quick_actions_helpers as helpers
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
-from app.users.models.user import UserRole
 
 
 def test_period_label_invalid_input_returns_original():
     assert helpers.period_label("invalid-period") == "invalid-period"
 
 
-def test_build_binder_actions_covers_overdue_and_non_overdue_candidates():
+def test_build_binder_actions_returns_only_overdue_candidates():
     today = date.today()
     binders = [
         SimpleNamespace(id=1, client_record_id=10, binder_number="B1", period_start=today - timedelta(days=120), status="in_office"),
@@ -33,11 +32,11 @@ def test_build_binder_actions_covers_overdue_and_non_overdue_candidates():
         MockCR.return_value.get_by_id = fake_get_by_id
         actions = helpers.build_binder_actions(binder_repo, business_repo)
 
-    assert [a["binder_number"] for a in actions] == ["B1", "B3", "B2", "B4"]
+    assert [a["binder_number"] for a in actions] == ["B1", "B3"]
     assert all(a["category"] == "binders" for a in actions)
 
 
-def test_build_binder_actions_clamps_future_period_start_to_zero_days():
+def test_build_binder_actions_ignores_future_period_start():
     today = date.today()
     binders = [
         SimpleNamespace(
@@ -59,7 +58,7 @@ def test_build_binder_actions_clamps_future_period_start_to_zero_days():
         MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(legal_entity_id=cr_id * 100)
         actions = helpers.build_binder_actions(binder_repo, business_repo)
 
-    assert actions[0]["due_label"] == "0 ימים במשרד"
+    assert actions == []
 
 
 def test_build_vat_and_annual_actions_include_due_labels():
@@ -100,16 +99,11 @@ def test_build_vat_and_annual_actions_include_due_labels():
     assert "ימים" in annual_actions[0]["due_label"]
 
 
-def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
+def test_build_quick_actions_excludes_charge_mutations(monkeypatch):
     binder_repo = object()
     vat_repo = object()
     annual_repo = object()
-    business_repo = SimpleNamespace(
-        get_by_id=lambda _id: SimpleNamespace(id=3, client_id=3, full_name="Charge Client")
-    )
-    charge_repo = SimpleNamespace(
-        list_charges=lambda **kwargs: [SimpleNamespace(business_id=3)],
-    )
+    business_repo = SimpleNamespace()
 
     monkeypatch.setattr(
         "app.dashboard.services.dashboard_quick_actions_builder.build_binder_actions",
@@ -123,19 +117,13 @@ def test_build_quick_actions_adds_mark_paid_for_advisor(monkeypatch):
         "app.dashboard.services.dashboard_quick_actions_builder.build_annual_report_actions",
         lambda *_: [{"key": "annual", "category": "annual_reports"}],
     )
-    monkeypatch.setattr(
-        "app.dashboard.services.dashboard_quick_actions_builder.get_charge_actions",
-        lambda charge: [{"key": "mark_paid", "label": "Mark", "endpoint": "/x"}],
-    )
-
     actions = build_quick_actions(
         binder_repo=binder_repo,
-        charge_repo=charge_repo,
         business_repo=business_repo,
         vat_repo=vat_repo,
         annual_report_repo=annual_repo,
-        user_role=UserRole.ADVISOR,
         current_period="2026-01",
     )
 
-    assert any(a["key"] == "mark_paid" and a["category"] == "charges" for a in actions)
+    assert [a["key"] for a in actions] == ["ready", "vat", "annual"]
+    assert all(a.get("category") != "charges" for a in actions)

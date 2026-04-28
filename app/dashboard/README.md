@@ -82,6 +82,7 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
 - Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
+- Quick actions are advisor-only operational shortcuts for overdue binders, VAT work items, and stuck annual reports. Financial state mutations are intentionally kept out of quick actions.
 - Dashboard stat card links deep-link to their matching filtered list views:
   - active clients: `/clients?status=active`
   - binders in office: `/binders?status=in_office`
@@ -112,7 +113,7 @@ Domain errors use stable codes such as:
 Dashboard aggregates across:
 - `binders` (status counts, active binders, binder actions)
 - `clients` (counts, names, client actions)
-- `charge` (issued/unpaid charges, charge actions)
+- `charge` (issued/unpaid charge attention items)
 - `annual_reports` (tax-submission widget metrics and financial sums)
 - `reminders` (open reminder counters)
 - `vat_reports` (VAT due counters and quick actions)

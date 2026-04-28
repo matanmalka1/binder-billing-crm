@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.models.binder import BinderStatus
-from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -25,7 +24,6 @@ class DashboardOverviewService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.charge_repo = ChargeRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
@@ -44,7 +42,7 @@ class DashboardOverviewService:
 
         current_period = reference_date.strftime("%Y-%m")
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
-        quick_actions = self._build_quick_actions(user_role, current_period)
+        quick_actions = self._build_quick_actions(current_period)
         return {
             "total_clients": self.client_record_repo.count(),
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
@@ -59,15 +57,12 @@ class DashboardOverviewService:
 
     def _build_quick_actions(
         self,
-        user_role: Optional[UserRole],
         current_period: str,
     ) -> list[dict]:
         return build_quick_actions(
             binder_repo=self.binder_repo,
-            charge_repo=self.charge_repo,
             business_repo=self.business_repo,
             vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
-            user_role=user_role,
             current_period=current_period,
         )
