@@ -10,7 +10,28 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 5)
     monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 2)
     monkeypatch.setattr(service.reminder_repo, "count_pending_by_date", lambda _d: 3)
-    monkeypatch.setattr(service.vat_repo, "count_by_period_not_filed", lambda _p: 4)
+    monkeypatch.setattr(
+        service.vat_stats_service,
+        "build",
+        lambda _d: {
+            "monthly": {
+                "period": "2026-02",
+                "period_label": "פברואר 2026",
+                "submitted": 2,
+                "required": 3,
+                "pending": 1,
+                "completion_percent": 67,
+            },
+            "bimonthly": {
+                "period": "2026-02",
+                "period_label": "ינואר-פברואר 2026",
+                "submitted": 4,
+                "required": 4,
+                "pending": 0,
+                "completion_percent": 100,
+            },
+        },
+    )
     monkeypatch.setattr(
         service,
         "_build_quick_actions",
@@ -31,7 +52,8 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     assert overview["active_clients"] == 4
     assert overview["active_binders"] == 2
     assert overview["open_reminders"] == 3
-    assert overview["vat_due_this_month"] == 4
+    assert overview["vat_stats"]["monthly"]["period_label"] == "פברואר 2026"
+    assert overview["vat_stats"]["bimonthly"]["period_label"] == "ינואר-פברואר 2026"
     assert overview["quick_actions"] == [{"key": "ready", "period": "2026-03"}]
     assert overview["attention"] == {
         "items": [{"item_type": "ready_for_pickup"}],

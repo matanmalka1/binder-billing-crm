@@ -6,7 +6,9 @@ def test_summary_endpoint_returns_dashboard_contract(client, advisor_headers):
     assert "binders_in_office" in data
     assert "binders_ready_for_pickup" in data
     assert "open_reminders" in data
-    assert "vat_due_this_month" in data
+    assert "vat_stats" in data
+    assert "monthly" in data["vat_stats"]
+    assert "bimonthly" in data["vat_stats"]
     assert "attention" in data
     assert "items" in data["attention"]
     assert "total" in data["attention"]

@@ -45,7 +45,7 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
   - `binders_in_office`
   - `binders_ready_for_pickup`
   - `open_reminders`
-  - `vat_due_this_month`
+  - `vat_stats` (`monthly`, `bimonthly`)
   - `attention` (`items`, `total`)
 
 ### Overview
@@ -58,7 +58,7 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
   - `binders_in_office`
   - `binders_ready_for_pickup`
   - `open_reminders`
-  - `vat_due_this_month`
+  - `vat_stats` (`monthly`, `bimonthly`)
   - `quick_actions`
   - `attention`
 

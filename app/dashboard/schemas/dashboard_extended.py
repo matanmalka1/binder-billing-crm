@@ -38,6 +38,20 @@ class AttentionResponse(BaseModel):
     total: int = 0
 
 
+class VatDashboardPeriodStat(BaseModel):
+    period: str
+    period_label: str
+    submitted: int = 0
+    required: int = 0
+    pending: int = 0
+    completion_percent: int = 0
+
+
+class VatDashboardStats(BaseModel):
+    monthly: VatDashboardPeriodStat
+    bimonthly: VatDashboardPeriodStat
+
+
 class DashboardOverviewResponse(BaseModel):
     """Dashboard overview for management."""
 
@@ -47,6 +61,6 @@ class DashboardOverviewResponse(BaseModel):
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0
     open_reminders: int = 0
-    vat_due_this_month: int = 0
+    vat_stats: VatDashboardStats
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
