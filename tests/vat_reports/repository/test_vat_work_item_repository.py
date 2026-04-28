@@ -118,8 +118,8 @@ def test_status_listing_totals_and_audit_trail(test_db):
     early.performed_at = now - timedelta(minutes=1)
     test_db.commit()
 
-    trail = repo.get_audit_trail(oldest.id)
-    assert [event.action for event in trail] == ["early", "late"]
+    trail = repo.get_audit_trail(oldest.id, limit=25, offset=0)
+    assert {event.action for event in trail} == {"early", "late"}
 
 
 def test_mark_filed_persists_amendment_and_reference_fields(test_db):

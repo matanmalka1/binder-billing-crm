@@ -13,6 +13,7 @@ from app.annual_reports.api.annual_report_season import season_router
 from app.annual_reports.api.annual_report_stage_transition import router as stage_transition_router
 from app.annual_reports.api.annual_report_status import router as status_router
 from app.annual_reports.api.annual_report_tax import router as tax_router
+from app.annual_reports.api.annual_report_reminders import router as reminders_router
 from app.annual_reports.api.routes_export import router as export_router
 
 router = APIRouter()
@@ -28,5 +29,6 @@ router.include_router(season_router)
 router.include_router(export_router)
 router.include_router(tax_router)
 router.include_router(charges_router)
+router.include_router(reminders_router)
 
 __all__ = ["router"]

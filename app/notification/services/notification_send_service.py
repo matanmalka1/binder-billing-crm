@@ -18,12 +18,14 @@ from app.notification.models.notification import NotificationChannel, Notificati
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.constants import BULK_NOTIFY_LIMIT
 from app.notification.services.messages import (
+    ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT,
     BINDER_READY_FOR_PICKUP_SUBJECT,
     BINDER_RECEIVED_SUBJECT,
     BULK_NOTIFY_LIMIT_EXCEEDED,
     CLIENT_REMINDER_SUBJECT,
     DEFAULT_NOTIFICATION_SUBJECT,
     MANUAL_PAYMENT_REMINDER_SUBJECT,
+    PICKUP_REMINDER_SUBJECT,
 )
 
 logger = get_logger(__name__)
@@ -31,6 +33,8 @@ logger = get_logger(__name__)
 _SUBJECTS: dict[NotificationTrigger, str] = {
     NotificationTrigger.BINDER_RECEIVED: BINDER_RECEIVED_SUBJECT,
     NotificationTrigger.BINDER_READY_FOR_PICKUP: BINDER_READY_FOR_PICKUP_SUBJECT,
+    NotificationTrigger.PICKUP_REMINDER: PICKUP_REMINDER_SUBJECT,
+    NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER: ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT,
     NotificationTrigger.MANUAL_PAYMENT_REMINDER: MANUAL_PAYMENT_REMINDER_SUBJECT,
 }
 
@@ -223,6 +227,7 @@ class NotificationSendService:
         trigger: NotificationTrigger,
         content: str,
         binder_id: Optional[int] = None,
+        annual_report_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
         preferred_channel: str = "email",
         severity: NotificationSeverity = NotificationSeverity.INFO,
@@ -245,6 +250,7 @@ class NotificationSendService:
                 n = self.notification_repo.create(
                     client_record_id=client_record_id,
                     binder_id=binder_id,
+                    annual_report_id=annual_report_id,
                     trigger=trigger,
                     channel=NotificationChannel.WHATSAPP,
                     recipient=phone,
@@ -270,6 +276,7 @@ class NotificationSendService:
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
                 binder_id=binder_id,
+                annual_report_id=annual_report_id,
                 trigger=trigger,
                 channel=NotificationChannel.EMAIL,
                 recipient=email,

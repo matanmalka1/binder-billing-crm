@@ -9,6 +9,7 @@ from app.binders.models.binder import BinderStatus
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.notification.repositories.notification_repository import NotificationRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -29,6 +30,7 @@ class DashboardOverviewService:
         self.reminder_repo = ReminderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
+        self.notification_repo = NotificationRepository(db)
         self.extended_service = DashboardExtendedService(db)
         self.vat_stats_service = VatDashboardStatsService(db)
 
@@ -40,9 +42,8 @@ class DashboardOverviewService:
         if reference_date is None:
             reference_date = israel_today()
 
-        current_period = reference_date.strftime("%Y-%m")
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
-        quick_actions = self._build_quick_actions(current_period)
+        quick_actions = self._build_quick_actions(reference_date)
         return {
             "total_clients": self.client_record_repo.count(),
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
@@ -55,14 +56,12 @@ class DashboardOverviewService:
             "attention": {"items": attention_items, "total": len(attention_items)},
         }
 
-    def _build_quick_actions(
-        self,
-        current_period: str,
-    ) -> list[dict]:
+    def _build_quick_actions(self, today) -> list[dict]:
         return build_quick_actions(
             binder_repo=self.binder_repo,
             business_repo=self.business_repo,
             vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
-            current_period=current_period,
+            notification_repo=self.notification_repo,
+            today=today,
         )

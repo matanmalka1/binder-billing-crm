@@ -26,8 +26,9 @@ class NotificationRepository:
         channel: NotificationChannel,
         recipient: str,
         content_snapshot: str,
-        business_id: Optional[int] = None,                      # OPTIONAL context
+        business_id: Optional[int] = None,
         binder_id: Optional[int] = None,
+        annual_report_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> Notification:
@@ -40,6 +41,7 @@ class NotificationRepository:
             client_record_id=client_record_id,
             business_id=business_id,
             binder_id=binder_id,
+            annual_report_id=annual_report_id,
             trigger=trigger,
             channel=channel,
             recipient=recipient,
@@ -198,3 +200,26 @@ class NotificationRepository:
             .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)
             .first()
         ) is not None
+
+    def get_last_for_binder_trigger(
+        self, binder_id: int, trigger: NotificationTrigger
+    ) -> Optional[Notification]:
+        return (
+            self.db.query(Notification)
+            .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)
+            .order_by(Notification.created_at.desc())
+            .first()
+        )
+
+    def get_last_for_annual_report_trigger(
+        self, annual_report_id: int, trigger: NotificationTrigger
+    ) -> Optional[Notification]:
+        return (
+            self.db.query(Notification)
+            .filter(
+                Notification.annual_report_id == annual_report_id,
+                Notification.trigger == trigger,
+            )
+            .order_by(Notification.created_at.desc())
+            .first()
+        )

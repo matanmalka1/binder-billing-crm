@@ -43,9 +43,11 @@ class NotificationStatus(str, PyEnum):
 
 
 class NotificationTrigger(str, PyEnum):
-    BINDER_RECEIVED         = "binder_received"
-    BINDER_READY_FOR_PICKUP = "binder_ready_for_pickup"
-    MANUAL_PAYMENT_REMINDER = "manual_payment_reminder"
+    BINDER_RECEIVED                 = "binder_received"
+    BINDER_READY_FOR_PICKUP         = "binder_ready_for_pickup"
+    PICKUP_REMINDER                 = "pickup_reminder"
+    ANNUAL_REPORT_CLIENT_REMINDER   = "annual_report_client_reminder"
+    MANUAL_PAYMENT_REMINDER         = "manual_payment_reminder"
 
 
 class NotificationSeverity(str, PyEnum):
@@ -71,6 +73,10 @@ class Notification(Base):
     # OPTIONAL: set when triggered by a binder event
     binder_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("binders.id"), nullable=True, index=True
+    )
+    # OPTIONAL: set when triggered by an annual report event
+    annual_report_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("annual_reports.id"), nullable=True, index=True
     )
 
     # ── Message identity ──────────────────────────────────────────────────────

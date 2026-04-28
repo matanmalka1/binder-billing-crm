@@ -1,11 +1,22 @@
-from datetime import date
+from datetime import timedelta
+from itertools import count
 
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.repositories.report_lifecycle_repository import AnnualReportLifecycleRepository
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_identity
+
+_client_seq = count(1)
 
 
 def _report(test_db):
-    crm_client = seed_client_identity(test_db, full_name="Lifecycle Repo Extra", id_number="LRX001")
+    idx = next(_client_seq)
+    crm_client = seed_client_identity(
+        test_db,
+        full_name=f"Lifecycle Repo Extra {idx}",
+        id_number=f"LRX{idx:03d}",
+    )
     return AnnualReportService(test_db).create_report(
         client_record_id=crm_client.id,
         tax_year=2026,
@@ -26,3 +37,27 @@ def test_lifecycle_soft_delete_true_and_false(test_db):
 
     refreshed = AnnualReportService(test_db).repo.get_by_client_record_year(report.client_record_id, 2026)
     assert refreshed is None
+
+
+def test_list_for_dashboard_excludes_final_deleted_and_missing_deadline(test_db):
+    service = AnnualReportService(test_db)
+    open_report = _report(test_db)
+    submitted = _report(test_db)
+    no_deadline = _report(test_db)
+    deleted = _report(test_db)
+
+    service.repo.update(open_report.id, filing_deadline=utcnow() + timedelta(days=5))
+    service.repo.update(
+        submitted.id,
+        status=AnnualReportStatus.SUBMITTED,
+        filing_deadline=utcnow() + timedelta(days=1),
+    )
+    service.repo.update(no_deadline.id, filing_deadline=None)
+    service.repo.soft_delete(deleted.id, deleted_by=1)
+    test_db.commit()
+
+    lifecycle_repo = AnnualReportLifecycleRepository()
+    lifecycle_repo.db = test_db
+    result = lifecycle_repo.list_for_dashboard(limit=10)
+
+    assert [report.id for report in result] == [open_report.id]

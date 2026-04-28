@@ -58,6 +58,9 @@ class VatWorkItemWriteRepository:
     def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
         return self._query.list_not_filed_for_period(period, limit=limit)
 
+    def list_open_up_to_period(self, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
+        return self._query.list_open_up_to_period(up_to_period, limit=limit)
+
     def create(
         self,
         client_record_id: Optional[int] = None,

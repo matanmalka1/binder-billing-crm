@@ -2,6 +2,8 @@ import logging
 from datetime import date
 from typing import Optional
 
+from app.utils.time_utils import utcnow
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -68,6 +70,7 @@ class BinderService(BinderListService):
         old_status = binder.status.value
         updated = self.binder_repo.update_status(
             binder_id, BinderStatus.READY_FOR_PICKUP, binder=binder,
+            ready_for_pickup_at=utcnow(),
         )
 
         self.status_log_repo.append(

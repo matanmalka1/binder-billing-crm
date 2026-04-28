@@ -133,3 +133,6 @@ class VatWorkItemQueryRepository:
 
     def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
         return extra_queries.list_not_filed_for_period(self.db, period, limit)
+
+    def list_open_up_to_period(self, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
+        return extra_queries.list_open_up_to_period(self.db, up_to_period, limit)

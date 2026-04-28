@@ -1,9 +1,12 @@
+import datetime as _dt
 from typing import Optional
 
 from sqlalchemy import func as sa_func
 
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+
+_FILED_STATUSES = {VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED, VatWorkItemStatus.ARCHIVED}
 
 
 def sum_net_vat_by_client_record_year(db, client_record_id: int, tax_year: int) -> Optional[float]:
@@ -28,6 +31,21 @@ def list_not_filed_for_period(db, period: str, limit: int = 3) -> list[VatWorkIt
             VatWorkItem.deleted_at.is_(None),
         )
         .order_by(VatWorkItem.created_at.asc())
+        .limit(limit)
+        .all()
+    )
+
+
+def list_open_up_to_period(db, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
+    """Return all open (non-filed/canceled/archived) VAT items with period <= up_to_period."""
+    return (
+        db.query(VatWorkItem)
+        .filter(
+            VatWorkItem.period <= up_to_period,
+            VatWorkItem.status.notin_(list(_FILED_STATUSES)),
+            VatWorkItem.deleted_at.is_(None),
+        )
+        .order_by(VatWorkItem.period.asc())
         .limit(limit)
         .all()
     )

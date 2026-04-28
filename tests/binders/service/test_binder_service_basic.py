@@ -107,5 +107,6 @@ def test_mark_ready_bulk_marks_only_eligible_binders(test_db, test_user):
 
     assert [binder.id for binder in updated] == [eligible.id]
     assert service.get_binder(eligible.id).status == BinderStatus.READY_FOR_PICKUP
+    assert service.get_binder(eligible.id).ready_for_pickup_at is not None
     assert service.get_binder(too_new.id).status == BinderStatus.CLOSED_IN_OFFICE
     assert service.get_binder(returned.id).status == BinderStatus.RETURNED

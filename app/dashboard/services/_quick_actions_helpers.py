@@ -1,19 +1,20 @@
-"""Shared helpers and per-category builders for dashboard quick actions."""
-
+"""Per-category builders for dashboard quick actions."""
 from __future__ import annotations
 
 import datetime as _dt
 from datetime import date, timezone
 from typing import Optional
 
-from app.actions.action_contracts import build_action, get_binder_actions
+from app.actions.action_helpers import build_action, build_confirm
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
-from app.binders.models.binder import BinderStatus
+from app.annual_reports.repositories.report_lifecycle_repository import DASHBOARD_FINAL_STATUSES
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.repositories.client_record_read_repository import get_full_record
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_read_repository import get_full_record
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.notification.models.notification import NotificationTrigger
+from app.notification.repositories.notification_repository import NotificationRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _MONTH_HE = {
@@ -21,23 +22,29 @@ _MONTH_HE = {
     5: "מאי", 6: "יוני", 7: "יולי", 8: "אוגוסט",
     9: "ספטמבר", 10: "אוקטובר", 11: "נובמבר", 12: "דצמבר",
 }
-_STATUS_LABEL_HE = {
+_ANNUAL_STATUS_LABEL_HE = {
+    AnnualReportStatus.NOT_STARTED: "טרם החל",
+    AnnualReportStatus.COLLECTING_DOCS: "איסוף מסמכים",
+    AnnualReportStatus.DOCS_COMPLETE: "מסמכים מלאים",
+    AnnualReportStatus.IN_PREPARATION: "בהכנה",
     AnnualReportStatus.PENDING_CLIENT: "ממתין לאישור לקוח",
-    AnnualReportStatus.COLLECTING_DOCS: "מאסף מסמכים",
+    AnnualReportStatus.AMENDED: "בתיקון",
+    AnnualReportStatus.ASSESSMENT_ISSUED: "שומה הוצאה",
+    AnnualReportStatus.OBJECTION_FILED: "השגה הוגשה",
 }
 
-CATEGORY_ORDER = {"binders": 0, "vat": 1, "annual_reports": 2}
+CATEGORY_ORDER = {"vat": 0, "annual_reports": 1, "binders": 2}
+
+_BINDER_PICKUP_OVERDUE_DAYS = 30
+_BINDER_REMINDER_COOLDOWN_DAYS = 5
+_ANNUAL_PENDING_CLIENT_DAYS = 3
+_ANNUAL_REMINDER_COOLDOWN_DAYS = 2
+_UPCOMING_WINDOW_DAYS = 7
+_VAT_UPCOMING_DAY_OF_MONTH = 8  # show upcoming from day 8 (7 days before deadline on 15th)
+_VAT_DEADLINE_DAY = 15
 
 
-def enrich(action: dict, category: str, due_label: Optional[str] = None) -> dict:
-    action["category"] = category
-    if due_label:
-        action["due_label"] = due_label
-    return action
-
-
-def period_label(period: str) -> str:
-    """Convert '2026-01' → 'ינואר 2026'."""
+def _period_label(period: str) -> str:
     try:
         year, month = period.split("-")
         return f"{_MONTH_HE.get(int(month), month)} {year}"
@@ -45,64 +52,47 @@ def period_label(period: str) -> str:
         return period
 
 
-def days_since(d: date) -> int:
-    return max(0, (date.today() - d).days)
+def _enrich(action: dict, category: str, urgency: str, due_date: date, due_label: str) -> dict:
+    action["category"] = category
+    action["urgency"] = urgency
+    action["due_date"] = due_date.isoformat()
+    action["due_label"] = due_label
+    return action
 
 
-def build_binder_actions(binder_repo: BinderRepository, business_repo: BusinessRepository) -> list[dict]:
-    """Return only overdue binder quick actions."""
-    binders = binder_repo.list_active()
-    overdue_ready = overdue_return = None
-
-    for binder in binders:
-        binder_acts = get_binder_actions(binder)
-        d = days_since(binder.period_start) if binder.period_start else 0
-        if d <= 90:
-            continue
-
-        if binder.status in (BinderStatus.IN_OFFICE, BinderStatus.IN_OFFICE.value):
-            act = next((a for a in binder_acts if a["key"] == "ready"), None)
-            if act and overdue_ready is None:
-                overdue_ready = (binder, act, d)
-
-        if binder.status in (BinderStatus.READY_FOR_PICKUP, BinderStatus.READY_FOR_PICKUP.value):
-            act = next((a for a in binder_acts if a["key"] == "return"), None)
-            if act and overdue_return is None:
-                overdue_return = (binder, act, d)
-
-        if overdue_ready and overdue_return:
-            break
-
-    result: list[dict] = []
-    for candidate in [overdue_ready, overdue_return]:
-        if candidate is None:
-            continue
-        binder, action, d = candidate
-        record = ClientRecordRepository(business_repo.db).get_by_id(binder.client_record_id)
-        businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1) if record else []
-        business = businesses[0] if businesses else None
-        action["client_name"] = business.full_name if business else None
-        action["binder_number"] = binder.binder_number
-        label = f"פג תוקף לפני {d - 90} ימים"
-        enrich(action, "binders", label)
-        result.append(action)
-    return result
+def _client_name(db, client_record_id: int, business_repo: BusinessRepository) -> Optional[str]:
+    record = ClientRecordRepository(business_repo.db).get_by_id(client_record_id)
+    if not record:
+        return None
+    client = get_full_record(db, client_record_id)
+    return client["full_name"] if client else None
 
 
 def build_vat_actions(
     vat_repo: VatWorkItemRepository,
     business_repo: BusinessRepository,
-    current_period: str,
+    today: date,
 ) -> list[dict]:
-    items = vat_repo.list_not_filed_for_period(current_period, limit=3)
-    plabel = period_label(current_period)
-    cr_repo = ClientRecordRepository(business_repo.db)
+    current_period = today.strftime("%Y-%m")
+    items = vat_repo.list_open_up_to_period(current_period)
     result: list[dict] = []
+
     for item in items:
-        record = cr_repo.get_by_id(item.client_record_id)
-        if not record:
+        year, month = item.period.split("-")
+        deadline = date(int(year), int(month), _VAT_DEADLINE_DAY)
+
+        if deadline < today:
+            urgency = "overdue"
+            days_overdue = (today - deadline).days
+            due_label = f"באיחור של {days_overdue} ימים · {_period_label(item.period)}"
+        elif today.day >= _VAT_UPCOMING_DAY_OF_MONTH and item.period == current_period:
+            urgency = "upcoming"
+            days_left = (deadline - today).days
+            due_label = f"{days_left} ימים לדדליין · {_period_label(item.period)}"
+        else:
             continue
-        client = get_full_record(business_repo.db, item.client_record_id)
+
+        client_name = _client_name(business_repo.db, item.client_record_id, business_repo)
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
@@ -110,28 +100,79 @@ def build_vat_actions(
             endpoint=f"/client-records/{item.client_record_id}/vat",
             action_id=f"vat-{item.id}-navigate",
         )
-        action["client_name"] = client["full_name"] if client else None
-        enrich(action, "vat", f"תקופה: {plabel}")
+        action["client_name"] = client_name
+        _enrich(action, "vat", urgency, deadline, due_label)
         result.append(action)
+
     return result
 
 
 def build_annual_report_actions(
     annual_report_repo: AnnualReportRepository,
     business_repo: BusinessRepository,
+    notification_repo: NotificationRepository,
+    today: date,
 ) -> list[dict]:
-    stuck = annual_report_repo.list_stuck_reports(stale_days=7, limit=3)
-    cr_repo = ClientRecordRepository(business_repo.db)
+    reports = annual_report_repo.list_for_dashboard()
+    now_utc = _dt.datetime.now(timezone.utc)
     result: list[dict] = []
-    for report in stuck:
-        record = cr_repo.get_by_id(report.client_record_id)
+
+    for report in reports:
+        deadline_dt = report.filing_deadline
+        if not deadline_dt:
+            continue
+        deadline = deadline_dt.date() if hasattr(deadline_dt, "date") else deadline_dt
+        days_to_deadline = (deadline - today).days
+
+        if days_to_deadline < 0:
+            urgency = "overdue"
+            days_overdue = abs(days_to_deadline)
+            due_label = f"באיחור של {days_overdue} ימים · {report.tax_year}"
+        elif days_to_deadline <= _UPCOMING_WINDOW_DAYS:
+            urgency = "upcoming"
+            due_label = f"{days_to_deadline} ימים לדדליין · {report.tax_year}"
+        else:
+            continue
+
+        record = ClientRecordRepository(business_repo.db).get_by_id(report.client_record_id)
         if not record:
             continue
         businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1)
         business = businesses[0] if businesses else None
-        status_label = _STATUS_LABEL_HE.get(report.status, str(report.status))
-        updated = report.updated_at.replace(tzinfo=timezone.utc)
-        stale_days = (_dt.datetime.now(timezone.utc) - updated).days
+        client_name = business.full_name if business else None
+
+        is_pending_client = report.status == AnnualReportStatus.PENDING_CLIENT
+        pending_days = 0
+        if is_pending_client:
+            pending_days = (now_utc - report.updated_at.replace(tzinfo=timezone.utc)).days
+
+        if is_pending_client and pending_days >= _ANNUAL_PENDING_CLIENT_DAYS:
+            last_reminder = notification_repo.get_last_for_annual_report_trigger(
+                report.id, NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
+            )
+            cooldown_ok = (
+                not last_reminder or
+                (now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)).days >= _ANNUAL_REMINDER_COOLDOWN_DAYS
+            )
+            if cooldown_ok:
+                action = build_action(
+                    key="annual_report_client_reminder",
+                    label="שלח תזכורת לאישור",
+                    method="post",
+                    endpoint=f"/api/v1/annual-reports/{report.id}/client-reminder",
+                    action_id=f"annual-{report.id}-reminder",
+                    confirm=build_confirm(
+                        title="שליחת תזכורת ללקוח",
+                        message=f"לשלוח תזכורת ל{client_name or 'לקוח'} לאישור הדוח השנתי לשנת {report.tax_year}?",
+                        confirm_label="שלח",
+                    ),
+                )
+                action["client_name"] = client_name
+                _enrich(action, "annual_reports", urgency, deadline, due_label)
+                result.append(action)
+                continue
+
+        status_label = _ANNUAL_STATUS_LABEL_HE.get(report.status, str(report.status))
         action = build_action(
             key="annual_report_navigate",
             label="פתח דוח שנתי",
@@ -139,7 +180,55 @@ def build_annual_report_actions(
             endpoint=f"/client-records/{report.client_record_id}/annual-reports",
             action_id=f"annual-{report.id}-navigate",
         )
-        action["client_name"] = business.full_name if business else None
-        enrich(action, "annual_reports", f"{status_label} · {stale_days} ימים")
+        action["client_name"] = client_name
+        _enrich(action, "annual_reports", urgency, deadline, f"{status_label} · {due_label}")
         result.append(action)
+
+    return result
+
+
+def build_binder_actions(
+    binder_repo: BinderRepository,
+    business_repo: BusinessRepository,
+    notification_repo: NotificationRepository,
+) -> list[dict]:
+    binders = binder_repo.list_overdue_pickup(_BINDER_PICKUP_OVERDUE_DAYS)
+    now_utc = _dt.datetime.now(timezone.utc)
+    result: list[dict] = []
+
+    for binder in binders:
+        last_reminder = notification_repo.get_last_for_binder_trigger(
+            binder.id, NotificationTrigger.PICKUP_REMINDER
+        )
+        if last_reminder:
+            days_since = (now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)).days
+            if days_since < _BINDER_REMINDER_COOLDOWN_DAYS:
+                continue
+
+        record = ClientRecordRepository(business_repo.db).get_by_id(binder.client_record_id)
+        businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1) if record else []
+        business = businesses[0] if businesses else None
+        client_name = business.full_name if business else None
+
+        days_waiting = int((now_utc - binder.ready_for_pickup_at.replace(tzinfo=timezone.utc)).days)
+        due_date = binder.ready_for_pickup_at.date()
+        due_label = f"ממתין לאיסוף {days_waiting} ימים"
+
+        action = build_action(
+            key="binder_pickup_reminder",
+            label="שלח תזכורת איסוף",
+            method="post",
+            endpoint=f"/api/v1/binders/{binder.id}/pickup-reminder",
+            action_id=f"binder-{binder.id}-pickup-reminder",
+            confirm=build_confirm(
+                title="שליחת תזכורת איסוף",
+                message=f"לשלוח תזכורת ל{client_name or 'לקוח'} לאסוף את קלסר {binder.binder_number}?",
+                confirm_label="שלח",
+            ),
+        )
+        action["client_name"] = client_name
+        action["binder_number"] = binder.binder_number
+        _enrich(action, "binders", "overdue", due_date, due_label)
+        result.append(action)
+
     return result

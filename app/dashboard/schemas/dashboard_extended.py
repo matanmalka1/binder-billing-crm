@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -21,7 +22,9 @@ class DashboardQuickAction(BaseModel):
     client_name: Optional[str] = None
     binder_number: Optional[str] = None
     category: Optional[str] = None  # "binders" | "vat" | "annual_reports"
-    due_label: Optional[str] = None  # e.g. "פג תוקף לפני 3 ימים"
+    due_label: Optional[str] = None
+    urgency: Optional[Literal["overdue", "upcoming"]] = None
+    due_date: Optional[date] = None
 
 
 class AttentionItem(BaseModel):

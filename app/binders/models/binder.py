@@ -53,6 +53,9 @@ class Binder(Base):
         nullable=False,
     )
 
+    # When the binder was marked ready for pickup (used for overdue pickup detection).
+    ready_for_pickup_at = Column(DateTime, nullable=True)
+
     # When the client actually picked up the binder.
     returned_at = Column(Date, nullable=True)
 

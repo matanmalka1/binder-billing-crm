@@ -11,6 +11,12 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
 
+DASHBOARD_FINAL_STATUSES = frozenset({
+    AnnualReportStatus.SUBMITTED,
+    AnnualReportStatus.ACCEPTED,
+    AnnualReportStatus.CLOSED,
+})
+
 
 class AnnualReportLifecycleRepository:
     def list_overdue(self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
@@ -64,6 +70,20 @@ class AnnualReportLifecycleRepository:
                 AnnualReport.updated_at <= cutoff,
             )
             .order_by(AnnualReport.updated_at.asc())
+            .limit(limit)
+            .all()
+        )
+
+    def list_for_dashboard(self, limit: int = 50) -> list[AnnualReport]:
+        """Return non-final reports with a filing_deadline set, ordered by deadline asc."""
+        return (
+            self.db.query(AnnualReport)
+            .filter(
+                AnnualReport.status.notin_(list(DASHBOARD_FINAL_STATUSES)),
+                AnnualReport.filing_deadline.isnot(None),
+                AnnualReport.deleted_at.is_(None),
+            )
+            .order_by(AnnualReport.filing_deadline.asc())
             .limit(limit)
             .all()
         )

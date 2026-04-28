@@ -1,3 +1,4 @@
+import datetime as _dt
 from datetime import date
 from typing import Optional
 
@@ -298,6 +299,23 @@ class BinderRepository(BaseRepository):
         if rows:
             self.db.flush()
         return len(rows)
+
+    def list_overdue_pickup(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
+        """Return READY_FOR_PICKUP binders where ready_for_pickup_at is older than overdue_days."""
+        from datetime import timezone as _tz
+        cutoff = utcnow() - _dt.timedelta(days=overdue_days)
+        return (
+            self.db.query(Binder)
+            .filter(
+                Binder.status == BinderStatus.READY_FOR_PICKUP,
+                Binder.ready_for_pickup_at.isnot(None),
+                Binder.ready_for_pickup_at <= cutoff,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(Binder.ready_for_pickup_at.asc())
+            .limit(limit)
+            .all()
+        )
 
     def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
         """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
