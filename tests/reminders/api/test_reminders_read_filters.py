@@ -95,6 +95,38 @@ def test_invalid_status_filter_returns_400(client, advisor_headers):
     assert resp.json()["error"] == "REMINDER.INVALID_STATUS"
 
 
+def test_ready_due_filter_returns_only_due_pending(client, test_db, advisor_headers, test_user):
+    crm_client = _client(test_db)
+    business = _business(test_db, crm_client, test_user.id)
+    repo = ReminderRepository(test_db)
+    due = repo.create(
+        client_record_id=crm_client.id,
+        business_id=business.id,
+        reminder_type=ReminderType.CUSTOM,
+        target_date=date.today(),
+        days_before=0,
+        send_on=date.today(),
+        message="Due now",
+    )
+    repo.create(
+        client_record_id=crm_client.id,
+        business_id=business.id,
+        reminder_type=ReminderType.CUSTOM,
+        target_date=date.today() + timedelta(days=7),
+        days_before=0,
+        send_on=date.today() + timedelta(days=7),
+        message="Future",
+    )
+
+    resp = client.get(
+        "/api/v1/reminders?status=pending&due=ready&page=1&page_size=10",
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 200
+    assert [item["id"] for item in resp.json()["items"]] == [due.id]
+
+
 def test_get_reminder_not_found_returns_404(client, advisor_headers):
     resp = client.get("/api/v1/reminders/999", headers=advisor_headers)
     assert resp.status_code == 404

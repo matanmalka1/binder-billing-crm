@@ -23,6 +23,7 @@ def list_reminders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
+    due: Optional[str] = Query(None),
     business_id: Optional[int] = Query(None),
     client_record_id: Optional[int] = Query(None),
 ):
@@ -37,7 +38,9 @@ def list_reminders(
             client_record_id=client_record_id, page=page, page_size=page_size
         )
     else:
-        items, total, context_map = service.get_reminders(status=status_filter, page=page, page_size=page_size)
+        items, total, context_map = service.get_reminders(
+            status=status_filter, due=due, page=page, page_size=page_size
+        )
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)

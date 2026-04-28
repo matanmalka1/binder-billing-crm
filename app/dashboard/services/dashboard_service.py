@@ -1,4 +1,3 @@
-from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -12,6 +11,7 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
+from app.utils.time_utils import israel_today
 
 
 class DashboardService:
@@ -27,7 +27,7 @@ class DashboardService:
         self.vat_stats_service = VatDashboardStatsService(db)
 
     def get_summary(self, user_role: Optional[UserRole] = None) -> dict:
-        today = date.today()
+        today = israel_today()
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
         return {
             "total_clients": self.business_repo.count(),

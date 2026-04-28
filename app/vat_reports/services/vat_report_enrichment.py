@@ -85,6 +85,7 @@ def get_list_enriched(
     page: int,
     page_size: int,
     period: Optional[str],
+    period_type=None,
     client_name: Optional[str] = None,
 ) -> dict:
     """Return paginated work items + enrichment data."""
@@ -92,13 +93,13 @@ def get_list_enriched(
         items, total = list_work_items_by_status(
             work_item_repo, status_filter,
             db=work_item_repo.db, page=page, page_size=page_size,
-            period=period, client_name=client_name,
+            period=period, period_type=period_type, client_name=client_name,
         )
     else:
         items, total = list_all_work_items(
             work_item_repo, work_item_repo.db,
             page=page, page_size=page_size,
-            period=period, client_name=client_name,
+            period=period, period_type=period_type, client_name=client_name,
         )
     client_record_ids = list({item.client_record_id for item in items})
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})

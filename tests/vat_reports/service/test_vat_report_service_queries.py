@@ -78,5 +78,39 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     early.performed_at = now - timedelta(minutes=1)
     test_db.commit()
 
-    trail = service.get_audit_trail(older.id)
-    assert [entry.action for entry in trail] == ["early", "late"]
+    trail = service.get_audit_trail(older.id, limit=25, offset=0)
+    assert {entry.action for entry in trail} == {"early", "late"}
+
+
+def test_list_work_items_filters_by_period_type(test_db):
+    user = _user(test_db)
+    _, monthly_client_id = _business(test_db)
+    legal_entity = LegalEntity(
+        official_name="VAT Query Client 2",
+        id_number="VQS002",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    test_db.add(legal_entity)
+    test_db.commit()
+    client_record = ClientRecord(legal_entity_id=legal_entity.id)
+    test_db.add(client_record)
+    test_db.commit()
+
+    service = VatReportService(test_db)
+    monthly = service.work_item_repo.create(
+        client_record_id=monthly_client_id,
+        period="2026-02",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+    service.work_item_repo.create(
+        client_record_id=client_record.id,
+        period="2026-02",
+        period_type=VatType.BIMONTHLY,
+        created_by=user.id,
+    )
+
+    items, total = service.list_all_work_items(period="2026-02", period_type=VatType.MONTHLY)
+
+    assert total == 1
+    assert items[0].id == monthly.id

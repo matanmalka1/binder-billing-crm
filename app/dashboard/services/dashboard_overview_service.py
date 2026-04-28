@@ -16,6 +16,7 @@ from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRep
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
+from app.utils.time_utils import israel_today
 
 
 class DashboardOverviewService:
@@ -39,7 +40,7 @@ class DashboardOverviewService:
         user_role: Optional[UserRole] = None,
     ) -> dict:
         if reference_date is None:
-            reference_date = date.today()
+            reference_date = israel_today()
 
         current_period = reference_date.strftime("%Y-%m")
         attention_items = self.extended_service.get_attention_items(user_role=user_role)

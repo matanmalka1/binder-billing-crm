@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from zoneinfo import ZoneInfo
+
+ISRAEL_TZ = ZoneInfo("Asia/Jerusalem")
 
 
 def utcnow() -> datetime:
@@ -24,3 +27,6 @@ def utcnow_aware() -> datetime:
 
     return datetime.now(UTC)
 
+
+def israel_today() -> date:
+    return datetime.now(ISRAEL_TZ).date()

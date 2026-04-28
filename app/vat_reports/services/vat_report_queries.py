@@ -1,12 +1,10 @@
-"""Query helpers for VAT work items and invoices."""
-
 import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.common.enums import SubmissionMethod
+from app.common.enums import SubmissionMethod, VatType
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
@@ -18,7 +16,6 @@ from app.vat_reports.services.constants import (
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
-
 def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
@@ -96,6 +93,7 @@ def list_work_items_by_status(
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
+    period_type: Optional[VatType] = None,
     client_repo=None,
 ):
     search_source = db or getattr(client_repo, "db", None)
@@ -105,10 +103,11 @@ def list_work_items_by_status(
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
+        status, page=page, page_size=page_size, period=period,
+        client_record_ids=client_record_ids, period_type=period_type,
     )
     total = work_item_repo.count_by_status(
-        status, period=period, client_record_ids=client_record_ids
+        status, period=period, client_record_ids=client_record_ids, period_type=period_type,
     )
     return items, total
 
@@ -119,6 +118,7 @@ def list_all_work_items(
     page_size: int = 50,
     period: Optional[str] = None,
     client_name: Optional[str] = None,
+    period_type: Optional[VatType] = None,
     client_repo=None,
 ):
     search_source = db or getattr(client_repo, "db", None)
@@ -128,9 +128,12 @@ def list_all_work_items(
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period, client_record_ids=client_record_ids
+        page=page, page_size=page_size, period=period,
+        client_record_ids=client_record_ids, period_type=period_type,
     )
-    total = work_item_repo.count_all(period=period, client_record_ids=client_record_ids)
+    total = work_item_repo.count_all(
+        period=period, client_record_ids=client_record_ids, period_type=period_type,
+    )
     return items, total
 
 def list_invoices(

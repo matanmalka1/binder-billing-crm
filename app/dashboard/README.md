@@ -82,6 +82,11 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
 - Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
+- Dashboard stat card links deep-link to their matching filtered list views:
+  - active clients: `/clients?status=active`
+  - binders in office: `/binders?status=in_office`
+  - monthly/bimonthly VAT: `/tax/vat?period=YYYY-MM&period_type=...`
+  - ready reminders: `/reminders?status=pending&due=ready`
 - Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
 - Attention is computed from active binders and their statuses.
 - Advisor-only attention enrichment includes unpaid issued charges.

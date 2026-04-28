@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.common.enums import VatType
 from app.vat_reports.api.serializers import serialize_enriched_work_item
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.schemas.vat_audit import VatAuditLogResponse, VatAuditTrailResponse
@@ -109,13 +110,14 @@ def list_work_items(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
     period: Optional[str] = Query(None),
+    period_type: Optional[VatType] = Query(None),
     client_name: Optional[str] = Query(None),
 ):
     """List work items filtered by status with pagination."""
     service = VatReportService(db)
     enriched = service.get_list_enriched(
         status_filter=status_filter, page=page, page_size=page_size,
-        period=period, client_name=client_name,
+        period=period, period_type=period_type, client_name=client_name,
     )
     items = [
         serialize_enriched_work_item(
