@@ -6,6 +6,7 @@ from app.dashboard.schemas.dashboard_extended import AttentionResponse, VatDashb
 class DashboardSummaryResponse(BaseModel):
     total_clients: int
     active_clients: int
+    active_binders: int
     binders_in_office: int
     binders_ready_for_pickup: int
     open_reminders: int = 0

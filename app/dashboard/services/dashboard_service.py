@@ -30,8 +30,9 @@ class DashboardService:
         today = israel_today()
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
         return {
-            "total_clients": self.business_repo.count(),
+            "total_clients": self.client_record_repo.count(),
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
+            "active_binders": self.binder_repo.count_active(),
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(
                 BinderStatus.READY_FOR_PICKUP

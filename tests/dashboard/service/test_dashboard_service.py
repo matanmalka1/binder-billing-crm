@@ -27,13 +27,17 @@ def test_get_summary_counts_statuses_and_attention(monkeypatch, test_db, test_us
     _binder(test_db, client.id, test_user.id, "D-002", BinderStatus.READY_FOR_PICKUP)
 
     service = DashboardService(test_db)
-    monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 1)
+    monkeypatch.setattr(
+        service.client_record_repo,
+        "count",
+        lambda **kwargs: 1 if kwargs.get("status") else 3,
+    )
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 2)
     monkeypatch.setattr(service.extended_service, "get_attention_items", lambda user_role=None: [{"id": 1}])
 
     summary = service.get_summary()
 
-    assert summary["total_clients"] == 2
+    assert summary["total_clients"] == 3
     assert summary["active_clients"] == 1
     assert summary["binders_in_office"] == 1
     assert summary["binders_ready_for_pickup"] == 1
