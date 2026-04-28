@@ -122,7 +122,7 @@ class SeedCoverageValidator:
             int(fk_id): int(count)
             for fk_id, count in db.execute(
                 select(TaxDeadline.client_record_id, func.count())
-                .where(TaxDeadline.deadline_type != "advance_payment")
+                .where(TaxDeadline.deadline_type.notin_(["advance_payment", "annual_report"]))
                 .group_by(TaxDeadline.client_record_id)
             ).all()
             if fk_id is not None

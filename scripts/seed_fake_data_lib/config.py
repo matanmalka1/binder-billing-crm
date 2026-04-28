@@ -81,7 +81,7 @@ def parse_args() -> SeedConfig:
     parser.add_argument(
         "--max-tax-deadlines-per-client",
         type=int,
-        default=5,
+        default=8,
         help="Maximum tax deadlines seeded per client",
     )
     parser.add_argument(

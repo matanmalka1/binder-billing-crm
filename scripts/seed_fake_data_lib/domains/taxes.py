@@ -193,12 +193,62 @@ def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> Non
             deadlines.append(deadline)
         db.flush()
 
+    _ensure_upcoming_window_coverage(db, deadlines, businesses)
+
     present_statuses = {deadline.status for deadline in deadlines}
     if TaxDeadlineStatus.CANCELED not in present_statuses and deadlines:
         canceled_deadline = deadlines[0]
         canceled_deadline.status = TaxDeadlineStatus.CANCELED
         canceled_deadline.completed_at = None
         canceled_deadline.completed_by = None
+
+
+def _ensure_upcoming_window_coverage(db, deadlines: list, businesses) -> None:
+    """Guarantee at least one PENDING deadline of each type within the next 14 days."""
+    today = date.today()
+    window_end = _add_months(today, 1)
+    present_in_window = {
+        d.deadline_type
+        for d in deadlines
+        if d.status == TaxDeadlineStatus.PENDING and today <= d.due_date <= window_end
+    }
+    needed = [
+        TaxDeadlineType.VAT,
+        TaxDeadlineType.NATIONAL_INSURANCE,
+    ]
+    fallback_business = businesses[0]
+    existing_periods = {
+        (d.client_record_id, d.deadline_type, d.period)
+        for d in deadlines
+        if d.period
+    }
+    for dtype in needed:
+        if dtype in present_in_window:
+            continue
+        # Find the next statutory due_date on or after today
+        for offset in range(0, 3):
+            anchor = _add_months(today, offset)
+            due_date = _statutory_due_date(dtype, anchor)
+            if due_date < today:
+                continue
+            period = f"{due_date.year}-{due_date.month:02d}"
+            if (fallback_business.client_id, dtype, period) in existing_periods:
+                continue
+            dl = TaxDeadline(
+                client_record_id=fallback_business.client_id,
+                deadline_type=dtype,
+                period=period,
+                due_date=due_date,
+                status=TaxDeadlineStatus.PENDING,
+                payment_amount=Decimal("1000.00"),
+                description=f"תזכורת עבור {DEADLINE_LABELS.get(dtype, 'מועד מס')}",
+                created_at=datetime.now(UTC),
+            )
+            dl.client_id = fallback_business.client_id
+            db.add(dl)
+            deadlines.append(dl)
+            break
+    db.flush()
 
 
 def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
