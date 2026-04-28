@@ -40,7 +40,6 @@ class DeadlineType(str, PyEnum):
     ADVANCE_PAYMENT    = "advance_payment"
     NATIONAL_INSURANCE = "national_insurance"
     ANNUAL_REPORT      = "annual_report"
-    OTHER              = "other"
 
 
 class TaxDeadlineStatus(str, PyEnum):

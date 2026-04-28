@@ -11,7 +11,6 @@ DEADLINE_TYPE_LABELS: Dict[str, str] = {
     "advance_payment": "מועד מקדמות מתקרב",
     "national_insurance": "מועד ביטוח לאומי מתקרב",
     "annual_report": "מועד דוח שנתי מתקרב",
-    "other": "מועד מס מתקרב",
 }
 
 

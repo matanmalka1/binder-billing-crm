@@ -21,8 +21,8 @@ def test_list_pending_due_by_date_filters_completed_deleted_and_window(test_db):
         due_date=base + timedelta(days=4),
     )
 
-    repo.create(client_record_id=business.client_id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=1))
-    repo.create(client_record_id=business.client_id, deadline_type=DeadlineType.OTHER, due_date=base + timedelta(days=6))
+    repo.create(client_record_id=business.client_id, deadline_type=DeadlineType.NATIONAL_INSURANCE, due_date=base + timedelta(days=1))
+    repo.create(client_record_id=business.client_id, deadline_type=DeadlineType.NATIONAL_INSURANCE, due_date=base + timedelta(days=6))
 
     completed = repo.create(
         client_record_id=business.client_id,

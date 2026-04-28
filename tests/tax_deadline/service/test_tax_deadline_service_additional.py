@@ -37,8 +37,8 @@ def test_upcoming_overdue_name_search_and_summary(test_db):
     overdue = writer.create_deadline(business.client_id, DeadlineType.VAT, today - timedelta(days=1))
     red = writer.create_deadline(business.client_id, DeadlineType.ADVANCE_PAYMENT, today + timedelta(days=1))
     yellow = writer.create_deadline(business.client_id, DeadlineType.ANNUAL_REPORT, today + timedelta(days=5))
-    green = writer.create_deadline(business.client_id, DeadlineType.OTHER, today + timedelta(days=20))
-    other_due = writer.create_deadline(other.client_id, DeadlineType.OTHER, today + timedelta(days=3))
+    green = writer.create_deadline(business.client_id, DeadlineType.NATIONAL_INSURANCE, today + timedelta(days=20))
+    other_due = writer.create_deadline(other.client_id, DeadlineType.NATIONAL_INSURANCE, today + timedelta(days=3))
 
     upcoming = service.get_upcoming_deadlines(days_ahead=7, reference_date=today)
     assert {d.id for d in upcoming} == {red.id, yellow.id, other_due.id}

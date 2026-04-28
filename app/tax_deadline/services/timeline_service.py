@@ -12,7 +12,6 @@ _MILESTONE_LABELS: dict[str, str] = {
     "advance_payment":    "תשלום מקדמה",
     "annual_report":      "הגשת דוח שנתי",
     "national_insurance": "תשלום ביטוח לאומי",
-    "other":              "מועד אחר",
 }
 
 

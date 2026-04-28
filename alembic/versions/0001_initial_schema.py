@@ -759,7 +759,7 @@ def upgrade() -> None:
     op.create_table('tax_deadlines',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('client_record_id', sa.Integer(), nullable=False),
-    sa.Column('deadline_type', app.utils.enum_utils._NormalizedEnum('vat', 'advance_payment', 'national_insurance', 'annual_report', 'other', name='deadlinetype'), nullable=False),
+    sa.Column('deadline_type', app.utils.enum_utils._NormalizedEnum('vat', 'advance_payment', 'national_insurance', 'annual_report', name='deadlinetype'), nullable=False),
     sa.Column('period', sa.String(length=7), nullable=True),
     sa.Column('tax_year', sa.Integer(), nullable=True),
     sa.Column('due_date', sa.Date(), nullable=False),

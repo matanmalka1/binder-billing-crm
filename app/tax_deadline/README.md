@@ -38,7 +38,6 @@ Deadline type enum values:
 - `advance_payment`
 - `national_insurance`
 - `annual_report`
-- `other`
 
 Urgency levels (derived, not persisted):
 - `green`

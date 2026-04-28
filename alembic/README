@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0002_remove_permanent_document_notes.py`.
+- Current head is `0005_remove_other_tax_deadline_type.py`.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,7 +82,17 @@ Notes:
 
 ## Migration chain
 
-`0002_remove_permanent_document_notes` is the current head.
+`0005_remove_other_tax_deadline_type` is the current head.
+
+### 0005_remove_other_tax_deadline_type
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes `other` from the tax deadline type enum.
+- Notes:
+  Existing `other` tax deadlines are normalized to `national_insurance` before the PostgreSQL enum is rebuilt.
+  SQLite test databases only run the data normalization step.
 
 ### 0002_remove_permanent_document_notes
 

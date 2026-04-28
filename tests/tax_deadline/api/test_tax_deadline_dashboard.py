@@ -32,7 +32,7 @@ def _seed_deadlines(db):
         ),
         TaxDeadline(
             client_record_id=business_c.client_id,
-            deadline_type=DeadlineType.OTHER,
+            deadline_type=DeadlineType.NATIONAL_INSURANCE,
             due_date=today + timedelta(days=10),
             payment_amount=Decimal("400.00"),
         ),
