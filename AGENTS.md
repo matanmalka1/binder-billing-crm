@@ -197,6 +197,60 @@ All endpoints that return sensitive data scope queries by `business_id` or perfo
 
 ---
 
+## tax_rules_config — Single Source of Truth for Israeli Tax Rules
+
+Location: `tax_rules_config/` (outside `app/`, standalone package).
+
+### Purpose
+Defines all Israeli tax obligations, deadlines, financial constants, and VAT deduction rules.
+The application must read from here — never hardcode tax values in `app/`.
+
+### Entry point
+```python
+from tax_rules_config.app.tax_rules.registry import (
+    get_obligations,        # חובות לפי פרופיל לקוח
+    get_financials,         # קבועים כספיים שנתיים
+    get_periodic_calendar,  # לוח מועדים תקופתי
+    get_effective_periodic_date,  # מועד אפקטיבי כולל overrides
+    get_vat_deduction_rate, # שיעור ניכוי תשומות
+    get_annual_report_rule, # חוק דוח שנתי
+    validate,               # validation על פרופיל לקוח
+)
+```
+
+### Structure
+```
+tax_rules_config/app/tax_rules/
+├── registry.py          — נקודת כניסה אחת (Public API)
+├── types.py             — dataclasses: ObligationScope, RuleVersion, FinancialConstant, ...
+├── sources.py           — מקורות רשמיים + תאריך בדיקה
+├── policy.py            — resolver: ObligationScope → list[ObligationRule]
+├── validations.py       — כללי validation על פרופיל לקוח
+├── vat_deduction.py     — חוקי ניכוי תשומות מע"מ
+├── exceptions.py        — דחיות וoverrides רשמיים לפי שנה/תקופה
+├── financials/
+│   ├── constants_2025.py
+│   └── constants_2026.py
+├── calendars/
+│   ├── calendar_2025.py — מועדי דוחות שנתיים על שנת מס 2025
+│   └── calendar_2026.py — לוח תקופתי + שנתי 2026
+└── obligations/
+    ├── vat.py
+    ├── income_tax.py
+    ├── national_insurance.py
+    ├── withholding.py   — 102, 126, 856
+    └── annual_reports.py — 1301, 1214, 6111, עסק זעיר
+```
+
+### Rules
+- **Never hardcode** tax rates, ceilings, or deadlines in `app/` — always read from `registry.py`.
+- Adding a new tax year = new `calendars/calendar_YYYY.py` + `financials/constants_YYYY.py` + register in `registry.py`.
+- Exceptional deadline overrides go in `exceptions.py`, not in calendar files.
+- Every obligation rule must have `source_ids` pointing to an entry in `sources.py`.
+- Run tests after any change: `cd tax_rules_config && python3 -m pytest tests/ -q`
+
+---
+
 ## Reference Docs in Repo
 
 | File                           | Purpose                                   |
@@ -204,3 +258,4 @@ All endpoints that return sensitive data scope queries by `business_id` or perfo
 | `alembic/versions/`            | Migration history                         |
 | `render.yaml`                  | Production deploy config and env var list |
 | `app/infrastructure/README.md` | Storage + notification adapter details    |
+| `tax_rules_config/`            | Israeli tax rules config — source of truth |

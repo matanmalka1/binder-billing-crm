@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+from .calendars.calendar_2025 import ANNUAL_TAX_AUTHORITY_DUE_DATES_2025
+from .calendars.calendar_2026 import (
+    PERIODIC_TAX_AUTHORITY_DUE_DATES_2026,
+    ANNUAL_TAX_AUTHORITY_DUE_DATES_2026,
+    BTL_MONTHLY_DUE_DAY,
+)
+from .exceptions import (
+    DEADLINE_OVERRIDES_2026,
+    ANNUAL_OVERRIDES_TAX_YEAR_2025,
+    get_override,
+)
+from .financials.constants_2025 import CONSTANTS_2025, NI_BRACKETS_2025
+from .financials.constants_2026 import CONSTANTS_2026, NI_BRACKETS_2026
+from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
+from .policy import resolve_obligation_rules, resolve_annual_report_rule
+from .types import (
+    AnnualReportRule,
+    ClientTaxProfile,
+    DeadlineOverride,
+    FinancialConstant,
+    ObligationRule,
+    RateBracket,
+)
+from .validations import validate_profile
+from .vat_deduction import VAT_DEDUCTION_RULES, VAT_DEDUCTION_RATE_BY_CATEGORY
+
+# ── לוחות מועדים ─────────────────────────────────────────────────────────────
+
+_PERIODIC_CALENDARS: dict[int, dict[str, dict[str, str]]] = {
+    2026: PERIODIC_TAX_AUTHORITY_DUE_DATES_2026,
+}
+
+_ANNUAL_CALENDARS: dict[int, dict[str, dict[str, str]]] = {
+    2025: ANNUAL_TAX_AUTHORITY_DUE_DATES_2025,
+    2026: ANNUAL_TAX_AUTHORITY_DUE_DATES_2026,
+}
+
+# ── קבועים כספיים ─────────────────────────────────────────────────────────────
+
+_FINANCIALS: dict[int, dict[str, FinancialConstant]] = {
+    2025: CONSTANTS_2025,
+    2026: CONSTANTS_2026,
+}
+
+_NI_BRACKETS: dict[int, tuple[RateBracket, ...]] = {
+    2025: NI_BRACKETS_2025,
+    2026: NI_BRACKETS_2026,
+}
+
+# ── overrides ─────────────────────────────────────────────────────────────────
+
+_PERIODIC_OVERRIDES: dict[int, tuple[DeadlineOverride, ...]] = {
+    2026: DEADLINE_OVERRIDES_2026,
+}
+
+_ANNUAL_OVERRIDES: dict[int, tuple[DeadlineOverride, ...]] = {
+    2025: ANNUAL_OVERRIDES_TAX_YEAR_2025,
+}
+
+
+# ── Public API ────────────────────────────────────────────────────────────────
+
+def get_periodic_calendar(year: int) -> dict[str, dict[str, str]]:
+    """לוח מועדים תקופתי (מע״מ, מקדמות, ניכויים) לשנה נתונה."""
+    if year not in _PERIODIC_CALENDARS:
+        raise KeyError(f"אין לוח מועדים תקופתי לשנת {year}. יש להוסיף calendars/calendar_{year}.py")
+    return _PERIODIC_CALENDARS[year]
+
+
+def get_annual_calendar(tax_year: int) -> dict[str, dict[str, str]]:
+    """לוח מועדים שנתי (דוחות שנתיים) לשנת מס נתונה."""
+    if tax_year not in _ANNUAL_CALENDARS:
+        raise KeyError(f"אין לוח מועדים שנתי לשנת מס {tax_year}.")
+    return _ANNUAL_CALENDARS[tax_year]
+
+
+def get_effective_periodic_date(year: int, period: str, column: str) -> str | None:
+    """
+    מחזיר את המועד האפקטיבי לתקופה ועמודה — כולל בדיקת override.
+    period: "YYYY-MM", column: שם עמודת הלוח.
+    """
+    overrides = _PERIODIC_OVERRIDES.get(year, ())
+    override = get_override(period, column, overrides)
+    if override:
+        return override
+    calendar = get_periodic_calendar(year)
+    entry = calendar.get(period, {})
+    return entry.get(column)
+
+
+def get_financials(year: int) -> dict[str, FinancialConstant]:
+    """קבועים כספיים שנתיים (מע״מ, תקרות, נקודת זיכוי)."""
+    if year not in _FINANCIALS:
+        raise KeyError(f"אין קבועים כספיים לשנת {year}.")
+    return _FINANCIALS[year]
+
+
+def get_financial(year: int, key: str) -> FinancialConstant:
+    """קבוע כספי ספציפי לפי שנה ומפתח."""
+    constants = get_financials(year)
+    if key not in constants:
+        raise KeyError(f"קבוע '{key}' לא נמצא לשנת {year}.")
+    return constants[key]
+
+
+def get_ni_brackets(year: int) -> tuple[RateBracket, ...]:
+    """מדרגות ביטוח לאומי לעצמאי לשנה נתונה."""
+    if year not in _NI_BRACKETS:
+        raise KeyError(f"אין מדרגות ביטוח לאומי לשנת {year}.")
+    return _NI_BRACKETS[year]
+
+
+def get_obligations(profile: ClientTaxProfile) -> list[ObligationRule]:
+    """חובות דיווח/תשלום לפי פרופיל לקוח."""
+    return resolve_obligation_rules(profile)
+
+
+def get_annual_report_rule(entity_type: str, tax_year: int) -> dict | None:
+    """חוק דוח שנתי לפי סוג ישות ושנת מס."""
+    return resolve_annual_report_rule(entity_type, tax_year)
+
+
+def get_vat_deduction_rate(category: str) -> float:
+    """שיעור ניכוי תשומות לפי קטגוריה (0.0–1.0). מחזיר 0.0 אם לא נמצא."""
+    return VAT_DEDUCTION_RATE_BY_CATEGORY.get(category, 0.0)
+
+
+def validate(profile: ClientTaxProfile) -> list[str]:
+    """מריץ את כל כללי הvalidation על פרופיל לקוח. רשימה ריקה = תקין."""
+    return validate_profile(profile)
+
+
+def get_btl_due_day() -> int:
+    """מועד תשלום ביטוח לאומי עצמאי — ה-15 בחודש (קבוע חוקי)."""
+    return BTL_MONTHLY_DUE_DAY

@@ -1,0 +1,115 @@
+from __future__ import annotations
+
+from .types import SourceRef
+
+CHECKED_AT = "2026-04-29"
+
+SOURCES: dict[str, SourceRef] = {
+    "tax_authority_2026_calendar": SourceRef(
+        id="tax_authority_2026_calendar",
+        publisher="רשות המסים",
+        title="מועדי הדיווח והתשלום - שנת המס 2026",
+        url="https://www.gov.il/he/pages/pa151025-2",
+        checked_at=CHECKED_AT,
+        note="מקור רשמי ללוח מועדי מע״מ תקופתי, מקדמות מס הכנסה, ניכויים ודוח מע״מ מפורט.",
+    ),
+    "tax_authority_2025_annual_extension": SourceRef(
+        id="tax_authority_2025_annual_extension",
+        publisher="רשות המסים",
+        title="דחיית המועד להגשת הדו״ח השנתי במס הכנסה ליחידים, חברות ומלכ״רים לשנת המס 2025",
+        url="https://www.gov.il/he/pages/pa230426-1",
+        checked_at=CHECKED_AT,
+        note="עדכון חריג לשנת מס 2025. עדכונים כאלה חייבים override לפי tax_year.",
+    ),
+    "tax_authority_individual_2025_1301": SourceRef(
+        id="tax_authority_individual_2025_1301",
+        publisher="רשות המסים",
+        title="דיווח ותשלום - דוח מס שנתי 2025 ליחידים (טופס 1301)",
+        url="https://www.gov.il/he/service/reporting-and-payment-2025-annual-tax-report-for-individuals",
+        checked_at=CHECKED_AT,
+    ),
+    "tax_authority_company_2025_1214": SourceRef(
+        id="tax_authority_company_2025_1214",
+        publisher="רשות המסים",
+        title="דיווח ותשלום - דוח מס שנתי 2025 לחברות (טופס 1214)",
+        url="https://www.gov.il/he/service/reporting-and-payment-annual-tax-report-2025-companies",
+        checked_at=CHECKED_AT,
+    ),
+    "kolzchut_annual_income_tax_report": SourceRef(
+        id="kolzchut_annual_income_tax_report",
+        publisher="כל זכות",
+        title="הגשת דו״ח שנתי למס הכנסה",
+        url="https://www.kolzchut.org.il/he/הגשת_דו%22ח_שנתי_למס_הכנסה",
+        checked_at=CHECKED_AT,
+        note="מקור עזר רשמי-ציבורי להסבר חובת דוח שנתי ודיווח עסק זעיר.",
+    ),
+    "tax_authority_small_business_2025_extension": SourceRef(
+        id="tax_authority_small_business_2025_extension",
+        publisher="רשות המסים",
+        title="אורכה לבעלי עסק זעיר בדיווח השנתי - עד 31/05/2026",
+        url="https://www.gov.il/he/pages/sa240226-2",
+        checked_at=CHECKED_AT,
+    ),
+    "kolzchut_osek_patur": SourceRef(
+        id="kolzchut_osek_patur",
+        publisher="כל זכות",
+        title="עוסק פטור",
+        url="https://www.kolzchut.org.il/he/עוסק_פטור",
+        checked_at=CHECKED_AT,
+        note="כולל הסבר על אי-גביית מע״מ וחובת הצהרת מחזור שנתית.",
+    ),
+    "tax_authority_vat_amounts_2026": SourceRef(
+        id="tax_authority_vat_amounts_2026",
+        publisher="רשות המסים",
+        title="עדכון סכומים ושיעור המע״מ",
+        url="https://www.gov.il/he/pages/vat-rate-amount-new",
+        checked_at=CHECKED_AT,
+        note="מקור לתקרת עוסק פטור, שיעור מע״מ, וחלק מספי הדיווח המתעדכנים.",
+    ),
+    "tax_authority_pcn874": SourceRef(
+        id="tax_authority_pcn874",
+        publisher="רשות המסים",
+        title="דיווח מפורט למע״מ - PCN874",
+        url="https://www.gov.il/he/service/pcn874",
+        checked_at=CHECKED_AT,
+        note="חובת דוח מפורט אינה לפי סוג הישות בלבד; היא תלויה בעיקר בספי מחזור/חובה פרטנית.",
+    ),
+    "btl_self_employed_payment_due": SourceRef(
+        id="btl_self_employed_payment_due",
+        publisher="המוסד לביטוח לאומי",
+        title="תשלום דמי ביטוח - מידע לעצמאי",
+        url="https://www.btl.gov.il/Arabic%20HomePage/מידע%20לקהל%20יעד/Self_employed_workers_ar/מידע%20לעצמאי/Pages/תשלום%20דמי%20ביטוח.aspx",
+        checked_at=CHECKED_AT,
+        note="מקדמות עצמאי משולמות עד 15 בחודש עבור החודש הקודם.",
+    ),
+    "btl_employer_102_due": SourceRef(
+        id="btl_employer_102_due",
+        publisher="המוסד לביטוח לאומי",
+        title="דיווח ותשלום עבור עובדים",
+        url="https://www.btl.gov.il/Insurance/Maasik/MToshavYisrael/DivuahVetashlum/Pages/Divuhach.aspx",
+        checked_at=CHECKED_AT,
+        note="מועד הדיווח והתשלום למעסיקים: 15 בכל חודש עבור החודש הקודם.",
+    ),
+    "btl_self_employed_rates_2026": SourceRef(
+        id="btl_self_employed_rates_2026",
+        publisher="המוסד לביטוח לאומי",
+        title="שיעורי דמי הביטוח - עובד עצמאי",
+        url="https://www.btl.gov.il/Insurance/National%20Insurance/type_list/Self_Employed/Pages/rates.aspx",
+        checked_at=CHECKED_AT,
+    ),
+    "btl_2026_constants_circular": SourceRef(
+        id="btl_2026_constants_circular",
+        publisher="המוסד לביטוח לאומי",
+        title="שינוי בתשלום דמי ביטוח לאומי ודמי ביטוח בריאות לשנת 2026",
+        url="https://www.btl.gov.il/Insurance/HozrimBituah/Hozrim/_שינוי_בתשלום_דמי_ביטוח_לאומי_ודמי_ביטוח_בריאות_לשנת_2026.pdf",
+        checked_at=CHECKED_AT,
+    ),
+    "tax_authority_form_6111": SourceRef(
+        id="tax_authority_form_6111",
+        publisher="רשות המסים",
+        title="טופס 6111 - נספח לדוח שנתי",
+        url="https://www.gov.il/he/service/itc6111",
+        checked_at=CHECKED_AT,
+        note="6111 אינו סוג דוח שנתי עצמאי; זה נספח/פירוט לדוח השנתי כשחלה חובה.",
+    ),
+}
