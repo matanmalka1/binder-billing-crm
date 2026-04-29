@@ -14,7 +14,7 @@
 - Think step-by-step internally; output final result only unless reasoning is requested
 - Prefer code and bullet points over prose
 - Get it right the first time — verify against existing patterns before generating
-- **Do not read files not explicitly mentioned in the task — ask if uncertain**
+
 
 ---
 

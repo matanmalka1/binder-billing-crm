@@ -16,6 +16,7 @@ from app.clients.models.person_legal_entity_link import (
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.notes.models.entity_note import EntityNote
 
+from ..business_names import seed_business_name
 from ..demo_catalog import (
     BUSINESS_CATALOG,
     BUSINESS_NOTES,
@@ -126,6 +127,7 @@ def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
             full_name=full_name_value,
             email=email,
             phone=phone,
+            city=address_city,
             entity_type=entity_type,
             vat_reporting_frequency=vat_reporting_frequency,
         )
@@ -138,6 +140,7 @@ def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
 def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) -> list[Business]:
     businesses: list[Business] = []
     existing_businesses = int(db.execute(select(func.count()).select_from(Business)).scalar_one())
+    used_names = set(db.execute(select(Business.business_name)).scalars().all())
     multi_business_target = max(1, round(len(clients) * 0.2))
     multi_business_client_ids = {
         client.id for client in rng.sample(clients, k=min(multi_business_target, len(clients)))
@@ -172,22 +175,14 @@ def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) ->
             else:
                 default_type = EntityType.EMPLOYEE
 
-            if default_type == EntityType.COMPANY_LTD:
-                base_name = BUSINESS_CATALOG[(serial - 1) % len(BUSINESS_CATALOG)]
-                business_name = base_name if business_index == 0 else f"{base_name} {business_index + 1}"
-            elif default_type == EntityType.EMPLOYEE:
-                business_name = (
-                    "הכנסת שכר"
-                    if business_count == 1
-                    else f"הכנסת שכר {business_index + 1}"
-                )
-            else:
-                label = rng.choice(["עצמאי", "עסק", "פעילות"])
-                business_name = (
-                    f"{client.full_name} - {label}"
-                    if business_count == 1
-                    else f"{client.full_name} - {label} {business_index + 1}"
-                )
+            business_name = seed_business_name(
+                client_full_name=client.full_name,
+                entity_type=default_type,
+                business_index=business_index,
+                serial=serial,
+                rng=rng,
+                used_names=used_names,
+            )
 
             business = Business(
                 legal_entity_id=client.legal_entity_id,

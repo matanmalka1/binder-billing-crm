@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, List, Optional, Tuple
 
 from app.core.exceptions import AppError
@@ -24,6 +24,7 @@ def get_reminders(
     *,
     status: Optional[str] = None,
     due: Optional[str] = None,
+    created_before: Optional[datetime] = None,
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[Reminder], int, Dict[int, ReminderContext]]:
@@ -46,8 +47,8 @@ def get_reminders(
             "REMINDER.INVALID_STATUS",
         )
     status_enum = ReminderStatus(status)
-    items = reminder_repo.list_by_status(status=status_enum, page=page, page_size=page_size)
-    total = reminder_repo.count_by_status(status_enum)
+    items = reminder_repo.list_by_status(status=status_enum, page=page, page_size=page_size, created_before=created_before)
+    total = reminder_repo.count_by_status(status_enum, created_before=created_before)
     return items, total, build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)
 
 

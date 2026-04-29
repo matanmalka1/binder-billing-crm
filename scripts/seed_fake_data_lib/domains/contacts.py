@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from random import Random
 
-from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.authority_contact.models.authority_contact import AuthorityContact
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
+from ..authority_offices import authority_contact_type, authority_office_name
 from ..demo_catalog import AUTHORITY_CONTACTS, CORRESPONDENCE_NOTES, CORRESPONDENCE_SUBJECTS, office_phone
 
 
@@ -26,11 +27,12 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
             created_at = now - timedelta(days=rng.randint(0, 300))
             updated_at = min(now, created_at + timedelta(days=rng.randint(0, 90)))
             contact_profile = AUTHORITY_CONTACTS[(client.id + idx - 1) % len(AUTHORITY_CONTACTS)]
+            contact_type = authority_contact_type(idx)
             contact = AuthorityContact(
                 client_record_id=client.id,
-                contact_type=rng.choice(list(ContactType)),
+                contact_type=contact_type,
                 name=contact_profile["name"],
-                office=contact_profile["office"],
+                office=authority_office_name(contact_type, client.city),
                 phone=office_phone(rng),
                 email=contact_profile["email"],
                 notes=rng.choice(["", "איש הקשר מטפל בתיק הפעיל", "מומלץ לתאם מראש לפני פנייה חוזרת"]),

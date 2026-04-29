@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -26,6 +27,7 @@ def list_reminders(
     due: Optional[str] = Query(None),
     business_id: Optional[int] = Query(None),
     client_record_id: Optional[int] = Query(None),
+    created_before: Optional[datetime] = Query(None, description="סינון תזכורות שנוצרו לפני תאריך זה (ISO 8601)"),
 ):
     service = ReminderService(db)
 
@@ -39,7 +41,7 @@ def list_reminders(
         )
     else:
         items, total, context_map = service.get_reminders(
-            status=status_filter, due=due, page=page, page_size=page_size
+            status=status_filter, due=due, created_before=created_before, page=page, page_size=page_size
         )
 
     def _to_response(r) -> ReminderResponse:

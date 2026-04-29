@@ -27,13 +27,38 @@ class DashboardQuickAction(BaseModel):
     due_date: Optional[date] = None
 
 
-class AttentionItem(BaseModel):
-    item_type: Literal["unpaid_charge", "unpaid_charges", "ready_for_pickup"]
+class BaseAttentionItem(BaseModel):
+    item_type: str
     binder_id: Optional[int] = None
     client_id: Optional[int] = None
     business_id: Optional[int] = None
     client_name: Optional[str] = None
     description: str
+
+
+class UnpaidChargeAttentionItem(BaseAttentionItem):
+    item_type: Literal["unpaid_charge"]
+    business_name: str
+    charge_subject: str
+    charge_date: Optional[date] = None
+    charge_amount: str
+    charge_invoice_number: str
+    charge_period: Optional[str] = None
+
+
+class UnpaidChargesAttentionItem(BaseAttentionItem):
+    item_type: Literal["unpaid_charges"]
+
+
+class ReadyForPickupAttentionItem(BaseAttentionItem):
+    item_type: Literal["ready_for_pickup"]
+
+
+AttentionItem = (
+    UnpaidChargeAttentionItem
+    | UnpaidChargesAttentionItem
+    | ReadyForPickupAttentionItem
+)
 
 
 class AttentionResponse(BaseModel):

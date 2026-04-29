@@ -1,5 +1,6 @@
 """Read-only list/count queries for ReminderRepository — split to stay under 150-line limit."""
-from datetime import date
+from datetime import date, datetime
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -46,20 +47,25 @@ class ReminderRepositoryRead(BaseRepository):
         status: ReminderStatus,
         page: int = 1,
         page_size: int = 20,
+        created_before: Optional[datetime] = None,
     ) -> list[Reminder]:
         query = (
             self.db.query(Reminder)
             .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
-            .order_by(Reminder.created_at.desc())
         )
+        if created_before is not None:
+            query = query.filter(Reminder.created_at <= created_before)
+        query = query.order_by(Reminder.created_at.desc())
         return self._paginate(query, page, page_size)
 
-    def count_by_status(self, status: ReminderStatus) -> int:
-        return (
+    def count_by_status(self, status: ReminderStatus, created_before: Optional[datetime] = None) -> int:
+        query = (
             self.db.query(Reminder)
             .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
-            .count()
         )
+        if created_before is not None:
+            query = query.filter(Reminder.created_at <= created_before)
+        return query.count()
 
     def count_by_business(self, business_id: int) -> int:
         return (
