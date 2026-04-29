@@ -92,7 +92,7 @@ def get_reminders_by_client(
     page: int = 1,
     page_size: int = 20,
 ) -> Tuple[List[Reminder], int, Dict[int, ReminderContext]]:
-    client_record_id = ClientRecordRepository(reminder_repo.db).get_by_id(client_record_id).id
+    client_record_id = int(ClientRecordRepository(reminder_repo.db).get_by_id(client_record_id).id)
     items = reminder_repo.list_by_client_record(client_record_id, page=page, page_size=page_size)
     total = reminder_repo.count_by_client_record(client_record_id)
     return items, total, build_context_map(reminder_repo.db, business_repo, items, tax_deadline_repo)

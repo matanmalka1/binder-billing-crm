@@ -46,7 +46,7 @@ class BusinessUpdateService:
             record = ClientRecordRepository(self._db).get_by_id(client_id)
             if not record:
                 raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-            legal_entity_id = record.legal_entity_id
+            legal_entity_id = int(record.legal_entity_id) if record.legal_entity_id is not None else None
         if legal_entity_id is not None and business.legal_entity_id is not None:
             assert_business_belongs_to_legal_entity(business, legal_entity_id)
 

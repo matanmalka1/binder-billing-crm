@@ -21,3 +21,4 @@ alembic==1.18.4
 pillow==12.1.1
 httpx==0.28.1
 email-validator==2.3.0
+-e ./tax_rules_config

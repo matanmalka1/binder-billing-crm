@@ -13,11 +13,8 @@ from app.vat_reports.models.vat_enums import (
 )
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.constants import (
-    ACTION_INVOICE_UPDATED,
-    CATEGORY_DEDUCTION_RATES,
-    EXCEPTIONAL_INVOICE_THRESHOLD,
-)
+from tax_rules import get_financial, get_vat_deduction_rate
+from app.vat_reports.services.constants import ACTION_INVOICE_UPDATED
 from app.vat_reports.services.data_entry_common import (
     audit_invoice_snapshot,
     assert_editable,
@@ -94,11 +91,10 @@ def update_invoice(
         "business_activity_id": business_activity_id,
     }
     if expense_category is not None:
-        update_fields["deduction_rate"] = float(
-            CATEGORY_DEDUCTION_RATES.get(expense_category.value, Decimal("0.0000"))
-        )
+        update_fields["deduction_rate"] = get_vat_deduction_rate(expense_category.value)
     effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
-    update_fields["is_exceptional"] = Decimal(str(effective_net)) > EXCEPTIONAL_INVOICE_THRESHOLD
+    _threshold = Decimal(str(get_financial(2026, "exceptional_invoice_threshold_ils").value))
+    update_fields["is_exceptional"] = Decimal(str(effective_net)) > _threshold
 
     updated = invoice_repo.update(
         invoice_id,

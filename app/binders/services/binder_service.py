@@ -167,7 +167,7 @@ class BinderService(BinderListService):
         cutoff = (until_period_year, until_period_month)
         updated: list[Binder] = []
 
-        client_record_id = ClientRecordRepository(self.db).get_by_id(client_record_id).id
+        client_record_id = int(ClientRecordRepository(self.db).get_by_id(client_record_id).id)
         for binder in self.binder_repo.list_by_client_record(client_record_id):
             if binder.status not in {
                 BinderStatus.IN_OFFICE,

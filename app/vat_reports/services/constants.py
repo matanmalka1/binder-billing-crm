@@ -61,54 +61,15 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
     "municipal_tax": "ארנונה",
 }
 
-# Deduction rates per expense category (0.0 = prohibited, 1.0 = fully deductible)
-# Source: Israeli VAT Law §41
-CATEGORY_DEDUCTION_RATES: dict[str, Decimal] = {
-    # 100% קיזוז
-    "inventory":             Decimal("1.0000"),
-    "office":                Decimal("1.0000"),
-    "professional_services": Decimal("1.0000"),
-    "equipment":             Decimal("1.0000"),
-    "rent":                  Decimal("1.0000"),
-    "marketing":             Decimal("1.0000"),
-    "maintenance":           Decimal("1.0000"),
-    "utilities":             Decimal("1.0000"),
-    "postage_and_shipping":  Decimal("1.0000"),
-    "bank_fees":             Decimal("1.0000"),
-
-    # 2/3 קיזוז — הוצאות מעורבות
-    "travel":                Decimal("0.6667"),
-    "fuel":                  Decimal("0.6667"),
-    "vehicle":               Decimal("0.6667"),
-    "vehicle_maintenance":   Decimal("0.6667"),
-    "vehicle_leasing":       Decimal("0.6667"),
-    "tolls_and_parking":     Decimal("0.6667"),
-    "communication":         Decimal("0.6667"),
-    "mixed_expense":         Decimal("0.6667"),  # ברירת מחדל שמרנית
-
-    # 0% — ללא מע"מ או ניכוי אסור
-    "salary":                Decimal("0.0000"),  # שכר — לא תשומת מע"מ
-    "entertainment":         Decimal("0.0000"),  # אירוח — אסור
-    "gifts":                 Decimal("0.0000"),  # מתנות — אסור
-    "vehicle_insurance":     Decimal("0.0000"),  # ביטוח — ללא מע"מ
-    "insurance":             Decimal("0.0000"),  # ביטוח — ללא מע"מ
-    "municipal_tax":         Decimal("0.0000"),  # ארנונה — ללא מע"מ
-}
-
 # VAT submission deadlines
 # 15 = statutory deadline by law; 19 = digital filing extension granted by tax authority.
 # Work items use the statutory deadline as the conservative target.
 VAT_STATUTORY_DEADLINE_DAY = 15   # base legal deadline
 VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19  # extension for digital filing only
 
-# OSEK PATUR annual turnover ceiling (updated annually per tax authority)
-# 2026 value: 122,833 ₪  (2025: 120,000 ₪)
-OSEK_PATUR_CEILING_ILS: Decimal = Decimal("122833")
-# Warn when annual turnover exceeds this fraction of the ceiling (non-blocking)
+# Warn when annual turnover exceeds this fraction of the osek patur ceiling (non-blocking)
+# Ceiling itself is read from tax_rules registry per year
 OSEK_PATUR_CEILING_WARNING_RATE: Decimal = Decimal("0.80")
-
-# Exceptional invoice threshold — requires special reporting
-EXCEPTIONAL_INVOICE_THRESHOLD: Decimal = Decimal("25000")
 
 __all__ = [
     "ACTION_FILED",
@@ -119,10 +80,7 @@ __all__ = [
     "ACTION_WORK_ITEM_CREATED_PENDING",
     "ACTION_OVERRIDE",
     "ACTION_STATUS_CHANGED",
-    "CATEGORY_DEDUCTION_RATES",
     "CATEGORY_LABELS_SERVER",
-    "EXCEPTIONAL_INVOICE_THRESHOLD",
-    "OSEK_PATUR_CEILING_ILS",
     "OSEK_PATUR_CEILING_WARNING_RATE",
     "VAT_ONLINE_EXTENDED_DEADLINE_DAY",
     "VAT_STATUTORY_DEADLINE_DAY",

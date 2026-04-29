@@ -11,15 +11,18 @@ from .exceptions import (
     ANNUAL_OVERRIDES_TAX_YEAR_2025,
     get_override,
 )
-from .financials.constants_2025 import CONSTANTS_2025, NI_BRACKETS_2025
-from .financials.constants_2026 import CONSTANTS_2026, NI_BRACKETS_2026
+from .financials.constants_2024 import CONSTANTS_2024, NI_BRACKETS_2024, INCOME_TAX_BRACKETS_2024, CREDIT_POINT_2024
+from .financials.constants_2025 import CONSTANTS_2025, NI_BRACKETS_2025, INCOME_TAX_BRACKETS_2025, CREDIT_POINT_2025
+from .financials.constants_2026 import CONSTANTS_2026, NI_BRACKETS_2026, INCOME_TAX_BRACKETS_2026, CREDIT_POINT_2026
 from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
 from .policy import resolve_obligation_rules, resolve_annual_report_rule
 from .types import (
     AnnualReportRule,
     ClientTaxProfile,
+    CreditPointConfig,
     DeadlineOverride,
     FinancialConstant,
+    IncomeTaxBracket,
     ObligationRule,
     RateBracket,
 )
@@ -40,13 +43,27 @@ _ANNUAL_CALENDARS: dict[int, dict[str, dict[str, str]]] = {
 # ── קבועים כספיים ─────────────────────────────────────────────────────────────
 
 _FINANCIALS: dict[int, dict[str, FinancialConstant]] = {
+    2024: CONSTANTS_2024,
     2025: CONSTANTS_2025,
     2026: CONSTANTS_2026,
 }
 
 _NI_BRACKETS: dict[int, tuple[RateBracket, ...]] = {
+    2024: NI_BRACKETS_2024,
     2025: NI_BRACKETS_2025,
     2026: NI_BRACKETS_2026,
+}
+
+_INCOME_TAX_BRACKETS: dict[int, tuple[IncomeTaxBracket, ...]] = {
+    2024: INCOME_TAX_BRACKETS_2024,
+    2025: INCOME_TAX_BRACKETS_2025,
+    2026: INCOME_TAX_BRACKETS_2026,
+}
+
+_CREDIT_POINTS: dict[int, CreditPointConfig] = {
+    2024: CREDIT_POINT_2024,
+    2025: CREDIT_POINT_2025,
+    2026: CREDIT_POINT_2026,
 }
 
 # ── overrides ─────────────────────────────────────────────────────────────────
@@ -130,6 +147,20 @@ def get_vat_deduction_rate(category: str) -> float:
 def validate(profile: ClientTaxProfile) -> list[str]:
     """מריץ את כל כללי הvalidation על פרופיל לקוח. רשימה ריקה = תקין."""
     return validate_profile(profile)
+
+
+def get_income_tax_brackets(year: int) -> tuple[IncomeTaxBracket, ...]:
+    """מדרגות מס הכנסה ליחיד (הכנסה מיגיעה אישית) לשנה נתונה."""
+    if year not in _INCOME_TAX_BRACKETS:
+        raise KeyError(f"אין מדרגות מס הכנסה לשנת {year}.")
+    return _INCOME_TAX_BRACKETS[year]
+
+
+def get_credit_point_config(year: int) -> CreditPointConfig:
+    """שווי נקודת זיכוי ונקודות ברירת מחדל לפי שנה."""
+    if year not in _CREDIT_POINTS:
+        raise KeyError(f"אין נתוני נקודת זיכוי לשנת {year}.")
+    return _CREDIT_POINTS[year]
 
 
 def get_btl_due_day() -> int:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..types import FinancialConstant, RateBracket
+from ..types import CreditPointConfig, FinancialConstant, IncomeTaxBracket, RateBracket
 
 # ── קבועים כספיים — שנת מס 2025 ──────────────────────────────────────────────
 # מקורות: רשות המסים, ביטוח לאומי, חוזרים שנתיים
@@ -93,7 +93,31 @@ CONSTANTS_2025: dict[str, FinancialConstant] = {
     ),
 }
 
-# מדרגות ביטוח לאומי עצמאי — 2025
+# ── מדרגות מס הכנסה ליחיד — 2025 ─────────────────────────────────────────────
+# מקור: כל זכות נתוני עבר — זהות ל-2024
+# אימות: 84,120 / 120,720 / 193,800 / 269,280 / 560,280 / 721,560
+
+INCOME_TAX_BRACKETS_2025: tuple[IncomeTaxBracket, ...] = (
+    IncomeTaxBracket(from_ils=0,       up_to_ils=84_120,  rate=0.10, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=84_121,  up_to_ils=120_720, rate=0.14, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=120_721, up_to_ils=193_800, rate=0.20, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=193_801, up_to_ils=269_280, rate=0.31, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=269_281, up_to_ils=560_280, rate=0.35, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=560_281, up_to_ils=721_560, rate=0.47, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(from_ils=721_561, up_to_ils=None,    rate=0.50, source_ids=("tax_authority_income_tax_brackets_2025",)),
+)
+
+# ── נקודת זיכוי — 2025 ───────────────────────────────────────────────────────
+CREDIT_POINT_2025 = CreditPointConfig(
+    year=2025,
+    monthly_value_ils=235,
+    annual_value_ils=2_820,
+    default_resident_points=2.25,
+    default_female_resident_points=2.75,
+    source_ids=("tax_authority_credit_points_2025",),
+)
+
+# ── ביטוח לאומי עצמאי — 2025
 NI_BRACKETS_2025: tuple[RateBracket, ...] = (
     RateBracket(
         up_to_ils=6_331,

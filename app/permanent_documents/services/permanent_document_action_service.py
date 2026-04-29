@@ -15,7 +15,7 @@ class PermanentDocumentActionService:
     def get_document_versions(
         self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
-        client_record_id = ClientRecordRepository(self.db).get_by_id(client_record_id).id
+        client_record_id = int(ClientRecordRepository(self.db).get_by_id(client_record_id).id)
         return self.query_repo.get_all_versions_by_client_record(client_record_id, document_type, tax_year)
 
     def list_by_annual_report(self, annual_report_id: int) -> list[PermanentDocument]:

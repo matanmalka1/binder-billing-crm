@@ -1,19 +1,13 @@
-"""National Insurance (ביטוח לאומי) calculation engine — multi-year."""
+"""National Insurance (ביטוח לאומי) calculation engine — multi-year, multi-bracket."""
 
 from dataclasses import dataclass
 
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
-from app.annual_reports.services.constants import NI_RATE_BASE as _NI_RATE_BASE, NI_RATE_HIGH as _NI_RATE_HIGH
+from tax_rules import get_ni_brackets
 
-_NI_CEILING_BY_YEAR: dict[int, float] = {
-    2024: 90_264.0,
-    2025: 93_384.0,
-    2026: 622_920.0,
-}
-
-# NI is not calculated for INDIVIDUAL (employee) or CORPORATION client types
-# — INDIVIDUAL: employer deducts directly; CORPORATION: entity-level NI not applicable
 _NI_EXEMPT_TYPES = {ClientAnnualFilingType.INDIVIDUAL, ClientAnnualFilingType.CORPORATION}
+
+_MONTHS = 12
 
 
 @dataclass
@@ -28,25 +22,38 @@ def calculate_national_insurance(
     tax_year: int = 2024,
     client_type: ClientAnnualFilingType | None = None,
 ) -> NationalInsuranceResult:
-    """Calculate Israeli National Insurance for the given tax year.
+    """חישוב דמי ביטוח לאומי לעצמאי לפי שנת מס.
 
-    Returns zero for INDIVIDUAL (employee) and CORPORATION types
-    since these do not incur self-employed NI in annual reports.
+    מחזיר אפס עבור שכירים וחברות — אינם משלמים ביטוח לאומי עצמאי בדוח שנתי.
     """
     if client_type in _NI_EXEMPT_TYPES:
         return NationalInsuranceResult(base_amount=0.0, high_amount=0.0, total=0.0)
 
-    ceiling = _NI_CEILING_BY_YEAR.get(tax_year, _NI_CEILING_BY_YEAR[2024])
+    try:
+        brackets = get_ni_brackets(tax_year)
+    except KeyError:
+        brackets = get_ni_brackets(2026)
+
     income = max(float(income), 0.0)
-    base = min(income, ceiling)
-    above = max(income - ceiling, 0.0)
-    base_amount = round(base * _NI_RATE_BASE, 2)
-    high_amount = round(above * _NI_RATE_HIGH, 2)
-    return NationalInsuranceResult(
-        base_amount=base_amount,
-        high_amount=high_amount,
-        total=round(base_amount + high_amount, 2),
-    )
+    prev = 0.0
+    base_amount = 0.0
+    high_amount = 0.0
+
+    for i, bracket in enumerate(brackets):
+        annual_ceiling = bracket.up_to_ils * _MONTHS
+        rate = bracket.rate_percent / 100.0
+        taxable = min(income, annual_ceiling) - prev
+        if taxable <= 0:
+            break
+        amount = round(taxable * rate, 2)
+        if i == 0:
+            base_amount = amount
+        else:
+            high_amount += amount
+        prev = annual_ceiling
+
+    total = round(base_amount + high_amount, 2)
+    return NationalInsuranceResult(base_amount=base_amount, high_amount=high_amount, total=total)
 
 
 __all__ = ["calculate_national_insurance", "NationalInsuranceResult"]

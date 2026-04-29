@@ -64,7 +64,7 @@ class TimelineService:
             .all()
         )
         business_ids = [business.id for business in businesses]
-        client_record_id = client_record.id
+        client_record_id = int(client_record.id)
 
         events = []
 

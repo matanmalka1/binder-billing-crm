@@ -83,7 +83,7 @@ class ChargeQueryService:
 
         business_ids = list({c.business_id for c in items if c.business_id is not None})
         businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
-        business_name_by_id: dict[int, str] = {c.id: c.full_name for c in businesses}
+        business_name_by_id = {c.id: c.full_name for c in businesses}
         client_record_ids = list({c.client_record_id for c in items})
         client_records = ClientRecordRepository(self.db).list_by_ids(client_record_ids) if client_record_ids else []
         record_by_id = {record.id: record for record in client_records}
@@ -92,7 +92,7 @@ class ChargeQueryService:
             entity.id: entity
             for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
         } if legal_entity_ids else {}
-        business_name_map: dict[int, str] = {
+        business_name_map = {
             c.id: business_name_by_id.get(c.business_id)
             or (
                 legal_entity_by_id[record_by_id[c.client_record_id].legal_entity_id].official_name
@@ -102,7 +102,7 @@ class ChargeQueryService:
             )
             for c in items
         }
-        office_client_number_map: dict[int, int | None] = {
+        office_client_number_map = {
             c.id: record_by_id[c.client_record_id].office_client_number if c.client_record_id in record_by_id else None
             for c in items
         }

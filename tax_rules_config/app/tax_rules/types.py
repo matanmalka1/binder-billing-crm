@@ -165,6 +165,26 @@ class RateBracket:
     label_he: str
 
 
+@dataclass(frozen=True, slots=True)
+class IncomeTaxBracket:
+    """מדרגת מס הכנסה ליחיד — הכנסה מיגיעה אישית."""
+    from_ils: int           # תחתית המדרגה (כולל)
+    up_to_ils: int | None   # None = ללא תקרה (מדרגה עליונה)
+    rate: float             # 0.0 – 1.0
+    source_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CreditPointConfig:
+    """נקודת זיכוי מס הכנסה — ערך בסיסי + נקודות ברירת מחדל לפרופילים נפוצים."""
+    year: int
+    monthly_value_ils: int      # שווי נקודה אחת לחודש
+    annual_value_ils: int       # שווי נקודה אחת לשנה
+    default_resident_points: float        # תושב ישראל זכר
+    default_female_resident_points: float # תושבת ישראל נקבה
+    source_ids: tuple[str, ...]
+
+
 # ── VAT deduction rule ────────────────────────────────────────────────────────
 
 @dataclass(frozen=True, slots=True)

@@ -54,7 +54,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             from app.core.exceptions import NotFoundError
             raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
         assert_client_record_is_active(client_record)
-        client_record_id = client_record.id
+        client_record_id = int(client_record.id)
 
         valid_client_types = {e.value for e in ClientAnnualFilingType}
         if client_type not in valid_client_types:

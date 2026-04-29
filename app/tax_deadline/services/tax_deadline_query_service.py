@@ -38,7 +38,7 @@ class TaxDeadlineQueryService:
     ) -> tuple[list[TaxDeadline], int]:
         """Route branching logic: by client, by business name, or all pending."""
         if client_record_id:
-            client_record_id = self.client_record_repo.get_by_id(client_record_id).id
+            client_record_id = int(self.client_record_repo.get_by_id(client_record_id).id)
             items = self.deadline_repo.list_by_client_record(
                 client_record_id, status, deadline_type,
                 due_from=due_from, due_to=due_to, period=period,

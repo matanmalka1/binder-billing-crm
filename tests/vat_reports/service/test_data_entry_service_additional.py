@@ -11,10 +11,12 @@ from app.vat_reports.services.data_entry_common import (
     check_osek_patur_ceiling,
     resolve_invoice_derived_fields,
 )
-from app.vat_reports.services.constants import (
-    OSEK_PATUR_CEILING_ILS,
-    OSEK_PATUR_CEILING_WARNING_RATE,
-)
+from decimal import Decimal
+
+from tax_rules import get_financial
+from app.vat_reports.services.constants import OSEK_PATUR_CEILING_WARNING_RATE
+
+OSEK_PATUR_CEILING_ILS = Decimal(str(get_financial(2026, "osek_patur_ceiling_ils").value))
 from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
 from app.vat_reports.services.data_entry_invoices import add_invoice
 

@@ -86,11 +86,6 @@ DONATION_CREDIT_RATE = 0.35
 # Minimum donation required before any credit is granted (Section 46 ITO)
 DONATION_MINIMUM_ILS = 190
 
-# ── National Insurance (ביטוח לאומי) rates — per NII annual circular ──────────
-# Base rate applies up to the monthly ceiling; high rate applies above it
-NI_RATE_BASE = 0.0597
-NI_RATE_HIGH = 0.1783
-
 # ── Statutory partial recognition rates — Income Tax Regulations ──────────────
 # Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
 STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
@@ -116,8 +111,6 @@ __all__ = [
     "DONATION_CREDIT_RATE",
     "FORM_MAP",
     "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
-    "NI_RATE_BASE",
-    "NI_RATE_HIGH",
     "SCHEDULE_FLAGS",
     "STAGE_TO_STATUS",
     "STATUTORY_RECOGNITION_RATES",

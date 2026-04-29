@@ -1,0 +1,16 @@
+{
+  "extraPaths": ["tax_rules_config/app"],
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
+  "reportOperatorIssue": "none",
+  "reportReturnType": "none",
+  "reportGeneralTypeIssues": "none",
+  "reportCallIssue": "none",
+  "reportOptionalMemberAccess": "none",
+  "reportOptionalSubscript": "none",
+  "reportOptionalOperand": "none",
+  "reportPossiblyUnboundVariable": "none",
+  "reportIndexIssue": "none",
+  "reportIncompatibleVariableOverride": "none",
+  "reportTypedDictNotRequiredAccess": "none"
+}

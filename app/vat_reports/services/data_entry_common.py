@@ -10,10 +10,8 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from tax_rules import get_financial, get_vat_deduction_rate
 from app.vat_reports.services.constants import (
-    CATEGORY_DEDUCTION_RATES,
-    EXCEPTIONAL_INVOICE_THRESHOLD,
-    OSEK_PATUR_CEILING_ILS,
     OSEK_PATUR_CEILING_WARNING_RATE,
     VALID_TRANSITIONS,
 )
@@ -51,7 +49,7 @@ def recalculate_totals(
     work_item_repo: VatWorkItemRepository,
     invoice_repo: VatInvoiceRepository,
     item_id: int,
-) -> tuple[Decimal, Decimal]:
+) -> tuple[float, float]:
     """Recompute output / input VAT totals from stored invoices (single query)."""
     output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
     output_net, input_net = invoice_repo.sum_net_both_types(item_id)
@@ -100,10 +98,9 @@ def resolve_invoice_derived_fields(
 
     deduction_rate = Decimal("1.0000")
     if invoice_type == InvoiceType.EXPENSE and expense_category:
-        deduction_rate = CATEGORY_DEDUCTION_RATES.get(
-            expense_category.value, Decimal("0.0000")
-        )
-    is_exceptional = Decimal(str(net_amount)) > EXCEPTIONAL_INVOICE_THRESHOLD
+        deduction_rate = Decimal(str(get_vat_deduction_rate(expense_category.value)))
+    # threshold identical across 2025–2026; update if it changes per-year
+    is_exceptional = Decimal(str(net_amount)) > Decimal(str(get_financial(2026, "exceptional_invoice_threshold_ils").value))
     return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
 
 
@@ -124,14 +121,15 @@ def check_osek_patur_ceiling(
     if not is_osek_patur:
         return False
     year = int(period[:4])
+    ceiling = Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))
     current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_record_id, year)))
     new_total = current_total + Decimal(str(new_net_amount))
-    if new_total > OSEK_PATUR_CEILING_ILS:
+    if new_total > ceiling:
         raise AppError(
             VAT_OSEK_PATUR_CEILING_EXCEEDED.format(
                 new_total=float(new_total),
-                ceiling=float(OSEK_PATUR_CEILING_ILS),
+                ceiling=float(ceiling),
             ),
             "VAT.OSEK_PATUR_CEILING_EXCEEDED",
         )
-    return new_total >= OSEK_PATUR_CEILING_ILS * OSEK_PATUR_CEILING_WARNING_RATE
+    return new_total >= ceiling * OSEK_PATUR_CEILING_WARNING_RATE

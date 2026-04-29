@@ -5,39 +5,7 @@ from dataclasses import dataclass
 from app.core.exceptions import AppError
 from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
-
-_BRACKETS_BY_YEAR: dict[int, list[tuple]] = {
-    2024: [
-        (81_480, 0.10),
-        (116_760, 0.14),
-        (187_440, 0.20),
-        (260_520, 0.31),
-        (557_640, 0.35),
-        (None, 0.47),
-    ],
-    2025: [
-        (84_120, 0.10),
-        (120_720, 0.14),
-        (193_800, 0.20),
-        (269_280, 0.31),
-        (576_540, 0.35),
-        (None, 0.47),
-    ],
-    2026: [
-        (84_120, 0.10),
-        (120_720, 0.14),
-        (193_800, 0.20),
-        (269_280, 0.31),
-        (560_280, 0.35),
-        (None, 0.47),
-    ],
-}
-
-_CREDIT_POINT_VALUE_BY_YEAR: dict[int, float] = {
-    2024: 2_904.0,
-    2025: 3_003.0,
-    2026: 2_904.0,
-}
+from tax_rules import get_income_tax_brackets, get_credit_point_config
 
 
 @dataclass
@@ -76,14 +44,16 @@ def calculate_tax(
     pension_deduction = float(pension_deduction)
     donation_amount = float(donation_amount)
     other_credits = float(other_credits)
-    if tax_year not in _BRACKETS_BY_YEAR:
+
+    try:
+        year_brackets = get_income_tax_brackets(tax_year)
+        credit_point_value = get_credit_point_config(tax_year).annual_value_ils
+    except KeyError:
         raise AppError(
-            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=sorted(_BRACKETS_BY_YEAR)),
+            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=[2024, 2025, 2026]),
             "TAX_ENGINE.INVALID_INPUT",
             status_code=400,
         )
-    year_brackets = _BRACKETS_BY_YEAR[tax_year]
-    credit_point_value = _CREDIT_POINT_VALUE_BY_YEAR[tax_year]
 
     deduction = min(max(pension_deduction, 0.0), max(taxable_income, 0.0))
     adjusted_income = taxable_income - deduction
@@ -111,7 +81,9 @@ def calculate_tax(
     tax = 0.0
     prev = 0.0
     breakdown: list[BracketBreakdownItem] = []
-    for upper, rate in year_brackets:
+    for bracket in year_brackets:
+        upper = bracket.up_to_ils
+        rate = bracket.rate
         if upper is None:
             taxable_in_bracket = adjusted_income - prev
             tax_in_bracket = taxable_in_bracket * rate

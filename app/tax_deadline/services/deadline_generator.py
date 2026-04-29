@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 _today = date.today  # injectable for tests
 
-from app.common.enums import VatType
+from app.common.enums import EntityType, VatType
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
@@ -23,12 +23,19 @@ class DeadlineGeneratorService:
         self.deadline_service = TaxDeadlineService(db)
         self.client_record_repo = ClientRecordRepository(db)
 
-    def _resolve_vat_type(self, client_record_id: int):
+    def _resolve_legal_entity(self, client_record_id: int):
         record = self.client_record_repo.get_by_id(client_record_id)
         if not record:
             return None
-        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-        return legal_entity.vat_reporting_frequency if legal_entity else None
+        return LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+
+    def _resolve_vat_type(self, client_record_id: int):
+        entity = self._resolve_legal_entity(client_record_id)
+        return entity.vat_reporting_frequency if entity else None
+
+    def _resolve_entity_type(self, client_record_id: int):
+        entity = self._resolve_legal_entity(client_record_id)
+        return entity.entity_type if entity else None
 
     def _resolve_client_record_id(self, client_record_id: int) -> int:
         record = self.client_record_repo.get_by_id(client_record_id)
@@ -77,9 +84,10 @@ class DeadlineGeneratorService:
     def generate_advance_payment_deadlines(self, client_record_id: int, year: int) -> list:
         """Generate monthly advance payment deadlines (מקדמות) for the year.
 
-        Skips clients exempt from VAT — they are not liable for advance payments.
+        Skips employees — they have no income tax advance payment obligation.
+        Osek patur clients are exempt from VAT but still liable for advance payments.
         """
-        if self._resolve_vat_type(client_record_id) == VatType.EXEMPT:
+        if self._resolve_entity_type(client_record_id) == EntityType.EMPLOYEE:
             return []
 
         client_record_id = self._resolve_client_record_id(client_record_id)
