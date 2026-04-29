@@ -1,4 +1,3 @@
-from decimal import Decimal
 
 from app.common.enums import EntityType
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
@@ -34,7 +33,6 @@ CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({
     "entity_type",
     "vat_reporting_frequency",
 })
-DEFAULT_VAT_EXEMPT_CEILING = Decimal("120000")
 SUPPORTED_CREATE_ENTITY_TYPES = frozenset({
     EntityType.OSEK_PATUR,
     EntityType.OSEK_MURSHE,

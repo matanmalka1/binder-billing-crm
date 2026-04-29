@@ -1,8 +1,10 @@
+from datetime import date
+from decimal import Decimal
 from typing import Optional
 
-from app.clients.constants import DEFAULT_VAT_EXEMPT_CEILING
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDecimal
+from tax_rules import get_financial
 
 
 def derive_id_number_type(entity_type: EntityType) -> IdNumberType:
@@ -24,7 +26,8 @@ def normalize_vat_reporting_frequency(
 
 def normalize_vat_exempt_ceiling(entity_type: Optional[EntityType]) -> Optional[ApiDecimal]:
     if entity_type == EntityType.OSEK_PATUR:
-        return DEFAULT_VAT_EXEMPT_CEILING
+        year = date.today().year
+        return Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))
     return None
 
 

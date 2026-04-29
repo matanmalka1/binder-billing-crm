@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 
 from app.core.exceptions import AppError
-from app.annual_reports.services.constants import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from tax_rules import get_income_tax_brackets, get_credit_point_config
+from tax_rules.statutory import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 
 
 @dataclass

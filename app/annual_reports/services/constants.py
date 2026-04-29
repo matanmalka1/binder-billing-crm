@@ -80,12 +80,6 @@ STAGE_TO_STATUS: dict[str, str] = {
     "transmitted": "submitted",
 }
 
-# ── Israeli tax law constants ──────────────────────────────────────────────────
-# Donation credit rate — Section 46 of the Income Tax Ordinance
-DONATION_CREDIT_RATE = 0.35
-# Minimum donation required before any credit is granted (Section 46 ITO)
-DONATION_MINIMUM_ILS = 190
-
 # ── Statutory partial recognition rates — Income Tax Regulations ──────────────
 # Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
 STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
@@ -108,7 +102,6 @@ SCHEDULE_FLAGS = [
 
 __all__ = [
     "DEFAULT_RECOGNITION_RATE",
-    "DONATION_CREDIT_RATE",
     "FORM_MAP",
     "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
     "SCHEDULE_FLAGS",
