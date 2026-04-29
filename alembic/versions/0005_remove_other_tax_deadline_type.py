@@ -28,6 +28,43 @@ depends_on: Union[str, Sequence[str], None] = None
 NEW_VALUES = ("vat", "advance_payment", "national_insurance", "annual_report")
 
 
+def _drop_tax_deadline_enum_dependents() -> None:
+    op.drop_index("uq_tax_deadline_active_annual_identity", table_name="tax_deadlines")
+    op.drop_index("uq_tax_deadline_active_period_identity", table_name="tax_deadlines")
+    op.drop_index("idx_tax_deadline_type", table_name="tax_deadlines")
+    op.drop_constraint(
+        "ck_tax_deadline_advance_payment_link",
+        "tax_deadlines",
+        type_="check",
+    )
+
+
+def _create_tax_deadline_enum_dependents() -> None:
+    op.create_check_constraint(
+        "ck_tax_deadline_advance_payment_link",
+        "tax_deadlines",
+        "(advance_payment_id IS NULL) OR (deadline_type = 'advance_payment')",
+    )
+    op.create_index("idx_tax_deadline_type", "tax_deadlines", ["deadline_type"])
+    op.create_index(
+        "uq_tax_deadline_active_period_identity",
+        "tax_deadlines",
+        ["client_record_id", "deadline_type", "period"],
+        unique=True,
+        postgresql_where=sa.text("deleted_at IS NULL AND period IS NOT NULL"),
+    )
+    op.create_index(
+        "uq_tax_deadline_active_annual_identity",
+        "tax_deadlines",
+        ["client_record_id", "tax_year"],
+        unique=True,
+        postgresql_where=sa.text(
+            "deleted_at IS NULL AND deadline_type = 'annual_report' "
+            "AND tax_year IS NOT NULL"
+        ),
+    )
+
+
 def upgrade() -> None:
     bind = op.get_bind()
 
@@ -55,6 +92,7 @@ def upgrade() -> None:
         "WHERE deadline_type = 'other'"
     )
     values = ", ".join(f"'{value}'" for value in NEW_VALUES)
+    _drop_tax_deadline_enum_dependents()
     op.execute("ALTER TYPE deadlinetype RENAME TO deadlinetype_old")
     op.execute(f"CREATE TYPE deadlinetype AS ENUM ({values})")
     op.execute(
@@ -62,6 +100,7 @@ def upgrade() -> None:
         "TYPE deadlinetype USING deadline_type::text::deadlinetype"
     )
     op.execute("DROP TYPE deadlinetype_old")
+    _create_tax_deadline_enum_dependents()
 
 
 def downgrade() -> None:
