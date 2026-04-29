@@ -260,7 +260,7 @@ def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
 def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[AnnualReport]:
     reports: list[AnnualReport] = []
     current_year = datetime.now(UTC).year
-    available_years = list(range(current_year - 4, current_year))
+    available_years = list(range(current_year - 3, current_year + 1))
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
     status_cycle = list(SEEDABLE_STATUSES)

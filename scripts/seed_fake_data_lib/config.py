@@ -31,57 +31,57 @@ class SeedConfig:
 def parse_args() -> SeedConfig:
     parser = argparse.ArgumentParser(description="Seed local DB with fake demo data")
     parser.add_argument("--users", type=int, default=8, help="Number of users")
-    parser.add_argument("--clients", type=int, default=40, help="Number of clients")
-    parser.add_argument("--min-binders-per-client", type=int, default=1)
-    parser.add_argument("--max-binders-per-client", type=int, default=3)
-    parser.add_argument("--min-charges-per-client", type=int, default=1)
-    parser.add_argument("--max-charges-per-client", type=int, default=4)
+    parser.add_argument("--clients", type=int, default=60, help="Number of clients")
+    parser.add_argument("--min-binders-per-client", type=int, default=2)
+    parser.add_argument("--max-binders-per-client", type=int, default=5)
+    parser.add_argument("--min-charges-per-client", type=int, default=3)
+    parser.add_argument("--max-charges-per-client", type=int, default=8)
     parser.add_argument(
         "--annual-reports-per-client",
         type=int,
-        default=2,
+        default=3,
         help="How many annual reports to seed per client",
     )
     parser.add_argument(
         "--min-vat-work-items-per-client",
         type=int,
-        default=1,
+        default=2,
         help="Minimum VAT work items per client",
     )
     parser.add_argument(
         "--max-vat-work-items-per-client",
         type=int,
-        default=2,
+        default=5,
         help="Maximum VAT work items per client",
     )
     parser.add_argument(
         "--min-vat-invoices-per-work-item",
         type=int,
-        default=2,
+        default=3,
         help="Minimum VAT invoices per work item",
     )
     parser.add_argument(
         "--max-vat-invoices-per-work-item",
         type=int,
-        default=8,
+        default=12,
         help="Maximum VAT invoices per work item",
     )
     parser.add_argument(
         "--signature-requests-per-client",
         type=int,
-        default=1,
+        default=2,
         help="How many signature requests to seed per client",
     )
     parser.add_argument(
         "--min-tax-deadlines-per-client",
         type=int,
-        default=2,
+        default=3,
         help="Minimum tax deadlines seeded per client",
     )
     parser.add_argument(
         "--max-tax-deadlines-per-client",
         type=int,
-        default=8,
+        default=12,
         help="Maximum tax deadlines seeded per client",
     )
     parser.add_argument(

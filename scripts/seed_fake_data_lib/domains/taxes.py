@@ -91,6 +91,7 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
     db.flush()
     _create_annual_report_deadlines(db, deadlines, businesses)
     _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng)
+    _ensure_overdue_deadline_coverage(db, deadlines, businesses, rng)
     return deadlines
 
 
@@ -248,6 +249,45 @@ def _ensure_upcoming_window_coverage(db, deadlines: list, businesses) -> None:
             db.add(dl)
             deadlines.append(dl)
             break
+    db.flush()
+
+
+def _ensure_overdue_deadline_coverage(db, deadlines: list, businesses, rng: Random) -> None:
+    """Guarantee at least 3 PENDING deadlines with due_date in the past (triggers OVERDUE urgency)."""
+    today = date.today()
+    overdue_count = sum(
+        1 for d in deadlines
+        if d.status == TaxDeadlineStatus.PENDING and d.due_date < today
+    )
+    needed = max(0, 3 - overdue_count)
+    if needed == 0:
+        return
+    used_clients = set()
+    for business in businesses:
+        if needed == 0:
+            break
+        cid = business.client_id
+        if cid in used_clients:
+            continue
+        used_clients.add(cid)
+        dtype = TaxDeadlineType.NATIONAL_INSURANCE
+        days_overdue = rng.randint(5, 45)
+        due_date = today - timedelta(days=days_overdue)
+        period = f"{due_date.year}-{due_date.month:02d}"
+        dl = TaxDeadline(
+            client_record_id=cid,
+            deadline_type=dtype,
+            period=period,
+            due_date=due_date,
+            status=TaxDeadlineStatus.PENDING,
+            payment_amount=Decimal(str(round(rng.uniform(500, 8000), 2))),
+            description=f"תזכורת עבור {DEADLINE_LABELS[dtype]} - באיחור",
+            created_at=datetime.now(UTC) - timedelta(days=days_overdue + rng.randint(5, 20)),
+        )
+        dl.client_id = cid
+        db.add(dl)
+        deadlines.append(dl)
+        needed -= 1
     db.flush()
 
 
