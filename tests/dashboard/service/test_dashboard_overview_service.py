@@ -42,6 +42,11 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         lambda today: [{"key": "ready", "period": today.strftime("%Y-%m")}],
     )
     monkeypatch.setattr(
+        service.advisor_today_service,
+        "build",
+        lambda today: {"deadline_items": [{"id": 1, "label": "מע״מ"}], "reminder_items": []},
+    )
+    monkeypatch.setattr(
         service.extended_service,
         "get_attention_items",
         lambda user_role=None: [{"item_type": "ready_for_pickup"}],
@@ -63,3 +68,4 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         "items": [{"item_type": "ready_for_pickup"}],
         "total": 1,
     }
+    assert overview["advisor_today"]["deadline_items"] == [{"id": 1, "label": "מע״מ"}]

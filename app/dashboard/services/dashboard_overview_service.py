@@ -15,6 +15,7 @@ from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
+from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
 from app.utils.time_utils import israel_today
 
@@ -32,6 +33,7 @@ class DashboardOverviewService:
         self.annual_report_repo = AnnualReportRepository(db)
         self.notification_repo = NotificationRepository(db)
         self.extended_service = DashboardExtendedService(db)
+        self.advisor_today_service = AdvisorTodayService(db)
         self.vat_stats_service = VatDashboardStatsService(db)
 
     def get_overview(
@@ -54,6 +56,7 @@ class DashboardOverviewService:
             "vat_stats": self.vat_stats_service.build(reference_date),
             "quick_actions": quick_actions,
             "attention": {"items": attention_items, "total": len(attention_items)},
+            "advisor_today": self.advisor_today_service.build(reference_date),
         }
 
     def _build_quick_actions(self, today) -> list[dict]:

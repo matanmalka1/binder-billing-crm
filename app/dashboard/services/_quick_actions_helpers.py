@@ -15,6 +15,7 @@ from app.clients.repositories.client_record_read_repository import get_full_reco
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _MONTH_HE = {
@@ -31,6 +32,15 @@ _ANNUAL_STATUS_LABEL_HE = {
     AnnualReportStatus.AMENDED: "בתיקון",
     AnnualReportStatus.ASSESSMENT_ISSUED: "שומה הוצאה",
     AnnualReportStatus.OBJECTION_FILED: "השגה הוגשה",
+}
+_VAT_STATUS_LABEL_HE = {
+    VatWorkItemStatus.PENDING_MATERIALS: "ממתין לחומרים",
+    VatWorkItemStatus.MATERIAL_RECEIVED: "חומרים התקבלו",
+    VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS: "בהזנת נתונים",
+    VatWorkItemStatus.READY_FOR_REVIEW: "מוכן לבדיקה",
+    VatWorkItemStatus.FILED: "הוגש",
+    VatWorkItemStatus.CANCELED: "בוטל",
+    VatWorkItemStatus.ARCHIVED: "בארכיון",
 }
 
 CATEGORY_ORDER = {"vat": 0, "annual_reports": 1, "binders": 2}
@@ -50,6 +60,17 @@ def _period_label(period: str) -> str:
         return f"{_MONTH_HE.get(int(month), month)} {year}"
     except Exception:
         return period
+
+
+def _vat_due_label(period: str, urgency: str, days: int) -> str:
+    status = f"באיחור {days} ימים" if urgency == "overdue" else f"עוד {days} ימים"
+    return f"דוח מע״מ · {_period_label(period)} · {status}"
+
+
+def _vat_status_label(status) -> str:
+    if status is None:
+        return "סטטוס עבודה לא ידוע"
+    return _VAT_STATUS_LABEL_HE.get(status, str(getattr(status, "value", status)))
 
 
 def _enrich(action: dict, category: str, urgency: str, due_date: date, due_label: str) -> dict:
@@ -84,11 +105,11 @@ def build_vat_actions(
         if deadline < today:
             urgency = "overdue"
             days_overdue = (today - deadline).days
-            due_label = f"באיחור של {days_overdue} ימים · {_period_label(item.period)}"
+            due_label = _vat_due_label(item.period, urgency, days_overdue)
         elif today.day >= _VAT_UPCOMING_DAY_OF_MONTH and item.period == current_period:
             urgency = "upcoming"
             days_left = (deadline - today).days
-            due_label = f"{days_left} ימים לדדליין · {_period_label(item.period)}"
+            due_label = _vat_due_label(item.period, urgency, days_left)
         else:
             continue
 
@@ -101,6 +122,7 @@ def build_vat_actions(
             action_id=f"vat-{item.id}-navigate",
         )
         action["client_name"] = client_name
+        action["description"] = _vat_status_label(getattr(item, "status", None))
         _enrich(action, "vat", urgency, deadline, due_label)
         result.append(action)
 

@@ -23,6 +23,7 @@ class DashboardQuickAction(BaseModel):
     binder_number: Optional[str] = None
     category: Optional[str] = None  # "binders" | "vat" | "annual_reports"
     due_label: Optional[str] = None
+    description: Optional[str] = None
     urgency: Optional[Literal["overdue", "upcoming"]] = None
     due_date: Optional[date] = None
 
@@ -66,6 +67,19 @@ class AttentionResponse(BaseModel):
     total: int = 0
 
 
+class AdvisorTodayItem(BaseModel):
+    id: int
+    label: str
+    sublabel: Optional[str] = None
+    description: Optional[str] = None
+    href: Optional[str] = None
+
+
+class AdvisorTodayResponse(BaseModel):
+    deadline_items: list[AdvisorTodayItem] = Field(default_factory=list)
+    reminder_items: list[AdvisorTodayItem] = Field(default_factory=list)
+
+
 class VatDashboardPeriodStat(BaseModel):
     period: str
     period_label: str
@@ -92,3 +106,4 @@ class DashboardOverviewResponse(BaseModel):
     vat_stats: VatDashboardStats
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
+    advisor_today: AdvisorTodayResponse = Field(default_factory=AdvisorTodayResponse)
