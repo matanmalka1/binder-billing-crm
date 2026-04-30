@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import Integer, String, case, cast, func
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 
@@ -42,7 +43,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         statuses: list[AdvancePaymentStatus],
     ) -> list[AdvancePayment]:
         query = (
-            self.db.query(AdvancePayment)
+            scope_to_active_clients(self.db.query(AdvancePayment), AdvancePayment)
             .filter(
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
@@ -71,7 +72,8 @@ class AdvancePaymentAggregationRepository(BaseRepository):
     def get_collections_aggregates(self, year: int, month=None) -> list:
         """Per-client aggregates for the collections report."""
         query = (
-            self.db.query(
+            scope_to_active_clients(
+                self.db.query(
                 AdvancePayment.client_record_id,
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
@@ -84,6 +86,8 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                     ),
                     0,
                 ).label("overdue_count"),
+                ),
+                AdvancePayment,
             )
             .filter(
                 AdvancePayment.period.like(f"{year}-%"),

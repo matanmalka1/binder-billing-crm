@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 
 
@@ -38,7 +39,9 @@ class GroupedDeadlineRepository:
             today.day,
         )
 
-        q = self.db.query(TaxDeadline).filter(TaxDeadline.deleted_at.is_(None))
+        q = scope_to_active_clients(
+            self.db.query(TaxDeadline), TaxDeadline
+        ).filter(TaxDeadline.deleted_at.is_(None))
 
         if status:
             q = q.filter(TaxDeadline.status == status)
@@ -67,7 +70,9 @@ class GroupedDeadlineRepository:
         offset: int = 0,
     ) -> tuple[list[TaxDeadline], int]:
         """Fetch per-client deadlines for a specific group, paginated."""
-        q = self.db.query(TaxDeadline).filter(
+        q = scope_to_active_clients(
+            self.db.query(TaxDeadline), TaxDeadline
+        ).filter(
             TaxDeadline.deleted_at.is_(None),
             TaxDeadline.deadline_type == deadline_type,
             TaxDeadline.due_date == due_date,

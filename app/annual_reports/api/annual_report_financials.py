@@ -34,7 +34,7 @@ router = APIRouter(
 
 # ── Tax preview (pre-creation, no report_id needed) ──────────────────────────
 
-@router.post("/annual-reports/tax-preview", response_model=TaxPreviewResponse)
+@router.post("/tax-preview", response_model=TaxPreviewResponse)
 def get_tax_preview(body: TaxPreviewRequest, _user: CurrentUser):
     """הערכת מס מקדימה לפני יצירת דוח שנתי."""
     net_profit = float(body.gross_income) - float(body.expenses)

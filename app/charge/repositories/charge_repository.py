@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.charge.models.charge import Charge, ChargeStatus
 from app.utils.time_utils import utcnow
@@ -71,7 +72,9 @@ class ChargeRepository(BaseRepository):
         - business_ids → narrows to a set of businesses (used by bulk/overview queries)
           Note: business_id and business_ids are mutually exclusive; business_id wins.
         """
-        query = self.db.query(Charge).filter(Charge.deleted_at.is_(None))
+        query = scope_to_active_clients(self.db.query(Charge), Charge).filter(
+            Charge.deleted_at.is_(None)
+        )
 
         if client_record_id is not None:
             query = query.filter(Charge.client_record_id == client_record_id)
@@ -176,7 +179,10 @@ class ChargeRepository(BaseRepository):
         """Return count and total amount per status, ignoring status filter."""
         from decimal import Decimal
         query = (
-            self.db.query(Charge.status, func.count(Charge.id), func.sum(Charge.amount))
+            scope_to_active_clients(
+                self.db.query(Charge.status, func.count(Charge.id), func.sum(Charge.amount)),
+                Charge,
+            )
             .filter(Charge.deleted_at.is_(None))
         )
         if client_record_id is not None:
@@ -198,7 +204,8 @@ class ChargeRepository(BaseRepository):
         issued_date = func.date(Charge.issued_at)
 
         rows = (
-            self.db.query(
+            scope_to_active_clients(
+                self.db.query(
                 Charge.client_record_id,
                 func.sum(
                     case((issued_date >= str(cut_30), Charge.amount), else_=0)
@@ -220,6 +227,8 @@ class ChargeRepository(BaseRepository):
                 ).label("days_90_plus"),
                 func.sum(Charge.amount).label("total"),
                 func.min(Charge.issued_at).label("oldest_issued_at"),
+                ),
+                Charge,
             )
             .filter(
                 Charge.status == ChargeStatus.ISSUED.value,

@@ -4,6 +4,7 @@ from itertools import count
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import Business
 from app.common.enums import EntityType, IdNumberType, VatType
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
@@ -120,6 +121,30 @@ def test_status_listing_totals_and_audit_trail(test_db):
 
     trail = repo.get_audit_trail(oldest.id, limit=25, offset=0)
     assert {event.action for event in trail} == {"early", "late"}
+
+
+def test_global_work_item_lists_hide_deleted_clients_and_restore_visibility(test_db):
+    repo = VatWorkItemRepository(test_db)
+    user = _user(test_db)
+    _, client_record_id = _business(test_db)
+    item = repo.create(
+        client_record_id=client_record_id,
+        period="2026-04",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+        status=VatWorkItemStatus.PENDING_MATERIALS,
+    )
+
+    record_repo = ClientRecordRepository(test_db)
+    record_repo.soft_delete(client_record_id, deleted_by=user.id)
+
+    assert item not in repo.list_all(page=1, page_size=10)
+    assert repo.count_all() == 0
+
+    record_repo.restore(client_record_id, restored_by=user.id)
+
+    assert item in repo.list_all(page=1, page_size=10)
+    assert repo.count_all() == 1
 
 
 def test_mark_filed_persists_amendment_and_reference_fields(test_db):

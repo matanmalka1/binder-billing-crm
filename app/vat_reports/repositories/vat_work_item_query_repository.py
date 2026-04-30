@@ -5,6 +5,8 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.enums import VatType
+from app.clients.models.client_record import ClientRecord
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories import vat_work_item_extra_queries as extra_queries
@@ -23,7 +25,10 @@ class VatWorkItemQueryRepository:
         )
 
     def _query(self, status: Optional[VatWorkItemStatus] = None):
-        query = self.db.query(VatWorkItem).filter(VatWorkItem.deleted_at.is_(None))
+        query = scope_to_active_clients(
+            self.db.query(VatWorkItem),
+            VatWorkItem,
+        ).filter(VatWorkItem.deleted_at.is_(None))
         return query.filter(VatWorkItem.status == status) if status is not None else query
 
     def _filtered_query(
@@ -120,10 +125,12 @@ class VatWorkItemQueryRepository:
     def count_by_period_not_filed(self, period: str) -> int:
         return (
             self.db.query(VatWorkItem)
+            .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
             .filter(
                 VatWorkItem.period == period,
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
+                ClientRecord.deleted_at.is_(None),
             )
             .count()
         )

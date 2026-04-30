@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy import nullslast
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus
 from app.utils.time_utils import utcnow
@@ -20,6 +21,9 @@ class BinderRepository(BaseRepository):
     def _order_by_period_start(query, descending: bool):
         order_expr = Binder.period_start.desc() if descending else Binder.period_start.asc()
         return query.order_by(nullslast(order_expr), Binder.id.desc() if descending else Binder.id.asc())
+
+    def _active_client_query(self):
+        return scope_to_active_clients(self.db.query(Binder), Binder)
 
     def create(
         self,
@@ -86,7 +90,7 @@ class BinderRepository(BaseRepository):
         """
         from sqlalchemy import asc, desc
 
-        query = self.db.query(Binder).filter(Binder.deleted_at.is_(None))
+        query = self._active_client_query().filter(Binder.deleted_at.is_(None))
         if not include_returned:
             query = query.filter(Binder.status != BinderStatus.RETURNED)
 
@@ -121,7 +125,7 @@ class BinderRepository(BaseRepository):
         status: Optional[str] = None,
     ) -> int:
         """Count active binders with optional filters."""
-        query = self.db.query(Binder).filter(
+        query = self._active_client_query().filter(
             Binder.status != BinderStatus.RETURNED,
             Binder.deleted_at.is_(None),
         )
@@ -141,7 +145,7 @@ class BinderRepository(BaseRepository):
     ) -> list[Binder]:
         """List open binders (status != RETURNED, not soft-deleted) with pagination."""
         query = (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.status != BinderStatus.RETURNED,
                 Binder.deleted_at.is_(None),
@@ -152,7 +156,7 @@ class BinderRepository(BaseRepository):
     def count_open_binders(self) -> int:
         """Count open binders (not soft-deleted)."""
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.status != BinderStatus.RETURNED,
                 Binder.deleted_at.is_(None),
@@ -174,7 +178,7 @@ class BinderRepository(BaseRepository):
     def count_by_status(self, status: BinderStatus) -> int:
         """Count binders by status."""
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(Binder.status == status, Binder.deleted_at.is_(None))
             .count()
         )
@@ -208,7 +212,7 @@ class BinderRepository(BaseRepository):
     def get_active_by_client_record(self, client_record_id: int) -> Optional[Binder]:
         """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.client_record_id == client_record_id,
                 Binder.status == BinderStatus.IN_OFFICE,
@@ -225,7 +229,7 @@ class BinderRepository(BaseRepository):
     ) -> list[Binder]:
         """List all binders for a client (not soft-deleted) with pagination."""
         query = (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.client_record_id == client_record_id,
                 Binder.deleted_at.is_(None),
@@ -236,7 +240,7 @@ class BinderRepository(BaseRepository):
     def count_by_client(self, client_record_id: int) -> int:
         """Count binders for a client (not soft-deleted)."""
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.client_record_id == client_record_id,
                 Binder.deleted_at.is_(None),
@@ -247,7 +251,7 @@ class BinderRepository(BaseRepository):
     def get_active_by_client(self, client_record_id: int) -> Optional[Binder]:
         """Return the single open (IN_OFFICE) non-deleted binder for a client."""
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.client_record_id == client_record_id,
                 Binder.status == BinderStatus.IN_OFFICE,
@@ -269,7 +273,7 @@ class BinderRepository(BaseRepository):
         if not client_record_ids:
             return {}
         rows = (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.client_record_id.in_(client_record_ids),
                 Binder.status == BinderStatus.IN_OFFICE,
@@ -305,7 +309,7 @@ class BinderRepository(BaseRepository):
         from datetime import timezone as _tz
         cutoff = utcnow() - _dt.timedelta(days=overdue_days)
         return (
-            self.db.query(Binder)
+            self._active_client_query()
             .filter(
                 Binder.status == BinderStatus.READY_FOR_PICKUP,
                 Binder.ready_for_pickup_at.isnot(None),

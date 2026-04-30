@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import (
@@ -44,9 +45,12 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         month: Optional[int],
         statuses: list[AdvancePaymentStatus],
     ) -> dict:
-        query = self.db.query(
-            func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
-            func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
+        query = scope_to_active_clients(
+            self.db.query(
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
+            ),
+            AdvancePayment,
         ).filter(
             AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),

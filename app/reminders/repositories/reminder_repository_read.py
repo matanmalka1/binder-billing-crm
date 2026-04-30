@@ -4,6 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.reminders.models.reminder import Reminder, ReminderStatus
 
@@ -14,6 +15,9 @@ class ReminderRepositoryRead(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
+    def _active_client_query(self):
+        return scope_to_active_clients(self.db.query(Reminder), Reminder)
+
     def list_pending_by_date(
         self,
         reference_date: date,
@@ -21,7 +25,7 @@ class ReminderRepositoryRead(BaseRepository):
         page_size: int = 20,
     ) -> list[Reminder]:
         query = (
-            self.db.query(Reminder)
+            self._active_client_query()
             .filter(
                 Reminder.status == ReminderStatus.PENDING,
                 Reminder.send_on <= reference_date,
@@ -33,7 +37,7 @@ class ReminderRepositoryRead(BaseRepository):
 
     def count_pending_by_date(self, reference_date: date) -> int:
         return (
-            self.db.query(Reminder)
+            self._active_client_query()
             .filter(
                 Reminder.status == ReminderStatus.PENDING,
                 Reminder.send_on <= reference_date,
@@ -50,7 +54,7 @@ class ReminderRepositoryRead(BaseRepository):
         created_before: Optional[datetime] = None,
     ) -> list[Reminder]:
         query = (
-            self.db.query(Reminder)
+            self._active_client_query()
             .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
         )
         if created_before is not None:
@@ -60,7 +64,7 @@ class ReminderRepositoryRead(BaseRepository):
 
     def count_by_status(self, status: ReminderStatus, created_before: Optional[datetime] = None) -> int:
         query = (
-            self.db.query(Reminder)
+            self._active_client_query()
             .filter(Reminder.status == status, Reminder.deleted_at.is_(None))
         )
         if created_before is not None:

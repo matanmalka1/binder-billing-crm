@@ -5,6 +5,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
@@ -27,6 +28,9 @@ class AnnualReportReportRepository(BaseRepository):
         super().__init__(db)
 
     # ── AnnualReport CRUD / queries ─────────────────────────────────────────
+
+    def _active_client_query(self):
+        return scope_to_active_clients(self.db.query(AnnualReport), AnnualReport)
 
     def create(self, **kwargs) -> AnnualReport:
         report = AnnualReport(**kwargs)
@@ -83,7 +87,10 @@ class AnnualReportReportRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[AnnualReport]:
-        q = self.db.query(AnnualReport).filter(AnnualReport.status == status, AnnualReport.deleted_at.is_(None))
+        q = self._active_client_query().filter(
+            AnnualReport.status == status,
+            AnnualReport.deleted_at.is_(None),
+        )
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
         if assigned_to:
@@ -96,7 +103,10 @@ class AnnualReportReportRepository(BaseRepository):
         status: AnnualReportStatus,
         tax_year: Optional[int] = None,
     ) -> int:
-        q = self.db.query(AnnualReport).filter(AnnualReport.status == status, AnnualReport.deleted_at.is_(None))
+        q = self._active_client_query().filter(
+            AnnualReport.status == status,
+            AnnualReport.deleted_at.is_(None),
+        )
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
         return q.count()
@@ -110,14 +120,14 @@ class AnnualReportReportRepository(BaseRepository):
         order: str = "asc",
     ) -> list[AnnualReport]:
         q = (
-            self.db.query(AnnualReport)
+            self._active_client_query()
             .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
             .order_by(_sort_col(sort_by, order))
         )
         return self._paginate(q, page, page_size)
 
     def count_by_tax_year(self, tax_year: int) -> int:
-        return self.db.query(AnnualReport).filter(
+        return self._active_client_query().filter(
             AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
         ).count()
 
@@ -129,14 +139,14 @@ class AnnualReportReportRepository(BaseRepository):
         order: str = "desc",
     ) -> list[AnnualReport]:
         q = (
-            self.db.query(AnnualReport)
+            self._active_client_query()
             .filter(AnnualReport.deleted_at.is_(None))
             .order_by(_sort_col(sort_by, order))
         )
         return self._paginate(q, page, page_size)
 
     def count_all(self) -> int:
-        return self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None)).count()
+        return self._active_client_query().filter(AnnualReport.deleted_at.is_(None)).count()
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:
         """Return (AnnualReport, client_record_id, LegalEntity.official_name) for status report."""

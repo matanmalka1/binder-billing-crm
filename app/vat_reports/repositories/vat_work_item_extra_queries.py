@@ -3,6 +3,7 @@ from typing import Optional
 
 from sqlalchemy import func as sa_func
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -24,7 +25,7 @@ def sum_net_vat_by_client_record_year(db, client_record_id: int, tax_year: int) 
 
 def list_not_filed_for_period(db, period: str, limit: int = 3) -> list[VatWorkItem]:
     return (
-        db.query(VatWorkItem)
+        scope_to_active_clients(db.query(VatWorkItem), VatWorkItem)
         .filter(
             VatWorkItem.period == period,
             VatWorkItem.status != VatWorkItemStatus.FILED,
@@ -39,7 +40,7 @@ def list_not_filed_for_period(db, period: str, limit: int = 3) -> list[VatWorkIt
 def list_open_up_to_period(db, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
     """Return all open (non-filed/canceled/archived) VAT items with period <= up_to_period."""
     return (
-        db.query(VatWorkItem)
+        scope_to_active_clients(db.query(VatWorkItem), VatWorkItem)
         .filter(
             VatWorkItem.period <= up_to_period,
             VatWorkItem.status.notin_(list(_FILED_STATUSES)),

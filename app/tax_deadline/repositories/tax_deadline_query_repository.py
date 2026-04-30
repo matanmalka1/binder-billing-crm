@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 
 
@@ -13,7 +14,9 @@ class TaxDeadlineQueryRepository:
         self.db = db
 
     def _base_query(self):
-        return self.db.query(TaxDeadline).filter(TaxDeadline.deleted_at.is_(None))
+        return scope_to_active_clients(
+            self.db.query(TaxDeadline), TaxDeadline
+        ).filter(TaxDeadline.deleted_at.is_(None))
 
     def get_by_id(self, deadline_id: int) -> Optional[TaxDeadline]:
         """Retrieve a non-deleted deadline by ID."""
@@ -35,9 +38,8 @@ class TaxDeadlineQueryRepository:
         Use limit/offset for SQL-level pagination (preferred over Python-slicing).
         """
         q = (
-            self.db.query(TaxDeadline)
+            self._base_query()
             .filter(
-                TaxDeadline.deleted_at.is_(None),
                 TaxDeadline.status == TaxDeadlineStatus.PENDING,
                 TaxDeadline.due_date >= from_date,
                 TaxDeadline.due_date <= to_date,
@@ -53,9 +55,8 @@ class TaxDeadlineQueryRepository:
     def count_pending_due_by_date(self, from_date: date, to_date: date) -> int:
         """Return the true count of pending deadlines in [from_date, to_date]."""
         return (
-            self.db.query(TaxDeadline)
+            self._base_query()
             .filter(
-                TaxDeadline.deleted_at.is_(None),
                 TaxDeadline.status == TaxDeadlineStatus.PENDING,
                 TaxDeadline.due_date >= from_date,
                 TaxDeadline.due_date <= to_date,
@@ -120,9 +121,8 @@ class TaxDeadlineQueryRepository:
     def list_overdue(self, reference_date: date) -> list[TaxDeadline]:
         """List pending, non-deleted deadlines overdue before reference_date."""
         return (
-            self.db.query(TaxDeadline)
+            self._base_query()
             .filter(
-                TaxDeadline.deleted_at.is_(None),
                 TaxDeadline.status == TaxDeadlineStatus.PENDING,
                 TaxDeadline.due_date < reference_date,
             )
