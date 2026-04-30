@@ -13,7 +13,7 @@ from app.tax_deadline.models.tax_deadline import (
 class TaxDeadlineCreateRequest(BaseModel):
     client_record_id: int
     deadline_type: DeadlineType             # enum
-    due_date: date
+    due_date: Optional[date] = None
     period: Optional[str] = None            # "YYYY-MM" — קיים במודל
     tax_year: Optional[int] = Field(None, ge=1900, le=2200)
     payment_amount: Optional[ApiDecimal] = Field(None, ge=0)

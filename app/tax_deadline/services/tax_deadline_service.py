@@ -9,6 +9,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
+from app.tax_deadline.services.due_dates import resolve_due_date
 from app.utils.time_utils import utcnow
 from app.reminders.services.reminder_service import ReminderService
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
@@ -26,7 +27,7 @@ class TaxDeadlineService:
         self,
         client_record_id: int,
         deadline_type: DeadlineType,
-        due_date: date,
+        due_date: Optional[date] = None,
         period: Optional[str] = None,
         tax_year: Optional[int] = None,
         payment_amount: Optional[float] = None,
@@ -38,6 +39,7 @@ class TaxDeadlineService:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         assert_client_record_is_active(client_record)
         client_record_id = int(client_record.id)
+        due_date = resolve_due_date(self.db, client_record, deadline_type, due_date, period)
 
         if deadline_type == DeadlineType.ANNUAL_REPORT:
             tax_year = tax_year or due_date.year - 1
@@ -123,6 +125,16 @@ class TaxDeadlineService:
         ]):
             raise AppError("לא סופקו שדות לעדכון", "TAX_DEADLINE.NO_FIELDS_PROVIDED")
 
+        existing = self.deadline_repo.get_by_id(deadline_id)
+        if not existing:
+            raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
+
+        next_type = deadline_type or existing.deadline_type
+        next_period = period if period is not None else existing.period
+        if next_type == DeadlineType.VAT:
+            client_record = ClientRecordRepository(self.db).get_by_id(existing.client_record_id)
+            due_date = resolve_due_date(self.db, client_record, next_type, due_date, next_period)
+
         deadline = self.deadline_repo.update(
             deadline_id,
             deadline_type=deadline_type,
@@ -132,9 +144,6 @@ class TaxDeadlineService:
             payment_amount=payment_amount,
             description=description,
         )
-
-        if not deadline:
-            raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
 
         if due_date:
             reminder_service = ReminderService(self.db)

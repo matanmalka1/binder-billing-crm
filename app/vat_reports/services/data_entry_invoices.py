@@ -33,6 +33,7 @@ from app.vat_reports.services.data_entry_common import (
     recalculate_totals,
     resolve_invoice_derived_fields,
 )
+from app.vat_reports.services.vat_amounts import calculate_vat_amount
 from app.vat_reports.services.messages import (
     VAT_ADD_INVOICE_INVALID_STATUS,
     VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE,
@@ -56,7 +57,7 @@ def add_invoice(
     invoice_date: Optional[datetime],
     counterparty_name: Optional[str],
     net_amount: float,
-    vat_amount: float,
+    vat_amount: Optional[float] = None,
     counterparty_id: Optional[str] = None,
     counterparty_id_type: Optional[CounterpartyIdType] = None,
     expense_category: Optional[ExpenseCategory] = None,
@@ -98,6 +99,9 @@ def add_invoice(
                 VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
             )
+
+    if vat_amount is None:
+        vat_amount = float(calculate_vat_amount(net_amount, rate_type, int(item.period[:4])))
 
     derived = resolve_invoice_derived_fields(
         invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount,

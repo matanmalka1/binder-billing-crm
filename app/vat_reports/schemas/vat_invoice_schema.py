@@ -72,7 +72,7 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     invoice_date: Optional[date] = None    # Date — לא DateTime
     counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
     net_amount: ApiDecimal
-    vat_amount: ApiDecimal
+    vat_amount: Optional[ApiDecimal] = None
     counterparty_id: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
     counterparty_id_type: Optional[CounterpartyIdType] = None
     expense_category: Optional[ExpenseCategory] = None
@@ -88,8 +88,8 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
 
     @field_validator("vat_amount")
     @classmethod
-    def vat_non_negative(cls, v: Decimal) -> Decimal:
-        if v < 0:
+    def vat_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is not None and v < 0:
             raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
         return v
 

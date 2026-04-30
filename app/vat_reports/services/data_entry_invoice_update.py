@@ -20,6 +20,7 @@ from app.vat_reports.services.data_entry_common import (
     assert_editable,
     recalculate_totals,
 )
+from app.vat_reports.services.vat_amounts import calculate_vat_amount
 from app.vat_reports.services.messages import (
     VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM,
     VAT_INVOICE_NUMBER_CONFLICT,
@@ -90,9 +91,16 @@ def update_invoice(
         "document_type": document_type,
         "business_activity_id": business_activity_id,
     }
+    effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
+    effective_rate_type = rate_type if rate_type is not None else invoice.rate_type
+    if net_amount is not None or rate_type is not None:
+        update_fields["vat_amount"] = calculate_vat_amount(
+            effective_net,
+            effective_rate_type,
+            int(item.period[:4]),
+        )
     if expense_category is not None:
         update_fields["deduction_rate"] = get_vat_deduction_rate(expense_category.value)
-    effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
     _threshold = Decimal(str(get_financial(int(item.period[:4]), "exceptional_invoice_threshold_ils").value))
     update_fields["is_exceptional"] = Decimal(str(effective_net)) > _threshold
 
