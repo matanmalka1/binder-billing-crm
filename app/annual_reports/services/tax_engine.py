@@ -5,12 +5,15 @@ from dataclasses import dataclass
 from app.core.exceptions import AppError
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from tax_rules import get_income_tax_brackets, get_credit_point_config
+from tax_rules.registry import get_supported_years as _get_supported_years
 from tax_rules.statutory import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 
-# Israeli resident baseline: 2.25 credit points (תושב ישראל). Callers pass the
-# actual value from AnnualReportCreditPointRepository; this default covers the
-# case where no credit-point rows exist for the report.
-_BASE_RESIDENT_CREDIT_POINTS: float = 2.25
+try:
+    _BASE_RESIDENT_CREDIT_POINTS: float = get_credit_point_config(
+        __import__("datetime").date.today().year
+    ).default_resident_points
+except Exception:
+    _BASE_RESIDENT_CREDIT_POINTS = 2.25
 
 
 @dataclass
@@ -55,7 +58,7 @@ def calculate_tax(
         credit_point_value = get_credit_point_config(tax_year).annual_value_ils
     except KeyError:
         raise AppError(
-            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=[2024, 2025, 2026]),
+            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=list(_get_supported_years())),
             "TAX_ENGINE.INVALID_INPUT",
             status_code=400,
         )

@@ -51,7 +51,11 @@ _ANNUAL_PENDING_CLIENT_DAYS = 3
 _ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 _UPCOMING_WINDOW_DAYS = 7
 _VAT_UPCOMING_DAY_OF_MONTH = 8  # show upcoming from day 8 (7 days before deadline on 15th)
-_VAT_DEADLINE_DAY = 15
+try:
+    from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat_day
+    _VAT_DEADLINE_DAY: int = _get_stat_day(_dt.date.today().year)
+except Exception:
+    _VAT_DEADLINE_DAY = 15
 
 
 def _period_label(period: str) -> str:

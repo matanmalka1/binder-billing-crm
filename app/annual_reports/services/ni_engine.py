@@ -32,7 +32,8 @@ def calculate_national_insurance(
     try:
         brackets = get_ni_brackets(tax_year)
     except KeyError:
-        brackets = get_ni_brackets(2026)
+        from tax_rules.registry import get_supported_years
+        brackets = get_ni_brackets(max(get_supported_years()))
 
     income = max(float(income), 0.0)
     prev = 0.0

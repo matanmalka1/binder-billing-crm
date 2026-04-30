@@ -168,6 +168,11 @@ def get_btl_due_day() -> int:
     return BTL_MONTHLY_DUE_DAY
 
 
+def get_supported_years() -> tuple[int, ...]:
+    """שנים שיש עבורן נתונים מלאים ב-registry (קבועים כספיים + מדרגות)."""
+    return tuple(sorted(_FINANCIALS.keys()))
+
+
 def get_vat_statutory_deadline_day(year: int) -> int:
     """המועד החוקי הבסיסי להגשת דוח מע״מ (ה-15) לשנה נתונה."""
     return int(get_financial(year, "vat_statutory_deadline_day").value)

@@ -4,6 +4,29 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
+try:
+    from tax_rules.registry import get_effective_periodic_date as _get_periodic_date
+    from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY
+    _CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
+    _CALENDAR_AVAILABLE = True
+except Exception:
+    _CALENDAR_AVAILABLE = False
+    _VAT_FALLBACK_DAY = 15
+
+
+def _vat_deadline(period_year: int, period_month: int) -> date:
+    filing_year = period_year if period_month < 12 else period_year + 1
+    filing_month = (period_month % 12) + 1
+    calendar_period = f"{period_year}-{period_month:02d}"
+    if _CALENDAR_AVAILABLE:
+        try:
+            raw = _get_periodic_date(filing_year, calendar_period, _CALENDAR_COLUMN)
+            if raw:
+                return date.fromisoformat(raw)
+        except KeyError:
+            pass
+    return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
+
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.reports.constants import VAT_STALE_PENDING_DAYS
@@ -28,10 +51,7 @@ class VatComplianceReportService:
         for fi in filed_items:
             period_year = int(fi.period[:4])
             period_month = int(fi.period[5:7])
-            # Israeli VAT deadline: 15th of the month following the period end
-            deadline_year = period_year if period_month < 12 else period_year + 1
-            deadline_month = (period_month % 12) + 1
-            deadline = date(deadline_year, deadline_month, 15)
+            deadline = _vat_deadline(period_year, period_month)
             filed_date = fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
             is_late = filed_date > deadline
             bucket = late_map if is_late else on_time_map

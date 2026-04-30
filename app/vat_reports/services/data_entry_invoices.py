@@ -100,7 +100,8 @@ def add_invoice(
             )
 
     derived = resolve_invoice_derived_fields(
-        invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount
+        invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount,
+        year=int(item.period[:4]),
     )
     deduction_rate = derived["deduction_rate"]
     is_exceptional = derived["is_exceptional"]

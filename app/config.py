@@ -55,7 +55,13 @@ class Config:
         raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
 
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
-    ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
+    try:
+        from tax_rules.registry import get_financial as _get_fin
+        import datetime as _dt
+        _vat_pct = _get_fin(_dt.date.today().year, "vat_rate_percent").value
+        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(str(_vat_pct)) / Decimal("100")
+    except Exception:
+        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
 
     _CORS_ALLOWED_ORIGINS_ENV = os.getenv("CORS_ALLOWED_ORIGINS", "")
     if APP_ENV in ("staging", "production") and not _CORS_ALLOWED_ORIGINS_ENV:

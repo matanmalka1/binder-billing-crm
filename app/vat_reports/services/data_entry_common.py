@@ -75,6 +75,7 @@ def resolve_invoice_derived_fields(
     counterparty_id: Optional[str],
     net_amount: float,
     vat_amount: float,
+    year: int = 2026,
 ) -> dict:
     """Validate amounts/category rules and return derived fields: deduction_rate, is_exceptional."""
     if vat_amount < 0:
@@ -99,8 +100,8 @@ def resolve_invoice_derived_fields(
     deduction_rate = Decimal("1.0000")
     if invoice_type == InvoiceType.EXPENSE and expense_category:
         deduction_rate = Decimal(str(get_vat_deduction_rate(expense_category.value)))
-    # threshold identical across 2025–2026; update if it changes per-year
-    is_exceptional = Decimal(str(net_amount)) > Decimal(str(get_financial(2026, "exceptional_invoice_threshold_ils").value))
+    threshold = Decimal(str(get_financial(year, "exceptional_invoice_threshold_ils").value))
+    is_exceptional = Decimal(str(net_amount)) > threshold
     return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
 
 

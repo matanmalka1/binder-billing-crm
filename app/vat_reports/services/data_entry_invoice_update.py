@@ -93,7 +93,7 @@ def update_invoice(
     if expense_category is not None:
         update_fields["deduction_rate"] = get_vat_deduction_rate(expense_category.value)
     effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
-    _threshold = Decimal(str(get_financial(2026, "exceptional_invoice_threshold_ils").value))
+    _threshold = Decimal(str(get_financial(int(item.period[:4]), "exceptional_invoice_threshold_ils").value))
     update_fields["is_exceptional"] = Decimal(str(effective_net)) > _threshold
 
     updated = invoice_repo.update(
