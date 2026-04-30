@@ -61,10 +61,13 @@ def test_record_view_on_expired_request_sets_status_and_raises(test_db, test_use
     assert repo.get_by_id(req.id).status == SignatureRequestStatus.EXPIRED
 
 
-def test_list_business_requests_invalid_status_raises_app_error(test_db):
+def test_list_client_requests_invalid_status_raises_app_error(test_db):
     business = _business(test_db, "3")
     with pytest.raises(AppError) as exc_info:
-        SignatureRequestService(test_db).list_business_requests(business_id=business.id, status="not_a_status")
+        SignatureRequestService(test_db).list_client_requests(
+            client_record_id=business.client_id,
+            status="not_a_status",
+        )
     assert exc_info.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"
 
 

@@ -109,12 +109,11 @@ Roles: `ADVISOR`, `SECRETARY`
 - `POST /api/v1/signature-requests/{request_id}/cancel`
   - Cancel request (allowed from `draft`/`pending_signature`)
 
-### Client-record and business-scoped listing
+### Client-record listing
 
 Roles: `ADVISOR`, `SECRETARY`
 
 - `GET /api/v1/clients/{client_record_id}/signature-requests`
-- `GET /api/v1/businesses/{business_id}/signature-requests`
 - Query params:
   - `status` (optional)
   - `page` (default `1`)

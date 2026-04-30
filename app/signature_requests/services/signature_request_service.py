@@ -116,10 +116,6 @@ class SignatureRequestService:
         """Primary query path — all requests for a legal entity."""
         return signature_request_queries.list_client_requests(self.repo, **kwargs)
 
-    def list_business_requests(self, **kwargs):
-        """Secondary / filtered view — requests scoped to one business."""
-        return signature_request_queries.list_business_requests(self.repo, **kwargs)
-
     def list_pending_requests(self, **kwargs):
         return signature_request_queries.list_pending_requests(self.repo, **kwargs)
 

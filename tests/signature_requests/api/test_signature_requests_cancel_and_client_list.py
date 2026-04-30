@@ -67,7 +67,7 @@ def test_list_signature_requests_by_client_with_status_filter(client, test_db, a
     _create_signature_request(client, advisor_headers, business_b, "Other client")
 
     all_resp = client.get(
-        f"/api/v1/businesses/{business_a.id}/signature-requests?page=1&page_size=10",
+        f"/api/v1/clients/{business_a.client_id}/signature-requests?page=1&page_size=10",
         headers=advisor_headers,
     )
     assert all_resp.status_code == 200
@@ -76,7 +76,7 @@ def test_list_signature_requests_by_client_with_status_filter(client, test_db, a
     assert returned_ids == {req_a_pending, req_a_draft}
 
     pending_resp = client.get(
-        f"/api/v1/businesses/{business_a.id}/signature-requests?status=pending_signature",
+        f"/api/v1/clients/{business_a.client_id}/signature-requests?status=pending_signature",
         headers=advisor_headers,
     )
     assert pending_resp.status_code == 200

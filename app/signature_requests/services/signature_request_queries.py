@@ -52,21 +52,6 @@ def list_client_requests(
     return items, total
 
 
-def list_business_requests(
-    repo: SignatureRequestRepository,
-    *,
-    business_id: int,
-    status: Optional[str] = None,
-    page: int = 1,
-    page_size: int = 20,
-) -> Tuple[List[SignatureRequest], int]:
-    """Signature requests scoped to a specific business (secondary / filtered view)."""
-    status_enum = _parse_status(status)
-    items = repo.list_by_business(business_id, status=status_enum, page=page, page_size=page_size)
-    total = repo.count_by_business(business_id, status=status_enum)
-    return items, total
-
-
 def list_pending_requests(
     repo: SignatureRequestRepository,
     *,
