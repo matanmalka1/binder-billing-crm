@@ -26,6 +26,36 @@ CONSTANTS_2024: dict[str, FinancialConstant] = {
         source_ids=("tax_authority_credit_points_2024",),
         note_he="שווי נקודת זיכוי אחת לשנת 2024 — 242₪/חודש.",
     ),
+    "vat_statutory_deadline_day": FinancialConstant(
+        id="vat_statutory_deadline_day",
+        year=2024,
+        value=15,
+        unit="day_of_month",
+        effective_from="2024-01-01",
+        effective_to="2024-12-31",
+        source_ids=("tax_authority_vat_amounts_2024",),
+        note_he="המועד החוקי הבסיסי להגשת דוח מע״מ — ה-15 בחודש.",
+    ),
+    "vat_online_extended_deadline_day": FinancialConstant(
+        id="vat_online_extended_deadline_day",
+        year=2024,
+        value=19,
+        unit="day_of_month",
+        effective_from="2024-01-01",
+        effective_to="2024-12-31",
+        source_ids=("tax_authority_vat_amounts_2024",),
+        note_he="הארכה לדיווח דיגיטלי בלבד — ה-19 בחודש.",
+    ),
+    "advance_payment_due_day": FinancialConstant(
+        id="advance_payment_due_day",
+        year=2024,
+        value=15,
+        unit="day_of_month",
+        effective_from="2024-01-01",
+        effective_to="2024-12-31",
+        source_ids=("tax_authority_vat_amounts_2024",),
+        note_he="מועד תשלום מקדמות מס הכנסה — ה-15 בחודש.",
+    ),
 }
 
 # ── מדרגות מס הכנסה ליחיד — 2024 ─────────────────────────────────────────────

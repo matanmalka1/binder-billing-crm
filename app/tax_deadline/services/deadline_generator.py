@@ -13,22 +13,22 @@ from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-from app.tax_deadline.services.constants import ADVANCE_PAYMENT_DUE_DAY
-from app.vat_reports.services.constants import VAT_ONLINE_EXTENDED_DEADLINE_DAY as _VAT_FALLBACK_DUE_DAY
+
+from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DUE_DAY
 
 try:
-    from tax_rules import get_effective_periodic_date as _get_vat_date
-    _VAT_CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
-    _VAT_CALENDAR_AVAILABLE = True
+    from tax_rules import get_effective_periodic_date as _get_periodic_date
+    _PERIODIC_CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
+    _PERIODIC_CALENDAR_AVAILABLE = True
 except ImportError:
-    _VAT_CALENDAR_AVAILABLE = False
+    _PERIODIC_CALENDAR_AVAILABLE = False
 
 
-def _vat_due_date(filing_year: int, filing_month: int, calendar_period: str) -> date:
-    """Return VAT due date from official calendar; fall back to fixed day-19."""
-    if _VAT_CALENDAR_AVAILABLE:
+def _periodic_due_date(filing_year: int, filing_month: int, calendar_period: str) -> date:
+    """Return due date from official calendar; fall back to fixed statutory day."""
+    if _PERIODIC_CALENDAR_AVAILABLE:
         try:
-            raw = _get_vat_date(filing_year, calendar_period, _VAT_CALENDAR_COLUMN)
+            raw = _get_periodic_date(filing_year, calendar_period, _PERIODIC_CALENDAR_COLUMN)
         except KeyError:
             raw = None
         if raw:
@@ -78,7 +78,7 @@ class DeadlineGeneratorService:
                 period = f"{year}-{month:02d}"
                 # Calendar key = reporting period (the month being reported)
                 calendar_period = f"{year}-{month:02d}"
-                due_dates.append((_vat_due_date(filing_year, filing_month, calendar_period), period))
+                due_dates.append((_periodic_due_date(filing_year, filing_month, calendar_period), period))
         elif vat_type == VatType.BIMONTHLY:
             # Periods: Jan-Feb, Mar-Apr, May-Jun, Jul-Aug, Sep-Oct, Nov-Dec
             for period_start in range(1, 12, 2):
@@ -88,7 +88,7 @@ class DeadlineGeneratorService:
                 period = f"{year}-{period_start:02d}"
                 # Calendar key = second month of the bimonthly period (per calendar spec)
                 calendar_period = f"{year}-{period_end:02d}"
-                due_dates.append((_vat_due_date(filing_year, filing_month, calendar_period), period))
+                due_dates.append((_periodic_due_date(filing_year, filing_month, calendar_period), period))
 
         today = _today()
         created = []
@@ -119,7 +119,8 @@ class DeadlineGeneratorService:
         today = _today()
         created = []
         for month in range(1, 13):
-            due_date = date(year, month, ADVANCE_PAYMENT_DUE_DAY)
+            calendar_period = f"{year}-{month:02d}"
+            due_date = _periodic_due_date(year, month, calendar_period)
             if due_date < today:
                 continue
             period = f"{year}-{month:02d}"

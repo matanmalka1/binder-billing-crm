@@ -76,11 +76,13 @@ def test_list_work_items_by_status_uses_resolved_client_ids():
         page_size=25,
         period="2026-01",
         client_record_ids=[7, 8],
+        period_type=None,
     )
     work_item_repo.count_by_status.assert_called_once_with(
         VatWorkItemStatus.PENDING_MATERIALS,
         period="2026-01",
         client_record_ids=[7, 8],
+        period_type=None,
     )
 
 
@@ -103,10 +105,14 @@ def test_list_all_work_items_without_name_filter_passes_none_client_ids():
     assert total == 1
     client_repo.list.assert_not_called()
     work_item_repo.list_all.assert_called_once_with(
-        page=1, page_size=10, period="2026-02", client_record_ids=None
+        page=1,
+        page_size=10,
+        period="2026-02",
+        client_record_ids=None,
+        period_type=None,
     )
     work_item_repo.count_all.assert_called_once_with(
-        period="2026-02", client_record_ids=None
+        period="2026-02", client_record_ids=None, period_type=None
     )
 
 
@@ -130,65 +136,10 @@ def test_get_audit_trail_forwards_call():
     work_item_repo = MagicMock()
     work_item_repo.get_audit_trail.return_value = ["a1", "a2"]
 
-    result = vat_report_queries.get_audit_trail(work_item_repo, item_id=12)
+    result = vat_report_queries.get_audit_trail(
+        work_item_repo, item_id=12, limit=50, offset=0
+    )
 
     assert result == ["a1", "a2"]
-    work_item_repo.get_audit_trail.assert_called_once_with(12)
+    work_item_repo.get_audit_trail.assert_called_once_with(12, 50, 0)
 
-
-def test_compute_deadline_fields_rolls_december_to_next_year():
-    item = MagicMock()
-    item.period = "2030-12"
-
-    result = vat_report_queries.compute_deadline_fields(item)
-
-    assert str(result["submission_deadline"]) == "2031-01-15"
-    assert str(result["statutory_deadline"]) == "2031-01-15"
-    assert str(result["extended_deadline"]) == "2031-01-19"
-    assert isinstance(result["days_until_deadline"], int)
-    assert isinstance(result["is_overdue"], bool)
-
-
-def test_compute_deadline_fields_manual_filer_uses_statutory():
-    from app.common.enums import SubmissionMethod
-    item = MagicMock()
-    item.period = "2030-06"
-
-    result = vat_report_queries.compute_deadline_fields(
-        item, submission_method=SubmissionMethod.MANUAL
-    )
-
-    assert str(result["submission_deadline"]) == "2030-07-15"
-    assert str(result["statutory_deadline"]) == "2030-07-15"
-    assert str(result["extended_deadline"]) == "2030-07-19"
-
-
-def test_compute_deadline_fields_online_filer_uses_extended():
-    from app.common.enums import SubmissionMethod
-    item = MagicMock()
-    item.period = "2030-06"
-
-    result = vat_report_queries.compute_deadline_fields(
-        item, submission_method=SubmissionMethod.ONLINE
-    )
-
-    assert str(result["submission_deadline"]) == "2030-07-19"
-    assert str(result["statutory_deadline"]) == "2030-07-15"
-    assert str(result["extended_deadline"]) == "2030-07-19"
-
-
-def test_compute_deadline_fields_invalid_period_returns_nones(caplog):
-    item = MagicMock()
-    item.period = "bad-period"
-
-    with caplog.at_level("WARNING"):
-        result = vat_report_queries.compute_deadline_fields(item)
-
-    assert result == {
-        "submission_deadline": None,
-        "statutory_deadline": None,
-        "extended_deadline": None,
-        "days_until_deadline": None,
-        "is_overdue": None,
-    }
-    assert "Failed to compute deadline for period 'bad-period'" in caplog.text

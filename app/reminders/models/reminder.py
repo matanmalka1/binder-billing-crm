@@ -120,8 +120,15 @@ class Reminder(Base):
             "reminder_type",
             "target_date",
             unique=True,
-            postgresql_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
-            sqlite_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
+            postgresql_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None) & tax_deadline_id.is_(None),
+            sqlite_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None) & tax_deadline_id.is_(None),
+        ),
+        Index(
+            "uq_reminder_tax_deadline_active",
+            "tax_deadline_id",
+            unique=True,
+            postgresql_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None) & tax_deadline_id.is_not(None),
+            sqlite_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None) & tax_deadline_id.is_not(None),
         ),
     )
 

@@ -101,6 +101,37 @@ CONSTANTS_2026: dict[str, FinancialConstant] = {
         source_ids=("btl_self_employed_rates_2026",),
         note_he="הכנסה מזערית לתשלום דמי ביטוח לאומי עצמאי 2026.",
     ),
+    # מועדי הגשה חוקיים
+    "vat_statutory_deadline_day": FinancialConstant(
+        id="vat_statutory_deadline_day",
+        year=2026,
+        value=15,
+        unit="day_of_month",
+        effective_from="2026-01-01",
+        effective_to=None,
+        source_ids=("tax_authority_vat_amounts_2026",),
+        note_he="המועד החוקי הבסיסי להגשת דוח מע״מ — ה-15 בחודש. לא להחליף עם המועד המורחב (19).",
+    ),
+    "vat_online_extended_deadline_day": FinancialConstant(
+        id="vat_online_extended_deadline_day",
+        year=2026,
+        value=19,
+        unit="day_of_month",
+        effective_from="2026-01-01",
+        effective_to=None,
+        source_ids=("tax_authority_vat_amounts_2026",),
+        note_he="הארכה לדיווח דיגיטלי בלבד — ה-19 בחודש. זכות, לא בסיס חוקי.",
+    ),
+    "advance_payment_due_day": FinancialConstant(
+        id="advance_payment_due_day",
+        year=2026,
+        value=15,
+        unit="day_of_month",
+        effective_from="2026-01-01",
+        effective_to=None,
+        source_ids=("tax_authority_vat_amounts_2026",),
+        note_he="מועד תשלום מקדמות מס הכנסה — ה-15 בחודש.",
+    ),
 }
 
 # ── מדרגות מס הכנסה ליחיד — 2026 ─────────────────────────────────────────────

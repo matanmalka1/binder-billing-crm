@@ -91,6 +91,36 @@ CONSTANTS_2025: dict[str, FinancialConstant] = {
         source_ids=("btl_2025_constants_circular",),
         note_he="הכנסה מזערית לתשלום דמי ביטוח לאומי עצמאי 2025.",
     ),
+    "vat_statutory_deadline_day": FinancialConstant(
+        id="vat_statutory_deadline_day",
+        year=2025,
+        value=15,
+        unit="day_of_month",
+        effective_from="2025-01-01",
+        effective_to="2025-12-31",
+        source_ids=("tax_authority_vat_amounts_2025",),
+        note_he="המועד החוקי הבסיסי להגשת דוח מע״מ — ה-15 בחודש.",
+    ),
+    "vat_online_extended_deadline_day": FinancialConstant(
+        id="vat_online_extended_deadline_day",
+        year=2025,
+        value=19,
+        unit="day_of_month",
+        effective_from="2025-01-01",
+        effective_to="2025-12-31",
+        source_ids=("tax_authority_vat_amounts_2025",),
+        note_he="הארכה לדיווח דיגיטלי בלבד — ה-19 בחודש.",
+    ),
+    "advance_payment_due_day": FinancialConstant(
+        id="advance_payment_due_day",
+        year=2025,
+        value=15,
+        unit="day_of_month",
+        effective_from="2025-01-01",
+        effective_to="2025-12-31",
+        source_ids=("tax_authority_vat_amounts_2025",),
+        note_he="מועד תשלום מקדמות מס הכנסה — ה-15 בחודש.",
+    ),
 }
 
 # ── מדרגות מס הכנסה ליחיד — 2025 ─────────────────────────────────────────────

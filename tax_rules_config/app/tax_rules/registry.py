@@ -166,3 +166,18 @@ def get_credit_point_config(year: int) -> CreditPointConfig:
 def get_btl_due_day() -> int:
     """מועד תשלום ביטוח לאומי עצמאי — ה-15 בחודש (קבוע חוקי)."""
     return BTL_MONTHLY_DUE_DAY
+
+
+def get_vat_statutory_deadline_day(year: int) -> int:
+    """המועד החוקי הבסיסי להגשת דוח מע״מ (ה-15) לשנה נתונה."""
+    return int(get_financial(year, "vat_statutory_deadline_day").value)
+
+
+def get_vat_online_extended_deadline_day(year: int) -> int:
+    """הארכת הדיווח הדיגיטלי (ה-19) לשנה נתונה. זכות, לא בסיס חוקי."""
+    return int(get_financial(year, "vat_online_extended_deadline_day").value)
+
+
+def get_advance_payment_due_day(year: int) -> int:
+    """מועד תשלום מקדמות מס הכנסה (ה-15) לשנה נתונה."""
+    return int(get_financial(year, "advance_payment_due_day").value)

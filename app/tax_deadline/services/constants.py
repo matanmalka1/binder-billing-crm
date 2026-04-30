@@ -9,8 +9,13 @@ Israeli fiscal due dates:
 
 from datetime import date
 
-# ── Israeli fiscal due-day constants ─────────────────────────────────────────
-ADVANCE_PAYMENT_DUE_DAY = 15   # 15th of each month (מקדמות)
+# ── Israeli fiscal due-day constants — sourced from tax_rules registry ────────
+try:
+    from tax_rules.registry import get_advance_payment_due_day as _get_adv
+    import datetime as _dt
+    ADVANCE_PAYMENT_DUE_DAY: int = _get_adv(_dt.date.today().year)
+except Exception:
+    ADVANCE_PAYMENT_DUE_DAY = 15
 # ── Urgency thresholds ────────────────────────────────────────────────────────
 URGENCY_CRITICAL_DAYS = 2      # ≤ 2 days remaining → critical
 URGENCY_WARNING_DAYS = 7       # ≤ 7 days remaining → warning
