@@ -15,7 +15,6 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
     ExpenseCategoryType,
-    default_recognition_rate,
 )
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
@@ -31,6 +30,7 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.services.constants import default_recognition_rate
 from app.annual_reports.services.deadlines import standard_deadline, extended_deadline
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import EntityType

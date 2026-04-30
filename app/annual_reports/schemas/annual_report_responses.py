@@ -108,6 +108,7 @@ class AnnualReportDetailResponse(AnnualReportResponse):
 
 class SeasonSummaryResponse(BaseModel):
     tax_year: int
+    filing_season_year: int
     total: int
     not_started: int
     collecting_docs: int

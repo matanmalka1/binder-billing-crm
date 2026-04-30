@@ -1,4 +1,5 @@
 from app.annual_reports.schemas.annual_report_responses import SeasonSummaryResponse
+from app.annual_reports.services.season_years import get_filing_season_year
 from .base import AnnualReportBaseService
 
 
@@ -15,6 +16,7 @@ class AnnualReportSeasonService(AnnualReportBaseService):
         completion_rate = round(done / total * 100, 1) if total > 0 else 0.0
         return SeasonSummaryResponse(
             tax_year=tax_year,
+            filing_season_year=get_filing_season_year(tax_year),
             total=total,
             not_started=summary.get("not_started", 0),
             collecting_docs=summary.get("collecting_docs", 0),

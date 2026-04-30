@@ -1,4 +1,3 @@
-from datetime import date
 from itertools import count
 
 from app.annual_reports.services.annual_report_service import AnnualReportService
@@ -55,3 +54,40 @@ def test_client_and_tax_year_list_endpoints(client, test_db, advisor_headers, te
     data = season_reports.json()
     assert data["total"] == 2
     assert {item["tax_year"] for item in data["items"]} == {2026}
+
+
+def test_active_season_endpoints_use_backend_tax_year(
+    client, test_db, advisor_headers, test_user, monkeypatch
+):
+    monkeypatch.setattr(
+        "app.annual_reports.api.annual_report_season.get_active_annual_report_tax_year",
+        lambda: 2025,
+    )
+    service = AnnualReportService(test_db)
+    client_a = _client(test_db)
+    client_b = _client(test_db)
+
+    service.create_report(
+        client_record_id=client_a.id,
+        tax_year=2025,
+        client_type="corporation",
+        created_by=test_user.id,
+        created_by_name="Test User",
+    )
+    service.create_report(
+        client_record_id=client_b.id,
+        tax_year=2026,
+        client_type="corporation",
+        created_by=test_user.id,
+        created_by_name="Test User",
+    )
+
+    summary = client.get("/api/v1/tax-year/active/summary", headers=advisor_headers)
+    assert summary.status_code == 200
+    assert summary.json()["tax_year"] == 2025
+    assert summary.json()["filing_season_year"] == 2026
+
+    reports = client.get("/api/v1/tax-year/active/reports", headers=advisor_headers)
+    assert reports.status_code == 200
+    assert reports.json()["total"] == 1
+    assert {item["tax_year"] for item in reports.json()["items"]} == {2025}
