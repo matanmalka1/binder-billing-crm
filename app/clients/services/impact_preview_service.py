@@ -5,9 +5,10 @@ from app.actions.obligation_orchestrator import _years_to_generate
 from app.clients.create_policy import normalize_vat_exempt_ceiling
 from app.common.enums import EntityType, VatType
 from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
-
-_VAT_DEADLINES_PER_YEAR = {VatType.MONTHLY: 12, VatType.BIMONTHLY: 6, VatType.EXEMPT: 0}
-_ADVANCE_DEADLINES_PER_YEAR = 12
+from app.tax_deadline.services.obligation_plan import (
+    advance_payment_deadline_plan,
+    vat_deadline_plan,
+)
 
 
 def compute_creation_impact(
@@ -19,14 +20,13 @@ def compute_creation_impact(
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError("פתיחת לקוח מסוג שכיר אינה נתמכת במערכת")
 
-    years = _years_to_generate(reference_date)
+    today = reference_date or date.today()
+    years = _years_to_generate(today)
     n = len(years)
     is_exempt = vat_reporting_frequency in (VatType.EXEMPT, None)
-    vat_per_year = _VAT_DEADLINES_PER_YEAR.get(vat_reporting_frequency, 0)
 
-    vat_count = vat_per_year * n
-    has_advance = (advance_rate is not None) and (advance_rate > 0)
-    advance_count = _ADVANCE_DEADLINES_PER_YEAR * n if has_advance else 0
+    vat_count = sum(len(vat_deadline_plan(vat_reporting_frequency, year, today)) for year in years)
+    advance_count = sum(len(advance_payment_deadline_plan(entity_type, year, today)) for year in years)
     annual_deadline_count = n
     reminder_count = vat_count + advance_count + annual_deadline_count
 
@@ -40,10 +40,10 @@ def compute_creation_impact(
     ]
     items = [i for i in items if i.count > 0]
 
-    if is_exempt and has_advance:
-        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים. ייווצרו מועדי מקדמות לפי שיעור שהוזן.'
+    if is_exempt and advance_count:
+        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים. ייווצרו מועדי מקדמות.'
     elif is_exempt:
-        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים ומועדי מקדמות.'
+        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים.'
     else:
         note = None
 

@@ -5,35 +5,17 @@ from sqlalchemy.orm import Session
 _today = date.today  # injectable for tests
 
 from app.common.enums import EntityType, VatType
-from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.annual_reports.services.deadlines import standard_deadline
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-
-from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DUE_DAY
-
-try:
-    from tax_rules import get_effective_periodic_date as _get_periodic_date
-    _PERIODIC_CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
-    _PERIODIC_CALENDAR_AVAILABLE = True
-except ImportError:
-    _PERIODIC_CALENDAR_AVAILABLE = False
-
-
-def _periodic_due_date(filing_year: int, filing_month: int, calendar_period: str) -> date:
-    """Return due date from official calendar; fall back to fixed statutory day."""
-    if _PERIODIC_CALENDAR_AVAILABLE:
-        try:
-            raw = _get_periodic_date(filing_year, calendar_period, _PERIODIC_CALENDAR_COLUMN)
-        except KeyError:
-            raw = None
-        if raw:
-            return date.fromisoformat(raw)
-    return date(filing_year, filing_month, _VAT_FALLBACK_DUE_DAY)
+from app.tax_deadline.services.obligation_plan import (
+    advance_payment_deadline_plan,
+    annual_report_due_date,
+    vat_deadline_plan,
+)
 
 
 class DeadlineGeneratorService:
@@ -70,31 +52,9 @@ class DeadlineGeneratorService:
 
         client_record_id = self._resolve_client_record_id(client_record_id)
 
-        due_dates: list[tuple[date, str]] = []  # (due_date, period)
-        if vat_type == VatType.MONTHLY:
-            for month in range(1, 13):
-                filing_month = month + 1 if month < 12 else 1
-                filing_year = year if month < 12 else year + 1
-                period = f"{year}-{month:02d}"
-                # Calendar key = reporting period (the month being reported)
-                calendar_period = f"{year}-{month:02d}"
-                due_dates.append((_periodic_due_date(filing_year, filing_month, calendar_period), period))
-        elif vat_type == VatType.BIMONTHLY:
-            # Periods: Jan-Feb, Mar-Apr, May-Jun, Jul-Aug, Sep-Oct, Nov-Dec
-            for period_start in range(1, 12, 2):
-                period_end = period_start + 1
-                filing_month = period_start + 2 if period_start + 2 <= 12 else 1
-                filing_year = year if filing_month != 1 else year + 1
-                period = f"{year}-{period_start:02d}"
-                # Calendar key = second month of the bimonthly period (per calendar spec)
-                calendar_period = f"{year}-{period_end:02d}"
-                due_dates.append((_periodic_due_date(filing_year, filing_month, calendar_period), period))
-
-        today = _today()
         created = []
-        for due_date, period in due_dates:
-            if due_date < today:
-                continue
+        for item in vat_deadline_plan(vat_type, year, _today()):
+            due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.VAT, period=period):
                 deadline = self.deadline_service.create_deadline(
                     client_record_id=client_record_id,
@@ -116,15 +76,11 @@ class DeadlineGeneratorService:
             return []
 
         client_record_id = self._resolve_client_record_id(client_record_id)
-        today = _today()
         created = []
-        for month in range(1, 13):
-            calendar_period = f"{year}-{month:02d}"
-            due_date = _periodic_due_date(year, month, calendar_period)
-            if due_date < today:
-                continue
-            period = f"{year}-{month:02d}"
+        for item in advance_payment_deadline_plan(self._resolve_entity_type(client_record_id), year, _today()):
+            due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ADVANCE_PAYMENT, period=period):
+                month = int(period[-2:])
                 deadline = self.deadline_service.create_deadline(
                     client_record_id=client_record_id,
                     deadline_type=DeadlineType.ADVANCE_PAYMENT,
@@ -143,10 +99,7 @@ class DeadlineGeneratorService:
             if record
             else None
         )
-        client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(
-            legal_entity.entity_type if legal_entity else None
-        )
-        due_date = standard_deadline(year, client_type=client_type).date()
+        due_date = annual_report_due_date(legal_entity.entity_type if legal_entity else None, year)
         client_record_id = self._resolve_client_record_id(client_record_id)
         if self.deadline_repo.exists_by_record(
             client_record_id,
