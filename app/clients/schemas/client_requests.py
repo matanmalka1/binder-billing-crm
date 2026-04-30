@@ -18,10 +18,7 @@ CREATE_CLIENT_REQUIRED_LABELS = {
     "phone": "טלפון",
     "address_street": "רחוב",
     "address_building_number": "מספר בניין",
-    "address_apartment": "דירה",
     "address_city": "עיר",
-    "address_zip_code": "מיקוד",
-    "accountant_id": "רואה חשבון מלווה",
 }
 
 
@@ -100,10 +97,7 @@ class CreateClientRequest(BaseModel):
             ("phone", self.client.phone),
             ("address_street", self.client.address_street),
             ("address_building_number", self.client.address_building_number),
-            ("address_apartment", self.client.address_apartment),
             ("address_city", self.client.address_city),
-            ("address_zip_code", self.client.address_zip_code),
-            ("accountant_id", self.client.accountant_id),
         )
         for field_name, value in required_values:
             if value is None or (isinstance(value, str) and not value.strip()):
@@ -118,6 +112,7 @@ class CreateClientRequest(BaseModel):
 class ClientImpactPreviewClientRequest(BaseModel):
     entity_type: EntityType
     vat_reporting_frequency: Optional[VatType] = None
+    advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
 
     @model_validator(mode="after")
     def validate_preview_rules(self) -> "ClientImpactPreviewClientRequest":

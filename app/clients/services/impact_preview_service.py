@@ -14,6 +14,7 @@ def compute_creation_impact(
     entity_type: Optional[EntityType],
     vat_reporting_frequency: Optional[VatType],
     reference_date: Optional[date] = None,
+    advance_rate=None,
 ) -> ClientCreationImpactResponse:
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError("פתיחת לקוח מסוג שכיר אינה נתמכת במערכת")
@@ -24,7 +25,8 @@ def compute_creation_impact(
     vat_per_year = _VAT_DEADLINES_PER_YEAR.get(vat_reporting_frequency, 0)
 
     vat_count = vat_per_year * n
-    advance_count = 0 if is_exempt else _ADVANCE_DEADLINES_PER_YEAR * n
+    has_advance = (not is_exempt) and (advance_rate is not None) and (advance_rate > 0)
+    advance_count = _ADVANCE_DEADLINES_PER_YEAR * n if has_advance else 0
     annual_deadline_count = n
     reminder_count = vat_count + advance_count + annual_deadline_count
 
@@ -34,11 +36,11 @@ def compute_creation_impact(
         CreationImpactItem(label="מועדי מקדמות", count=advance_count),
         CreationImpactItem(label="מועדי דוח שנתי", count=annual_deadline_count),
         CreationImpactItem(label="תזכורות", count=reminder_count),
-        CreationImpactItem(label="דוחות שנתיים", count=n),
+        CreationImpactItem(label="תיק דוח שנתי", count=n),
     ]
     items = [i for i in items if i.count > 0]
 
-    note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ ומקדמות' if is_exempt else None
+    note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים' if is_exempt else None
 
     return ClientCreationImpactResponse(
         items=items,
