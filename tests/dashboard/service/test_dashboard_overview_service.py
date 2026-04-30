@@ -69,3 +69,33 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         "total": 1,
     }
     assert overview["advisor_today"]["deadline_items"] == [{"id": 1, "label": "מע״מ"}]
+    assert overview["attention_empty_checks"] == [
+        {"key": "overdue_reminders", "label": "אין תזכורות באיחור"},
+        {"key": "pending_vat", "label": "אין דוחות מע״מ ממתינים"},
+        {"key": "ready_binders", "label": "אין קלסרים שממתינים לאיסוף"},
+        {"key": "open_charges", "label": "אין חיובים פתוחים"},
+    ]
+
+
+def test_get_overview_marks_empty_system(test_db, monkeypatch):
+    service = DashboardOverviewService(test_db)
+    monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 0)
+    monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 0)
+    monkeypatch.setattr(service.binder_repo, "count_by_status", lambda _status: 0)
+    monkeypatch.setattr(service.reminder_repo, "count_pending_by_date", lambda _d: 0)
+    monkeypatch.setattr(
+        service.vat_stats_service,
+        "build",
+        lambda _d: {
+            "monthly": {"period": "2026-03", "period_label": "מרץ 2026"},
+            "bimonthly": {"period": "2026-02", "period_label": "ינואר-פברואר 2026"},
+        },
+    )
+    monkeypatch.setattr(service, "_build_quick_actions", lambda today: [])
+    monkeypatch.setattr(service.advisor_today_service, "build", lambda today: {})
+    monkeypatch.setattr(service.extended_service, "get_attention_items", lambda user_role=None: [])
+
+    overview = service.get_overview(reference_date=date(2026, 4, 30))
+
+    assert overview["total_clients"] == 0
+    assert "empty_state" not in overview

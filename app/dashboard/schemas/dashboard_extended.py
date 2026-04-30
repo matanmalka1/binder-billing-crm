@@ -83,6 +83,7 @@ class AdvisorTodayResponse(BaseModel):
 class VatDashboardPeriodStat(BaseModel):
     period: str
     period_label: str
+    status_label: str = ""
     submitted: int = 0
     required: int = 0
     pending: int = 0
@@ -92,6 +93,11 @@ class VatDashboardPeriodStat(BaseModel):
 class VatDashboardStats(BaseModel):
     monthly: VatDashboardPeriodStat
     bimonthly: VatDashboardPeriodStat
+
+
+class AttentionEmptyCheck(BaseModel):
+    key: str
+    label: str
 
 
 class DashboardOverviewResponse(BaseModel):
@@ -107,3 +113,4 @@ class DashboardOverviewResponse(BaseModel):
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
     advisor_today: AdvisorTodayResponse = Field(default_factory=AdvisorTodayResponse)
+    attention_empty_checks: list[AttentionEmptyCheck] = Field(default_factory=list)

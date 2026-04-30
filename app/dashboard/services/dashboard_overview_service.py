@@ -17,6 +17,7 @@ from app.dashboard.services.dashboard_extended_service import DashboardExtendedS
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
+from app.dashboard.services.dashboard_empty_state import build_attention_empty_checks
 from app.utils.time_utils import israel_today
 
 
@@ -46,8 +47,9 @@ class DashboardOverviewService:
 
         attention_items = self.extended_service.get_attention_items(user_role=user_role)
         quick_actions = self._build_quick_actions(reference_date)
+        total_clients = self.client_record_repo.count()
         return {
-            "total_clients": self.client_record_repo.count(),
+            "total_clients": total_clients,
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
             "active_binders": self.binder_repo.count_active(),
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
@@ -57,6 +59,7 @@ class DashboardOverviewService:
             "quick_actions": quick_actions,
             "attention": {"items": attention_items, "total": len(attention_items)},
             "advisor_today": self.advisor_today_service.build(reference_date),
+            "attention_empty_checks": build_attention_empty_checks(),
         }
 
     def _build_quick_actions(self, today) -> list[dict]:
