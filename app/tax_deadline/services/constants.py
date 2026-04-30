@@ -2,7 +2,7 @@
 Constants for the tax_deadline domain.
 
 Israeli fiscal due dates:
-- VAT (מע"מ): filed on the 19th of the month following the reporting period.
+- VAT (מע"מ): statutory deadline is the 15th; extended digital deadline is the 19th (VAT_ONLINE_EXTENDED_DEADLINE_DAY from vat_reports).
 - Advance payments (מקדמות מס הכנסה): due on the 15th of each month.
 - Annual report (דוח שנתי): varies by filing profile and channel.
 """
@@ -10,7 +10,6 @@ Israeli fiscal due dates:
 from datetime import date
 
 # ── Israeli fiscal due-day constants ─────────────────────────────────────────
-VAT_FILING_DUE_DAY = 19        # 19th of following month — applies to both MONTHLY and BIMONTHLY VAT
 ADVANCE_PAYMENT_DUE_DAY = 15   # 15th of each month (מקדמות)
 # ── Urgency thresholds ────────────────────────────────────────────────────────
 URGENCY_CRITICAL_DAYS = 2      # ≤ 2 days remaining → critical

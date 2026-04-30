@@ -11,6 +11,8 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
 
 
 _ZERO = Decimal("0")
+# Israeli resident baseline (תושב ישראל). Intentionally static — does not vary
+# year-to-year; callers supply actual points from the report's credit-point rows.
 _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal("2.25")
 _TUITION_REASONS = frozenset({
     CreditPointReason.ACADEMIC_DEGREE,

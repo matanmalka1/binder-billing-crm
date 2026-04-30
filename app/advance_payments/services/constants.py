@@ -4,6 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.config import config
+from app.tax_deadline.services.constants import ADVANCE_PAYMENT_DUE_DAY
 
 ADVANCE_PAYMENT_VAT_RATE: Decimal = config.ADVANCE_PAYMENT_VAT_RATE
 MONTHLY_PERIOD_MONTHS_COUNT = 1
@@ -12,7 +13,6 @@ SUPPORTED_PERIOD_MONTH_COUNTS = frozenset(
     {MONTHLY_PERIOD_MONTHS_COUNT, BIMONTHLY_PERIOD_MONTHS_COUNT}
 )
 BIMONTHLY_START_MONTHS = (1, 3, 5, 7, 9, 11)
-ADVANCE_PAYMENT_DUE_DAY = 15
 
 
 def parse_period_month(period: str) -> int:

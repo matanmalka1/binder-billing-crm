@@ -25,19 +25,6 @@ class ExpenseCategoryType(str, PyEnum):
     OTHER = "other"                           # אחר
 
 
-# Statutory partial recognition rates (Israeli tax rules)
-STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
-    ExpenseCategoryType.VEHICLE: Decimal("0.75"),
-    ExpenseCategoryType.COMMUNICATION: Decimal("0.80"),
-}
-
-DEFAULT_RECOGNITION_RATE = Decimal("1.00")
-
-
-def default_recognition_rate(category: ExpenseCategoryType) -> Decimal:
-    return STATUTORY_RECOGNITION_RATES.get(category, DEFAULT_RECOGNITION_RATE)
-
-
 class AnnualReportExpenseLine(Base):
     """
     Single deductible expense line attached to an annual report.
@@ -71,7 +58,4 @@ class AnnualReportExpenseLine(Base):
 __all__ = [
     "AnnualReportExpenseLine",
     "ExpenseCategoryType",
-    "STATUTORY_RECOGNITION_RATES",
-    "DEFAULT_RECOGNITION_RATE",
-    "default_recognition_rate",
 ]

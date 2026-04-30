@@ -13,7 +13,27 @@ from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-from app.tax_deadline.services.constants import VAT_FILING_DUE_DAY, ADVANCE_PAYMENT_DUE_DAY
+from app.tax_deadline.services.constants import ADVANCE_PAYMENT_DUE_DAY
+from app.vat_reports.services.constants import VAT_ONLINE_EXTENDED_DEADLINE_DAY as _VAT_FALLBACK_DUE_DAY
+
+try:
+    from tax_rules import get_effective_periodic_date as _get_vat_date
+    _VAT_CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
+    _VAT_CALENDAR_AVAILABLE = True
+except ImportError:
+    _VAT_CALENDAR_AVAILABLE = False
+
+
+def _vat_due_date(filing_year: int, filing_month: int, calendar_period: str) -> date:
+    """Return VAT due date from official calendar; fall back to fixed day-19."""
+    if _VAT_CALENDAR_AVAILABLE:
+        try:
+            raw = _get_vat_date(filing_year, calendar_period, _VAT_CALENDAR_COLUMN)
+        except KeyError:
+            raw = None
+        if raw:
+            return date.fromisoformat(raw)
+    return date(filing_year, filing_month, _VAT_FALLBACK_DUE_DAY)
 
 
 class DeadlineGeneratorService:
@@ -56,14 +76,19 @@ class DeadlineGeneratorService:
                 filing_month = month + 1 if month < 12 else 1
                 filing_year = year if month < 12 else year + 1
                 period = f"{year}-{month:02d}"
-                due_dates.append((date(filing_year, filing_month, VAT_FILING_DUE_DAY), period))
+                # Calendar key = reporting period (the month being reported)
+                calendar_period = f"{year}-{month:02d}"
+                due_dates.append((_vat_due_date(filing_year, filing_month, calendar_period), period))
         elif vat_type == VatType.BIMONTHLY:
             # Periods: Jan-Feb, Mar-Apr, May-Jun, Jul-Aug, Sep-Oct, Nov-Dec
             for period_start in range(1, 12, 2):
+                period_end = period_start + 1
                 filing_month = period_start + 2 if period_start + 2 <= 12 else 1
                 filing_year = year if filing_month != 1 else year + 1
                 period = f"{year}-{period_start:02d}"
-                due_dates.append((date(filing_year, filing_month, VAT_FILING_DUE_DAY), period))
+                # Calendar key = second month of the bimonthly period (per calendar spec)
+                calendar_period = f"{year}-{period_end:02d}"
+                due_dates.append((_vat_due_date(filing_year, filing_month, calendar_period), period))
 
         today = _today()
         created = []

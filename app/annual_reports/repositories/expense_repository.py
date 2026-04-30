@@ -9,8 +9,8 @@ from sqlalchemy import func
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
     ExpenseCategoryType,
-    default_recognition_rate,
 )
+from app.annual_reports.services.constants import default_recognition_rate
 
 
 class AnnualReportExpenseRepository:

@@ -7,6 +7,11 @@ from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from tax_rules import get_income_tax_brackets, get_credit_point_config
 from tax_rules.statutory import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
 
+# Israeli resident baseline: 2.25 credit points (תושב ישראל). Callers pass the
+# actual value from AnnualReportCreditPointRepository; this default covers the
+# case where no credit-point rows exist for the report.
+_BASE_RESIDENT_CREDIT_POINTS: float = 2.25
+
 
 @dataclass
 class BracketBreakdownItem:
@@ -33,8 +38,8 @@ class TaxCalculationResult:
 
 def calculate_tax(
     taxable_income: float,
-    tax_year: int = 2024,
-    credit_points: float = 2.25,
+    tax_year: int,
+    credit_points: float = _BASE_RESIDENT_CREDIT_POINTS,
     pension_deduction: float = 0.0,
     donation_amount: float = 0.0,
     other_credits: float = 0.0,
