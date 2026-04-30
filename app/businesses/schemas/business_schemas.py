@@ -50,7 +50,6 @@ class BusinessUpdateRequest(BaseModel):
     """עדכון פרטי עסק."""
     business_name: Optional[str] = None
     status: Optional[BusinessStatus] = None         # enum
-    notes: Optional[str] = None
     closed_at: Optional[date] = None
 
 

@@ -9,6 +9,7 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.models.reminder import ReminderStatus, ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.reminder_context import build_context_map
+from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 
@@ -42,14 +43,17 @@ class AdvisorTodayService:
     def _deadline_items(self, reference_date: date) -> list[dict]:
         due_to = reference_date + timedelta(days=_UPCOMING_DEADLINE_DAYS)
         rows = (
-            self.db.query(
-                TaxDeadline.deadline_type,
-                TaxDeadline.due_date,
-                func.min(TaxDeadline.period).label("period"),
-                func.max(TaxDeadline.period).label("max_period"),
-                func.min(TaxDeadline.tax_year).label("tax_year"),
-                func.count(func.distinct(TaxDeadline.client_record_id)).label("client_count"),
-                func.min(TaxDeadline.id).label("first_id"),
+            scope_to_active_clients(
+                self.db.query(
+                    TaxDeadline.deadline_type,
+                    TaxDeadline.due_date,
+                    func.min(TaxDeadline.period).label("period"),
+                    func.max(TaxDeadline.period).label("max_period"),
+                    func.min(TaxDeadline.tax_year).label("tax_year"),
+                    func.count(func.distinct(TaxDeadline.client_record_id)).label("client_count"),
+                    func.min(TaxDeadline.id).label("first_id"),
+                ),
+                TaxDeadline,
             )
             .filter(
                 TaxDeadline.deleted_at.is_(None),
