@@ -36,7 +36,7 @@ class CreateClientService:
         *,
         full_name: str,
         id_number: str,
-        business_name: str,
+        business_name: Optional[str] = None,
         id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
@@ -60,9 +60,7 @@ class CreateClientService:
         The caller/session owner is responsible for commit. If any creation step
         raises, the request-level DB dependency rolls back all records.
         """
-        normalized_business_name = business_name.strip()
-        if not normalized_business_name:
-            raise ValueError("יש להזין שם עסק")
+        normalized_business_name = (business_name or '').strip() or full_name.strip()
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
 

@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-from app.businesses.schemas.business_schemas import BusinessCreateRequest
+from app.businesses.schemas.business_schemas import ClientBusinessCreateRequest
 from app.clients.enums import ClientStatus
 from app.clients.schemas.create_validation import (
     validate_create_entity_rules,
@@ -88,7 +88,7 @@ class ClientUpdateRequest(BaseModel):
 
 class CreateClientRequest(BaseModel):
     client: ClientCreateRequest
-    business: BusinessCreateRequest
+    business: ClientBusinessCreateRequest
 
     @model_validator(mode="after")
     def require_full_create_payload(self) -> "CreateClientRequest":

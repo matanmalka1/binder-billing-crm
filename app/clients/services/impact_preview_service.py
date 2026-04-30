@@ -25,7 +25,7 @@ def compute_creation_impact(
     vat_per_year = _VAT_DEADLINES_PER_YEAR.get(vat_reporting_frequency, 0)
 
     vat_count = vat_per_year * n
-    has_advance = (not is_exempt) and (advance_rate is not None) and (advance_rate > 0)
+    has_advance = (advance_rate is not None) and (advance_rate > 0)
     advance_count = _ADVANCE_DEADLINES_PER_YEAR * n if has_advance else 0
     annual_deadline_count = n
     reminder_count = vat_count + advance_count + annual_deadline_count
@@ -34,13 +34,18 @@ def compute_creation_impact(
         CreationImpactItem(label="קלסר פעיל", count=1),
         CreationImpactItem(label='מועדי מע"מ', count=vat_count),
         CreationImpactItem(label="מועדי מקדמות", count=advance_count),
-        CreationImpactItem(label="מועדי דוח שנתי", count=annual_deadline_count),
+        CreationImpactItem(label="מועד הגשת דוח שנתי", count=annual_deadline_count),
         CreationImpactItem(label="תזכורות", count=reminder_count),
         CreationImpactItem(label="תיק דוח שנתי", count=n),
     ]
     items = [i for i in items if i.count > 0]
 
-    note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים' if is_exempt else None
+    if is_exempt and has_advance:
+        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים. ייווצרו מועדי מקדמות לפי שיעור שהוזן.'
+    elif is_exempt:
+        note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ תקופתיים ומועדי מקדמות.'
+    else:
+        note = None
 
     return ClientCreationImpactResponse(
         items=items,
