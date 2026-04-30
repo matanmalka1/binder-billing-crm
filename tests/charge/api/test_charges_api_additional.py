@@ -28,6 +28,11 @@ def test_get_charge_as_advisor_and_delete_paths(client, advisor_headers, test_db
     get_adv = client.get(f"/api/v1/charges/{charge_id}", headers=advisor_headers)
     assert get_adv.status_code == 200
     assert "amount" in get_adv.json()
+    assert [action["key"] for action in get_adv.json()["available_actions"]] == [
+        "issue_charge",
+        "cancel_charge",
+        "delete_charge",
+    ]
 
     delete_ok = client.delete(f"/api/v1/charges/{charge_id}", headers=advisor_headers)
     assert delete_ok.status_code == 204

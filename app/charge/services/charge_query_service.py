@@ -1,7 +1,8 @@
-from typing import Optional, Union
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.actions.charge_actions import get_charge_actions
 from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import ChargeListResponse, ChargeListStats, ChargeStatusStat, ChargeResponse, ChargeResponseSecretary
@@ -12,15 +13,12 @@ from app.users.models.user import UserRole
 
 
 class ChargeQueryService:
-    """Read-only charge listing and enrichment logic."""
-
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
         self.business_repo = BusinessRepository(db)
 
     def enrich_charge_context(self, charge: Charge) -> tuple[str | None, int | None]:
-        """Return display name and office client number for a single charge."""
         client_record = ClientRecordRepository(self.db).get_by_id(charge.client_record_id)
         legal_entity = (
             self.db.query(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id).first()
@@ -44,11 +42,6 @@ class ChargeQueryService:
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Charge], int, dict[int, str], dict[int, int | None]]:
-        """
-        List charges with pagination.
-
-        Returns (items, total, business_name_map, office_client_number_map).
-        """
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id) if client_record_id is not None else None
         if client_record is not None:
             items = self.charge_repo.list_charges_by_client_record(
@@ -119,7 +112,6 @@ class ChargeQueryService:
         page: int = 1,
         page_size: int = 20,
     ) -> ChargeListResponse:
-        """List charges serialized and role-shaped in one call."""
         items, total, business_name_map, office_client_number_map = self.list_charges(
             business_id=business_id,
             client_record_id=client_record_id,
@@ -130,10 +122,11 @@ class ChargeQueryService:
         )
         schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
 
-        def _enrich(charge: Charge) -> Union[ChargeResponse, ChargeResponseSecretary]:
+        def _enrich(charge: Charge) -> ChargeResponse | ChargeResponseSecretary:
             data = schema.model_validate(charge).model_dump()
             data["business_name"] = business_name_map.get(charge.id)
             data["office_client_number"] = office_client_number_map.get(charge.id)
+            data["available_actions"] = get_charge_actions(charge, user_role=user_role)
             return schema(**data)
 
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id) if client_record_id is not None else None
@@ -144,12 +137,7 @@ class ChargeQueryService:
         def _stat(key: str) -> ChargeStatusStat:
             d = raw.get(key, {})
             return ChargeStatusStat(count=d.get("count", 0), amount=d.get("amount", "0"))
-        stats = ChargeListStats(
-            draft=_stat("draft"),
-            issued=_stat("issued"),
-            paid=_stat("paid"),
-            canceled=_stat("canceled"),
-        )
+        stats = ChargeListStats(draft=_stat("draft"), issued=_stat("issued"), paid=_stat("paid"), canceled=_stat("canceled"))
         return ChargeListResponse(
             items=[_enrich(c) for c in items],
             page=page,

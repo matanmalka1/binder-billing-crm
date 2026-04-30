@@ -2,6 +2,7 @@ from datetime import date
 from typing import Optional
 
 from app.actions.obligation_orchestrator import _years_to_generate
+from app.clients.create_policy import normalize_vat_exempt_ceiling
 from app.common.enums import EntityType, VatType
 from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
 
@@ -39,4 +40,9 @@ def compute_creation_impact(
 
     note = 'פטור ממע"מ — לא ייווצרו מועדי מע"מ ומקדמות' if is_exempt else None
 
-    return ClientCreationImpactResponse(items=items, years_scope=n, note=note)
+    return ClientCreationImpactResponse(
+        items=items,
+        years_scope=n,
+        note=note,
+        vat_exempt_ceiling=normalize_vat_exempt_ceiling(entity_type),
+    )

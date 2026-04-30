@@ -46,6 +46,7 @@ class AnnualReportResponse(BaseModel):
     assigned_to: Optional[int] = None
     created_by: int
     available_actions: list[dict] = []
+    available_transitions: list[AnnualReportStatus] = []
 
     model_config = {"from_attributes": True}
 

@@ -40,4 +40,4 @@ def file_vat_return(
         is_amendment=request.is_amendment,
         amends_item_id=request.amends_item_id,
     )
-    return serialize_work_item(service, item.id)
+    return serialize_work_item(service, item.id, current_user.role)

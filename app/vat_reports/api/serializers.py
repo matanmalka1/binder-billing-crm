@@ -1,5 +1,7 @@
 """Serialization helpers for VAT API responses."""
 
+from app.actions.vat_report_actions import get_vat_work_item_actions
+from app.users.models.user import UserRole
 from app.vat_reports.schemas.vat_report import VatWorkItemResponse
 from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 from app.vat_reports.services.vat_report_service import VatReportService
@@ -13,6 +15,7 @@ def serialize_enriched_work_item(
     id_number_map: dict,
     status_map: dict,
     user_map: dict,
+    user_role: UserRole | str | None = None,
 ) -> VatWorkItemResponse:
     data = VatWorkItemResponse.model_validate(item)
     data.office_client_number = office_client_number_map.get(item.client_record_id)
@@ -27,10 +30,15 @@ def serialize_enriched_work_item(
     data.is_overdue = deadline["is_overdue"]
     data.assigned_to_name = user_map.get(item.assigned_to) if item.assigned_to else None
     data.filed_by_name = user_map.get(item.filed_by) if item.filed_by else None
+    data.available_actions = get_vat_work_item_actions(item, user_role=user_role)
     return data
 
 
-def serialize_work_item(service: VatReportService, item_id: int) -> VatWorkItemResponse:
+def serialize_work_item(
+    service: VatReportService,
+    item_id: int,
+    user_role: UserRole | str | None = None,
+) -> VatWorkItemResponse:
     enriched = service.get_work_item_enriched(item_id)
     return serialize_enriched_work_item(
         enriched["item"],
@@ -39,4 +47,5 @@ def serialize_work_item(service: VatReportService, item_id: int) -> VatWorkItemR
         id_number_map=enriched["id_number_map"],
         status_map=enriched["status_map"],
         user_map=enriched["user_map"],
+        user_role=user_role,
     )

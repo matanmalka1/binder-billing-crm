@@ -47,6 +47,7 @@ class ChargeResponse(BaseModel):
     canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None
     cancellation_reason: Optional[str] = None
+    available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 
@@ -66,6 +67,7 @@ class ChargeResponseSecretary(BaseModel):
     created_at: ApiDateTime
     issued_at: Optional[ApiDateTime] = None
     paid_at: Optional[ApiDateTime] = None
+    available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 

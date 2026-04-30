@@ -8,6 +8,7 @@ from app.actions.action_helpers import (
     build_confirm,
 )
 from app.charge.models.charge import Charge, ChargeStatus
+from app.users.models.user import UserRole
 
 
 def _cancel_charge_action(charge_id: int) -> ActionContract:
@@ -26,8 +27,15 @@ def _cancel_charge_action(charge_id: int) -> ActionContract:
     )
 
 
-def get_charge_actions(charge: Charge) -> list[ActionContract]:
+def get_charge_actions(
+    charge: Charge,
+    *,
+    user_role: UserRole | str | None = None,
+) -> list[ActionContract]:
     """Return executable actions for a charge."""
+    if user_role not in (None, UserRole.ADVISOR, UserRole.ADVISOR.value):
+        return []
+
     status = _value(charge.status)
     actions: list[ActionContract] = []
 
@@ -42,6 +50,20 @@ def get_charge_actions(charge: Charge) -> list[ActionContract]:
             )
         )
         actions.append(_cancel_charge_action(charge.id))
+        actions.append(
+            build_action(
+                key="delete_charge",
+                label="מחיקת חיוב",
+                method="delete",
+                endpoint=f"/charges/{charge.id}",
+                action_id=_generate_action_id("charge", charge.id, "delete_charge"),
+                confirm=build_confirm(
+                    "מחיקת חיוב",
+                    "האם למחוק את החיוב?",
+                    confirm_label="מחיקה",
+                ),
+            )
+        )
 
     if status == ChargeStatus.ISSUED.value:
         actions.append(

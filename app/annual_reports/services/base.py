@@ -3,8 +3,10 @@ from typing import Any
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
+from app.annual_reports.services.constants import VALID_TRANSITIONS
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
 
 
@@ -52,5 +54,7 @@ class AnnualReportBaseService:
                 obj.client_id_number = legal_entity.id_number
                 obj.business_name = legal_entity.official_name
             obj.available_actions = get_annual_report_actions(r.id, r.status.value if hasattr(r.status, "value") else str(r.status))
+            allowed = VALID_TRANSITIONS.get(r.status, set())
+            obj.available_transitions = [status for status in AnnualReportStatus if status in allowed]
             result.append(obj)
         return result

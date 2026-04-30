@@ -36,7 +36,7 @@ def create_work_item(
         mark_pending=request.mark_pending,
         pending_materials_note=request.pending_materials_note,
     )
-    return serialize_work_item(service, item.id)
+    return serialize_work_item(service, item.id, current_user.role)
 
 
 @router.post(
@@ -59,4 +59,4 @@ def mark_materials_complete(
         item_id=item_id,
         performed_by=current_user.id,
     )
-    return serialize_work_item(service, item.id)
+    return serialize_work_item(service, item.id, current_user.role)

@@ -6,6 +6,7 @@ from app.actions.report_deadline_actions import (
     get_annual_report_actions,
     get_tax_deadline_actions,
 )
+from app.actions.vat_report_actions import get_vat_work_item_actions
 
 __all__ = [
     "build_action",
@@ -14,4 +15,5 @@ __all__ = [
     "get_charge_actions",
     "get_tax_deadline_actions",
     "get_annual_report_actions",
+    "get_vat_work_item_actions",
 ]

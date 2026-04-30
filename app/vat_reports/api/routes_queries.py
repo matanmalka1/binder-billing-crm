@@ -32,7 +32,6 @@ def lookup_work_item(
     client_record_id: int = Query(...),
     period: str = Query(...),
 ):
-    """Lookup a VAT work item by client + period. Returns null if not found."""
     service = VatReportService(db)
     item = service.get_work_item_by_client_period(client_record_id, period)
     if not item:
@@ -51,7 +50,6 @@ def get_period_options(
     current_user: CurrentUser,
     year: Optional[int] = Query(default=None, ge=2000, le=2100),
 ):
-    """Return selectable VAT periods for a client based on their reporting frequency."""
     service = VatReportService(db)
     return service.get_period_options(client_record_id=client_record_id, year=year)
 
@@ -62,7 +60,6 @@ def get_period_options(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
-    """Get a single work item by ID."""
     service = VatReportService(db)
     enriched = service.get_work_item_enriched(item_id)
     return serialize_enriched_work_item(
@@ -72,6 +69,7 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
         id_number_map=enriched["id_number_map"],
         status_map=enriched["status_map"],
         user_map=enriched["user_map"],
+        user_role=current_user.role,
     )
 
 
@@ -81,7 +79,6 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def list_client_work_items(client_record_id: int, db: DBSession, current_user: CurrentUser):
-    """List all VAT work items for a client."""
     service = VatReportService(db)
     enriched = service.get_client_items_enriched(client_record_id)
     items = [
@@ -92,6 +89,7 @@ def list_client_work_items(client_record_id: int, db: DBSession, current_user: C
             id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
+            user_role=current_user.role,
         )
         for i in enriched["items"]
     ]
@@ -113,7 +111,6 @@ def list_work_items(
     period_type: Optional[VatType] = Query(None),
     client_name: Optional[str] = Query(None),
 ):
-    """List work items filtered by status with pagination."""
     service = VatReportService(db)
     enriched = service.get_list_enriched(
         status_filter=status_filter, page=page, page_size=page_size,
@@ -127,6 +124,7 @@ def list_work_items(
             id_number_map=enriched["id_number_map"],
             status_map=enriched["status_map"],
             user_map=enriched["user_map"],
+            user_role=current_user.role,
         )
         for i in enriched["items"]
     ]
@@ -140,7 +138,6 @@ def list_work_items(
 )
 def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser,
                     limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0)):
-    """Get a paginated audit trail for a work item."""
     service = VatReportService(db)
     enriched = service.get_audit_trail_enriched(item_id, limit, offset)
     items = []

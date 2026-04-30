@@ -33,7 +33,7 @@ def mark_ready_for_review(
         item_id=item_id,
         performed_by=current_user.id,
     )
-    return serialize_work_item(service, item.id)
+    return serialize_work_item(service, item.id, current_user.role)
 
 
 @router.post(
@@ -56,4 +56,4 @@ def send_back_for_correction(
         performed_by=current_user.id,
         correction_note=request.correction_note,
     )
-    return serialize_work_item(service, item.id)
+    return serialize_work_item(service, item.id, current_user.role)

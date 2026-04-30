@@ -65,6 +65,7 @@ class VatWorkItemResponse(BaseModel):
     extended_deadline: Optional[date] = None
     days_until_deadline: Optional[int] = None
     is_overdue: Optional[bool] = None
+    available_actions: list[dict] = []
 
     model_config = {"from_attributes": True}
 

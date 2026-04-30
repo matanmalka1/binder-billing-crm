@@ -65,3 +65,4 @@ class TestCreateWorkItem:
         assert body["client_record_id"] == vat_client.id
         assert body["assigned_to_name"] == "VAT Assignee"
         assert body["submission_deadline"] == "2026-06-15"
+        assert [action["key"] for action in body["available_actions"]] == ["add_invoice"]
