@@ -15,11 +15,14 @@ from app.annual_reports.schemas.annual_report_financials import (
     IncomeLineUpdateRequest,
     ReadinessCheckResponse,
     TaxCalculationResponse,
+    TaxPreviewRequest,
+    TaxPreviewResponse,
     VatAutoPopulateResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.advances_summary_service import AnnualReportAdvancesSummaryService
 from app.annual_reports.services.vat_import_service import VatImportService
+from app.annual_reports.services.tax_engine import calculate_tax
 
 
 router = APIRouter(
@@ -27,6 +30,25 @@ router = APIRouter(
     tags=["annual-reports"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
+
+
+# ── Tax preview (pre-creation, no report_id needed) ──────────────────────────
+
+@router.post("/annual-reports/tax-preview", response_model=TaxPreviewResponse)
+def get_tax_preview(body: TaxPreviewRequest, _user: CurrentUser):
+    """הערכת מס מקדימה לפני יצירת דוח שנתי."""
+    net_profit = float(body.gross_income) - float(body.expenses)
+    result = calculate_tax(
+        taxable_income=max(net_profit, 0.0),
+        tax_year=body.tax_year,
+        credit_points=body.credit_points,
+    )
+    balance = result.tax_after_credits - float(body.advances_paid)
+    return TaxPreviewResponse(
+        net_profit=round(net_profit, 2),
+        estimated_tax=result.tax_after_credits,
+        balance=round(balance, 2),
+    )
 
 
 # ── Financial summary ─────────────────────────────────────────────────────────

@@ -170,6 +170,22 @@ class TaxCalculationSaveResponse(BaseModel):
     saved_at: ApiDateTime
 
 
+# ── Tax preview (pre-creation) ────────────────────────────────────────────────
+
+class TaxPreviewRequest(BaseModel):
+    tax_year: int
+    gross_income: ApiDecimal = Field(ge=0)
+    expenses: ApiDecimal = Field(ge=0)
+    advances_paid: ApiDecimal = Field(ge=0)
+    credit_points: float = Field(ge=0)
+
+
+class TaxPreviewResponse(BaseModel):
+    net_profit: ApiDecimal
+    estimated_tax: ApiDecimal
+    balance: ApiDecimal
+
+
 # ── VAT auto-populate ─────────────────────────────────────────────────────────
 
 class VatAutoPopulateResponse(BaseModel):

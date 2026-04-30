@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, computed_field
 
 from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.signature_requests.models.signature_request import (
@@ -107,6 +107,15 @@ class SignerViewResponse(BaseModel):
     status: SignatureRequestStatus
     content_hash: Optional[str] = None
     expires_at: Optional[ApiDateTime] = None
+
+    @computed_field
+    @property
+    def is_expired(self) -> bool:
+        if self.expires_at is None:
+            return False
+        now = datetime.now(timezone.utc)
+        exp = self.expires_at if self.expires_at.tzinfo else self.expires_at.replace(tzinfo=timezone.utc)
+        return exp < now
 
 
 class SignerDeclineRequest(BaseModel):
