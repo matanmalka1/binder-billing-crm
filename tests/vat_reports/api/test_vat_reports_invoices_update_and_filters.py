@@ -29,7 +29,7 @@ def test_update_invoice_patch_success(client, advisor_headers, vat_client):
     create_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/invoices",
         headers=advisor_headers,
-        json=income_payload(invoice_number="INV-UPD-1", net_amount="1000.00", vat_amount="170.00"),
+        json=income_payload(invoice_number="INV-UPD-1", net_amount="1000.00"),
     )
     assert create_resp.status_code == 201
     invoice_id = create_resp.json()["id"]
@@ -44,7 +44,7 @@ def test_update_invoice_patch_success(client, advisor_headers, vat_client):
     body = patch_resp.json()
     assert body["invoice_number"] == "INV-UPD-2"
     assert body["net_amount"] == "30000.00"
-    assert body["vat_amount"] == "5100.00"
+    assert body["vat_amount"] == "5400.00"
     assert body["is_exceptional"] is True
 
 

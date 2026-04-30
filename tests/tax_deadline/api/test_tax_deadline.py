@@ -8,15 +8,12 @@ from tests.tax_deadline.factories import create_business
 
 def test_create_and_get_tax_deadline(client, test_db, advisor_headers, test_user):
     business = create_business(test_db, name_prefix="API CRUD")
-    due = date.today() + timedelta(days=10)
-
     create = client.post(
         "/api/v1/tax-deadlines",
         headers=advisor_headers,
         json={
             "client_record_id": business.client_id,
             "deadline_type": "vat",
-            "due_date": due.isoformat(),
             "period": "2026-03",
             "payment_amount": 1500.5,
             "description": "VAT filing",
@@ -29,6 +26,7 @@ def test_create_and_get_tax_deadline(client, test_db, advisor_headers, test_user
     assert payload["deadline_type"] == "vat"
     assert payload["status"] == "pending"
     assert payload["period"] == "2026-03"
+    assert payload["due_date"] == "2026-04-15"
     assert payload["client_name"] == business.full_name
 
     fetched = client.get(f"/api/v1/tax-deadlines/{deadline_id}", headers=advisor_headers)

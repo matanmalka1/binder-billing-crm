@@ -14,14 +14,14 @@ class TestInvoices:
         assert response.status_code == 201
         data = response.json()
         assert data["invoice_type"] == "income"
-        assert data["vat_amount"] == "170.00"
+        assert data["vat_amount"] == "180.00"
 
     def test_add_invoice_updates_totals(self, client, advisor_headers, vat_client):
         item_id = create_work_item(client, advisor_headers, vat_client, "2026-06")
         add_income_invoice(client, advisor_headers, item_id, income_payload("INV-001"))
         r = client.get(f"/api/v1/vat/work-items/{item_id}", headers=advisor_headers)
         data = r.json()
-        assert float(data["total_output_vat"]) == 170.0
+        assert float(data["total_output_vat"]) == 180.0
         assert data["status"] == "data_entry_in_progress"
 
     def test_negative_vat_rejected_400(self, client, advisor_headers, vat_client):

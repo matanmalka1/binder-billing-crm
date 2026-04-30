@@ -131,7 +131,10 @@ class TaxDeadlineService:
 
         next_type = deadline_type or existing.deadline_type
         next_period = period if period is not None else existing.period
-        if next_type == DeadlineType.VAT:
+        should_recompute_due_date = (
+            deadline_type is not None or due_date is not None or period is not None
+        )
+        if next_type == DeadlineType.VAT and should_recompute_due_date:
             client_record = ClientRecordRepository(self.db).get_by_id(existing.client_record_id)
             due_date = resolve_due_date(self.db, client_record, next_type, due_date, next_period)
 

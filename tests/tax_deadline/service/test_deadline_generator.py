@@ -9,7 +9,7 @@ from app.tax_deadline.services.deadline_generator import DeadlineGeneratorServic
 from tests.tax_deadline.factories import create_business
 
 
-def _set_vat_profile(test_db, business, vat_type: VatType) -> None:
+def _set_vat_profile(test_db, business, vat_type: VatType | None) -> None:
     business.legal_entity.vat_reporting_frequency = vat_type
     test_db.commit()
 
@@ -42,6 +42,7 @@ def test_generate_vat_deadlines_exempt_or_missing_profile_creates_none(test_db):
     _set_vat_profile(test_db, exempt_business, VatType.EXEMPT)
 
     no_profile_business = create_business(test_db, name_prefix="Gen Missing")
+    _set_vat_profile(test_db, no_profile_business, None)
 
     service = DeadlineGeneratorService(test_db)
     assert service.generate_vat_deadlines(exempt_business.client_id, 2026) == []

@@ -4,6 +4,7 @@ from datetime import date
 from itertools import count
 
 from app.businesses.models.business import Business, BusinessStatus
+from app.common.enums import VatType
 from tests.helpers.identity import seed_business, seed_client_identity
 
 _seq = count(1)
@@ -15,6 +16,7 @@ def create_business(test_db, *, name_prefix: str = "Tax Deadline", status: Busin
         test_db,
         full_name=f"{name_prefix} {idx}",
         id_number=f"TD{idx:09d}",
+        vat_reporting_frequency=VatType.MONTHLY,
     )
     business = seed_business(
         test_db,

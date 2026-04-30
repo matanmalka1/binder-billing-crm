@@ -51,6 +51,8 @@ def resolve_due_date(
     period: str | None,
 ) -> date:
     if deadline_type == DeadlineType.VAT:
+        if period is None and due_date is not None:
+            return due_date
         return resolve_vat_due_date(db, client_record, period)
     if due_date is None:
         raise AppError("יש להזין תאריך מועד", "TAX_DEADLINE.DUE_DATE_REQUIRED")

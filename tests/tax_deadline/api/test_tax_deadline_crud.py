@@ -5,15 +5,12 @@ from tests.tax_deadline.factories import create_business
 
 def test_tax_deadline_full_crud_flow(client, test_db, advisor_headers):
     business = create_business(test_db, name_prefix="API Full")
-    due_date = date.today() + timedelta(days=3)
-
     create_resp = client.post(
         "/api/v1/tax-deadlines",
         headers=advisor_headers,
         json={
             "client_record_id": business.client_id,
             "deadline_type": "vat",
-            "due_date": due_date.isoformat(),
             "period": "2026-04",
             "payment_amount": 150.0,
             "description": "VAT payment",
@@ -23,6 +20,7 @@ def test_tax_deadline_full_crud_flow(client, test_db, advisor_headers):
     created = create_resp.json()
     deadline_id = created["id"]
     assert created["period"] == "2026-04"
+    assert created["due_date"] == "2026-05-15"
 
     list_resp = client.get("/api/v1/tax-deadlines", headers=advisor_headers)
     assert list_resp.status_code == 200
@@ -40,6 +38,7 @@ def test_tax_deadline_full_crud_flow(client, test_db, advisor_headers):
     )
     assert update_resp.status_code == 200
     assert update_resp.json()["period"] == "2026-05"
+    assert update_resp.json()["due_date"] == "2026-06-15"
     assert float(update_resp.json()["payment_amount"]) == 175.5
 
     complete_resp = client.post(f"/api/v1/tax-deadlines/{deadline_id}/complete", headers=advisor_headers)
