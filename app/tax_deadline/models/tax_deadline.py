@@ -15,6 +15,7 @@ Design decisions:
   and reporting; generator deduplication currently uses client + type + due_date.
 - advance_payment_id: TaxDeadline knows which AdvancePayment settled it.
   Direction: TaxDeadline → AdvancePayment (not the reverse) to avoid circular FK.
+- vat_work_item_id: TaxDeadline knows which VAT work item fulfills the VAT filing.
 - Soft delete included — TaxDeadline is a client entity.
 """
 
@@ -70,6 +71,9 @@ class TaxDeadline(Base):
     advance_payment_id = Column(
         Integer, ForeignKey("advance_payments.id"), nullable=True, index=True
     )  # מי שילם את המועד הזה — רלוונטי ל-deadline_type=ADVANCE_PAYMENT
+    vat_work_item_id = Column(
+        Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True
+    )  # פריט העבודה שמטפל במועד הזה — רלוונטי ל-deadline_type=VAT
 
     # ── Payment info ──────────────────────────────────────────────────────────
     payment_amount = Column(Numeric(10, 2), nullable=True)
@@ -89,9 +93,20 @@ class TaxDeadline(Base):
             "(advance_payment_id IS NULL) OR (deadline_type = 'advance_payment')",
             name="ck_tax_deadline_advance_payment_link",
         ),
+        CheckConstraint(
+            "(vat_work_item_id IS NULL) OR (deadline_type = 'vat')",
+            name="ck_tax_deadline_vat_work_item_link",
+        ),
         Index("idx_tax_deadline_status",                "status"),
         Index("idx_tax_deadline_type",                  "deadline_type"),
         Index("idx_tax_deadline_client_record_period",  "client_record_id", "period"),
+        Index(
+            "uq_tax_deadline_vat_work_item_active",
+            "vat_work_item_id",
+            unique=True,
+            postgresql_where=deleted_at.is_(None) & vat_work_item_id.is_not(None),
+            sqlite_where=deleted_at.is_(None) & vat_work_item_id.is_not(None),
+        ),
         Index(
             "uq_tax_deadline_active_period_identity",
             "client_record_id",

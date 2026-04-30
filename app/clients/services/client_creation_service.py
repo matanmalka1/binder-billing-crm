@@ -1,13 +1,12 @@
 import json
 from typing import Optional
+from datetime import date
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.actions.obligation_orchestrator import generate_client_obligations
 from app.audit.constants import ACTION_CREATED, ENTITY_CLIENT
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.binders.services.client_onboarding_service import create_initial_binder
 from app.clients.constants import (
     COMPANY_CORPORATION_ID_ERROR,
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
@@ -17,6 +16,7 @@ from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.repositories.person_repository import PersonRepository
+from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
 from app.clients.services.messages import (
     CLIENT_ID_NUMBER_DELETED,
     CLIENT_ID_NUMBER_EXISTS,
@@ -49,6 +49,7 @@ class ClientCreationService:
         advance_rate=None,
         accountant_id: Optional[int] = None,
         actor_id: Optional[int] = None,
+        reference_date: Optional[date] = None,
     ) -> ClientRecord:
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
@@ -100,13 +101,11 @@ class ClientCreationService:
             )
         except IntegrityError as exc:
             raise ConflictError(CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT") from exc
-        create_initial_binder(self.db, client_record, actor_id)
-        generate_client_obligations(
-            self.db,
+        ClientOnboardingOrchestrator(self.db).run(
             client_record.id,
             actor_id=actor_id,
             entity_type=entity_type,
-            best_effort=False,
+            reference_date=reference_date,
         )
         if actor_id:
             self._audit.append(

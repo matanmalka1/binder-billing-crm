@@ -43,7 +43,7 @@ class DeadlineGeneratorService:
         record = self.client_record_repo.get_by_id(client_record_id)
         return record.id if record else None
 
-    def generate_vat_deadlines(self, client_record_id: int, year: int) -> list:
+    def generate_vat_deadlines(self, client_record_id: int, year: int, reference_date: date | None = None) -> list:
         """Generate VAT filing deadlines for the year. Skips EXEMPT clients."""
         vat_type = self._resolve_vat_type(client_record_id)
 
@@ -53,7 +53,7 @@ class DeadlineGeneratorService:
         client_record_id = self._resolve_client_record_id(client_record_id)
 
         created = []
-        for item in vat_deadline_plan(vat_type, year, _today()):
+        for item in vat_deadline_plan(vat_type, year, reference_date or _today()):
             due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.VAT, period=period):
                 deadline = self.deadline_service.create_deadline(
@@ -66,7 +66,8 @@ class DeadlineGeneratorService:
                 created.append(deadline)
         return created
 
-    def generate_advance_payment_deadlines(self, client_record_id: int, year: int) -> list:
+    def generate_advance_payment_deadlines(self, client_record_id: int, year: int,
+                                           reference_date: date | None = None) -> list:
         """Generate monthly advance payment deadlines (מקדמות) for the year.
 
         Skips employees — they have no income tax advance payment obligation.
@@ -77,7 +78,11 @@ class DeadlineGeneratorService:
 
         client_record_id = self._resolve_client_record_id(client_record_id)
         created = []
-        for item in advance_payment_deadline_plan(self._resolve_entity_type(client_record_id), year, _today()):
+        for item in advance_payment_deadline_plan(
+            self._resolve_entity_type(client_record_id),
+            year,
+            reference_date or _today(),
+        ):
             due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ADVANCE_PAYMENT, period=period):
                 month = int(period[-2:])
@@ -116,7 +121,7 @@ class DeadlineGeneratorService:
         )
         return [deadline]
 
-    def generate_all(self, client_record_id: int, year: int) -> int:
+    def generate_all(self, client_record_id: int, year: int, reference_date: date | None = None) -> int:
         """Generate all deadlines for a client and year. Idempotent.
 
         Note: NATIONAL_INSURANCE (ביטוח לאומי) deadlines are not auto-generated —
@@ -127,7 +132,7 @@ class DeadlineGeneratorService:
         if not record:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         created = []
-        created += self.generate_vat_deadlines(client_record_id, year)
-        created += self.generate_advance_payment_deadlines(client_record_id, year)
+        created += self.generate_vat_deadlines(client_record_id, year, reference_date)
+        created += self.generate_advance_payment_deadlines(client_record_id, year, reference_date)
         created += self.generate_annual_report_deadline(client_record_id, year)
         return len(created)

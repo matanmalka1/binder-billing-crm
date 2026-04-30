@@ -109,7 +109,11 @@ def generate_client_obligations_result(
     for year in years:
         sp = db.begin_nested()  # SAVEPOINT — חוסם rollback של הטרנזקציה הראשית
         try:
-            result.deadlines_created += deadline_generator.generate_all(client_record_id, year)
+            result.deadlines_created += deadline_generator.generate_all(
+                client_record_id,
+                year,
+                reference_date,
+            )
             sp.commit()  # RELEASE SAVEPOINT
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד

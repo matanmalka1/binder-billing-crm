@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0006_reminder_tax_deadline_identity.py`.
+- Current head is `0007_tax_deadline_vat_work_item_link.py`.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,7 +82,17 @@ Notes:
 
 ## Migration chain
 
-`0006_reminder_tax_deadline_identity` is the current head.
+`0007_tax_deadline_vat_work_item_link` is the current head.
+
+### 0007_tax_deadline_vat_work_item_link
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Adds `tax_deadlines.vat_work_item_id` so VAT deadlines can navigate directly to their work item.
+- Notes:
+  Existing VAT deadlines are backfilled by matching `client_record_id + period`.
+  The link is nullable because manually created VAT deadlines may exist before a work item is created.
 
 ### 0006_reminder_tax_deadline_identity
 

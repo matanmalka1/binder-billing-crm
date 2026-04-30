@@ -46,6 +46,7 @@ class TaxDeadlineResponse(BaseModel):
     completed_at: Optional[ApiDateTime] = None
     completed_by: Optional[int] = None
     advance_payment_id: Optional[int] = None
+    vat_work_item_id: Optional[int] = None
     created_at: ApiDateTime
     urgency_level: UrgencyLevel = UrgencyLevel.NONE
     available_actions: list[dict] = []
