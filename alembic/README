@@ -10,7 +10,8 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `ebf35ff3d75e_0002_clean_reminder_model.py`.
+- Current head is `e35ffb3fd002_0001_initial.py`.
+- Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,22 +83,9 @@ Notes:
 
 ## Migration chain
 
-`ebf35ff3d75e_0002_clean_reminder_model` is the current head.
+`e35ffb3fd002_0001_initial` is the current head.
 
-### ebf35ff3d75e_0002_clean_reminder_model
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Shrinks `remindertype` enum to 3 values (`binder_idle`, `document_missing`, `custom`).
-  Shrinks `reminderstatus` enum to 3 values (`pending`, `sent`, `canceled`), removing `processing`.
-  Deletes all system-generated reminder rows before the cast.
-  Adds `uq_reminder_active` partial unique index.
-- Notes:
-  Irreversible data loss: system-generated reminder rows are deleted on upgrade.
-  Downgrade restores the enum values but cannot restore deleted rows.
-
-### 9074151726a8_0001_initial
+### e35ffb3fd002_0001_initial
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
@@ -109,11 +97,10 @@ Notes:
   permanent documents, signature requests, correspondence, authority contacts,
   notes, and audit tables.
 - Notes:
-  Regenerated on 2026-05-02 after reminders architecture refactor:
-  removed system-generated reminder types (TAX_DEADLINE_APPROACHING, VAT_FILING,
-  ANNUAL_REPORT_DEADLINE, ADVANCE_PAYMENT_DUE, UNPAID_CHARGE) and their FK columns
-  (tax_deadline_id, annual_report_id, advance_payment_id, charge_id) from the reminders table.
-  Previous migration history (0001–0007) was squashed into this single initial migration.
+  Generated on 2026-05-02 as the single true initial migration after reminders architecture refactor.
+  Reminder model: 3 types only (binder_idle, document_missing, custom).
+  No FK columns to charges/tax_deadlines/annual_reports/advance_payments.
+  Previous migration history (0001–0007 + delta 0001_initial + 0002_clean_reminder_model) was squashed into this single migration.
 
 ## Daily commands
 
