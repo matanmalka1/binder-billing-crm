@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,8 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.services.constants import UNPAID_CHARGE_TASK_THRESHOLD_DAYS
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.reminders.models.reminder import ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
@@ -41,10 +43,24 @@ def _urgency(due_date: date, today: date) -> TaskUrgency:
     return TaskUrgency.UPCOMING
 
 
+def _load_client_name_map(db: Session) -> Dict[int, str]:
+    rows = (
+        db.query(ClientRecord.id, LegalEntity.official_name)
+        .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+        .filter(ClientRecord.deleted_at.is_(None))
+        .all()
+    )
+    return {row[0]: row[1] for row in rows}
+
+
 class TaskService:
     def __init__(self, db: Session):
         self.db = db
         self.today = israel_today()
+        self._client_name_map: Dict[int, str] = _load_client_name_map(db)
+
+    def _client_name(self, client_record_id: int) -> Optional[str]:
+        return self._client_name_map.get(client_record_id)
 
     def get_tasks(
         self,
@@ -87,6 +103,7 @@ class TaskService:
                 due_date=r.target_date,
                 urgency=_urgency(r.target_date, self.today).value,
                 client_record_id=r.client_record_id,
+                client_name=ctx.get("client_name") or self._client_name(r.client_record_id),
                 business_id=r.business_id,
             ))
 
@@ -113,6 +130,7 @@ class TaskService:
                 due_date=td.due_date,
                 urgency=_urgency(td.due_date, self.today),
                 client_record_id=td.client_record_id,
+                client_name=self._client_name(td.client_record_id),
             )
             for td in query.all()
         ]
@@ -142,6 +160,7 @@ class TaskService:
                 due_date=due_date,
                 urgency=_urgency(due_date, self.today),
                 client_record_id=row.client_record_id,
+                client_name=self._client_name(row.client_record_id),
             ))
         return tasks
 
@@ -169,6 +188,7 @@ class TaskService:
                     self.today,
                 ),
                 client_record_id=report.client_record_id,
+                client_name=self._client_name(report.client_record_id),
             )
             for report in query.all()
         ]
@@ -193,6 +213,7 @@ class TaskService:
                 due_date=ap.due_date,
                 urgency=_urgency(ap.due_date, self.today),
                 client_record_id=ap.client_record_id,
+                client_name=self._client_name(ap.client_record_id),
             )
             for ap in query.all()
         ]
@@ -222,6 +243,7 @@ class TaskService:
                 due_date=charge.issued_at.date() + timedelta(days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS),
                 urgency=TaskUrgency.OVERDUE,
                 client_record_id=charge.client_record_id,
+                client_name=self._client_name(charge.client_record_id),
                 business_id=charge.business_id,
             )
             for charge in query.all()
@@ -237,5 +259,6 @@ def _task_to_unified(task: DeadlineTask) -> UnifiedItem:
         due_date=task.due_date,
         urgency=task.urgency.value,
         client_record_id=task.client_record_id,
+        client_name=task.client_name,
         business_id=task.business_id,
     )

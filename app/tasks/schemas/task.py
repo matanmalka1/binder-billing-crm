@@ -29,6 +29,7 @@ class DeadlineTask(BaseModel):
     due_date: date
     urgency: TaskUrgency
     client_record_id: int
+    client_name: Optional[str] = None
     business_id: Optional[int] = None
 
 
@@ -40,4 +41,5 @@ class UnifiedItem(BaseModel):
     due_date: date
     urgency: Optional[str] = None
     client_record_id: Optional[int] = None
+    client_name: Optional[str] = None
     business_id: Optional[int] = None
