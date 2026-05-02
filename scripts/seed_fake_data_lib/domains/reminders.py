@@ -4,11 +4,7 @@ from datetime import UTC, date, datetime, timedelta
 from random import Random
 
 from app.binders.models.binder import BinderStatus
-from app.charge.models.charge import ChargeStatus
-from app.tax_deadline.models.tax_deadline import TaxDeadlineStatus
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
-
-from .taxes import DEADLINE_LABELS
 
 
 def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
@@ -18,37 +14,9 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
     binders_by_client = {}
     for binder in binders:
         binders_by_client.setdefault(binder.client_id, []).append(binder)
-    charges_by_business = {}
-    for charge in charges:
-        charges_by_business.setdefault(charge.business_id, []).append(charge)
-    deadlines_by_client = {}
-    for deadline in deadlines:
-        deadlines_by_client.setdefault(deadline.client_id, []).append(deadline)
 
     for business in businesses:
         business_binders = binders_by_client.get(business.client_id, [])
-        business_charges = charges_by_business.get(business.id, [])
-        business_deadlines = deadlines_by_client.get(business.client_id, [])
-
-        pending_deadlines = [dl for dl in business_deadlines if dl.status == TaxDeadlineStatus.PENDING]
-        if pending_deadlines:
-            deadline = rng.choice(pending_deadlines)
-            days_before = 7
-            send_on = max(today, deadline.due_date - timedelta(days=days_before))
-            deadline_label = DEADLINE_LABELS.get(deadline.deadline_type, "מועד מס")
-            reminder = Reminder(
-                client_record_id=business.client_id,
-                business_id=business.id,
-                reminder_type=ReminderType.TAX_DEADLINE_APPROACHING,
-                status=ReminderStatus.PENDING,
-                target_date=deadline.due_date,
-                days_before=days_before,
-                send_on=send_on,
-                tax_deadline_id=deadline.id,
-                message=f"תזכורת: מועדי מס מתקרבים ({deadline_label})",
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
-            )
-            _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
         idle_binders = [b for b in business_binders if b.status != BinderStatus.RETURNED]
         if idle_binders:
@@ -68,29 +36,33 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines):
             )
             _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
-        unpaid_charges = [
-            c
-            for c in business_charges
-            if c.status == ChargeStatus.ISSUED
-            and c.issued_at
-            and (today - c.issued_at.date()).days >= 30
-        ]
-        if unpaid_charges:
-            charge = rng.choice(unpaid_charges)
-            days_unpaid = (today - charge.issued_at.date()).days
-            reminder = Reminder(
-                client_record_id=business.client_id,
-                business_id=business.id,
-                reminder_type=ReminderType.UNPAID_CHARGE,
-                status=ReminderStatus.PENDING,
-                target_date=today,
-                days_before=0,
-                send_on=today,
-                charge_id=charge.id,
-                message=f"תזכורת: חשבונית #{charge.id} לא שולמה {days_unpaid} ימים",
-                created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
-            )
-            _add_unique_active_reminder(db, reminders, active_identities, reminder)
+        missing_doc_date = today + timedelta(days=rng.randint(3, 21))
+        document_reminder = Reminder(
+            client_record_id=business.client_id,
+            business_id=business.id,
+            reminder_type=ReminderType.DOCUMENT_MISSING,
+            status=ReminderStatus.PENDING,
+            target_date=missing_doc_date,
+            days_before=3,
+            send_on=missing_doc_date - timedelta(days=3),
+            message="תזכורת: חסרים מסמכים להשלמת הטיפול",
+            created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
+        )
+        _add_unique_active_reminder(db, reminders, active_identities, document_reminder)
+
+        custom_date = today + timedelta(days=rng.randint(7, 35))
+        reminder = Reminder(
+            client_record_id=business.client_id,
+            business_id=business.id,
+            reminder_type=ReminderType.CUSTOM,
+            status=ReminderStatus.PENDING,
+            target_date=custom_date,
+            days_before=2,
+            send_on=custom_date - timedelta(days=2),
+            message="תזכורת פנימית: לבצע שיחת מעקב עם הלקוח",
+            created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 120)),
+        )
+        _add_unique_active_reminder(db, reminders, active_identities, reminder)
 
     db.flush()
 

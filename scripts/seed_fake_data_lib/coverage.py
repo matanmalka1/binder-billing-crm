@@ -308,25 +308,35 @@ class SeedCoverageValidator:
         if failed_without_failed_at:
             errors.append(f"notifications with FAILED status and missing failed_at: {failed_without_failed_at}")
 
-        for reminder_type, required_fk, label in [
-            (ReminderType.TAX_DEADLINE_APPROACHING, Reminder.tax_deadline_id, "tax_deadline_id"),
-            (ReminderType.BINDER_IDLE, Reminder.binder_id, "binder_id"),
-            (ReminderType.UNPAID_CHARGE, Reminder.charge_id, "charge_id"),
-        ]:
-            missing_fk_count = int(
-                db.execute(
-                    select(func.count())
-                    .select_from(Reminder)
-                    .where(
-                        Reminder.reminder_type == reminder_type,
-                        required_fk.is_(None),
-                    )
-                ).scalar_one()
-            )
-            if missing_fk_count:
-                errors.append(
-                    f"reminders of type {reminder_type.value} missing {label}: {missing_fk_count}"
+        binder_idle_without_binder = int(
+            db.execute(
+                select(func.count())
+                .select_from(Reminder)
+                .where(
+                    Reminder.reminder_type == ReminderType.BINDER_IDLE,
+                    Reminder.binder_id.is_(None),
                 )
+            ).scalar_one()
+        )
+        if binder_idle_without_binder:
+            errors.append(
+                f"reminders of type binder_idle missing binder_id: {binder_idle_without_binder}"
+            )
+
+        business_bound_missing_business = int(
+            db.execute(
+                select(func.count())
+                .select_from(Reminder)
+                .where(
+                    Reminder.reminder_type.in_([ReminderType.DOCUMENT_MISSING, ReminderType.CUSTOM]),
+                    Reminder.business_id.is_(None),
+                )
+            ).scalar_one()
+        )
+        if business_bound_missing_business:
+            errors.append(
+                f"business-bound reminders missing business_id: {business_bound_missing_business}"
+            )
 
         self._assert_ascii_email_column(errors, "users.email", db.execute(select(User.id, User.email)).all())
         self._assert_ascii_email_column(
@@ -458,11 +468,7 @@ class SeedCoverageValidator:
             label="reminders.reminder_type(core)",
             db=db,
             column=Reminder.reminder_type,
-            expected=[
-                ReminderType.TAX_DEADLINE_APPROACHING,
-                ReminderType.BINDER_IDLE,
-                ReminderType.UNPAID_CHARGE,
-            ],
+            expected=[item for item in ReminderType],
             row_count=counts.get("reminders", 0),
         )
 
