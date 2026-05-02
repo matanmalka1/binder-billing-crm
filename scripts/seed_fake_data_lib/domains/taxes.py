@@ -315,17 +315,13 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             paid_amount = Decimal("0.00")
             if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
                 paid_amount = Decimal(str(round(rng.uniform(200, float(expected_amount)), 2)))
-            if status == AdvancePaymentStatus.OVERDUE:
-                # Keep due_date on the 15th but pick a past month
-                past_month = _add_months(date.today(), -rng.randint(1, 6))
-                due_date = date(past_month.year, past_month.month, 15)
             if status == AdvancePaymentStatus.PAID:
                 paid_amount = expected_amount
             elif status == AdvancePaymentStatus.PARTIAL:
                 paid_amount = min(expected_amount - Decimal("1.00"), paid_amount)
                 if paid_amount <= Decimal("0.00"):
                     paid_amount = (expected_amount * Decimal("0.5")).quantize(Decimal("0.01"))
-            elif status in (AdvancePaymentStatus.PENDING, AdvancePaymentStatus.OVERDUE):
+            elif status == AdvancePaymentStatus.PENDING:
                 paid_amount = Decimal("0.00")
 
             created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 200))
