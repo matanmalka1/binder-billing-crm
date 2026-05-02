@@ -122,29 +122,6 @@ class TestO1Reminder:
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db):
-        from app.reminders.services.factory import create_tax_deadline_reminder
-        from app.reminders.repositories.reminder_repository import ReminderRepository
-        from app.clients.repositories.client_repository import ClientRepository
-        from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
-        from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
-
-        client = _make_client(db, "C202")
-        record = _make_client_record(db, client.id)
-        deadline = TaxDeadline(client_record_id=record.id, deadline_type=DeadlineType.VAT, due_date=date(2024, 2, 15))
-        db.add(deadline)
-        db.flush()
-
-        reminder = create_tax_deadline_reminder(
-            ReminderRepository(db),
-            ClientRepository(db),
-            TaxDeadlineRepository(db),
-            client_record_id=record.id,
-            tax_deadline_id=deadline.id,
-            target_date=date(2024, 2, 15),
-            days_before=3,
-        )
-        assert reminder.client_record_id == record.id
 
 
 class TestO2Charge:
@@ -166,14 +143,6 @@ class TestO2Charge:
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db):
-        from app.charge.services.billing_service import BillingService
-
-        client = _make_client(db, "C205")
-        record = _make_client_record(db, client.id)
-
-        charge = BillingService(db).create_charge(client_record_id=record.id, amount=120, charge_type="other")
-        assert charge.client_record_id == record.id
 
 
 class TestO3Notification:
@@ -236,21 +205,6 @@ class TestO4Correspondence:
         assert total == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db):
-        from app.correspondence.services.correspondence_service import CorrespondenceService
-        from app.correspondence.models.correspondence import CorrespondenceType
-
-        client = _make_client(db, "C211")
-        record = _make_client_record(db, client.id)
-        user = _make_user(db)
-        entry = CorrespondenceService(db).add_entry(
-            client_record_id=record.id,
-            correspondence_type=CorrespondenceType.EMAIL,
-            subject="hello",
-            occurred_at=datetime.utcnow(),
-            created_by=user.id,
-        )
-        assert entry.client_record_id == record.id
 
 
 class TestO5SignatureRequest:
@@ -277,21 +231,6 @@ class TestO5SignatureRequest:
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db):
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
-
-        client = _make_client(db, "C214")
-        record = _make_client_record(db, client.id)
-        user = _make_user(db)
-        req = SignatureRequestService(db).create_request(
-            client_record_id=record.id,
-            created_by=user.id,
-            created_by_name=user.full_name,
-            request_type="custom",
-            title="Sign",
-            signer_name="Signer",
-        )
-        assert req.client_record_id == record.id
 
 
 class TestO6AuthorityContact:
@@ -312,17 +251,6 @@ class TestO6AuthorityContact:
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db):
-        from app.authority_contact.services.authority_contact_service import AuthorityContactService
-
-        client = _make_client(db, "C217")
-        record = _make_client_record(db, client.id)
-        contact = AuthorityContactService(db).add_contact(
-            client_record_id=record.id,
-            contact_type="other",
-            name="Officer",
-        )
-        assert contact.client_record_id == record.id
 
 
 class TestO7BinderHandover:

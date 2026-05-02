@@ -78,31 +78,6 @@ def _charge(db, business) -> Charge:
     return charge
 
 
-def test_create_tax_deadline_reminder_success(client, test_db, advisor_headers, test_user):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client, test_user.id)
-    deadline = _tax_deadline(test_db, crm_client.id)
-
-    target = deadline.due_date
-    response = client.post(
-        "/api/v1/reminders",
-        headers=advisor_headers,
-        json={
-            "client_record_id": crm_client.id,
-            "reminder_type": "tax_deadline_approaching",
-            "target_date": target.isoformat(),
-            "days_before": 3,
-            "tax_deadline_id": deadline.id,
-        },
-    )
-
-    assert response.status_code == 201
-    data = response.json()
-    assert data["client_record_id"] == crm_client.id
-    assert data["business_id"] is None
-    assert data["reminder_type"] == "tax_deadline_approaching"
-    assert data["send_on"] == (target - timedelta(days=3)).isoformat()
-
 
 def test_create_custom_missing_message_returns_422(client, advisor_headers):
     resp = client.post(

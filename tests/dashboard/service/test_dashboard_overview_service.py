@@ -13,7 +13,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     )
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 5)
     monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 2)
-    monkeypatch.setattr(service.reminder_repo, "count_pending_by_date", lambda _d: 3)
+    monkeypatch.setattr(service.reminder_repo, "count_by_status", lambda _s: 3)
     monkeypatch.setattr(
         service.vat_stats_service,
         "build",
@@ -82,7 +82,7 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 0)
     monkeypatch.setattr(service.binder_repo, "count_active", lambda **kwargs: 0)
     monkeypatch.setattr(service.binder_repo, "count_by_status", lambda _status: 0)
-    monkeypatch.setattr(service.reminder_repo, "count_pending_by_date", lambda _d: 0)
+    monkeypatch.setattr(service.reminder_repo, "count_by_status", lambda _s: 0)
     monkeypatch.setattr(
         service.vat_stats_service,
         "build",

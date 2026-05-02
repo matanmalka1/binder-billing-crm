@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0007_tax_deadline_vat_work_item_link.py`.
+- Current head is `ebf35ff3d75e_0002_clean_reminder_model.py`.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
@@ -82,48 +82,22 @@ Notes:
 
 ## Migration chain
 
-`0007_tax_deadline_vat_work_item_link` is the current head.
+`ebf35ff3d75e_0002_clean_reminder_model` is the current head.
 
-### 0007_tax_deadline_vat_work_item_link
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds `tax_deadlines.vat_work_item_id` so VAT deadlines can navigate directly to their work item.
-- Notes:
-  Existing VAT deadlines are backfilled by matching `client_record_id + period`.
-  The link is nullable because manually created VAT deadlines may exist before a work item is created.
-
-### 0006_reminder_tax_deadline_identity
+### ebf35ff3d75e_0002_clean_reminder_model
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
-  Changes active reminder uniqueness so linked tax-deadline reminders are unique by `tax_deadline_id`.
+  Shrinks `remindertype` enum to 3 values (`binder_idle`, `document_missing`, `custom`).
+  Shrinks `reminderstatus` enum to 3 values (`pending`, `sent`, `canceled`), removing `processing`.
+  Deletes all system-generated reminder rows before the cast.
+  Adds `uq_reminder_active` partial unique index.
 - Notes:
-  Generic reminders without `tax_deadline_id` still keep the previous client/type/date uniqueness.
-  This allows VAT and advance-payment deadlines on the same date to each create a reminder.
+  Irreversible data loss: system-generated reminder rows are deleted on upgrade.
+  Downgrade restores the enum values but cannot restore deleted rows.
 
-### 0005_remove_other_tax_deadline_type
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes `other` from the tax deadline type enum.
-- Notes:
-  Existing `other` tax deadlines are normalized to `national_insurance` before the PostgreSQL enum is rebuilt.
-  SQLite test databases only run the data normalization step.
-
-### 0002_remove_permanent_document_notes
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes the nullable `notes` column from `permanent_documents`.
-- Notes:
-  Downgrade restores the nullable column, but previous note values are not recoverable.
-
-### 0001_initial_schema
+### 9074151726a8_0001_initial
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
@@ -135,8 +109,11 @@ Notes:
   permanent documents, signature requests, correspondence, authority contacts,
   notes, and audit tables.
 - Notes:
-  Generated after resetting the local development PostgreSQL schema on 2026-04-26.
-  Old historical migrations were squashed into this single initial migration.
+  Regenerated on 2026-05-02 after reminders architecture refactor:
+  removed system-generated reminder types (TAX_DEADLINE_APPROACHING, VAT_FILING,
+  ANNUAL_REPORT_DEADLINE, ADVANCE_PAYMENT_DUE, UNPAID_CHARGE) and their FK columns
+  (tax_deadline_id, annual_report_id, advance_payment_id, charge_id) from the reminders table.
+  Previous migration history (0001–0007) was squashed into this single initial migration.
 
 ## Daily commands
 

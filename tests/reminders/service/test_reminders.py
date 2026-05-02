@@ -99,36 +99,6 @@ def test_mark_sent_enforces_pending_status(test_db):
     assert exc_info.value.code == "REMINDER.INVALID_STATUS"
 
 
-def test_get_pending_respects_reference_date(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
-    repo = ReminderRepository(test_db)
-    today = date.today()
-    repo.create(
-        client_record_id=crm_client.id,
-        business_id=business.id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=today,
-        days_before=0,
-        send_on=today,
-        message="Today",
-    )
-    repo.create(
-        client_record_id=crm_client.id,
-        business_id=business.id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=today + timedelta(days=5),
-        days_before=0,
-        send_on=today + timedelta(days=5),
-        message="Future",
-    )
-
-    items, total, _ = ReminderService(test_db).get_pending_reminders(reference_date=today, page=1, page_size=10)
-
-    assert total == 1
-    assert len(items) == 1
-    assert items[0].message == "Today"
-
 
 def test_get_reminders_without_status_defaults_to_pending(test_db):
     crm_client = _client(test_db)
@@ -156,9 +126,10 @@ def test_get_reminders_without_status_defaults_to_pending(test_db):
 
     items, total, _ = ReminderService(test_db).get_reminders(page=1, page_size=10)
 
-    assert total == 1
-    assert len(items) == 1
-    assert items[0].message == "Today Pending"
+    messages = {item.message for item in items}
+    assert "Today Pending" in messages
+    assert "Future Pending" in messages
+    assert all(item.status == ReminderStatus.PENDING for item in items)
 
 
 def test_cancel_missing_reminder_raises_not_found(test_db):

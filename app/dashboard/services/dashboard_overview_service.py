@@ -11,6 +11,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.reminders.models.reminder import ReminderStatus
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
@@ -54,7 +55,7 @@ class DashboardOverviewService:
             "active_binders": self.binder_repo.count_active(),
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
-            "open_reminders": self.reminder_repo.count_pending_by_date(reference_date),
+            "open_reminders": self.reminder_repo.count_by_status(ReminderStatus.PENDING),
             "vat_stats": self.vat_stats_service.build(reference_date),
             "quick_actions": quick_actions,
             "attention": {"items": attention_items, "total": len(attention_items)},

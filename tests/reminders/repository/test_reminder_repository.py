@@ -86,9 +86,6 @@ def test_pending_status_and_business_queries(test_db):
     sent.created_at = now - timedelta(minutes=1)
     test_db.commit()
 
-    pending = repo.list_pending_by_date(reference_date=today, page=1, page_size=20)
-    assert [item.id for item in pending] == [due_earliest.id, due_old.id, due_today.id]
-    assert repo.count_pending_by_date(reference_date=today) == 3
 
     sent_list = repo.list_by_status(status=ReminderStatus.SENT, page=1, page_size=20)
     assert [item.id for item in sent_list] == [sent.id]

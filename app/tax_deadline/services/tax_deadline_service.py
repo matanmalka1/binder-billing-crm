@@ -11,14 +11,11 @@ from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRep
 from app.tax_deadline.services.constants import FAR_FUTURE_DATE
 from app.tax_deadline.services.due_dates import resolve_due_date
 from app.utils.time_utils import utcnow
-from app.reminders.services.reminder_service import ReminderService
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
 from app.annual_reports.models.annual_report_enums import ANNUAL_REPORT_FILED_STATUSES
 
 
 class TaxDeadlineService:
-    """Tax deadline CRUD business logic."""
-
     def __init__(self, db: Session):
         self.db = db
         self.deadline_repo = TaxDeadlineRepository(db)
@@ -33,7 +30,6 @@ class TaxDeadlineService:
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
-        """Create new tax deadline."""
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
@@ -52,7 +48,7 @@ class TaxDeadlineService:
         else:
             tax_year = None
 
-        deadline = self.deadline_repo.create(
+        return self.deadline_repo.create(
             client_record_id=client_record_id,
             deadline_type=deadline_type,
             due_date=due_date,
@@ -62,24 +58,12 @@ class TaxDeadlineService:
             description=description,
         )
 
-        ReminderService(self.db).create_tax_deadline_reminder(
-            client_record_id=client_record_id,
-            tax_deadline_id=deadline.id,
-            target_date=due_date,
-            days_before=7,
-        )
-
-        return deadline
-
     def mark_completed(self, deadline_id: int, completed_by: Optional[int] = None) -> TaxDeadline:
-        """Mark deadline as completed."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
-
         if deadline.status == TaxDeadlineStatus.COMPLETED:
             return deadline
-
         return self.deadline_repo.update_status(
             deadline_id,
             TaxDeadlineStatus.COMPLETED,
@@ -88,14 +72,11 @@ class TaxDeadlineService:
         )
 
     def reopen_deadline(self, deadline_id: int) -> TaxDeadline:
-        """Revert a completed deadline back to pending."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
-
         if deadline.status == TaxDeadlineStatus.PENDING:
             return deadline
-
         return self.deadline_repo.update_status(
             deadline_id,
             TaxDeadlineStatus.PENDING,
@@ -114,7 +95,6 @@ class TaxDeadlineService:
         payment_amount: Optional[float] = None,
         description: Optional[str] = None,
     ) -> TaxDeadline:
-        """Update editable fields on a deadline."""
         if not any([
             deadline_type,
             due_date,
@@ -138,7 +118,7 @@ class TaxDeadlineService:
             client_record = ClientRecordRepository(self.db).get_by_id(existing.client_record_id)
             due_date = resolve_due_date(self.db, client_record, next_type, due_date, next_period)
 
-        deadline = self.deadline_repo.update(
+        return self.deadline_repo.update(
             deadline_id,
             deadline_type=deadline_type,
             due_date=due_date,
@@ -148,31 +128,16 @@ class TaxDeadlineService:
             description=description,
         )
 
-        if due_date:
-            reminder_service = ReminderService(self.db)
-            reminder_service.cancel_reminders_for_tax_deadline(deadline_id)
-            reminder_service.create_tax_deadline_reminder(
-                client_record_id=deadline.client_record_id,
-                tax_deadline_id=deadline.id,
-                target_date=deadline.due_date,
-                days_before=7,
-            )
-
-        return deadline
-
     def get_deadline(self, deadline_id: int) -> TaxDeadline:
-        """Return deadline by ID. Raises NotFoundError if not found."""
         deadline = self.deadline_repo.get_by_id(deadline_id)
         if not deadline:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
         return deadline
 
     def list_all_pending(self) -> list[TaxDeadline]:
-        """Return all pending deadlines regardless of client."""
         return self.deadline_repo.list_pending_due_by_date(date.today(), FAR_FUTURE_DATE)
 
     def delete_deadline(self, deadline_id: int, deleted_by: int) -> None:
-        """Soft-delete a deadline."""
         deleted = self.deadline_repo.delete(deadline_id, deleted_by=deleted_by)
         if not deleted:
             raise NotFoundError(f"מועד המס {deadline_id} לא נמצא", "TAX_DEADLINE.NOT_FOUND")
@@ -183,6 +148,5 @@ class TaxDeadlineService:
         status: Optional[str] = None,
         deadline_type: Optional[DeadlineType] = None,
     ) -> list[TaxDeadline]:
-        """Get deadlines for a specific client."""
         client_record_id = int(ClientRecordRepository(self.db).get_by_id(client_record_id).id)
         return self.deadline_repo.list_by_client_record(client_record_id, status, deadline_type)

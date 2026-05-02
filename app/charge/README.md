@@ -161,7 +161,7 @@ Router prefix is `/api/v1/charges` (mounted through `app/router_registry.py`).
   - Canceling an already canceled charge returns `CHARGE.CONFLICT`.
 - Delete is only allowed for `draft` charges; other statuses return `CHARGE.INVALID_STATUS`.
 - Repository reads (`get_by_id`, list/count) exclude soft-deleted records.
-- Issuing a charge auto-creates an unpaid-charge reminder via `ReminderService.create_unpaid_charge_reminder`.
+- Unpaid charges surface as tasks via `TaskService` (live-derived, not persisted) once `issued_at` exceeds the threshold in `UNPAID_CHARGE_TASK_THRESHOLD_DAYS`.
 - `get_charge` in `BillingService` raises `NotFoundError` (never returns `None`).
 - Bulk action is partial-success by design: `AppError` failures surface `exc.message`; unexpected errors return a generic Hebrew fallback. Neither aborts remaining items.
 
@@ -183,7 +183,7 @@ Domain errors use stable codes such as:
 
 ## Cross-Domain Integration
 
-- `reminders` integration: issuing a charge creates an unpaid-charge reminder (`ReminderService.create_unpaid_charge_reminder`).
+- `tasks` integration: unpaid charges surface in `GET /api/v1/tasks` as `UNPAID_CHARGE` tasks once `issued_at` is older than `UNPAID_CHARGE_TASK_THRESHOLD_DAYS` (live-derived, no DB row created).
 - `actions` integration: charge actions are exposed via `app/actions/action_contracts.py` for executable UI actions.
 - `dashboard` and other domains query charge counts/status through `ChargeRepository` directly.
 - `invoice` integration: `InvoiceService` validates charge existence and `issued` status before attaching an external invoice reference.

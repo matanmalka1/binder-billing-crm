@@ -10,7 +10,6 @@ from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRep
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, validate_business_for_create
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.charge.services.constants import UNPAID_CHARGE_REMINDER_DAYS
 from app.charge.services.messages import (
     AMOUNT_MUST_BE_POSITIVE,
     CHARGE_ALREADY_CANCELED,
@@ -24,13 +23,10 @@ from app.charge.services.messages import (
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.reminders.services.reminder_service import ReminderService
 from app.utils.time_utils import utcnow
 
 
 class BillingService:
-    """Billing and charge lifecycle management business logic."""
-
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
@@ -95,10 +91,6 @@ class BillingService:
             charge_id, ChargeStatus.ISSUED, charge=charge,
             issued_at=utcnow(), issued_by=actor_id,
         )
-        ReminderService(self.db).create_unpaid_charge_reminder(
-            client_record_id=charge.client_record_id, business_id=charge.business_id, charge_id=charge_id,
-            days_unpaid=UNPAID_CHARGE_REMINDER_DAYS,
-        )
         if actor_id:
             self._audit.append(
                 entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
@@ -119,7 +111,6 @@ class BillingService:
             charge_id, ChargeStatus.PAID, charge=charge,
             paid_at=utcnow(), paid_by=actor_id,
         )
-        ReminderService(self.db).cancel_reminders_for_charge(charge_id)
         if actor_id:
             self._audit.append(
                 entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
@@ -141,7 +132,6 @@ class BillingService:
             charge_id, ChargeStatus.CANCELED, charge=charge,
             canceled_by=actor_id, canceled_at=utcnow(), cancellation_reason=reason,
         )
-        ReminderService(self.db).cancel_reminders_for_charge(charge_id)
         if actor_id:
             self._audit.append(
                 entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
@@ -151,7 +141,6 @@ class BillingService:
         return canceled
 
     def delete_charge(self, charge_id: int, actor_id: Optional[int] = None) -> bool:
-        """Soft-delete a DRAFT or CANCELED charge."""
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
             raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")

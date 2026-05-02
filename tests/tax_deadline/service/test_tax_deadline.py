@@ -3,7 +3,6 @@ from datetime import date, timedelta
 import pytest
 
 from app.core.exceptions import AppError, NotFoundError
-from app.reminders.models.reminder import Reminder, ReminderType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 from tests.tax_deadline.factories import create_business
@@ -22,9 +21,6 @@ def test_create_update_complete_get_delete_flow(test_db):
     )
     assert created.client_record_id == business.client_id
     assert created.status == TaxDeadlineStatus.PENDING
-
-    reminder = test_db.query(Reminder).filter(Reminder.tax_deadline_id == created.id).first()
-    assert reminder is not None
 
     updated = service.update_deadline(created.id, description="Updated desc", payment_amount=1200)
     assert updated.description == "Updated desc"
@@ -61,27 +57,6 @@ def test_create_allows_closed_or_frozen_business(test_db):
     assert closed_deadline.client_record_id == closed.client_id
     assert frozen_deadline.client_record_id == frozen.client_id
 
-
-def test_create_allows_multiple_tax_reminders_on_same_due_date(test_db):
-    business = create_business(test_db, name_prefix="Same Date Deadlines")
-    service = TaxDeadlineService(test_db)
-    due_date = date.today() + timedelta(days=10)
-
-    vat = service.create_deadline(business.client_id, DeadlineType.VAT, due_date)
-    advance = service.create_deadline(
-        business.client_id, DeadlineType.ADVANCE_PAYMENT, due_date
-    )
-
-    reminders = (
-        test_db.query(Reminder)
-        .filter(
-            Reminder.client_record_id == business.client_id,
-            Reminder.reminder_type == ReminderType.TAX_DEADLINE_APPROACHING,
-            Reminder.target_date == due_date,
-        )
-        .all()
-    )
-    assert {reminder.tax_deadline_id for reminder in reminders} == {vat.id, advance.id}
 
 
 def test_service_not_found_and_validation_paths(test_db):

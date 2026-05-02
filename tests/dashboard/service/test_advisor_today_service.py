@@ -70,22 +70,22 @@ def test_reminder_item_uses_client_name_as_label_and_business_in_sublabel():
     }
 
 
-def test_reminder_items_excludes_unpaid_charge_duplicates(monkeypatch, test_db):
+def test_reminder_items_returns_pending_reminders(monkeypatch, test_db):
     service = AdvisorTodayService(test_db)
     reminders = [
         SimpleNamespace(
             id=1,
             client_record_id=10,
             business_id=20,
-            reminder_type=ReminderType.UNPAID_CHARGE,
-            message="תזכורת: חשבונית לא שולמה",
+            reminder_type=ReminderType.BINDER_IDLE,
+            message="תזכורת: תיק לא טופל",
         ),
         SimpleNamespace(
             id=2,
             client_record_id=11,
             business_id=21,
-            reminder_type=ReminderType.BINDER_IDLE,
-            message="תזכורת: תיק לא טופל",
+            reminder_type=ReminderType.CUSTOM,
+            message="תזכורת: בדיקה",
         ),
     ]
     monkeypatch.setattr(
@@ -95,7 +95,7 @@ def test_reminder_items_excludes_unpaid_charge_duplicates(monkeypatch, test_db):
     )
     monkeypatch.setattr(
         "app.dashboard.services.advisor_today_service.build_context_map",
-        lambda db, business_repo, items, tax_deadline_repo: {
+        lambda db, business_repo, items: {
             item.id: {"client_name": "לקוח פעיל", "business_name": "עסק פעיל"}
             for item in items
         },
@@ -103,4 +103,4 @@ def test_reminder_items_excludes_unpaid_charge_duplicates(monkeypatch, test_db):
 
     items = service._reminder_items(date(2026, 4, 29))
 
-    assert [item["id"] for item in items] == [2]
+    assert {item["id"] for item in items} == {1, 2}

@@ -6,19 +6,17 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.reminders.models.reminder import ReminderStatus, ReminderType
+from app.reminders.models.reminder import ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.reminder_context import build_context_map
 from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
+
 
 _UPCOMING_DEADLINE_DAYS = 30
 _STALE_REMINDER_DAYS = 7
 _REMINDER_PREVIEW_LENGTH = 48
 _REMINDER_FETCH_LIMIT = 50
-_DEDUPED_REMINDER_TYPES = {ReminderType.UNPAID_CHARGE}
-
 _DEADLINE_COPY = {
     DeadlineType.VAT: ("מע״מ", "הגשה ותשלום"),
     DeadlineType.ADVANCE_PAYMENT: ("מס הכנסה", "תשלום מקדמות"),
@@ -32,7 +30,7 @@ class AdvisorTodayService:
         self.db = db
         self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
-        self.tax_deadline_repo = TaxDeadlineRepository(db)
+
 
     def build(self, reference_date: date) -> dict:
         return {
@@ -75,8 +73,7 @@ class AdvisorTodayService:
             page_size=_REMINDER_FETCH_LIMIT,
             created_before=created_before,
         )
-        reminders = [r for r in reminders if r.reminder_type not in _DEDUPED_REMINDER_TYPES]
-        context = build_context_map(self.db, self.business_repo, reminders, self.tax_deadline_repo)
+        context = build_context_map(self.db, self.business_repo, reminders)
         return [
             _reminder_item(reminder, context.get(reminder.id, {}))
             for reminder in reminders
