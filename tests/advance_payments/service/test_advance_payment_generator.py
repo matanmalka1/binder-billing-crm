@@ -7,7 +7,8 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
 from app.businesses.models.business import Business
-from app.core.exceptions import NotFoundError
+from app.clients.enums import ClientStatus
+from app.core.exceptions import ForbiddenError, NotFoundError
 from tests.helpers.identity import seed_client_identity
 
 
@@ -31,6 +32,17 @@ def _business(db) -> Business:
     db.refresh(business)
     business.client_record_id = client.id
     return business
+
+
+def _closed_client_record_id(db) -> int:
+    idx = next(_seq)
+    client = seed_client_identity(
+        db,
+        full_name=f"Advance Gen Closed Client {idx}",
+        id_number=f"555777{idx:03d}",
+        status=ClientStatus.CLOSED,
+    )
+    return client.id
 
 
 def test_generate_annual_schedule_creates_all_12_months(test_db):
@@ -75,6 +87,15 @@ def test_generate_annual_schedule_missing_business_raises_not_found(test_db):
         generate_annual_schedule(999999, 2026, test_db)
 
     assert exc.value.code == "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND"
+
+
+def test_generate_annual_schedule_closed_client_raises_forbidden(test_db):
+    client_record_id = _closed_client_record_id(test_db)
+
+    with pytest.raises(ForbiddenError) as exc:
+        generate_annual_schedule(client_record_id, 2026, test_db)
+
+    assert exc.value.code == "CLIENT.CLOSED"
 
 
 def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):

@@ -1,4 +1,3 @@
-from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -40,19 +39,14 @@ def generate_annual_schedule(
     created: list[AdvancePayment] = []
     skipped = 0
 
-    today = date.today()
-
     for month in start_months:
         period = f"{year}-{month:02d}"
         due_date = build_due_date(year, month, period_months_count)
-        if due_date < today:
-            skipped += 1
-            continue
         if repo.exists_for_period(client_record_id, period):
             skipped += 1
             continue
 
-        payment = repo.create(
+        payment = service.create_payment_for_client(
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,

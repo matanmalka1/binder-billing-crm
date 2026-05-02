@@ -94,7 +94,11 @@ def test_charge_created_event_includes_actions_and_metadata():
     assert event["description"] == "חיוב חדש: ריטיינר חודשי"
     assert event["metadata"] == {"amount": 12.5, "status": "draft"}
     assert "actions" not in event
-    assert {action["key"] for action in event["available_actions"]} == {"issue_charge", "cancel_charge"}
+    assert {action["key"] for action in event["available_actions"]} == {
+        "issue_charge",
+        "cancel_charge",
+        "delete_charge",
+    }
 
 
 def test_binder_returned_event_includes_pickup_person_metadata():

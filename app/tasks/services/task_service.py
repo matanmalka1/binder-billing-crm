@@ -179,7 +179,7 @@ class TaskService:
             scope_to_active_clients(self.db.query(AdvancePayment), AdvancePayment)
             .filter(
                 AdvancePayment.deleted_at.is_(None),
-                AdvancePayment.status.in_([AdvancePaymentStatus.PENDING, AdvancePaymentStatus.OVERDUE]),
+                AdvancePayment.status.in_([AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PARTIAL]),
                 AdvancePayment.due_date <= cutoff,
             )
         )

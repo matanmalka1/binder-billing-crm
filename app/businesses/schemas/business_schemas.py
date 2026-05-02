@@ -31,19 +31,19 @@ class BusinessCreateRequest(BaseModel):
 class ClientBusinessCreateRequest(BaseModel):
     """
     פרטי עסק במסגרת פתיחת לקוח חדש.
-    שם העסק אופציונלי — אם ריק, ישתמש המערכת בשם הלקוח.
+    שם העסק נדרש לפתיחת פעילות ראשונה.
     """
     opened_at: Optional[date] = None
-    business_name: Optional[str] = Field(None, max_length=100)
+    business_name: str = Field(..., max_length=100)
     notes: Optional[str] = None
 
     @field_validator("business_name")
     @classmethod
-    def normalize_business_name(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
+    def normalize_business_name(cls, value: str) -> str:
         value = value.strip()
-        return value or None
+        if not value:
+            raise ValueError("יש להזין שם עסק")
+        return value
 
 
 class BusinessUpdateRequest(BaseModel):

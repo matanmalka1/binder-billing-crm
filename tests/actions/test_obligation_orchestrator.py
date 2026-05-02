@@ -69,7 +69,7 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
         def __init__(self, db):
             self.db = db
 
-        def generate_all(self, client_record_id, year):
+        def generate_all(self, client_record_id, year, reference_date=None):
             if year == 2027:
                 raise RuntimeError("deadline failed")
             return 2

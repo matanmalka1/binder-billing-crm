@@ -88,7 +88,7 @@ def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor
         period_months_count=1,
         expected_amount=Decimal("1000.00"),
         paid_amount=Decimal("500.00"),
-        status=AdvancePaymentStatus.OVERDUE,
+        status=AdvancePaymentStatus.PENDING,
         due_date=date(2026, 1, 15),
     )
     feb = AdvancePayment(
