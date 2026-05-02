@@ -14,6 +14,7 @@ from app.advance_payments.schemas.advance_payment import (
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
 from app.advance_payments.services.constants import parse_period_year
+from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
 
 router = APIRouter(
     prefix="/clients/{client_record_id}/advance-payments",
@@ -40,8 +41,19 @@ def list_advance_payments(
         page=page,
         page_size=page_size,
     )
+    turnover_repo = TurnoverLookupRepository(db)
+    period_list = [(p.period, p.period_months_count) for p in items if p.reported_turnover is None]
+    live_map = turnover_repo.get_turnover_for_many(client_record_id, period_list) if period_list else {}
+
+    def _to_row(p) -> AdvancePaymentRow:
+        live, _ = live_map.get(p.period, (None, None)) if p.reported_turnover is None else (None, None)
+        row = AdvancePaymentRow.model_validate(p)
+        row.live_turnover = live
+        row.missing_turnover = p.reported_turnover is None and live is None
+        return row
+
     return AdvancePaymentListResponse(
-        items=[AdvancePaymentRow.model_validate(p) for p in items],
+        items=[_to_row(p) for p in items],
         page=page,
         page_size=page_size,
         total=total,

@@ -6,8 +6,10 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
+    MonthBatchSummary,
 )
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
+from app.advance_payments.repositories.advance_payment_aggregation_repository import AdvancePaymentAggregationRepository
 
 overview_router = APIRouter(
     prefix="/advance-payments",
@@ -50,8 +52,14 @@ def list_advance_payments_overview(
             expected_amount=payment.expected_amount,
             paid_amount=payment.paid_amount,
             status=payment.status,
+            payment_method=payment.payment_method,
+            reported_turnover=payment.reported_turnover,
+            live_turnover=live_turnover,
+            missing_turnover=(
+                payment.reported_turnover is None and live_turnover is None
+            ),
         )
-        for payment, office_client_number, business_name in rows
+        for payment, office_client_number, business_name, live_turnover in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,
@@ -62,3 +70,28 @@ def list_advance_payments_overview(
         total_paid=kpis["total_paid"],
         collection_rate=kpis["collection_rate"],
     )
+
+
+@overview_router.get("/overview/batches", response_model=list[MonthBatchSummary])
+def list_advance_payment_batches(
+    db: DBSession,
+    user: CurrentUser,
+    year: int = Query(...),
+):
+    rows = AdvancePaymentAggregationRepository(db).batch_summary_by_month(year)
+    result = []
+    for r in rows:
+        total_expected = float(r.total_expected)
+        total_paid = float(r.total_paid)
+        collection_rate = round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
+        result.append(MonthBatchSummary(
+            year=year,
+            month=int(r.month),
+            client_count=int(r.client_count),
+            missing_turnover_count=int(r.snapshot_missing_count or 0),
+            overdue_count=int(r.overdue_count or 0),
+            total_expected=total_expected,
+            total_paid=total_paid,
+            collection_rate=collection_rate,
+        ))
+    return result

@@ -71,21 +71,26 @@ class AdvancePaymentAggregationRepository(BaseRepository):
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
         """Per-client aggregates for the collections report."""
+        today_expr = func.current_date()
         query = (
             scope_to_active_clients(
                 self.db.query(
-                AdvancePayment.client_record_id,
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
-                func.coalesce(
-                    func.sum(
-                        case(
-                            (advance_payment_status_text_expr() == AdvancePaymentStatus.OVERDUE.value, 1),
-                            else_=0,
-                        )
-                    ),
-                    0,
-                ).label("overdue_count"),
+                    AdvancePayment.client_record_id,
+                    func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    (AdvancePayment.due_date < today_expr)
+                                    & (advance_payment_status_text_expr() != AdvancePaymentStatus.PAID.value),
+                                    1,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ).label("overdue_count"),
                 ),
                 AdvancePayment,
             )
@@ -97,3 +102,46 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         if month is not None:
             query = query.filter(advance_payment_matches_month_expr(month))
         return query.group_by(AdvancePayment.client_record_id).all()
+
+    def batch_summary_by_month(self, year: int) -> list:
+        """Per-month aggregates: client_count, overdue_count, missing_turnover_count, totals."""
+        today_expr = func.current_date()
+        start_month = advance_payment_start_month_expr()
+        return (
+            scope_to_active_clients(
+                self.db.query(
+                    start_month.label("month"),
+                    func.count(AdvancePayment.id).label("client_count"),
+                    func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                    func.sum(
+                        case(
+                            (
+                                (AdvancePayment.due_date < today_expr)
+                                & (advance_payment_status_text_expr() != AdvancePaymentStatus.PAID.value),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ).label("overdue_count"),
+                    func.sum(
+                        case(
+                            (
+                                AdvancePayment.reported_turnover.is_(None)
+                                & AdvancePayment.turnover_source_vat_work_item_id.is_(None),
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ).label("snapshot_missing_count"),
+                ),
+                AdvancePayment,
+            )
+            .filter(
+                AdvancePayment.period.like(f"{year}-%"),
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .group_by(start_month)
+            .order_by(start_month)
+            .all()
+        )

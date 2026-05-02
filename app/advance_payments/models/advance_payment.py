@@ -45,7 +45,6 @@ class AdvancePaymentStatus(str, PyEnum):
     PENDING = "pending"   # Not yet paid
     PAID    = "paid"      # Paid in full
     PARTIAL = "partial"   # Paid partially
-    OVERDUE = "overdue"   # Overdue
 
 
 class PaymentMethod(str, PyEnum):
@@ -81,6 +80,10 @@ class AdvancePayment(Base):
                             default=AdvancePaymentStatus.PENDING, nullable=False)
     paid_at        = Column(DateTime, nullable=True)
     payment_method = Column(pg_enum(PaymentMethod), nullable=True)
+
+    # ── Turnover snapshot (saved when payment reaches paid status) ────────────
+    reported_turnover              = Column(Numeric(14, 2), nullable=True)
+    turnover_source_vat_work_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True)
 
     # ── Cross-domain links ────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)

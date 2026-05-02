@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
@@ -26,6 +26,10 @@ class AdvancePaymentRow(BaseModel):
     payment_method: Optional[PaymentMethod] = None
     annual_report_id: Optional[int] = None
     notes: Optional[str] = None
+    reported_turnover: Optional[ApiDecimal] = None
+    turnover_source_vat_work_item_id: Optional[int] = None
+    live_turnover: Optional[ApiDecimal] = None  # populated by router, not ORM
+    missing_turnover: bool = False
     created_at: ApiDateTime
     updated_at: Optional[ApiDateTime] = None
 
@@ -35,6 +39,21 @@ class AdvancePaymentRow(BaseModel):
         if self.expected_amount is None or self.paid_amount is None:
             return None
         return self.expected_amount - self.paid_amount
+
+    @computed_field
+    @property
+    def timing_status(self) -> Literal["overdue", "on_time"]:
+        if self.status != AdvancePaymentStatus.PAID and date.today() > self.due_date:
+            return "overdue"
+        return "on_time"
+
+    @computed_field
+    @property
+    def paid_late(self) -> bool:
+        if self.paid_at is None or self.status != AdvancePaymentStatus.PAID:
+            return False
+        paid_date = self.paid_at.date() if isinstance(self.paid_at, datetime) else self.paid_at
+        return paid_date > self.due_date
 
     model_config = {"from_attributes": True, "use_enum_values": True}
 
@@ -105,6 +124,10 @@ class AdvancePaymentOverviewRow(BaseModel):
     expected_amount: Optional[ApiDecimal] = None
     paid_amount: Optional[ApiDecimal] = None
     status: AdvancePaymentStatus
+    payment_method: Optional[PaymentMethod] = None
+    reported_turnover: Optional[ApiDecimal] = None
+    live_turnover: Optional[ApiDecimal] = None  # populated by service, not ORM
+    missing_turnover: bool = False
 
     @computed_field
     @property
@@ -113,7 +136,14 @@ class AdvancePaymentOverviewRow(BaseModel):
             return None
         return self.expected_amount - self.paid_amount
 
-    model_config = {"from_attributes": True, "use_enum_values": True}
+    @computed_field
+    @property
+    def timing_status(self) -> Literal["overdue", "on_time"]:
+        if self.status != AdvancePaymentStatus.PAID and date.today() > self.due_date:
+            return "overdue"
+        return "on_time"
+
+    model_config = {"from_attributes": False, "use_enum_values": True}
 
 class AdvancePaymentOverviewResponse(BaseModel):
     items: list[AdvancePaymentOverviewRow]
@@ -132,6 +162,16 @@ class AnnualKPIResponse(BaseModel):
     collection_rate: float  # 0.0–100.0
     overdue_count: int
     on_time_count: int
+
+class MonthBatchSummary(BaseModel):
+    year: int
+    month: int
+    client_count: int
+    missing_turnover_count: int
+    overdue_count: int
+    total_expected: Optional[ApiDecimal] = None
+    total_paid: Optional[ApiDecimal] = None
+    collection_rate: float = 0.0
 
 class GenerateScheduleRequest(BaseModel):
     year: int

@@ -36,10 +36,10 @@ def _seed_payments(db, client_record_id: int):
         client_record_id=client_record_id,
         period="2026-03",
         period_months_count=1,
-        due_date=date(2026, 4, 15),
+        due_date=date(2020, 4, 15),  # past due date → timing_status=overdue
         expected_amount=Decimal("50"),
     )
-    repo.update(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.OVERDUE)
+    repo.update(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.PENDING)
 
 
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):

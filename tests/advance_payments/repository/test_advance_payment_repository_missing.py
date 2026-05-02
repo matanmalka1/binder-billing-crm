@@ -96,10 +96,10 @@ def test_advance_payment_analytics_annual_kpis(test_db):
         client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,
-        due_date=date(2026, 3, 15),
+        due_date=date(2020, 3, 15),  # past due date → timing_status=overdue
         expected_amount=Decimal("200.00"),
     )
-    repo.update(feb, paid_amount=Decimal("0.00"), status=AdvancePaymentStatus.OVERDUE)
+    repo.update(feb, paid_amount=Decimal("0.00"), status=AdvancePaymentStatus.PENDING)
 
     kpis = analytics.get_annual_kpis_for_client(business.client_record_id, 2026)
     assert kpis["total_expected"] == 300.0

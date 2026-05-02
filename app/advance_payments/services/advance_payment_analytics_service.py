@@ -4,13 +4,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_analytics_repository import (
     AdvancePaymentAnalyticsRepository,
 )
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
 )
+from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
@@ -51,6 +52,9 @@ class AdvancePaymentAnalyticsService:
             for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
         } if legal_entity_ids else {}
 
+        turnover_repo = TurnoverLookupRepository(self.db)
+        live_turnover_map = self._build_live_turnover_map(payments, turnover_repo)
+
         rows = sorted(
             [
                 (
@@ -59,6 +63,7 @@ class AdvancePaymentAnalyticsService:
                     legal_entities[records[p.client_record_id].legal_entity_id].official_name
                     if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
                     else "",
+                    live_turnover_map.get((p.client_record_id, p.period)),
                 )
                 for p in payments
             ],
@@ -68,6 +73,25 @@ class AdvancePaymentAnalyticsService:
         total = len(rows)
         offset = (page - 1) * page_size
         return rows[offset: offset + page_size], total
+
+    @staticmethod
+    def _build_live_turnover_map(
+        payments: list[AdvancePayment],
+        turnover_repo: TurnoverLookupRepository,
+    ) -> dict[tuple[int, str], Optional[object]]:
+        """Batch-fetch live turnover per (client_record_id, period)."""
+        from collections import defaultdict
+        by_client: dict[int, list[tuple[str, int]]] = defaultdict(list)
+        for p in payments:
+            if p.reported_turnover is None:
+                by_client[p.client_record_id].append((p.period, p.period_months_count))
+
+        result: dict[tuple[int, str], Optional[object]] = {}
+        for client_id, period_list in by_client.items():
+            turnover_by_period = turnover_repo.get_turnover_for_many(client_id, period_list)
+            for period, (turnover, _) in turnover_by_period.items():
+                result[(client_id, period)] = turnover
+        return result
 
     # ─── KPIs ─────────────────────────────────────────────────────────────────
 
