@@ -28,6 +28,7 @@ class ChargeCreateRequest(BaseModel):
 class ChargeResponse(BaseModel):
     id: int
     client_record_id: int
+    client_name: Optional[str] = None
     office_client_number: Optional[int] = None
     business_id: Optional[int] = None
     business_name: Optional[str] = None        # enriched by service
@@ -56,6 +57,7 @@ class ChargeResponseSecretary(BaseModel):
     """תגובה מצומצמת לסקרטרית — ללא נתונים פיננסיים."""
     id: int
     client_record_id: int
+    client_name: Optional[str] = None
     office_client_number: Optional[int] = None
     business_id: Optional[int] = None
     business_name: Optional[str] = None
