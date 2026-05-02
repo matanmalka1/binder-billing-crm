@@ -28,14 +28,12 @@ def compute_creation_impact(
     vat_count = sum(len(vat_deadline_plan(vat_reporting_frequency, year, today)) for year in years)
     advance_count = sum(len(advance_payment_deadline_plan(entity_type, year, today)) for year in years)
     annual_deadline_count = n
-    reminder_count = vat_count + advance_count + annual_deadline_count
 
     items = [
         CreationImpactItem(label="קלסר פעיל", count=1),
         CreationImpactItem(label='מועדי מע"מ', count=vat_count),
         CreationImpactItem(label="מועדי מקדמות", count=advance_count),
         CreationImpactItem(label="מועד הגשת דוח שנתי", count=annual_deadline_count),
-        CreationImpactItem(label="תזכורות", count=reminder_count),
         CreationImpactItem(label="תיק דוח שנתי", count=n),
     ]
     items = [i for i in items if i.count > 0]
