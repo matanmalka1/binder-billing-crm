@@ -171,8 +171,6 @@ class Seeder:
     def _reset(self, db) -> None:
         if self.cfg.users_only:
             for table in reversed(Base.metadata.sorted_tables):
-                if table.name not in {"users", "user_audit_logs"}:
-                    continue
                 if self.cfg.preserve_users and table.name in {"users", "user_audit_logs"}:
                     continue
                 db.execute(table.delete())

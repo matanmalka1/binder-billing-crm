@@ -148,12 +148,13 @@ def _pick_unique_deadline_identity(
 
 def _statutory_due_date(deadline_type: TaxDeadlineType, anchor: date) -> date:
     """Return the correct statutory due date for a deadline type given a month anchor."""
-    from app.tax_deadline.services.constants import VAT_FILING_DUE_DAY, ADVANCE_PAYMENT_DUE_DAY
+    from app.tax_deadline.services.constants import ADVANCE_PAYMENT_DUE_DAY
+    from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY
+
     if deadline_type == TaxDeadlineType.VAT:
-        # VAT filed on 19th of month following reporting period
         filing_month = anchor.month + 1 if anchor.month < 12 else 1
         filing_year = anchor.year if anchor.month < 12 else anchor.year + 1
-        return date(filing_year, filing_month, VAT_FILING_DUE_DAY)
+        return date(filing_year, filing_month, VAT_STATUTORY_DEADLINE_DAY)
     if deadline_type == TaxDeadlineType.ADVANCE_PAYMENT:
         return date(anchor.year, anchor.month, ADVANCE_PAYMENT_DUE_DAY)
     # NATIONAL_INSURANCE: 15th of month (approximation — no statutory formula in system)
