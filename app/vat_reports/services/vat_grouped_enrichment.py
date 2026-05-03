@@ -1,0 +1,83 @@
+"""Enrichment for grouped VAT work item endpoints."""
+
+from typing import Optional
+
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import VatType
+from app.users.repositories.user_repository import UserRepository
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.repositories import vat_work_item_grouped_repository as grouped_repo
+from app.vat_reports.services.vat_report_enrichment import _build_client_maps
+from app.vat_reports.api.serializers import serialize_enriched_work_item
+from app.users.models.user import UserRole
+
+
+def get_groups(
+    db,
+    *,
+    period_type: Optional[VatType] = None,
+    client_name: Optional[str] = None,
+    status: Optional[VatWorkItemStatus] = None,
+    year: Optional[int] = None,
+) -> list[dict]:
+    client_record_ids = _resolve_client_ids(db, client_name)
+    if client_name and not client_record_ids:
+        return []
+    return grouped_repo.list_periods_grouped(
+        db,
+        period_type=period_type,
+        client_record_ids=client_record_ids,
+        status=status,
+        year=year,
+    )
+
+
+def get_group_items_enriched(
+    db,
+    user_repo: UserRepository,
+    *,
+    period: str,
+    page: int,
+    page_size: int,
+    client_name: Optional[str] = None,
+    status: Optional[VatWorkItemStatus] = None,
+    user_role: UserRole | str | None = None,
+) -> dict:
+    client_record_ids = _resolve_client_ids(db, client_name)
+    if client_name and not client_record_ids:
+        return {"items": [], "total": 0, "period": period}
+
+    items, total = grouped_repo.list_by_period_paginated(
+        db,
+        period,
+        page=page,
+        page_size=page_size,
+        client_record_ids=client_record_ids,
+        status=status,
+    )
+    client_record_id_list = list({item.client_record_id for item in items})
+    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    users = user_repo.list_by_ids(user_ids) if user_ids else []
+    client_maps = _build_client_maps(db, client_record_id_list)
+    user_map = {u.id: u.full_name for u in users}
+
+    serialized = [
+        serialize_enriched_work_item(
+            item,
+            office_client_number_map=client_maps["office_client_number_map"],
+            name_map=client_maps["name_map"],
+            id_number_map=client_maps["id_number_map"],
+            status_map=client_maps["status_map"],
+            user_map=user_map,
+            user_role=user_role,
+        )
+        for item in items
+    ]
+    return {"items": serialized, "total": total, "period": period}
+
+
+def _resolve_client_ids(db, client_name: Optional[str]) -> Optional[list[int]]:
+    if not client_name:
+        return None
+    records, _ = ClientRecordRepository(db).search(query=client_name, page=1, page_size=500)
+    return [r.id for r in records]

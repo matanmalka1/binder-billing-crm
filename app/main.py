@@ -1,3 +1,10 @@
+import sys as _sys
+import os as _os
+_tax_rules_path = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "tax_rules_config", "app")
+if _tax_rules_path not in _sys.path:
+    _sys.path.insert(0, _tax_rules_path)
+del _sys, _os, _tax_rules_path
+
 from typing import Literal
 
 from fastapi import FastAPI
