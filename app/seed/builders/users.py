@@ -12,10 +12,10 @@ from app.businesses.models.business import Business
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus, UserAuditLog
 
-from ..constants import DEFAULT_PASSWORD_HASH
-from ..demo_catalog import mobile_phone
-from ..realistic_seed_text import STAFF_DIRECTORY
-from ..random_utils import full_name
+from ..data.constants import DEFAULT_PASSWORD_HASH
+from ..data.demo_catalog import mobile_phone
+from ..data.realistic_seed_text import STAFF_DIRECTORY
+from ..data.random_utils import full_name
 
 
 def get_existing_users(db) -> list[User]:
@@ -48,7 +48,7 @@ def create_users(db, rng: Random, cfg) -> list[User]:
 
 def create_user_audit_logs(db, rng: Random, users: list[User]) -> None:
     for user in users:
-        success_log = UserAuditLog(
+        db.add(UserAuditLog(
             action=AuditAction.LOGIN_SUCCESS,
             actor_user_id=user.id,
             target_user_id=user.id,
@@ -57,11 +57,9 @@ def create_user_audit_logs(db, rng: Random, users: list[User]) -> None:
             reason=None,
             metadata_json='{"source":"seed"}',
             created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 30)),
-        )
-        db.add(success_log)
-
+        ))
         if rng.random() < 0.3:
-            fail_log = UserAuditLog(
+            db.add(UserAuditLog(
                 action=AuditAction.LOGIN_FAILURE,
                 actor_user_id=None,
                 target_user_id=user.id,
@@ -70,8 +68,7 @@ def create_user_audit_logs(db, rng: Random, users: list[User]) -> None:
                 reason="invalid_password",
                 metadata_json='{"source":"seed"}',
                 created_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 30)),
-            )
-            db.add(fail_log)
+            ))
     db.flush()
 
 

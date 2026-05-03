@@ -1,25 +1,34 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta, date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
-from ..demo_catalog import INVOICE_BASE_URL
-from ..realistic_seed_text import CHARGE_TYPE_DETAILS
 
-from ._business_groups import group_businesses_by_client, pick_businesses_for_client
+from ...data.demo_catalog import INVOICE_BASE_URL
+from ...data.realistic_seed_text import CHARGE_TYPE_DETAILS
+
+
+def _group_by_client(businesses) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for b in businesses:
+        grouped.setdefault(int(b.client_id), []).append(b)
+    return grouped
+
+
+def _pick_businesses(rng: Random, client_businesses: list, count: int) -> list:
+    if count <= 0 or not client_businesses:
+        return []
+    return [rng.choice(client_businesses) for _ in range(count)]
 
 
 def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]:
     charges: list[Charge] = []
-    for client_businesses in group_businesses_by_client(businesses).values():
-        num = rng.randint(
-            cfg.min_charges_per_client,
-            cfg.max_charges_per_client,
-        )
-        for business in pick_businesses_for_client(rng, client_businesses, num):
+    for client_businesses in _group_by_client(businesses).values():
+        num = rng.randint(cfg.min_charges_per_client, cfg.max_charges_per_client)
+        for business in _pick_businesses(rng, client_businesses, num):
             status = rng.choices(
                 [ChargeStatus.DRAFT, ChargeStatus.ISSUED, ChargeStatus.PAID, ChargeStatus.CANCELED],
                 weights=[20, 30, 40, 10],
@@ -37,11 +46,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 paid_at = issued_at + timedelta(days=rng.randint(0, 20))
                 paid_by = rng.choice(users).id if users else None
 
-            charge_type = rng.choices(
-                list(ChargeType),
-                weights=[35, 20, 18, 8, 12, 7],
-                k=1,
-            )[0]
+            charge_type = rng.choices(list(ChargeType), weights=[35, 20, 18, 8, 12, 7], k=1)[0]
             period = None
             months_covered = 1
             if charge_type == ChargeType.MONTHLY_RETAINER:
@@ -69,9 +74,6 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                     "החיוב בוטל לאחר זיכוי הלקוח",
                     "החיוב נפתח בטעות ונסגר לפני הפקה",
                 ])
-            description_parts = [base_description, business.business_name]
-            if period:
-                description_parts.append(f"תקופה {period}")
 
             charge = Charge(
                 client_record_id=business.client_id,
@@ -81,7 +83,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 period=period,
                 months_covered=months_covered,
                 status=status,
-                description=" | ".join(description_parts),
+                description=" | ".join(filter(None, [base_description, business.business_name, f"תקופה {period}" if period else None])),
                 created_at=created_at,
                 created_by=rng.choice(users).id if users else None,
                 issued_at=issued_at,
@@ -92,50 +94,11 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 canceled_by=canceled_by,
                 cancellation_reason=cancellation_reason,
             )
-            charge.client_id = business.client_id
+            charge.client_id = business.client_id  # type: ignore[attr-defined]
             db.add(charge)
             charges.append(charge)
     db.flush()
-    _ensure_charge_status_coverage(charges, users, rng)
     return charges
-
-
-def _ensure_charge_status_coverage(charges: list[Charge], users, rng: Random) -> None:
-    present = {c.status for c in charges}
-    missing = [s for s in ChargeStatus if s not in present]
-    if not missing:
-        return
-    from collections import Counter
-    counts = Counter(c.status for c in charges)
-    for status in missing:
-        donor_status = max(counts, key=lambda s: counts[s])
-        if counts[donor_status] <= 1:
-            continue
-        candidate = next(c for c in charges if c.status == donor_status)
-        counts[donor_status] -= 1
-        candidate.status = status
-        if status == ChargeStatus.DRAFT:
-            candidate.issued_at = None
-            candidate.issued_by = None
-            candidate.paid_at = None
-            candidate.paid_by = None
-            candidate.canceled_at = None
-            candidate.canceled_by = None
-        elif status == ChargeStatus.ISSUED:
-            candidate.paid_at = None
-            candidate.paid_by = None
-            candidate.canceled_at = None
-            candidate.canceled_by = None
-            if candidate.issued_at is None:
-                candidate.issued_at = candidate.created_at
-                candidate.issued_by = rng.choice(users).id if users else None
-        elif status == ChargeStatus.CANCELED:
-            candidate.paid_at = None
-            candidate.paid_by = None
-            if candidate.canceled_at is None:
-                candidate.canceled_at = candidate.created_at
-                candidate.canceled_by = rng.choice(users).id if users else None
-        counts[status] = counts.get(status, 0) + 1
 
 
 def create_invoices(db, charges) -> None:
@@ -144,14 +107,13 @@ def create_invoices(db, charges) -> None:
         if charge.status not in (ChargeStatus.ISSUED, ChargeStatus.PAID):
             continue
         invoice_id = f"חשבונית-{invoice_serial}"
-        invoice = Invoice(
+        db.add(Invoice(
             charge_id=charge.id,
             provider="מערכת הנהלת חשבונות פנימית",
             external_invoice_id=invoice_id,
             document_url=f"{INVOICE_BASE_URL}/{invoice_id}.pdf",
             issued_at=charge.issued_at or charge.created_at,
             created_at=charge.created_at,
-        )
+        ))
         invoice_serial += 1
-        db.add(invoice)
     db.flush()

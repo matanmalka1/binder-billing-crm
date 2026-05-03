@@ -13,11 +13,23 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestType,
 )
 
-from ._business_groups import group_businesses_by_client, pick_businesses_for_client
-from ..realistic_seed_text import SIGNATURE_COPY
+from ...data.realistic_seed_text import SIGNATURE_COPY
 
 
-def _pick_related_for_client(rng: Random, rows_by_client: dict[int, list], client_id: int):
+def _group_by_client(businesses) -> dict[int, list]:
+    grouped: dict[int, list] = {}
+    for b in businesses:
+        grouped.setdefault(int(b.client_id), []).append(b)
+    return grouped
+
+
+def _pick_businesses(rng: Random, client_businesses: list, count: int) -> list:
+    if count <= 0 or not client_businesses:
+        return []
+    return [rng.choice(client_businesses) for _ in range(count)]
+
+
+def _pick_for_client(rng: Random, rows_by_client: dict[int, list], client_id: int):
     rows = rows_by_client.get(client_id, [])
     return rng.choice(rows) if rows else None
 
@@ -39,24 +51,11 @@ def _random_between(rng: Random, start: datetime, end: datetime) -> datetime:
     return start + timedelta(seconds=rng.randint(0, seconds))
 
 
-def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict[str, datetime | None]:
+def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict:
     now = datetime.now(UTC)
     created_at = now - timedelta(days=rng.randint(7, 90), hours=rng.randint(0, 23))
-    sent_at = None
-    expires_at = None
-    signed_at = None
-    declined_at = None
-    canceled_at = None
-
     if status == SignatureRequestStatus.DRAFT:
-        return {
-            "created_at": created_at,
-            "sent_at": None,
-            "expires_at": None,
-            "signed_at": None,
-            "declined_at": None,
-            "canceled_at": None,
-        }
+        return {"created_at": created_at, "sent_at": None, "expires_at": None, "signed_at": None, "declined_at": None, "canceled_at": None}
 
     sent_at = _random_between(rng, created_at, now - timedelta(hours=1))
     if sent_at <= created_at:
@@ -75,21 +74,11 @@ def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict[str, 
     if event_upper <= sent_at:
         event_upper = sent_at + timedelta(hours=1)
 
-    if status == SignatureRequestStatus.SIGNED:
-        signed_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
-    elif status == SignatureRequestStatus.DECLINED:
-        declined_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
-    elif status == SignatureRequestStatus.CANCELED:
-        canceled_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
+    signed_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.SIGNED else None
+    declined_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.DECLINED else None
+    canceled_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.CANCELED else None
 
-    return {
-        "created_at": created_at,
-        "sent_at": sent_at,
-        "expires_at": expires_at,
-        "signed_at": signed_at,
-        "declined_at": declined_at,
-        "canceled_at": canceled_at,
-    }
+    return {"created_at": created_at, "sent_at": sent_at, "expires_at": expires_at, "signed_at": signed_at, "declined_at": declined_at, "canceled_at": canceled_at}
 
 
 def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, annual_reports, documents):
@@ -100,47 +89,33 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
     existing_count = int(db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one())
     type_cycle = list(SignatureRequestType)
     status_cycle = list(SignatureRequestStatus)
-    type_cycle_idx = 0
-    status_cycle_idx = 0
+    type_idx = 0
+    status_idx = 0
 
-    for client_businesses in group_businesses_by_client(businesses).values():
+    for client_businesses in _group_by_client(businesses).values():
         client = clients_by_id.get(client_businesses[0].client_id)
         if not client:
             continue
-        for business in pick_businesses_for_client(
-            rng,
-            client_businesses,
-            cfg.signature_requests_per_client,
-        ):
-            report = _pick_related_for_client(rng, reports_by_client, client.id)
-            document = _pick_related_for_client(rng, documents_by_client, client.id)
-            if status_cycle_idx < len(status_cycle):
-                status = status_cycle[status_cycle_idx]
-                status_cycle_idx += 1
+        for business in _pick_businesses(rng, client_businesses, cfg.signature_requests_per_client):
+            report = _pick_for_client(rng, reports_by_client, client.id)
+            document = _pick_for_client(rng, documents_by_client, client.id)
+            if status_idx < len(status_cycle):
+                status = status_cycle[status_idx]; status_idx += 1
             else:
                 status = rng.choice(status_cycle)
             timestamps = _build_timestamps(rng, status)
             serial = existing_count + len(requests) + 1
-            if type_cycle_idx < len(type_cycle):
-                request_type = type_cycle[type_cycle_idx]
-                type_cycle_idx += 1
+            if type_idx < len(type_cycle):
+                request_type = type_cycle[type_idx]; type_idx += 1
             else:
                 request_type = rng.choice(type_cycle)
             title_prefix, request_description = SIGNATURE_COPY[request_type]
-
-            canceled_by = None
-            if status == SignatureRequestStatus.CANCELED:
-                canceled_by = rng.choice(users).id
+            canceled_by = rng.choice(users).id if status == SignatureRequestStatus.CANCELED else None
             signing_token = f"seed-sign-{serial:010d}"
-            if status in (
-                SignatureRequestStatus.SIGNED,
-                SignatureRequestStatus.DECLINED,
-                SignatureRequestStatus.EXPIRED,
-                SignatureRequestStatus.CANCELED,
-            ):
+            if status in (SignatureRequestStatus.SIGNED, SignatureRequestStatus.DECLINED, SignatureRequestStatus.EXPIRED, SignatureRequestStatus.CANCELED):
                 signing_token = None
 
-            request = SignatureRequest(
+            req = SignatureRequest(
                 client_record_id=business.client_id,
                 business_id=business.id,
                 created_by=rng.choice(users).id,
@@ -163,49 +138,41 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 declined_at=timestamps["declined_at"],
                 canceled_at=timestamps["canceled_at"],
                 canceled_by=canceled_by,
-                decline_reason="הלקוח ביקש לעדכן נוסח לפני חתימה"
-                if status == SignatureRequestStatus.DECLINED
-                else None,
+                decline_reason="הלקוח ביקש לעדכן נוסח לפני חתימה" if status == SignatureRequestStatus.DECLINED else None,
                 signer_ip_address="127.0.0.1" if status == SignatureRequestStatus.SIGNED else None,
                 signer_user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" if status == SignatureRequestStatus.SIGNED else None,
-                signed_document_key=(
-                    f"signed/signature_request_{serial}.pdf"
-                    if status == SignatureRequestStatus.SIGNED
-                    else None
-                ),
+                signed_document_key=f"signed/signature_request_{serial}.pdf" if status == SignatureRequestStatus.SIGNED else None,
             )
-            request.client_id = business.client_id
-            db.add(request)
-            requests.append(request)
+            req.client_id = business.client_id  # type: ignore[attr-defined]
+            db.add(req)
+            requests.append(req)
     db.flush()
     return requests
 
 
 def create_signature_audit_events(db, rng: Random, requests: Iterable[SignatureRequest]) -> None:
-    for request in requests:
-        events: list[tuple[str, datetime, str]] = []
-        events.append(("created", request.created_at, "advisor"))
-        if request.sent_at:
-            events.append(("sent", request.sent_at, "advisor"))
-        if request.signed_at:
-            events.append(("signed", request.signed_at, "signer"))
-        if request.declined_at:
-            events.append(("declined", request.declined_at, "signer"))
-        if request.canceled_at:
-            events.append(("canceled", request.canceled_at, "advisor"))
-        if request.status == SignatureRequestStatus.EXPIRED and request.expires_at:
-            events.append(("expired", request.expires_at, "system"))
+    for req in requests:
+        events: list[tuple[str, datetime, str]] = [("created", req.created_at, "advisor")]
+        if req.sent_at:
+            events.append(("sent", req.sent_at, "advisor"))
+        if req.signed_at:
+            events.append(("signed", req.signed_at, "signer"))
+        if req.declined_at:
+            events.append(("declined", req.declined_at, "signer"))
+        if req.canceled_at:
+            events.append(("canceled", req.canceled_at, "advisor"))
+        if req.status == SignatureRequestStatus.EXPIRED and req.expires_at:
+            events.append(("expired", req.expires_at, "system"))
 
         for event_type, ts, actor_type in events:
-            audit = SignatureAuditEvent(
-                signature_request_id=request.id,
+            db.add(SignatureAuditEvent(
+                signature_request_id=req.id,
                 event_type=event_type,
                 actor_type=actor_type,
-                actor_id=request.created_by if actor_type == "advisor" else None,
+                actor_id=req.created_by if actor_type == "advisor" else None,
                 actor_name="מערכת חתימות דיגיטליות",
                 ip_address="127.0.0.1",
                 user_agent="signature-service/2026.04",
                 occurred_at=ts,
-            )
-            db.add(audit)
+            ))
     db.flush()
