@@ -229,10 +229,12 @@ class ClientRecordRepository:
         query: Optional[str] = None,
         client_name: Optional[str] = None,
         id_number: Optional[str] = None,
+        status: Optional[ClientStatus] = None,
+        entity_type: Optional[EntityType] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ClientRecord], int]:
-        """Cross-domain search by name / id_number."""
+        """Cross-domain search by name / id_number / status / entity_type."""
         q = self._active_query()
         if query:
             term = f"%{query.strip()}%"
@@ -241,6 +243,10 @@ class ClientRecordRepository:
             q = q.filter(LegalEntity.official_name.ilike(f"%{client_name.strip()}%"))
         if id_number:
             q = q.filter(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
+        if status:
+            q = q.filter(ClientRecord.status == status)
+        if entity_type:
+            q = q.filter(LegalEntity.entity_type == entity_type)
         total = q.count()
         offset = (page - 1) * page_size
         items = q.order_by(LegalEntity.official_name.asc()).offset(offset).limit(page_size).all()

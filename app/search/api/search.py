@@ -4,6 +4,9 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.clients.enums import ClientStatus
+from app.common.enums import EntityType
+from app.binders.models.binder import BinderStatus
 from app.search.schemas.search import SearchResponse, SearchResult
 from app.search.services.search_service import SearchService
 
@@ -22,6 +25,10 @@ def search(
     client_name: Optional[str] = None,
     id_number: Optional[str] = None,
     binder_number: Optional[str] = None,
+    client_status: Optional[ClientStatus] = None,
+    entity_type: Optional[EntityType] = None,
+    binder_status: Optional[BinderStatus] = None,
+    filename: Optional[str] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -32,6 +39,10 @@ def search(
         client_name=client_name,
         id_number=id_number,
         binder_number=binder_number,
+        client_status=client_status,
+        entity_type=entity_type,
+        binder_status=binder_status,
+        filename=filename,
         page=page,
         page_size=page_size,
     )

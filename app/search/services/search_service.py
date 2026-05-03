@@ -1,12 +1,14 @@
-from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.common.enums import EntityType
 from app.search.schemas.search import DocumentSearchResult
 from app.search.services.document_search_service import DocumentSearchService
 
@@ -39,48 +41,61 @@ class SearchService:
         client_name: Optional[str] = None,
         id_number: Optional[str] = None,
         binder_number: Optional[str] = None,
+        client_status: Optional[ClientStatus] = None,
+        entity_type: Optional[EntityType] = None,
+        binder_status: Optional[BinderStatus] = None,
+        filename: Optional[str] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int, list[DocumentSearchResult]]:
+        doc_service = DocumentSearchService(self.db)
         documents: list[DocumentSearchResult] = (
-            DocumentSearchService(self.db).search_documents(query) if query else []
+            doc_service.search_documents(query, filename=filename)
+            if (query or filename)
+            else []
         )
 
-        # --- Client search: DB-level filtering ---
-        if query or client_name or id_number:
-            if not binder_number:
-                records, total = self.client_record_repo.search(
-                    query=query,
-                    client_name=client_name,
-                    id_number=id_number,
-                    page=page,
-                    page_size=page_size,
-                )
-                legal_map = self._legal_entity_map([record.legal_entity_id for record in records])
-                binder_map = self.binder_repo.map_active_by_clients([record.id for record in records])
-                return [
-                    {
-                        "result_type": "client",
-                        "client_id": record.id,
-                        "office_client_number": record.office_client_number,
-                        "client_name": legal_map[record.legal_entity_id].official_name if legal_map.get(record.legal_entity_id) else "לא ידוע",
-                        "id_number": legal_map[record.legal_entity_id].id_number if legal_map.get(record.legal_entity_id) else None,
-                        "client_status": None,
-                        "binder_id": binder_map[record.id].id if record.id in binder_map else None,
-                        "binder_number": binder_map[record.id].binder_number if record.id in binder_map else None,
-                    }
-                    for record in records
-                ], total, documents
+        has_client_filter = bool(query or client_name or id_number or client_status or entity_type)
+        has_binder_filter = bool(query or binder_number or binder_status)
+
+        # --- Pure client-only search: DB-level pagination ---
+        if has_client_filter and not has_binder_filter:
+            records, total = self.client_record_repo.search(
+                query=query,
+                client_name=client_name,
+                id_number=id_number,
+                status=client_status,
+                entity_type=entity_type,
+                page=page,
+                page_size=page_size,
+            )
+            legal_map = self._legal_entity_map([record.legal_entity_id for record in records])
+            binder_map = self.binder_repo.map_active_by_clients([record.id for record in records])
+            return [
+                {
+                    "result_type": "client",
+                    "client_id": record.id,
+                    "office_client_number": record.office_client_number,
+                    "client_name": legal_map[record.legal_entity_id].official_name if legal_map.get(record.legal_entity_id) else "לא ידוע",
+                    "id_number": legal_map[record.legal_entity_id].id_number if legal_map.get(record.legal_entity_id) else None,
+                    "client_status": record.status,
+                    "binder_id": binder_map[record.id].id if record.id in binder_map else None,
+                    "binder_number": binder_map[record.id].binder_number if record.id in binder_map else None,
+                }
+                for record in records
+            ], total, documents
 
         # --- Mixed / binder-number search: build full result set then paginate ---
         # Bounded by _MIXED_SEARCH_*_LIMIT. Results beyond ceiling are excluded.
         results: list[dict] = []
 
-        if query or client_name or id_number:
+        if has_client_filter:
             all_records, _ = self.client_record_repo.search(
                 query=query,
                 client_name=client_name,
                 id_number=id_number,
+                status=client_status,
+                entity_type=entity_type,
                 page=1,
                 page_size=_MIXED_SEARCH_CLIENT_LIMIT,
             )
@@ -96,18 +111,21 @@ class SearchService:
                         "office_client_number": record.office_client_number,
                         "client_name": legal_entity.official_name if legal_entity else "לא ידוע",
                         "id_number": legal_entity.id_number if legal_entity else None,
-                        "client_status": None,
+                        "client_status": record.status,
                         "binder_id": b.id if b else None,
                         "binder_number": b.binder_number if b else None,
                     }
                 )
 
-        if query or binder_number:
+        if has_binder_filter:
             db_binder_number = binder_number or (query if not (client_name or id_number) else None)
+            include_returned = binder_status == BinderStatus.RETURNED
             binders = self.binder_repo.list_active(
                 binder_number=db_binder_number,
+                status=binder_status.value if binder_status else None,
                 page=1,
                 page_size=_MIXED_SEARCH_BINDER_LIMIT,
+                include_returned=include_returned,
             )
             binder_cr_ids = [b.client_record_id for b in binders]
             records = {record.id: record for record in self.client_record_repo.list_by_ids(binder_cr_ids)}
@@ -128,7 +146,7 @@ class SearchService:
                         "office_client_number": record.office_client_number if record else None,
                         "client_name": business.full_name if business else (legal_entity.official_name if legal_entity else "לא ידוע"),
                         "id_number": legal_entity.id_number if legal_entity else None,
-                        "client_status": None,
+                        "client_status": record.status if record else None,
                         "binder_id": binder.id,
                         "binder_number": binder.binder_number,
                     }

@@ -28,7 +28,6 @@ class DocumentSearchResult(BaseModel):
     document_type: str
     original_filename: Optional[str] = None
     tax_year: Optional[int] = None
-    status: str
 
 
 class SearchResponse(BaseModel):

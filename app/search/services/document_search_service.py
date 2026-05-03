@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -16,8 +18,11 @@ class DocumentSearchService:
         self.doc_repo = PermanentDocumentRepository(db)
         self.business_repo = BusinessRepository(db)
 
-    def search_documents(self, query: str) -> list[DocumentSearchResult]:
-        docs = self.doc_repo.search_by_query(query, limit=_DOCUMENT_SEARCH_LIMIT)
+    def search_documents(self, query: str, filename: Optional[str] = None) -> list[DocumentSearchResult]:
+        if filename and not query:
+            docs = self.doc_repo.search_by_filename(filename, limit=_DOCUMENT_SEARCH_LIMIT)
+        else:
+            docs = self.doc_repo.search_by_query(query, limit=_DOCUMENT_SEARCH_LIMIT)
         business_cache: dict[int, str] = {}
         client_map = get_full_records_bulk(self.db, [doc.client_record_id for doc in docs])
         results = []
@@ -36,7 +41,6 @@ class DocumentSearchService:
                 document_type=doc.document_type,
                 original_filename=doc.original_filename,
                 tax_year=doc.tax_year,
-                status=doc.status,
             ))
         return results
 
@@ -56,7 +60,6 @@ class DocumentSearchService:
                 document_type=doc.document_type,
                 original_filename=doc.original_filename,
                 tax_year=doc.tax_year,
-                status=doc.status,
             )
             for doc in docs
             if term in (doc.original_filename or "").lower() or term in str(doc.document_type).lower()
