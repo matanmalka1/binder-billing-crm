@@ -59,6 +59,8 @@ class ClientRepository(BaseRepository):
         "status": ClientRecord.status,
     }
 
+    _ENTITY_TYPE_ORDER = ["osek_patur", "osek_murshe", "company_ltd", "employee"]
+
     def _base_query(self, *, include_deleted: bool = False):
         query = (
             self.db.query(ClientRecord, LegalEntity, Person)
@@ -235,11 +237,15 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[ClientRecordView]:
-        from sqlalchemy import asc, desc
+        from sqlalchemy import asc, case, desc
 
         query = self._apply_list_filters(self._base_query(), search, status)
-        col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
+        if sort_by == "entity_type":
+            order_map = {v: i for i, v in enumerate(self._ENTITY_TYPE_ORDER)}
+            sort_col = case(order_map, value=LegalEntity.entity_type)
+        else:
+            sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
+        query = query.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
         query = query.offset((page - 1) * page_size).limit(page_size)
         return self._list_views(query)
 

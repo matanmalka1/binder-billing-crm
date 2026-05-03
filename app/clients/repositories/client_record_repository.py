@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, case, desc, func
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
@@ -165,6 +165,8 @@ class ClientRecordRepository:
         "status": ClientRecord.status,
     }
 
+    _ENTITY_TYPE_ORDER = ["osek_patur", "osek_murshe", "company_ltd", "employee"]
+
     def _active_query(self):
         return (
             self.db.query(ClientRecord)
@@ -202,8 +204,12 @@ class ClientRecordRepository:
         query = self._apply_list_filters(
             self._active_query(), search, status, accountant_id, entity_type
         )
-        col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
+        if sort_by == "entity_type":
+            order_map = {v: i for i, v in enumerate(self._ENTITY_TYPE_ORDER)}
+            sort_col = case(order_map, value=LegalEntity.entity_type)
+        else:
+            sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
+        query = query.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
