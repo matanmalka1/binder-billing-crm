@@ -56,3 +56,4 @@ htmlcov/
 
 # Local dev/test storage 
 storage/
+.claude/settings.local.json
