@@ -49,7 +49,7 @@ _BINDER_PICKUP_OVERDUE_DAYS = 30
 _BINDER_REMINDER_COOLDOWN_DAYS = 5
 _ANNUAL_PENDING_CLIENT_DAYS = 3
 _ANNUAL_REMINDER_COOLDOWN_DAYS = 2
-_UPCOMING_WINDOW_DAYS = 7
+_UPCOMING_WINDOW_DAYS = 14
 _VAT_UPCOMING_DAY_OF_MONTH = 8  # show upcoming from day 8 (7 days before deadline on 15th)
 try:
     from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat_day

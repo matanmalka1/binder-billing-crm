@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.tasks.schemas.task import DeadlineTask, UnifiedItem
+from app.tasks.schemas.task import DeadlineTask, TaskType, UnifiedItem
 from app.tasks.services.task_service import TaskService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -22,10 +22,12 @@ def list_tasks(
     _user: CurrentUser,
     client_record_id: Optional[int] = Query(None),
     business_id: Optional[int] = Query(None),
+    exclude_source_types: Optional[List[TaskType]] = Query(None),
 ):
     return TaskService(db).get_tasks(
         client_record_id=client_record_id,
         business_id=business_id,
+        exclude_source_types=exclude_source_types,
     )
 
 
@@ -39,8 +41,10 @@ def list_unified(
     _user: CurrentUser,
     client_record_id: Optional[int] = Query(None),
     business_id: Optional[int] = Query(None),
+    exclude_source_types: Optional[List[TaskType]] = Query(None),
 ):
     return TaskService(db).get_unified(
         client_record_id=client_record_id,
         business_id=business_id,
+        exclude_source_types=exclude_source_types,
     )

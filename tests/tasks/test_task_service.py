@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-from app.tasks.schemas.task import TaskType, TaskUrgency
+from app.tasks.schemas.task import DeadlineTask, TaskType, TaskUrgency
 from app.tasks.services.task_service import TaskService
 from tests.tax_deadline.factories import create_business
 
@@ -136,6 +136,38 @@ def test_unified_includes_tasks_and_reminders(test_db):
     types = {i.item_type for i in items}
     assert "task" in types
     assert "reminder" in types
+
+
+def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
+    service = TaskService(test_db)
+    vat_task = DeadlineTask(
+        source_type=TaskType.VAT_FILING,
+        source_id=1,
+        label='מע"מ לא הוגש: 2026-04',
+        due_date=date.today(),
+        urgency=TaskUrgency.APPROACHING,
+        client_record_id=1,
+    )
+    annual_task = DeadlineTask(
+        source_type=TaskType.ANNUAL_REPORT,
+        source_id=2,
+        label="דוח שנתי 2025",
+        due_date=date.today(),
+        urgency=TaskUrgency.APPROACHING,
+        client_record_id=1,
+    )
+
+    monkeypatch.setattr(service, "_tax_deadline_tasks", lambda client_record_id: [])
+    monkeypatch.setattr(service, "_vat_filing_tasks", lambda client_record_id: [vat_task])
+    monkeypatch.setattr(service, "_annual_report_tasks", lambda client_record_id: [annual_task])
+    monkeypatch.setattr(service, "_advance_payment_tasks", lambda client_record_id: [])
+    monkeypatch.setattr(service, "_unpaid_charge_tasks", lambda client_record_id, business_id: [])
+
+    items = service.get_unified(
+        exclude_source_types=[TaskType.VAT_FILING, TaskType.ANNUAL_REPORT]
+    )
+
+    assert items == []
 
 
 def test_tasks_sorted_by_due_date(test_db):

@@ -66,6 +66,7 @@ class TaskService:
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
+        exclude_source_types: Optional[List[TaskType]] = None,
     ) -> List[DeadlineTask]:
         tasks: List[DeadlineTask] = []
         tasks.extend(self._tax_deadline_tasks(client_record_id))
@@ -73,6 +74,9 @@ class TaskService:
         tasks.extend(self._annual_report_tasks(client_record_id))
         tasks.extend(self._advance_payment_tasks(client_record_id))
         tasks.extend(self._unpaid_charge_tasks(client_record_id, business_id))
+        if exclude_source_types:
+            excluded = set(exclude_source_types)
+            tasks = [task for task in tasks if task.source_type not in excluded]
         tasks.sort(key=lambda t: t.due_date)
         return tasks
 
@@ -80,8 +84,12 @@ class TaskService:
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
+        exclude_source_types: Optional[List[TaskType]] = None,
     ) -> List[UnifiedItem]:
-        unified: List[UnifiedItem] = [_task_to_unified(t) for t in self.get_tasks(client_record_id, business_id)]
+        unified: List[UnifiedItem] = [
+            _task_to_unified(t)
+            for t in self.get_tasks(client_record_id, business_id, exclude_source_types)
+        ]
 
         reminder_repo = ReminderRepository(self.db)
         business_repo = BusinessRepository(self.db)
