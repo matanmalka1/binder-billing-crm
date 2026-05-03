@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tasks.schemas.task import DeadlineTask, TaskType, TaskUrgency
@@ -138,6 +139,67 @@ def test_unified_includes_tasks_and_reminders(test_db):
     assert "reminder" in types
 
 
+def test_unified_advance_payment_includes_source_payload(test_db):
+    biz = create_business(test_db)
+    due_date = date.today() - timedelta(days=1)
+    payment = AdvancePayment(
+        client_record_id=biz.client_id,
+        period="2026-02",
+        period_months_count=1,
+        due_date=due_date,
+        expected_amount=1000,
+        paid_amount=250,
+        status=AdvancePaymentStatus.PARTIAL,
+    )
+    test_db.add(payment)
+    test_db.commit()
+
+    items = TaskService(test_db).get_unified(client_record_id=biz.client_id)
+    item = next(i for i in items if i.source_type == TaskType.ADVANCE_PAYMENT.value)
+
+    assert item.payload == {
+        "period": "2026-02",
+        "period_months_count": 1,
+        "due_date": due_date.isoformat(),
+        "status": "partial",
+        "expected_amount": "1000.00",
+        "paid_amount": "250.00",
+        "remaining_amount": "750.00",
+        "payment_method": None,
+        "paid_at": None,
+        "annual_report_id": None,
+    }
+
+
+def test_unified_tasks_api_returns_advance_payment_payload(
+    client, test_db, advisor_headers
+):
+    biz = create_business(test_db)
+    due_date = date.today() - timedelta(days=1)
+    payment = AdvancePayment(
+        client_record_id=biz.client_id,
+        period="2026-02",
+        period_months_count=1,
+        due_date=due_date,
+        expected_amount=1000,
+        paid_amount=250,
+        status=AdvancePaymentStatus.PARTIAL,
+    )
+    test_db.add(payment)
+    test_db.commit()
+
+    response = client.get(
+        "/api/v1/tasks/unified"
+        "?exclude_source_types=vat_filing&exclude_source_types=annual_report",
+        headers=advisor_headers,
+    )
+
+    assert response.status_code == 200
+    item = next(i for i in response.json() if i["source_type"] == "advance_payment")
+    assert item["payload"]["period"] == "2026-02"
+    assert item["payload"]["remaining_amount"] == "750.00"
+
+
 def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
     service = TaskService(test_db)
     vat_task = DeadlineTask(
@@ -168,6 +230,21 @@ def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
     )
 
     assert items == []
+
+
+def test_get_tasks_skips_excluded_builders(test_db, monkeypatch):
+    service = TaskService(test_db)
+    monkeypatch.setattr(service, "_tax_deadline_tasks", lambda client_record_id: [])
+    monkeypatch.setattr(service, "_vat_filing_tasks", lambda client_record_id: [])
+    monkeypatch.setattr(
+        service,
+        "_annual_report_tasks",
+        lambda client_record_id: (_ for _ in ()).throw(AssertionError("should skip")),
+    )
+    monkeypatch.setattr(service, "_advance_payment_tasks", lambda client_record_id: [])
+    monkeypatch.setattr(service, "_unpaid_charge_tasks", lambda client_record_id, business_id: [])
+
+    assert service.get_tasks(exclude_source_types=[TaskType.ANNUAL_REPORT]) == []
 
 
 def test_tasks_sorted_by_due_date(test_db):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum as PyEnum
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -31,6 +31,7 @@ class DeadlineTask(BaseModel):
     client_record_id: int
     client_name: Optional[str] = None
     business_id: Optional[int] = None
+    payload: Optional[dict[str, Any]] = None
 
 
 class UnifiedItem(BaseModel):
@@ -43,3 +44,4 @@ class UnifiedItem(BaseModel):
     client_record_id: Optional[int] = None
     client_name: Optional[str] = None
     business_id: Optional[int] = None
+    payload: Optional[dict[str, Any]] = None
