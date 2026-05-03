@@ -38,6 +38,7 @@ def _row_to_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> di
         "vat_exempt_ceiling": le.vat_exempt_ceiling,
         "advance_rate": le.advance_rate,
         "advance_rate_updated_at": le.advance_rate_updated_at,
+        "annual_revenue": le.annual_revenue,
         "phone": person.phone if person else None,
         "email": person.email if person else None,
         "address_street": person.address_street if person else None,

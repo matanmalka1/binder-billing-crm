@@ -51,6 +51,22 @@ class VatClientSummaryRepository:
             .all()
         )
 
+    def get_annual_turnover(self, client_record_id: int, year: int):
+        """Sum of total_output_net for FILED work items in the given calendar year.
+
+        Returns the scalar sum (Decimal or None if no FILED items exist).
+        """
+        return (
+            self.db.query(func.sum(VatWorkItem.total_output_net))
+            .filter(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.status == VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .scalar()
+        )
+
     def get_annual_aggregates(self, client_record_id: int) -> list[dict[str, object]]:
         year_expr = cast(func.substr(VatWorkItem.period, 1, 4), Integer).label("year")
         rows = (

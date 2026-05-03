@@ -76,6 +76,7 @@ class ClientUpdateRequest(BaseModel):
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
     advance_rate_updated_at: Optional[date] = None
+    annual_revenue: Optional[ApiDecimal] = Field(None, ge=0)
     accountant_id: Optional[int] = None
 
     @model_validator(mode="after")

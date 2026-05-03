@@ -6,6 +6,7 @@ from app.clients.create_policy import derive_id_number_type, preview_vat_reporti
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.enums import ClientStatus
+from app.common.enums import EntityType
 from app.clients.schemas.client import (
     ClientConflictInfo,
     CreateClientRequest,
@@ -127,7 +128,9 @@ def list_clients(
     db: DBSession,
     search: Optional[str] = Query(None),
     status: Optional[ClientStatus] = Query(None),
+    entity_type: Optional[EntityType] = Query(None),
     accountant_id: Optional[int] = Query(None, ge=1),
+    tax_year: Optional[int] = Query(None, ge=2000, le=2100),
     sort_by: str = Query("official_name", pattern="^(official_name|full_name|created_at|status)$"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
@@ -138,7 +141,9 @@ def list_clients(
     result = service.list_full_clients(
         search=search,
         status=status,
+        entity_type=entity_type,
         accountant_id=accountant_id,
+        tax_year=tax_year,
         sort_by=sort_by,
         sort_order=sort_order,
         page=page,
@@ -148,10 +153,14 @@ def list_clients(
 
 
 @router.get("/{client_id}", response_model=ClientRecordResponse)
-def get_client(client_id: int, db: DBSession):
+def get_client(
+    client_id: int,
+    db: DBSession,
+    tax_year: Optional[int] = Query(None, ge=2000, le=2100),
+):
     """Get client by ID (client_id = ClientRecord.id)."""
     service = ClientService(db)
-    return service.get_full_client(client_id)
+    return service.get_full_client(client_id, tax_year=tax_year)
 
 
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)

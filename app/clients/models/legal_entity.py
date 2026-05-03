@@ -23,6 +23,7 @@ class LegalEntity(Base):
     vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
     advance_rate_updated_at = Column(Date, nullable=True)
+    annual_revenue = Column(Numeric(15, 0), nullable=True)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)

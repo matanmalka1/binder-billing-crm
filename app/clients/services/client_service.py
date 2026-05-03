@@ -103,8 +103,8 @@ class ClientService:
     def get_conflict_info(self, id_number: str) -> dict:
         return self._query.get_conflict_info(id_number)
 
-    def get_full_client(self, client_id: int) -> ClientRecordResponse:
-        return self._query.get_full_client(client_id)
+    def get_full_client(self, client_id: int, tax_year=None) -> ClientRecordResponse:
+        return self._query.get_full_client(client_id, tax_year=tax_year)
 
     def get_full_client_including_deleted(self, client_id: int) -> ClientRecordResponse:
         return self._query.get_full_client_including_deleted(client_id)
@@ -114,6 +114,8 @@ class ClientService:
         search=None,
         status=None,
         accountant_id=None,
+        entity_type=None,
+        tax_year=None,
         sort_by="official_name",
         sort_order="asc",
         page=1,
@@ -123,6 +125,8 @@ class ClientService:
             search=search,
             status=status,
             accountant_id=accountant_id,
+            entity_type=entity_type,
+            tax_year=tax_year,
             sort_by=sort_by,
             sort_order=sort_order,
             page=page,

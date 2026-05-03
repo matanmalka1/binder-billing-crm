@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from app.businesses.schemas.business_schemas import BusinessResponse
 from app.clients.enums import ClientStatus
+from app.clients.schemas.client_record_response import AnnualTurnover
 from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
@@ -30,10 +31,12 @@ class ClientResponse(BaseModel):
     vat_exempt_ceiling: Optional[ApiDecimal] = None
     advance_rate: Optional[ApiDecimal] = None
     advance_rate_updated_at: Optional[date] = None
+    annual_revenue: Optional[ApiDecimal] = None
     accountant_id: Optional[int] = None
     created_at: Optional[ApiDateTime] = None
     updated_at: Optional[ApiDateTime] = None
     active_binder_number: Optional[str] = None
+    annual_turnover: Optional[AnnualTurnover] = None
 
     model_config = {"from_attributes": True}
 

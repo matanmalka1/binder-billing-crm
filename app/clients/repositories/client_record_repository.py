@@ -6,6 +6,7 @@ from sqlalchemy import asc, desc, func
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
+from app.common.enums import EntityType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.core.exceptions import NotFoundError
@@ -171,7 +172,9 @@ class ClientRecordRepository:
             .filter(ClientRecord.deleted_at.is_(None))
         )
 
-    def _apply_list_filters(self, query, search=None, status=None, accountant_id=None):
+    def _apply_list_filters(
+        self, query, search=None, status=None, accountant_id=None, entity_type=None
+    ):
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
@@ -181,6 +184,8 @@ class ClientRecordRepository:
             query = query.filter(ClientRecord.status == status)
         if accountant_id is not None:
             query = query.filter(ClientRecord.accountant_id == accountant_id)
+        if entity_type is not None:
+            query = query.filter(LegalEntity.entity_type == entity_type)
         return query
 
     def list(
@@ -188,12 +193,15 @@ class ClientRecordRepository:
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
         accountant_id: Optional[int] = None,
+        entity_type: Optional[EntityType] = None,
         sort_by: str = "official_name",
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
     ) -> list[ClientRecord]:
-        query = self._apply_list_filters(self._active_query(), search, status, accountant_id)
+        query = self._apply_list_filters(
+            self._active_query(), search, status, accountant_id, entity_type
+        )
         col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
         query = query.order_by(desc(col) if sort_order == "desc" else asc(col))
         offset = (page - 1) * page_size
@@ -204,8 +212,11 @@ class ClientRecordRepository:
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
         accountant_id: Optional[int] = None,
+        entity_type: Optional[EntityType] = None,
     ) -> int:
-        return self._apply_list_filters(self._active_query(), search, status, accountant_id).count()
+        return self._apply_list_filters(
+            self._active_query(), search, status, accountant_id, entity_type
+        ).count()
 
     def search(
         self,

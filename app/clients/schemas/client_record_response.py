@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -9,6 +9,14 @@ from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.businesses.schemas.business_schemas import BusinessResponse
 from app.clients.schemas.impact import ClientCreationImpactResponse
+
+TurnoverSource = Literal["reported", "manual", "none"]
+
+
+class AnnualTurnover(BaseModel):
+    amount: Optional[ApiDecimal] = None
+    source: TurnoverSource
+    year: int
 
 
 class ClientRecordResponse(BaseModel):
@@ -26,6 +34,7 @@ class ClientRecordResponse(BaseModel):
     vat_exempt_ceiling: Optional[ApiDecimal] = None
     advance_rate: Optional[ApiDecimal] = None
     advance_rate_updated_at: Optional[date] = None
+    annual_revenue: Optional[ApiDecimal] = None
     # ── Contact (Person via PersonLegalEntityLink OWNER) ──────────────────────
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -40,6 +49,7 @@ class ClientRecordResponse(BaseModel):
     created_by: Optional[int] = None               # ClientRecord.created_by
     # ── Enriched (set by API layer) ───────────────────────────────────────────
     active_binder_number: Optional[str] = None
+    annual_turnover: Optional[AnnualTurnover] = None
 
     model_config = {"from_attributes": True}
 
