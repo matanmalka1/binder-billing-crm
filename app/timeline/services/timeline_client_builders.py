@@ -48,7 +48,7 @@ def reminder_created_event(reminder) -> dict:
         "event_type": "reminder_created",
         "timestamp": reminder.created_at,
         "binder_id": reminder.binder_id,
-        "charge_id": reminder.charge_id,
+        "charge_id": getattr(reminder, "charge_id", None),
         "description": f"תזכורת נוצרה: {type_he}",
         "metadata": {
             "reminder_type": reminder.reminder_type.value,

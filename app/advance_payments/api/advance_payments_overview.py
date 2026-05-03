@@ -58,8 +58,9 @@ def list_advance_payments_overview(
             missing_turnover=(
                 payment.reported_turnover is None and live_turnover is None
             ),
+            advance_rate=advance_rate,
         )
-        for payment, office_client_number, business_name, live_turnover in rows
+        for payment, office_client_number, business_name, live_turnover, advance_rate in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,

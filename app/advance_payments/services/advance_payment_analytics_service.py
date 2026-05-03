@@ -64,6 +64,9 @@ class AdvancePaymentAnalyticsService:
                     if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
                     else "",
                     live_turnover_map.get((p.client_record_id, p.period)),
+                    legal_entities[records[p.client_record_id].legal_entity_id].advance_rate
+                    if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
+                    else None,
                 )
                 for p in payments
             ],

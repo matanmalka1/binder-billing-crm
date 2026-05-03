@@ -35,7 +35,7 @@ def create_reminders(db, rng: Random, businesses, binders, charges, deadlines) -
         idle_binders = [b for b in business_binders if b.status != BinderStatus.RETURNED]
         if idle_binders:
             binder = rng.choice(idle_binders)
-            days_idle = max(14, (today - binder.period_start).days)
+            days_idle = max(14, (today - binder.period_start).days) if binder.period_start else 14
             _add_unique(db, reminders, active_identities, Reminder(
                 client_record_id=business.client_id,
                 business_id=business.id,

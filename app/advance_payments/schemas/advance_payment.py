@@ -128,6 +128,7 @@ class AdvancePaymentOverviewRow(BaseModel):
     reported_turnover: Optional[ApiDecimal] = None
     live_turnover: Optional[ApiDecimal] = None  # populated by service, not ORM
     missing_turnover: bool = False
+    advance_rate: Optional[ApiDecimal] = None  # from legal entity
 
     @computed_field
     @property

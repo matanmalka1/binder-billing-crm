@@ -35,7 +35,7 @@ def create_users(db, rng: Random, cfg) -> list[User]:
             phone=mobile_phone(rng),
             password_hash=DEFAULT_PASSWORD_HASH,
             role=role,
-            is_active=rng.random() > 0.1,
+            is_active=True if i == 0 else rng.random() > 0.1,
             token_version=0,
             created_at=datetime.now(UTC) - timedelta(days=rng.randint(10, 300)),
             last_login_at=datetime.now(UTC) - timedelta(days=rng.randint(0, 30)),
