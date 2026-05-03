@@ -35,6 +35,8 @@ from app.annual_reports.services.deadlines import standard_deadline, extended_de
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import EntityType
 from app.users.models.user import UserRole
+from app.tax_deadline.models.tax_deadline import DeadlineType as TaxDeadlineType
+from app.tax_deadline.models.tax_deadline import TaxDeadline, TaxDeadlineStatus
 
 from ._business_groups import group_businesses_by_client
 from ..realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
@@ -259,8 +261,8 @@ def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
 
 def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[AnnualReport]:
     reports: list[AnnualReport] = []
-    current_year = datetime.now(UTC).year
-    available_years = list(range(current_year - 3, current_year + 1))
+    current_year = cfg.reference_date.year
+    available_years = list(range(current_year - cfg.annual_reports_per_client, current_year))
     advisors = [u.id for u in users if u.role == UserRole.ADVISOR]
     fallback_user_id = users[0].id if users else None
     status_cycle = list(SEEDABLE_STATUSES)
@@ -365,6 +367,39 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             report.client_id = business.client_id
             db.add(report)
             reports.append(report)
+            db.flush()
+            existing_deadline = (
+                db.query(TaxDeadline)
+                .filter(
+                    TaxDeadline.client_record_id == business.client_id,
+                    TaxDeadline.deadline_type == TaxDeadlineType.ANNUAL_REPORT,
+                    TaxDeadline.tax_year == year,
+                    TaxDeadline.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if existing_deadline is None:
+                deadline = TaxDeadline(
+                    client_record_id=business.client_id,
+                    deadline_type=TaxDeadlineType.ANNUAL_REPORT,
+                    tax_year=year,
+                    due_date=filing_deadline.date() if filing_deadline else standard_deadline(year).date(),
+                    status=(
+                        TaxDeadlineStatus.COMPLETED
+                        if status
+                        in (
+                            AnnualReportStatus.SUBMITTED,
+                            AnnualReportStatus.ACCEPTED,
+                            AnnualReportStatus.ASSESSMENT_ISSUED,
+                            AnnualReportStatus.CLOSED,
+                        )
+                        else TaxDeadlineStatus.PENDING
+                    ),
+                    description=f"דוח שנתי שנת {year}",
+                    created_at=created_at,
+                )
+                deadline.client_id = business.client_id
+                db.add(deadline)
     db.flush()
     return reports
 

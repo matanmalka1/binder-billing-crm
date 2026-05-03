@@ -27,44 +27,31 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
 
     for client_id, client_businesses in businesses_by_client_id.items():
         office_num = client_office_number.get(client_id, client_id)
+        existing_count = (
+            db.query(Binder)
+            .filter(Binder.client_record_id == client_id, Binder.deleted_at.is_(None))
+            .count()
+        )
         num = rng.randint(
             cfg.min_binders_per_client,
             cfg.max_binders_per_client,
         )
-        # Build binders chronologically: each one starts after the previous ends.
-        # Only the last binder can be IN_OFFICE / READY_FOR_PICKUP.
-        cursor = date.today() - timedelta(days=rng.randint(60, 400))
+        cursor = cfg.reference_date - timedelta(days=rng.randint(240, 700))
         for seq in range(1, num + 1):
             period_start = cursor
-            is_last = seq == num
-            if is_last:
-                final_status = rng.choices(
-                    [BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP, BinderStatus.RETURNED],
-                    weights=[50, 25, 25],
-                    k=1,
-                )[0]
-                if final_status == BinderStatus.RETURNED:
-                    returned_at = min(date.today(), period_start + timedelta(days=rng.randint(5, 30)))
-                    period_end = returned_at
-                else:
-                    returned_at = None
-                    period_end = None
-                status = final_status
-            else:
-                # Older binders: either CLOSED_IN_OFFICE (still in office) or RETURNED.
-                status = rng.choices(
-                    [BinderStatus.CLOSED_IN_OFFICE, BinderStatus.RETURNED],
-                    weights=[40, 60],
-                    k=1,
-                )[0]
-                duration = rng.randint(20, 90)
-                period_end = min(date.today() - timedelta(days=1), period_start + timedelta(days=duration))
-                returned_at = period_end if status == BinderStatus.RETURNED else None
-                cursor = period_end + timedelta(days=rng.randint(1, 14))
+            status = rng.choices(
+                [BinderStatus.CLOSED_IN_OFFICE, BinderStatus.RETURNED],
+                weights=[40, 60],
+                k=1,
+            )[0]
+            duration = rng.randint(20, 90)
+            period_end = min(cfg.reference_date - timedelta(days=1), period_start + timedelta(days=duration))
+            returned_at = period_end if status == BinderStatus.RETURNED else None
+            cursor = period_end + timedelta(days=rng.randint(1, 14))
 
             binder = Binder(
                 client_record_id=client_id,
-                binder_number=f"{office_num}/{seq}",
+                binder_number=f"{office_num}/{existing_count + seq}",
                 period_start=period_start,
                 period_end=period_end,
                 returned_at=returned_at,
@@ -76,8 +63,6 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
             binder.client_id = client_id
             db.add(binder)
             binders.append(binder)
-    db.flush()
-    _ensure_binder_status_coverage(db, binders)
     db.flush()
     return binders
 

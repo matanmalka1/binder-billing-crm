@@ -8,6 +8,8 @@ from typing import Dict
 from sqlalchemy import func, inspect, select
 
 from app.database import Base, SessionLocal, engine
+from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
+from app.users.models.user import UserRole
 
 from .config import SeedConfig
 from .coverage import SeedCoverageValidator
@@ -101,7 +103,15 @@ class Seeder:
                 return
 
             seeded_clients = clients.create_clients(db, self.rng, self.cfg, seeded_users)
-            seeded_businesses = clients.create_businesses(db, self.rng, seeded_clients, seeded_users)
+            seeded_businesses = clients.create_businesses(db, self.rng, self.cfg, seeded_clients, seeded_users)
+            self._seed_onboarding_baseline(db, seeded_clients, seeded_users)
+            if self.cfg.onboarding_only:
+                db.commit()
+                counts = self._collect_counts(db)
+                if not self.cfg.skip_validation:
+                    self.coverage_validator.assert_seed_consistency(db, counts)
+                self._print_counts(counts)
+                return
             clients.create_entity_notes(db, self.rng, seeded_clients, seeded_users)
             seeded_binders = binders.create_binders(db, self.rng, self.cfg, seeded_businesses, seeded_users)
             binder_intakes = binders.create_binder_intakes(db, seeded_binders)
@@ -119,7 +129,7 @@ class Seeder:
             reports.create_annual_report_annex_data(db, self.rng, seeded_reports)
             reports.create_annual_report_credit_points(db, self.rng, seeded_reports)
             reports.create_annual_report_status_history(db, self.rng, seeded_reports, seeded_users)
-            taxes.create_advance_payments(db, self.rng, seeded_businesses, seeded_deadlines)
+            taxes.create_advance_payments(db, self.rng, self.cfg, seeded_businesses, seeded_deadlines)
             reminders.create_reminders(db, self.rng, seeded_businesses, seeded_binders, seeded_charges, seeded_deadlines)
             seeded_documents = documents.create_documents(db, self.rng, seeded_clients, seeded_businesses, seeded_users)
             reports.create_annual_report_expense_lines(db, self.rng, seeded_reports, seeded_documents, replace_existing=True)
@@ -160,7 +170,9 @@ class Seeder:
             db.commit()
             counts = self._collect_counts(db)
             self._assert_full_seed(counts)
-            self.coverage_validator.assert_seed_coverage(db, counts)
+            if not self.cfg.skip_validation:
+                self.coverage_validator.assert_seed_coverage(db, counts)
+                self.coverage_validator.assert_seed_consistency(db, counts)
             self._print_counts(counts)
         except Exception:
             db.rollback()
@@ -182,6 +194,20 @@ class Seeder:
                 continue
             db.execute(table.delete())
         db.commit()
+
+    def _seed_onboarding_baseline(self, db, seeded_clients, seeded_users) -> None:
+        advisors = [user for user in seeded_users if user.role == UserRole.ADVISOR]
+        actor = advisors[0] if advisors else (seeded_users[0] if seeded_users else None)
+        actor_id = actor.id if actor else None
+        orchestrator = ClientOnboardingOrchestrator(db)
+        for client in seeded_clients:
+            orchestrator.run(
+                client.id,
+                actor_id=actor_id,
+                entity_type=client.entity_type,
+                reference_date=self.cfg.reference_date,
+            )
+        db.flush()
 
     def _collect_counts(self, db) -> Dict[str, int]:
         counts: Dict[str, int] = {}

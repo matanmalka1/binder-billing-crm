@@ -16,9 +16,16 @@ APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py -
 | `--reset` | off | Truncate all tables before seeding |
 | `--clients` | 60 | Number of client records |
 | `--users` | 8 | Staff users (mix of ADVISOR / SECRETARY) |
-| `--annual-reports-per-client` | 3 | Spread across last 3 tax years |
+| `--annual-reports-per-client` | 3 | Historical annual report years per client, in addition to the onboarding-year report |
+| `--min-binders-per-client` | 1 | Minimum historical binders per client, in addition to one active onboarding binder |
+| `--max-binders-per-client` | 3 | Maximum historical binders per client, in addition to one active onboarding binder |
+| `--min-vat-work-items-per-client` | 6 | Minimum historical VAT periods for VAT-reporting clients |
+| `--max-vat-work-items-per-client` | 12 | Maximum historical VAT periods for VAT-reporting clients |
 | `--preserve-users` | off | Reuse existing users, reset everything else |
 | `--users-only` | off | Seed only users and user audit logs |
+| `--onboarding-only` | off | Seed clients with only baseline onboarding records, no historical demo layer |
+| `--reference-date` | today | Business reference date for periods, due dates and historical status choices |
+| `--skip-validation` | off | Skip post-seed coverage and consistency validation |
 | `--seed` | 42 | RNG seed for reproducible data |
 
 Run `python scripts/seed_fake_data.py --help` for the full list.
@@ -61,23 +68,32 @@ seed_fake_data_lib/
 
 ## Seeding Order
 
-The Seeder class runs domain seeders in dependency order:
+The Seeder class first creates users, clients and businesses, then runs the same
+client onboarding orchestrator used by the app. The default seed then adds a
+coherent historical layer. `--onboarding-only` stops after the baseline layer.
 
-1. Users → 2. Clients → 3. Businesses → 4. Binders → 5. Charges → 6. Tax Deadlines →
-7. Annual Reports → 8. Authority Contacts → 9. Correspondence → 10. Report sub-models →
-11. Advance Payments → 12. Reminders → 13. Documents → 14. Report expense lines →
-15. Binder materials → 16. Binder logs → 17. Binder handovers → 18. Binder intake edit logs →
-19. Entity audit logs → 20. Notifications → 21. VAT work items → 22. VAT invoices →
-23. VAT audit logs → 24. Signature requests → 25. Signature audit events
+The full seed runs domain seeders in dependency order:
+
+1. Users → 2. Clients → 3. Businesses → 4. Onboarding baseline → 5. Historical binders →
+6. Charges → 7. Tax deadlines → 8. Annual reports → 9. Authority contacts →
+10. Correspondence → 11. Report sub-models → 12. Historical advance payments →
+13. Reminders → 14. Documents → 15. Report expense lines → 16. Binder materials →
+17. Binder logs → 18. Binder handovers → 19. Binder intake edit logs →
+20. Entity audit logs → 21. Notifications → 22. Historical VAT work items →
+23. VAT invoices → 24. VAT audit logs → 25. Signature requests → 26. Signature audit events
 
 ## Data Coverage Guarantees
 
 After seeding, `SeedCoverageValidator` asserts:
-- Every `BinderStatus` enum value appears at least once
 - Every `ChargeStatus` enum value appears at least once
 - Every `TaxDeadlineStatus` enum value appears at least once (including CANCELED)
 - Every `VatWorkItemStatus` appears at least once
 - All `AnnualReportStatus` values cycle through via `SEEDABLE_STATUSES`
 - At least 3 PENDING tax deadlines with `due_date` in the past (triggers OVERDUE urgency in UI)
 - At least one PENDING tax deadline of each type within the next 30 days (upcoming window)
-- Annual reports span current year and last 3 years (SeasonSummaryWidget shows real data)
+- Annual reports include onboarding-year reports plus historical years
+- Every VAT work item has a matching VAT deadline
+- Every advance payment has a matching advance-payment deadline
+- Every annual report has a matching annual-report deadline
+- Every client has exactly one active binder
+- VAT-exempt clients have no VAT work items

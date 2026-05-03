@@ -37,32 +37,35 @@ def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
     next_office_client_number = (existing_max_office_number or 0) + 1
     for i in range(cfg.clients):
         serial = existing_clients + i + 1
-        is_corporation = rng.random() < 0.25
+        entity_type = rng.choices(
+            population=[EntityType.OSEK_MURSHE, EntityType.OSEK_PATUR, EntityType.COMPANY_LTD],
+            weights=[55, 30, 15],
+            k=1,
+        )[0]
         address = rng.choice(REALISTIC_ADDRESSES)
-        if is_corporation:
+        if entity_type == EntityType.COMPANY_LTD:
             full_name_value = BUSINESS_CATALOG[(serial - 1) % len(BUSINESS_CATALOG)]
             id_number_type = IdNumberType.CORPORATION
             id_number = generate_valid_israeli_id(serial, prefix="5")
-            entity_type = EntityType.COMPANY_LTD
-            vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
+            vat_reporting_frequency = rng.choices(
+                population=[VatType.MONTHLY, VatType.BIMONTHLY],
+                weights=[50, 50],
+                k=1,
+            )[0]
             vat_exempt_ceiling = None
         else:
             full_name_value = full_name(rng)
             id_number_type = IdNumberType.INDIVIDUAL
             id_number = generate_valid_israeli_id(serial, prefix=str(rng.choice([0, 1, 2, 3])))
-            entity_type = rng.choices(
-                population=[EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE, EntityType.EMPLOYEE],
-                weights=[25, 55, 20],
-                k=1,
-            )[0]
             if entity_type == EntityType.OSEK_PATUR:
                 vat_reporting_frequency = VatType.EXEMPT
                 vat_exempt_ceiling = 120000
-            elif entity_type == EntityType.OSEK_MURSHE:
-                vat_reporting_frequency = rng.choice([VatType.MONTHLY, VatType.BIMONTHLY])
-                vat_exempt_ceiling = None
             else:
-                vat_reporting_frequency = VatType.EXEMPT
+                vat_reporting_frequency = rng.choices(
+                    population=[VatType.BIMONTHLY, VatType.MONTHLY],
+                    weights=[70, 30],
+                    k=1,
+                )[0]
                 vat_exempt_ceiling = None
 
         address_street = address["street"]
@@ -72,7 +75,7 @@ def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
         address_zip_code = address["zip_code"]
         advance_rate = None if entity_type == EntityType.EMPLOYEE else round(rng.uniform(2.0, 12.0), 2)
         advance_rate_updated_at = (
-            date.today() - timedelta(days=rng.randint(0, 540))
+            cfg.reference_date - timedelta(days=rng.randint(0, 540))
             if advance_rate is not None
             else None
         )
@@ -137,7 +140,7 @@ def create_clients(db, rng: Random, cfg, users=None) -> list[SeedClient]:
     return clients
 
 
-def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) -> list[Business]:
+def create_businesses(db, rng: Random, cfg, clients: list[SeedClient], users=None) -> list[Business]:
     businesses: list[Business] = []
     existing_businesses = int(db.execute(select(func.count()).select_from(Business)).scalar_one())
     used_names = set(db.execute(select(Business.business_name)).scalars().all())
@@ -154,7 +157,7 @@ def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) ->
         for business_index in range(business_count):
             serial += 1
             open_days_ago = rng.randint(20, 1100)
-            opened_at = date.today() - timedelta(days=open_days_ago)
+            opened_at = cfg.reference_date - timedelta(days=open_days_ago)
             status = rng.choices(
                 [BusinessStatus.ACTIVE, BusinessStatus.FROZEN, BusinessStatus.CLOSED],
                 weights=[80, 12, 8],
@@ -163,8 +166,8 @@ def create_businesses(db, rng: Random, clients: list[SeedClient], users=None) ->
             closed_at = None
             if status == BusinessStatus.CLOSED:
                 closed_at = opened_at + timedelta(days=rng.randint(30, 800))
-                if closed_at > date.today():
-                    closed_at = date.today() - timedelta(days=rng.randint(1, 15))
+                if closed_at > cfg.reference_date:
+                    closed_at = cfg.reference_date - timedelta(days=rng.randint(1, 15))
 
             if client.entity_type == EntityType.COMPANY_LTD:
                 default_type = EntityType.COMPANY_LTD

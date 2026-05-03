@@ -17,14 +17,20 @@ Utility scripts for local development, data seeding, and one-time migrations.
 # 1. Run migrations (schema must exist before seeding)
 APP_ENV=development ENV_FILE=.env.development alembic upgrade head
 
-# 2. Full reset + reseed
+# 2. Full reset + reseed. Default seed includes coherent history.
 APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
 
-# 3. Seed only users (useful after wiping and re-migrating)
+# 3. Seed only baseline onboarding data, without history.
+APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset --onboarding-only
+
+# 4. Seed only users (useful after wiping and re-migrating)
 APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --users-only --reset
 
-# 4. Reseed keeping existing users (avoids invalidating JWTs)
+# 5. Reseed keeping existing users (avoids invalidating JWTs)
 APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset --preserve-users
+
+# Optional deterministic business date:
+APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset --reference-date 2026-05-03
 ```
 
 For full schema reset on PostgreSQL:

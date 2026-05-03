@@ -13,6 +13,7 @@ from app.tax_deadline.models.tax_deadline import (
     DeadlineType as TaxDeadlineType,
     TaxDeadlineStatus,
 )
+from app.tax_deadline.services.due_date_rules import periodic_due_date
 
 from ._business_groups import group_businesses_by_client, pick_businesses_for_client
 
@@ -27,19 +28,16 @@ DEADLINE_LABELS = {
 
 
 def _eligible_deadline_types(business) -> list[TaxDeadlineType]:
-    client = business.client
     # ANNUAL_REPORT excluded — created separately via _create_annual_report_deadlines
     # ADVANCE_PAYMENT excluded — created via create_advance_payments
-    types = [TaxDeadlineType.NATIONAL_INSURANCE]
-    if client.vat_reporting_frequency in ("monthly", "bimonthly"):
-        types.append(TaxDeadlineType.VAT)
-    return types
+    # VAT deadlines are created from VatWorkItem history so links stay consistent.
+    return [TaxDeadlineType.NATIONAL_INSURANCE]
 
 
 def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[TaxDeadline]:
     deadlines: list[TaxDeadline] = []
     used_period_identities: set[tuple[int, TaxDeadlineType, str]] = set()
-    today = date.today()
+    today = cfg.reference_date
     for client_businesses in group_businesses_by_client(businesses).values():
         num = rng.randint(
             cfg.min_tax_deadlines_per_client,
@@ -89,15 +87,15 @@ def create_tax_deadlines(db, rng: Random, cfg, businesses, users=None) -> list[T
             db.add(deadline)
             deadlines.append(deadline)
     db.flush()
-    _create_annual_report_deadlines(db, deadlines, businesses)
+    _create_annual_report_deadlines(db, deadlines, businesses, cfg)
     _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng)
     _ensure_overdue_deadline_coverage(db, deadlines, businesses, rng)
     return deadlines
 
 
-def _create_annual_report_deadlines(db, deadlines: list, businesses) -> None:
+def _create_annual_report_deadlines(db, deadlines: list, businesses, cfg) -> None:
     """Create one annual_report deadline per client using the statutory deadline."""
-    year = date.today().year
+    year = cfg.reference_date.year
     seen_clients: set[int] = set()
     for business in businesses:
         cid = business.client_id
@@ -105,6 +103,18 @@ def _create_annual_report_deadlines(db, deadlines: list, businesses) -> None:
             continue
         seen_clients.add(cid)
         client = business.client
+        exists = (
+            db.query(TaxDeadline)
+            .filter(
+                TaxDeadline.client_record_id == cid,
+                TaxDeadline.deadline_type == TaxDeadlineType.ANNUAL_REPORT,
+                TaxDeadline.tax_year == year,
+                TaxDeadline.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if exists:
+            continue
         client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(
             getattr(client, "entity_type", None)
         )
@@ -170,8 +180,8 @@ def _add_months(value: date, month_offset: int) -> date:
 
 def _ensure_deadline_type_coverage(db, deadlines, businesses, users, rng) -> None:
     present = {d.deadline_type for d in deadlines}
-    # ADVANCE_PAYMENT and ANNUAL_REPORT are seeded separately
-    required = [TaxDeadlineType.VAT, TaxDeadlineType.NATIONAL_INSURANCE]
+    # VAT, ADVANCE_PAYMENT and ANNUAL_REPORT are seeded from their domain records.
+    required = [TaxDeadlineType.NATIONAL_INSURANCE]
     missing = [t for t in required if t not in present]
     if missing:
         today = date.today()
@@ -214,10 +224,7 @@ def _ensure_upcoming_window_coverage(db, deadlines: list, businesses) -> None:
         for d in deadlines
         if d.status == TaxDeadlineStatus.PENDING and today <= d.due_date <= window_end
     }
-    needed = [
-        TaxDeadlineType.VAT,
-        TaxDeadlineType.NATIONAL_INSURANCE,
-    ]
+    needed = [TaxDeadlineType.NATIONAL_INSURANCE]
     fallback_business = businesses[0]
     existing_periods = {
         (d.client_record_id, d.deadline_type, d.period)
@@ -292,25 +299,39 @@ def _ensure_overdue_deadline_coverage(db, deadlines: list, businesses, rng: Rand
     db.flush()
 
 
-def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[AdvancePayment]:
+def create_advance_payments(db, rng: Random, cfg, businesses, deadlines) -> list[AdvancePayment]:
     payments: list[AdvancePayment] = []
     eligible_businesses = [
         business for business in businesses if business.client.entity_type != EntityType.EMPLOYEE
     ]
     deadlines_by_client_period = {}
     for dl in deadlines:
-        if dl.period:
+        if dl.period and dl.deadline_type == TaxDeadlineType.ADVANCE_PAYMENT:
             deadlines_by_client_period[(dl.client_id, dl.period)] = dl
 
     for client_businesses in group_businesses_by_client(eligible_businesses).values():
-        year = date.today().year
-        months = sorted(rng.sample(range(1, 13), k=rng.randint(3, 7)))
-        for month in months:
+        periods = _historical_month_periods(
+            rng,
+            cfg_reference_date=cfg.reference_date,
+            count=rng.randint(6, 12),
+        )
+        for period in periods:
             business = rng.choice(client_businesses)
-            period = f"{year}-{month:02d}"
-            due_date = date(year, month, 15)
+            year, month = [int(part) for part in period.split("-")]
+            due_date = periodic_due_date(year, month, period)
+            existing_payment = (
+                db.query(AdvancePayment)
+                .filter(
+                    AdvancePayment.client_record_id == business.client_id,
+                    AdvancePayment.period == period,
+                    AdvancePayment.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if existing_payment is not None:
+                continue
             deadline = deadlines_by_client_period.get((business.client_id, period))
-            status = rng.choice(list(AdvancePaymentStatus))
+            status = _advance_status_for_due_date(rng, due_date, cfg.reference_date)
             expected_amount = Decimal(str(round(rng.uniform(500, 6000), 2)))
             paid_amount = Decimal("0.00")
             if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL):
@@ -356,24 +377,62 @@ def create_advance_payments(db, rng: Random, businesses, deadlines) -> list[Adva
             db.add(payment)
             payments.append(payment)
             db.flush()
-            # Create a matching ADVANCE_PAYMENT tax deadline linked to this payment
-            adv_deadline = TaxDeadline(
-                client_record_id=business.client_id,
-                deadline_type=TaxDeadlineType.ADVANCE_PAYMENT,
-                period=period,
-                due_date=due_date,
-                status=(
-                    TaxDeadlineStatus.COMPLETED
-                    if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
-                    else TaxDeadlineStatus.PENDING
-                ),
-                payment_amount=expected_amount,
-                description=f"מקדמה {period}",
-                created_at=created_at,
-                advance_payment_id=payment.id,
-            )
-            adv_deadline.client_id = business.client_id
-            db.add(adv_deadline)
+            if deadline is None:
+                adv_deadline = TaxDeadline(
+                    client_record_id=business.client_id,
+                    deadline_type=TaxDeadlineType.ADVANCE_PAYMENT,
+                    period=period,
+                    due_date=due_date,
+                    status=(
+                        TaxDeadlineStatus.COMPLETED
+                        if status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
+                        else TaxDeadlineStatus.PENDING
+                    ),
+                    payment_amount=expected_amount,
+                    description=f"מקדמה {period}",
+                    created_at=created_at,
+                    advance_payment_id=payment.id,
+                )
+                adv_deadline.client_id = business.client_id
+                db.add(adv_deadline)
+            elif deadline.advance_payment_id is None:
+                deadline.advance_payment_id = payment.id
             db.flush()
     db.flush()
     return payments
+
+
+def _historical_month_periods(rng: Random, cfg_reference_date: date, count: int) -> list[str]:
+    periods = []
+    cursor = cfg_reference_date.replace(day=1)
+    for _ in range(count * 3):
+        cursor = _add_months(cursor, -1)
+        period = f"{cursor.year}-{cursor.month:02d}"
+        if periodic_due_date(cursor.year, cursor.month, period) >= cfg_reference_date:
+            continue
+        if period not in periods:
+            periods.append(period)
+        if len(periods) >= count:
+            break
+    return sorted(periods)
+
+
+def _advance_status_for_due_date(rng: Random, due_date: date, reference_date: date) -> AdvancePaymentStatus:
+    age_days = (reference_date - due_date).days
+    if age_days > 90:
+        return rng.choices(
+            [AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL, AdvancePaymentStatus.PENDING],
+            weights=[80, 15, 5],
+            k=1,
+        )[0]
+    if age_days > 30:
+        return rng.choices(
+            [AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL, AdvancePaymentStatus.PENDING],
+            weights=[50, 25, 25],
+            k=1,
+        )[0]
+    return rng.choices(
+        [AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL, AdvancePaymentStatus.PENDING],
+        weights=[20, 20, 60],
+        k=1,
+    )[0]

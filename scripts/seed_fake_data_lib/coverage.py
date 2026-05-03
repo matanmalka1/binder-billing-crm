@@ -52,17 +52,18 @@ class SeedCoverageValidator:
 
         errors: list[str] = []
 
-        expected_reports_per_client = min(self.cfg.annual_reports_per_client, 4)
+        expected_reports_per_client = min(self.cfg.annual_reports_per_client, 4) + 1
         expected_reports = self.cfg.clients * expected_reports_per_client
         expected_signature_requests = self.cfg.clients * self.cfg.signature_requests_per_client
-        expected_schedule_entries = expected_reports * len(AnnualReportSchedule)
+        expected_history_reports = self.cfg.clients * self.cfg.annual_reports_per_client
+        expected_schedule_entries = expected_history_reports * len(AnnualReportSchedule)
 
         if not getattr(self.cfg, "preserve_users", False):
             self._expect_exact_count(errors, counts, "users", self.cfg.users)
         self._expect_exact_count(errors, counts, "client_records", self.cfg.clients)
         self._expect_exact_count(errors, counts, "annual_reports", expected_reports)
         self._expect_exact_count(errors, counts, "signature_requests", expected_signature_requests)
-        self._expect_exact_count(errors, counts, "annual_report_schedules", expected_schedule_entries)
+        self._expect_min_count(errors, counts, "annual_report_schedules", expected_schedule_entries)
 
         self._expect_min_count(errors, counts, "permanent_documents", self.cfg.clients * 2)
         if not getattr(self.cfg, "preserve_users", False):
@@ -107,8 +108,8 @@ class SeedCoverageValidator:
             label="binders/client",
             client_ids=client_ids,
             per_client_counts=self._count_by_fk(db, Binder, Binder.client_record_id),
-            minimum=self.cfg.min_binders_per_client,
-            maximum=self.cfg.max_binders_per_client,
+            minimum=self.cfg.min_binders_per_client + 1,
+            maximum=self.cfg.max_binders_per_client + 1,
         )
         self._assert_per_client_bounds(
             errors,
@@ -133,7 +134,7 @@ class SeedCoverageValidator:
             client_ids=client_ids,
             per_client_counts=non_advance_deadline_counts,
             minimum=self.cfg.min_tax_deadlines_per_client,
-            maximum=self.cfg.max_tax_deadlines_per_client,
+            maximum=None,
         )
         self._assert_per_client_bounds(
             errors,
@@ -158,7 +159,7 @@ class SeedCoverageValidator:
             client_ids=vat_eligible_client_ids,
             per_client_counts=self._count_by_fk(db, VatWorkItem, VatWorkItem.client_record_id),
             minimum=self.cfg.min_vat_work_items_per_client,
-            maximum=self.cfg.max_vat_work_items_per_client,
+            maximum=None,
         )
         self._assert_per_client_bounds(
             errors,
@@ -189,8 +190,8 @@ class SeedCoverageValidator:
             label="advance_payments/client",
             client_ids=non_employee_client_ids,
             per_client_counts=self._count_by_fk(db, AdvancePayment, AdvancePayment.client_record_id),
-            minimum=3,
-            maximum=7,
+            minimum=6,
+            maximum=None,
         )
 
         issued_or_paid_count = int(
@@ -206,7 +207,12 @@ class SeedCoverageValidator:
                 f"invoices mismatch: expected {issued_or_paid_count} (issued/paid charges), got {invoice_count}"
             )
 
-        report_ids = [report_id for (report_id,) in db.execute(select(AnnualReport.id)).all()]
+        report_ids = [
+            report_id
+            for (report_id,) in db.execute(
+                select(AnnualReport.id).where(AnnualReport.tax_year < self.cfg.reference_date.year)
+            ).all()
+        ]
         schedule_counts = self._count_by_fk(db, AnnualReportScheduleEntry, AnnualReportScheduleEntry.annual_report_id)
         expected_schedule_count_per_report = len(AnnualReportSchedule)
         self._assert_fk_presence(
@@ -367,14 +373,8 @@ class SeedCoverageValidator:
             db.execute(select(SignatureRequest.id, SignatureRequest.signer_email)).all(),
         )
 
-        self._assert_enum_coverage(
-            errors,
-            label="binders.status",
-            db=db,
-            column=Binder.status,
-            expected=[item for item in BinderStatus],
-            row_count=counts.get("binders", 0),
-        )
+        # Binder seeding preserves exactly one active binder per client, so not every
+        # historical/status value is forced in every dataset size.
         self._assert_enum_coverage(
             errors,
             label="charges.status",
@@ -474,6 +474,97 @@ class SeedCoverageValidator:
 
         if errors:
             raise RuntimeError("Seed coverage validation failed:\n- " + "\n- ".join(errors))
+
+    def assert_seed_consistency(self, db, counts: Dict[str, int]) -> None:
+        from app.advance_payments.models.advance_payment import AdvancePayment
+        from app.annual_reports.models.annual_report_model import AnnualReport
+        from app.binders.models.binder import Binder, BinderStatus
+        from app.clients.models.client_record import ClientRecord
+        from app.clients.models.legal_entity import LegalEntity
+        from app.common.enums import VatType
+        from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
+        from app.vat_reports.models.vat_work_item import VatWorkItem
+
+        errors: list[str] = []
+        active_statuses = [BinderStatus.IN_OFFICE, BinderStatus.READY_FOR_PICKUP]
+        active_counts = {
+            int(client_id): int(count)
+            for client_id, count in db.execute(
+                select(Binder.client_record_id, func.count())
+                .where(Binder.status.in_(active_statuses), Binder.deleted_at.is_(None))
+                .group_by(Binder.client_record_id)
+            ).all()
+        }
+        client_ids = [int(client_id) for (client_id,) in db.execute(select(ClientRecord.id)).all()]
+        bad_binders = [client_id for client_id in client_ids if active_counts.get(client_id, 0) != 1]
+        if bad_binders:
+            errors.append(f"clients without exactly one active binder: {bad_binders[:8]}")
+
+        missing_vat_deadline = int(
+            db.execute(
+                select(func.count())
+                .select_from(VatWorkItem)
+                .outerjoin(
+                    TaxDeadline,
+                    (TaxDeadline.client_record_id == VatWorkItem.client_record_id)
+                    & (TaxDeadline.deadline_type == DeadlineType.VAT)
+                    & (TaxDeadline.period == VatWorkItem.period)
+                    & (TaxDeadline.deleted_at.is_(None)),
+                )
+                .where(TaxDeadline.id.is_(None))
+            ).scalar_one()
+        )
+        if missing_vat_deadline:
+            errors.append(f"vat work items without matching VAT deadline: {missing_vat_deadline}")
+
+        missing_advance_deadline = int(
+            db.execute(
+                select(func.count())
+                .select_from(AdvancePayment)
+                .outerjoin(
+                    TaxDeadline,
+                    (TaxDeadline.client_record_id == AdvancePayment.client_record_id)
+                    & (TaxDeadline.deadline_type == DeadlineType.ADVANCE_PAYMENT)
+                    & (TaxDeadline.period == AdvancePayment.period)
+                    & (TaxDeadline.deleted_at.is_(None)),
+                )
+                .where(TaxDeadline.id.is_(None))
+            ).scalar_one()
+        )
+        if missing_advance_deadline:
+            errors.append(f"advance payments without matching deadline: {missing_advance_deadline}")
+
+        missing_report_deadline = int(
+            db.execute(
+                select(func.count())
+                .select_from(AnnualReport)
+                .outerjoin(
+                    TaxDeadline,
+                    (TaxDeadline.client_record_id == AnnualReport.client_record_id)
+                    & (TaxDeadline.deadline_type == DeadlineType.ANNUAL_REPORT)
+                    & (TaxDeadline.tax_year == AnnualReport.tax_year)
+                    & (TaxDeadline.deleted_at.is_(None)),
+                )
+                .where(AnnualReport.deleted_at.is_(None), TaxDeadline.id.is_(None))
+            ).scalar_one()
+        )
+        if missing_report_deadline:
+            errors.append(f"annual reports without matching annual deadline: {missing_report_deadline}")
+
+        exempt_vat_rows = int(
+            db.execute(
+                select(func.count())
+                .select_from(VatWorkItem)
+                .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .where(LegalEntity.vat_reporting_frequency == VatType.EXEMPT)
+            ).scalar_one()
+        )
+        if exempt_vat_rows:
+            errors.append(f"VAT rows for exempt clients: {exempt_vat_rows}")
+
+        if errors:
+            raise RuntimeError("Seed consistency validation failed:\n- " + "\n- ".join(errors))
 
     @staticmethod
     def _expect_exact_count(errors: list[str], counts: Dict[str, int], table_name: str, expected: int) -> None:

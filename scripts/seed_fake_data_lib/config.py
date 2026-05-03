@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from datetime import date
 
 
 @dataclass
@@ -23,36 +24,39 @@ class SeedConfig:
     min_authority_contacts_per_client: int
     max_authority_contacts_per_client: int
     seed: int
+    reference_date: date
     reset: bool
     preserve_users: bool
     users_only: bool
+    onboarding_only: bool
+    skip_validation: bool
 
 
 def parse_args() -> SeedConfig:
     parser = argparse.ArgumentParser(description="Seed local DB with fake demo data")
     parser.add_argument("--users", type=int, default=8, help="Number of users")
     parser.add_argument("--clients", type=int, default=60, help="Number of clients")
-    parser.add_argument("--min-binders-per-client", type=int, default=2)
-    parser.add_argument("--max-binders-per-client", type=int, default=5)
+    parser.add_argument("--min-binders-per-client", type=int, default=1)
+    parser.add_argument("--max-binders-per-client", type=int, default=3)
     parser.add_argument("--min-charges-per-client", type=int, default=3)
     parser.add_argument("--max-charges-per-client", type=int, default=8)
     parser.add_argument(
         "--annual-reports-per-client",
         type=int,
         default=3,
-        help="How many annual reports to seed per client",
+        help="How many annual report history years to seed per client",
     )
     parser.add_argument(
         "--min-vat-work-items-per-client",
         type=int,
-        default=2,
-        help="Minimum VAT work items per client",
+        default=6,
+        help="Minimum historical VAT work periods per client",
     )
     parser.add_argument(
         "--max-vat-work-items-per-client",
         type=int,
-        default=5,
-        help="Maximum VAT work items per client",
+        default=12,
+        help="Maximum historical VAT work periods per client",
     )
     parser.add_argument(
         "--min-vat-invoices-per-work-item",
@@ -97,6 +101,12 @@ def parse_args() -> SeedConfig:
         help="Maximum authority contacts per client",
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--reference-date",
+        type=date.fromisoformat,
+        default=date.today(),
+        help="Date used as 'today' for deterministic business dates (YYYY-MM-DD)",
+    )
     parser.add_argument("--reset", action="store_true", help="Delete existing rows before seeding")
     parser.add_argument(
         "--preserve-users",
@@ -107,6 +117,16 @@ def parse_args() -> SeedConfig:
         "--users-only",
         action="store_true",
         help="Seed only users and user audit logs",
+    )
+    parser.add_argument(
+        "--onboarding-only",
+        action="store_true",
+        help="Seed only baseline client onboarding data without historical demo records",
+    )
+    parser.add_argument(
+        "--skip-validation",
+        action="store_true",
+        help="Skip post-seed consistency validation",
     )
 
     args = parser.parse_args()
@@ -176,7 +196,10 @@ def parse_args() -> SeedConfig:
         min_authority_contacts_per_client=args.min_authority_contacts_per_client,
         max_authority_contacts_per_client=args.max_authority_contacts_per_client,
         seed=args.seed,
+        reference_date=args.reference_date,
         reset=args.reset,
         preserve_users=args.preserve_users,
         users_only=args.users_only,
+        onboarding_only=args.onboarding_only,
+        skip_validation=args.skip_validation,
     )

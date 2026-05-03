@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
@@ -18,6 +18,8 @@ from app.vat_reports.models.vat_enums import (
 )
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
+from app.tax_deadline.services.due_date_rules import periodic_due_date
 
 from ._business_groups import group_businesses_by_client
 from app.common.enums import VatType
@@ -43,17 +45,55 @@ DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
 }
 
 
-def _choose_periods(rng: Random, count: int) -> list[str]:
-    """Return unique recent periods like '2026-01', most recent months first."""
-    today = datetime.now(UTC)
+def _choose_periods(rng: Random, count: int, reference_date: date) -> list[str]:
+    """Return unique historical periods like '2026-01', most recent first."""
+    today = datetime.combine(reference_date, datetime.min.time(), tzinfo=UTC)
     periods: list[str] = []
-    for i in range(count * 2):
+    for i in range(1, count * 2 + 1):
         candidate = (today - timedelta(days=30 * i)).strftime("%Y-%m")
+        if _vat_due_date(candidate) >= reference_date:
+            continue
         if candidate not in periods:
             periods.append(candidate)
         if len(periods) >= count:
             break
     return periods[:count]
+
+
+def _vat_due_date(period: str) -> date:
+    year, month = [int(part) for part in period.split("-")]
+    filing_month = month + 1 if month < 12 else 1
+    filing_year = year if month < 12 else year + 1
+    return periodic_due_date(filing_year, filing_month, period)
+
+
+def _status_for_period(rng: Random, period: str, reference_date: date) -> VatWorkItemStatus:
+    period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").date()
+    age_days = (reference_date - period_start).days
+    if age_days > 90:
+        return rng.choices(
+            [VatWorkItemStatus.FILED, VatWorkItemStatus.READY_FOR_REVIEW, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS],
+            weights=[75, 15, 10],
+            k=1,
+        )[0]
+    if age_days > 30:
+        return rng.choice([
+            VatWorkItemStatus.PENDING_MATERIALS,
+            VatWorkItemStatus.MATERIAL_RECEIVED,
+            VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
+            VatWorkItemStatus.READY_FOR_REVIEW,
+            VatWorkItemStatus.FILED,
+        ])
+    return rng.choices(
+        [
+            VatWorkItemStatus.PENDING_MATERIALS,
+            VatWorkItemStatus.MATERIAL_RECEIVED,
+            VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
+            VatWorkItemStatus.READY_FOR_REVIEW,
+        ],
+        weights=[45, 25, 20, 10],
+        k=1,
+    )[0]
 
 
 def _invoice_date_for_period(rng: Random, period: str):
@@ -97,10 +137,21 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
         if not eligible_businesses:
             continue
         num_items = rng.randint(cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client)
-        periods = _choose_periods(rng, num_items)
+        periods = _choose_periods(rng, num_items, cfg.reference_date)
 
         for period in periods:
             business = rng.choice(eligible_businesses)
+            existing_item = (
+                db.query(VatWorkItem)
+                .filter(
+                    VatWorkItem.client_record_id == business.client_id,
+                    VatWorkItem.period == period,
+                    VatWorkItem.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if existing_item is not None:
+                continue
             period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
             created_at = max(
                 period_start,
@@ -118,17 +169,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
                     VatWorkItemStatus.READY_FOR_REVIEW,
                 ])
             else:
-                status = rng.choices(
-                    population=[
-                        VatWorkItemStatus.PENDING_MATERIALS,
-                        VatWorkItemStatus.MATERIAL_RECEIVED,
-                        VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
-                        VatWorkItemStatus.READY_FOR_REVIEW,
-                        VatWorkItemStatus.FILED,
-                    ],
-                    weights=[10, 25, 25, 20, 20],
-                    k=1,
-                )[0]
+                status = _status_for_period(rng, period, cfg.reference_date)
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
             work_item = VatWorkItem(
@@ -148,12 +189,43 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users, profiles=None
             if status == VatWorkItemStatus.FILED:
                 work_item.submission_method = rng.choice(list(SubmissionMethod))
                 filed_at_candidate = max(created_at, datetime.now(UTC) - timedelta(days=rng.randint(1, 90)))
-                work_item.filed_at = min(datetime.now(UTC), filed_at_candidate)
+                reference_now = datetime.combine(cfg.reference_date, datetime.min.time(), tzinfo=UTC)
+                work_item.filed_at = min(reference_now, filed_at_candidate)
                 work_item.filed_by = work_item.assigned_to or work_item.created_by
                 work_item.submission_reference = f"VAT-{work_item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
 
             db.add(work_item)
             work_items.append(work_item)
+            db.flush()
+            deadline = (
+                db.query(TaxDeadline)
+                .filter(
+                    TaxDeadline.client_record_id == business.client_id,
+                    TaxDeadline.deadline_type == DeadlineType.VAT,
+                    TaxDeadline.period == period,
+                    TaxDeadline.deleted_at.is_(None),
+                )
+                .first()
+            )
+            if deadline is None:
+                deadline = TaxDeadline(
+                    client_record_id=business.client_id,
+                    deadline_type=DeadlineType.VAT,
+                    period=period,
+                    due_date=_vat_due_date(period),
+                    status=(
+                        TaxDeadlineStatus.COMPLETED
+                        if status == VatWorkItemStatus.FILED
+                        else TaxDeadlineStatus.PENDING
+                    ),
+                    description=f'דוח מע"מ {period}',
+                    vat_work_item_id=work_item.id,
+                    created_at=created_at,
+                )
+                deadline.client_id = business.client_id
+                db.add(deadline)
+            elif deadline.vat_work_item_id is None:
+                deadline.vat_work_item_id = work_item.id
 
     db.flush()
 

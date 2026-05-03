@@ -32,7 +32,9 @@ def compute_creation_impact(
     items = [
         CreationImpactItem(label="קלסר פעיל", count=1),
         CreationImpactItem(label='מועדי מע"מ', count=vat_count),
+        CreationImpactItem(label='תיקי מע"מ', count=vat_count),
         CreationImpactItem(label="מועדי מקדמות", count=advance_count),
+        CreationImpactItem(label="רשומות מקדמות", count=advance_count),
         CreationImpactItem(label="מועד הגשת דוח שנתי", count=annual_deadline_count),
         CreationImpactItem(label="תיק דוח שנתי", count=n),
     ]
