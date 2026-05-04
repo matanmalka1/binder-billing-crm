@@ -32,8 +32,10 @@ def lookup_work_item(
     client_record_id: int = Query(...),
     period: str = Query(...),
 ):
+    # Bimonthly periods arrive as "YYYY-MM-MM" (e.g. "2026-03-04") — normalize to start month
+    normalized_period = period[:7] if len(period) > 7 else period
     service = VatReportService(db)
-    item = service.get_work_item_by_client_period(client_record_id, period)
+    item = service.get_work_item_by_client_period(client_record_id, normalized_period)
     if not item:
         return None
     return VatWorkItemLookupResponse.model_validate(item)

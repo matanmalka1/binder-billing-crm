@@ -21,6 +21,8 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.notification.services.notification_service import NotificationService
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _log = logging.getLogger(__name__)
 
@@ -140,10 +142,40 @@ class BinderIntakeService:
                 binder.period_start = _date(py, pm, 1)
                 self.db.flush()
 
+        self._auto_advance_vat_work_items(materials, performed_by=received_by)
+
         if is_new_binder:
             self.notification_service.notify_binder_received(binder, client_record_id)
 
         return binder, intake, is_new_binder
+
+    def _auto_advance_vat_work_items(
+        self,
+        materials: Optional[list[dict]],
+        performed_by: int,
+    ) -> None:
+        """Advance PENDING_MATERIALS → MATERIAL_RECEIVED for linked VAT work items."""
+        from app.vat_reports.services.constants import ACTION_STATUS_CHANGED
+        vat_repo = VatWorkItemRepository(self.db)
+        seen: set[int] = set()
+        for mat in (materials or []):
+            if mat.get("material_type") != "vat":
+                continue
+            vat_id = mat.get("vat_report_id")
+            if not vat_id or vat_id in seen:
+                continue
+            seen.add(vat_id)
+            item = vat_repo.get_by_id_for_update(vat_id)
+            if not item or item.status != VatWorkItemStatus.PENDING_MATERIALS:
+                continue
+            vat_repo.update_status(vat_id, VatWorkItemStatus.MATERIAL_RECEIVED, item=item, pending_materials_note=None)
+            vat_repo.append_audit(
+                work_item_id=vat_id,
+                performed_by=performed_by,
+                action=ACTION_STATUS_CHANGED,
+                old_value=VatWorkItemStatus.PENDING_MATERIALS.value,
+                new_value=VatWorkItemStatus.MATERIAL_RECEIVED.value,
+            )
 
     def _resolve_existing_binder_for_materials(
         self,
