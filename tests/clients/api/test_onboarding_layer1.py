@@ -23,6 +23,7 @@ _CREATE_PAYLOAD = {
         "address_city": "Tel Aviv",
         "address_zip_code": "0000001",
         "vat_reporting_frequency": "monthly",
+        "advance_payment_frequency": "monthly",
         "advance_rate": "5.0",
         "accountant_id": 1,
     },

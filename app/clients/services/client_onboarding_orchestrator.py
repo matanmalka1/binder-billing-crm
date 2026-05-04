@@ -95,11 +95,23 @@ class ClientOnboardingOrchestrator:
             self.db.flush()
         return created
 
+    def _resolve_period_months_count(self, client_record_id: int) -> int:
+        from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+        from app.common.enums import AdvancePaymentFrequency
+        record = self.client_repo.get_by_id(client_record_id)
+        if not record:
+            return 1
+        le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+        if le and le.advance_payment_frequency == AdvancePaymentFrequency.BIMONTHLY:
+            return 2
+        return 1
+
     def _sync_advance_payments(self, client_record_id: int) -> int:
         deadlines = self.deadline_repo.list_by_client_record(
             client_record_id,
             deadline_type=DeadlineType.ADVANCE_PAYMENT,
         )
+        period_months_count = self._resolve_period_months_count(client_record_id)
         created = 0
         for deadline in deadlines:
             if not deadline.period:
@@ -110,7 +122,7 @@ class ClientOnboardingOrchestrator:
                     payment = self.advance_repo.create(
                         client_record_id=client_record_id,
                         period=deadline.period,
-                        period_months_count=1,
+                        period_months_count=period_months_count,
                         due_date=deadline.due_date,
                     )
                     created += 1

@@ -20,7 +20,7 @@ from app.advance_payments.services.constants import (
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.common.enums import VatType
+from app.common.enums import AdvancePaymentFrequency
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.repositories.vat_work_item_query_repository import VatWorkItemQueryRepository
 
@@ -46,9 +46,12 @@ class AdvancePaymentService:
     def default_period_months_count_for_client(self, client_record_id: int) -> int:
         record = self._get_record_or_raise(client_record_id)
         legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-        if legal_entity and legal_entity.vat_reporting_frequency == VatType.BIMONTHLY:
+        freq = legal_entity.advance_payment_frequency if legal_entity else None
+        if freq == AdvancePaymentFrequency.BIMONTHLY:
             return 2
-        return 1
+        if freq == AdvancePaymentFrequency.MONTHLY:
+            return 1
+        raise NotFoundError("תדירות מקדמות לא מוגדרת ללקוח", "ADVANCE_PAYMENT.FREQUENCY_NOT_SET")
 
     def _validate_period_months_count(self, period: str, period_months_count: int) -> None:
         if period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:

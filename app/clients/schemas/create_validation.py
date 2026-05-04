@@ -2,6 +2,7 @@ from typing import Optional
 
 from app.clients.create_policy import derive_id_number_type
 from app.clients.constants import (
+    ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR,
     COMPANY_EXEMPT_VAT_ERROR,
     CONFLICTING_ID_NUMBER_TYPE_ERROR,
     EDIT_VAT_EXEMPT_CEILING_ERROR,
@@ -12,7 +13,7 @@ from app.clients.constants import (
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
     VAT_FREQUENCY_REQUIRED_ERROR,
 )
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.utils.id_validation import validate_israeli_id_checksum
 
 
@@ -43,6 +44,7 @@ def validate_create_entity_rules(
     vat_reporting_frequency: Optional[VatType],
     vat_reporting_frequency_was_set: bool,
     vat_exempt_ceiling_was_set: bool,
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
 ) -> None:
     if entity_type is None:
         raise ValueError("יש לבחור סוג ישות")
@@ -67,6 +69,9 @@ def validate_create_entity_rules(
             raise ValueError(COMPANY_EXEMPT_VAT_ERROR)
         if vat_exempt_ceiling_was_set:
             raise ValueError(NON_PATUR_VAT_EXEMPT_CEILING_ERROR)
+
+    if advance_payment_frequency is None:
+        raise ValueError(ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR)
 
     validate_identifier_for_entity(entity_type, id_number)
 

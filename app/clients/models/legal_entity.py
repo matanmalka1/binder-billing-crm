@@ -2,7 +2,7 @@ from sqlalchemy import Column, Date, DateTime, Index, Integer, Numeric, String, 
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.utils.time_utils import utcnow
-from app.common.enums import EntityType, VatType, IdNumberType
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType, IdNumberType
 from app.utils.enum_utils import pg_enum
 
 
@@ -20,6 +20,7 @@ class LegalEntity(Base):
     official_name = Column(String, nullable=False)
 
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
+    advance_payment_frequency = Column(pg_enum(AdvancePaymentFrequency), nullable=True)
     vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
     advance_rate_updated_at = Column(Date, nullable=True)

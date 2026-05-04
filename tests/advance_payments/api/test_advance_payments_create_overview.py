@@ -15,8 +15,14 @@ _client_seq = count(1)
 
 
 def _business(db):
+    from app.common.enums import AdvancePaymentFrequency
     id_number = f"66666666{next(_client_seq)}"
-    client = seed_client_identity(db, full_name="Advance Client", id_number=id_number)
+    client = seed_client_identity(
+        db,
+        full_name="Advance Client",
+        id_number=id_number,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
+    )
     business = seed_business(
         db,
         legal_entity_id=client.legal_entity_id,
@@ -84,9 +90,10 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert isinstance(data["error_meta"]["detail"], str)
 
 
-def test_create_advance_payment_defaults_to_client_vat_frequency(client, test_db, advisor_headers):
+def test_create_advance_payment_uses_advance_payment_frequency(client, test_db, advisor_headers):
+    from app.common.enums import AdvancePaymentFrequency
     business = _business(test_db)
-    business.legal_entity.vat_reporting_frequency = VatType.BIMONTHLY
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.BIMONTHLY
     test_db.commit()
 
     resp = client.post(

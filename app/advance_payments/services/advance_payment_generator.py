@@ -24,6 +24,7 @@ def generate_annual_schedule(
     מחזיר (created_records, skipped_count).
     """
     service = AdvancePaymentService(db)
+    service._assert_client_allows_create(client_record_id)
     if period_months_count is None:
         period_months_count = service.default_period_months_count_for_client(client_record_id)
     repo = AdvancePaymentRepository(db)

@@ -10,7 +10,7 @@ from app.clients.schemas.create_validation import (
     validate_preview_entity_rules,
     validate_update_entity_rules,
 )
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDecimal
 
 CREATE_CLIENT_REQUIRED_LABELS = {
@@ -35,6 +35,7 @@ class ClientCreateRequest(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     vat_reporting_frequency: Optional[VatType] = None
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
     accountant_id: Optional[int] = None
@@ -57,6 +58,7 @@ class ClientCreateRequest(BaseModel):
             vat_reporting_frequency=self.vat_reporting_frequency,
             vat_reporting_frequency_was_set="vat_reporting_frequency" in self.model_fields_set,
             vat_exempt_ceiling_was_set="vat_exempt_ceiling" in self.model_fields_set,
+            advance_payment_frequency=self.advance_payment_frequency,
         )
         return self
 
@@ -73,6 +75,7 @@ class ClientUpdateRequest(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     vat_reporting_frequency: Optional[VatType] = None
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = Field(None, ge=0)
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
     advance_rate_updated_at: Optional[date] = None
@@ -113,6 +116,7 @@ class CreateClientRequest(BaseModel):
 class ClientImpactPreviewClientRequest(BaseModel):
     entity_type: EntityType
     vat_reporting_frequency: Optional[VatType] = None
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
     advance_rate: Optional[ApiDecimal] = Field(None, ge=0, le=100)
 
     @model_validator(mode="after")

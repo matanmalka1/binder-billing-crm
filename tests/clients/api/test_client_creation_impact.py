@@ -8,7 +8,7 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.impact_preview_service import compute_creation_impact
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.tax_deadline.services import deadline_generator
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -35,6 +35,7 @@ def test_preview_impact_matches_actual_future_deadline_generation(test_db, monke
     preview = compute_creation_impact(
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
         reference_date=reference_date,
         advance_rate=Decimal("5.0"),
     )
@@ -46,6 +47,7 @@ def test_preview_impact_matches_actual_future_deadline_generation(test_db, monke
         id_number_type=IdNumberType.INDIVIDUAL,
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
         advance_rate=Decimal("5.0"),
         actor_id=1,
     )

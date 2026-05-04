@@ -32,6 +32,7 @@ CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH = 10
 CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({
     "entity_type",
     "vat_reporting_frequency",
+    "advance_payment_frequency",
 })
 SUPPORTED_CREATE_ENTITY_TYPES = frozenset({
     EntityType.OSEK_PATUR,
@@ -48,6 +49,7 @@ NON_PATUR_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ מותרת לע�
 VAT_FREQUENCY_REQUIRED_ERROR = 'יש לציין תדירות דיווח מע"מ עבור עוסק/חברה'
 COMPANY_EXEMPT_VAT_ERROR = 'חברה בע"מ אינה יכולה להיות מוגדרת כפטורה ממע"מ'
 COMPANY_CORPORATION_ID_ERROR = 'חברה בע"מ חייבת להיווצר עם ח.פ'
+ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR = 'יש לציין תדירות מקדמות מס הכנסה'
 
 ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] = {
     EntityType.OSEK_PATUR: ClientTypeForReport.EXEMPT_DEALER,

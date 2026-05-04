@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.models.client_record import ClientRecord
-from app.common.enums import IdNumberType
+from app.common.enums import AdvancePaymentFrequency, IdNumberType
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
 from app.clients.schemas.client_record_response import (
@@ -48,6 +48,7 @@ class ClientService:
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
         vat_reporting_frequency: Optional[VatType] = None,
+        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
         accountant_id: Optional[int] = None,
@@ -66,6 +67,7 @@ class ClientService:
             address_city=address_city,
             address_zip_code=address_zip_code,
             vat_reporting_frequency=vat_reporting_frequency,
+            advance_payment_frequency=advance_payment_frequency,
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
             accountant_id=accountant_id,

@@ -83,6 +83,7 @@ class ClientUpdateService:
         legal_entity_fields = {
             "entity_type",
             "vat_reporting_frequency",
+            "advance_payment_frequency",
             "advance_rate",
             "advance_rate_updated_at",
             "annual_revenue",

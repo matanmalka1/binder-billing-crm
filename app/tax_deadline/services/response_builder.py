@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 from app.actions.report_deadline_actions import get_tax_deadline_actions
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.common.enums import VatType
+from app.common.enums import AdvancePaymentFrequency, VatType
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.tax_deadline.models.tax_deadline import TaxDeadline
+from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.tax_deadline.schemas.tax_deadline import TaxDeadlineResponse
 from app.tax_deadline.services.urgency import compute_deadline_urgency
 from app.users.models.user import UserRole
@@ -49,7 +50,15 @@ class TaxDeadlineResponseBuilder:
         return legal_entity.official_name if legal_entity else None
 
     def _resolve_period_months_count(self, deadline: TaxDeadline) -> int | None:
-        if deadline.deadline_type.value != "advance_payment" or not deadline.period:
+        if not deadline.period:
+            return None
+        if deadline.deadline_type.value == "vat":
+            if deadline.vat_work_item_id:
+                item = self.db.get(VatWorkItem, deadline.vat_work_item_id)
+                if item:
+                    return 2 if item.period_type == VatType.BIMONTHLY else 1
+            return None
+        if deadline.deadline_type.value != "advance_payment":
             return None
         if deadline.advance_payment_id:
             payment = self.db.get(AdvancePayment, deadline.advance_payment_id)
@@ -58,6 +67,6 @@ class TaxDeadlineResponseBuilder:
         month = int(deadline.period[-2:])
         record = self.client_repo.get_by_id(deadline.client_record_id)
         entity = self.legal_entity_repo.get_by_id(record.legal_entity_id) if record else None
-        if entity and entity.vat_reporting_frequency == VatType.BIMONTHLY and month % 2 == 1:
+        if entity and entity.advance_payment_frequency == AdvancePaymentFrequency.BIMONTHLY and month % 2 == 1:
             return 2
         return 1

@@ -3,7 +3,7 @@ from typing import Optional
 
 from app.actions.obligation_orchestrator import _years_to_generate
 from app.clients.create_policy import normalize_vat_exempt_ceiling
-from app.common.enums import EntityType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
 from app.tax_deadline.services.obligation_plan import (
     advance_payment_deadline_plan,
@@ -14,6 +14,7 @@ from app.tax_deadline.services.obligation_plan import (
 def compute_creation_impact(
     entity_type: Optional[EntityType],
     vat_reporting_frequency: Optional[VatType],
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
     reference_date: Optional[date] = None,
     advance_rate=None,
 ) -> ClientCreationImpactResponse:
@@ -26,10 +27,18 @@ def compute_creation_impact(
     is_exempt = vat_reporting_frequency in (VatType.EXEMPT, None)
 
     vat_count = sum(len(vat_deadline_plan(vat_reporting_frequency, year, today)) for year in years)
-    advance_count = sum(
-        len(advance_payment_deadline_plan(entity_type, year, today, vat_reporting_frequency))
-        for year in years
-    )
+    if advance_payment_frequency is not None:
+        advance_count = sum(
+            len(advance_payment_deadline_plan(
+                frequency=advance_payment_frequency,
+                year=year,
+                reference_date=today,
+                entity_type=entity_type,
+            ))
+            for year in years
+        )
+    else:
+        advance_count = 0
     annual_deadline_count = n
 
     items = [

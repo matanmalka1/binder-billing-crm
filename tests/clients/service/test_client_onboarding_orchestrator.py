@@ -6,7 +6,7 @@ from sqlalchemy import text
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.exceptions import ConflictError
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
@@ -21,6 +21,7 @@ def _create_vat_client(test_db, id_number: str):
         id_number_type=IdNumberType.INDIVIDUAL,
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
         advance_rate="5.0",
         actor_id=1,
         reference_date=date(2026, 4, 30),
@@ -178,3 +179,26 @@ def test_sync_vat_work_items_links_existing_when_actor_none(test_db):
         .all()
     )
     assert all(d.vat_work_item_id is not None for d in reloaded)
+
+
+def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):
+    """VAT bimonthly, advance monthly → 12 independent advance payments (not 6)."""
+    client_record = ClientCreationService(test_db).create_client(
+        full_name="VAT Bimonthly Advance Monthly Client",
+        id_number="123456790",
+        id_number_type=IdNumberType.INDIVIDUAL,
+        entity_type=EntityType.OSEK_MURSHE,
+        vat_reporting_frequency=VatType.BIMONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
+        actor_id=1,
+        reference_date=date(2025, 12, 31),
+    )
+
+    payments = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
+        .all()
+    )
+    # reference_date=2025-12-31 → years [2025, 2026]; 2025 yields 1 (2025-12), 2026 yields 12
+    assert len(payments) == 13, f"Expected 13 advance payments (monthly), got {len(payments)}"
+    assert all(p.period_months_count == 1 for p in payments)

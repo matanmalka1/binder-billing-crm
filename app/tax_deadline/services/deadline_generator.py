@@ -35,6 +35,10 @@ class DeadlineGeneratorService:
         entity = self._resolve_legal_entity(client_record_id)
         return entity.vat_reporting_frequency if entity else None
 
+    def _resolve_advance_payment_frequency(self, client_record_id: int):
+        entity = self._resolve_legal_entity(client_record_id)
+        return entity.advance_payment_frequency if entity else None
+
     def _resolve_entity_type(self, client_record_id: int):
         entity = self._resolve_legal_entity(client_record_id)
         return entity.entity_type if entity else None
@@ -68,21 +72,27 @@ class DeadlineGeneratorService:
 
     def generate_advance_payment_deadlines(self, client_record_id: int, year: int,
                                            reference_date: date | None = None) -> list:
-        """Generate monthly advance payment deadlines (מקדמות) for the year.
+        """Generate advance payment deadlines (מקדמות) for the year.
 
+        Frequency is determined by legal_entity.advance_payment_frequency.
         Skips employees — they have no income tax advance payment obligation.
-        Osek patur clients are exempt from VAT but still liable for advance payments.
+        Skips clients with no advance_payment_frequency configured.
         """
-        if self._resolve_entity_type(client_record_id) == EntityType.EMPLOYEE:
+        entity_type = self._resolve_entity_type(client_record_id)
+        if entity_type == EntityType.EMPLOYEE:
+            return []
+
+        freq = self._resolve_advance_payment_frequency(client_record_id)
+        if freq is None:
             return []
 
         client_record_id = self._resolve_client_record_id(client_record_id)
         created = []
         for item in advance_payment_deadline_plan(
-            self._resolve_entity_type(client_record_id),
-            year,
-            reference_date or _today(),
-            self._resolve_vat_type(client_record_id),
+            frequency=freq,
+            year=year,
+            reference_date=reference_date or _today(),
+            entity_type=entity_type,
         ):
             due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ADVANCE_PAYMENT, period=period):

@@ -111,6 +111,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             scope_to_active_clients(
                 self.db.query(
                     start_month.label("month"),
+                    func.max(AdvancePayment.period_months_count).label("period_months_count"),
                     func.count(AdvancePayment.id).label("client_count"),
                     func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                     func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),

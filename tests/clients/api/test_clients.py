@@ -60,6 +60,7 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
                 "address_city": "Haifa",
                 "address_zip_code": "1234567",
                 "vat_reporting_frequency": "monthly",
+                "advance_payment_frequency": "monthly",
                 "accountant_id": 1,
             },
             "business": {
@@ -133,6 +134,7 @@ def test_create_client_rejects_blank_business_before_creating_client(
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
                 "vat_reporting_frequency": "monthly",
+                "advance_payment_frequency": "monthly",
                 "accountant_id": 1,
             },
             "business": {"business_name": "   ", "opened_at": "2026-04-19"},
@@ -169,6 +171,7 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
                 "address_city": "Rishon",
                 "address_zip_code": "2222222",
                 "vat_reporting_frequency": "monthly",
+                "advance_payment_frequency": "monthly",
                 "accountant_id": 1,
             },
             "business": {"business_name": "Friendly Business", "opened_at": "2026-04-19"},

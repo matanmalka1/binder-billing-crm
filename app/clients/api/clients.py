@@ -54,6 +54,7 @@ def preview_creation_impact(
             request.client.entity_type,
             request.client.vat_reporting_frequency,
         ),
+        advance_payment_frequency=request.client.advance_payment_frequency,
         advance_rate=request.client.advance_rate,
     )
 
@@ -85,6 +86,7 @@ def create_client(
             address_city=request.client.address_city,
             address_zip_code=request.client.address_zip_code,
             vat_reporting_frequency=request.client.vat_reporting_frequency,
+            advance_payment_frequency=request.client.advance_payment_frequency,
             vat_exempt_ceiling=None,
             advance_rate=request.client.advance_rate,
             accountant_id=request.client.accountant_id,
@@ -105,6 +107,7 @@ def create_client(
             request.client.entity_type,
             request.client.vat_reporting_frequency,
         ),
+        advance_payment_frequency=request.client.advance_payment_frequency,
         advance_rate=request.client.advance_rate,
     )
     full = service.client_service.get_full_client(client_record.id)

@@ -8,7 +8,7 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
 from app.businesses.models.business import Business
 from app.clients.enums import ClientStatus
-from app.common.enums import VatType
+from app.common.enums import AdvancePaymentFrequency, VatType
 from app.core.exceptions import ForbiddenError, NotFoundError
 from tests.helpers.identity import seed_client_identity
 
@@ -22,6 +22,7 @@ def _business(db) -> Business:
         db,
         full_name=f"Advance Gen Client {idx}",
         id_number=f"555666{idx:03d}",
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
     )
     business = Business(
         legal_entity_id=client.legal_entity_id,
@@ -112,14 +113,15 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     assert nov.due_date == date(2027, 1, 15)
 
 
-def test_generate_annual_schedule_defaults_to_client_vat_frequency(test_db):
+def test_generate_annual_schedule_uses_advance_payment_frequency_independent_of_vat(test_db):
     business = _business(test_db)
+    # VAT bimonthly but advance monthly — should produce 12, not 6
     business.legal_entity.vat_reporting_frequency = VatType.BIMONTHLY
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.MONTHLY
     test_db.commit()
 
     created, skipped = generate_annual_schedule(business.client_record_id, 2026, test_db)
 
     assert skipped == 0
-    assert len(created) == 6
-    assert [p.period for p in created] == ["2026-01", "2026-03", "2026-05", "2026-07", "2026-09", "2026-11"]
-    assert all(p.period_months_count == 2 for p in created)
+    assert len(created) == 12
+    assert all(p.period_months_count == 1 for p in created)

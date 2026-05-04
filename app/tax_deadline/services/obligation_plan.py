@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.annual_reports.services.deadlines import standard_deadline
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
-from app.common.enums import EntityType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.tax_deadline.services.due_date_rules import periodic_due_date
 
 
@@ -51,19 +51,26 @@ def vat_deadline_plan(
 
 
 def advance_payment_deadline_plan(
-    entity_type: Optional[EntityType],
+    *,
+    frequency: AdvancePaymentFrequency,
     year: int,
     reference_date: date,
-    frequency: Optional[VatType] = None,
+    entity_type: Optional[EntityType] = None,
 ) -> list[PeriodicDeadlinePlan]:
     if entity_type == EntityType.EMPLOYEE:
         return []
 
+    if frequency == AdvancePaymentFrequency.BIMONTHLY:
+        period_starts = [1, 3, 5, 7, 9, 11]
+        step = 2
+    else:
+        period_starts = list(range(1, 13))
+        step = 1
+
     due_dates = []
-    period_starts = range(1, 12, 2) if frequency == VatType.BIMONTHLY else range(1, 13)
     for month in period_starts:
         period = f"{year}-{month:02d}"
-        filing_month = month + (2 if frequency == VatType.BIMONTHLY else 1)
+        filing_month = month + step
         filing_year = year
         if filing_month > 12:
             filing_month -= 12

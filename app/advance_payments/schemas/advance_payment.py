@@ -170,6 +170,7 @@ class AnnualKPIResponse(BaseModel):
 class MonthBatchSummary(BaseModel):
     year: int
     month: int
+    period_months_count: int = 1
     client_count: int
     missing_turnover_count: int
     overdue_count: int

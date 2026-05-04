@@ -23,11 +23,13 @@ _seq = count(1)
 
 def _business(db) -> Business:
     idx = next(_seq)
+    from app.common.enums import AdvancePaymentFrequency
     client = seed_client_identity(
         db,
         full_name=f"Advance Service Client {idx}",
         id_number=f"777777{idx:03d}",
         vat_reporting_frequency=VatType.MONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
     )
     business = Business(
         legal_entity_id=client.legal_entity_id,

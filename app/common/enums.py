@@ -38,4 +38,10 @@ class IdNumberType(str, PyEnum):
     OTHER       = "other"
 
 
-__all__ = ["SubmissionMethod", "VatType", "EntityType", "IdNumberType"]
+class AdvancePaymentFrequency(str, PyEnum):
+    """Advance payment reporting frequency — independent from VAT frequency."""
+    MONTHLY = "monthly"
+    BIMONTHLY = "bimonthly"
+
+
+__all__ = ["AdvancePaymentFrequency", "SubmissionMethod", "VatType", "EntityType", "IdNumberType"]

@@ -15,7 +15,7 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 
 
 @dataclass
@@ -62,6 +62,7 @@ def seed_client_identity(
     office_client_number: Optional[int] = None,
     notes: Optional[str] = None,
     vat_reporting_frequency: Optional[VatType] = None,
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
     vat_exempt_ceiling=None,
     advance_rate=None,
     advance_rate_updated_at: Optional[date] = None,
@@ -78,6 +79,7 @@ def seed_client_identity(
         entity_type=entity_type,
         official_name=full_name,
         vat_reporting_frequency=vat_reporting_frequency,
+        advance_payment_frequency=advance_payment_frequency,
         vat_exempt_ceiling=vat_exempt_ceiling,
         advance_rate=advance_rate,
         advance_rate_updated_at=advance_rate_updated_at,

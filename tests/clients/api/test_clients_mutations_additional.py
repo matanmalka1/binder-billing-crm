@@ -287,6 +287,7 @@ def test_update_rejects_manual_vat_exempt_ceiling_payload(client, advisor_header
                 "address_apartment": "5",
                 "address_city": "Tel Aviv",
                 "address_zip_code": "1234567",
+                "advance_payment_frequency": "monthly",
                 "accountant_id": 1,
             },
             "business": {"business_name": "Editable Ceiling Business"},

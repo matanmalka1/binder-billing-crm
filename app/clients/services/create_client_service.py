@@ -13,7 +13,7 @@ from app.clients.create_policy import (
 from app.clients.models.client_record import ClientRecord
 from app.clients.schemas.client import ActiveClientSummary, ClientConflictInfo, DeletedClientSummary
 from app.clients.services.client_service import ClientService
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.exceptions import ConflictError
 
 
@@ -47,6 +47,7 @@ class CreateClientService:
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
         vat_reporting_frequency: Optional[VatType] = None,
+        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
         accountant_id: Optional[int] = None,
@@ -81,6 +82,7 @@ class CreateClientService:
                 address_city=address_city,
                 address_zip_code=address_zip_code,
                 vat_reporting_frequency=normalized_vat_frequency,
+                advance_payment_frequency=advance_payment_frequency,
                 vat_exempt_ceiling=normalized_vat_ceiling,
                 advance_rate=advance_rate,
                 accountant_id=accountant_id,

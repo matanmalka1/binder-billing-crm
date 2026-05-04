@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 
 
 class LegalEntityRepository:
@@ -18,6 +18,7 @@ class LegalEntityRepository:
         official_name: str,
         entity_type: Optional[EntityType] = None,
         vat_reporting_frequency: Optional[VatType] = None,
+        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
     ) -> LegalEntity:
@@ -27,6 +28,7 @@ class LegalEntityRepository:
             official_name=official_name,
             entity_type=entity_type,
             vat_reporting_frequency=vat_reporting_frequency,
+            advance_payment_frequency=advance_payment_frequency,
             vat_exempt_ceiling=vat_exempt_ceiling,
             advance_rate=advance_rate,
         )
