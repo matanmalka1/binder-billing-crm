@@ -30,6 +30,10 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+_tax_rules_path = str(ROOT_DIR / "tax_rules_config" / "app")
+if _tax_rules_path not in sys.path:
+    sys.path.insert(0, _tax_rules_path)
+
 os.environ.setdefault("JWT_SECRET", "dev-seed-secret")
 os.environ.setdefault("APP_ENV", "development")
 
