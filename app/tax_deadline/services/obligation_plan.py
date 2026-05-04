@@ -54,16 +54,23 @@ def advance_payment_deadline_plan(
     entity_type: Optional[EntityType],
     year: int,
     reference_date: date,
+    frequency: Optional[VatType] = None,
 ) -> list[PeriodicDeadlinePlan]:
     if entity_type == EntityType.EMPLOYEE:
         return []
 
     due_dates = []
-    for month in range(1, 13):
+    period_starts = range(1, 12, 2) if frequency == VatType.BIMONTHLY else range(1, 13)
+    for month in period_starts:
         period = f"{year}-{month:02d}"
+        filing_month = month + (2 if frequency == VatType.BIMONTHLY else 1)
+        filing_year = year
+        if filing_month > 12:
+            filing_month -= 12
+            filing_year += 1
         due_dates.append(
             PeriodicDeadlinePlan(
-                due_date=periodic_due_date(year, month, period),
+                due_date=periodic_due_date(filing_year, filing_month, period),
                 period=period,
             )
         )

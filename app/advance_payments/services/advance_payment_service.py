@@ -11,10 +11,16 @@ from app.advance_payments.services.advance_payment_calculator import (
     calculate_expected_amount,
     derive_annual_income_from_vat,
 )
-from app.advance_payments.services.constants import ADVANCE_PAYMENT_VAT_RATE
+from app.advance_payments.services.constants import (
+    ADVANCE_PAYMENT_VAT_RATE,
+    BIMONTHLY_START_MONTHS,
+    SUPPORTED_PERIOD_MONTH_COUNTS,
+    parse_period_month,
+)
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.common.enums import VatType
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.vat_reports.repositories.vat_work_item_query_repository import VatWorkItemQueryRepository
 
@@ -36,6 +42,22 @@ class AdvancePaymentService:
             raise ForbiddenError("לקוח סגור — לא ניתן ליצור מקדמה", "CLIENT.CLOSED")
         if record.status == ClientStatus.FROZEN:
             raise ForbiddenError("לקוח מוקפא — לא ניתן ליצור מקדמה", "CLIENT.FROZEN")
+
+    def default_period_months_count_for_client(self, client_record_id: int) -> int:
+        record = self._get_record_or_raise(client_record_id)
+        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+        if legal_entity and legal_entity.vat_reporting_frequency == VatType.BIMONTHLY:
+            return 2
+        return 1
+
+    def _validate_period_months_count(self, period: str, period_months_count: int) -> None:
+        if period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:
+            raise ConflictError("תדירות מקדמה לא נתמכת", "ADVANCE_PAYMENT.INVALID_PERIOD")
+        if period_months_count == 2 and parse_period_month(period) not in BIMONTHLY_START_MONTHS:
+            raise ConflictError(
+                "מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי",
+                "ADVANCE_PAYMENT.INVALID_PERIOD",
+            )
 
     # ─── List ─────────────────────────────────────────────────────────────────
 
@@ -60,7 +82,7 @@ class AdvancePaymentService:
         self,
         client_record_id: int,
         period: str,
-        period_months_count: int,
+        period_months_count: Optional[int],
         due_date,
         expected_amount=None,
         paid_amount=None,
@@ -69,6 +91,9 @@ class AdvancePaymentService:
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         self._assert_client_allows_create(client_record_id)
+        if period_months_count is None:
+            period_months_count = self.default_period_months_count_for_client(client_record_id)
+        self._validate_period_months_count(period, period_months_count)
         if self.repo.exists_for_period(client_record_id, period):
             raise ConflictError(
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
@@ -141,9 +166,11 @@ class AdvancePaymentService:
     # ─── Suggest ─────────────────────────────────────────────────────────────
 
     def suggest_expected_amount_for_client(
-        self, client_record_id: int, year: int, period_months_count: int = 1
+        self, client_record_id: int, year: int, period_months_count: Optional[int] = None
     ) -> Optional[Decimal]:
         record = self._get_record_or_raise(client_record_id)
+        if period_months_count is None:
+            period_months_count = self.default_period_months_count_for_client(client_record_id)
         legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
         if legal_entity is None or legal_entity.advance_rate is None:
             return None

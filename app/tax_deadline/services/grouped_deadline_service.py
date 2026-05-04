@@ -21,6 +21,7 @@ from app.tax_deadline.schemas.grouped_deadline import (
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
 
 _MAX_GROUPS = 200
 _URGENCY_ORDER = {
@@ -115,8 +116,6 @@ class GroupedDeadlineService:
         page_size: int = 50,
         user_role=None,
     ) -> tuple[list[TaxDeadlineResponse], int]:
-        from app.actions.report_deadline_actions import get_tax_deadline_actions
-
         parsed = _parse_group_key(group_key)
         if parsed is None:
             return [], 0
@@ -136,12 +135,14 @@ class GroupedDeadlineService:
         responses = []
         for d in items:
             ctx = client_context.get(d.client_record_id, {})
-            r = TaxDeadlineResponse.model_validate(d)
-            r.client_name = ctx.get("full_name")
-            r.office_client_number = ctx.get("office_client_number")
-            r.urgency_level = compute_deadline_urgency(d)
-            r.available_actions = get_tax_deadline_actions(d, user_role=user_role)
-            responses.append(r)
+            responses.append(
+                TaxDeadlineResponseBuilder(self.db).build(
+                    d,
+                    client_name=ctx.get("full_name"),
+                    office_client_number=ctx.get("office_client_number"),
+                    user_role=user_role,
+                )
+            )
 
         return responses, total
 
@@ -183,6 +184,7 @@ def _build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
         group_key=group_key,
         deadline_type=representative.deadline_type,
         period=representative.period,
+        period_months_count=_group_period_months_count(representative),
         tax_year=representative.tax_year,
         due_date=representative.due_date,
         total_clients=len(items),
@@ -194,3 +196,14 @@ def _build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
         open_amount=sum(open_amounts) if open_amounts else None,
         worst_urgency=_worst_urgency(urgencies),
     )
+
+
+def _group_period_months_count(deadline: TaxDeadline) -> int | None:
+    if deadline.deadline_type != DeadlineType.ADVANCE_PAYMENT or not deadline.period:
+        return None
+    start_month = int(deadline.period[-2:])
+    due_month = deadline.due_date.month
+    expected_bimonthly_due_month = start_month + 2
+    if expected_bimonthly_due_month > 12:
+        expected_bimonthly_due_month -= 12
+    return 2 if due_month == expected_bimonthly_due_month else 1

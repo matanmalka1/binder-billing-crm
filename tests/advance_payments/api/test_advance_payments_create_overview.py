@@ -84,6 +84,27 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert isinstance(data["error_meta"]["detail"], str)
 
 
+def test_create_advance_payment_defaults_to_client_vat_frequency(client, test_db, advisor_headers):
+    business = _business(test_db)
+    business.legal_entity.vat_reporting_frequency = VatType.BIMONTHLY
+    test_db.commit()
+
+    resp = client.post(
+        f"/api/v1/clients/{business.client_record_id}/advance-payments",
+        headers=advisor_headers,
+        json={
+            "period": "2026-03",
+            "due_date": "2026-05-15",
+            "expected_amount": 1200.0,
+        },
+    )
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["period"] == "2026-03"
+    assert data["period_months_count"] == 2
+
+
 def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advisor_headers, test_user):
     business = _business(test_db)
     _tax_profile(test_db, business.id, advance_rate=Decimal("6.0"))

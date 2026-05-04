@@ -12,6 +12,7 @@ from app.tax_deadline.models.tax_deadline import DeadlineType, UrgencyLevel
 class DeadlineGroupKey(BaseModel):
     deadline_type: str
     period: Optional[str] = None
+    period_months_count: Optional[int] = None
     tax_year: Optional[int] = None
     due_date: date
 

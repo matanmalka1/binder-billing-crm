@@ -69,6 +69,21 @@ def test_generate_advance_annual_and_all(test_db):
     assert total_created == 24  # annual 2028 was already created above
 
 
+def test_generate_advance_payment_deadlines_uses_bimonthly_frequency(test_db):
+    business = create_business(test_db, name_prefix="Gen Advance Bimonthly")
+    _set_vat_profile(test_db, business, VatType.BIMONTHLY)
+
+    created = DeadlineGeneratorService(test_db).generate_advance_payment_deadlines(
+        business.client_id,
+        2027,
+        reference_date=date(2027, 1, 1),
+    )
+
+    assert len(created) == 6
+    assert [d.period for d in created] == ["2027-01", "2027-03", "2027-05", "2027-07", "2027-09", "2027-11"]
+    assert created[0].due_date == date(2027, 3, 15)
+
+
 def test_generate_all_raises_for_missing_business(test_db):
     with pytest.raises(NotFoundError):
         DeadlineGeneratorService(test_db).generate_all(999999, 2026)

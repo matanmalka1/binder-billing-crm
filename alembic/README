@@ -10,7 +10,7 @@
   2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `e35ffb3fd002_0001_initial.py`.
+- Current head is `c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines.py`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
@@ -83,7 +83,53 @@ Notes:
 
 ## Migration chain
 
-`e35ffb3fd002_0001_initial` is the current head.
+`c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines` is the current head.
+
+### c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Soft-deletes remaining even-month advance-payment deadlines for bimonthly clients when the linked advance payment was already soft-deleted.
+- Notes:
+  Preserves completed/payment-bearing rows.
+
+### b3c5d7e9f101_0005_fix_bimonthly_advance_deadline_data
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Fixes existing `tax_deadlines` advance-payment rows for clients whose VAT reporting frequency is `bimonthly`.
+- Covers:
+  Odd-month advance-payment deadlines get bimonthly due dates. Empty pending even-month rows are soft-deleted.
+- Notes:
+  Rows with completion, payment amount, or advance-payment links are preserved.
+
+### a2b4c6d8e9f0_0004_fix_bimonthly_advance_payment_data
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Fixes existing advance payment rows for clients whose VAT reporting frequency is `bimonthly`.
+- Covers:
+  Active odd-month advance payments are converted to `period_months_count=2` and due date on the 15th after the two-month period.
+  Active even-month rows are soft-deleted only when they are empty pending rows with no payment, annual report link, or turnover snapshot.
+- Notes:
+  Rows with payment or reporting activity are intentionally not soft-deleted automatically.
+
+### f1a2b3c4d5e6_0003_add_annual_revenue_to_legal_entities
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Adds `annual_revenue` to `legal_entities`.
+
+### ea56adf8adb6_advance_payments_remove_overdue_add_turnover_snapshot
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes stored `overdue` advance-payment status and adds turnover snapshot fields.
 
 ### e35ffb3fd002_0001_initial
 

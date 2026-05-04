@@ -26,7 +26,10 @@ def compute_creation_impact(
     is_exempt = vat_reporting_frequency in (VatType.EXEMPT, None)
 
     vat_count = sum(len(vat_deadline_plan(vat_reporting_frequency, year, today)) for year in years)
-    advance_count = sum(len(advance_payment_deadline_plan(entity_type, year, today)) for year in years)
+    advance_count = sum(
+        len(advance_payment_deadline_plan(entity_type, year, today, vat_reporting_frequency))
+        for year in years
+    )
     annual_deadline_count = n
 
     items = [

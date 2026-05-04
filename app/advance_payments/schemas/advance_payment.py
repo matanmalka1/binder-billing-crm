@@ -62,7 +62,7 @@ AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 
 class AdvancePaymentCreateRequest(BaseModel):
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
-    period_months_count: int = Field(1, ge=1, le=2)
+    period_months_count: Optional[int] = Field(None, ge=1, le=2)
     due_date: date
     expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
@@ -72,6 +72,8 @@ class AdvancePaymentCreateRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_period_for_frequency(self) -> "AdvancePaymentCreateRequest":
+        if self.period_months_count is None:
+            return self
         if self.period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:
             raise ValueError("period_months_count לא נתמך")
         if self.period_months_count != 2:
@@ -176,7 +178,7 @@ class MonthBatchSummary(BaseModel):
 
 class GenerateScheduleRequest(BaseModel):
     year: int
-    period_months_count: int = Field(1, ge=1, le=2)
+    period_months_count: Optional[int] = Field(None, ge=1, le=2)
 
 class GenerateScheduleResponse(BaseModel):
     created: int

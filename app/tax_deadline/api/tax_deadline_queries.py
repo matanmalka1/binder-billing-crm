@@ -14,8 +14,7 @@ from app.tax_deadline.schemas.tax_deadline import (
     TimelineEntry,
 )
 from app.tax_deadline.services.tax_deadline_query_service import TaxDeadlineQueryService
-from app.actions.report_deadline_actions import get_tax_deadline_actions
-from app.tax_deadline.services.urgency import compute_deadline_urgency
+from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
 
 router = APIRouter(
     prefix="/tax-deadlines",
@@ -25,18 +24,18 @@ router = APIRouter(
 
 
 def _build_response(
+    db,
     deadline,
     client_name: Optional[str] = None,
     office_client_number: Optional[int] = None,
     user_role: UserRole | str | None = None,
 ) -> TaxDeadlineResponse:
-    r = TaxDeadlineResponse.model_validate(deadline)
-    if client_name is not None:
-        r.client_name = client_name
-    r.office_client_number = office_client_number
-    r.urgency_level = compute_deadline_urgency(deadline)
-    r.available_actions = get_tax_deadline_actions(deadline, user_role=user_role)
-    return r
+    return TaxDeadlineResponseBuilder(db).build(
+        deadline,
+        client_name=client_name,
+        office_client_number=office_client_number,
+        user_role=user_role,
+    )
 
 
 @router.get("", response_model=TaxDeadlineListResponse)
@@ -73,6 +72,7 @@ def list_tax_deadlines(
     return TaxDeadlineListResponse(
         items=[
             _build_response(
+                db,
                 d,
                 client_name=client_context_map.get(d.client_record_id, {}).get("full_name"),
                 office_client_number=client_context_map.get(d.client_record_id, {}).get("office_client_number"),
@@ -131,6 +131,7 @@ def get_dashboard_deadlines(db: DBSession, user: CurrentUser):
     upcoming_client_context_map = service.build_client_context_map(summary["upcoming"])
     upcoming = [
         _build_response(
+            db,
             d,
             client_name=upcoming_client_context_map.get(d.client_record_id, {}).get("full_name"),
             office_client_number=upcoming_client_context_map.get(d.client_record_id, {}).get("office_client_number"),

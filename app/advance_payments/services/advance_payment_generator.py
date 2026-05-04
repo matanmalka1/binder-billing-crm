@@ -7,15 +7,13 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.constants import build_due_date, get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import NotFoundError
 
 
 def generate_annual_schedule(
     client_record_id: int,
     year: int,
     db: Session,
-    period_months_count: int = 1,
+    period_months_count: Optional[int] = None,
 ) -> tuple[list[AdvancePayment], int]:
     """
     יוצר רשומות מקדמה ללקוח ולשנה נתונים.
@@ -25,10 +23,9 @@ def generate_annual_schedule(
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
     מחזיר (created_records, skipped_count).
     """
-    record = ClientRecordRepository(db).get_by_id(client_record_id)
-    if not record:
-        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND")
     service = AdvancePaymentService(db)
+    if period_months_count is None:
+        period_months_count = service.default_period_months_count_for_client(client_record_id)
     repo = AdvancePaymentRepository(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(
         client_record_id, year, period_months_count

@@ -82,6 +82,7 @@ class DeadlineGeneratorService:
             self._resolve_entity_type(client_record_id),
             year,
             reference_date or _today(),
+            self._resolve_vat_type(client_record_id),
         ):
             due_date, period = item.due_date, item.period
             if not self.deadline_repo.exists_by_record(client_record_id, DeadlineType.ADVANCE_PAYMENT, period=period):
@@ -91,7 +92,7 @@ class DeadlineGeneratorService:
                     deadline_type=DeadlineType.ADVANCE_PAYMENT,
                     due_date=due_date,
                     period=period,
-                    description=f"מקדמה חודש {month}/{year}",
+                    description=f"מקדמה תקופה {month}/{year}",
                 )
                 created.append(deadline)
         return created
