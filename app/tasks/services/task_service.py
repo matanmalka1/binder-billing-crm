@@ -179,7 +179,7 @@ class TaskService:
                 urgency=_urgency(due_date, self.today),
                 client_record_id=row.client_record_id,
                 client_name=self._client_name(row.client_record_id),
-                business_id=vat_item.business_id,
+
                 payload=vat_work_item_payload(vat_item, due_date),
             ))
         return tasks

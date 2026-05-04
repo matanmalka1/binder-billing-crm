@@ -1,4 +1,5 @@
 from datetime import date
+from types import SimpleNamespace
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -106,7 +107,7 @@ class DashboardExtendedService:
                 client_record_map = {r.id: r for r in charge_client_records}
                 for charge in unpaid_charges:
                     business = charge_business_map.get(charge.business_id)
-                    if not business:
+                    if charge.business_id is not None and not business:
                         continue
                     client_record = client_record_map.get(charge.client_record_id)
                     client_display_name = (
@@ -114,6 +115,12 @@ class DashboardExtendedService:
                         if client_record
                         else ""
                     )
+                    if business is None:
+                        business = SimpleNamespace(
+                            id=None,
+                            business_name=client_display_name,
+                            full_name=client_display_name,
+                        )
                     items.append(
                         unpaid_charge_attention_item(
                             charge,

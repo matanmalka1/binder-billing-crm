@@ -39,6 +39,7 @@ class BaseAttentionItem(BaseModel):
 
 class UnpaidChargeAttentionItem(BaseAttentionItem):
     item_type: Literal["unpaid_charge"]
+    charge_id: int
     business_name: str
     charge_subject: str
     charge_date: Optional[date] = None
@@ -90,9 +91,15 @@ class VatDashboardPeriodStat(BaseModel):
     completion_percent: int = 0
 
 
+class VatSegmentStat(BaseModel):
+    label: str
+    count: int
+
+
 class VatDashboardStats(BaseModel):
     monthly: VatDashboardPeriodStat
     bimonthly: VatDashboardPeriodStat
+    segmentation: list[VatSegmentStat] = Field(default_factory=list)
 
 
 class AttentionEmptyCheck(BaseModel):

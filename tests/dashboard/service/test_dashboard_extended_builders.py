@@ -31,6 +31,7 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
 
     unpaid = unpaid_charge_attention_item(charge, business, reference_date=date(2026, 3, 16))
     assert unpaid["item_type"] == "unpaid_charge"
+    assert unpaid["charge_id"] == 88
     assert unpaid["description"] == "Dashboard Client · ₪123.45 · באיחור 5 ימים"
     assert unpaid["charge_subject"] == "חשבונית #1048 · פגישת ייעוץ · תקופה 03/2026"
     assert unpaid["charge_date"] == date(2026, 3, 11)
@@ -59,3 +60,41 @@ def test_unpaid_charge_subject_removes_business_and_period_fragments():
     assert unpaid["description"] == "מעבדת גל - פיתוח תוכנה · ₪1,378.49 · באיחור 5 ימים"
     assert unpaid["charge_subject"] == "חשבונית #1048 · טיפול בדיווח מע\"מ תקופתי · תקופה 01/2025"
     assert unpaid["charge_period"] == "2025-01"
+
+
+def test_unpaid_charge_subject_removes_client_name_fragment():
+    business = SimpleNamespace(id=20, business_name="אמיר ביטון")
+    charge = SimpleNamespace(
+        client_record_id=20,
+        amount=200,
+        charge_type="monthly_retainer",
+        description="אמיר ביטון | ריטיינר חודשי",
+        issued_at=datetime(2026, 4, 24, 9, 0),
+        id=1,
+        invoice=None,
+        period="2025-01",
+    )
+
+    unpaid = unpaid_charge_attention_item(charge, business, "אמיר ביטון", date(2026, 4, 29))
+
+    assert unpaid["description"] == "₪200 · באיחור 5 ימים"
+    assert unpaid["charge_subject"] == "חשבונית #1 · ריטיינר חודשי · תקופה 01/2025"
+
+
+def test_unpaid_charge_amount_does_not_render_nan():
+    business = SimpleNamespace(id=20, business_name="לקוח בדיקה")
+    charge = SimpleNamespace(
+        client_record_id=20,
+        amount=float("nan"),
+        charge_type="other",
+        description=None,
+        issued_at=datetime(2026, 4, 24, 9, 0),
+        id=99,
+        invoice=None,
+        period=None,
+    )
+
+    unpaid = unpaid_charge_attention_item(charge, business, "לקוח בדיקה", date(2026, 4, 29))
+
+    assert unpaid["charge_amount"] == "₪0"
+    assert "nan" not in unpaid["description"].lower()

@@ -85,6 +85,7 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
 
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"
+    assert items[0]["charge_id"] == 4
     assert items[0]["client_name"] == "Legal Client"
     assert items[0]["description"] == "Charge Business · ₪300 · לתשלום היום"
     assert items[0]["charge_subject"] == "חשבונית #4 · ריטיינר חודשי · תקופה 02/2026"
@@ -92,3 +93,37 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     assert items[0]["charge_amount"] == "₪300"
     assert items[0]["charge_invoice_number"] == "4"
     assert items[0]["charge_period"] == "2026-02"
+
+
+def test_get_attention_items_advisor_includes_client_level_charge(test_db, monkeypatch):
+    service = DashboardExtendedService(test_db)
+    charge = SimpleNamespace(
+        id=5,
+        client_record_id=89,
+        business_id=None,
+        amount=450,
+        charge_type="consultation_fee",
+        description=None,
+        issued_at=datetime(2026, 3, 1, 10, 30),
+        invoice=None,
+        period=None,
+    )
+    client_record = SimpleNamespace(id=89, legal_entity_id=100)
+    legal_entity = SimpleNamespace(id=100, official_name="Client Level")
+
+    monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [])
+    service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])
+    service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
+    service.client_record_repo = SimpleNamespace(list_by_ids=lambda ids: [client_record])
+    service.legal_entity_repo = SimpleNamespace(get_by_id=lambda legal_entity_id: legal_entity)
+
+    items = service.get_attention_items(user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10))
+
+    assert len(items) == 1
+    assert items[0]["item_type"] == "unpaid_charge"
+    assert items[0]["charge_id"] == 5
+    assert items[0]["business_id"] is None
+    assert items[0]["client_id"] == 89
+    assert items[0]["client_name"] == "Client Level"
+    assert items[0]["business_name"] == "Client Level"
+    assert items[0]["description"] == "₪450 · באיחור 9 ימים"

@@ -1,5 +1,5 @@
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 CHARGE_TYPE_LABELS = {
     "monthly_retainer": "ריטיינר חודשי",
@@ -12,7 +12,12 @@ CHARGE_TYPE_LABELS = {
 
 
 def _format_ils_amount(amount) -> str:
-    normalized = Decimal(str(amount)).quantize(Decimal("0.01"))
+    try:
+        normalized = Decimal(str(amount)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        normalized = Decimal("0.00")
+    if not normalized.is_finite():
+        normalized = Decimal("0.00")
     formatted = f"{normalized:,.2f}".rstrip("0").rstrip(".")
     return f"₪{formatted}"
 
@@ -68,9 +73,16 @@ def _charge_subject(charge, business_name: str) -> str:
 
 
 def _charge_detail_line(charge, business_name: str) -> str:
+    subject = _charge_subject(charge, business_name)
+    hidden_parts = {business_name}
+    client_name = getattr(charge, "_dashboard_client_name", None)
+    if client_name:
+        hidden_parts.add(client_name)
+    for hidden in hidden_parts:
+        subject = subject.replace(f" | {hidden}", "").replace(f"{hidden} | ", "")
     parts = [
         f"חשבונית #{_invoice_number(charge)}",
-        _charge_subject(charge, business_name),
+        subject,
     ]
     period = _period_label(getattr(charge, "period", None))
     if period:
@@ -96,16 +108,26 @@ def unpaid_charge_attention_item(
     reference_date: date | None = None,
 ) -> dict:
     reference_date = reference_date or date.today()
-    business_name = getattr(business, "business_name", getattr(business, "full_name", ""))
+    business_name = (
+        getattr(business, "business_name", None)
+        or getattr(business, "full_name", None)
+        or client_display_name
+    )
+    setattr(charge, "_dashboard_client_name", client_display_name)
     amount = _format_ils_amount(charge.amount)
+    status_label = _charge_status_label(charge, reference_date)
+    description_parts = [amount, status_label]
+    if business_name and business_name != client_display_name:
+        description_parts.insert(0, business_name)
     return {
         "item_type": "unpaid_charge",
+        "charge_id": charge.id,
         "binder_id": None,
         "client_id": charge.client_record_id,
-        "business_id": business.id,
+        "business_id": getattr(business, "id", None),
         "client_name": client_display_name,
         "business_name": business_name,
-        "description": f"{business_name} · {amount} · {_charge_status_label(charge, reference_date)}",
+        "description": " · ".join(description_parts),
         "charge_subject": _charge_detail_line(charge, business_name),
         "charge_date": _charge_date(charge),
         "charge_amount": amount,
