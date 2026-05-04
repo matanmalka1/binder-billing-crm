@@ -19,8 +19,11 @@ logger = logging.getLogger(__name__)
 def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
-        deadline_year = year + 1 if month == 12 else year
-        deadline_month = 1 if month == 12 else month + 1
+        months_in_period = 2 if getattr(item, "period_type", None) == VatType.BIMONTHLY else 1
+        end_month = month + months_in_period - 1
+        due_month_raw = end_month + 1
+        deadline_year = year + 1 if due_month_raw > 12 else year
+        deadline_month = due_month_raw - 12 if due_month_raw > 12 else due_month_raw
         statutory_deadline = date(
             deadline_year,
             deadline_month,

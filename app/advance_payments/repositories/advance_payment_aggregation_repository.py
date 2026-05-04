@@ -134,6 +134,15 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                             else_=0,
                         )
                     ).label("snapshot_missing_count"),
+                    func.sum(
+                        case(
+                            (
+                                advance_payment_status_text_expr() == AdvancePaymentStatus.PENDING.value,
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ).label("pending_count"),
                 ),
                 AdvancePayment,
             )

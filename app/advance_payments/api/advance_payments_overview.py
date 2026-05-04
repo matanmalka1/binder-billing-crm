@@ -46,6 +46,7 @@ def list_advance_payments_overview(
             client_record_id=payment.client_record_id,
             office_client_number=office_client_number,
             business_name=business_name,
+            id_number=id_number,
             period=payment.period,
             period_months_count=payment.period_months_count,
             due_date=payment.due_date,
@@ -60,7 +61,7 @@ def list_advance_payments_overview(
             ),
             advance_rate=advance_rate,
         )
-        for payment, office_client_number, business_name, live_turnover, advance_rate in rows
+        for payment, office_client_number, business_name, id_number, live_turnover, advance_rate in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,
@@ -91,6 +92,7 @@ def list_advance_payment_batches(
             client_count=int(r.client_count),
             missing_turnover_count=int(r.snapshot_missing_count or 0),
             overdue_count=int(r.overdue_count or 0),
+            pending_count=int(r.pending_count or 0),
             total_expected=total_expected,
             total_paid=total_paid,
             collection_rate=collection_rate,

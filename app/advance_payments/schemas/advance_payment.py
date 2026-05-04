@@ -120,6 +120,7 @@ class AdvancePaymentOverviewRow(BaseModel):
     client_record_id: int
     office_client_number: Optional[int] = None
     business_name: str
+    id_number: Optional[str] = None
     period: str
     period_months_count: int
     due_date: date
@@ -172,6 +173,7 @@ class MonthBatchSummary(BaseModel):
     client_count: int
     missing_turnover_count: int
     overdue_count: int
+    pending_count: int = 0
     total_expected: Optional[ApiDecimal] = None
     total_paid: Optional[ApiDecimal] = None
     collection_rate: float = 0.0

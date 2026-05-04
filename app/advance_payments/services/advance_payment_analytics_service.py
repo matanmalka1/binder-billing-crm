@@ -63,6 +63,9 @@ class AdvancePaymentAnalyticsService:
                     legal_entities[records[p.client_record_id].legal_entity_id].official_name
                     if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
                     else "",
+                    legal_entities[records[p.client_record_id].legal_entity_id].id_number
+                    if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
+                    else None,
                     live_turnover_map.get((p.client_record_id, p.period)),
                     legal_entities[records[p.client_record_id].legal_entity_id].advance_rate
                     if p.client_record_id in records and records[p.client_record_id].legal_entity_id in legal_entities
@@ -70,7 +73,7 @@ class AdvancePaymentAnalyticsService:
                 )
                 for p in payments
             ],
-            key=lambda x: (x[2], x[0].period),
+            key=lambda x: (x[2], x[0].period),  # sort by official_name, then period
         )
 
         total = len(rows)
