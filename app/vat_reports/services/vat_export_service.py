@@ -16,6 +16,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_export_excel import export_vat_to_excel
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
+from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
 def _get_export_dir() -> str:
@@ -32,9 +33,22 @@ def _load(db: Session, client_record_id: int, year: int):
     display_name = legal_entity.official_name if legal_entity else f"לקוח #{client_record_id}"
     all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_record_id)
     periods = [
-        VatPeriodRow.model_validate(work_item)
-        for work_item, *_ in all_periods
-        if work_item.period.startswith(str(year))
+        VatPeriodRow(
+            work_item_id=r.id,
+            period=r.period,
+            period_type=r.period_type.value if r.period_type else None,
+            status=r.status,
+            total_output_vat=r.total_output_vat,
+            total_input_vat=r.total_input_vat,
+            net_vat=r.net_vat,
+            total_output_net=r.total_output_net,
+            total_input_net=r.total_input_net,
+            final_vat_amount=r.final_vat_amount,
+            filed_at=r.filed_at,
+            **compute_deadline_fields(r, r.submission_method),
+        )
+        for r, *_ in all_periods
+        if r.period.startswith(str(year))
     ]
     return display_name, periods
 

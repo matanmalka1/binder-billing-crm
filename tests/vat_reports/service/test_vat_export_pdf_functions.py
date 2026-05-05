@@ -121,12 +121,18 @@ def test_export_vat_to_pdf_generates_file_when_reportlab_available_or_raises():
 
     period = VatPeriodRow(
         period="2026-01",
+        period_type="monthly",
         status=VatWorkItemStatus.FILED,
         total_output_vat=Decimal("170.00"),
         total_input_vat=Decimal("20.00"),
         net_vat=Decimal("150.00"),
         final_vat_amount=Decimal("150.00"),
         filed_at=datetime.now(UTC) - timedelta(days=1),
+        submission_deadline=None,
+        statutory_deadline=None,
+        extended_deadline=None,
+        days_until_deadline=None,
+        is_overdue=None,
     )
 
     payload = export_vat_to_pdf(

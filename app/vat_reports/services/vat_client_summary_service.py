@@ -13,6 +13,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import (
     VatPeriodRow,
 )
 from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
+from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
 def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummaryResponse:
@@ -25,6 +26,7 @@ def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummar
         VatPeriodRow(
             work_item_id=r.id,
             period=r.period,
+            period_type=r.period_type.value if r.period_type else None,
             status=r.status,
             total_output_vat=r.total_output_vat,
             total_input_vat=r.total_input_vat,
@@ -33,6 +35,7 @@ def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummar
             total_input_net=Decimal(str(input_net or 0)),
             final_vat_amount=r.final_vat_amount,
             filed_at=r.filed_at,
+            **compute_deadline_fields(r, r.submission_method),
         )
         for r, output_net, input_net in raw_periods
     ]
