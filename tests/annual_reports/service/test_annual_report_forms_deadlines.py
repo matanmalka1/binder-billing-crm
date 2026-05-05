@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.exceptions import AppError, ConflictError
-from tests.annual_reports.service.test_annual_report_enums import AnnualReportForm, AnnualReportSchedule, DeadlineType
+from tests.annual_reports.service.test_annual_report_enums import AnnualReportForm, AnnualReportSchedule
 from tests.annual_reports.service.test_annual_report import AnnualReportService
 
 

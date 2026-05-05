@@ -1,10 +1,8 @@
 from datetime import date
 
-import pytest
 
-from app.binders.models.binder import Binder, BinderStatus
 from app.businesses.models.business import BusinessStatus
-from app.reminders.models.reminder import ReminderStatus, ReminderType
+from app.reminders.models.reminder import ReminderType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 

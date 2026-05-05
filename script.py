@@ -39,7 +39,6 @@ import inspect
 import shutil
 import subprocess
 import sys
-import textwrap
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -178,7 +177,6 @@ def extract_models_from_module(module_dotpath: str, domain: str) -> list[ModelDe
         print(f"    WARN: cannot import {module_dotpath}: {exc}")
         return []
 
-    from sqlalchemy.orm import DeclarativeBase, RelationshipProperty
     from sqlalchemy import inspect as sa_inspect
     import enum as stdlib_enum
 

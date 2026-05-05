@@ -1,4 +1,3 @@
-from datetime import date
 
 from app.businesses.models.business import Business
 from app.businesses.models.business import BusinessStatus

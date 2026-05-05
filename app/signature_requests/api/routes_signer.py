@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 
 from app.signature_requests.schemas.signature_request import SignerDeclineRequest, SignerViewResponse
 from app.signature_requests.services.signature_request_service import SignatureRequestService

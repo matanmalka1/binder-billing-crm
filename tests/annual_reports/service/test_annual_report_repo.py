@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 from .test_annual_report_enums import (
-    AnnualReportSchedule,
     AnnualReportStatus,
     utcnow,
 )

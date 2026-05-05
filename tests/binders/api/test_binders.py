@@ -1,4 +1,3 @@
-from datetime import date
 
 from tests.helpers.identity import SeededClient, seed_client_identity
 

@@ -9,7 +9,6 @@ from app.annual_reports.models.annual_report_enums import (
     FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem

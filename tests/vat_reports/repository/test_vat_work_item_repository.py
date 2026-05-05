@@ -3,7 +3,7 @@ from itertools import count
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import Business
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import IdNumberType, VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity

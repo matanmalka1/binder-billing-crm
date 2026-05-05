@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from ..types import (
     Authority,
-    BtlStatus,
     DueDateSourceKind,
     DuePolicy,
     EntityType,

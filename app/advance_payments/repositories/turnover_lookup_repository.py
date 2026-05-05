@@ -1,10 +1,8 @@
 """VAT turnover lookup for advance payment context."""
 
-from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_work_item import VatWorkItem

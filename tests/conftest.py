@@ -1,10 +1,8 @@
 import os
 from datetime import date
-from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -16,7 +14,6 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 
 from app.database import Base, get_db
 import app.notes.models.entity_note  # noqa: F401
-from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.legal_entity import LegalEntity  # noqa: F401
@@ -24,7 +21,7 @@ from app.clients.models.client_record import ClientRecord  # noqa: F401
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
 from app.clients.enums import ClientStatus
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.common.enums import IdNumberType
 from tests.helpers.identity import seed_business, seed_client_identity
 

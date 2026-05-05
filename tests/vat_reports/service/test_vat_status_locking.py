@@ -8,12 +8,12 @@ matches the existing pattern in the vat_reports service test suite.
 Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy on mock) and invalid-state handling.
 """
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.common.enums import SubmissionMethod
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.services import data_entry_status, filing, intake
 from tests.vat_reports.service.test_vat_report_test_utils import make_item

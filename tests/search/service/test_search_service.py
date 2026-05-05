@@ -1,4 +1,3 @@
-from datetime import date
 from types import SimpleNamespace
 
 from app.search.services.search_service import SearchService

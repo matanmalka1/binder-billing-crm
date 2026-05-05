@@ -1,6 +1,6 @@
 """Endpoints for annex (schedule) data lines."""
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.api_types import PaginatedResponse
 

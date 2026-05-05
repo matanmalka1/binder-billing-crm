@@ -3,12 +3,10 @@ from __future__ import annotations
 import importlib
 import random
 from pathlib import Path
-from typing import Literal
 
 from sqlalchemy import func, inspect, select
 
 from app.database import Base, SessionLocal, engine
-from app.users.models.user import UserRole
 
 from .config import SeedConfig
 from .builders import users as users_builder

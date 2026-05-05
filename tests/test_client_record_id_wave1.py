@@ -165,7 +165,6 @@ class TestW2VatWorkItem:
     def test_service_sets_client_record_id_on_create(self, db):
         from app.vat_reports.services.intake import create_work_item
         from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-        from app.clients.repositories.client_repository import ClientRepository
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)

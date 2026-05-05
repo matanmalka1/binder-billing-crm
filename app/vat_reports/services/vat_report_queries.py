@@ -2,7 +2,6 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.common.enums import SubmissionMethod, VatType
 from app.core.exceptions import NotFoundError

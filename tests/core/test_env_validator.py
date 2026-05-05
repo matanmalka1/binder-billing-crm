@@ -1,7 +1,5 @@
 """Tests for environment validation."""
 import os
-import sys
-from io import StringIO
 from unittest.mock import patch
 
 import pytest

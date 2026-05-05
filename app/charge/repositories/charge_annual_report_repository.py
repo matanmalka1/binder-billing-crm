@@ -3,7 +3,7 @@
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
-from app.charge.models.charge import Charge, ChargeStatus
+from app.charge.models.charge import Charge
 
 
 class ChargeAnnualReportRepository(BaseRepository):

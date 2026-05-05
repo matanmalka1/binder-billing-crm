@@ -1,4 +1,3 @@
-from datetime import date
 
 
 def build_client_operational_signals(

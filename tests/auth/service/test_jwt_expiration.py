@@ -4,7 +4,6 @@ from datetime import UTC, datetime, timedelta
 import jwt
 
 from app.config import config
-from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
 

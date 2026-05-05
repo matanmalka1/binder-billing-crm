@@ -15,7 +15,6 @@ from ..data.business_names import seed_business_name
 from ..data.demo_catalog import (
     BUSINESS_CATALOG,
     BUSINESS_NOTES,
-    CLIENT_NOTES,
     ENTITY_NOTE_TEXTS,
     REALISTIC_ADDRESSES,
     demo_email,

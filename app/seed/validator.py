@@ -3,12 +3,11 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.common.enums import EntityType, VatType
+from app.common.enums import EntityType
 from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.vat_reports.models.vat_work_item import VatWorkItem
 

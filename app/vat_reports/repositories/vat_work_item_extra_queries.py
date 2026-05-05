@@ -1,4 +1,3 @@
-import datetime as _dt
 from typing import Optional
 
 from sqlalchemy import func as sa_func

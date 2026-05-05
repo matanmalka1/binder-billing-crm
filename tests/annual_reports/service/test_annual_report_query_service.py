@@ -1,4 +1,3 @@
-from datetime import date
 from itertools import count
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus

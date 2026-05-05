@@ -1,4 +1,3 @@
-from datetime import date
 from io import BytesIO
 
 from app.businesses.models.business import Business

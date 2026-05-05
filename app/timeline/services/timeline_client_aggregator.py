@@ -1,4 +1,3 @@
-from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument

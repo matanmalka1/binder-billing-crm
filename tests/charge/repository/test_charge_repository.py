@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.users.models.user import User, UserRole

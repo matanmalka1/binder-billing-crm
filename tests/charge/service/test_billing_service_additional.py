@@ -1,8 +1,7 @@
-from datetime import date
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from app.charge.services.charge_query_service import ChargeQueryService

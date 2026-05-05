@@ -14,10 +14,8 @@ from .exceptions import (
 from .financials.constants_2024 import CONSTANTS_2024, NI_BRACKETS_2024, INCOME_TAX_BRACKETS_2024, CREDIT_POINT_2024
 from .financials.constants_2025 import CONSTANTS_2025, NI_BRACKETS_2025, INCOME_TAX_BRACKETS_2025, CREDIT_POINT_2025
 from .financials.constants_2026 import CONSTANTS_2026, NI_BRACKETS_2026, INCOME_TAX_BRACKETS_2026, CREDIT_POINT_2026
-from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
 from .policy import resolve_obligation_rules, resolve_annual_report_rule
 from .types import (
-    AnnualReportRule,
     ClientTaxProfile,
     CreditPointConfig,
     DeadlineOverride,
@@ -27,7 +25,7 @@ from .types import (
     RateBracket,
 )
 from .validations import validate_profile
-from .vat_deduction import VAT_DEDUCTION_RULES, VAT_DEDUCTION_RATE_BY_CATEGORY
+from .vat_deduction import VAT_DEDUCTION_RATE_BY_CATEGORY
 
 # ── לוחות מועדים ─────────────────────────────────────────────────────────────
 

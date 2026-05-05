@@ -1,5 +1,4 @@
 """Tests for centralized error handling."""
-import pytest
 
 
 def test_http_error_has_consistent_envelope(client):

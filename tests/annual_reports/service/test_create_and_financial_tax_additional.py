@@ -1,5 +1,3 @@
-from datetime import date
-from types import SimpleNamespace
 
 import pytest
 

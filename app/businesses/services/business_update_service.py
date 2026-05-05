@@ -12,7 +12,7 @@ from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
+from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 
 

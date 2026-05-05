@@ -1,4 +1,4 @@
-from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.authority_contact.models.authority_contact import ContactType
 from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService

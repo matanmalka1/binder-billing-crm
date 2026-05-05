@@ -1,6 +1,5 @@
-from datetime import date
 
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from tests.helpers.identity import seed_client_with_business
 
 

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients

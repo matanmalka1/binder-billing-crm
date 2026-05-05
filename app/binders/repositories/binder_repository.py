@@ -306,7 +306,6 @@ class BinderRepository(BaseRepository):
 
     def list_overdue_pickup(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
         """Return READY_FOR_PICKUP binders where ready_for_pickup_at is older than overdue_days."""
-        from datetime import timezone as _tz
         cutoff = utcnow() - _dt.timedelta(days=overdue_days)
         return (
             self._active_client_query()

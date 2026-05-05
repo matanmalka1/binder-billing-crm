@@ -6,7 +6,6 @@ from decimal import Decimal
 import pytest
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.businesses.models.business import Business
 from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.export_service import ExportService
 from app.reports.services.reports_service import AgingReportService

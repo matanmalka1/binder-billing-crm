@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from .obligations.income_tax import ANNUAL_REPORT_RULES, ANNUAL_REPORT_ATTACHMENTS, INCOME_TAX_ADVANCE_RULES
+from .obligations.income_tax import INCOME_TAX_ADVANCE_RULES
 from .obligations.national_insurance import NATIONAL_INSURANCE_RULES
 from .obligations.vat import VAT_RULES
 from .obligations.withholding import WITHHOLDING_RULES
 from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
 from .types import (
-    AnnualReportRule,
     BtlStatus,
     ClientTaxProfile,
     EntityType,

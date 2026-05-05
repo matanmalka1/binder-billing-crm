@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 
 
 _MAX_GROUPS = 200

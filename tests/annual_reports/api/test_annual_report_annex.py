@@ -1,10 +1,6 @@
-from datetime import date
 from itertools import count
 
-import pytest
 
-from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
-from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 

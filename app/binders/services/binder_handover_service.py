@@ -10,9 +10,6 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.services.messages import BINDER_HANDOVER_INVALID_BINDERS, BINDER_PICKED_UP_BY
-from app.clients.guards.client_record_guards import assert_client_record_is_active
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import NotFoundError
 
 
 class BinderHandoverService:

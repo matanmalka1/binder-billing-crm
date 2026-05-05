@@ -12,7 +12,6 @@ from app.notification.schemas.notification_schemas import (
     MarkReadRequest,
     MarkReadResponse,
     NotificationListResponse,
-    NotificationResponse,
     SendNotificationRequest,
     SendNotificationResponse,
     UnreadCountResponse,

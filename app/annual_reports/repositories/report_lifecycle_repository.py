@@ -5,7 +5,7 @@ from datetime import timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, case
+from sqlalchemy import func
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus

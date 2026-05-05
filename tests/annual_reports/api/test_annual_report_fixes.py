@@ -1,4 +1,3 @@
-import pytest
 
 from tests.helpers.identity import seed_client_identity
 

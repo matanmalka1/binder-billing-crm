@@ -268,7 +268,7 @@ class TaskService:
                 DeadlineTask(
                     source_type=TaskType.UNPAID_CHARGE,
                     source_id=charge.id,
-                    label=f"חיוב לא שולם",
+                    label="חיוב לא שולם",
                     due_date=due_date,
                     urgency=TaskUrgency.OVERDUE,
                     client_record_id=charge.client_record_id,

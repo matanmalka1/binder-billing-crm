@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadlineStatus, UrgencyLevel
+from app.tax_deadline.models.tax_deadline import DeadlineType, UrgencyLevel
 from app.tax_deadline.services.tax_deadline_query_service import TaxDeadlineQueryService
 from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
 from tests.tax_deadline.factories import create_business

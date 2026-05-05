@@ -1,4 +1,3 @@
-from datetime import date
 
 from app.common.enums import VatType
 from app.users.models.user import User, UserRole

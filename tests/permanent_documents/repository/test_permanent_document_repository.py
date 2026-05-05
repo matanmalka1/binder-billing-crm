@@ -1,4 +1,3 @@
-from datetime import date
 
 from sqlalchemy import String, cast
 from sqlalchemy.dialects import postgresql

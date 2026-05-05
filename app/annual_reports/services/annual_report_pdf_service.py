@@ -8,7 +8,6 @@ from app.core.exceptions import NotFoundError
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.detail_service import AnnualReportDetailService
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.annual_reports.services.annual_report_pdf_builder import build_pdf
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND, CLIENT_FALLBACK_NAME
 from app.clients.repositories.client_record_repository import ClientRecordRepository

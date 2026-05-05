@@ -7,7 +7,7 @@ from random import Random
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
-from app.common.enums import EntityType, VatType
+from app.common.enums import VatType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tax_deadline.services.due_date_rules import periodic_due_date
 from app.users.models.user import UserRole
@@ -22,7 +22,6 @@ from app.vat_reports.models.vat_enums import (
 )
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 from ...data.demo_catalog import VAT_COUNTERPARTIES
 from ...data.random_utils import generate_valid_israeli_id

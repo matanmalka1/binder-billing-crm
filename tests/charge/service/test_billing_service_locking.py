@@ -6,11 +6,10 @@ Note: SQLite does not support real SELECT … FOR UPDATE blocking. These tests
 verify *code path* (via monkeypatch spy) and *invalid-state* handling only.
 True concurrent exclusion requires PostgreSQL with multiple connections.
 """
-from datetime import date
 
 import pytest
 
-from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.services.billing_service import BillingService

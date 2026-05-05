@@ -6,13 +6,12 @@ Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy) and invalid-state handling only.
 """
 from datetime import date
-from types import SimpleNamespace
 
 import pytest
 
 from app.businesses.models.business import Business
 from app.core.exceptions import AppError
-from app.signature_requests.models.signature_request import SignatureRequestStatus, SignatureRequestType
+from app.signature_requests.models.signature_request import SignatureRequestType
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.signature_requests.services.signature_request_service import SignatureRequestService
 from tests.helpers.identity import seed_client_with_business

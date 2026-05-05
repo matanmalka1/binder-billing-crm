@@ -6,7 +6,6 @@ lines in bulk. Existing lines are only replaced when force=True.
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy.orm import Session
 

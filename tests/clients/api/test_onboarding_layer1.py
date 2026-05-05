@@ -1,7 +1,6 @@
 """Layer 1 onboarding tests: LegalEntity + ClientRecord creation."""
 from datetime import date
 
-import pytest
 
 from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord

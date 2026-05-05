@@ -1,4 +1,4 @@
-from tests.vat_reports.api.test_vat_reports_utils import create_work_item, setup_ready_item
+from tests.vat_reports.api.test_vat_reports_utils import setup_ready_item
 
 
 class TestFiling:

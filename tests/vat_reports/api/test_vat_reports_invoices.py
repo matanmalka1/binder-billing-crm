@@ -1,4 +1,3 @@
-import pytest
 
 from tests.vat_reports.api.test_vat_reports_utils import add_income_invoice, create_work_item, income_payload
 

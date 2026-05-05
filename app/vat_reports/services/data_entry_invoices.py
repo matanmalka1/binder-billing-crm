@@ -2,7 +2,6 @@
 
 import json
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 from uuid import uuid4
 
@@ -27,7 +26,6 @@ from app.vat_reports.services.constants import (
     CATEGORY_LABELS_SERVER,
 )
 from app.vat_reports.services.data_entry_common import (
-    audit_invoice_snapshot,
     assert_editable,
     check_osek_patur_ceiling,
     recalculate_totals,

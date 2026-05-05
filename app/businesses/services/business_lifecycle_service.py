@@ -1,6 +1,5 @@
 """Business delete and restore operations."""
 
-import json
 
 from sqlalchemy.orm import Session
 

@@ -14,7 +14,6 @@ from app.vat_reports.models.vat_enums import (
     VatRateType,
 )
 from app.vat_reports.schemas.vat_invoice_schema import (
-    ANONYMOUS_COUNTERPARTY_ID,
     MAX_COUNTERPARTY_ID_LENGTH,
     MAX_COUNTERPARTY_NAME_LENGTH,
     MAX_INVOICE_NUMBER_LENGTH,

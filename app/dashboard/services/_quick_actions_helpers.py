@@ -8,7 +8,6 @@ from typing import Optional
 from app.actions.action_helpers import build_action, build_confirm
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
-from app.annual_reports.repositories.report_lifecycle_repository import DASHBOARD_FINAL_STATUSES
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_read_repository import get_full_record

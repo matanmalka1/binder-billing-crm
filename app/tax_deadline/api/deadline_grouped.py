@@ -9,7 +9,7 @@ from app.users.models.user import UserRole
 from app.core.api_types import PaginatedResponse
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.schemas.tax_deadline import TaxDeadlineResponse
-from app.tax_deadline.schemas.grouped_deadline import DeadlineGroup, GroupedDeadlineListResponse
+from app.tax_deadline.schemas.grouped_deadline import GroupedDeadlineListResponse
 from app.tax_deadline.services.grouped_deadline_service import GroupedDeadlineService
 
 router = APIRouter(

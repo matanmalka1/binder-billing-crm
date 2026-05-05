@@ -5,7 +5,6 @@ from decimal import Decimal
 from random import Random
 from typing import Any, Iterable
 
-from sqlalchemy import delete
 
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_credit_point_reason import (
@@ -32,7 +31,6 @@ from app.annual_reports.models.annual_report_schedule_entry import AnnualReportS
 from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 from app.annual_reports.services.constants import default_recognition_rate
 from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
-from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import EntityType
 from app.tax_deadline.models.tax_deadline import DeadlineType as TaxDeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.users.models.user import UserRole

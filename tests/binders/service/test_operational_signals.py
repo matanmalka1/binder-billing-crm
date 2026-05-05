@@ -1,6 +1,5 @@
 from datetime import date
 
-from app.businesses.models.business import Business
 from app.binders.services.signals_service import SignalsService
 from tests.helpers.identity import seed_client_identity, seed_business
 
