@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, UrgencyLevel
 
@@ -21,7 +21,10 @@ class DeadlineGroup(BaseModel):
     group_key: str
     deadline_type: DeadlineType
     period: Optional[str] = None
+    period_months_count: Optional[int] = None
     tax_year: Optional[int] = None
+    periods: list[dict] = Field(default_factory=list)
+    tax_years: list[int] = Field(default_factory=list)
     due_date: date
     total_clients: int
     pending_count: int

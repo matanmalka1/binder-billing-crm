@@ -1,68 +1,20 @@
-"""Service for grouped deadline read model.
-
-Groups flat TaxDeadline rows by (deadline_type × period/tax_year × due_date)
-and computes per-group aggregates. No DB schema changes needed.
-"""
+"""Service for grouped deadline read model."""
 
 from datetime import date
-from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
+from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.tax_deadline.repositories.grouped_deadline_repository import GroupedDeadlineRepository
-from app.tax_deadline.services.urgency import compute_deadline_urgency
 from app.tax_deadline.schemas.tax_deadline import TaxDeadlineResponse
-from app.tax_deadline.schemas.grouped_deadline import (
-    DeadlineGroup,
-    DeadlineGroupKey,
-    GroupedDeadlineListResponse,
-)
+from app.tax_deadline.schemas.grouped_deadline import GroupedDeadlineListResponse
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.tax_deadline.services.grouped_deadline_builder import build_group, build_group_key, parse_group_key
 from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
 
 _MAX_GROUPS = 200
-_URGENCY_ORDER = {
-    UrgencyLevel.OVERDUE: 0,
-    UrgencyLevel.CRITICAL: 1,
-    UrgencyLevel.WARNING: 2,
-    UrgencyLevel.NORMAL: 3,
-    UrgencyLevel.NONE: 4,
-}
-
-
-def _build_group_key_str(
-    deadline_type,
-    period: Optional[str],
-    tax_year: Optional[int],
-    due_date: date,
-) -> str:
-    type_str = deadline_type.value if hasattr(deadline_type, "value") else str(deadline_type)
-    period_part = period or (str(tax_year) if tax_year else "none")
-    return f"{type_str}__{period_part}__{due_date.isoformat()}"
-
-
-def _parse_group_key(group_key: str) -> DeadlineGroupKey:
-    parts = group_key.split("__")
-    if len(parts) != 3:
-        return None
-    deadline_type_raw, period_part, due_date_str = parts
-    period = period_part if "-" in period_part and len(period_part) == 7 else None
-    tax_year_val = int(period_part) if period_part.isdigit() else None
-    return DeadlineGroupKey(
-        deadline_type=deadline_type_raw,
-        period=period,
-        tax_year=tax_year_val,
-        due_date=date.fromisoformat(due_date_str),
-    )
-
-
-def _worst_urgency(urgencies: list[UrgencyLevel]) -> UrgencyLevel:
-    if not urgencies:
-        return UrgencyLevel.NONE
-    return min(urgencies, key=lambda u: _URGENCY_ORDER[u])
 
 
 class GroupedDeadlineService:
@@ -94,12 +46,12 @@ class GroupedDeadlineService:
 
         groups_map: dict[str, list[TaxDeadline]] = {}
         for d in deadlines:
-            key = _build_group_key_str(d.deadline_type, d.period, d.tax_year, d.due_date)
+            key = build_group_key(d.deadline_type, d.due_date)
             groups_map.setdefault(key, []).append(d)
 
         groups = []
         for group_key, items in list(groups_map.items())[:_MAX_GROUPS]:
-            groups.append(_build_group(group_key, items))
+            groups.append(build_group(group_key, items))
 
         return GroupedDeadlineListResponse(
             groups=groups,
@@ -116,7 +68,7 @@ class GroupedDeadlineService:
         page_size: int = 50,
         user_role=None,
     ) -> tuple[list[TaxDeadlineResponse], int]:
-        parsed = _parse_group_key(group_key)
+        parsed = parse_group_key(group_key)
         if parsed is None:
             return [], 0
 
@@ -124,8 +76,6 @@ class GroupedDeadlineService:
         items, total = self.repo.fetch_group_clients(
             deadline_type=deadline_type,
             due_date=parsed.due_date,
-            period=parsed.period,
-            tax_year=parsed.tax_year,
             status=status,
             limit=page_size,
             offset=(page - 1) * page_size,
@@ -165,45 +115,3 @@ class GroupedDeadlineService:
             }
             for r in records
         }
-
-
-def _build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
-    today = date.today()
-    urgencies = [compute_deadline_urgency(d, today) for d in items]
-    pending = [d for d in items if d.status == TaxDeadlineStatus.PENDING]
-    completed = [d for d in items if d.status == TaxDeadlineStatus.COMPLETED]
-    amounts = [Decimal(str(d.payment_amount)) for d in items if d.payment_amount is not None]
-    open_amounts = [
-        Decimal(str(d.payment_amount))
-        for d in pending
-        if d.payment_amount is not None
-    ]
-
-    representative = items[0]
-    return DeadlineGroup(
-        group_key=group_key,
-        deadline_type=representative.deadline_type,
-        period=representative.period,
-        period_months_count=_group_period_months_count(representative),
-        tax_year=representative.tax_year,
-        due_date=representative.due_date,
-        total_clients=len(items),
-        pending_count=len(pending),
-        completed_count=len(completed),
-        canceled_count=len(items) - len(pending) - len(completed),
-        overdue_count=sum(1 for u in urgencies if u == UrgencyLevel.OVERDUE),
-        total_amount=sum(amounts) if amounts else None,
-        open_amount=sum(open_amounts) if open_amounts else None,
-        worst_urgency=_worst_urgency(urgencies),
-    )
-
-
-def _group_period_months_count(deadline: TaxDeadline) -> int | None:
-    if deadline.deadline_type != DeadlineType.ADVANCE_PAYMENT or not deadline.period:
-        return None
-    start_month = int(deadline.period[-2:])
-    due_month = deadline.due_date.month
-    expected_bimonthly_due_month = start_month + 2
-    if expected_bimonthly_due_month > 12:
-        expected_bimonthly_due_month -= 12
-    return 2 if due_month == expected_bimonthly_due_month else 1

@@ -1,4 +1,4 @@
-"""Routes: grouped VAT work items by period."""
+"""Routes: grouped VAT work items by due date."""
 
 from typing import Optional
 
@@ -45,12 +45,12 @@ def list_work_item_groups(
 
 
 @router.get(
-    "/work-items/groups/{period}/items",
+    "/work-items/groups/{group_key}/items",
     response_model=VatWorkItemGroupItemsResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def list_work_item_group_items(
-    period: str,
+    group_key: str,
     db: DBSession,
     current_user: CurrentUser,
     page: int = Query(default=1, ge=1),
@@ -61,7 +61,7 @@ def list_work_item_group_items(
     result = vat_grouped_enrichment.get_group_items_enriched(
         db,
         UserRepository(db),
-        period=period,
+        group_key=group_key,
         page=page,
         page_size=page_size,
         client_name=client_name,

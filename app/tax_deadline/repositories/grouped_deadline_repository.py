@@ -63,8 +63,6 @@ class GroupedDeadlineRepository:
         *,
         deadline_type: DeadlineType,
         due_date: date,
-        period: Optional[str],
-        tax_year: Optional[int],
         status: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
@@ -77,11 +75,6 @@ class GroupedDeadlineRepository:
             TaxDeadline.deadline_type == deadline_type,
             TaxDeadline.due_date == due_date,
         )
-
-        if period is not None:
-            q = q.filter(TaxDeadline.period == period)
-        elif tax_year is not None:
-            q = q.filter(TaxDeadline.tax_year == tax_year)
 
         if status:
             q = q.filter(TaxDeadline.status == status)

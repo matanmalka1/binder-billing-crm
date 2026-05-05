@@ -76,8 +76,11 @@ class VatWorkItemListResponse(BaseModel):
 
 
 class VatWorkItemGroupSummary(BaseModel):
+    group_key: str
+    due_date: date
     period: str
     period_type: VatType
+    periods: list[dict]
     total_count: int
     filed_count: int
     pending_count: int

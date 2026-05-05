@@ -1,5 +1,6 @@
-"""Grouped/period-level queries for VatWorkItem."""
+"""Grouped/due-date-level queries for VatWorkItem."""
 
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -9,6 +10,7 @@ from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_work_item_filters import apply_vat_work_item_filters
+from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
 def _base_query(db: Session):
@@ -25,7 +27,7 @@ def list_periods_grouped(
     status: Optional[VatWorkItemStatus] = None,
     year: Optional[int] = None,
 ) -> list[dict]:
-    """One summary dict per period, sorted desc."""
+    """One summary dict per operational due date."""
     q = apply_vat_work_item_filters(
         _base_query(db),
         period_type=period_type,
@@ -44,27 +46,40 @@ def list_periods_grouped(
 
     groups: dict[str, dict] = {}
     for row in rows:
-        if row.period not in groups:
-            groups[row.period] = {
+        deadline = compute_deadline_fields(row)["submission_deadline"]
+        if deadline is None:
+            continue
+        due_date = deadline.isoformat()
+        if due_date not in groups:
+            groups[due_date] = {
+                "group_key": due_date,
+                "due_date": deadline,
                 "period": row.period,
                 "period_type": row.period_type,
+                "periods": [],
                 "total_count": 0,
                 "filed_count": 0,
                 "pending_count": 0,
             }
-        g = groups[row.period]
+        g = groups[due_date]
+        period_label = {
+            "period": row.period,
+            "period_type": row.period_type,
+        }
+        if period_label not in g["periods"]:
+            g["periods"].append(period_label)
         g["total_count"] += 1
         if row.status == VatWorkItemStatus.FILED:
             g["filed_count"] += 1
         if row.status == VatWorkItemStatus.PENDING_MATERIALS:
             g["pending_count"] += 1
 
-    return sorted(groups.values(), key=lambda g: g["period"], reverse=True)
+    return sorted(groups.values(), key=lambda g: g["due_date"])
 
 
-def list_by_period_paginated(
+def list_by_due_date_paginated(
     db: Session,
-    period: str,
+    due_date: date,
     *,
     page: int = 1,
     page_size: int = 50,
@@ -73,16 +88,15 @@ def list_by_period_paginated(
 ) -> tuple[list[VatWorkItem], int]:
     q = apply_vat_work_item_filters(
         _base_query(db),
-        period=period,
         client_record_ids=client_record_ids,
     )
     if status is not None:
         q = q.filter(VatWorkItem.status == status)
-    total = q.count()
-    items = (
-        q.order_by(VatWorkItem.client_record_id)
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
+    matching = [
+        item for item in q.all()
+        if compute_deadline_fields(item)["submission_deadline"] == due_date
+    ]
+    total = len(matching)
+    start = (page - 1) * page_size
+    items = sorted(matching, key=lambda item: item.client_record_id)[start:start + page_size]
     return items, total
