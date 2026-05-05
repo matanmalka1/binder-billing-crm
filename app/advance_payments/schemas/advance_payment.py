@@ -182,6 +182,13 @@ class MonthBatchSummary(BaseModel):
 class GenerateScheduleRequest(BaseModel):
     year: int
     period_months_count: Optional[int] = Field(None, ge=1, le=2)
+    reference_date: Optional[date] = Field(
+        None,
+        description=(
+            "אם מסופק, ידלג על תקופות שתאריך היעד שלהן קודם לתאריך זה. "
+            "ברירת מחדל: היום."
+        ),
+    )
 
 class GenerateScheduleResponse(BaseModel):
     created: int

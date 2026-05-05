@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -14,6 +15,7 @@ def generate_annual_schedule(
     year: int,
     db: Session,
     period_months_count: Optional[int] = None,
+    reference_date: Optional[date] = None,
 ) -> tuple[list[AdvancePayment], int]:
     """
     יוצר רשומות מקדמה ללקוח ולשנה נתונים.
@@ -21,8 +23,12 @@ def generate_annual_schedule(
     - period_months_count=2: 6 רשומות דו-חודשיות (YYYY-MM של חודש ראשון)
     תאריך יעד: ה-15 לחודש שאחרי התקופה.
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
+    מדלג על תקופות שתאריך היעד שלהן לפני reference_date (ברירת מחדל: היום).
     מחזיר (created_records, skipped_count).
     """
+    if reference_date is None:
+        reference_date = date.today()
+
     service = AdvancePaymentService(db)
     service._assert_client_allows_create(client_record_id)
     if period_months_count is None:
@@ -40,6 +46,9 @@ def generate_annual_schedule(
     for month in start_months:
         period = f"{year}-{month:02d}"
         due_date = build_due_date(year, month, period_months_count)
+        if due_date < reference_date:
+            skipped += 1
+            continue
         if repo.exists_for_period(client_record_id, period):
             skipped += 1
             continue

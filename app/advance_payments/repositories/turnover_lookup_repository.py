@@ -5,7 +5,11 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+
+# Only FILED items represent settled, authoritative turnover figures.
+_FINAL_STATUSES = [VatWorkItemStatus.FILED]
 
 
 class TurnoverLookupRepository:
@@ -37,6 +41,7 @@ class TurnoverLookupRepository:
             .filter(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(periods),
+                VatWorkItem.status.in_(_FINAL_STATUSES),
                 VatWorkItem.deleted_at.is_(None),
             )
             .all()
@@ -70,6 +75,7 @@ class TurnoverLookupRepository:
             .filter(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(all_periods),
+                VatWorkItem.status.in_(_FINAL_STATUSES),
                 VatWorkItem.deleted_at.is_(None),
             )
             .all()

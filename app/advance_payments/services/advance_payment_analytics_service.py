@@ -55,6 +55,9 @@ class AdvancePaymentAnalyticsService:
         turnover_repo = TurnoverLookupRepository(self.db)
         live_turnover_map = self._build_live_turnover_map(payments, turnover_repo)
 
+        # TODO: Move sort+pagination to SQL. Currently done in Python because the
+        # sort key (official_name) comes from LegalEntity — a cross-domain join
+        # that would require joining ClientRecord → LegalEntity inside the query.
         rows = sorted(
             [
                 (

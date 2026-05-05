@@ -50,7 +50,9 @@ def _closed_client_record_id(db) -> int:
 def test_generate_annual_schedule_creates_all_12_months(test_db):
     business = _business(test_db)
 
-    created, skipped = generate_annual_schedule(business.client_record_id, 2026, test_db)
+    created, skipped = generate_annual_schedule(
+        business.client_record_id, 2026, test_db, reference_date=date(2025, 12, 31)
+    )
 
     assert skipped == 0
     assert len(created) == 12
@@ -70,7 +72,9 @@ def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
         expected_amount=100,
     )
 
-    created, skipped = generate_annual_schedule(business.client_record_id, 2026, test_db)
+    created, skipped = generate_annual_schedule(
+        business.client_record_id, 2026, test_db, reference_date=date(2025, 12, 31)
+    )
 
     assert skipped == 1
     assert len(created) == 11
@@ -103,7 +107,9 @@ def test_generate_annual_schedule_closed_client_raises_forbidden(test_db):
 def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     business = _business(test_db)
 
-    created, skipped = generate_annual_schedule(business.client_record_id, 2026, test_db, period_months_count=2)
+    created, skipped = generate_annual_schedule(
+        business.client_record_id, 2026, test_db, period_months_count=2, reference_date=date(2025, 12, 31)
+    )
 
     assert skipped == 0
     assert len(created) == 6
@@ -113,6 +119,24 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     assert nov.due_date == date(2027, 1, 15)
 
 
+def test_generate_annual_schedule_skips_periods_before_reference_date(test_db):
+    business = _business(test_db)
+
+    # reference_date = 2026-04-01:
+    #   Jan (due Feb 15) < Apr 1 → skip
+    #   Feb (due Mar 15) < Apr 1 → skip
+    #   Mar (due Apr 15) >= Apr 1 → create
+    #   Apr–Dec → create
+    created, skipped = generate_annual_schedule(
+        business.client_record_id, 2026, test_db, period_months_count=1,
+        reference_date=date(2026, 4, 1),
+    )
+
+    assert skipped == 2  # Jan (due Feb 15), Feb (due Mar 15)
+    assert len(created) == 10
+    assert all(p.due_date >= date(2026, 4, 1) for p in created)
+
+
 def test_generate_annual_schedule_uses_advance_payment_frequency_independent_of_vat(test_db):
     business = _business(test_db)
     # VAT bimonthly but advance monthly — should produce 12, not 6
@@ -120,7 +144,9 @@ def test_generate_annual_schedule_uses_advance_payment_frequency_independent_of_
     business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.MONTHLY
     test_db.commit()
 
-    created, skipped = generate_annual_schedule(business.client_record_id, 2026, test_db)
+    created, skipped = generate_annual_schedule(
+        business.client_record_id, 2026, test_db, reference_date=date(2025, 12, 31)
+    )
 
     assert skipped == 0
     assert len(created) == 12

@@ -30,7 +30,7 @@ def test_generate_schedule_endpoint_returns_counts(client, test_db, advisor_head
     resp = client.post(
         f"/api/v1/clients/{business.client_record_id}/advance-payments/generate",
         headers=advisor_headers,
-        json={"business_id": business.id, "year": 2026},
+        json={"business_id": business.id, "year": 2026, "reference_date": "2025-12-31"},
     )
 
     assert resp.status_code == 200

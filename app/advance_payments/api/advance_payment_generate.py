@@ -30,5 +30,6 @@ def generate_advance_payment_schedule(
         request.year,
         db,
         period_months_count=request.period_months_count,
+        reference_date=request.reference_date,
     )
     return GenerateScheduleResponse(created=len(created), skipped=skipped)

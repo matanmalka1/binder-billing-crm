@@ -22,7 +22,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.common.enums import AdvancePaymentFrequency
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
-from app.vat_reports.repositories.vat_work_item_query_repository import VatWorkItemQueryRepository
+from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
 
 
 class AdvancePaymentService:
@@ -142,15 +142,16 @@ class AdvancePaymentService:
             else:
                 filtered["status"] = AdvancePaymentStatus.PARTIAL
 
-        becoming_paid = filtered.get("status") == AdvancePaymentStatus.PAID
+        new_status = filtered.get("status")
+        becoming_settled = new_status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
         already_has_snapshot = payment.reported_turnover is not None
-        if becoming_paid and not already_has_snapshot:
-            vat_item = VatWorkItemQueryRepository(self.db).get_by_client_record_period(
-                client_record_id, payment.period
+        if becoming_settled and not already_has_snapshot:
+            turnover, vat_item_id = TurnoverLookupRepository(self.db).get_turnover_for_period(
+                client_record_id, payment.period, payment.period_months_count
             )
-            if vat_item is not None:
-                filtered["reported_turnover"] = vat_item.total_output_net
-                filtered["turnover_source_vat_work_item_id"] = vat_item.id
+            if turnover is not None:
+                filtered["reported_turnover"] = turnover
+                filtered["turnover_source_vat_work_item_id"] = vat_item_id
 
         return self.repo.update(payment, **filtered)
 

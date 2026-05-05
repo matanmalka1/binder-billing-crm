@@ -1,6 +1,7 @@
 """CRUD repository for AdvancePayment entities."""
 
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -28,7 +29,7 @@ class AdvancePaymentRepository(BaseRepository):
         period_months_count: int,
         due_date: date,
         expected_amount=None,
-        paid_amount=None,
+        paid_amount: Optional[Decimal] = None,
         payment_method=None,
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
@@ -39,7 +40,7 @@ class AdvancePaymentRepository(BaseRepository):
             period_months_count=period_months_count,
             due_date=due_date,
             expected_amount=expected_amount,
-            paid_amount=paid_amount,
+            paid_amount=paid_amount if paid_amount is not None else Decimal("0"),
             payment_method=payment_method,
             annual_report_id=annual_report_id,
             notes=notes,

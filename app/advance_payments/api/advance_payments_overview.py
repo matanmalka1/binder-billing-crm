@@ -24,11 +24,11 @@ def list_advance_payments_overview(
     user: CurrentUser,
     year: int = Query(...),
     month: int | None = Query(None, ge=1, le=12),
-    status: list[str] | None = Query(None),
+    status: list[AdvancePaymentStatus] | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
 ):
-    resolved_statuses = [AdvancePaymentStatus(s) for s in status] if status else None
+    resolved_statuses = status if status else None
 
     service = AdvancePaymentAnalyticsService(db)
     rows, total = service.list_overview(
