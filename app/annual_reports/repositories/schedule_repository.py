@@ -62,7 +62,7 @@ class AnnualReportScheduleRepository:
             self.db.query(AnnualReportScheduleEntry)
             .filter(
                 AnnualReportScheduleEntry.annual_report_id == annual_report_id,
-                AnnualReportScheduleEntry.is_required == True,
+                AnnualReportScheduleEntry.is_required.is_(True),
             )
             .all()
         )

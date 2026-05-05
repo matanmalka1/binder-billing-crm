@@ -12,10 +12,6 @@ from app.notification.repositories.notification_repository import NotificationRe
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.tax_deadline.models.tax_deadline import TaxDeadline
-# Safety ceiling for per-entity bulk fetches — per-client, not global.
-# Known architectural debt; see CLAUDE.md debt table.
-_TIMELINE_BULK_LIMIT = 500
-
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_returned_event,
@@ -33,6 +29,9 @@ from app.timeline.services.timeline_tax_builders import (
     annual_report_status_changed_event,
     tax_deadline_due_event,
 )
+
+# Safety ceiling for per-entity bulk fetches — per-client, not global.
+_TIMELINE_BULK_LIMIT = 500
 
 
 class TimelineService:

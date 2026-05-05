@@ -21,11 +21,11 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.binders.services import binder_helpers
-
-_log = logging.getLogger(__name__)
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
 from app.notification.services.notification_service import NotificationService
+
+_log = logging.getLogger(__name__)
 
 
 class BinderService(BinderListService):

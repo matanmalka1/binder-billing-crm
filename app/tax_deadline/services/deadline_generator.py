@@ -1,9 +1,6 @@
 from datetime import date
 
 from sqlalchemy.orm import Session
-
-_today = date.today  # injectable for tests
-
 from app.common.enums import EntityType, VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
@@ -16,6 +13,8 @@ from app.tax_deadline.services.obligation_plan import (
     annual_report_due_date,
     vat_deadline_plan,
 )
+
+_today = date.today  # injectable for tests
 
 
 class DeadlineGeneratorService:

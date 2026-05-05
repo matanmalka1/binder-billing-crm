@@ -50,7 +50,7 @@ def test_active_queries_and_soft_delete(test_db):
     )
     repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
 
-    binder_other = repo.create(
+    _binder_other = repo.create(
         client_record_id=client_b.id,
         binder_number="BB-1",
         period_start=date(2024, 3, 3),
@@ -85,7 +85,7 @@ def test_list_active_respects_sort_and_filters(test_db):
         period_start=date(2024, 1, 1),
         created_by=user.id,
     )
-    newer = repo.create(
+    _newer = repo.create(
         client_record_id=client.id,
         binder_number="BG-2",
         period_start=date(2024, 2, 1),

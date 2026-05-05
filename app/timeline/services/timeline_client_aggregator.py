@@ -3,9 +3,6 @@ from app.clients.repositories.legal_entity_repository import LegalEntityReposito
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-
-_TIMELINE_BULK_LIMIT = 500
-
 from app.timeline.services.timeline_client_builders import (
     client_created_event,
     client_info_updated_event,
@@ -13,6 +10,8 @@ from app.timeline.services.timeline_client_builders import (
     reminder_created_event,
     signature_request_created_event,
 )
+
+_TIMELINE_BULK_LIMIT = 500
 
 
 def build_client_events(

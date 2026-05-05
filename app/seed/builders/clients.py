@@ -172,7 +172,6 @@ def create_extra_businesses(
                 rng=rng,
                 used_names=used_names,
             )
-            open_days_ago = rng.randint(20, 1100)
             opened_at = primary_business.opened_at - timedelta(days=rng.randint(0, 180)) if hasattr(primary_business, "opened_at") and primary_business.opened_at else None
 
             biz = biz_svc.create_business_for_client_record(

@@ -27,11 +27,11 @@ def _vat_deadline(period_year: int, period_month: int) -> date:
             pass
     return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
 
-from app.clients.models.legal_entity import LegalEntity
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.reports.constants import VAT_STALE_PENDING_DAYS
-from app.utils.time_utils import utcnow
-from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository
+from app.clients.models.legal_entity import LegalEntity  # noqa: E402
+from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: E402
+from app.reports.constants import VAT_STALE_PENDING_DAYS  # noqa: E402
+from app.utils.time_utils import utcnow  # noqa: E402
+from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository  # noqa: E402
 
 
 class VatComplianceReportService:

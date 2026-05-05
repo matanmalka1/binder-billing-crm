@@ -1,9 +1,7 @@
 from unittest.mock import MagicMock
 
-from .test_annual_report_enums import (
-    AnnualReportStatus,
-    utcnow,
-)
+from .test_annual_report_enums import AnnualReportStatus
+from app.utils.time_utils import utcnow
 
 
 class InMemoryRepo:

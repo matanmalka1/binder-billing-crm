@@ -1,28 +1,25 @@
 from datetime import datetime
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from tax_rules import get_financial
 
 from app.common.enums import EntityType
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
+from app.vat_reports.services.constants import OSEK_PATUR_CEILING_WARNING_RATE
 from app.vat_reports.services.data_entry_common import (
     assert_transition_allowed,
     check_osek_patur_ceiling,
     resolve_invoice_derived_fields,
 )
-from decimal import Decimal
-
-from tax_rules import get_financial
-from app.vat_reports.services.constants import OSEK_PATUR_CEILING_WARNING_RATE
-
-OSEK_PATUR_CEILING_ILS = Decimal(str(get_financial(2026, "osek_patur_ceiling_ils").value))
 from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
 from app.vat_reports.services.data_entry_invoices import add_invoice
 
+OSEK_PATUR_CEILING_ILS = Decimal(str(get_financial(2026, "osek_patur_ceiling_ils").value))
 
 def test_add_invoice_not_found_and_invalid_status(monkeypatch):
-    business_repo = SimpleNamespace(get_by_id=lambda _id: None)
     work_item_repo = SimpleNamespace(get_by_id=lambda _id: None)
     invoice_repo = SimpleNamespace()
     with pytest.raises(NotFoundError):

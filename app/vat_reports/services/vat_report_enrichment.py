@@ -18,7 +18,6 @@ from app.vat_reports.services.vat_report_queries import (
 
 def _build_client_maps(db, client_record_ids: list[int]) -> dict[str, dict]:
     client_records = ClientRecordRepository(db).list_by_ids(client_record_ids) if client_record_ids else []
-    record_by_id = {record.id: record for record in client_records}
     legal_entity_ids = list({record.legal_entity_id for record in client_records})
     legal_entity_by_id = {
         entity.id: entity

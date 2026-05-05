@@ -23,9 +23,8 @@ def _doc_timestamps(rng: Random, now: datetime):
     is_present = rng.random() > 0.05
     if not is_present and status in (DocumentStatus.APPROVED, DocumentStatus.RECEIVED):
         status = DocumentStatus.PENDING
-    approved_by = approved_at = rejected_at = rejected_by = None
+    approved_at = rejected_at = None
     if status == DocumentStatus.APPROVED and is_present and rng.random() < 0.7:
-        approved_by = None  # set by caller
         approved_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 30)))
     if status == DocumentStatus.REJECTED:
         rejected_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 10)))

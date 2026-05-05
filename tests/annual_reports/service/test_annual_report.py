@@ -11,10 +11,9 @@ from .test_annual_report_enums import (
     VALID_TRANSITIONS,
     extended_deadline,
     standard_deadline,
-    utcnow,
 )
 from .test_annual_report_repo import InMemoryRepo
-
+from app.utils.time_utils import utcnow
 
 class AnnualReportService:
     def __init__(self):

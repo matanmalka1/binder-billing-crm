@@ -5,19 +5,19 @@ if _tax_rules_path not in _sys.path:
     _sys.path.insert(0, _tax_rules_path)
 del _sys, _os, _tax_rules_path
 
-from typing import Literal
+from typing import Literal  # noqa: E402
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import FastAPI  # noqa: E402
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
 
-from app.config import config
-from app.core.env_validator import EnvValidator
-from app.core.exceptions import setup_exception_handlers
-from app.core.logging_config import get_logger, setup_logging
-from app.middleware.request_id import RequestIDMiddleware
-from app.lifespan import lifespan
-from app.router_registry import register_routers
+from app.config import config  # noqa: E402
+from app.core.env_validator import EnvValidator  # noqa: E402
+from app.core.exceptions import setup_exception_handlers  # noqa: E402
+from app.core.logging_config import get_logger, setup_logging  # noqa: E402
+from app.middleware.request_id import RequestIDMiddleware  # noqa: E402
+from app.lifespan import lifespan  # noqa: E402
+from app.router_registry import register_routers  # noqa: E402
 
 EnvValidator.validate()
 

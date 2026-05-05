@@ -62,7 +62,7 @@ def test_pending_status_and_business_queries(test_db):
     business_a = _business(test_db, client_a)
     business_b = _business(test_db, client_b)
 
-    due_earliest = _create_reminder(
+    _due_earliest = _create_reminder(
         repo, business_b.id, client_record_id=client_b.id, send_on=today - timedelta(days=2), message="due earliest"
     )
     due_old = _create_reminder(

@@ -20,11 +20,11 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.database import SessionLocal
-from app.users.models.user import UserRole
-from app.users.repositories.user_repository import UserRepository
-from app.users.services.auth_service import AuthService
-from app.users.services.user_management_policies import validate_password
+from app.database import SessionLocal  # noqa: E402
+from app.users.models.user import UserRole  # noqa: E402
+from app.users.repositories.user_repository import UserRepository  # noqa: E402
+from app.users.services.auth_service import AuthService  # noqa: E402
+from app.users.services.user_management_policies import validate_password  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

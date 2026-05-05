@@ -15,7 +15,6 @@ class BinderListService:
 
     def _build_client_context_maps(self, client_record_ids: list[int]) -> tuple[dict[int, int | None], dict[int, str], dict[int, str | None]]:
         client_records = self.client_record_repo.list_by_ids(client_record_ids) if client_record_ids else []
-        record_by_id = {record.id: record for record in client_records}
         legal_entity_ids = list({record.legal_entity_id for record in client_records})
         legal_entity_by_id = {
             entity.id: entity

@@ -100,13 +100,15 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
             report = _pick_for_client(rng, reports_by_client, client.id)
             document = _pick_for_client(rng, documents_by_client, client.id)
             if status_idx < len(status_cycle):
-                status = status_cycle[status_idx]; status_idx += 1
+                status = status_cycle[status_idx]
+                status_idx += 1
             else:
                 status = rng.choice(status_cycle)
             timestamps = _build_timestamps(rng, status)
             serial = existing_count + len(requests) + 1
             if type_idx < len(type_cycle):
-                request_type = type_cycle[type_idx]; type_idx += 1
+                request_type = type_cycle[type_idx]
+                type_idx += 1
             else:
                 request_type = rng.choice(type_cycle)
             title_prefix, request_description = SIGNATURE_COPY[request_type]

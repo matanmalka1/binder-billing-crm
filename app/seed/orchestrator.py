@@ -123,7 +123,7 @@ class SeedOrchestrator:
             charges_builder.create_invoices(db, seeded_charges)
 
             # Historical annual reports (current year shell already exists from onboarding)
-            seeded_reports = reports_builder.create_annual_reports(db, self.rng, self.cfg, all_businesses, seeded_users)
+            reports_builder.create_annual_reports(db, self.rng, self.cfg, all_businesses, seeded_users)
             # Load all reports (including onboarding shells) for enrichment
             all_reports = self._load_all_reports(db, client_records)
 

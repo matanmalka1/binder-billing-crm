@@ -89,7 +89,7 @@ class AnnualReportExpenseRepository:
         """Sum of amount × recognition_rate across all expense lines."""
         lines = self.list_by_report(annual_report_id)
         return sum(
-            (Decimal(str(l.amount)) * Decimal(str(l.recognition_rate)) for l in lines),
+            (Decimal(str(line.amount)) * Decimal(str(line.recognition_rate)) for line in lines),
             Decimal("0"),
         )
 

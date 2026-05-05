@@ -39,7 +39,6 @@ def _user(db) -> User:
     db.flush()
     return u
 
-
 def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
     """Create client identity + business. Returns (client_record, client_record_id)."""
     idx = next(_seq)
@@ -51,7 +50,6 @@ def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
         vat_reporting_frequency=vat_type,
         entity_type=EntityType.COMPANY_LTD,
     )
-    user = _user(db)
     biz = Business(
         legal_entity_id=client.legal_entity_id,
         business_name=client.full_name,
@@ -62,7 +60,6 @@ def _setup_client(db, vat_type=VatType.MONTHLY) -> tuple:
     biz.client_id = client.id
     db.commit()
     return client, client.id
-
 
 # ── Step 1: Unique constraint enforcement ─────────────────────────────────────
 

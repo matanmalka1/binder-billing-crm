@@ -78,14 +78,6 @@ def export_vat_to_pdf(
         textColor=colors.HexColor("#666666"),
         alignment=2,  # Right align for RTL
     )
-    small_text_style = ParagraphStyle(
-        "SmallText",
-        parent=styles["Normal"],
-        fontName=font_name,
-        fontSize=10,
-        textColor=colors.HexColor("#999999"),
-    )
-
     elements = []
 
     # Header Section: Client info (right) and Report type (left)

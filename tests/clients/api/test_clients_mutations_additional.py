@@ -82,7 +82,7 @@ def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers)
 
 
 def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
-    active = create_client_via_api(client, advisor_headers, full_name="Conflict Active", id_number="700000052")
+    _active = create_client_via_api(client, advisor_headers, full_name="Conflict Active", id_number="700000052")
     deleted = create_client_via_api(client, advisor_headers, full_name="Conflict Deleted", id_number="700000060")
 
     client.delete(f"/api/v1/clients/{deleted.json()['client']['id']}", headers=advisor_headers)
