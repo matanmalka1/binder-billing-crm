@@ -75,12 +75,17 @@ class VatWorkItemListResponse(BaseModel):
     total: int
 
 
+class VatGroupPeriod(BaseModel):
+    period: str
+    period_type: VatType
+
+
 class VatWorkItemGroupSummary(BaseModel):
     group_key: str
     due_date: date
     period: str
     period_type: VatType
-    periods: list[dict]
+    periods: list[VatGroupPeriod]
     total_count: int
     filed_count: int
     pending_count: int

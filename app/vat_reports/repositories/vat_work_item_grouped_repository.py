@@ -19,7 +19,7 @@ def _base_query(db: Session):
     ).filter(VatWorkItem.deleted_at.is_(None))
 
 
-def list_periods_grouped(
+def list_due_date_groups(
     db: Session,
     *,
     period_type: Optional[VatType] = None,
@@ -62,12 +62,12 @@ def list_periods_grouped(
                 "pending_count": 0,
             }
         g = groups[due_date]
-        period_label = {
+        period_summary = {
             "period": row.period,
             "period_type": row.period_type,
         }
-        if period_label not in g["periods"]:
-            g["periods"].append(period_label)
+        if period_summary not in g["periods"]:
+            g["periods"].append(period_summary)
         g["total_count"] += 1
         if row.status == VatWorkItemStatus.FILED:
             g["filed_count"] += 1
@@ -92,8 +92,10 @@ def list_by_due_date_paginated(
     )
     if status is not None:
         q = q.filter(VatWorkItem.status == status)
+    # TODO: move VAT submission_deadline to persisted/read-model field to avoid Python-side filtering.
     matching = [
-        item for item in q.all()
+        item
+        for item in q.all()
         if compute_deadline_fields(item)["submission_deadline"] == due_date
     ]
     total = len(matching)

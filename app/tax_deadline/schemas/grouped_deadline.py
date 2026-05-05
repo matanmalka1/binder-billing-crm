@@ -11,10 +11,12 @@ from app.tax_deadline.models.tax_deadline import DeadlineType, UrgencyLevel
 
 class DeadlineGroupKey(BaseModel):
     deadline_type: str
-    period: Optional[str] = None
-    period_months_count: Optional[int] = None
-    tax_year: Optional[int] = None
     due_date: date
+
+
+class DeadlineGroupPeriod(BaseModel):
+    period: str
+    period_months_count: Optional[int] = None
 
 
 class DeadlineGroup(BaseModel):
@@ -23,7 +25,7 @@ class DeadlineGroup(BaseModel):
     period: Optional[str] = None
     period_months_count: Optional[int] = None
     tax_year: Optional[int] = None
-    periods: list[dict] = Field(default_factory=list)
+    periods: list[DeadlineGroupPeriod] = Field(default_factory=list)
     tax_years: list[int] = Field(default_factory=list)
     due_date: date
     total_clients: int

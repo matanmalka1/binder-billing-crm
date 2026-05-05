@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
-from app.tax_deadline.schemas.grouped_deadline import DeadlineGroup, DeadlineGroupKey
+from app.tax_deadline.schemas.grouped_deadline import DeadlineGroup, DeadlineGroupKey, DeadlineGroupPeriod
 from app.tax_deadline.services.urgency import compute_deadline_urgency
 
 _URGENCY_ORDER = {
@@ -26,10 +26,11 @@ def parse_group_key(group_key: str) -> DeadlineGroupKey | None:
     if len(parts) != 2:
         return None
     deadline_type_raw, due_date_str = parts
-    return DeadlineGroupKey(
-        deadline_type=deadline_type_raw,
-        due_date=date.fromisoformat(due_date_str),
-    )
+    try:
+        due_date = date.fromisoformat(due_date_str)
+    except ValueError:
+        return None
+    return DeadlineGroupKey(deadline_type=deadline_type_raw, due_date=due_date)
 
 
 def build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
@@ -78,7 +79,7 @@ def _group_period_months_count(deadline: TaxDeadline) -> int | None:
     return 2 if due_month == expected_bimonthly_due_month else 1
 
 
-def _group_periods(items: list[TaxDeadline]) -> list[dict]:
+def _group_periods(items: list[TaxDeadline]) -> list[DeadlineGroupPeriod]:
     seen = set()
     periods = []
     for item in items:
@@ -89,5 +90,5 @@ def _group_periods(items: list[TaxDeadline]) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        periods.append({"period": item.period, "period_months_count": months_count})
+        periods.append(DeadlineGroupPeriod(period=item.period, period_months_count=months_count))
     return periods

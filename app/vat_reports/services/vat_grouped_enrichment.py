@@ -24,7 +24,7 @@ def get_groups(
     client_record_ids = _resolve_client_ids(db, client_name)
     if client_name and not client_record_ids:
         return []
-    return grouped_repo.list_periods_grouped(
+    return grouped_repo.list_due_date_groups(
         db,
         period_type=period_type,
         client_record_ids=client_record_ids,
