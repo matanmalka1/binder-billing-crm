@@ -4,7 +4,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel
 
 from app.clients.enums import ClientStatus
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
 from app.businesses.schemas.business_schemas import BusinessResponse
 from app.clients.schemas.impact import ClientCreationImpactResponse
@@ -30,6 +30,7 @@ class ClientRecordResponse(BaseModel):
     notes: Optional[str] = None                     # ClientRecord.notes
     # ── Tax reporting (LegalEntity) ───────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
     vat_exempt_ceiling: Optional[ApiDecimal] = None
     advance_rate: Optional[ApiDecimal] = None
     advance_rate_updated_at: Optional[date] = None
