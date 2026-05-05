@@ -1,10 +1,11 @@
-from app.common.enums import VatType
+from app.common.enums import AdvancePaymentFrequency, VatType
 from tests.tax_deadline.factories import create_business
 
 
 def test_generate_deadlines_endpoint_success(client, test_db, advisor_headers):
     business = create_business(test_db, name_prefix="API Generate")
     business.legal_entity.vat_reporting_frequency = VatType.MONTHLY
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.MONTHLY
     test_db.commit()
 
     resp = client.post(

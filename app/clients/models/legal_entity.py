@@ -20,7 +20,7 @@ class LegalEntity(Base):
     official_name = Column(String, nullable=False)
 
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
-    advance_payment_frequency = Column(pg_enum(AdvancePaymentFrequency), nullable=True)
+    advance_payment_frequency = Column(pg_enum(AdvancePaymentFrequency, name="advance_payment_frequency"), nullable=True)
     vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
     advance_rate_updated_at = Column(Date, nullable=True)

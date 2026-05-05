@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from app.common.enums import VatType
+from app.common.enums import AdvancePaymentFrequency, VatType
 from app.core.exceptions import NotFoundError
 from app.tax_deadline.models.tax_deadline import DeadlineType
 from app.tax_deadline.services.deadline_generator import DeadlineGeneratorService
@@ -52,6 +52,8 @@ def test_generate_vat_deadlines_exempt_or_missing_profile_creates_none(test_db):
 def test_generate_advance_annual_and_all(test_db):
     business = create_business(test_db, name_prefix="Gen All")
     _set_vat_profile(test_db, business, VatType.MONTHLY)
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.MONTHLY
+    test_db.commit()
 
     service = DeadlineGeneratorService(test_db)
 
@@ -72,6 +74,8 @@ def test_generate_advance_annual_and_all(test_db):
 def test_generate_advance_payment_deadlines_uses_bimonthly_frequency(test_db):
     business = create_business(test_db, name_prefix="Gen Advance Bimonthly")
     _set_vat_profile(test_db, business, VatType.BIMONTHLY)
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.BIMONTHLY
+    test_db.commit()
 
     created = DeadlineGeneratorService(test_db).generate_advance_payment_deadlines(
         business.client_id,
