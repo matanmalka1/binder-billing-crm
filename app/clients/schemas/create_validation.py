@@ -93,7 +93,7 @@ def validate_preview_entity_rules(
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
     if entity_type == EntityType.OSEK_PATUR:
-        if vat_reporting_frequency_was_set:
+        if vat_reporting_frequency_was_set and vat_reporting_frequency != VatType.EXEMPT:
             raise ValueError(PATUR_MANUAL_VAT_FREQUENCY_ERROR)
         return
     if entity_type == EntityType.COMPANY_LTD and vat_reporting_frequency == VatType.EXEMPT:
