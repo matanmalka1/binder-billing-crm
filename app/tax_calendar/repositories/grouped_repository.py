@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.advance_payments.models.advance_payment import AdvancePayment
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import ObligationType
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -73,4 +75,32 @@ class TaxCalendarGroupedRepository:
             .filter(AnnualReport.tax_calendar_entry_id.in_(entry_ids))
             .filter(AnnualReport.deleted_at.is_(None))
             .all()
+        )
+
+    def get_entry(self, entry_id: int) -> TaxCalendarEntry | None:
+        return self.db.get(TaxCalendarEntry, entry_id)
+
+    def list_vat_items(self, entry_id: int):
+        return self._with_client(VatWorkItem).filter(
+            VatWorkItem.tax_calendar_entry_id == entry_id,
+            VatWorkItem.deleted_at.is_(None),
+        ).all()
+
+    def list_advance_items(self, entry_id: int):
+        return self._with_client(AdvancePayment).filter(
+            AdvancePayment.tax_calendar_entry_id == entry_id,
+            AdvancePayment.deleted_at.is_(None),
+        ).all()
+
+    def list_annual_items(self, entry_id: int):
+        return self._with_client(AnnualReport).filter(
+            AnnualReport.tax_calendar_entry_id == entry_id,
+            AnnualReport.deleted_at.is_(None),
+        ).all()
+
+    def _with_client(self, model):
+        return (
+            self.db.query(model, ClientRecord, LegalEntity)
+            .join(ClientRecord, model.client_record_id == ClientRecord.id)
+            .join(LegalEntity, ClientRecord.legal_entity_id == LegalEntity.id)
         )
