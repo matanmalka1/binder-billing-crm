@@ -1,3 +1,4 @@
+from sqlalchemy import String, case, func
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -7,6 +8,34 @@ from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import ObligationType
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.vat_reports.models.vat_work_item import VatWorkItem
+
+
+def _entry_sort_clauses():
+    # periodic rows sort by their period; annual_report (period=NULL) sorts after
+    # all months of the same tax_year using a synthetic '9999-99' sentinel.
+    period_key = func.coalesce(
+        TaxCalendarEntry.period,
+        func.cast(TaxCalendarEntry.tax_year, String) + "-99",
+    )
+    obligation_priority = case(
+        (TaxCalendarEntry.obligation_type == ObligationType.VAT, 1),
+        (TaxCalendarEntry.obligation_type == ObligationType.ADVANCE_PAYMENT, 2),
+        (TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT, 3),
+        else_=9,
+    )
+    frequency_priority = case(
+        (TaxCalendarEntry.period_months_count == 1, 1),
+        (TaxCalendarEntry.period_months_count == 2, 2),
+        else_=9,
+    )
+    return (
+        TaxCalendarEntry.tax_year.asc(),
+        period_key.asc(),
+        obligation_priority.asc(),
+        frequency_priority.asc(),
+        TaxCalendarEntry.due_date.asc(),
+        TaxCalendarEntry.id.asc(),
+    )
 
 
 class TaxCalendarGroupedRepository:
@@ -37,15 +66,7 @@ class TaxCalendarGroupedRepository:
                     ]
                 )
             )
-        return (
-            query.order_by(
-                TaxCalendarEntry.tax_year.asc(),
-                TaxCalendarEntry.due_date.asc(),
-                TaxCalendarEntry.obligation_type.asc(),
-                TaxCalendarEntry.period.asc(),
-            )
-            .all()
-        )
+        return query.order_by(*_entry_sort_clauses()).all()
 
     def list_vat_for_entries(self, entry_ids: list[int]) -> list[VatWorkItem]:
         if not entry_ids:
