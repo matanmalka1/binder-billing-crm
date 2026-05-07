@@ -70,6 +70,9 @@ class AdvancePayment(Base):
     period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period
     period_months_count = Column(Integer, nullable=False, default=1)  # 1=monthly, 2=bi-monthly
     due_date            = Column(Date, nullable=False)            # Usually the 15th of the month after the period
+    due_date_original   = Column(Date, nullable=True)
+    due_date_effective  = Column(Date, nullable=True)
+    due_date_override_reason = Column(String(500), nullable=True)
 
     # ── Amounts ───────────────────────────────────────────────────────────────
     expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
@@ -122,3 +125,6 @@ class AdvancePayment(Base):
             f"<AdvancePayment(id={self.id}, client_record_id={self.client_record_id}, "
             f"period='{self.period}', status='{self.status}')>"
         )
+
+
+from app.advance_payments.models import due_date_snapshot_events  # noqa: E402,F401

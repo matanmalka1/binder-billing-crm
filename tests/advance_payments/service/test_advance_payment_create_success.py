@@ -47,7 +47,81 @@ def test_create_payment_success_sets_defaults(test_db):
     assert payment.expected_amount == Decimal("250.50")
     assert payment.paid_amount == Decimal("100.00")
     assert payment.due_date == date(2026, 3, 15)
+    assert payment.due_date_original == date(2026, 3, 15)
+    assert payment.due_date_effective == date(2026, 3, 15)
+    assert payment.due_date_override_reason is None
     assert payment.notes == "first advance"
+
+
+def test_due_date_original_cannot_change_after_first_set(test_db):
+    client_record = _client_record(test_db)
+    service = AdvancePaymentService(test_db)
+    payment = service.create_payment_for_client(
+        client_record_id=client_record.id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    test_db.commit()
+
+    payment.due_date_original = date(2026, 2, 16)
+    with pytest.raises(ValueError):
+        test_db.commit()
+    test_db.rollback()
+
+
+def test_due_date_effective_can_change_with_override_reason(test_db):
+    client_record = _client_record(test_db)
+    service = AdvancePaymentService(test_db)
+    payment = service.create_payment_for_client(
+        client_record_id=client_record.id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    test_db.commit()
+
+    payment.due_date_effective = date(2026, 2, 20)
+    payment.due_date_override_reason = "אישור דחייה"
+    test_db.commit()
+
+    assert payment.due_date_original == date(2026, 2, 15)
+    assert payment.due_date_effective == date(2026, 2, 20)
+
+
+def test_due_date_effective_requires_reason_when_changed(test_db):
+    client_record = _client_record(test_db)
+    service = AdvancePaymentService(test_db)
+    payment = service.create_payment_for_client(
+        client_record_id=client_record.id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    test_db.commit()
+
+    payment.due_date_effective = date(2026, 2, 20)
+    with pytest.raises(ValueError):
+        test_db.commit()
+    test_db.rollback()
+
+
+def test_due_date_effective_equal_original_does_not_require_reason(test_db):
+    client_record = _client_record(test_db)
+    service = AdvancePaymentService(test_db)
+    payment = service.create_payment_for_client(
+        client_record_id=client_record.id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    test_db.commit()
+
+    payment.due_date_effective = payment.due_date_original
+    payment.notes = "touch row"
+    test_db.commit()
+
+    assert payment.due_date_effective == payment.due_date_original
 
 
 def test_create_payment_missing_business_raises(test_db):
