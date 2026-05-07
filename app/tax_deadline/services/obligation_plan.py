@@ -70,6 +70,10 @@ def advance_payment_deadline_plan(
     due_dates = []
     for month in period_starts:
         period = f"{year}-{month:02d}"
+        calendar_period = period
+        if frequency == AdvancePaymentFrequency.BIMONTHLY:
+            period_end = month + 1
+            calendar_period = f"{year}-{period_end:02d}"
         filing_month = month + step
         filing_year = year
         if filing_month > 12:
@@ -77,7 +81,7 @@ def advance_payment_deadline_plan(
             filing_year += 1
         due_dates.append(
             PeriodicDeadlinePlan(
-                due_date=periodic_due_date(filing_year, filing_month, period),
+                due_date=periodic_due_date(filing_year, filing_month, calendar_period),
                 period=period,
             )
         )

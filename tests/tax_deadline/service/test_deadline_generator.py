@@ -88,6 +88,23 @@ def test_generate_advance_payment_deadlines_uses_bimonthly_frequency(test_db):
     assert created[0].due_date == date(2027, 3, 15)
 
 
+def test_generate_advance_payment_deadlines_bimonthly_uses_period_end_calendar(test_db):
+    business = create_business(test_db, name_prefix="Gen Advance Bimonthly Calendar")
+    _set_vat_profile(test_db, business, VatType.BIMONTHLY)
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.BIMONTHLY
+    test_db.commit()
+
+    created = DeadlineGeneratorService(test_db).generate_advance_payment_deadlines(
+        business.client_id,
+        2026,
+        reference_date=date(2026, 5, 7),
+    )
+
+    march = next((deadline for deadline in created if deadline.period == "2026-03"), None)
+    assert march is not None
+    assert march.due_date == date(2026, 5, 18)
+
+
 def test_generate_all_raises_for_missing_business(test_db):
     with pytest.raises(NotFoundError):
         DeadlineGeneratorService(test_db).generate_all(999999, 2026)
