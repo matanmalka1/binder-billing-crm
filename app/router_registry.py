@@ -17,6 +17,7 @@ from app.reports.api.routers import router as reports_router
 from app.search.api.routers import router as search_router
 from app.signature_requests.api import routers as signature_requests_routers
 from app.reminders.api import routers as reminders
+from app.tax_calendar.api.routers import router as tax_calendar_router
 from app.tax_deadline.api.routers import router as tax_deadline_router
 from app.timeline.api.routers import router as timeline_router
 from app.users.api.routers import router as users_router
@@ -29,6 +30,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(health_router)
     app.include_router(users_router, prefix="/api/v1")
     app.include_router(annual_reports_router, prefix="/api/v1")
+    app.include_router(tax_calendar_router, prefix="/api/v1")
     app.include_router(tax_deadline_router, prefix="/api/v1")
     app.include_router(authority_contact_router, prefix="/api/v1")
     app.include_router(dashboard_router, prefix="/api/v1")
