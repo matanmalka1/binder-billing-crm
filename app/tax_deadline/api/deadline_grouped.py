@@ -32,7 +32,7 @@ def list_grouped_deadlines(
     """Return deadline groups for the main מועדים page.
 
     Groups raw client deadlines by (type × period × due_date).
-    Default window: today + 90 days. Max 200 groups.
+    Date filters are applied only when provided by the caller.
     """
     from datetime import date as date_type
 
