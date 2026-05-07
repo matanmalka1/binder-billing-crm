@@ -2,7 +2,11 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas.annual_report_responses import AnnualReportListResponse, SeasonSummaryResponse
+from app.annual_reports.schemas.annual_report_responses import (
+    AnnualReportListResponse,
+    DefaultTaxYearResponse,
+    SeasonSummaryResponse,
+)
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.season_years import get_active_annual_report_tax_year
 
@@ -36,6 +40,11 @@ def list_active_season_reports(
 def get_active_season_summary(db: DBSession, user: CurrentUser):
     tax_year = get_active_annual_report_tax_year()
     return AnnualReportService(db).get_season_summary_response(tax_year)
+
+
+@season_router.get("/default", response_model=DefaultTaxYearResponse)
+def get_default_tax_year(db: DBSession, user: CurrentUser):
+    return AnnualReportService(db).get_default_tax_year_response()
 
 
 @season_router.get("/{tax_year}/reports", response_model=AnnualReportListResponse)

@@ -221,6 +221,7 @@ All routes under `/api/v1/`. Minimum role: `SECRETARY` unless noted.
 | `GET` | `/annual-reports/{id}` | SECRETARY+ | Full detail |
 | `DELETE` | `/annual-reports/{id}` | ADVISOR | Soft-delete |
 | `POST` | `/annual-reports/{id}/amend` | ADVISOR | Transition `SUBMITTED → AMENDED` |
+| `GET` | `/tax-year/default` | Default annual report tax year |
 
 ### Status & Workflow
 

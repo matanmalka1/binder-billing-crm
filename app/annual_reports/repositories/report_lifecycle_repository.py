@@ -10,7 +10,7 @@ from sqlalchemy import func
 from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.utils.time_utils import utcnow
+from app.utils.time_utils import israel_today, utcnow
 
 DASHBOARD_FINAL_STATUSES = frozenset({
     AnnualReportStatus.SUBMITTED,
@@ -97,6 +97,28 @@ class AnnualReportLifecycleRepository:
             .order_by(AnnualReport.filing_deadline.asc())
             .limit(limit)
             .all()
+        )
+
+    def get_default_tax_year_candidate(self) -> Optional[AnnualReport]:
+        return (
+            self._active_client_query()
+            .filter(
+                AnnualReport.status.notin_(list(DASHBOARD_FINAL_STATUSES)),
+                AnnualReport.filing_deadline.isnot(None),
+                AnnualReport.filing_deadline >= israel_today(),
+                AnnualReport.deleted_at.is_(None),
+            )
+            .order_by(AnnualReport.filing_deadline.asc())
+            .limit(1)
+            .first()
+        )
+
+    def get_latest_tax_year(self) -> Optional[int]:
+        return (
+            self._active_client_query()
+            .with_entities(func.max(AnnualReport.tax_year))
+            .filter(AnnualReport.deleted_at.is_(None))
+            .scalar()
         )
 
     def get_season_summary(self, tax_year: int) -> dict:

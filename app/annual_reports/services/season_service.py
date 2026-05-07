@@ -1,9 +1,23 @@
-from app.annual_reports.schemas.annual_report_responses import SeasonSummaryResponse
+from app.annual_reports.schemas.annual_report_responses import (
+    DefaultTaxYearResponse,
+    SeasonSummaryResponse,
+)
 from app.annual_reports.services.season_years import get_filing_season_year
+from app.utils.time_utils import israel_today
 from .base import AnnualReportBaseService
 
 
 class AnnualReportSeasonService(AnnualReportBaseService):
+    def get_default_tax_year_response(self) -> DefaultTaxYearResponse:
+        active_report = self.repo.get_default_tax_year_candidate()
+        if active_report:
+            return DefaultTaxYearResponse(tax_year=active_report.tax_year)
+        tax_year = self.repo.get_latest_tax_year() or self._fallback_tax_year()
+        return DefaultTaxYearResponse(tax_year=tax_year)
+
+    def _fallback_tax_year(self) -> int:
+        return israel_today().year - 1
+
     def get_season_summary_response(self, tax_year: int) -> SeasonSummaryResponse:
         summary = self.repo.get_season_summary(tax_year)
         overdue_count = len(self.repo.list_overdue(tax_year=tax_year))

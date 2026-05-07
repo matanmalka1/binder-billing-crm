@@ -121,3 +121,7 @@ class SeasonSummaryResponse(BaseModel):
     amended: int = 0
     completion_rate: float
     overdue_count: int
+
+
+class DefaultTaxYearResponse(BaseModel):
+    tax_year: int
