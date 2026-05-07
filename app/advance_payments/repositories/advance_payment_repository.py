@@ -32,6 +32,7 @@ class AdvancePaymentRepository(BaseRepository):
         paid_amount: Optional[Decimal] = None,
         payment_method=None,
         annual_report_id: Optional[int] = None,
+        tax_calendar_entry_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
@@ -43,6 +44,7 @@ class AdvancePaymentRepository(BaseRepository):
             paid_amount=paid_amount if paid_amount is not None else Decimal("0"),
             payment_method=payment_method,
             annual_report_id=annual_report_id,
+            tax_calendar_entry_id=tax_calendar_entry_id,
             notes=notes,
             status=AdvancePaymentStatus.PENDING,
         )

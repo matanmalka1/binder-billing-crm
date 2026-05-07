@@ -3,7 +3,7 @@
 import json
 from typing import Optional
 
-from app.common.enums import VatType
+from app.common.enums import ObligationType, VatType
 from app.clients.enums import ClientStatus
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -20,7 +20,11 @@ from app.vat_reports.services.messages import (
     VAT_PENDING_MATERIALS_NOTE_REQUIRED,
     VAT_WORK_ITEM_CONFLICT,
 )
+from app.tax_calendar.services.entry_lookup import find_periodic_entry_id
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
+
+
+_VAT_PERIOD_MONTHS_COUNT = {VatType.MONTHLY: 1, VatType.BIMONTHLY: 2}
 
 
 def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
@@ -79,6 +83,13 @@ def create_work_item(
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
+    period_months_count = _VAT_PERIOD_MONTHS_COUNT.get(effective_vat_type)
+    tax_calendar_entry_id = None
+    if period_months_count is not None:
+        tax_calendar_entry_id = find_periodic_entry_id(
+            db, ObligationType.VAT, period, period_months_count
+        )
+
     item = work_item_repo.create(
         client_record_id=client_record_id,
         period=period,
@@ -88,6 +99,8 @@ def create_work_item(
         pending_materials_note=pending_materials_note,
         assigned_to=assigned_to,
     )
+    item.tax_calendar_entry_id = tax_calendar_entry_id
+    db.flush()
 
     action = ACTION_WORK_ITEM_CREATED_PENDING if mark_pending else ACTION_MATERIAL_RECEIVED
     work_item_repo.append_audit(
