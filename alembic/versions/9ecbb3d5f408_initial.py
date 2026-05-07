@@ -1,25 +1,25 @@
-"""0001_initial
+"""initial
 
-Revision ID: e35ffb3fd002
-Revises: None
-Create Date: 2026-05-02 12:51:10.980768
+Revision ID: 9ecbb3d5f408
+Revises: 
+Create Date: 2026-05-07 12:41:46.242351
 
 Run:
-- Upgrade:   APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade e35ffb3fd002
+- Upgrade:   APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade 9ecbb3d5f408
 - Downgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic downgrade base
 
 Notes:
-- Full schema creation from current SQLAlchemy models.
-- Reminder model: 3 types only (binder_idle, document_missing, custom). No FK columns to charges/tax_deadlines/annual_reports/advance_payments.
-- Replaces squashed 0001–0002 history.
+- Fresh initial schema for an empty database.
+- Previous incremental migration history was intentionally squashed.
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
+
 # revision identifiers, used by Alembic.
-revision: str = 'e35ffb3fd002'
+revision: str = '9ecbb3d5f408'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,9 +35,11 @@ def upgrade() -> None:
     sa.Column('entity_type', sa.Enum('osek_patur', 'osek_murshe', 'company_ltd', 'employee', name='entitytype'), nullable=True),
     sa.Column('official_name', sa.String(), nullable=False),
     sa.Column('vat_reporting_frequency', sa.Enum('monthly', 'bimonthly', 'exempt', name='vattype'), nullable=True),
+    sa.Column('advance_payment_frequency', sa.Enum('monthly', 'bimonthly', name='advance_payment_frequency'), nullable=True),
     sa.Column('vat_exempt_ceiling', sa.Numeric(precision=12, scale=0), nullable=True),
     sa.Column('advance_rate', sa.Numeric(precision=5, scale=2), nullable=True),
     sa.Column('advance_rate_updated_at', sa.Date(), nullable=True),
+    sa.Column('annual_revenue', sa.Numeric(precision=15, scale=0), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
@@ -341,9 +343,11 @@ def upgrade() -> None:
     sa.Column('due_date', sa.Date(), nullable=False),
     sa.Column('expected_amount', sa.Numeric(precision=10, scale=2), nullable=True),
     sa.Column('paid_amount', sa.Numeric(precision=10, scale=2), server_default='0', nullable=False),
-    sa.Column('status', sa.Enum('pending', 'paid', 'partial', 'overdue', name='advancepaymentstatus'), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'paid', 'partial', name='advancepaymentstatus'), nullable=False),
     sa.Column('paid_at', sa.DateTime(), nullable=True),
     sa.Column('payment_method', sa.Enum('bank_transfer', 'credit_card', 'check', 'direct_debit', 'cash', 'other', name='paymentmethod'), nullable=True),
+    sa.Column('reported_turnover', sa.Numeric(precision=14, scale=2), nullable=True),
+    sa.Column('turnover_source_vat_work_item_id', sa.Integer(), nullable=True),
     sa.Column('annual_report_id', sa.Integer(), nullable=True),
     sa.Column('notes', sa.String(length=500), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
@@ -353,6 +357,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['annual_report_id'], ['annual_reports.id'], ),
     sa.ForeignKeyConstraint(['client_record_id'], ['client_records.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['turnover_source_vat_work_item_id'], ['vat_work_items.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_advance_payment_client_record_period', 'advance_payments', ['client_record_id', 'period'], unique=False)
@@ -360,6 +365,7 @@ def upgrade() -> None:
     op.create_index('idx_advance_payment_status', 'advance_payments', ['status'], unique=False)
     op.create_index(op.f('ix_advance_payments_annual_report_id'), 'advance_payments', ['annual_report_id'], unique=False)
     op.create_index(op.f('ix_advance_payments_client_record_id'), 'advance_payments', ['client_record_id'], unique=False)
+    op.create_index(op.f('ix_advance_payments_turnover_source_vat_work_item_id'), 'advance_payments', ['turnover_source_vat_work_item_id'], unique=False)
     op.create_index('uq_advance_payment_client_record_period_active', 'advance_payments', ['client_record_id', 'period'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.create_table('annual_report_credit_points',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -962,6 +968,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_annual_report_credit_points_annual_report_id'), table_name='annual_report_credit_points')
     op.drop_table('annual_report_credit_points')
     op.drop_index('uq_advance_payment_client_record_period_active', table_name='advance_payments', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
+    op.drop_index(op.f('ix_advance_payments_turnover_source_vat_work_item_id'), table_name='advance_payments')
     op.drop_index(op.f('ix_advance_payments_client_record_id'), table_name='advance_payments')
     op.drop_index(op.f('ix_advance_payments_annual_report_id'), table_name='advance_payments')
     op.drop_index('idx_advance_payment_status', table_name='advance_payments')

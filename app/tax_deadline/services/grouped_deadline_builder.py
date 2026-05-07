@@ -38,6 +38,7 @@ def build_group(
     group_key: str,
     items: list[TaxDeadline],
     vat_period_types: dict[int, VatType] | None = None,
+    advance_payment_period_counts: dict[int, int] | None = None,
 ) -> DeadlineGroup:
     today = date.today()
     urgencies = [compute_deadline_urgency(d, today) for d in items]
@@ -51,9 +52,13 @@ def build_group(
         group_key=group_key,
         deadline_type=representative.deadline_type,
         period=representative.period,
-        period_months_count=_group_period_months_count(representative, vat_period_types),
+        period_months_count=_group_period_months_count(
+            representative,
+            vat_period_types,
+            advance_payment_period_counts,
+        ),
         tax_year=representative.tax_year,
-        periods=_group_periods(items, vat_period_types),
+        periods=_group_periods(items, vat_period_types, advance_payment_period_counts),
         tax_years=sorted({d.tax_year for d in items if d.tax_year is not None}),
         due_date=representative.due_date,
         total_clients=len(items),
@@ -76,6 +81,7 @@ def _worst_urgency(urgencies: list[UrgencyLevel]) -> UrgencyLevel:
 def _group_period_months_count(
     deadline: TaxDeadline,
     vat_period_types: dict[int, VatType] | None = None,
+    advance_payment_period_counts: dict[int, int] | None = None,
 ) -> int | None:
     if not deadline.period:
         return None
@@ -88,6 +94,10 @@ def _group_period_months_count(
         return 2 if period_type == VatType.BIMONTHLY else 1
     if deadline.deadline_type != DeadlineType.ADVANCE_PAYMENT:
         return None
+    if deadline.advance_payment_id:
+        count = (advance_payment_period_counts or {}).get(deadline.advance_payment_id)
+        if count is not None:
+            return count
     start_month = int(deadline.period[-2:])
     due_month = deadline.due_date.month
     expected_bimonthly_due_month = start_month + 2
@@ -99,13 +109,18 @@ def _group_period_months_count(
 def _group_periods(
     items: list[TaxDeadline],
     vat_period_types: dict[int, VatType] | None = None,
+    advance_payment_period_counts: dict[int, int] | None = None,
 ) -> list[DeadlineGroupPeriod]:
     seen = set()
     periods = []
     for item in items:
         if item.period is None:
             continue
-        months_count = _group_period_months_count(item, vat_period_types)
+        months_count = _group_period_months_count(
+            item,
+            vat_period_types,
+            advance_payment_period_counts,
+        )
         key = (item.period, months_count)
         if key in seen:
             continue

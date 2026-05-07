@@ -7,16 +7,16 @@
 - New migration filename convention: `<revision_id>_<description>.py` (Alembic revision id prefix).
 - After any SQLAlchemy model change:
   1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
-  2. Review the generated migration — for partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
+  2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines.py`.
+- Current head is `9ecbb3d5f408_initial.py`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
 ## Development database
 
-Development now targets local PostgreSQL, not SQLite.
+Development targets local PostgreSQL, not SQLite.
 
 1. Start the DB:
 
@@ -83,55 +83,9 @@ Notes:
 
 ## Migration chain
 
-`c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines` is the current head.
+`9ecbb3d5f408_initial` is the current head.
 
-### c4d6e8f10203_0006_remove_deleted_bimonthly_advance_deadlines
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Soft-deletes remaining even-month advance-payment deadlines for bimonthly clients when the linked advance payment was already soft-deleted.
-- Notes:
-  Preserves completed/payment-bearing rows.
-
-### b3c5d7e9f101_0005_fix_bimonthly_advance_deadline_data
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Fixes existing `tax_deadlines` advance-payment rows for clients whose VAT reporting frequency is `bimonthly`.
-- Covers:
-  Odd-month advance-payment deadlines get bimonthly due dates. Empty pending even-month rows are soft-deleted.
-- Notes:
-  Rows with completion, payment amount, or advance-payment links are preserved.
-
-### a2b4c6d8e9f0_0004_fix_bimonthly_advance_payment_data
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Fixes existing advance payment rows for clients whose VAT reporting frequency is `bimonthly`.
-- Covers:
-  Active odd-month advance payments are converted to `period_months_count=2` and due date on the 15th after the two-month period.
-  Active even-month rows are soft-deleted only when they are empty pending rows with no payment, annual report link, or turnover snapshot.
-- Notes:
-  Rows with payment or reporting activity are intentionally not soft-deleted automatically.
-
-### f1a2b3c4d5e6_0003_add_annual_revenue_to_legal_entities
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds `annual_revenue` to `legal_entities`.
-
-### ea56adf8adb6_advance_payments_remove_overdue_add_turnover_snapshot
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes stored `overdue` advance-payment status and adds turnover snapshot fields.
-
-### e35ffb3fd002_0001_initial
+### 9ecbb3d5f408_initial
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
@@ -143,10 +97,9 @@ Notes:
   permanent documents, signature requests, correspondence, authority contacts,
   notes, and audit tables.
 - Notes:
-  Generated on 2026-05-02 as the single true initial migration after reminders architecture refactor.
-  Reminder model: 3 types only (binder_idle, document_missing, custom).
-  No FK columns to charges/tax_deadlines/annual_reports/advance_payments.
-  Previous migration history (0001–0007 + delta 0001_initial + 0002_clean_reminder_model) was squashed into this single migration.
+  Generated on 2026-05-07 as a fresh initial migration for an empty database.
+  Previous incremental migration history was intentionally reset.
+  `down_revision = None`.
 
 ## Daily commands
 
@@ -174,6 +127,7 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision
    `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
 3. Edit the generated file:
    - Add the required top docstring.
+   - Replace `_NormalizedEnum(...)` with `sa.Enum(...)`.
    - Wrap all partial-index `where` strings with `sa.text(...)`.
    - Ensure `down_revision` points to the current head.
 4. Apply:

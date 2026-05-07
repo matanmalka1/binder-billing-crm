@@ -106,6 +106,8 @@ def test_generate_annual_schedule_closed_client_raises_forbidden(test_db):
 
 def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     business = _business(test_db)
+    business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.BIMONTHLY
+    test_db.commit()
 
     created, skipped = generate_annual_schedule(
         business.client_record_id, 2026, test_db, period_months_count=2, reference_date=date(2025, 12, 31)
@@ -122,11 +124,6 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
 def test_generate_annual_schedule_skips_periods_before_reference_date(test_db):
     business = _business(test_db)
 
-    # reference_date = 2026-04-01:
-    #   Jan (due Feb 15) < Apr 1 → skip
-    #   Feb (due Mar 15) < Apr 1 → skip
-    #   Mar (due Apr 15) >= Apr 1 → create
-    #   Apr–Dec → create
     created, skipped = generate_annual_schedule(
         business.client_record_id, 2026, test_db, period_months_count=1,
         reference_date=date(2026, 4, 1),

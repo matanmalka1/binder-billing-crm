@@ -54,3 +54,30 @@ def test_grouped_vat_periods_preserve_period_months_count(test_db, test_user):
         (period.period, period.period_months_count)
         for period in sorted(response.groups[0].periods, key=lambda p: p.period)
     ] == [("2026-03", 2), ("2026-04", 1)]
+
+
+def test_group_clients_filters_by_due_date_from_group_key(test_db):
+    june_business = create_business(test_db, name_prefix="Grouped VAT June")
+    july_business = create_business(test_db, name_prefix="Grouped VAT July")
+    repo = TaxDeadlineRepository(test_db)
+
+    repo.create(
+        client_record_id=june_business.client_id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date(2026, 6, 15),
+        period="2026-05",
+    )
+    repo.create(
+        client_record_id=july_business.client_id,
+        deadline_type=DeadlineType.VAT,
+        due_date=date(2026, 7, 15),
+        period="2026-06",
+    )
+    test_db.flush()
+
+    items, total = GroupedDeadlineService(test_db).get_group_clients("vat__2026-07-15")
+
+    assert total == 1
+    assert len(items) == 1
+    assert all(item.deadline_type == DeadlineType.VAT for item in items)
+    assert all(item.due_date == date(2026, 7, 15) for item in items)

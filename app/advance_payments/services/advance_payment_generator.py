@@ -8,6 +8,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.advance_payments.services.constants import build_due_date, get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.core.exceptions import ConflictError
 
 
 def generate_annual_schedule(
@@ -31,8 +32,14 @@ def generate_annual_schedule(
 
     service = AdvancePaymentService(db)
     service._assert_client_allows_create(client_record_id)
+    configured_count = service.default_period_months_count_for_client(client_record_id)
     if period_months_count is None:
-        period_months_count = service.default_period_months_count_for_client(client_record_id)
+        period_months_count = configured_count
+    elif period_months_count != configured_count:
+        raise ConflictError(
+            "תדירות המקדמות בבקשה אינה תואמת להגדרת הלקוח",
+            "ADVANCE_PAYMENT.FREQUENCY_MISMATCH",
+        )
     repo = AdvancePaymentRepository(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(
         client_record_id, year, period_months_count

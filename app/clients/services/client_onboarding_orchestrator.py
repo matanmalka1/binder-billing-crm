@@ -130,6 +130,15 @@ class ClientOnboardingOrchestrator:
                     payment = self.advance_repo.get_by_period(client_record_id, deadline.period)
                     if payment is None:
                         raise
+            elif (
+                payment.period_months_count != period_months_count
+                or payment.due_date != deadline.due_date
+            ):
+                self.advance_repo.update(
+                    payment,
+                    period_months_count=period_months_count,
+                    due_date=deadline.due_date,
+                )
             if deadline.advance_payment_id is None:
                 deadline.advance_payment_id = payment.id
         if deadlines:

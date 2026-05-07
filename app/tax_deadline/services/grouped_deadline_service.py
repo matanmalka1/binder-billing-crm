@@ -14,6 +14,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.tax_deadline.services.grouped_deadline_builder import build_group, build_group_key, parse_group_key
 from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
+from app.advance_payments.models.advance_payment import AdvancePayment
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 _MAX_GROUPS = 200
@@ -52,9 +53,10 @@ class GroupedDeadlineService:
             groups_map.setdefault(key, []).append(d)
 
         vat_period_types = self._build_vat_period_type_context(deadlines)
+        advance_period_counts = self._build_advance_period_count_context(deadlines)
         groups = []
         for group_key, items in list(groups_map.items())[:_MAX_GROUPS]:
-            groups.append(build_group(group_key, items, vat_period_types))
+            groups.append(build_group(group_key, items, vat_period_types, advance_period_counts))
 
         return GroupedDeadlineListResponse(
             groups=groups,
@@ -125,3 +127,14 @@ class GroupedDeadlineService:
             return {}
         rows = self.db.query(VatWorkItem.id, VatWorkItem.period_type).filter(VatWorkItem.id.in_(ids)).all()
         return {row.id: row.period_type for row in rows}
+
+    def _build_advance_period_count_context(self, deadlines: list[TaxDeadline]) -> dict[int, int]:
+        ids = list({d.advance_payment_id for d in deadlines if d.advance_payment_id is not None})
+        if not ids:
+            return {}
+        rows = (
+            self.db.query(AdvancePayment.id, AdvancePayment.period_months_count)
+            .filter(AdvancePayment.id.in_(ids))
+            .all()
+        )
+        return {row.id: row.period_months_count for row in rows}
