@@ -33,6 +33,7 @@ from app.annual_reports.services.constants import default_recognition_rate
 from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.common.enums import EntityType
 from app.tax_deadline.models.tax_deadline import DeadlineType as TaxDeadlineType, TaxDeadline, TaxDeadlineStatus
+from app.tax_calendar.services.entry_lookup import find_annual_entry_id
 from app.users.models.user import UserRole
 
 from ...data.realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
@@ -254,6 +255,7 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             report = AnnualReport(
                 client_record_id=business.client_id,
                 tax_year=year,
+                tax_calendar_entry_id=find_annual_entry_id(db, year),
                 client_type=client_type_for_report,
                 form_type=form_type,
                 status=status,

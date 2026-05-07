@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.actions.obligation_orchestrator import generate_client_obligations
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -31,6 +32,7 @@ class ClientOnboardingOrchestrator:
         self.binder_repo = BinderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.advance_repo = AdvancePaymentRepository(db)
+        self.advance_service = AdvancePaymentService(db)
 
     def run(
         self,
@@ -119,7 +121,7 @@ class ClientOnboardingOrchestrator:
             payment = self.advance_repo.get_by_period(client_record_id, deadline.period)
             if payment is None:
                 try:
-                    payment = self.advance_repo.create(
+                    payment = self.advance_service.create_payment_for_client(
                         client_record_id=client_record_id,
                         period=deadline.period,
                         period_months_count=period_months_count,

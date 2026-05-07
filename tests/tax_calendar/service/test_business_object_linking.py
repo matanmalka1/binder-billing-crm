@@ -10,6 +10,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.intake import create_work_item
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from tests.tax_calendar.service.linking_helpers import (
     advance_client,
     annual_client,
@@ -203,3 +204,26 @@ def test_annual_report_creation_links_matching_tax_calendar_entry(test_db):
     assert report.tax_calendar_entry_id == entry.id
     assert report.status.value == "not_started"
     assert report.filing_deadline.date() == date(2027, 7, 31)
+
+
+def test_bootstrap_entries_allow_business_objects_to_link(test_db):
+    bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
+    advance = advance_client(test_db)
+    vat = vat_client(test_db, VatType.MONTHLY)
+    annual = annual_client(test_db)
+
+    payments, skipped = generate_annual_schedule(
+        advance.id, 2026, test_db, reference_date=date(2025, 12, 31)
+    )
+    vat_item = create_work_item(
+        VatWorkItemRepository(test_db), test_db,
+        client_record_id=vat.id, period="2026-01", created_by=1,
+    )
+    report = AnnualReportService(test_db).create_report(
+        annual.id, 2026, "corporation", 1, "Advisor"
+    )
+
+    assert skipped == 0
+    assert payments[0].tax_calendar_entry_id is not None
+    assert vat_item.tax_calendar_entry_id is not None
+    assert report.tax_calendar_entry_id is not None

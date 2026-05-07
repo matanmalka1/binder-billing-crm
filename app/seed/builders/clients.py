@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.businesses.models.business import Business
 from app.clients.models.client_record import ClientRecord
 from app.clients.services.create_client_service import CreateClientService
-from app.common.enums import EntityType, IdNumberType, VatType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.notes.models.entity_note import EntityNote
 
 from ..data.business_names import seed_business_name
@@ -77,6 +77,11 @@ def create_clients(
                 )[0]
 
         advance_rate = round(rng.uniform(2.0, 12.0), 2)
+        advance_payment_frequency = rng.choices(
+            population=[AdvancePaymentFrequency.BIMONTHLY, AdvancePaymentFrequency.MONTHLY],
+            weights=[75, 25],
+            k=1,
+        )[0]
         phone = mobile_phone(rng)
         email = demo_email("client", serial)
 
@@ -105,6 +110,7 @@ def create_clients(
             address_city=address["city"],
             address_zip_code=address["zip_code"],
             vat_reporting_frequency=vat_reporting_frequency,
+            advance_payment_frequency=advance_payment_frequency,
             advance_rate=advance_rate,
             accountant_id=rng.choice(users).id if users else None,
             business_opened_at=business_opened_at,
@@ -121,6 +127,7 @@ def create_clients(
         client_record.email = email  # type: ignore[attr-defined]
         client_record.phone = phone  # type: ignore[attr-defined]
         client_record.vat_reporting_frequency = vat_reporting_frequency  # type: ignore[attr-defined]
+        client_record.advance_payment_frequency = advance_payment_frequency  # type: ignore[attr-defined]
 
         results.append((client_record, primary_business))
         db.flush()

@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Seed local/dev tax calendar defaults and generated entries."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+os.environ.setdefault("JWT_SECRET", "dev-seed-secret")
+os.environ.setdefault("APP_ENV", "development")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Bootstrap tax calendar rows.")
+    parser.add_argument("--start-year", type=int, default=None)
+    parser.add_argument("--end-year", type=int, default=None)
+    return parser.parse_args()
+
+
+def main() -> None:
+    from app.database import SessionLocal
+    from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
+
+    args = _parse_args()
+    db = SessionLocal()
+    try:
+        result = bootstrap_tax_calendar(
+            db,
+            start_year=args.start_year,
+            end_year=args.end_year,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+    print(result)
+
+
+if __name__ == "__main__":
+    main()

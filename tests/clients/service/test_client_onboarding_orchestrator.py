@@ -8,6 +8,7 @@ from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.exceptions import ConflictError
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -43,6 +44,24 @@ def test_onboarding_creates_vat_work_items_and_advance_payments(test_db):
     assert len(advance_deadlines) == len(payments) == 9
     assert {p.period for p in payments} == {d.period for d in advance_deadlines}
     assert all(d.advance_payment_id is not None for d in advance_deadlines)
+    assert all(p.due_date_original == p.due_date for p in payments)
+    assert all(p.due_date_effective == p.due_date for p in payments)
+
+
+def test_onboarding_advance_payments_link_tax_calendar_entries(test_db):
+    bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
+    client_record = _create_vat_client(test_db, "123456786")
+
+    payments = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
+        .all()
+    )
+
+    assert payments
+    assert all(payment.tax_calendar_entry_id is not None for payment in payments)
+    assert all(payment.due_date_original == payment.due_date for payment in payments)
+    assert all(payment.due_date_effective == payment.due_date for payment in payments)
 
 
 def test_onboarding_retry_does_not_duplicate_vat_work_items(test_db):
@@ -130,8 +149,8 @@ def test_sync_advance_payments_conflict_error_falls_back_to_existing(test_db):
         "get_by_period",
         side_effect=[None, existing_payment],
     ), patch.object(
-        orchestrator.advance_repo,
-        "create",
+        orchestrator.advance_service,
+        "create_payment_for_client",
         side_effect=ConflictError("dup", "ADVANCE_PAYMENT.CONFLICT"),
     ):
         orchestrator._sync_advance_payments(seeded.id)

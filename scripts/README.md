@@ -7,6 +7,7 @@ Utility scripts for local development, data seeding, and one-time migrations.
 | File | Purpose |
 |---|---|
 | `seed_fake_data.py` | Populate local DB with 60 clients and full demo data across all 21 domains |
+| `bootstrap_tax_calendar.py` | Seed default tax calendar rules and generated calendar entries |
 | `bootstrap_user_production.py` | Create a login user directly in the database (dev or production) |
 | `migrate_official_name.py` | One-time migration: `Client.full_name` → `LegalEntity.official_name` |
 | `json_examples.py` | Sample JSON payloads for manual API testing |
@@ -31,6 +32,13 @@ APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py -
 
 # Optional deterministic business date:
 APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset --reference-date 2026-05-03
+```
+
+## Bootstrap Tax Calendar
+
+```bash
+APP_ENV=development ENV_FILE=.env.development python scripts/bootstrap_tax_calendar.py
+APP_ENV=development ENV_FILE=.env.development python scripts/bootstrap_tax_calendar.py --start-year 2026 --end-year 2027
 ```
 
 For full schema reset on PostgreSQL:

@@ -77,21 +77,21 @@ def generate_client_obligations_result(
     best_effort: bool = False,
 ) -> ObligationResult:
     """
-    יצירת מועדי מס ודוחות שנתיים ללקוח לשנה הנוכחית (ולשנה הבאה ברבעון הרביעי).
-    פעולה אידמפוטנטית — מועדים ודוחות קיימים מדולגים.
-    מחזירה פירוט יצירה לפי מועדים/דוחות ורשימת שגיאות.
+    Creating tax periods and annual reports for the client for the current year (and for the next year in the fourth quarter).
+    Idempotent action — existing periods and reports are skipped.
+    Returns creation details by periods/reports and a list of errors.
 
-    best_effort=False (ברירת מחדל — לשימוש בזרימות יצירה):
-        שגיאות מועלות מיד לאחר rollback של ה-savepoint.
-        הכשל מתגלגל למעלה, get_db() מבצע rollback לטרנזקציה הראשית — אין נתונים עצומים.
+    best_effort=False (default — for use in creation flows):
+    Errors are raised immediately after a rollback of the savepoint.
+    The failure propagates upwards, get_db() performs a rollback for the main transaction — no data is saved.
 
-    best_effort=True — לשימוש בזרימות עדכון:
-        שגיאות נרשמות בלוג, ה-savepoint מבוצע rollback, והפונקציה מחזירה.
-        הטרנזקציה הראשית נשמרת — הישות המעדכנת כבר flushed ותבוצע commit בסיום הבקשה.
+    best_effort=True — for use in update flows:
+    Errors are recorded in the log, the savepoint is rolled back, and the function returns.
+    The main transaction is preserved — the updating entity is already flushed and a commit will be performed at the end of the request.
 
-    חשוב: ב-best_effort=True זהו partial-success design מכוון.
-    מועדי המס והדוחות השנתיים נוצרים בשני שלבים נפרדים, וכל שנה נשמרת ב-savepoint עצמאי.
-    לכן ייתכן מצב שבו חלק מהמועדים נוצרו בלי דוח שנתי תואם, או להפך, אם שלב אחר נכשל.
+    Important: In best_effort=True this is an intentional partial-success design.
+    Tax periods and annual reports are created in two separate stages, and each year is saved in an independent savepoint.
+    Therefore, a situation may occur where some periods were created without a matching annual report, or vice versa, if another stage failed.
     """
     years = _years_to_generate(reference_date)
     result = ObligationResult()

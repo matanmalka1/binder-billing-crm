@@ -7,8 +7,10 @@ from pathlib import Path
 from sqlalchemy import func, inspect, select
 
 from app.database import Base, SessionLocal, engine
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 
 from .config import SeedConfig
+from .tax_calendar_range import tax_calendar_year_range_for_seed
 from .builders import users as users_builder
 from .builders import clients as clients_builder
 from .builders.demo import binders as binders_builder
@@ -84,6 +86,13 @@ class SeedOrchestrator:
                 db.commit()
                 self._print_counts(db)
                 return
+
+            start_year, end_year = tax_calendar_year_range_for_seed(self.cfg)
+            bootstrap_tax_calendar(
+                db,
+                start_year=start_year,
+                end_year=end_year,
+            )
 
             # ── Onboarding phase ─────────────────────────────────────────────
             # CreateClientService → automatically triggers ClientOnboardingOrchestrator

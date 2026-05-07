@@ -7,9 +7,10 @@ from random import Random
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
-from app.common.enums import VatType
+from app.common.enums import ObligationType, VatType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tax_deadline.services.due_date_rules import periodic_due_date
+from app.tax_calendar.services.entry_lookup import find_periodic_entry
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import (
@@ -43,6 +44,8 @@ DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
     ExpenseCategory.MUNICIPAL_TAX: Decimal("0.0000"),
 }
 
+_VAT_PERIOD_MONTHS_COUNT = {VatType.MONTHLY: 1, VatType.BIMONTHLY: 2}
+
 
 def _group_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
@@ -51,11 +54,15 @@ def _group_by_client(businesses) -> dict[int, list]:
     return grouped
 
 
-def _choose_periods(rng: Random, count: int, reference_date: date) -> list[str]:
+def _choose_periods(
+    rng: Random, count: int, reference_date: date, vat_type: VatType,
+) -> list[str]:
     today = datetime.combine(reference_date, datetime.min.time(), tzinfo=UTC)
     periods: list[str] = []
     for i in range(1, count * 2 + 1):
         candidate = (today - timedelta(days=30 * i)).strftime("%Y-%m")
+        if vat_type == VatType.BIMONTHLY and int(candidate.split("-")[1]) % 2 == 0:
+            continue
         if _vat_due_date(candidate) >= reference_date:
             continue
         if candidate not in periods:
@@ -123,7 +130,9 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
             continue
         business = rng.choice(eligible_businesses)
         num_items = rng.randint(cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client)
-        periods = _choose_periods(rng, num_items, cfg.reference_date)
+        cr = getattr(business, "client", None)
+        period_type = getattr(cr, "vat_reporting_frequency", VatType.MONTHLY)
+        periods = _choose_periods(rng, num_items, cfg.reference_date, period_type)
 
         for period in periods:
             existing_item = (
@@ -146,9 +155,6 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
             if created_at > datetime.now(UTC):
                 created_at = datetime.now(UTC)
 
-            cr = getattr(business, "client", None)
-            period_type = getattr(cr, "vat_reporting_frequency", VatType.MONTHLY)
-
             if business.status == BusinessStatus.CLOSED:
                 status = rng.choice([VatWorkItemStatus.FILED, VatWorkItemStatus.READY_FOR_REVIEW])
             elif business.status == BusinessStatus.FROZEN:
@@ -161,6 +167,12 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 status = _status_for_period(rng, period, cfg.reference_date)
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
+            tax_calendar_entry = None
+            period_months_count = _VAT_PERIOD_MONTHS_COUNT.get(period_type)
+            if period_months_count is not None:
+                tax_calendar_entry = find_periodic_entry(
+                    db, ObligationType.VAT, period, period_months_count
+                )
             work_item = VatWorkItem(
                 client_record_id=business.client_id,
                 created_by=created_by,
@@ -173,6 +185,9 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 pending_materials_note="ממתינים לחשבוניות מהלקוח"
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
                 else None,
+                tax_calendar_entry_id=tax_calendar_entry.id if tax_calendar_entry else None,
+                due_date_original=tax_calendar_entry.due_date if tax_calendar_entry else None,
+                due_date_effective=tax_calendar_entry.due_date if tax_calendar_entry else None,
             )
             work_item.client_id = business.client_id  # type: ignore[attr-defined]
             if status == VatWorkItemStatus.FILED:
