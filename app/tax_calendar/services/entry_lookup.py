@@ -16,14 +16,24 @@ def find_periodic_entry_id(
     period: str,
     period_months_count: int,
 ) -> int | None:
+    entry = find_periodic_entry(db, obligation_type, period, period_months_count)
+    return entry.id if entry else None
+
+
+def find_periodic_entry(
+    db: Session,
+    obligation_type: ObligationType | str,
+    period: str,
+    period_months_count: int,
+) -> TaxCalendarEntry | None:
     entry = (
-        db.query(TaxCalendarEntry.id)
+        db.query(TaxCalendarEntry)
         .filter(TaxCalendarEntry.obligation_type == _value(obligation_type))
         .filter(TaxCalendarEntry.period == period)
         .filter(TaxCalendarEntry.period_months_count == period_months_count)
         .one_or_none()
     )
-    return entry[0] if entry else None
+    return entry
 
 
 def find_annual_entry_id(db: Session, tax_year: int) -> int | None:

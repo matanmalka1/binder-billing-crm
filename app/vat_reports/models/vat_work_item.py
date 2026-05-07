@@ -16,7 +16,7 @@ Israeli context:
 """
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey,
+    Boolean, Column, Date, DateTime, ForeignKey,
     Index, Integer, Numeric, String, Text, text,
 )
 from sqlalchemy.orm import relationship
@@ -74,6 +74,9 @@ class VatWorkItem(Base):
         ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
         nullable=True, index=True,
     )
+    due_date_original = Column(Date, nullable=True)
+    due_date_effective = Column(Date, nullable=True)
+    due_date_override_reason = Column(String(500), nullable=True)
 
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=utcnow)
@@ -110,3 +113,6 @@ class VatWorkItem(Base):
             f"<VatWorkItem(id={self.id}, client_record_id={self.client_record_id}, "
             f"period={self.period}, status={self.status})>"
         )
+
+
+from app.vat_reports.models import due_date_snapshot_events  # noqa: E402,F401
