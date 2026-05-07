@@ -2,31 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.annual_reports.models.annual_report_credit_point_reason import CreditPointReason
 from app.core.api_types import ApiDateTime, ApiDecimal
-
-
-# ── Credit points (נקודות זיכוי) ─────────────────────────────────────────────
-
-class CreditPointResponse(BaseModel):
-    id: int
-    annual_report_id: int
-    reason: CreditPointReason
-    points: ApiDecimal
-    notes: Optional[str] = None
-
-    model_config = {"from_attributes": True}
-
-
-class CreditPointCreateRequest(BaseModel):
-    reason: CreditPointReason
-    points: ApiDecimal = Field(gt=0)
-    notes: Optional[str] = None
-
-
-class CreditPointUpdateRequest(BaseModel):
-    points: Optional[ApiDecimal] = Field(None, gt=0)
-    notes: Optional[str] = None
 
 
 # ── Detail (ניכויים ואישורים) ─────────────────────────────────────────────────
