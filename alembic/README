@@ -10,7 +10,7 @@
   2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `9ecbb3d5f408_initial.py`.
+- Current head is `4d6828fd1603_add_tax_calendar_foundation.py`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
@@ -83,7 +83,22 @@ Notes:
 
 ## Migration chain
 
-`9ecbb3d5f408_initial` is the current head.
+`4d6828fd1603_add_tax_calendar_foundation` is the current head.
+
+### 4d6828fd1603_add_tax_calendar_foundation
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Adds the foundational tax-calendar models (Decision Doc v3, Phase A, additive only):
+  `deadline_rules` and `tax_calendar_entries`. Introduces PG enums `deadlineruletype`
+  and `obligationtype`. Adds two partial unique indexes (periodic vs annual entries)
+  using `sa.text(...)` `where` clauses for both PostgreSQL and SQLite. FK
+  `tax_calendar_entries.deadline_rule_id -> deadline_rules.id` is `ON DELETE RESTRICT`.
+- Notes:
+  Does not modify any existing table (TaxDeadline, AdvancePayment, VatWorkItem,
+  AnnualReport). DeadlineRule overlap (INV-11) is enforced in the service layer,
+  not by DB constraint. `down_revision = '9ecbb3d5f408'`.
 
 ### 9ecbb3d5f408_initial
 

@@ -39,6 +39,8 @@ import app.charge.models.charge                                         # noqa
 import app.invoice.models.invoice                                       # noqa
 import app.advance_payments.models.advance_payment                      # noqa
 import app.tax_deadline.models.tax_deadline                             # noqa
+import app.tax_calendar.models.deadline_rule                            # noqa
+import app.tax_calendar.models.tax_calendar_entry                       # noqa
 import app.reminders.models.reminder                                    # noqa
 import app.notification.models.notification                             # noqa
 import app.permanent_documents.models.permanent_document                # noqa

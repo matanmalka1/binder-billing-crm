@@ -44,4 +44,33 @@ class AdvancePaymentFrequency(str, PyEnum):
     BIMONTHLY = "bimonthly"
 
 
-__all__ = ["AdvancePaymentFrequency", "SubmissionMethod", "VatType", "EntityType", "IdNumberType"]
+class ObligationType(str, PyEnum):
+    """Regulatory obligation category for TaxCalendarEntry.
+
+    NATIONAL_INSURANCE is reserved but not yet wired to a DeadlineRuleType
+    (intentionally unsupported in PR 1 of the tax-calendar foundation).
+    """
+    VAT                = "vat"
+    ADVANCE_PAYMENT    = "advance_payment"
+    ANNUAL_REPORT      = "annual_report"
+    NATIONAL_INSURANCE = "national_insurance"
+
+
+class DeadlineRuleType(str, PyEnum):
+    """Regulatory rule variant. Maps to one ObligationType."""
+    VAT_MONTHLY        = "vat_monthly"
+    VAT_BIMONTHLY      = "vat_bimonthly"
+    ADVANCE_MONTHLY    = "advance_monthly"
+    ADVANCE_BIMONTHLY  = "advance_bimonthly"
+    ANNUAL_REPORT      = "annual_report"
+
+
+__all__ = [
+    "AdvancePaymentFrequency",
+    "DeadlineRuleType",
+    "EntityType",
+    "IdNumberType",
+    "ObligationType",
+    "SubmissionMethod",
+    "VatType",
+]
