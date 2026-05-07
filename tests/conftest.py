@@ -14,6 +14,8 @@ os.environ.setdefault("JWT_SECRET", "test-secret")
 
 from app.database import Base, get_db
 import app.notes.models.entity_note  # noqa: F401
+import app.tax_calendar.models.deadline_rule  # noqa: F401
+import app.tax_calendar.models.tax_calendar_entry  # noqa: F401
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.clients.models.legal_entity import LegalEntity  # noqa: F401

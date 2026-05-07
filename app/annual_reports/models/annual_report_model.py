@@ -51,6 +51,12 @@ class AnnualReport(Base):
     submission_method = Column(pg_enum(SubmissionMethod), nullable=True)
     extension_reason  = Column(pg_enum(ExtensionReason),  nullable=True)
 
+    tax_calendar_entry_id = Column(
+        Integer,
+        ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
+        nullable=True, index=True,
+    )
+
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)

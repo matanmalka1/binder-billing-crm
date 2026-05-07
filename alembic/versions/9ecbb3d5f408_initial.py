@@ -11,6 +11,7 @@ Run:
 Notes:
 - Fresh initial schema for an empty database.
 - Previous incremental migration history was intentionally squashed.
+- Includes tax calendar foundation tables and nullable business-object links.
 """
 from typing import Sequence, Union
 
@@ -82,6 +83,43 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
+    op.create_table('deadline_rules',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('rule_type', sa.Enum('vat_monthly', 'vat_bimonthly', 'advance_monthly', 'advance_bimonthly', 'annual_report', name='deadlineruletype'), nullable=False),
+    sa.Column('due_day_of_month', sa.Integer(), nullable=False),
+    sa.Column('offset_months', sa.Integer(), server_default='0', nullable=False),
+    sa.Column('effective_from', sa.Date(), nullable=False),
+    sa.Column('effective_to', sa.Date(), nullable=True),
+    sa.Column('description', sa.String(length=255), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.CheckConstraint('due_day_of_month BETWEEN 1 AND 31', name='ck_deadline_rule_due_day_range'),
+    sa.CheckConstraint('effective_to IS NULL OR effective_to >= effective_from', name='ck_deadline_rule_effective_range'),
+    sa.CheckConstraint('offset_months >= 0', name='ck_deadline_rule_offset_months_non_negative'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index('idx_deadline_rule_type_effective', 'deadline_rules', ['rule_type', 'effective_from'], unique=False)
+    op.create_index(op.f('ix_deadline_rules_rule_type'), 'deadline_rules', ['rule_type'], unique=False)
+    op.create_table('tax_calendar_entries',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('obligation_type', sa.Enum('vat', 'advance_payment', 'annual_report', 'national_insurance', name='obligationtype'), nullable=False),
+    sa.Column('period', sa.String(length=7), nullable=True),
+    sa.Column('period_months_count', sa.Integer(), nullable=True),
+    sa.Column('tax_year', sa.Integer(), nullable=False),
+    sa.Column('due_date', sa.Date(), nullable=False),
+    sa.Column('deadline_rule_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.CheckConstraint("(obligation_type = 'annual_report' AND period IS NULL) OR (obligation_type <> 'annual_report' AND period IS NOT NULL)", name='ck_tax_calendar_entry_period_nullability'),
+    sa.CheckConstraint("(obligation_type = 'annual_report' AND period_months_count IS NULL) OR (obligation_type <> 'annual_report' AND period_months_count IN (1, 2))", name='ck_tax_calendar_entry_months_count'),
+    sa.ForeignKeyConstraint(['deadline_rule_id'], ['deadline_rules.id'], ondelete='RESTRICT'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_tax_calendar_entries_deadline_rule_id'), 'tax_calendar_entries', ['deadline_rule_id'], unique=False)
+    op.create_index(op.f('ix_tax_calendar_entries_due_date'), 'tax_calendar_entries', ['due_date'], unique=False)
+    op.create_index(op.f('ix_tax_calendar_entries_obligation_type'), 'tax_calendar_entries', ['obligation_type'], unique=False)
+    op.create_index('uq_tax_calendar_entry_annual', 'tax_calendar_entries', ['obligation_type', 'tax_year'], unique=True, postgresql_where=sa.text("obligation_type = 'annual_report'"), sqlite_where=sa.text("obligation_type = 'annual_report'"))
+    op.create_index('uq_tax_calendar_entry_periodic', 'tax_calendar_entries', ['obligation_type', 'period', 'period_months_count'], unique=True, postgresql_where=sa.text("obligation_type <> 'annual_report'"), sqlite_where=sa.text("obligation_type <> 'annual_report'"))
     op.create_table('businesses',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('legal_entity_id', sa.Integer(), nullable=False),
@@ -222,6 +260,7 @@ def upgrade() -> None:
     sa.Column('has_exempt_rental', sa.Boolean(), nullable=False),
     sa.Column('submission_method', sa.Enum('online', 'manual', 'representative', name='submissionmethod'), nullable=True),
     sa.Column('extension_reason', sa.Enum('military_service', 'health_reason', 'general', 'war_situation', name='extensionreason'), nullable=True),
+    sa.Column('tax_calendar_entry_id', sa.Integer(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -231,6 +270,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['client_record_id'], ['client_records.id'], ),
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['tax_calendar_entry_id'], ['tax_calendar_entries.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_annual_report_assigned', 'annual_reports', ['assigned_to'], unique=False)
@@ -238,6 +278,7 @@ def upgrade() -> None:
     op.create_index('idx_annual_report_deadline', 'annual_reports', ['filing_deadline'], unique=False)
     op.create_index('idx_annual_report_status', 'annual_reports', ['status'], unique=False)
     op.create_index(op.f('ix_annual_reports_client_record_id'), 'annual_reports', ['client_record_id'], unique=False)
+    op.create_index(op.f('ix_annual_reports_tax_calendar_entry_id'), 'annual_reports', ['tax_calendar_entry_id'], unique=False)
     op.create_table('authority_contacts',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('client_record_id', sa.Integer(), nullable=False),
@@ -319,6 +360,7 @@ def upgrade() -> None:
     sa.Column('submission_reference', sa.String(length=100), nullable=True),
     sa.Column('is_amendment', sa.Boolean(), nullable=False),
     sa.Column('amends_item_id', sa.Integer(), nullable=True),
+    sa.Column('tax_calendar_entry_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
@@ -329,9 +371,11 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['created_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['filed_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['tax_calendar_entry_id'], ['tax_calendar_entries.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_vat_work_items_client_record_id'), 'vat_work_items', ['client_record_id'], unique=False)
+    op.create_index(op.f('ix_vat_work_items_tax_calendar_entry_id'), 'vat_work_items', ['tax_calendar_entry_id'], unique=False)
     op.create_index('ix_vat_work_items_period', 'vat_work_items', ['period'], unique=False)
     op.create_index('ix_vat_work_items_status', 'vat_work_items', ['status'], unique=False)
     op.create_index('uq_vat_work_item_client_record_period', 'vat_work_items', ['client_record_id', 'period'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
@@ -349,6 +393,7 @@ def upgrade() -> None:
     sa.Column('reported_turnover', sa.Numeric(precision=14, scale=2), nullable=True),
     sa.Column('turnover_source_vat_work_item_id', sa.Integer(), nullable=True),
     sa.Column('annual_report_id', sa.Integer(), nullable=True),
+    sa.Column('tax_calendar_entry_id', sa.Integer(), nullable=True),
     sa.Column('notes', sa.String(length=500), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -357,6 +402,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['annual_report_id'], ['annual_reports.id'], ),
     sa.ForeignKeyConstraint(['client_record_id'], ['client_records.id'], ),
     sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['tax_calendar_entry_id'], ['tax_calendar_entries.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['turnover_source_vat_work_item_id'], ['vat_work_items.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -365,6 +411,7 @@ def upgrade() -> None:
     op.create_index('idx_advance_payment_status', 'advance_payments', ['status'], unique=False)
     op.create_index(op.f('ix_advance_payments_annual_report_id'), 'advance_payments', ['annual_report_id'], unique=False)
     op.create_index(op.f('ix_advance_payments_client_record_id'), 'advance_payments', ['client_record_id'], unique=False)
+    op.create_index(op.f('ix_advance_payments_tax_calendar_entry_id'), 'advance_payments', ['tax_calendar_entry_id'], unique=False)
     op.create_index(op.f('ix_advance_payments_turnover_source_vat_work_item_id'), 'advance_payments', ['turnover_source_vat_work_item_id'], unique=False)
     op.create_index('uq_advance_payment_client_record_period_active', 'advance_payments', ['client_record_id', 'period'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.create_table('annual_report_credit_points',
@@ -969,6 +1016,7 @@ def downgrade() -> None:
     op.drop_table('annual_report_credit_points')
     op.drop_index('uq_advance_payment_client_record_period_active', table_name='advance_payments', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.drop_index(op.f('ix_advance_payments_turnover_source_vat_work_item_id'), table_name='advance_payments')
+    op.drop_index(op.f('ix_advance_payments_tax_calendar_entry_id'), table_name='advance_payments')
     op.drop_index(op.f('ix_advance_payments_client_record_id'), table_name='advance_payments')
     op.drop_index(op.f('ix_advance_payments_annual_report_id'), table_name='advance_payments')
     op.drop_index('idx_advance_payment_status', table_name='advance_payments')
@@ -978,6 +1026,7 @@ def downgrade() -> None:
     op.drop_index('uq_vat_work_item_client_record_period', table_name='vat_work_items', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.drop_index('ix_vat_work_items_status', table_name='vat_work_items')
     op.drop_index('ix_vat_work_items_period', table_name='vat_work_items')
+    op.drop_index(op.f('ix_vat_work_items_tax_calendar_entry_id'), table_name='vat_work_items')
     op.drop_index(op.f('ix_vat_work_items_client_record_id'), table_name='vat_work_items')
     op.drop_table('vat_work_items')
     op.drop_index('uq_binder_number_per_client', table_name='binders', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
@@ -991,11 +1040,21 @@ def downgrade() -> None:
     op.drop_index('idx_authority_contact_type', table_name='authority_contacts')
     op.drop_table('authority_contacts')
     op.drop_index(op.f('ix_annual_reports_client_record_id'), table_name='annual_reports')
+    op.drop_index(op.f('ix_annual_reports_tax_calendar_entry_id'), table_name='annual_reports')
     op.drop_index('idx_annual_report_status', table_name='annual_reports')
     op.drop_index('idx_annual_report_deadline', table_name='annual_reports')
     op.drop_index('idx_annual_report_client_record_year', table_name='annual_reports', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.drop_index('idx_annual_report_assigned', table_name='annual_reports')
     op.drop_table('annual_reports')
+    op.drop_index('uq_tax_calendar_entry_periodic', table_name='tax_calendar_entries', postgresql_where=sa.text("obligation_type <> 'annual_report'"), sqlite_where=sa.text("obligation_type <> 'annual_report'"))
+    op.drop_index('uq_tax_calendar_entry_annual', table_name='tax_calendar_entries', postgresql_where=sa.text("obligation_type = 'annual_report'"), sqlite_where=sa.text("obligation_type = 'annual_report'"))
+    op.drop_index(op.f('ix_tax_calendar_entries_obligation_type'), table_name='tax_calendar_entries')
+    op.drop_index(op.f('ix_tax_calendar_entries_due_date'), table_name='tax_calendar_entries')
+    op.drop_index(op.f('ix_tax_calendar_entries_deadline_rule_id'), table_name='tax_calendar_entries')
+    op.drop_table('tax_calendar_entries')
+    op.drop_index(op.f('ix_deadline_rules_rule_type'), table_name='deadline_rules')
+    op.drop_index('idx_deadline_rule_type_effective', table_name='deadline_rules')
+    op.drop_table('deadline_rules')
     op.drop_index(op.f('ix_user_audit_logs_target_user_id'), table_name='user_audit_logs')
     op.drop_index(op.f('ix_user_audit_logs_status'), table_name='user_audit_logs')
     op.drop_index(op.f('ix_user_audit_logs_email'), table_name='user_audit_logs')
@@ -1029,4 +1088,56 @@ def downgrade() -> None:
     op.drop_table('persons')
     op.drop_index('ix_legal_entities_official_name', table_name='legal_entities')
     op.drop_table('legal_entities')
+    for enum_name in (
+        'taxdeadlinestatus',
+        'deadlinetype',
+        'signaturerequeststatus',
+        'signaturerequesttype',
+        'materialtype',
+        'expensecategorytype',
+        'vatratetype',
+        'expensecategory',
+        'counterpartyidtype',
+        'vatdocumenttype',
+        'invoicetype',
+        'reminderstatus',
+        'remindertype',
+        'documentstatus',
+        'documenttype',
+        'documentscope',
+        'notificationstatus',
+        'notificationseverity',
+        'notificationchannel',
+        'notificationtrigger',
+        'correspondencetype',
+        'chargestatus',
+        'chargetype',
+        'annualreportschedule',
+        'incomesourcetype',
+        'creditpointreason',
+        'paymentmethod',
+        'advancepaymentstatus',
+        'vatworkitemstatus',
+        'binderstatus',
+        'contacttype',
+        'extensionreason',
+        'submissionmethod',
+        'filingdeadlinetype',
+        'annualreportstatus',
+        'primaryannualreportform',
+        'clientannualfilingtype',
+        'auditstatus',
+        'auditaction',
+        'personlegalentityrole',
+        'clientstatus',
+        'businessstatus',
+        'obligationtype',
+        'deadlineruletype',
+        'userrole',
+        'advance_payment_frequency',
+        'vattype',
+        'entitytype',
+        'idnumbertype',
+    ):
+        sa.Enum(name=enum_name).drop(op.get_bind(), checkfirst=True)
     # ### end Alembic commands ###

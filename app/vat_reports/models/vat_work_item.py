@@ -68,6 +68,13 @@ class VatWorkItem(Base):
     is_amendment   = Column(Boolean, nullable=False, default=False)
     amends_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=True)
 
+    # Cross-domain link to regulatory calendar fact
+    tax_calendar_entry_id = Column(
+        Integer,
+        ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
+        nullable=True, index=True,
+    )
+
     # Timestamps
     created_at = Column(DateTime, nullable=False, default=utcnow)
     updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)
