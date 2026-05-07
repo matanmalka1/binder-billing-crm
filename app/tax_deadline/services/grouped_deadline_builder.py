@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
+from app.common.enums import VatType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus, UrgencyLevel
 from app.tax_deadline.schemas.grouped_deadline import DeadlineGroup, DeadlineGroupKey, DeadlineGroupPeriod
 from app.tax_deadline.services.urgency import compute_deadline_urgency
@@ -33,7 +34,11 @@ def parse_group_key(group_key: str) -> DeadlineGroupKey | None:
     return DeadlineGroupKey(deadline_type=deadline_type_raw, due_date=due_date)
 
 
-def build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
+def build_group(
+    group_key: str,
+    items: list[TaxDeadline],
+    vat_period_types: dict[int, VatType] | None = None,
+) -> DeadlineGroup:
     today = date.today()
     urgencies = [compute_deadline_urgency(d, today) for d in items]
     pending = [d for d in items if d.status == TaxDeadlineStatus.PENDING]
@@ -46,9 +51,9 @@ def build_group(group_key: str, items: list[TaxDeadline]) -> DeadlineGroup:
         group_key=group_key,
         deadline_type=representative.deadline_type,
         period=representative.period,
-        period_months_count=_group_period_months_count(representative),
+        period_months_count=_group_period_months_count(representative, vat_period_types),
         tax_year=representative.tax_year,
-        periods=_group_periods(items),
+        periods=_group_periods(items, vat_period_types),
         tax_years=sorted({d.tax_year for d in items if d.tax_year is not None}),
         due_date=representative.due_date,
         total_clients=len(items),
@@ -68,8 +73,20 @@ def _worst_urgency(urgencies: list[UrgencyLevel]) -> UrgencyLevel:
     return min(urgencies, key=lambda u: _URGENCY_ORDER[u])
 
 
-def _group_period_months_count(deadline: TaxDeadline) -> int | None:
-    if deadline.deadline_type != DeadlineType.ADVANCE_PAYMENT or not deadline.period:
+def _group_period_months_count(
+    deadline: TaxDeadline,
+    vat_period_types: dict[int, VatType] | None = None,
+) -> int | None:
+    if not deadline.period:
+        return None
+    if deadline.deadline_type == DeadlineType.VAT:
+        if not deadline.vat_work_item_id:
+            return None
+        period_type = (vat_period_types or {}).get(deadline.vat_work_item_id)
+        if period_type is None:
+            return None
+        return 2 if period_type == VatType.BIMONTHLY else 1
+    if deadline.deadline_type != DeadlineType.ADVANCE_PAYMENT:
         return None
     start_month = int(deadline.period[-2:])
     due_month = deadline.due_date.month
@@ -79,13 +96,16 @@ def _group_period_months_count(deadline: TaxDeadline) -> int | None:
     return 2 if due_month == expected_bimonthly_due_month else 1
 
 
-def _group_periods(items: list[TaxDeadline]) -> list[DeadlineGroupPeriod]:
+def _group_periods(
+    items: list[TaxDeadline],
+    vat_period_types: dict[int, VatType] | None = None,
+) -> list[DeadlineGroupPeriod]:
     seen = set()
     periods = []
     for item in items:
         if item.period is None:
             continue
-        months_count = _group_period_months_count(item)
+        months_count = _group_period_months_count(item, vat_period_types)
         key = (item.period, months_count)
         if key in seen:
             continue

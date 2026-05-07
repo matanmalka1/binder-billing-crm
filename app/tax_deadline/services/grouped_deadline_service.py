@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.common.enums import VatType
 from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from app.tax_deadline.repositories.grouped_deadline_repository import GroupedDeadlineRepository
 from app.tax_deadline.schemas.tax_deadline import TaxDeadlineResponse
@@ -13,6 +14,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.tax_deadline.services.grouped_deadline_builder import build_group, build_group_key, parse_group_key
 from app.tax_deadline.services.response_builder import TaxDeadlineResponseBuilder
+from app.vat_reports.models.vat_work_item import VatWorkItem
 
 _MAX_GROUPS = 200
 
@@ -49,9 +51,10 @@ class GroupedDeadlineService:
             key = build_group_key(d.deadline_type, d.due_date)
             groups_map.setdefault(key, []).append(d)
 
+        vat_period_types = self._build_vat_period_type_context(deadlines)
         groups = []
         for group_key, items in list(groups_map.items())[:_MAX_GROUPS]:
-            groups.append(build_group(group_key, items))
+            groups.append(build_group(group_key, items, vat_period_types))
 
         return GroupedDeadlineListResponse(
             groups=groups,
@@ -115,3 +118,10 @@ class GroupedDeadlineService:
             }
             for r in records
         }
+
+    def _build_vat_period_type_context(self, deadlines: list[TaxDeadline]) -> dict[int, VatType]:
+        ids = list({d.vat_work_item_id for d in deadlines if d.vat_work_item_id is not None})
+        if not ids:
+            return {}
+        rows = self.db.query(VatWorkItem.id, VatWorkItem.period_type).filter(VatWorkItem.id.in_(ids)).all()
+        return {row.id: row.period_type for row in rows}
