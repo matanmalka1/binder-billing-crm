@@ -16,12 +16,27 @@ def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
         status=AnnualReportStatus.COLLECTING_DOCS,
         updated_at=datetime(2026, 1, 1, 12, 0),
     )
+    history = SimpleNamespace(
+        id=10,
+        from_status=AnnualReportStatus.NOT_STARTED,
+        to_status=AnnualReportStatus.COLLECTING_DOCS,
+        note="מסמכים התקבלו",
+        occurred_at=datetime(2026, 1, 2, 12, 0),
+    )
 
-    event = annual_report_status_changed_event(report)
+    event = annual_report_status_changed_event(report, history)
 
     assert event["event_type"] == "annual_report_status_changed"
-    assert event["timestamp"] == datetime(2026, 1, 1, 12, 0)
-    assert event["description"] == "דוח שנתי 1301 (2024): איסוף מסמכים"
-    assert event["metadata"] == {"annual_report_id": 3}
+    assert event["timestamp"] == datetime(2026, 1, 2, 12, 0)
+    assert event["description"] == "דוח שנתי 1301 (2024): טרם התחיל ← איסוף מסמכים"
+    assert event["metadata"] == {
+        "history_id": 10,
+        "annual_report_id": 3,
+        "tax_year": 2024,
+        "form_type": "1301",
+        "from_status": "not_started",
+        "to_status": "collecting_docs",
+        "note": "מסמכים התקבלו",
+    }
     assert "actions" not in event
     assert event["available_actions"] == []

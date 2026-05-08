@@ -4,7 +4,6 @@ from types import SimpleNamespace
 
 from app.binders.models.binder import BinderStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
-from app.notification.models.notification import NotificationChannel, NotificationTrigger
 from app.core.exceptions import NotFoundError
 from app.timeline.services.timeline_service import TimelineService
 from tests.helpers.identity import seed_business, seed_client_identity
@@ -41,12 +40,6 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
         status=BinderStatus.RETURNED,
         pickup_person_name=None,
     )
-    notification = SimpleNamespace(
-        created_at=datetime(2026, 1, 5, 9, 0),
-        binder_id=binder.id,
-        trigger=NotificationTrigger.BINDER_RECEIVED,
-        channel=NotificationChannel.EMAIL,
-    )
     charge = SimpleNamespace(
         id=7,
         charge_type=ChargeType.CONSULTATION_FEE,
@@ -80,11 +73,6 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
             }
         ),
     )
-    monkeypatch.setattr(
-        service.notification_repo,
-        "list_by_business",
-        lambda business_id, page, page_size: [notification],
-    )
     monkeypatch.setattr(service.charge_repo, "list_charges", lambda **kwargs: [charge])
     monkeypatch.setattr(
         service.invoice_repo,
@@ -115,7 +103,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
 
     assert captured["client_id"] == business.client_id
-    assert total == 10
+    assert total == 9
     assert [event["event_type"] for event in events] == [
         "client_created",
         "invoice_attached",
@@ -139,7 +127,6 @@ def test_get_client_timeline_skips_unreceived_binder_event(test_db, monkeypatch)
 
     monkeypatch.setattr(service.binder_repo, "list_by_client_record", lambda client_id: [binder])
     monkeypatch.setattr(service, "_append_status_change_events", lambda events, binder: None)
-    monkeypatch.setattr(service.notification_repo, "list_by_business", lambda business_id, page, page_size: [])
     monkeypatch.setattr(service.charge_repo, "list_charges", lambda **kwargs: [])
     monkeypatch.setattr(service.invoice_repo, "list_by_charge_ids", lambda charge_ids: [])
     monkeypatch.setattr(service, "_build_annual_report_events", lambda client_id: [])
@@ -169,20 +156,22 @@ def test_get_client_timeline_raises_for_missing_client(test_db):
         assert False, "Expected NotFoundError for missing client"
 
 
-def test_append_status_change_events_appends_each_status_log(test_db, monkeypatch):
+def test_append_status_change_events_skips_noise_and_keeps_meaningful(test_db, monkeypatch):
     service = TimelineService(test_db)
     binder = SimpleNamespace(id=17, binder_number="TL-17", status=BinderStatus.IN_OFFICE)
     events = []
     logs = [
         SimpleNamespace(old_status="none", new_status="in_office", changed_at=datetime(2026, 1, 1, 9, 0)),
         SimpleNamespace(old_status="in_office", new_status="ready_for_pickup", changed_at=datetime(2026, 1, 2, 9, 0)),
+        SimpleNamespace(old_status="returned", new_status="returned", changed_at=datetime(2026, 1, 3, 9, 0)),
     ]
 
     monkeypatch.setattr(service.status_log_repo, "list_by_binder", lambda binder_id: logs)
 
     service._append_status_change_events(events, binder)
 
-    assert [event["event_type"] for event in events] == [
-        "binder_status_change",
-        "binder_status_change",
-    ]
+    assert [event["event_type"] for event in events] == ["binder_status_change"]
+    assert events[0]["metadata"] == {
+        "old_status": "in_office",
+        "new_status": "ready_for_pickup",
+    }

@@ -2,13 +2,12 @@ from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
 from app.reminders.repositories.reminder_repository import ReminderRepository
+from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.timeline.services.timeline_client_builders import (
     client_created_event,
-    client_info_updated_event,
     document_uploaded_event,
-    reminder_created_event,
-    signature_request_created_event,
+    signature_request_lifecycle_event,
 )
 
 _TIMELINE_BULK_LIMIT = 500
@@ -35,21 +34,6 @@ def build_client_events(
     )
     if client:
         events.append(client_created_event(client))
-        if client.updated_at and client.updated_at != client.created_at:
-            events.append(client_info_updated_event(client))
-
-    for business_id in business_ids:
-        reminders = reminder_repo.list_by_business(
-            business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
-        )
-        for reminder in reminders:
-            events.append(reminder_created_event(reminder))
-
-    client_reminders = reminder_repo.list_by_client_record(
-        client_record_id, page=1, page_size=_TIMELINE_BULK_LIMIT
-    )
-    for reminder in client_reminders:
-        events.append(reminder_created_event(reminder))
 
     docs = []
     if business_ids:
@@ -65,11 +49,23 @@ def build_client_events(
     for doc in docs:
         events.append(document_uploaded_event(doc))
 
-    for business_id in business_ids:
-        sig_requests = sig_repo.list_by_business(
-            business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
+    lifecycle_types = ("sent", "signed", "declined", "canceled", "expired")
+    signature_rows = (
+        db.query(SignatureRequest, SignatureAuditEvent)
+        .join(
+            SignatureAuditEvent,
+            SignatureAuditEvent.signature_request_id == SignatureRequest.id,
         )
-        for sig in sig_requests:
-            events.append(signature_request_created_event(sig))
+        .filter(
+            SignatureRequest.client_record_id == client_record_id,
+            SignatureRequest.deleted_at.is_(None),
+            SignatureAuditEvent.event_type.in_(lifecycle_types),
+        )
+        .order_by(SignatureAuditEvent.occurred_at.desc())
+        .limit(_TIMELINE_BULK_LIMIT)
+        .all()
+    )
+    for sig, audit_event in signature_rows:
+        events.append(signature_request_lifecycle_event(sig, audit_event))
 
     return events

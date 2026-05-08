@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from app.audit.constants import ENTITY_CLIENT
-from app.audit.models.entity_audit_log import EntityAuditLog
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 
 

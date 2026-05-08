@@ -1,59 +1,20 @@
 from app.timeline.labels import (
     DOCUMENT_TYPE_HE,
-    REMINDER_TYPE_HE,
     SIGNATURE_REQUEST_TYPE_HE,
 )
 
 
 def client_created_event(client) -> dict:
     client_name = getattr(client, "full_name", None) or getattr(client, "official_name", "")
+    entity_type = getattr(client, "entity_type", None)
+    entity_type_value = entity_type.value if hasattr(entity_type, "value") else entity_type
     return {
         "event_type": "client_created",
         "timestamp": client.created_at,
         "binder_id": None,
         "charge_id": None,
         "description": f"לקוח נוצר: {client_name}",
-        "metadata": {"entity_type": client.entity_type.value},
-        "available_actions": [],
-    }
-
-
-def client_info_updated_event(client) -> dict:
-    return {
-        "event_type": "client_info_updated",
-        "timestamp": client.updated_at,
-        "binder_id": None,
-        "charge_id": None,
-        "description": "פרטי לקוח עודכנו",
-        "metadata": {},
-        "available_actions": [],
-    }
-
-
-def tax_profile_updated_event(profile) -> dict:
-    return {
-        "event_type": "tax_profile_updated",
-        "timestamp": profile.updated_at,
-        "binder_id": None,
-        "charge_id": None,
-        "description": "פרופיל מס עודכן",
-        "metadata": {"tax_profile_id": profile.id},
-        "available_actions": [],
-    }
-
-
-def reminder_created_event(reminder) -> dict:
-    type_he = REMINDER_TYPE_HE.get(reminder.reminder_type.value, reminder.reminder_type.value)
-    return {
-        "event_type": "reminder_created",
-        "timestamp": reminder.created_at,
-        "binder_id": reminder.binder_id,
-        "charge_id": getattr(reminder, "charge_id", None),
-        "description": f"תזכורת נוצרה: {type_he}",
-        "metadata": {
-            "reminder_type": reminder.reminder_type.value,
-            "send_on": reminder.send_on.isoformat(),
-        },
+        "metadata": {"entity_type": entity_type_value},
         "available_actions": [],
     }
 
@@ -76,19 +37,40 @@ def document_uploaded_event(document) -> dict:
     }
 
 
-def signature_request_created_event(sig_request) -> dict:
+def signature_request_lifecycle_event(sig_request, audit_event) -> dict:
+    event_type_map = {
+        "sent": "signature_request_sent",
+        "signed": "signature_request_signed",
+        "declined": "signature_request_declined",
+        "canceled": "signature_request_canceled",
+        "expired": "signature_request_expired",
+    }
+    label_map = {
+        "sent": "בקשת חתימה נשלחה",
+        "signed": "מסמך נחתם",
+        "declined": "חתימה נדחתה",
+        "canceled": "בקשת חתימה בוטלה",
+        "expired": "בקשת חתימה פגה",
+    }
     type_he = SIGNATURE_REQUEST_TYPE_HE.get(
         sig_request.request_type.value, sig_request.request_type.value
     )
+    audit_type = audit_event.event_type
     return {
-        "event_type": "signature_request_created",
-        "timestamp": sig_request.created_at,
+        "event_type": event_type_map[audit_type],
+        "timestamp": audit_event.occurred_at,
         "binder_id": None,
         "charge_id": None,
-        "description": f"בקשת חתימה נוצרה: {type_he}",
+        "description": f"{label_map[audit_type]}: {type_he}",
         "metadata": {
             "signature_request_id": sig_request.id,
+            "request_type": sig_request.request_type.value,
             "status": sig_request.status.value,
+            "annual_report_id": sig_request.annual_report_id,
+            "document_id": sig_request.document_id,
+            "signer_name": sig_request.signer_name,
+            "reason": sig_request.decline_reason if audit_type == "declined" else None,
+            "notes": audit_event.notes,
         },
         "available_actions": [],
     }

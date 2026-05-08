@@ -1,19 +1,16 @@
-from datetime import date, datetime
+from datetime import datetime
 from types import SimpleNamespace
 
 from app.common.enums import EntityType
 from app.permanent_documents.models.permanent_document import DocumentType
-from app.reminders.models.reminder import ReminderType
 from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
 )
 from app.timeline.services.timeline_client_builders import (
     client_created_event,
-    client_info_updated_event,
     document_uploaded_event,
-    reminder_created_event,
-    signature_request_created_event,
+    signature_request_lifecycle_event,
 )
 
 
@@ -32,21 +29,8 @@ def test_client_builder_events():
     assert "actions" not in created
     assert created["available_actions"] == []
 
-    updated = client_info_updated_event(client)
-    assert updated["event_type"] == "client_info_updated"
-    assert updated["timestamp"] == datetime(2026, 1, 2, 8, 0)
-    assert "actions" not in updated
-    assert updated["available_actions"] == []
 
-
-def test_reminder_document_and_signature_builder_events():
-    reminder = SimpleNamespace(
-        reminder_type=ReminderType.CUSTOM,
-        created_at=datetime(2026, 1, 4, 10, 0),
-        binder_id=3,
-        charge_id=4,
-        send_on=date(2026, 1, 10),
-    )
+def test_document_and_signature_lifecycle_builder_events():
     document = SimpleNamespace(
         document_type=DocumentType.ID_COPY,
         uploaded_at=datetime(2026, 1, 5, 11, 0),
@@ -56,16 +40,16 @@ def test_reminder_document_and_signature_builder_events():
         request_type=SignatureRequestType.ANNUAL_REPORT_APPROVAL,
         created_at=datetime(2026, 1, 6, 12, 0),
         status=SignatureRequestStatus.PENDING_SIGNATURE,
+        annual_report_id=8,
+        document_id=9,
+        signer_name="Signer",
+        decline_reason=None,
     )
-
-    reminder_event = reminder_created_event(reminder)
-    assert reminder_event["event_type"] == "reminder_created"
-    assert reminder_event["metadata"] == {
-        "reminder_type": "custom",
-        "send_on": "2026-01-10",
-    }
-    assert "actions" not in reminder_event
-    assert reminder_event["available_actions"] == []
+    audit_event = SimpleNamespace(
+        event_type="sent",
+        occurred_at=datetime(2026, 1, 6, 13, 0),
+        notes="נשלח",
+    )
 
     document_event = document_uploaded_event(document)
     assert document_event["event_type"] == "document_uploaded"
@@ -73,11 +57,18 @@ def test_reminder_document_and_signature_builder_events():
     assert "actions" not in document_event
     assert document_event["available_actions"] == []
 
-    signature_event = signature_request_created_event(signature_request)
-    assert signature_event["event_type"] == "signature_request_created"
+    signature_event = signature_request_lifecycle_event(signature_request, audit_event)
+    assert signature_event["event_type"] == "signature_request_sent"
+    assert signature_event["timestamp"] == datetime(2026, 1, 6, 13, 0)
     assert signature_event["metadata"] == {
         "signature_request_id": 15,
+        "request_type": "annual_report_approval",
         "status": "pending_signature",
+        "annual_report_id": 8,
+        "document_id": 9,
+        "signer_name": "Signer",
+        "reason": None,
+        "notes": "נשלח",
     }
     assert "actions" not in signature_event
     assert signature_event["available_actions"] == []

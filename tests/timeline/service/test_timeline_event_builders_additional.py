@@ -2,29 +2,7 @@ from datetime import datetime
 from types import SimpleNamespace
 
 from app.charge.models.charge import ChargeStatus, ChargeType
-from app.notification.models.notification import NotificationChannel, NotificationTrigger
-from app.timeline.services.timeline_binder_event_builders import (
-    notification_sent_event,
-)
 from app.timeline.services.timeline_charge_event_builders import charge_issued_event
-
-
-def test_notification_sent_event_includes_trigger_and_channel_metadata():
-    notification = SimpleNamespace(
-        created_at=datetime(2026, 3, 8, 10, 0),
-        binder_id=44,
-        trigger=NotificationTrigger.BINDER_RECEIVED,
-        channel=NotificationChannel.EMAIL,
-    )
-
-    event = notification_sent_event(notification)
-
-    assert event["event_type"] == "notification_sent"
-    assert event["timestamp"] == datetime(2026, 3, 8, 10, 0)
-    assert event["binder_id"] == 44
-    assert event["metadata"] == {"trigger": "binder_received", "channel": "email"}
-    assert "actions" not in event
-    assert event["available_actions"] == []
 
 
 def test_charge_issued_event_includes_available_charge_actions():

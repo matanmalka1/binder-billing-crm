@@ -1,8 +1,10 @@
 # Timeline Module
 
-> Last audited: 2026-03-22 (domain-by-domain backend sync).
+> Last audited: 2026-05-08 (operational feed cleanup).
 
-Provides unified per-client-record timeline aggregation across operational domains (binders, charges, notifications, tax calendar entries, annual reports, reminders, documents, and signature requests).
+Provides a per-client-record operational activity feed. The timeline shows
+meaningful business milestones only; generic audit/history rows and automated
+notification/reminder noise are intentionally excluded.
 
 ## Scope
 
@@ -22,7 +24,7 @@ It defines timeline response schemas and aggregation logic:
 - `TimelineEvent`
 - `ClientTimelineResponse`
 - `TimelineService`
-- Builder modules for binder/charge/notification/tax/client events
+- Builder modules for binder, charge, tax, document, and signature events
 
 Implementation references:
 - API: `app/timeline/api/timeline.py`
@@ -74,27 +76,47 @@ Response:
   - `actions` is kept for backward compatibility; both fields carry the same list.
 - Known per-client bulk safety limit:
   - `_TIMELINE_BULK_LIMIT = 500`
-  - Applied to high-volume sources (notifications, charges, reminders, signature requests, documents, tax/annual queries).
+  - Applied to high-volume sources (charges, documents, signatures, annual queries).
   - Older events beyond the cap are silently truncated.
-- `client_info_updated_event` is only emitted when the legal entity `updated_at` differs from `created_at` (avoids duplicate creation-time events).
-- Tax calendar query filters soft-deleted rows (`deleted_at IS NULL`).
-- Annual reports query filters soft-deleted rows (`deleted_at IS NULL`).
+- Annual report events are emitted from `annual_report_status_history`, not
+  from the current report row.
+- Signature lifecycle events are emitted from `signature_audit_events`.
 
 Main event categories currently built:
 - Binder events:
   - `binder_received`, `binder_returned`, `binder_status_change`
-- Notification events:
-  - `notification_sent`
 - Financial events:
   - `charge_created`, `charge_issued`, `charge_paid`, `invoice_attached`
 - Tax/annual events:
-  - `tax_calendar_entry_due`, `annual_report_status_changed`
+  - `annual_report_status_changed`
 - Client/business context events:
-  - `client_created`, `client_info_updated`, `reminder_created`, `document_uploaded`, `signature_request_created`
+  - `client_created`, `document_uploaded`
+- Signature events:
+  - `signature_request_sent`
+  - `signature_request_signed`
+  - `signature_request_declined`
+  - `signature_request_canceled`
+  - `signature_request_expired`
+
+Explicitly excluded noisy events:
+- `client_info_updated` — belongs in generic audit.
+- `reminder_created` — raw reminder setup is not client activity.
+- `notification_sent` — automated send rows are noisy.
+- `signature_request_created` — lifecycle audit rows are more useful.
+- Initial binder `none -> in_office` status logs when `binder_received` exists.
+- Same-status binder status log rows.
+
+Not included in this module currently:
+- Tax calendar upcoming deadlines.
+- VAT report lifecycle events.
+- Advance payment lifecycle events.
+- Correspondence entries.
 
 ### Hebrew label maps
 
-`timeline_binder_event_builders.py` maps binder statuses and notification triggers to Hebrew labels. `timeline_client_builders.py` covers all reminder types including newer entries (`vat_filing`, `advance_payment_due`, `annual_report_deadline`, `document_missing`). `timeline_charge_event_builders.py` maps the full `ChargeType` enum to Hebrew.
+`timeline_binder_event_builders.py` maps binder statuses to Hebrew labels.
+`timeline_charge_event_builders.py` maps the full `ChargeType` enum to Hebrew.
+`timeline_tax_builders.py` maps annual report status transitions.
 
 ## Error Envelope
 
@@ -115,12 +137,9 @@ Timeline composes data from:
 - `businesses` (business IDs for business-scoped event sources)
 - `binders` + `binder_status_logs`
 - `charge` + `invoice`
-- `notification`
-- `tax_calendar` (soft-delete filtered)
-- `annual_reports` (soft-delete filtered)
-- `reminders`
+- `annual_reports` + `annual_report_status_history`
 - `permanent_documents`
-- `signature_requests`
+- `signature_requests` + `signature_audit_events`
 
 ## Tests
 
@@ -131,6 +150,8 @@ Timeline test suites:
 - `tests/timeline/service/test_timeline_event_builders_additional.py`
 - `tests/timeline/service/test_timeline_tax_builders.py`
 - `tests/timeline/service/test_timeline_client_builders.py`
+- `tests/timeline/service/test_timeline_operational_policy.py`
+- `tests/timeline/service/test_timeline_signature_lifecycle.py`
 - `tests/timeline/repository/test_timeline_repository.py`
 
 Run only this domain:

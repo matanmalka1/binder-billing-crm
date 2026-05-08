@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
 from app.businesses.models.business import Business
@@ -8,14 +9,12 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
-from app.notification.repositories.notification_repository import NotificationRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_returned_event,
     binder_status_change_event,
-    notification_sent_event,
 )
 from app.timeline.services.timeline_charge_event_builders import (
     charge_created_event,
@@ -39,7 +38,6 @@ class TimelineService:
         self.status_log_repo = BinderStatusLogRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
-        self.notification_repo = NotificationRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.sig_repo = SignatureRequestRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
@@ -73,14 +71,7 @@ class TimelineService:
             self._append_status_change_events(events, binder)
 
         # Bounded fetch — clients with more than _TIMELINE_BULK_LIMIT
-        # notifications or charges will have older events silently truncated.
-        for business_id in business_ids:
-            notifications = self.notification_repo.list_by_business(
-                business_id, page=1, page_size=_TIMELINE_BULK_LIMIT
-            )
-            for notification in notifications:
-                events.append(notification_sent_event(notification))
-
+        # charges will have older events silently truncated.
         charges = self.charge_repo.list_charges(
             business_ids=business_ids, page=1, page_size=_TIMELINE_BULK_LIMIT
         )
@@ -113,12 +104,28 @@ class TimelineService:
     def _append_status_change_events(self, events: list[dict], binder) -> None:
         logs = self.status_log_repo.list_by_binder(binder.id)
         for status_log in logs:
+            old_status = getattr(status_log, "old_status", None)
+            new_status = getattr(status_log, "new_status", None)
+            if old_status == new_status:
+                continue
+            if old_status in (None, "none") and new_status == "in_office":
+                continue
             events.append(binder_status_change_event(binder, status_log))
 
     def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
-        # Annual reports are bounded by tax years — limit is a safety net only.
-        query = self.db.query(AnnualReport).filter(AnnualReport.deleted_at.is_(None))
+        query = (
+            self.db.query(AnnualReport, AnnualReportStatusHistory)
+            .join(
+                AnnualReportStatusHistory,
+                AnnualReportStatusHistory.annual_report_id == AnnualReport.id,
+            )
+            .filter(AnnualReport.deleted_at.is_(None))
+        )
         if client_record_id is not None:
             query = query.filter(AnnualReport.client_record_id == client_record_id)
-        reports = query.limit(_TIMELINE_BULK_LIMIT).all()
-        return [annual_report_status_changed_event(r) for r in reports]
+        rows = (
+            query.order_by(AnnualReportStatusHistory.occurred_at.desc())
+            .limit(_TIMELINE_BULK_LIMIT)
+            .all()
+        )
+        return [annual_report_status_changed_event(report, history) for report, history in rows]

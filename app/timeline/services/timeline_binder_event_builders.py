@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.actions.action_contracts import get_binder_actions
-from app.timeline.labels import BINDER_STATUS_HE, NOTIFICATION_TRIGGER_HE
+from app.timeline.labels import BINDER_STATUS_HE
 
 
 def _attach_actions(event: dict, actions: list) -> dict:
@@ -67,19 +67,3 @@ def binder_status_change_event(binder, status_log) -> dict:
         actions,
     )
 
-
-def notification_sent_event(notification) -> dict:
-    return _attach_actions(
-        {
-            "event_type": "notification_sent",
-            "timestamp": notification.created_at,
-            "binder_id": notification.binder_id,
-            "charge_id": None,
-            "description": f"התראה: {NOTIFICATION_TRIGGER_HE.get(notification.trigger.value, 'סוג לא ידוע')}",
-            "metadata": {
-                "trigger": notification.trigger.value,
-                "channel": notification.channel.value,
-            },
-        },
-        [],
-    )

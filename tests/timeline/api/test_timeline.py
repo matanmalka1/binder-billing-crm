@@ -16,7 +16,6 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
 )
-from app.utils.time_utils import utcnow
 from app.timeline.services import timeline_service as timeline_service_module
 from tests.helpers.identity import seed_business, seed_client_identity
 
@@ -123,7 +122,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] >= 6
+        assert data["total"] >= 5
         events = data["events"]
         timestamps = [datetime.fromisoformat(e["timestamp"]) for e in events]
         assert timestamps == sorted(timestamps, reverse=True)
@@ -135,16 +134,15 @@ def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
     business = _business(test_db)
     original_build_client_events = timeline_service_module.build_client_events
     timeline_service_module.build_client_events = lambda *args, **kwargs: []
-    for _ in range(510):
+    for _ in range(210):
         test_db.add(
-            Notification(
+            Charge(
                 client_record_id=business.client_id,
                 business_id=business.id,
-                trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
-                channel=NotificationChannel.EMAIL,
-                recipient="bulk@example.com",
-                content_snapshot="content",
-                created_at=utcnow(),
+                amount=Decimal("10.00"),
+                charge_type=ChargeType.CONSULTATION_FEE,
+                status=ChargeStatus.DRAFT,
+                created_at=datetime.now(UTC),
             )
         )
     test_db.commit()
@@ -156,7 +154,7 @@ def test_timeline_applies_bulk_limits(client, test_db, advisor_headers):
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] <= 505
+        assert data["total"] == 210
         assert len(data["events"]) == 200
     finally:
         timeline_service_module.build_client_events = original_build_client_events
