@@ -34,6 +34,11 @@ ACTION_CANCELED = "canceled"
 
 # Annual report status transition
 ACTION_STATUS_CHANGED = "status_changed"
+ACTION_ANNUAL_REPORT_DETAIL_UPDATED = "annual_report_detail_updated"
+ACTION_ANNUAL_REPORT_DEADLINE_UPDATED = "annual_report_deadline_updated"
+ACTION_ANNEX_LINE_ADDED = "annex_line_added"
+ACTION_ANNEX_LINE_UPDATED = "annex_line_updated"
+ACTION_ANNEX_LINE_DELETED = "annex_line_deleted"
 
 # Annual report financial lines
 ACTION_INCOME_ADDED = "income_added"

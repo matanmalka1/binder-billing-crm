@@ -100,8 +100,7 @@ class AnnexDataRepository:
         return row
 
     def delete_line(self, line_id: int) -> bool:
-        # Intentional hard-delete: annex data lines are user-entered data with no
-        # audit trail requirement. Soft-delete would require schema migration (Sprint 10+).
+        # Intentional hard-delete. Service layer snapshots the row to generic audit first.
         row = self.get_by_id(line_id)
         if not row:
             return False

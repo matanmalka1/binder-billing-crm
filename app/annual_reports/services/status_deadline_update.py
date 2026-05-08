@@ -1,5 +1,7 @@
 """Deadline update helper for annual reports."""
 
+from app.audit.constants import ACTION_ANNUAL_REPORT_DEADLINE_UPDATED, ENTITY_ANNUAL_REPORT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.annual_reports.models.annual_report_enums import FilingDeadlineType
 from app.core.exceptions import AppError
 
@@ -9,6 +11,7 @@ from .messages import CUSTOM_DEADLINE_LABEL, DEADLINE_UPDATED_NOTE, INVALID_DEAD
 
 def update_report_deadline(service, report_id: int, deadline_type: str, changed_by: int, custom_deadline_note=None):
     report = service._get_or_raise_for_update(report_id)
+    old_value = _deadline_snapshot(report)
     valid_deadline_types = {e.value for e in FilingDeadlineType}
     if deadline_type not in valid_deadline_types:
         raise AppError(INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type), "ANNUAL_REPORT.INVALID_TYPE")
@@ -34,6 +37,14 @@ def update_report_deadline(service, report_id: int, deadline_type: str, changed_
         changed_by=changed_by,
         note=_deadline_note(dt, filing_deadline, custom_deadline_note),
     )
+    EntityAuditWriter(service.db).append(
+        entity_type=ENTITY_ANNUAL_REPORT,
+        entity_id=report_id,
+        actor_id=changed_by,
+        action=ACTION_ANNUAL_REPORT_DEADLINE_UPDATED,
+        old_value=old_value,
+        new_value=_deadline_snapshot(updated),
+    )
     return updated
 
 
@@ -43,3 +54,11 @@ def _deadline_note(deadline_type, filing_deadline, custom_deadline_note):
         filing_deadline=filing_deadline.strftime("%d/%m/%Y") if filing_deadline else CUSTOM_DEADLINE_LABEL,
     )
     return note + (f" — {custom_deadline_note}" if custom_deadline_note else "")
+
+
+def _deadline_snapshot(report):
+    return {
+        "deadline_type": report.deadline_type.value if hasattr(report.deadline_type, "value") else report.deadline_type,
+        "filing_deadline": report.filing_deadline,
+        "custom_deadline_note": report.custom_deadline_note,
+    }
