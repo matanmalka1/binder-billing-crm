@@ -1,3 +1,5 @@
+from datetime import date, datetime
+from enum import Enum
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -25,15 +27,28 @@ class AnnualReportDetailService:
         if not report:
             raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
         existing = self.repo.get_by_report_id(report_id)
-        old_value = {key: getattr(existing, key, None) for key in fields} if fields else None
+        changes = {
+            key: value
+            for key, value in fields.items()
+            if _audit_value(getattr(existing, key, None)) != _audit_value(value)
+        }
+        old_value = {key: getattr(existing, key, None) for key in changes} if changes else None
         detail = self.repo.update_meta(report_id, **fields)
-        if fields:
+        if changes:
             EntityAuditWriter(self.db).append(
                 entity_type=ENTITY_ANNUAL_REPORT,
                 entity_id=report_id,
                 actor_id=actor_id,
                 action=ACTION_ANNUAL_REPORT_DETAIL_UPDATED,
                 old_value=old_value,
-                new_value=fields,
+                new_value=changes,
             )
         return detail
+
+
+def _audit_value(value):
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return value

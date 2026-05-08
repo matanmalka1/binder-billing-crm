@@ -57,6 +57,23 @@ def test_detail_update_writes_generic_audit(test_db, test_user):
     assert json.loads(entry.new_value) == {"donation_amount": 250, "internal_notes": "בדיקה"}
 
 
+def test_detail_update_skips_audit_when_values_do_not_change(test_db, test_user):
+    report = _create_report(test_db, test_user)
+    service = AnnualReportDetailService(test_db)
+    service.update_detail(report.id, actor_id=test_user.id, donation_amount=250)
+
+    service.update_detail(report.id, actor_id=test_user.id, donation_amount=250)
+
+    entries = (
+        test_db.query(EntityAuditLog)
+        .filter(EntityAuditLog.entity_type == ENTITY_ANNUAL_REPORT)
+        .filter(EntityAuditLog.entity_id == report.id)
+        .filter(EntityAuditLog.action == ACTION_ANNUAL_REPORT_DETAIL_UPDATED)
+        .all()
+    )
+    assert len(entries) == 1
+
+
 def test_deadline_update_writes_generic_audit(test_db, test_user):
     report = _create_report(test_db, test_user)
 
