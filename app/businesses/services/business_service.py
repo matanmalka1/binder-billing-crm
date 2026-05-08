@@ -1,12 +1,11 @@
-import json
 from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
-from app.audit.constants import ACTION_CREATED, ENTITY_BUSINESS
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ENTITY_BUSINESS
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
@@ -25,9 +24,7 @@ class BusinessService:
         self.business_repo = BusinessRepository(db)
         self._lifecycle = BusinessLifecycleService(db)
         self._update = BusinessUpdateService(db)
-        self._audit = EntityAuditLogRepository(db)
-
-    # ─── Create ───────────────────────────────────────────────────────────────
+        self._audit = EntityAuditWriter(db)
 
     def create_business(
         self,
@@ -88,17 +85,17 @@ class BusinessService:
                 "BUSINESS.CONFLICT",
             )
 
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_BUSINESS,
-                entity_id=business.id,
-                performed_by=actor_id,
-                action=ACTION_CREATED,
-                new_value=json.dumps({"client_record_id": client_record_id}),
-            )
+        self._audit.record_create(
+            ENTITY_BUSINESS,
+            business.id,
+            actor_id,
+            new_value={
+                "client_record_id": client_record_id,
+                "business_name": business_name,
+                "opened_at": effective_opened_at,
+            },
+        )
         return business
-
-    # ─── Read ─────────────────────────────────────────────────────────────────
 
     def get_business(self, business_id: int) -> Optional[Business]:
         return self.business_repo.get_by_id(business_id)
@@ -123,8 +120,6 @@ class BusinessService:
         total = self.business_repo.count_by_legal_entity(record.legal_entity_id)
         return items, total
 
-    # ─── Update ───────────────────────────────────────────────────────────────
-
     def update_business(
         self, business_id: int, client_id: int, user_role: UserRole,
         actor_id: Optional[int] = None, **fields
@@ -140,8 +135,6 @@ class BusinessService:
             legal_entity_id=record.legal_entity_id,
             **fields,
         )
-
-    # ─── Delete / Restore (delegated) ────────────────────────────────────────
 
     def delete_business(self, business_id: int, actor_id: int) -> None:
         self._lifecycle.delete_business(business_id, actor_id)

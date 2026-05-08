@@ -1,12 +1,9 @@
-import json
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.audit.constants import (
-    ACTION_CANCELED, ACTION_CREATED, ACTION_DELETED, ACTION_ISSUED, ACTION_PAID, ENTITY_CHARGE,
-)
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ACTION_CANCELED, ACTION_ISSUED, ACTION_PAID, ENTITY_CHARGE
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, validate_business_for_create
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
@@ -30,7 +27,7 @@ class BillingService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def _validate_charge_scope(
         self,
@@ -71,12 +68,12 @@ class BillingService:
             charge_type=charge_type,
             period=period, months_covered=months_covered, created_by=actor_id,
         )
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CHARGE, entity_id=charge.id, performed_by=actor_id,
-                action=ACTION_CREATED,
-                new_value=json.dumps({"amount": str(amount), "charge_type": charge_type}),
-            )
+        self._audit.record_create(
+            ENTITY_CHARGE,
+            charge.id,
+            actor_id,
+            new_value={"amount": str(amount), "charge_type": charge_type},
+        )
         return charge
 
     def issue_charge(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
@@ -91,12 +88,9 @@ class BillingService:
             charge_id, ChargeStatus.ISSUED, charge=charge,
             issued_at=utcnow(), issued_by=actor_id,
         )
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
-                action=ACTION_ISSUED,
-                old_value=ChargeStatus.DRAFT.value, new_value=ChargeStatus.ISSUED.value,
-            )
+        self._audit.record_status_change(
+            ENTITY_CHARGE, charge_id, actor_id, ChargeStatus.DRAFT, ChargeStatus.ISSUED, note=ACTION_ISSUED,
+        )
         return issued
 
     def mark_charge_paid(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
@@ -111,12 +105,9 @@ class BillingService:
             charge_id, ChargeStatus.PAID, charge=charge,
             paid_at=utcnow(), paid_by=actor_id,
         )
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
-                action=ACTION_PAID,
-                old_value=ChargeStatus.ISSUED.value, new_value=ChargeStatus.PAID.value,
-            )
+        self._audit.record_status_change(
+            ENTITY_CHARGE, charge_id, actor_id, ChargeStatus.ISSUED, ChargeStatus.PAID, note=ACTION_PAID,
+        )
         return paid
 
     def cancel_charge(self, charge_id: int, actor_id: Optional[int] = None, reason: Optional[str] = None) -> Charge:
@@ -132,12 +123,9 @@ class BillingService:
             charge_id, ChargeStatus.CANCELED, charge=charge,
             canceled_by=actor_id, canceled_at=utcnow(), cancellation_reason=reason,
         )
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CHARGE, entity_id=charge_id, performed_by=actor_id,
-                action=ACTION_CANCELED,
-                old_value=old_status, new_value=ChargeStatus.CANCELED.value, note=reason,
-            )
+        self._audit.record_status_change(
+            ENTITY_CHARGE, charge_id, actor_id, old_status, ChargeStatus.CANCELED, note=reason or ACTION_CANCELED,
+        )
         return canceled
 
     def delete_charge(self, charge_id: int, actor_id: Optional[int] = None) -> bool:
@@ -150,11 +138,8 @@ class BillingService:
                 "CHARGE.INVALID_STATUS",
             )
         result = self.charge_repo.soft_delete(charge_id, deleted_by=actor_id)
-        if result and actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CHARGE, entity_id=charge_id,
-                performed_by=actor_id, action=ACTION_DELETED,
-            )
+        if result:
+            self._audit.record_delete(ENTITY_CHARGE, charge_id, actor_id)
         return result
 
     def get_charge(self, charge_id: int) -> Charge:

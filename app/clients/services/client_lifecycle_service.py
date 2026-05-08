@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from app.audit.constants import ACTION_DELETED, ACTION_RESTORED, ENTITY_CLIENT
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ENTITY_CLIENT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
@@ -19,14 +19,14 @@ class ClientLifecycleService:
     def __init__(self, db: Session):
         self.db = db
         self.record_repo = ClientRecordRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def delete_client(self, client_id: int, actor_id: int) -> None:
         client = self.record_repo.get_by_id_including_deleted(client_id)
         if not client or client.deleted_at is not None:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
         self.record_repo.soft_delete(client_id, deleted_by=actor_id)
-        self._audit.append(entity_type=ENTITY_CLIENT, entity_id=client_id, performed_by=actor_id, action=ACTION_DELETED)
+        self._audit.record_delete(ENTITY_CLIENT, client_id, actor_id)
 
     def restore_client(self, client_id: int, actor_id: int):
         client = self.record_repo.get_by_id_including_deleted(client_id)
@@ -45,10 +45,5 @@ class ClientLifecycleService:
         restored = get_full_record(self.db, restored_record.id) if restored_record else None
         if not restored:
             raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
-        self._audit.append(
-            entity_type=ENTITY_CLIENT,
-            entity_id=client_id,
-            performed_by=actor_id,
-            action=ACTION_RESTORED,
-        )
+        self._audit.record_restore(ENTITY_CLIENT, client_id, actor_id)
         return restored

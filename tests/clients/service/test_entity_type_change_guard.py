@@ -1,9 +1,4 @@
-"""Step 3 tests: entity_type change guard in ClientService.update_client.
-
-- SECRETARY cannot change entity_type → ForbiddenError
-- ADVISOR can change entity_type → audit logged
-"""
-
+import json
 from datetime import date
 from itertools import count
 
@@ -17,6 +12,7 @@ from app.core.exceptions import ForbiddenError
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
+from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED
 from app.audit.models.entity_audit_log import EntityAuditLog
 from tests.helpers.identity import seed_client_identity
 
@@ -105,7 +101,7 @@ def test_entity_type_change_logs_audit_entry(test_db):
         test_db.query(EntityAuditLog)
         .filter(
             EntityAuditLog.entity_id == cr.id,
-            EntityAuditLog.action == "entity_type_changed",
+            EntityAuditLog.action == ACTION_ENTITY_TYPE_CHANGED,
         )
         .all()
     )
@@ -114,3 +110,5 @@ def test_entity_type_change_logs_audit_entry(test_db):
     assert entry.old_value is not None
     assert entry.new_value is not None
     assert entry.old_value != entry.new_value
+    assert json.loads(entry.old_value) == {"entity_type": EntityType.OSEK_MURSHE.value}
+    assert json.loads(entry.new_value) == {"entity_type": EntityType.COMPANY_LTD.value}

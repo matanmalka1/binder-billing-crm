@@ -1,12 +1,11 @@
-import json
 from typing import Optional
 from datetime import date
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.audit.constants import ACTION_CREATED, ENTITY_CLIENT
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ENTITY_CLIENT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.clients.constants import (
     COMPANY_CORPORATION_ID_ERROR,
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
@@ -29,7 +28,7 @@ class ClientCreationService:
     def __init__(self, db: Session):
         self.db = db
         self.record_repo = ClientRecordRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def create_client(
         self,
@@ -109,12 +108,15 @@ class ClientCreationService:
             entity_type=entity_type,
             reference_date=reference_date,
         )
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_CLIENT,
-                entity_id=client_record.id,
-                performed_by=actor_id,
-                action=ACTION_CREATED,
-                new_value=json.dumps({"full_name": full_name, "id_number": id_number}),
-            )
+        self._audit.record_create(
+            ENTITY_CLIENT,
+            client_record.id,
+            actor_id,
+            new_value={
+                "full_name": full_name,
+                "id_number": id_number,
+                "entity_type": entity_type,
+                "office_client_number": client_record.office_client_number,
+            },
+        )
         return client_record

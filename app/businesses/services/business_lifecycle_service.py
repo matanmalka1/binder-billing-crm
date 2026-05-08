@@ -3,8 +3,8 @@
 
 from sqlalchemy.orm import Session
 
-from app.audit.constants import ACTION_DELETED, ACTION_RESTORED, ENTITY_BUSINESS
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ENTITY_BUSINESS
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
@@ -15,18 +15,13 @@ class BusinessLifecycleService:
     def __init__(self, db: Session):
         self.db = db
         self.business_repo = BusinessRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def delete_business(self, business_id: int, actor_id: int) -> None:
         if not self.business_repo.get_by_id(business_id):
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
         self.business_repo.soft_delete(business_id, deleted_by=actor_id)
-        self._audit.append(
-            entity_type=ENTITY_BUSINESS,
-            entity_id=business_id,
-            performed_by=actor_id,
-            action=ACTION_DELETED,
-        )
+        self._audit.record_delete(ENTITY_BUSINESS, business_id, actor_id)
 
     def restore_business(self, business_id: int, actor_id: int, actor_role: UserRole) -> Business:
         if actor_role != UserRole.ADVISOR:
@@ -39,10 +34,5 @@ class BusinessLifecycleService:
         restored = self.business_repo.restore(business_id, restored_by=actor_id)
         if not restored:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        self._audit.append(
-            entity_type=ENTITY_BUSINESS,
-            entity_id=business_id,
-            performed_by=actor_id,
-            action=ACTION_RESTORED,
-        )
+        self._audit.record_restore(ENTITY_BUSINESS, business_id, actor_id)
         return restored

@@ -15,6 +15,7 @@ ACTION_CREATED = "created"
 ACTION_UPDATED = "updated"
 ACTION_DELETED = "deleted"
 ACTION_RESTORED = "restored"
+ACTION_ENTITY_TYPE_CHANGED = "entity_type_changed"
 
 # Charge-specific status transitions
 ACTION_ISSUED = "issued"

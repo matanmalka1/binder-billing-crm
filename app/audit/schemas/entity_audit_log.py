@@ -24,3 +24,6 @@ class EntityAuditLogResponse(BaseModel):
 
 class EntityAuditTrailResponse(BaseModel):
     items: list[EntityAuditLogResponse]
+    total: int
+    limit: int
+    offset: int

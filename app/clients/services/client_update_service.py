@@ -1,12 +1,11 @@
-import json
 import logging
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.actions.obligation_orchestrator import generate_client_obligations, obligation_fields_changed
-from app.audit.constants import ACTION_UPDATED, ENTITY_CLIENT
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED, ENTITY_CLIENT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.annual_reports.services.client_status_service import AnnualReportClientStatusService
 from app.binders.services.client_status_service import BinderClientStatusService
 from app.clients.enums import ClientStatus
@@ -26,7 +25,7 @@ class ClientUpdateService:
     def __init__(self, db: Session):
         self.db = db
         self.record_repo = ClientRecordRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields):
         existing = get_full_record(self.db, client_id)
@@ -49,18 +48,12 @@ class ClientUpdateService:
                 entity_type=updated.get("entity_type"),
                 best_effort=True,
             )
-        self._audit.append(
-            entity_type=ENTITY_CLIENT,
-            entity_id=client_id,
-            performed_by=actor_id,
-            action=ACTION_UPDATED,
-            old_value=json.dumps({k: str(v) if v is not None else None for k, v in old_snapshot.items()}),
-            new_value=json.dumps(
-                {
-                    k: str(updated.get(k)) if updated.get(k) is not None else None
-                    for k in fields
-                }
-            ),
+        self._audit.record_update(
+            ENTITY_CLIENT,
+            client_id,
+            actor_id,
+            old_value=old_snapshot,
+            new_value={k: updated.get(k) for k in fields},
         )
         return updated
 
@@ -125,10 +118,10 @@ class ClientUpdateService:
             client_id, old_entity_type, new_entity_type, actor_id,
         )
         self._audit.append(
-            entity_type=ENTITY_CLIENT,
-            entity_id=client_id,
-            performed_by=actor_id,
-            action="entity_type_changed",
-            old_value=str(old_entity_type),
-            new_value=str(new_entity_type),
+            ENTITY_CLIENT,
+            client_id,
+            actor_id,
+            ACTION_ENTITY_TYPE_CHANGED,
+            old_value={"entity_type": old_entity_type},
+            new_value={"entity_type": new_entity_type},
         )

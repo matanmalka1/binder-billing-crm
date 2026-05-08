@@ -1,13 +1,12 @@
 """Business update logic — extracted to keep BusinessService within 150 lines."""
 
-import json
 from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.audit.constants import ACTION_UPDATED, ENTITY_BUSINESS
-from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
+from app.audit.constants import ENTITY_BUSINESS
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
@@ -27,7 +26,7 @@ class BusinessUpdateService:
     def __init__(self, db: Session):
         self._db = db
         self._repo = BusinessRepository(db)
-        self._audit = EntityAuditLogRepository(db)
+        self._audit = EntityAuditWriter(db)
 
     def update_business(
         self,
@@ -73,13 +72,11 @@ class BusinessUpdateService:
         updated = self._repo.update(business_id, **fields)
         new_snapshot = {k: getattr(updated, k, None) for k in fields if hasattr(updated, k)}
 
-        if actor_id:
-            self._audit.append(
-                entity_type=ENTITY_BUSINESS,
-                entity_id=business_id,
-                performed_by=actor_id,
-                action=ACTION_UPDATED,
-                old_value=json.dumps(_serialize(old_snapshot)),
-                new_value=json.dumps(_serialize(new_snapshot)),
-            )
+        self._audit.record_update(
+            ENTITY_BUSINESS,
+            business_id,
+            actor_id,
+            old_value=_serialize(old_snapshot),
+            new_value=_serialize(new_snapshot),
+        )
         return updated
