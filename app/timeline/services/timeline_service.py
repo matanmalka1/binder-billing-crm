@@ -9,8 +9,6 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
-from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_returned_event,
@@ -38,8 +36,6 @@ class TimelineService:
         self.status_log_repo = BinderStatusLogRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
-        self.reminder_repo = ReminderRepository(db)
-        self.sig_repo = SignatureRequestRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
 
     def get_client_timeline(
@@ -91,9 +87,7 @@ class TimelineService:
 
         events.extend(self._build_annual_report_events(client_record.id if client_record else None))
         events.extend(
-            build_client_events(
-                self.db, client_record_id, business_ids, self.reminder_repo, self.sig_repo
-            )
+            build_client_events(self.db, client_record_id, business_ids)
         )
 
         events.sort(key=lambda e: e["timestamp"], reverse=True)
@@ -101,13 +95,22 @@ class TimelineService:
         offset = (page - 1) * page_size
         return events[offset : offset + page_size], total
 
+    @staticmethod
+    def _status_str(value) -> str | None:
+        """Normalise a status that may be a plain string or a BinderStatus Enum to its string value."""
+        if value is None:
+            return None
+        return value.value if hasattr(value, "value") else str(value)
+
     def _append_status_change_events(self, events: list[dict], binder) -> None:
         logs = self.status_log_repo.list_by_binder(binder.id)
         for status_log in logs:
-            old_status = getattr(status_log, "old_status", None)
-            new_status = getattr(status_log, "new_status", None)
+            old_status = self._status_str(getattr(status_log, "old_status", None))
+            new_status = self._status_str(getattr(status_log, "new_status", None))
             if old_status == new_status:
                 continue
+            # Skip the synthetic none → in_office row written by the status-log
+            # trigger on binder creation; it duplicates the binder_received event.
             if old_status in (None, "none") and new_status == "in_office":
                 continue
             events.append(binder_status_change_event(binder, status_log))

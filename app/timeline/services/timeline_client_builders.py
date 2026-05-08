@@ -7,7 +7,7 @@ from app.timeline.labels import (
 def client_created_event(client) -> dict:
     client_name = getattr(client, "full_name", None) or getattr(client, "official_name", "")
     entity_type = getattr(client, "entity_type", None)
-    entity_type_value = entity_type.value if hasattr(entity_type, "value") else entity_type
+    entity_type_value = getattr(entity_type, "value", entity_type)
     return {
         "event_type": "client_created",
         "timestamp": client.created_at,
@@ -69,6 +69,9 @@ def signature_request_lifecycle_event(sig_request, audit_event) -> dict:
             "annual_report_id": sig_request.annual_report_id,
             "document_id": sig_request.document_id,
             "signer_name": sig_request.signer_name,
+            # decline_reason comes from the current SignatureRequest row, not from the
+            # audit event snapshot.  If the request is later edited or the row is mutated,
+            # this value reflects the latest persisted reason, not the one at decline time.
             "reason": sig_request.decline_reason if audit_type == "declined" else None,
             "notes": audit_event.notes,
         },
