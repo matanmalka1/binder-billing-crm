@@ -2,7 +2,9 @@
 from datetime import date
 from itertools import count
 
-from app.advance_payments.repositories.advance_payment_aggregation_repository import AdvancePaymentAggregationRepository
+from app.advance_payments.repositories.advance_payment_batch_repository import (
+    AdvancePaymentBatchRepository,
+)
 from app.common.enums import AdvancePaymentFrequency, DeadlineRuleType, ObligationType
 from tests.helpers.identity import seed_business, seed_client_identity
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
@@ -59,7 +61,7 @@ def test_batch_summary_returns_due_date_from_tax_calendar_entry(test_db):
     _payment(test_db, client.id, "2026-01", 1, entry)
     test_db.flush()
 
-    rows = AdvancePaymentAggregationRepository(test_db).batch_summary_by_month(2026)
+    rows = AdvancePaymentBatchRepository(test_db).batch_summary_by_month(2026)
 
     jan = next((r for r in rows if int(r.month) == 1), None)
     assert jan is not None
@@ -96,7 +98,7 @@ def test_batch_summary_monthly_and_bimonthly_same_start_month_are_separate_rows(
     _payment(test_db, client_b.id, "2026-01", 2, entry_bimonthly)
     test_db.flush()
 
-    rows = AdvancePaymentAggregationRepository(test_db).batch_summary_by_month(2026)
+    rows = AdvancePaymentBatchRepository(test_db).batch_summary_by_month(2026)
     jan_rows = [r for r in rows if int(r.month) == 1]
 
     assert len(jan_rows) == 2, (
@@ -108,5 +110,5 @@ def test_batch_summary_monthly_and_bimonthly_same_start_month_are_separate_rows(
 
 def test_batch_summary_due_date_is_none_when_no_payments(test_db):
     """If no payments exist for the year, result is empty (no crash, no null due_date rows)."""
-    rows = AdvancePaymentAggregationRepository(test_db).batch_summary_by_month(2099)
+    rows = AdvancePaymentBatchRepository(test_db).batch_summary_by_month(2099)
     assert rows == []

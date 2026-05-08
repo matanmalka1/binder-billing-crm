@@ -17,7 +17,7 @@ from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRep
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
-from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
+from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
 from app.dashboard.services.dashboard_empty_state import build_attention_empty_checks
 from app.utils.time_utils import israel_today
 
@@ -36,7 +36,7 @@ class DashboardOverviewService:
         self.notification_repo = NotificationRepository(db)
         self.extended_service = DashboardExtendedService(db)
         self.advisor_today_service = AdvisorTodayService(db)
-        self.vat_stats_service = VatDashboardStatsService(db)
+        self.vat_stats_service = TaxStatusStatsService(db)
 
     def get_overview(
         self,

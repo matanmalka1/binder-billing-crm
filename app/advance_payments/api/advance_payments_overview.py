@@ -9,7 +9,9 @@ from app.advance_payments.schemas.advance_payment import (
     MonthBatchSummary,
 )
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
-from app.advance_payments.repositories.advance_payment_aggregation_repository import AdvancePaymentAggregationRepository
+from app.advance_payments.repositories.advance_payment_batch_repository import (
+    AdvancePaymentBatchRepository,
+)
 
 overview_router = APIRouter(
     prefix="/advance-payments",
@@ -80,7 +82,7 @@ def list_advance_payment_batches(
     user: CurrentUser,
     year: int = Query(...),
 ):
-    rows = AdvancePaymentAggregationRepository(db).batch_summary_by_month(year)
+    rows = AdvancePaymentBatchRepository(db).batch_summary_by_month(year)
     result = []
     for r in rows:
         total_expected = float(r.total_expected)

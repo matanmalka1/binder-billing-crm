@@ -96,9 +96,15 @@ class VatSegmentStat(BaseModel):
     count: int
 
 
+class AdvancePaymentDashboardStats(BaseModel):
+    monthly: VatDashboardPeriodStat
+    bimonthly: VatDashboardPeriodStat
+
+
 class VatDashboardStats(BaseModel):
     monthly: VatDashboardPeriodStat
     bimonthly: VatDashboardPeriodStat
+    advance_payments: AdvancePaymentDashboardStats
     segmentation: list[VatSegmentStat] = Field(default_factory=list)
 
 

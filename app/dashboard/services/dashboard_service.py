@@ -11,7 +11,7 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.models.reminder import ReminderStatus
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
-from app.dashboard.services.vat_dashboard_stats_service import VatDashboardStatsService
+from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
 from app.utils.time_utils import israel_today
 
 
@@ -25,7 +25,7 @@ class DashboardService:
         self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.extended_service = DashboardExtendedService(db)
-        self.vat_stats_service = VatDashboardStatsService(db)
+        self.vat_stats_service = TaxStatusStatsService(db)
 
     def get_summary(self, user_role: Optional[UserRole] = None) -> dict:
         today = israel_today()
