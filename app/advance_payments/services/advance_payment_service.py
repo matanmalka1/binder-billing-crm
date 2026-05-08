@@ -103,7 +103,8 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
-        entry = TaxCalendarMaterializationService(self.db).ensure_periodic_entry(
+        mat = TaxCalendarMaterializationService(self.db)
+        entry = mat.ensure_periodic_entry(
             ObligationType.ADVANCE_PAYMENT,
             period,
             period_months_count,
@@ -112,7 +113,7 @@ class AdvancePaymentService:
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
-            due_date=due_date,
+            due_date=entry.due_date,
             expected_amount=expected_amount,
             paid_amount=paid_amount,
             payment_method=payment_method,
@@ -120,7 +121,7 @@ class AdvancePaymentService:
             tax_calendar_entry_id=entry.id,
             notes=notes,
         )
-        return TaxCalendarMaterializationService(self.db).link_advance_payment(payment)
+        return mat.link_advance_payment(payment)
 
     # ─── Update ───────────────────────────────────────────────────────────────
 

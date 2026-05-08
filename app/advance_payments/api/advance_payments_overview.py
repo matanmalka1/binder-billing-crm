@@ -89,6 +89,7 @@ def list_advance_payment_batches(
         result.append(MonthBatchSummary(
             year=year,
             month=int(r.month),
+            due_date=r.due_date,
             period_months_count=int(r.period_months_count or 1),
             client_count=int(r.client_count),
             missing_turnover_count=int(r.snapshot_missing_count or 0),

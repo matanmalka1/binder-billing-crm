@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -15,7 +15,32 @@ from app.vat_reports.services.constants import (
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
+
+_ONLINE_EXTENSION_DAYS = VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
+
+
+def deadline_fields_from_snapshot(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+    """Compute deadline fields from stored due_date_effective (preferred path for linked items)."""
+    statutory = item.due_date_original or item.due_date_effective
+    extended = statutory + timedelta(days=_ONLINE_EXTENSION_DAYS)
+    submission = extended if submission_method == SubmissionMethod.ONLINE else statutory
+    today = datetime.now(timezone.utc).date()
+    days = (submission - today).days
+    return {
+        "submission_deadline": submission,
+        "statutory_deadline": statutory,
+        "extended_deadline": extended,
+        "days_until_deadline": days,
+        "is_overdue": days < 0,
+    }
+
+
 def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+    """Legacy fallback: reconstruct deadline from period string + hardcoded day constants.
+
+    Only reached when tax_calendar_entry_id is None (pre-linking legacy rows).
+    New rows always have a TaxCalendarEntry and use deadline_fields_from_snapshot instead.
+    """
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
         months_in_period = 2 if getattr(item, "period_type", None) == VatType.BIMONTHLY else 1
@@ -33,7 +58,6 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
             deadline_month,
             VAT_ONLINE_EXTENDED_DEADLINE_DAY,
         )
-        # Use extended deadline for online filers, statutory for manual filers
         submission_deadline = (
             extended_deadline
             if submission_method == SubmissionMethod.ONLINE

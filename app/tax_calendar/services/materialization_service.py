@@ -59,6 +59,10 @@ class TaxCalendarMaterializationService:
     def link_advance_payment(self, payment):
         entry = self.ensure_periodic_entry(ObligationType.ADVANCE_PAYMENT, payment.period, payment.period_months_count)
         self._assign_entry(payment, entry)
+        if payment.due_date_original is None:
+            payment.due_date_original = entry.due_date
+        if payment.due_date_effective is None:
+            payment.due_date_effective = entry.due_date
         self.db.flush()
         return payment
 

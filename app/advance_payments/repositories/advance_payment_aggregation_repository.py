@@ -104,14 +104,20 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         return query.group_by(AdvancePayment.client_record_id).all()
 
     def batch_summary_by_month(self, year: int) -> list:
-        """Per-month aggregates: client_count, overdue_count, missing_turnover_count, totals."""
+        """Per-month aggregates: client_count, overdue_count, missing_turnover_count, totals.
+
+        Groups by (start_month, period_months_count) so monthly and bimonthly
+        batches for the same start month are not merged.
+        due_date is taken from the payments' stored due_date (sourced from TaxCalendarEntry).
+        """
         today_expr = func.current_date()
         start_month = advance_payment_start_month_expr()
         return (
             scope_to_active_clients(
                 self.db.query(
                     start_month.label("month"),
-                    func.max(AdvancePayment.period_months_count).label("period_months_count"),
+                    AdvancePayment.period_months_count,
+                    func.max(AdvancePayment.due_date).label("due_date"),
                     func.count(AdvancePayment.id).label("client_count"),
                     func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
                     func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
@@ -151,7 +157,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
-            .group_by(start_month)
-            .order_by(start_month)
+            .group_by(start_month, AdvancePayment.period_months_count)
+            .order_by(start_month, AdvancePayment.period_months_count)
             .all()
         )
