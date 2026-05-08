@@ -10,9 +10,9 @@ from app.advance_payments.services.advance_payment_service import AdvancePayment
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.common.obligation_plan import advance_payment_deadline_plan, vat_deadline_plan
 from app.core.exceptions import ConflictError, NotFoundError
-from app.tax_deadline.models.tax_deadline import DeadlineType
-from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.intake import create_work_item
 
@@ -28,7 +28,6 @@ class ClientOnboardingOrchestrator:
     def __init__(self, db: Session):
         self.db = db
         self.client_repo = ClientRecordRepository(db)
-        self.deadline_repo = TaxDeadlineRepository(db)
         self.binder_repo = BinderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.advance_repo = AdvancePaymentRepository(db)
@@ -58,8 +57,18 @@ class ClientOnboardingOrchestrator:
             reference_date=reference_date,
             best_effort=False,
         )
-        result.vat_work_items_created = self._sync_vat_work_items(client_record_id, actor_id)
-        result.advance_payments_created = self._sync_advance_payments(client_record_id)
+        today = reference_date or date.today()
+        le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id) if record else None
+        vat_type = getattr(le, "vat_reporting_frequency", None) if le else None
+        ap_frequency = getattr(le, "advance_payment_frequency", None) if le else None
+        ap_entity_type = getattr(le, "entity_type", None) if le else None
+
+        result.vat_work_items_created = self._sync_vat_work_items(
+            client_record_id, actor_id, vat_type, today
+        )
+        result.advance_payments_created = self._sync_advance_payments(
+            client_record_id, ap_frequency, ap_entity_type, today
+        )
         return result
 
     def _ensure_initial_binder(self, record, actor_id: Optional[int]) -> None:
@@ -67,82 +76,77 @@ class ClientOnboardingOrchestrator:
             return
         create_initial_binder(self.db, record, actor_id)
 
-    def _sync_vat_work_items(self, client_record_id: int, actor_id: Optional[int]) -> int:
-        deadlines = self.deadline_repo.list_by_client_record(
-            client_record_id,
-            deadline_type=DeadlineType.VAT,
-        )
+    def _sync_vat_work_items(
+        self,
+        client_record_id: int,
+        actor_id: Optional[int],
+        vat_type,
+        reference_date: date,
+    ) -> int:
+        from app.actions.obligation_orchestrator import _years_to_generate
+        years = _years_to_generate(reference_date)
         created = 0
-        for deadline in deadlines:
-            if not deadline.period:
-                continue
-            item = self.vat_repo.get_by_client_record_period(client_record_id, deadline.period)
-            if item is None and actor_id is not None:
-                try:
-                    item = create_work_item(
-                        self.vat_repo,
-                        self.db,
-                        client_record_id=client_record_id,
-                        period=deadline.period,
-                        created_by=actor_id,
-                        mark_pending=True,
-                        pending_materials_note="נוצר אוטומטית מפתיחת לקוח",
-                    )
-                    created += 1
-                except ConflictError:
-                    item = self.vat_repo.get_by_client_record_period(client_record_id, deadline.period)
-            if item is not None:
-                deadline.vat_work_item_id = item.id
-        if deadlines:
-            self.db.flush()
+        for year in years:
+            plans = vat_deadline_plan(vat_type, year, reference_date)
+            for plan in plans:
+                item = self.vat_repo.get_by_client_record_period(client_record_id, plan.period)
+                if item is None and actor_id is not None:
+                    try:
+                        create_work_item(
+                            self.vat_repo,
+                            self.db,
+                            client_record_id=client_record_id,
+                            period=plan.period,
+                            created_by=actor_id,
+                            mark_pending=True,
+                            pending_materials_note="נוצר אוטומטית מפתיחת לקוח",
+                        )
+                        created += 1
+                    except ConflictError:
+                        pass
         return created
 
-    def _resolve_period_months_count(self, client_record_id: int) -> int:
-        from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-        from app.common.enums import AdvancePaymentFrequency
-        record = self.client_repo.get_by_id(client_record_id)
-        if not record:
-            return 1
-        le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-        if le and le.advance_payment_frequency == AdvancePaymentFrequency.BIMONTHLY:
-            return 2
-        return 1
-
-    def _sync_advance_payments(self, client_record_id: int) -> int:
-        deadlines = self.deadline_repo.list_by_client_record(
-            client_record_id,
-            deadline_type=DeadlineType.ADVANCE_PAYMENT,
-        )
-        period_months_count = self._resolve_period_months_count(client_record_id)
+    def _sync_advance_payments(
+        self,
+        client_record_id: int,
+        frequency,
+        entity_type,
+        reference_date: date,
+    ) -> int:
+        if frequency is None:
+            return 0
+        from app.actions.obligation_orchestrator import _years_to_generate
+        from app.common.enums import AdvancePaymentFrequency as APF
+        period_months_count = 2 if frequency == APF.BIMONTHLY else 1
+        years = _years_to_generate(reference_date)
         created = 0
-        for deadline in deadlines:
-            if not deadline.period:
-                continue
-            payment = self.advance_repo.get_by_period(client_record_id, deadline.period)
-            if payment is None:
-                try:
-                    payment = self.advance_service.create_payment_for_client(
-                        client_record_id=client_record_id,
-                        period=deadline.period,
+        for year in years:
+            plans = advance_payment_deadline_plan(
+                frequency=frequency,
+                year=year,
+                reference_date=reference_date,
+                entity_type=entity_type,
+            )
+            for plan in plans:
+                payment = self.advance_repo.get_by_period(client_record_id, plan.period)
+                if payment is None:
+                    try:
+                        self.advance_service.create_payment_for_client(
+                            client_record_id=client_record_id,
+                            period=plan.period,
+                            period_months_count=period_months_count,
+                            due_date=plan.due_date,
+                        )
+                        created += 1
+                    except ConflictError:
+                        pass
+                elif (
+                    payment.period_months_count != period_months_count
+                    or payment.due_date != plan.due_date
+                ):
+                    self.advance_repo.update(
+                        payment,
                         period_months_count=period_months_count,
-                        due_date=deadline.due_date,
+                        due_date=plan.due_date,
                     )
-                    created += 1
-                except ConflictError:
-                    payment = self.advance_repo.get_by_period(client_record_id, deadline.period)
-                    if payment is None:
-                        raise
-            elif (
-                payment.period_months_count != period_months_count
-                or payment.due_date != deadline.due_date
-            ):
-                self.advance_repo.update(
-                    payment,
-                    period_months_count=period_months_count,
-                    due_date=deadline.due_date,
-                )
-            if deadline.advance_payment_id is None:
-                deadline.advance_payment_id = payment.id
-        if deadlines:
-            self.db.flush()
         return created

@@ -20,16 +20,11 @@ def test_generate_client_obligations_fails_before_writes_for_unknown_entity_type
         def get_by_id(self, client_record_id):
             return object()
 
-    class DeadlineGenerator:
-        def __init__(self, db):
-            raise AssertionError("Deadline generation should not start")
-
     class ReportService:
         def __init__(self, db):
             raise AssertionError("Report creation should not start")
 
     monkeypatch.setattr(orchestrator, "ClientRecordRepository", Repo)
-    monkeypatch.setattr(orchestrator, "DeadlineGeneratorService", DeadlineGenerator)
     monkeypatch.setattr(orchestrator, "AnnualReportService", ReportService)
 
     with pytest.raises(ValueError, match="סוג ישות לא נתמך ליצירת דוח שנתי"):
@@ -65,15 +60,6 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
         def get_by_id(self, client_record_id):
             return object()
 
-    class DeadlineGenerator:
-        def __init__(self, db):
-            self.db = db
-
-        def generate_all(self, client_record_id, year, reference_date=None):
-            if year == 2027:
-                raise RuntimeError("deadline failed")
-            return 2
-
     class ReportService:
         def __init__(self, db):
             self.db = db
@@ -83,7 +69,6 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
                 raise RuntimeError("report failed")
 
     monkeypatch.setattr(orchestrator, "ClientRecordRepository", Repo)
-    monkeypatch.setattr(orchestrator, "DeadlineGeneratorService", DeadlineGenerator)
     monkeypatch.setattr(orchestrator, "AnnualReportService", ReportService)
 
     result = orchestrator.generate_client_obligations_result(
@@ -94,11 +79,9 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
         best_effort=True,
     )
 
-    assert result.deadlines_created == 2
     assert result.reports_created == 1
-    assert result.total_created == 3
+    assert result.total_created == 1
     assert result.errors == [
-        "deadline_generation_failed:2027",
         "annual_report_creation_failed:2026",
     ]
 
@@ -108,8 +91,7 @@ def test_generate_client_obligations_keeps_int_api(monkeypatch):
         orchestrator,
         "generate_client_obligations_result",
         lambda **kwargs: orchestrator.ObligationResult(
-            deadlines_created=2,
-            reports_created=1,
+            reports_created=2,
         ),
     )
 
@@ -119,4 +101,4 @@ def test_generate_client_obligations_keeps_int_api(monkeypatch):
         entity_type=EntityType.OSEK_MURSHE,
     )
 
-    assert total == 3
+    assert total == 2

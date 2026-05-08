@@ -38,7 +38,6 @@ import app.vat_reports.models.vat_audit_log                             # noqa
 import app.charge.models.charge                                         # noqa
 import app.invoice.models.invoice                                       # noqa
 import app.advance_payments.models.advance_payment                      # noqa
-import app.tax_deadline.models.tax_deadline                             # noqa
 import app.tax_calendar.models.deadline_rule                            # noqa
 import app.tax_calendar.models.tax_calendar_entry                       # noqa
 import app.reminders.models.reminder                                    # noqa

@@ -1,4 +1,4 @@
-"""DeadlineRule — versioned regulatory rule for tax deadlines.
+"""DeadlineRule — versioned regulatory rule for TaxCalendar due dates.
 
 Lookup engine only — versioned via effective_from/effective_to so that historic
 calculations remain stable when the law changes. Maps to an ObligationType:
@@ -21,7 +21,7 @@ from app.utils.time_utils import utcnow
 
 
 class DeadlineRule(Base):
-    """Regulatory rule for computing a tax deadline due date."""
+    """Regulatory rule for computing a TaxCalendar due date."""
 
     __tablename__ = "deadline_rules"
 

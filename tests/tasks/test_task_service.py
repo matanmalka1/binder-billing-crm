@@ -2,67 +2,9 @@ from datetime import date, timedelta
 
 from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tasks.schemas.task import DeadlineTask, TaskType, TaskUrgency
 from app.tasks.services.task_service import TaskService
-from tests.tax_deadline.factories import create_business
-
-
-def _make_deadline(db, client_record_id: int, deadline_type: DeadlineType, due_date: date) -> TaxDeadline:
-    td = TaxDeadline(
-        client_record_id=client_record_id,
-        deadline_type=deadline_type,
-        due_date=due_date,
-        status=TaxDeadlineStatus.PENDING,
-    )
-    db.add(td)
-    db.flush()
-    return td
-
-
-def test_tax_deadline_task_appears_within_window(test_db):
-    biz = create_business(test_db)
-    today = date.today()
-    _make_deadline(test_db, biz.client_id, DeadlineType.VAT, today + timedelta(days=7))
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz.client_id)
-    tax_tasks = [t for t in tasks if t.source_type == TaskType.TAX_DEADLINE]
-    assert len(tax_tasks) == 1
-    assert tax_tasks[0].urgency == TaskUrgency.APPROACHING
-
-
-def test_tax_deadline_task_outside_window_excluded(test_db):
-    biz = create_business(test_db)
-    today = date.today()
-    _make_deadline(test_db, biz.client_id, DeadlineType.VAT, today + timedelta(days=30))
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz.client_id)
-    tax_tasks = [t for t in tasks if t.source_type == TaskType.TAX_DEADLINE]
-    assert len(tax_tasks) == 0
-
-
-def test_completed_deadline_excluded(test_db):
-    biz = create_business(test_db)
-    today = date.today()
-    td = _make_deadline(test_db, biz.client_id, DeadlineType.VAT, today + timedelta(days=3))
-    td.status = TaxDeadlineStatus.COMPLETED
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz.client_id)
-    assert not any(t.source_type == TaskType.TAX_DEADLINE for t in tasks)
-
-
-def test_overdue_deadline_urgency(test_db):
-    biz = create_business(test_db)
-    td = _make_deadline(test_db, biz.client_id, DeadlineType.ADVANCE_PAYMENT, date.today() - timedelta(days=1))
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz.client_id)
-    overdue = [t for t in tasks if t.source_id == td.id]
-    assert len(overdue) == 1
-    assert overdue[0].urgency == TaskUrgency.OVERDUE
+from tests.helpers.task_helpers import create_business
 
 
 def test_unpaid_charge_task_after_threshold(test_db):
@@ -104,23 +46,18 @@ def test_unpaid_charge_before_threshold_excluded(test_db):
     assert len(unpaid) == 0
 
 
-def test_get_tasks_filters_by_client_record_id(test_db):
-    biz_a = create_business(test_db)
-    biz_b = create_business(test_db)
-    today = date.today()
-    _make_deadline(test_db, biz_a.client_id, DeadlineType.VAT, today + timedelta(days=3))
-    _make_deadline(test_db, biz_b.client_id, DeadlineType.VAT, today + timedelta(days=3))
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz_a.client_id)
-    assert all(t.client_record_id == biz_a.client_id for t in tasks)
-
-
 def test_unified_includes_tasks_and_reminders(test_db):
     from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
     biz = create_business(test_db)
     today = date.today()
-    _make_deadline(test_db, biz.client_id, DeadlineType.VAT, today + timedelta(days=5))
+    payment = AdvancePayment(
+        client_record_id=biz.client_id,
+        period="2026-05",
+        period_months_count=1,
+        due_date=today + timedelta(days=5),
+        status=AdvancePaymentStatus.PENDING,
+    )
+    test_db.add(payment)
     reminder = Reminder(
         client_record_id=biz.client_id,
         reminder_type=ReminderType.CUSTOM,
@@ -219,7 +156,6 @@ def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
         client_record_id=1,
     )
 
-    monkeypatch.setattr(service, "_tax_deadline_tasks", lambda client_record_id: [])
     monkeypatch.setattr(service, "_vat_filing_tasks", lambda client_record_id: [vat_task])
     monkeypatch.setattr(service, "_annual_report_tasks", lambda client_record_id: [annual_task])
     monkeypatch.setattr(service, "_advance_payment_tasks", lambda client_record_id: [])
@@ -234,7 +170,6 @@ def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
 
 def test_get_tasks_skips_excluded_builders(test_db, monkeypatch):
     service = TaskService(test_db)
-    monkeypatch.setattr(service, "_tax_deadline_tasks", lambda client_record_id: [])
     monkeypatch.setattr(service, "_vat_filing_tasks", lambda client_record_id: [])
     monkeypatch.setattr(
         service,
@@ -245,15 +180,3 @@ def test_get_tasks_skips_excluded_builders(test_db, monkeypatch):
     monkeypatch.setattr(service, "_unpaid_charge_tasks", lambda client_record_id, business_id: [])
 
     assert service.get_tasks(exclude_source_types=[TaskType.ANNUAL_REPORT]) == []
-
-
-def test_tasks_sorted_by_due_date(test_db):
-    biz = create_business(test_db)
-    today = date.today()
-    _make_deadline(test_db, biz.client_id, DeadlineType.ADVANCE_PAYMENT, today + timedelta(days=10))
-    _make_deadline(test_db, biz.client_id, DeadlineType.VAT, today + timedelta(days=2))
-    test_db.commit()
-
-    tasks = TaskService(test_db).get_tasks(client_record_id=biz.client_id)
-    due_dates = [t.due_date for t in tasks]
-    assert due_dates == sorted(due_dates)

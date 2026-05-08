@@ -93,13 +93,6 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
     monkeypatch.setattr(
         service,
-        "_build_tax_deadline_events",
-        lambda business_ids, client_record_id: [
-            {"event_type": "tax_deadline_due", "timestamp": datetime(2025, 12, 31, 9, 0)}
-        ],
-    )
-    monkeypatch.setattr(
-        service,
         "_build_annual_report_events",
         lambda client_id: [
             {
@@ -122,7 +115,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
     )
 
     assert captured["client_id"] == business.client_id
-    assert total == 11
+    assert total == 10
     assert [event["event_type"] for event in events] == [
         "client_created",
         "invoice_attached",
@@ -149,7 +142,6 @@ def test_get_client_timeline_skips_unreceived_binder_event(test_db, monkeypatch)
     monkeypatch.setattr(service.notification_repo, "list_by_business", lambda business_id, page, page_size: [])
     monkeypatch.setattr(service.charge_repo, "list_charges", lambda **kwargs: [])
     monkeypatch.setattr(service.invoice_repo, "list_by_charge_ids", lambda charge_ids: [])
-    monkeypatch.setattr(service, "_build_tax_deadline_events", lambda business_ids, client_record_id: [])
     monkeypatch.setattr(service, "_build_annual_report_events", lambda client_id: [])
     monkeypatch.setattr(
         "app.timeline.services.timeline_service.build_client_events",

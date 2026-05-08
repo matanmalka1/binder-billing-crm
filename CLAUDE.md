@@ -66,7 +66,7 @@ JWT_SECRET=test-secret pytest -q tests/<domain_or_path>/...
 **Routed domains** (have `api/` router):
 `advance_payments`, `annual_reports`, `authority_contact`, `binders`, `businesses`, `charge`, `clients`,
 `correspondence`, `dashboard`, `health`, `notification`, `permanent_documents`, `reminders`, `reports`,
-`search`, `signature_requests`, `tax_deadline`, `timeline`, `users`, `vat_reports`
+`search`, `signature_requests`, `tax_calendar`, `timeline`, `users`, `vat_reports`
 
 **Internal-only domains** (no HTTP router — used as services by other domains):
 `invoice` — full layer stack.

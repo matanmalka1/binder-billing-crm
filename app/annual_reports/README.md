@@ -16,7 +16,7 @@ Covers:
 - Tax (income tax + NI) and readiness calculation via pure-function engines
 - Advances summary linked to the report via `client_record_id + tax_year`
 - Season-level aggregation
-- Cross-domain sync: tax deadlines completed/reopened on status transition
+- Cross-domain sync: linked TaxCalendar entries completed/reopened on status transition
 - Signature request lifecycle around the `PENDING_CLIENT` status
 - PDF export (working draft)
 
@@ -120,7 +120,7 @@ Scope clarifications:
 6. Write entity audit log
 7. If leaving `PENDING_CLIENT`: cancel pending signature requests
 8. If entering `PENDING_CLIENT`: cancel then re-trigger signature request
-9. Sync tax deadline via `deadline_sync.sync_annual_report_deadline()`
+9. Sync linked TaxCalendar entry status
 
 **Note on signature side-effect:** Signature creation runs inside the same transaction. A failure there rolls back the entire status transition.
 
@@ -158,7 +158,7 @@ Income/expense mutations clear `tax_due`/`refund_due` if report is pre-submissio
 
 ### Deadline Sync (on every status transition)
 
-Entering a filed status → find `ANNUAL_REPORT` tax deadlines in `tax_year + 1` and mark `COMPLETED`, cancel pending reminders.
+Entering a filed status → mark the linked `ANNUAL_REPORT` TaxCalendar entry `COMPLETED`, cancel pending reminders.
 
 Leaving a filed status → reopen deadline, create reminder if none exists.
 
@@ -198,7 +198,7 @@ Leaving a filed status → reopen deadline, create reminder if none exists.
 | `signature_requests` | Outbound | Auto-create on `PENDING_CLIENT`, cancel on leaving — **runs inside status transaction** |
 | `advance_payments` | Outbound (read) | Advances by `(client_record_id, tax_year)` for balance computation |
 | `vat_reports` | Outbound (read) | VAT invoice aggregation for auto-populate; VAT balance in tax summary |
-| `tax_deadline` | Outbound (write) | Complete/reopen `ANNUAL_REPORT` deadline entries on filed status changes |
+| `tax_calendar` | Outbound (write) | Complete/reopen linked `ANNUAL_REPORT` calendar entries on filed status changes |
 | `reminders` | Outbound (write) | Create/cancel reminders on deadline reopen |
 | `permanent_documents` | Outbound (read) | Expense line optional FK to supporting document |
 | `charge` | Outbound (read) | List charges linked to report |

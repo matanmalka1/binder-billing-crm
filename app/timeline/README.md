@@ -2,7 +2,7 @@
 
 > Last audited: 2026-03-22 (domain-by-domain backend sync).
 
-Provides unified per-client-record timeline aggregation across operational domains (binders, charges, notifications, tax deadlines, annual reports, reminders, documents, and signature requests).
+Provides unified per-client-record timeline aggregation across operational domains (binders, charges, notifications, tax calendar entries, annual reports, reminders, documents, and signature requests).
 
 ## Scope
 
@@ -77,7 +77,7 @@ Response:
   - Applied to high-volume sources (notifications, charges, reminders, signature requests, documents, tax/annual queries).
   - Older events beyond the cap are silently truncated.
 - `client_info_updated_event` is only emitted when the legal entity `updated_at` differs from `created_at` (avoids duplicate creation-time events).
-- Tax deadlines query filters soft-deleted rows (`deleted_at IS NULL`).
+- Tax calendar query filters soft-deleted rows (`deleted_at IS NULL`).
 - Annual reports query filters soft-deleted rows (`deleted_at IS NULL`).
 
 Main event categories currently built:
@@ -88,7 +88,7 @@ Main event categories currently built:
 - Financial events:
   - `charge_created`, `charge_issued`, `charge_paid`, `invoice_attached`
 - Tax/annual events:
-  - `tax_deadline_due`, `annual_report_status_changed`
+  - `tax_calendar_entry_due`, `annual_report_status_changed`
 - Client/business context events:
   - `client_created`, `client_info_updated`, `reminder_created`, `document_uploaded`, `signature_request_created`
 
@@ -116,7 +116,7 @@ Timeline composes data from:
 - `binders` + `binder_status_logs`
 - `charge` + `invoice`
 - `notification`
-- `tax_deadline` (soft-delete filtered)
+- `tax_calendar` (soft-delete filtered)
 - `annual_reports` (soft-delete filtered)
 - `reminders`
 - `permanent_documents`

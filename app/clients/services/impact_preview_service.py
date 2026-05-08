@@ -5,7 +5,7 @@ from app.actions.obligation_orchestrator import _years_to_generate
 from app.clients.create_policy import normalize_vat_exempt_ceiling
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
-from app.tax_deadline.services.obligation_plan import (
+from app.common.obligation_plan import (
     advance_payment_deadline_plan,
     vat_deadline_plan,
 )
@@ -16,7 +16,6 @@ def compute_creation_impact(
     vat_reporting_frequency: Optional[VatType],
     advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
     reference_date: Optional[date] = None,
-    advance_rate=None,
 ) -> ClientCreationImpactResponse:
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError("פתיחת לקוח מסוג שכיר אינה נתמכת במערכת")

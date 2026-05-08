@@ -3,7 +3,6 @@ from datetime import date
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
 from tests.helpers.identity import seed_client_identity
 
 
@@ -41,18 +40,6 @@ def _run_onboarding(db, client_record_id: int, entity_type: EntityType) -> None:
     )
 
 
-def _advance_deadlines(db, client_record_id: int):
-    return (
-        db.query(TaxDeadline)
-        .filter(
-            TaxDeadline.client_record_id == client_record_id,
-            TaxDeadline.deadline_type == DeadlineType.ADVANCE_PAYMENT,
-        )
-        .order_by(TaxDeadline.period.asc())
-        .all()
-    )
-
-
 def _advance_payments(db, client_record_id: int):
     return (
         db.query(AdvancePayment)
@@ -73,13 +60,10 @@ def test_company_ltd_monthly_advance_frequency_creates_monthly_payments(test_db)
     )
     _run_onboarding(test_db, client.id, EntityType.COMPANY_LTD)
 
-    deadlines = _advance_deadlines(test_db, client.id)
     payments = _advance_payments(test_db, client.id)
 
     assert [p.period for p in payments] == [f"2026-{m:02d}" for m in range(1, 13)]
-    assert [d.period for d in deadlines] == [p.period for p in payments]
     assert all(p.period_months_count == 1 for p in payments)
-    assert all(d.advance_payment_id is not None for d in deadlines)
 
 
 def test_osek_murshe_bimonthly_advance_frequency_creates_bimonthly_payments(test_db):

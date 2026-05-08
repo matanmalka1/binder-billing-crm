@@ -4,7 +4,13 @@ from datetime import date
 from decimal import Decimal
 
 from app.config import config
-from app.tax_deadline.services.constants import ADVANCE_PAYMENT_DUE_DAY
+
+try:
+    from tax_rules.registry import get_advance_payment_due_day as _get_adv
+    import datetime as _dt
+    ADVANCE_PAYMENT_DUE_DAY: int = _get_adv(_dt.date.today().year)
+except Exception:
+    ADVANCE_PAYMENT_DUE_DAY = 15
 
 ADVANCE_PAYMENT_VAT_RATE: Decimal = config.ADVANCE_PAYMENT_VAT_RATE
 MONTHLY_PERIOD_MONTHS_COUNT = 1

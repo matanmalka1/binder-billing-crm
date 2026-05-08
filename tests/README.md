@@ -42,7 +42,7 @@
 - `reports`: `pytest tests/reports -q`
 - `search`: `pytest tests/search -q`
 - `signature_requests`: `pytest tests/signature_requests -q`
-- `tax_deadline`: `pytest tests/tax_deadline -q`
+- `tax_calendar`: `pytest tests/tax_calendar -q`
 - `timeline`: `pytest tests/timeline -q`
 - `users`: `pytest tests/users -q`
 - `utils`: `pytest tests/utils -q`

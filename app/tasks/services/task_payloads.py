@@ -21,16 +21,6 @@ def _enum_value(value: Any) -> Any:
     return value.value if hasattr(value, "value") else value
 
 
-def tax_deadline_payload(deadline) -> dict[str, Any]:
-    return {
-        "deadline_type": _enum_value(deadline.deadline_type),
-        "period": deadline.period,
-        "tax_year": deadline.tax_year,
-        "due_date": _date_value(deadline.due_date),
-        "status": _enum_value(deadline.status),
-    }
-
-
 def vat_work_item_payload(item, due_date: date) -> dict[str, Any]:
     return {
         "period": item.period,

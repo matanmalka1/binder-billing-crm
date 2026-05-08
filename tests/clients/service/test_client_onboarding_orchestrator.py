@@ -1,5 +1,4 @@
 from datetime import date
-from unittest.mock import patch
 
 from sqlalchemy import text
 
@@ -7,10 +6,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
-from app.core.exceptions import ConflictError
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline
-from app.tax_deadline.repositories.tax_deadline_repository import TaxDeadlineRepository
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from tests.helpers.identity import seed_client_identity
 
@@ -31,19 +27,11 @@ def _create_vat_client(test_db, id_number: str):
 
 def test_onboarding_creates_vat_work_items_and_advance_payments(test_db):
     client_record = _create_vat_client(test_db, "123456780")
-    deadlines = test_db.query(TaxDeadline).filter(TaxDeadline.client_record_id == client_record.id).all()
-    vat_deadlines = [d for d in deadlines if d.deadline_type.value == "vat"]
-    advance_deadlines = [d for d in deadlines if d.deadline_type.value == "advance_payment"]
     vat_items = test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id).all()
     payments = test_db.query(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id).all()
 
-    assert len(vat_deadlines) == len(vat_items) == 9
-    assert {i.period for i in vat_items} == {d.period for d in vat_deadlines}
-    assert all(d.vat_work_item_id is not None for d in vat_deadlines)
-    assert {i.id for i in vat_items} == {d.vat_work_item_id for d in vat_deadlines}
-    assert len(advance_deadlines) == len(payments) == 9
-    assert {p.period for p in payments} == {d.period for d in advance_deadlines}
-    assert all(d.advance_payment_id is not None for d in advance_deadlines)
+    assert len(vat_items) == 9
+    assert len(payments) == 9
     assert all(p.due_date_original == p.due_date for p in payments)
     assert all(p.due_date_effective == p.due_date for p in payments)
 
@@ -87,117 +75,24 @@ def test_onboarding_does_not_create_empty_setup_placeholders(test_db):
     assert test_db.execute(text("select count(*) from entity_notes")).scalar() == 0
 
 
-def test_onboarding_does_not_create_advance_payments_without_deadlines(test_db, monkeypatch):
+def test_onboarding_exempt_client_creates_no_vat_items(test_db):
     seeded = seed_client_identity(
         test_db,
-        full_name="No Advance Deadline Client",
-        id_number="123456783",
-        entity_type=EntityType.OSEK_MURSHE,
-        vat_reporting_frequency=VatType.MONTHLY,
-        office_client_number=100,
-    )
-    TaxDeadlineRepository(test_db).create(
-        client_record_id=seeded.id,
-        deadline_type=DeadlineType.VAT,
-        due_date=date(2026, 5, 15),
-        period="2026-04",
-    )
-    monkeypatch.setattr(
-        "app.clients.services.client_onboarding_orchestrator.generate_client_obligations",
-        lambda *args, **kwargs: 0,
+        full_name="Exempt Client",
+        id_number="123456799",
+        entity_type=EntityType.OSEK_PATUR,
+        vat_reporting_frequency=VatType.EXEMPT,
+        office_client_number=999,
     )
 
     ClientOnboardingOrchestrator(test_db).run(
         seeded.id,
         actor_id=1,
-        entity_type=EntityType.OSEK_MURSHE,
+        entity_type=EntityType.OSEK_PATUR,
         reference_date=date(2026, 4, 30),
     )
 
-    assert test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == seeded.id).count() == 1
-    assert test_db.query(AdvancePayment).filter(AdvancePayment.client_record_id == seeded.id).count() == 0
-
-
-def test_sync_advance_payments_conflict_error_falls_back_to_existing(test_db):
-    seeded = seed_client_identity(
-        test_db,
-        full_name="Conflict Fallback Client",
-        id_number="123456784",
-        entity_type=EntityType.OSEK_MURSHE,
-        vat_reporting_frequency=VatType.MONTHLY,
-        office_client_number=200,
-    )
-    existing_payment = AdvancePayment(
-        client_record_id=seeded.id,
-        period="2026-05",
-        period_months_count=1,
-        due_date=date(2026, 5, 15),
-    )
-    test_db.add(existing_payment)
-
-    deadline = TaxDeadlineRepository(test_db).create(
-        client_record_id=seeded.id,
-        deadline_type=DeadlineType.ADVANCE_PAYMENT,
-        due_date=date(2026, 5, 15),
-        period="2026-05",
-    )
-    test_db.flush()
-
-    orchestrator = ClientOnboardingOrchestrator(test_db)
-    with patch.object(
-        orchestrator.advance_repo,
-        "get_by_period",
-        side_effect=[None, existing_payment],
-    ), patch.object(
-        orchestrator.advance_service,
-        "create_payment_for_client",
-        side_effect=ConflictError("dup", "ADVANCE_PAYMENT.CONFLICT"),
-    ):
-        orchestrator._sync_advance_payments(seeded.id)
-
-    test_db.refresh(deadline)
-    assert deadline.advance_payment_id == existing_payment.id
-
-
-def test_sync_vat_work_items_links_existing_when_actor_none(test_db):
-    client_record = _create_vat_client(test_db, "123456785")
-    deadlines = (
-        test_db.query(TaxDeadline)
-        .filter(
-            TaxDeadline.client_record_id == client_record.id,
-            TaxDeadline.deadline_type == DeadlineType.VAT,
-        )
-        .all()
-    )
-    assert deadlines, "precondition: VAT deadlines must exist"
-
-    vat_item_count_before = test_db.query(VatWorkItem).filter(
-        VatWorkItem.client_record_id == client_record.id
-    ).count()
-
-    for d in deadlines:
-        d.vat_work_item_id = None
-    test_db.flush()
-
-    orchestrator = ClientOnboardingOrchestrator(test_db)
-    created = orchestrator._sync_vat_work_items(client_record.id, actor_id=None)
-
-    assert created == 0
-    vat_item_count_after = test_db.query(VatWorkItem).filter(
-        VatWorkItem.client_record_id == client_record.id
-    ).count()
-    assert vat_item_count_after == vat_item_count_before
-
-    test_db.expire_all()
-    reloaded = (
-        test_db.query(TaxDeadline)
-        .filter(
-            TaxDeadline.client_record_id == client_record.id,
-            TaxDeadline.deadline_type == DeadlineType.VAT,
-        )
-        .all()
-    )
-    assert all(d.vat_work_item_id is not None for d in reloaded)
+    assert test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == seeded.id).count() == 0
 
 
 def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):

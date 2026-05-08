@@ -11,7 +11,6 @@ from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_returned_event,
@@ -25,10 +24,7 @@ from app.timeline.services.timeline_charge_event_builders import (
     invoice_attached_event,
 )
 from app.timeline.services.timeline_client_aggregator import build_client_events
-from app.timeline.services.timeline_tax_builders import (
-    annual_report_status_changed_event,
-    tax_deadline_due_event,
-)
+from app.timeline.services.timeline_tax_builders import annual_report_status_changed_event
 
 # Safety ceiling for per-entity bulk fetches — per-client, not global.
 _TIMELINE_BULK_LIMIT = 500
@@ -102,7 +98,6 @@ class TimelineService:
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
-        events.extend(self._build_tax_deadline_events(business_ids, client_record.id if client_record else None))
         events.extend(self._build_annual_report_events(client_record.id if client_record else None))
         events.extend(
             build_client_events(
@@ -119,14 +114,6 @@ class TimelineService:
         logs = self.status_log_repo.list_by_binder(binder.id)
         for status_log in logs:
             events.append(binder_status_change_event(binder, status_log))
-
-    def _build_tax_deadline_events(self, business_ids: list[int], client_record_id: int | None) -> list[dict]:
-        # Tax deadlines are per-client and naturally bounded (months × years).
-        query = self.db.query(TaxDeadline).filter(TaxDeadline.deleted_at.is_(None))
-        if client_record_id is not None:
-            query = query.filter(TaxDeadline.client_record_id == client_record_id)
-        deadlines = query.limit(_TIMELINE_BULK_LIMIT).all()
-        return [tax_deadline_due_event(d) for d in deadlines]
 
     def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
         # Annual reports are bounded by tax years — limit is a safety net only.

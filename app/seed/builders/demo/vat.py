@@ -8,8 +8,7 @@ from random import Random
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
 from app.common.enums import ObligationType, VatType
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
-from app.tax_deadline.services.due_date_rules import periodic_due_date
+from app.common.due_date_rules import periodic_due_date
 from app.tax_calendar.services.entry_lookup import find_periodic_entry
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_audit_log import VatAuditLog
@@ -200,37 +199,6 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
 
             db.add(work_item)
             work_items.append(work_item)
-            db.flush()
-
-            deadline = (
-                db.query(TaxDeadline)
-                .filter(
-                    TaxDeadline.client_record_id == business.client_id,
-                    TaxDeadline.deadline_type == DeadlineType.VAT,
-                    TaxDeadline.period == period,
-                    TaxDeadline.deleted_at.is_(None),
-                )
-                .first()
-            )
-            if deadline is None:
-                deadline = TaxDeadline(
-                    client_record_id=business.client_id,
-                    deadline_type=DeadlineType.VAT,
-                    period=period,
-                    due_date=_vat_due_date(period),
-                    status=(
-                        TaxDeadlineStatus.COMPLETED
-                        if status == VatWorkItemStatus.FILED
-                        else TaxDeadlineStatus.PENDING
-                    ),
-                    description=f'דוח מע"מ {period}',
-                    vat_work_item_id=work_item.id,
-                    created_at=created_at,
-                )
-                deadline.client_id = business.client_id  # type: ignore[attr-defined]
-                db.add(deadline)
-            elif deadline.vat_work_item_id is None:
-                deadline.vat_work_item_id = work_item.id
 
     db.flush()
 

@@ -1,23 +1,4 @@
-from datetime import datetime
-
-from app.timeline.labels import ANNUAL_REPORT_STATUS_HE, DEADLINE_TYPE_HE
-
-
-def tax_deadline_due_event(deadline) -> dict:
-    type_he = DEADLINE_TYPE_HE.get(deadline.deadline_type.value, deadline.deadline_type.value)
-    due_str = deadline.due_date.strftime("%d/%m/%Y")
-    amount_part = (
-        f" — ₪{float(deadline.payment_amount):,.2f}" if deadline.payment_amount else ""
-    )
-    return {
-        "event_type": "tax_deadline_due",
-        "timestamp": datetime.combine(deadline.due_date, datetime.min.time()),
-        "binder_id": None,
-        "charge_id": None,
-        "description": f"מועד {type_he}: {due_str}{amount_part}",
-        "metadata": {"tax_deadline_id": deadline.id},
-        "available_actions": [],
-    }
+from app.timeline.labels import ANNUAL_REPORT_STATUS_HE
 
 
 def annual_report_status_changed_event(report) -> dict:

@@ -101,7 +101,7 @@ Comments:
 - `GET /api/v1/clients/{client_id}/binders` — served by `app/binders/api/client_binders_router.py`.
 - `GET /api/v1/clients/{client_id}/status-card` — served by `app/businesses/api/client_status_card_router.py`.
 - Initial binder creation on client creation: `app/binders/services/client_onboarding_service.py`.
-- Obligation generation (tax deadlines + annual reports) on client create/update: `app/actions/obligation_orchestrator.py`.
+- Obligation generation (TaxCalendar entries + annual reports) on client create/update: `app/actions/obligation_orchestrator.py`.
 - Business guard helpers: `app/businesses/services/business_guards.py`.
 
 Comments:

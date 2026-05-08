@@ -5,7 +5,6 @@ DOCUMENT_TYPE_HE = {
 }
 
 REMINDER_TYPE_HE = {
-    "tax_deadline_approaching": "מועד מס מתקרב",
     "binder_idle": "תיק לא פעיל",
     "unpaid_charge": "חיוב שלא שולם",
     "custom": "תזכורת מותאמת",
@@ -21,14 +20,6 @@ SIGNATURE_REQUEST_TYPE_HE = {
     "power_of_attorney": "ייפוי כוח",
     "vat_return_approval": 'אישור דוח מע"מ',
     "custom": "חתימה",
-}
-
-DEADLINE_TYPE_HE = {
-    "vat": "מע״מ",
-    "advance_payment": "מקדמה",
-    "national_insurance": "ביטוח לאומי",
-    "annual_report": "דוח שנתי",
-    "other": "אחר",
 }
 
 ANNUAL_REPORT_STATUS_HE = {

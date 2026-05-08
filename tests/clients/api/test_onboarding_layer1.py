@@ -2,10 +2,11 @@
 from datetime import date
 
 
+from app.advance_payments.models.advance_payment import AdvancePayment
 from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.tax_deadline.models.tax_deadline import TaxDeadline
+from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
 _CREATE_PAYLOAD = {
@@ -74,14 +75,21 @@ def test_duplicate_id_number_raises_conflict(client, test_db, advisor_headers):
 
 
 def test_obligations_created_with_client_record_id(client, test_db, advisor_headers):
-    """Tax deadlines created during onboarding carry client_record_id."""
+    """VAT work items and advance payments created during onboarding carry client_record_id."""
     resp = _post_create(client, advisor_headers)
     assert resp.status_code == 201
     cr_id = resp.json()["client_record_id"]
 
-    deadlines = (
-        test_db.query(TaxDeadline)
-        .filter(TaxDeadline.client_record_id == cr_id)
+    vat_items = (
+        test_db.query(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == cr_id)
         .all()
     )
-    assert len(deadlines) > 0, "No tax deadlines created with client_record_id"
+    advance_payments = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == cr_id)
+        .all()
+    )
+    assert len(vat_items) > 0 or len(advance_payments) > 0, (
+        "No VAT work items or advance payments created during onboarding"
+    )

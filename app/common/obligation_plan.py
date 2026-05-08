@@ -5,7 +5,7 @@ from typing import Optional
 from app.annual_reports.services.deadlines import standard_deadline
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
-from app.tax_deadline.services.due_date_rules import periodic_due_date
+from app.common.due_date_rules import periodic_due_date
 
 
 @dataclass(frozen=True, slots=True)

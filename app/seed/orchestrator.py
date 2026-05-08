@@ -96,7 +96,7 @@ class SeedOrchestrator:
 
             # ── Onboarding phase ─────────────────────────────────────────────
             # CreateClientService → automatically triggers ClientOnboardingOrchestrator
-            # which creates: initial binder, tax deadlines, VAT items (eligible only),
+            # which creates: initial binder, TaxCalendar entries, VAT items (eligible only),
             # advance payments, annual report shell.
             client_pairs = clients_builder.create_clients(db, self.rng, self.cfg, seeded_users)
             client_records = [cr for cr, _ in client_pairs]
@@ -170,10 +170,8 @@ class SeedOrchestrator:
             vat_builder.create_vat_invoices(db, self.rng, self.cfg, vat_work_items, seeded_users)
             vat_builder.create_vat_audit_logs(db, self.rng, vat_work_items, seeded_users)
 
-            # Load deadlines for reminder linking
-            all_deadlines = self._load_all_deadlines(db, client_records)
             reminders_builder.create_reminders(
-                db, self.rng, all_businesses, all_binders, seeded_charges, all_deadlines
+                db, self.rng, all_businesses, all_binders, seeded_charges, []
             )
 
             sig_requests = sig_builder.create_signature_requests(
@@ -248,24 +246,6 @@ class SeedOrchestrator:
             if not hasattr(r, "client_id") or r.client_id is None:
                 r.client_id = r.client_record_id  # type: ignore[attr-defined]
         return list(reports)
-
-    def _load_all_deadlines(self, db, client_records):
-        from app.tax_deadline.models.tax_deadline import TaxDeadline
-        client_ids = [cr.id for cr in client_records]
-        deadlines = (
-            db.execute(
-                select(TaxDeadline).where(
-                    TaxDeadline.client_record_id.in_(client_ids),
-                    TaxDeadline.deleted_at.is_(None),
-                )
-            )
-            .scalars()
-            .all()
-        )
-        for dl in deadlines:
-            if not hasattr(dl, "client_id") or dl.client_id is None:
-                dl.client_id = dl.client_record_id  # type: ignore[attr-defined]
-        return list(deadlines)
 
     def _print_counts(self, db) -> None:
         print("Seeding completed. Row counts:")

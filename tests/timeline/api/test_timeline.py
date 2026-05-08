@@ -16,11 +16,6 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestStatus,
     SignatureRequestType,
 )
-from app.tax_deadline.models.tax_deadline import (
-    DeadlineType,
-    TaxDeadline,
-    TaxDeadlineStatus,
-)
 from app.utils.time_utils import utcnow
 from app.timeline.services import timeline_service as timeline_service_module
 from tests.helpers.identity import seed_business, seed_client_identity
@@ -73,14 +68,6 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
             issued_at=datetime.now(UTC) - timedelta(days=3),
         )
         test_db.add(charge)
-
-        tax_deadline = TaxDeadline(
-            client_record_id=business.client_id,
-            deadline_type=DeadlineType.VAT,
-            due_date=date.today() + timedelta(days=10),
-            status=TaxDeadlineStatus.PENDING,
-        )
-        test_db.add(tax_deadline)
 
         sig = SignatureRequest(
             client_record_id=business.client_id,
@@ -136,7 +123,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] >= 7
+        assert data["total"] >= 6
         events = data["events"]
         timestamps = [datetime.fromisoformat(e["timestamp"]) for e in events]
         assert timestamps == sorted(timestamps, reverse=True)

@@ -12,7 +12,7 @@ Scope: current-state analysis of the existing internal workflow system for Israe
 - `Binder` is a client-scoped physical/logistics container.
 - `VatWorkItem` is a client-scoped VAT workflow item.
 - `AnnualReport` is a client-scoped annual tax workflow item.
-- `TaxDeadline` is a client-scoped tax obligation.
+- `TaxCalendarEntry` is a client-scoped tax obligation.
 - `Reminder` is a client-anchored operational reminder with optional business context.
 - `PermanentDocument` is client-scoped or business-scoped, optionally linked to an annual report.
 - `Timeline` is a client-scoped operational event feed.
@@ -100,7 +100,7 @@ Possible outcome:
 
 Severity: High
 
-### Finding 6: Snapshot Drift on `TaxDeadline`
+### Finding 6: Snapshot Drift on `TaxCalendarEntry`
 
 When `entity_type` changes:
 
@@ -133,7 +133,7 @@ Severity: High
 Changing `entity_type` can create silent inconsistency across:
 
 - `AnnualReport`
-- `TaxDeadline`
+- `TaxCalendarEntry`
 - `Reminder`
 
 Possible combined state:
@@ -212,7 +212,7 @@ Opening a new client creates automatically:
 - `Client`
 - first `Business`
 - initial `Binder`
-- generated `TaxDeadline` rows
+- generated `TaxCalendarEntry` rows
 - generated `AnnualReport` rows
 
 This is implemented inside one request-scoped transaction.
@@ -332,13 +332,13 @@ Severity: Low to Medium depending on operational expectations
 
 Not found:
 
-- no automatic generator comparable to annual reports or tax deadlines
+- no automatic generator comparable to annual reports or tax calendar entries
 
 Implication:
 
 - VAT obligations are auto-generated as deadlines
 - VAT operational work items are created manually when office workflow starts
-- no automatic trigger creates a `VatWorkItem` when a VAT `TaxDeadline` is generated
+- no automatic trigger creates a `VatWorkItem` when a VAT `TaxCalendarEntry` is generated
 
 Severity: Informational
 
@@ -355,14 +355,14 @@ Assessment:
 
 Severity: Informational
 
-### Finding 23: `TaxDeadline` and `VatWorkItem` are separate worlds
+### Finding 23: `TaxCalendarEntry` and `VatWorkItem` are separate worlds
 
-There is no direct domain relationship between VAT `TaxDeadline` and `VatWorkItem`.
+There is no direct domain relationship between VAT `TaxCalendarEntry` and `VatWorkItem`.
 
 Observed:
 
-- no FK from `TaxDeadline` to `VatWorkItem`
-- no FK from `VatWorkItem` to `TaxDeadline`
+- no FK from `TaxCalendarEntry` to `VatWorkItem`
+- no FK from `VatWorkItem` to `TaxCalendarEntry`
 - the practical join is only `client_id + period`
 - VAT query responses expose deadline-style fields as computed enrichment, not as a linked entity
 
@@ -382,7 +382,7 @@ Observed:
 
 - background job finds overdue/unfiled VAT work items
 - then looks up a VAT deadline by `client_id + period`
-- then creates reminder records keyed by `tax_deadline_id`
+- then creates reminder records keyed by `tax_calendar_entry_id`
 - no equivalent work-item status transition closes/reopens VAT deadlines
 
 Assessment:
@@ -434,11 +434,11 @@ Assessment:
 
 Severity: Informational
 
-### Finding 27: `AnnualReport` and annual `TaxDeadline` have behavioral sync but no hard link
+### Finding 27: `AnnualReport` and annual `TaxCalendarEntry` have behavioral sync but no hard link
 
 Observed:
 
-- no FK exists between `AnnualReport` and `TaxDeadline`
+- no FK exists between `AnnualReport` and `TaxCalendarEntry`
 - on entering filed statuses, annual-report logic completes matching annual deadlines
 - on leaving filed statuses, it reopens them and may recreate reminders
 - matching is done by client and due-date year window, not by explicit relationship
@@ -549,13 +549,13 @@ Severity: Architectural note
 1. `Client` mixes person, legal-entity, and CRM-record concerns.
 2. `Person` entity is missing completely.
 3. Snapshot drift on `AnnualReport`.
-4. Snapshot drift on `TaxDeadline`.
+4. Snapshot drift on `TaxCalendarEntry`.
 5. Snapshot drift propagates into `Reminder`.
 6. Drift is silent and cross-domain.
 7. Client close/freeze does not cancel reminders.
 8. No lifecycle cascade from client delete/archive.
 9. `entity_type` update is allowed to `secretary`.
-10. VAT `TaxDeadline` and `VatWorkItem` are separate domains with no hard lifecycle link.
+10. VAT `TaxCalendarEntry` and `VatWorkItem` are separate domains with no hard lifecycle link.
 11. Annual report deadline sync is many-to-many in behavior when duplicate annual deadlines exist.
 
 ### Medium
@@ -578,9 +578,9 @@ Severity: Architectural note
 | Flow | Healthy? | Main issue |
 |---|---|---|
 | Onboarding | Mostly yes | First `Business` may be a placeholder rather than a clean domain object |
-| `entity_type` update | No | Drift across `AnnualReport`, `TaxDeadline`, and `Reminder` |
+| `entity_type` update | No | Drift across `AnnualReport`, `TaxCalendarEntry`, and `Reminder` |
 | Client close/delete | No | No cascade lifecycle policy; reminders can remain active |
-| VAT lifecycle | No | Separate from `TaxDeadline`; work item is manual and not synced |
+| VAT lifecycle | No | Separate from `TaxCalendarEntry`; work item is manual and not synced |
 | Annual report lifecycle | Partially | Better than VAT, but sync to deadlines is logical and can fan out to duplicates |
 | Binder lifecycle | Yes | Operationally clean, but successor binder opening is manual/intake-driven |
 
@@ -775,7 +775,7 @@ The current `Client` concept must be split into separate identity and operationa
 
 - `VatReport`
 - `AnnualReport`
-- `TaxDeadline`
+- `TaxCalendarEntry`
 - `Binder`
 - `Reminder`
 - `Document` in most operational cases
@@ -815,7 +815,7 @@ The required direction is:
 
 - unique: `(client_record_id, tax_year)`
 
-##### `TaxDeadline`
+##### `TaxCalendarEntry`
 
 - annual deadline unique: `(client_record_id, deadline_type, tax_year)`
 - VAT deadline unique: `(client_record_id, deadline_type, period)`
@@ -830,12 +830,12 @@ This replaces the current deduplication by `(client_id, deadline_type, due_date)
 
 #### Annual flow
 
-- sync between `AnnualReport` and `TaxDeadline` must use `(client_record_id, tax_year)`
+- sync between `AnnualReport` and `TaxCalendarEntry` must use `(client_record_id, tax_year)`
 - never use due-date window lookup as the identity mechanism
 
 #### VAT flow
 
-- sync between `VatReport` and `TaxDeadline` must use `(client_record_id, period)`
+- sync between `VatReport` and `TaxCalendarEntry` must use `(client_record_id, period)`
 - never use `due_date` as the primary join identity
 
 ### 20.7 Preferred Future Model
@@ -853,10 +853,10 @@ The ideal future model introduces an explicit `Obligation` entity:
 Then:
 
 - `AnnualReport -> obligation_id`
-- `TaxDeadline -> obligation_id`
+- `TaxCalendarEntry -> obligation_id`
 - `VatReport -> obligation_id`
 
-This is preferred over a direct FK from `AnnualReport` to `TaxDeadline`, because the real missing concept is shared obligation identity, not only linkage.
+This is preferred over a direct FK from `AnnualReport` to `TaxCalendarEntry`, because the real missing concept is shared obligation identity, not only linkage.
 
 ### 20.8 Layer 3: Lifecycle Policy
 
@@ -876,7 +876,7 @@ The required model is:
 
 ##### Freeze / archive
 
-- open `TaxDeadline` -> `canceled`
+- open `TaxCalendarEntry` -> `canceled`
 - non-final `VatReport` -> `canceled` / `archived`
 - non-final `AnnualReport` -> `canceled`
 - open `Binder` -> `archived_in_office`
@@ -899,7 +899,7 @@ The lifecycle policy above cannot be implemented cleanly with the current enums.
 
 Required additions:
 
-- `TaxDeadline` -> `canceled`
+- `TaxCalendarEntry` -> `canceled`
 - `VatReport` -> `canceled`, `archived`
 - `AnnualReport` -> `canceled`
 - `Binder` -> `archived_in_office`

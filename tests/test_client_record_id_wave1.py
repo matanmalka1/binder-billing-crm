@@ -78,7 +78,6 @@ def _make_user(db):
 def _apply_wave1_backfill(db):
     db.execute(sa.text("UPDATE annual_reports SET client_record_id = client_id WHERE client_record_id IS NULL"))
     db.execute(sa.text("UPDATE vat_work_items SET client_record_id = client_id WHERE client_record_id IS NULL"))
-    db.execute(sa.text("UPDATE tax_deadlines SET client_record_id = client_id WHERE client_record_id IS NULL"))
     db.execute(sa.text("UPDATE binders SET client_record_id = client_id WHERE client_record_id IS NULL"))
     db.execute(sa.text("UPDATE advance_payments SET client_record_id = client_id WHERE client_record_id IS NULL"))
     db.execute(sa.text("UPDATE businesses SET legal_entity_id = client_id WHERE legal_entity_id IS NULL"))
@@ -184,46 +183,6 @@ class TestW2VatWorkItem:
             created_by=user.id,
         )
         assert item.client_record_id == record.id
-
-
-# ── W3: TaxDeadline ───────────────────────────────────────────────────────────
-
-class TestW3TaxDeadline:
-    def test_repo_list_by_client_record(self, db):
-        from app.tax_deadline.repositories.tax_deadline_query_repository import TaxDeadlineQueryRepository
-        from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType, TaxDeadlineStatus
-
-        client = _make_client(db)
-        record = _make_client_record(db, client.id)
-
-        deadline = TaxDeadline(
-            client_record_id=record.id,
-            deadline_type=DeadlineType.VAT,
-            due_date=date(2024, 2, 15),
-            status=TaxDeadlineStatus.PENDING,
-        )
-        db.add(deadline)
-        db.flush()
-
-        repo = TaxDeadlineQueryRepository(db)
-        results = repo.list_by_client_record(record.id)
-        assert len(results) == 1
-        assert results[0].client_record_id == record.id
-
-    def test_service_sets_client_record_id_on_create(self, db):
-        from app.tax_deadline.services.tax_deadline_service import TaxDeadlineService
-        from app.tax_deadline.models.tax_deadline import DeadlineType
-
-        client = _make_client(db)
-        record = _make_client_record(db, client.id)
-
-        service = TaxDeadlineService(db)
-        deadline = service.create_deadline(
-            client_record_id=record.id,
-            deadline_type=DeadlineType.VAT,
-            due_date=date(2024, 3, 15),
-        )
-        assert deadline.client_record_id == record.id
 
 
 # ── W4: Binder ────────────────────────────────────────────────────────────────

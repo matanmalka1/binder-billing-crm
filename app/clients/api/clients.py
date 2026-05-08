@@ -55,7 +55,6 @@ def preview_creation_impact(
             request.client.vat_reporting_frequency,
         ),
         advance_payment_frequency=request.client.advance_payment_frequency,
-        advance_rate=request.client.advance_rate,
     )
 
 
@@ -108,7 +107,6 @@ def create_client(
             request.client.vat_reporting_frequency,
         ),
         advance_payment_frequency=request.client.advance_payment_frequency,
-        advance_rate=request.client.advance_rate,
     )
     full = service.client_service.get_full_client(client_record.id)
     business_response = ClientBusinessService(db).to_response(

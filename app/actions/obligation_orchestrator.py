@@ -15,20 +15,17 @@ from app.clients.constants import (
     CLIENT_OBLIGATION_TRIGGER_FIELDS,
     ENTITY_TYPE_TO_REPORT_CLIENT_TYPE,
 )
-from app.tax_deadline.services.deadline_generator import DeadlineGeneratorService
-
 _log = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
 class ObligationResult:
-    deadlines_created: int = 0
     reports_created: int = 0
     errors: list[str] = field(default_factory=list)
 
     @property
     def total_created(self) -> int:
-        return self.deadlines_created + self.reports_created
+        return self.reports_created
 
 
 def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
@@ -104,24 +101,6 @@ def generate_client_obligations_result(
         )
 
     client_type = _derive_client_type(entity_type).value
-    deadline_generator = DeadlineGeneratorService(db)
-    # Intentional partial-success boundary: deadline generation is isolated per year.
-    for year in years:
-        sp = db.begin_nested()  # SAVEPOINT — חוסם rollback של הטרנזקציה הראשית
-        try:
-            result.deadlines_created += deadline_generator.generate_all(
-                client_record_id,
-                year,
-                reference_date,
-            )
-            sp.commit()  # RELEASE SAVEPOINT
-        except Exception:
-            sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
-            _log.exception("שגיאה ביצירת מועדי מס ללקוח %s שנה %s", client_record_id, year)
-            if not best_effort:
-                raise
-            result.errors.append(f"deadline_generation_failed:{year}")
-
     report_service = AnnualReportService(db)
     _actor_name = actor_name or ""
     # Intentional partial-success boundary: annual reports are isolated from deadline savepoints.

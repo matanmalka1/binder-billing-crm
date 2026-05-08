@@ -1,0 +1,41 @@
+"""Shared helpers for task service tests."""
+from __future__ import annotations
+
+from itertools import count
+from datetime import date
+
+from app.businesses.models.business import Business, BusinessStatus
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.enums import ClientStatus
+from app.common.enums import IdNumberType, VatType
+
+_seq = count(1)
+
+
+def create_business(db):
+    """Create a minimal active business with a linked ClientRecord for task tests."""
+    idx = next(_seq)
+    le = LegalEntity(
+        official_name=f"Task Test Client {idx}",
+        id_number=f"T{idx:07d}",
+        id_number_type=IdNumberType.INDIVIDUAL,
+        vat_reporting_frequency=VatType.MONTHLY,
+    )
+    db.add(le)
+    db.flush()
+
+    cr = ClientRecord(legal_entity_id=le.id, status=ClientStatus.ACTIVE)
+    db.add(cr)
+    db.flush()
+
+    biz = Business(
+        legal_entity_id=le.id,
+        business_name=f"Task Biz {idx}",
+        status=BusinessStatus.ACTIVE,
+        opened_at=date.today(),
+    )
+    db.add(biz)
+    db.flush()
+    biz.client_id = cr.id  # type: ignore[attr-defined]
+    return biz

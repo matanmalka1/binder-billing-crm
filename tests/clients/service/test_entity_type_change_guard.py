@@ -1,7 +1,7 @@
 """Step 3 tests: entity_type change guard in ClientService.update_client.
 
 - SECRETARY cannot change entity_type → ForbiddenError
-- ADVISOR can change entity_type → open deadlines canceled, audit logged
+- ADVISOR can change entity_type → audit logged
 """
 
 from datetime import date
@@ -14,7 +14,6 @@ from app.clients.models.legal_entity import LegalEntity
 from app.clients.services.client_service import ClientService
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.exceptions import ForbiddenError
-from app.tax_deadline.models.tax_deadline import TaxDeadline, DeadlineType, TaxDeadlineStatus
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
@@ -62,19 +61,6 @@ def _setup(db) -> tuple:
     return cr, advisor, secretary
 
 
-def _add_pending_deadline(db, cr) -> TaxDeadline:
-    dl = TaxDeadline(
-        client_record_id=cr.id,
-        deadline_type=DeadlineType.VAT,
-        period="2026-05",
-        due_date=date(2026, 6, 15),
-        status=TaxDeadlineStatus.PENDING,
-    )
-    db.add(dl)
-    db.commit()
-    return dl
-
-
 def test_secretary_cannot_change_entity_type(test_db):
     cr, advisor, secretary = _setup(test_db)
     service = ClientService(test_db)
@@ -88,9 +74,8 @@ def test_secretary_cannot_change_entity_type(test_db):
         )
 
 
-def test_advisor_can_change_entity_type_and_cancels_deadlines(test_db):
+def test_advisor_can_change_entity_type(test_db):
     cr, advisor, secretary = _setup(test_db)
-    dl = _add_pending_deadline(test_db, cr)
 
     service = ClientService(test_db)
     service.update_client(
@@ -100,8 +85,9 @@ def test_advisor_can_change_entity_type_and_cancels_deadlines(test_db):
         entity_type=EntityType.COMPANY_LTD,
     )
 
-    test_db.refresh(dl)
-    assert dl.status == TaxDeadlineStatus.CANCELED
+    test_db.refresh(cr)
+    le = test_db.query(LegalEntity).filter(LegalEntity.id == cr.legal_entity_id).one()
+    assert le.entity_type == EntityType.COMPANY_LTD
 
 
 def test_entity_type_change_logs_audit_entry(test_db):
@@ -128,19 +114,3 @@ def test_entity_type_change_logs_audit_entry(test_db):
     assert entry.old_value is not None
     assert entry.new_value is not None
     assert entry.old_value != entry.new_value
-
-
-def test_non_entity_type_update_does_not_cancel_deadlines(test_db):
-    cr, advisor, secretary = _setup(test_db)
-    dl = _add_pending_deadline(test_db, cr)
-
-    service = ClientService(test_db)
-    service.update_client(
-        cr.id,
-        actor_id=advisor.id,
-        actor_role=UserRole.ADVISOR,
-        full_name="New Name",
-    )
-
-    test_db.refresh(dl)
-    assert dl.status == TaxDeadlineStatus.PENDING

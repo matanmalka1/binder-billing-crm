@@ -66,7 +66,7 @@ JWT_SECRET=test-secret pytest -q tests/<domain_or_path>/...
 **Routed domains** (have `api/` router):
 `advance_payments`, `annual_reports`, `authority_contact`, `binders`, `businesses`, `charge`, `clients`,
 `correspondence`, `dashboard`, `health`, `notification`, `permanent_documents`, `reminders`, `reports`,
-`search`, `signature_requests`, `tax_deadline`, `timeline`, `users`, `vat_reports`
+`search`, `signature_requests`, `tax_calendar`, `timeline`, `users`, `vat_reports`
 
 **Internal-only domains** (no HTTP router — used as services by other domains):
 `invoice` — full layer stack.
@@ -192,7 +192,7 @@ All endpoints that return sensitive data scope queries by `business_id` or perfo
 
 ## Frontend-Backend Sync
 
-- **Urgency thresholds**: `URGENCY_RED_DAYS = 2` and `URGENCY_YELLOW_DAYS = 7` are intentionally duplicated in `app/tax_deadline/services/constants.py` (backend) and `src/features/taxDeadlines/utils.ts` (frontend). Both files have cross-reference comments. Update both when changing thresholds.
+- **Urgency thresholds**: TaxCalendar urgency is derived in the TaxCalendar backend/frontend helpers. Keep the thresholds synchronized when changing them.
 - **Enum fields**: Any field backed by a backend enum MUST use a `z.enum([...])` in the frontend Zod schema. Define the array in `constants.ts`, not inline in the schema or component.
 
 ---

@@ -16,7 +16,6 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.client_record_read_repository import get_full_record
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.reminders.services.client_status_service import ReminderClientStatusService
-from app.tax_deadline.services.client_status_service import TaxDeadlineClientStatusService
 from app.users.models.user import UserRole
 from app.vat_reports.services.client_status_service import VatWorkItemClientStatusService
 
@@ -113,7 +112,6 @@ class ClientUpdateService:
         self.record_repo.update_status(record.id, new_status)
         if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
             ReminderClientStatusService(self.db).cancel_pending_by_client_record(record.id)
-            TaxDeadlineClientStatusService(self.db).cancel_pending_by_client_record(record.id)
             VatWorkItemClientStatusService(self.db).cancel_open_by_client_record(record.id)
             AnnualReportClientStatusService(self.db).cancel_open_by_client_record(record.id)
             BinderClientStatusService(self.db).archive_in_office_by_client_record(record.id)
@@ -122,10 +120,9 @@ class ClientUpdateService:
         record = self.record_repo.get_by_id(client_id)
         if not record:
             return
-        canceled = TaxDeadlineClientStatusService(self.db).cancel_pending_by_client_record(record.id)
         _log.warning(
-            "entity_type_changed: client_id=%s old=%s new=%s canceled_deadlines=%s actor=%s",
-            client_id, old_entity_type, new_entity_type, canceled, actor_id,
+            "entity_type_changed: client_id=%s old=%s new=%s actor=%s",
+            client_id, old_entity_type, new_entity_type, actor_id,
         )
         self._audit.append(
             entity_type=ENTITY_CLIENT,

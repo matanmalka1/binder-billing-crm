@@ -32,7 +32,6 @@ from app.annual_reports.models.annual_report_status_history import AnnualReportS
 from app.annual_reports.services.constants import default_recognition_rate
 from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.common.enums import EntityType
-from app.tax_deadline.models.tax_deadline import DeadlineType as TaxDeadlineType, TaxDeadline, TaxDeadlineStatus
 from app.tax_calendar.services.entry_lookup import find_annual_entry_id
 from app.users.models.user import UserRole
 
@@ -278,35 +277,6 @@ def create_annual_reports(db, rng: Random, cfg, businesses, users) -> list[Annua
             report.client_id = business.client_id  # type: ignore[attr-defined]
             db.add(report)
             reports.append(report)
-            db.flush()
-
-            existing_deadline = (
-                db.query(TaxDeadline)
-                .filter(
-                    TaxDeadline.client_record_id == business.client_id,
-                    TaxDeadline.deadline_type == TaxDeadlineType.ANNUAL_REPORT,
-                    TaxDeadline.tax_year == year,
-                    TaxDeadline.deleted_at.is_(None),
-                )
-                .first()
-            )
-            if existing_deadline is None:
-                db.add(TaxDeadline(
-                    client_record_id=business.client_id,
-                    deadline_type=TaxDeadlineType.ANNUAL_REPORT,
-                    tax_year=year,
-                    due_date=filing_deadline.date() if filing_deadline else standard_deadline(year).date(),
-                    status=(
-                        TaxDeadlineStatus.COMPLETED
-                        if status in (
-                            AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED,
-                            AnnualReportStatus.ASSESSMENT_ISSUED, AnnualReportStatus.CLOSED,
-                        )
-                        else TaxDeadlineStatus.PENDING
-                    ),
-                    description=f"דוח שנתי שנת {year}",
-                    created_at=created_at,
-                ))
 
     db.flush()
     return reports

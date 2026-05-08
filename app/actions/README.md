@@ -2,7 +2,7 @@
 
 > Last audited: 2026-04-23
 
-Defines executable UI action contracts shared across domains (businesses, binders, charges, tax deadlines, annual reports).
+Defines executable UI action contracts shared across domains (businesses, binders, charges, tax calendar entries, annual reports).
 Also owns cross-domain application workflows that do not belong to a single domain.
 
 ## Scope
@@ -11,10 +11,10 @@ This module provides:
 - Canonical action-contract builder (`build_action`)
 - Canonical confirm builder (`build_confirm`)
 - Stable action-id generation convention (`{resource}-{id}-{key}`)
-- Domain action factories for binders, businesses, charges, tax deadlines, and annual reports
+- Domain action factories for binders, businesses, charges, tax calendar entries, and annual reports
 - Role-aware action filtering (for example advisor-only actions)
 - Confirm-dialog metadata and optional payload contracts for frontend executors
-- `obligation_orchestrator.py` — cross-domain workflow that generates tax deadlines and annual reports for a client (idempotent; used on client create/update and business create)
+- `obligation_orchestrator.py` — cross-domain workflow that generates tax calendar entries and annual reports for a client (idempotent; used on client create/update and business create)
 - `ObligationResult` / `generate_client_obligations_result(...)` — explicit partial-success breakdown for obligation generation
 
 ## Domain Model
@@ -41,7 +41,6 @@ Common action producers:
 - `get_binder_actions(binder)`
 - `get_business_actions(business, user_role=None)`
 - `get_charge_actions(charge)`
-- `get_tax_deadline_actions(deadline)`
 - `get_annual_report_actions(report_id, status)`
 - `generate_client_obligations_result(...)`
 
@@ -75,11 +74,6 @@ It is consumed internally by other modules that attach `available_actions` (and 
 - Charge actions:
   - `draft` => `issue_charge`, `cancel_charge`
   - `issued` => `mark_paid`, `cancel_charge`
-- Tax deadline actions:
-  - `pending` => `complete`, `edit`, `delete`
-  - `delete` requires confirm metadata
-  - `completed` => `reopen` only
-  - `canceled` => no actions
 - Annual report actions:
   - `submitted` => `amend`
   - statuses outside final states include `submit`
@@ -103,7 +97,7 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 - `businesses` APIs attach `available_actions` via `get_business_actions`.
 - `binders` list/event services attach binder actions via `get_binder_actions`.
 - `charge` and dashboard quick-actions use `get_charge_actions`.
-- `tax_deadline` responses attach actions via `get_tax_deadline_actions`.
+- TaxCalendar responses expose grouped obligation state; annual reports attach report-specific actions separately.
 - `annual_reports` response projection attaches actions via `get_annual_report_actions`.
 - `timeline` event builders copy generated actions to both `actions` and `available_actions` for compatibility.
 

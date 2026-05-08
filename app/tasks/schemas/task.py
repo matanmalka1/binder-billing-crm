@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 
 class TaskType(str, PyEnum):
-    TAX_DEADLINE    = "tax_deadline"
     VAT_FILING      = "vat_filing"
     ANNUAL_REPORT   = "annual_report"
     ADVANCE_PAYMENT = "advance_payment"

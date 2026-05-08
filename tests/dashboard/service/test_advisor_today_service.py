@@ -3,47 +3,6 @@ from types import SimpleNamespace
 
 from app.dashboard.services.advisor_today_service import AdvisorTodayService, _reminder_item
 from app.reminders.models.reminder import ReminderType
-from app.tax_deadline.models.tax_deadline import DeadlineType
-
-
-def test_deadline_item_formats_aggregate_row(test_db):
-    service = AdvisorTodayService(test_db)
-    row = SimpleNamespace(
-        first_id=7,
-        deadline_type=DeadlineType.NATIONAL_INSURANCE,
-        due_date=date(2026, 5, 15),
-        period="2026-05",
-        max_period="2026-05",
-        tax_year=None,
-        client_count=42,
-    )
-
-    item = service._deadline_item(row, date(2026, 4, 29))
-
-    assert item == {
-        "id": 7,
-        "label": "ביטוח לאומי",
-        "sublabel": "תשלום מקדמות עד 15/05/2026 · עוד 16 ימים",
-        "description": "42 לקוחות רלוונטיים · תקופת מועד 05/2026",
-        "href": "/tax/deadlines",
-    }
-
-
-def test_deadline_item_formats_annual_report_tax_year(test_db):
-    service = AdvisorTodayService(test_db)
-    row = SimpleNamespace(
-        first_id=8,
-        deadline_type=DeadlineType.ANNUAL_REPORT,
-        due_date=date(2026, 5, 31),
-        period=None,
-        max_period=None,
-        tax_year=2025,
-        client_count=12,
-    )
-
-    item = service._deadline_item(row, date(2026, 5, 1))
-
-    assert item["description"] == "12 לקוחות רלוונטיים · שנת מס 2025"
 
 
 def test_reminder_item_uses_client_name_as_label_and_business_in_sublabel():

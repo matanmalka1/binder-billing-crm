@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 from itertools import count
 
@@ -7,7 +7,6 @@ from app.businesses.models.business import BusinessStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.models.reminder import ReminderStatus, ReminderType
-from app.tax_deadline.models.tax_deadline import DeadlineType, TaxDeadline, TaxDeadlineStatus
 from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
@@ -35,19 +34,6 @@ def _business(db, crm_client: SeededClient, user_id: int):
     db.refresh(business)
     business.client_id = crm_client.id
     return business
-
-
-def _tax_deadline(db, client_record_id: int) -> TaxDeadline:
-    deadline = TaxDeadline(
-        client_record_id=client_record_id,
-        deadline_type=DeadlineType.VAT,
-        due_date=date.today() + timedelta(days=10),
-        status=TaxDeadlineStatus.PENDING,
-    )
-    db.add(deadline)
-    db.commit()
-    db.refresh(deadline)
-    return deadline
 
 
 def _binder(db, client_id: int, user_id: int) -> Binder:

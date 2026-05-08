@@ -298,7 +298,7 @@
   - מסך כבד מאוד עם state orchestration רב.
   - מסך detail מורכב אך לא מוגדר כחוזה מסך מפורט ברמת subsection.
 
-### 11. Tax Deadlines
+### 11. Tax Calendar
 
 - מטרה עסקית: ניהול מועדי מס ומעקב הגשה.
 - מי משתמש בו: `ADVISOR`, `SECRETARY`.
@@ -447,7 +447,7 @@
 - תלותים במסכים אחרים:
   - binders.
   - charges.
-  - tax deadlines.
+  - tax calendar.
   - annual reports.
   - advance payments.
 - פערים, כפילויות ושבירות נוכחית:
@@ -664,7 +664,7 @@
 ### G. Glossary And Naming
 
 - יש לאחד שמות ישויות וכותרות UI:
-  - `Tax Deadlines` מול `דוחות מס` מול `מועדי מס`.
+  - `Tax Calendar` מול `דוחות מס` מול `מועדי מס`.
   - `VAT Work Item` מול `תיק מע"מ`.
   - `Annual Reports List` מול `season summary`.
 - לכל ישות מרכזית צריך שם תצוגה אחד קבוע:

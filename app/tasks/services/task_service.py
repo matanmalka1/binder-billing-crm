@@ -20,11 +20,9 @@ from app.tasks.schemas.task import DeadlineTask, TaskType, TaskUrgency, UnifiedI
 from app.tasks.services.task_payloads import (
     annual_report_payload,
     advance_payment_payload,
-    tax_deadline_payload,
     unpaid_charge_payload,
     vat_work_item_payload,
 )
-from app.tax_deadline.models.tax_deadline import TaxDeadline, TaxDeadlineStatus
 from app.utils.time_utils import israel_today
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -76,8 +74,6 @@ class TaskService:
     ) -> List[DeadlineTask]:
         excluded = set(exclude_source_types or [])
         tasks: List[DeadlineTask] = []
-        if TaskType.TAX_DEADLINE not in excluded:
-            tasks.extend(self._tax_deadline_tasks(client_record_id))
         if TaskType.VAT_FILING not in excluded:
             tasks.extend(self._vat_filing_tasks(client_record_id))
         if TaskType.ANNUAL_REPORT not in excluded:
@@ -126,32 +122,6 @@ class TaskService:
 
         unified.sort(key=lambda x: x.due_date)
         return unified
-
-    def _tax_deadline_tasks(self, client_record_id: Optional[int]) -> List[DeadlineTask]:
-        cutoff = self.today + timedelta(days=_UPCOMING_WINDOW_DAYS)
-        query = (
-            scope_to_active_clients(self.db.query(TaxDeadline), TaxDeadline)
-            .filter(
-                TaxDeadline.deleted_at.is_(None),
-                TaxDeadline.status == TaxDeadlineStatus.PENDING,
-                TaxDeadline.due_date <= cutoff,
-            )
-        )
-        if client_record_id is not None:
-            query = query.filter(TaxDeadline.client_record_id == client_record_id)
-        return [
-            DeadlineTask(
-                source_type=TaskType.TAX_DEADLINE,
-                source_id=td.id,
-                label=f"מועד מס: {td.period or td.deadline_type.value}",
-                due_date=td.due_date,
-                urgency=_urgency(td.due_date, self.today),
-                client_record_id=td.client_record_id,
-                client_name=self._client_name(td.client_record_id),
-                payload=tax_deadline_payload(td),
-            )
-            for td in query.all()
-        ]
 
     def _vat_filing_tasks(self, client_record_id: Optional[int]) -> List[DeadlineTask]:
         tasks = []

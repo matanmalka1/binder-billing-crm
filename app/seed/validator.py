@@ -8,7 +8,6 @@ from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType
-from app.tax_deadline.models.tax_deadline import TaxDeadline
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
@@ -26,7 +25,6 @@ class SeedIntegrityValidator:
         self._check_active_clients_have_binders()
         self._check_no_vat_items_for_exempt_clients()
         self._check_no_duplicate_annual_reports()
-        self._check_no_duplicate_tax_deadlines()
         if self._errors:
             error_list = "\n".join(f"  - {e}" for e in self._errors)
             raise SeedIntegrityError(
@@ -91,22 +89,3 @@ class SeedIntegrityValidator:
                 f"Client {client_id} has {count} annual reports for year {tax_year}"
             )
 
-    def _check_no_duplicate_tax_deadlines(self) -> None:
-        dupes = (
-            self.db.execute(
-                select(
-                    TaxDeadline.client_record_id,
-                    TaxDeadline.deadline_type,
-                    TaxDeadline.period,
-                    func.count(),
-                )
-                .where(TaxDeadline.deleted_at.is_(None), TaxDeadline.period.isnot(None))
-                .group_by(TaxDeadline.client_record_id, TaxDeadline.deadline_type, TaxDeadline.period)
-                .having(func.count() > 1)
-            )
-            .all()
-        )
-        for client_id, deadline_type, period, count in dupes:
-            self._errors.append(
-                f"Client {client_id} has {count} {deadline_type} deadlines for period {period}"
-            )

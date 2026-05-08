@@ -44,8 +44,6 @@ def parse_args() -> SeedConfig:
     parser.add_argument("--min-vat-invoices-per-work-item", type=int, default=3)
     parser.add_argument("--max-vat-invoices-per-work-item", type=int, default=12)
     parser.add_argument("--signature-requests-per-client", type=int, default=2)
-    parser.add_argument("--min-tax-deadlines-per-client", type=int, default=3)
-    parser.add_argument("--max-tax-deadlines-per-client", type=int, default=12)
     parser.add_argument("--min-authority-contacts-per-client", type=int, default=1)
     parser.add_argument("--max-authority-contacts-per-client", type=int, default=3)
     parser.add_argument("--seed", type=int, default=42)

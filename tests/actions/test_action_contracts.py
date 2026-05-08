@@ -1,7 +1,6 @@
 from app.actions.action_contracts import (
     build_action,
     get_annual_report_actions,
-    get_tax_deadline_actions,
 )
 from app.actions.action_helpers import build_confirm
 import pytest
@@ -26,7 +25,6 @@ def test_build_action_omits_optional_keys_when_none():
 
 
 def test_action_contracts_exports_report_deadline_actions():
-    assert callable(get_tax_deadline_actions)
     assert callable(get_annual_report_actions)
 
 

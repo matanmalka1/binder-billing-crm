@@ -1,8 +1,8 @@
 """TaxCalendarEntry generation — Phase B PR 2 (calendar population only).
 
 Populates regulatory calendar entries shared across all clients. Idempotent:
-re-running for the same year is a no-op. Does NOT modify TaxDeadline /
-AdvancePayment / VatWorkItem / AnnualReport. No FK to business objects yet.
+re-running for the same year is a no-op. Does NOT modify business objects
+(AdvancePayment / VatWorkItem / AnnualReport). No FK to business objects yet.
 
 Due-date assumptions:
 - Computed purely from DeadlineRule fields (`due_day_of_month`, `offset_months`).

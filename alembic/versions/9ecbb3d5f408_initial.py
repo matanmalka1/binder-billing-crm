@@ -848,42 +848,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_signature_requests_annual_report_id'), 'signature_requests', ['annual_report_id'], unique=False)
     op.create_index(op.f('ix_signature_requests_business_id'), 'signature_requests', ['business_id'], unique=False)
     op.create_index(op.f('ix_signature_requests_client_record_id'), 'signature_requests', ['client_record_id'], unique=False)
-    op.create_table('tax_deadlines',
-    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.Column('client_record_id', sa.Integer(), nullable=False),
-    sa.Column('deadline_type', sa.Enum('vat', 'advance_payment', 'national_insurance', 'annual_report', name='deadlinetype'), nullable=False),
-    sa.Column('period', sa.String(length=7), nullable=True),
-    sa.Column('tax_year', sa.Integer(), nullable=True),
-    sa.Column('due_date', sa.Date(), nullable=False),
-    sa.Column('status', sa.Enum('pending', 'completed', 'canceled', name='taxdeadlinestatus'), nullable=False),
-    sa.Column('completed_at', sa.DateTime(), nullable=True),
-    sa.Column('completed_by', sa.Integer(), nullable=True),
-    sa.Column('advance_payment_id', sa.Integer(), nullable=True),
-    sa.Column('vat_work_item_id', sa.Integer(), nullable=True),
-    sa.Column('payment_amount', sa.Numeric(precision=10, scale=2), nullable=True),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.Column('deleted_at', sa.DateTime(), nullable=True),
-    sa.Column('deleted_by', sa.Integer(), nullable=True),
-    sa.CheckConstraint("(advance_payment_id IS NULL) OR (deadline_type = 'advance_payment')", name='ck_tax_deadline_advance_payment_link'),
-    sa.CheckConstraint("(vat_work_item_id IS NULL) OR (deadline_type = 'vat')", name='ck_tax_deadline_vat_work_item_link'),
-    sa.ForeignKeyConstraint(['advance_payment_id'], ['advance_payments.id'], ),
-    sa.ForeignKeyConstraint(['client_record_id'], ['client_records.id'], ),
-    sa.ForeignKeyConstraint(['completed_by'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['deleted_by'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['vat_work_item_id'], ['vat_work_items.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index('idx_tax_deadline_client_record_period', 'tax_deadlines', ['client_record_id', 'period'], unique=False)
-    op.create_index('idx_tax_deadline_status', 'tax_deadlines', ['status'], unique=False)
-    op.create_index('idx_tax_deadline_type', 'tax_deadlines', ['deadline_type'], unique=False)
-    op.create_index(op.f('ix_tax_deadlines_advance_payment_id'), 'tax_deadlines', ['advance_payment_id'], unique=False)
-    op.create_index(op.f('ix_tax_deadlines_client_record_id'), 'tax_deadlines', ['client_record_id'], unique=False)
-    op.create_index(op.f('ix_tax_deadlines_due_date'), 'tax_deadlines', ['due_date'], unique=False)
-    op.create_index(op.f('ix_tax_deadlines_vat_work_item_id'), 'tax_deadlines', ['vat_work_item_id'], unique=False)
-    op.create_index('uq_tax_deadline_active_annual_identity', 'tax_deadlines', ['client_record_id', 'tax_year'], unique=True, postgresql_where=sa.text("deleted_at IS NULL AND deadline_type = 'annual_report' AND tax_year IS NOT NULL"), sqlite_where=sa.text("deleted_at IS NULL AND deadline_type = 'annual_report' AND tax_year IS NOT NULL"))
-    op.create_index('uq_tax_deadline_active_period_identity', 'tax_deadlines', ['client_record_id', 'deadline_type', 'period'], unique=True, postgresql_where=sa.text('deleted_at IS NULL AND period IS NOT NULL'), sqlite_where=sa.text('deleted_at IS NULL AND period IS NOT NULL'))
-    op.create_index('uq_tax_deadline_vat_work_item_active', 'tax_deadlines', ['vat_work_item_id'], unique=True, postgresql_where=sa.text('deleted_at IS NULL AND vat_work_item_id IS NOT NULL'), sqlite_where=sa.text('deleted_at IS NULL AND vat_work_item_id IS NOT NULL'))
     op.create_table('vat_audit_logs',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('work_item_id', sa.Integer(), nullable=False),
@@ -929,17 +893,6 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_vat_audit_logs_work_item_id'), table_name='vat_audit_logs')
     op.drop_index(op.f('ix_vat_audit_logs_invoice_id'), table_name='vat_audit_logs')
     op.drop_table('vat_audit_logs')
-    op.drop_index('uq_tax_deadline_vat_work_item_active', table_name='tax_deadlines', postgresql_where=sa.text('deleted_at IS NULL AND vat_work_item_id IS NOT NULL'), sqlite_where=sa.text('deleted_at IS NULL AND vat_work_item_id IS NOT NULL'))
-    op.drop_index('uq_tax_deadline_active_period_identity', table_name='tax_deadlines', postgresql_where=sa.text('deleted_at IS NULL AND period IS NOT NULL'), sqlite_where=sa.text('deleted_at IS NULL AND period IS NOT NULL'))
-    op.drop_index('uq_tax_deadline_active_annual_identity', table_name='tax_deadlines', postgresql_where=sa.text("deleted_at IS NULL AND deadline_type = 'annual_report' AND tax_year IS NOT NULL"), sqlite_where=sa.text("deleted_at IS NULL AND deadline_type = 'annual_report' AND tax_year IS NOT NULL"))
-    op.drop_index(op.f('ix_tax_deadlines_vat_work_item_id'), table_name='tax_deadlines')
-    op.drop_index(op.f('ix_tax_deadlines_due_date'), table_name='tax_deadlines')
-    op.drop_index(op.f('ix_tax_deadlines_client_record_id'), table_name='tax_deadlines')
-    op.drop_index(op.f('ix_tax_deadlines_advance_payment_id'), table_name='tax_deadlines')
-    op.drop_index('idx_tax_deadline_type', table_name='tax_deadlines')
-    op.drop_index('idx_tax_deadline_status', table_name='tax_deadlines')
-    op.drop_index('idx_tax_deadline_client_record_period', table_name='tax_deadlines')
-    op.drop_table('tax_deadlines')
     op.drop_index(op.f('ix_signature_requests_client_record_id'), table_name='signature_requests')
     op.drop_index(op.f('ix_signature_requests_business_id'), table_name='signature_requests')
     op.drop_index(op.f('ix_signature_requests_annual_report_id'), table_name='signature_requests')

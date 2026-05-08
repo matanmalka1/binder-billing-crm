@@ -93,7 +93,7 @@ Notes:
   Creates the full current PostgreSQL schema from SQLAlchemy models.
 - Covers:
   users, clients identity tables, businesses, binders, annual reports, VAT reports,
-  charges, invoices, advance payments, tax deadlines, reminders, notifications,
+  charges, invoices, advance payments, tax calendar entries, reminders, notifications,
   permanent documents, signature requests, correspondence, authority contacts,
   tax calendar tables, notes, and audit tables.
 - Notes:
