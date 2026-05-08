@@ -10,6 +10,16 @@ ENTITY_CLIENT = "client"
 ENTITY_CHARGE = "charge"
 ENTITY_ANNUAL_REPORT = "annual_report"
 
+ALLOWED_READ_ENTITY_TYPES = {
+    ENTITY_ANNUAL_REPORT,
+    ENTITY_BUSINESS,
+    ENTITY_CHARGE,
+    ENTITY_CLIENT,
+}
+
+INVALID_ENTITY_TYPE_ERROR = "סוג ישות לא נתמך להיסטוריית שינויים"
+ENTITY_NOT_FOUND_ERROR = "הישות המבוקשת לא נמצאה"
+
 # Shared actions
 ACTION_CREATED = "created"
 ACTION_UPDATED = "updated"
