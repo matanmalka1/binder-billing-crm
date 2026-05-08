@@ -3,6 +3,7 @@ from datetime import date
 from sqlalchemy import text
 
 from app.advance_payments.models.advance_payment import AdvancePayment
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
@@ -29,9 +30,14 @@ def test_onboarding_creates_vat_work_items_and_advance_payments(test_db):
     client_record = _create_vat_client(test_db, "123456780")
     vat_items = test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id).all()
     payments = test_db.query(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id).all()
+    reports = test_db.query(AnnualReport).filter(AnnualReport.client_record_id == client_record.id).all()
 
     assert len(vat_items) == 9
     assert len(payments) == 9
+    assert reports
+    assert all(item.tax_calendar_entry_id is not None for item in vat_items)
+    assert all(payment.tax_calendar_entry_id is not None for payment in payments)
+    assert all(report.tax_calendar_entry_id is not None for report in reports)
     assert all(p.due_date_original == p.due_date for p in payments)
     assert all(p.due_date_effective == p.due_date for p in payments)
 

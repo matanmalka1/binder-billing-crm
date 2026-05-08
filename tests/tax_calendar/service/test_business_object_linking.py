@@ -5,7 +5,11 @@ import pytest
 from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.common.enums import DeadlineRuleType, ObligationType, VatType
-from app.core.exceptions import AppError
+from app.core.exceptions import AppError, ConflictError
+from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.services.link_diagnostics import find_active_null_tax_calendar_links
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.grouped_service import list_groups
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -41,14 +45,19 @@ def test_advance_payment_generation_links_matching_tax_calendar_entry(test_db):
     assert jan.status.value == "pending"
 
 
-def test_advance_payment_generation_leaves_null_without_matching_entry(test_db):
+def test_advance_payment_generation_creates_missing_tax_calendar_entry(test_db):
     client = advance_client(test_db)
 
     created, _ = generate_annual_schedule(
         client.id, 2026, test_db, reference_date=date(2025, 12, 31)
     )
 
-    assert all(payment.tax_calendar_entry_id is None for payment in created)
+    assert all(payment.tax_calendar_entry_id is not None for payment in created)
+    jan = next(payment for payment in created if payment.period == "2026-01")
+    entry = test_db.get(TaxCalendarEntry, jan.tax_calendar_entry_id)
+    assert entry.obligation_type == ObligationType.ADVANCE_PAYMENT
+    assert entry.period == "2026-01"
+    assert entry.period_months_count == 1
 
 
 def test_vat_work_item_monthly_links_matching_tax_calendar_entry(test_db):
@@ -95,7 +104,7 @@ def test_vat_work_item_bimonthly_links_matching_tax_calendar_entry(test_db):
     assert item.status == VatWorkItemStatus.MATERIAL_RECEIVED
 
 
-def test_vat_work_item_leaves_snapshots_null_without_matching_entry(test_db):
+def test_vat_work_item_creates_missing_tax_calendar_entry(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
 
     item = create_work_item(
@@ -103,9 +112,12 @@ def test_vat_work_item_leaves_snapshots_null_without_matching_entry(test_db):
         client_record_id=client.id, period="2026-01", created_by=1,
     )
 
-    assert item.tax_calendar_entry_id is None
-    assert item.due_date_original is None
-    assert item.due_date_effective is None
+    entry = test_db.get(TaxCalendarEntry, item.tax_calendar_entry_id)
+    assert entry.obligation_type == ObligationType.VAT
+    assert entry.period == "2026-01"
+    assert entry.period_months_count == 1
+    assert item.due_date_original == entry.due_date
+    assert item.due_date_effective == entry.due_date
     assert item.status == VatWorkItemStatus.MATERIAL_RECEIVED
 
 
@@ -204,6 +216,70 @@ def test_annual_report_creation_links_matching_tax_calendar_entry(test_db):
     assert report.tax_calendar_entry_id == entry.id
     assert report.status.value == "not_started"
     assert report.filing_deadline.date() == date(2027, 7, 31)
+
+
+def test_annual_report_creation_creates_missing_tax_calendar_entry(test_db):
+    client = annual_client(test_db)
+
+    report = AnnualReportService(test_db).create_report(
+        client.id, 2026, "corporation", 1, "Advisor"
+    )
+
+    entry = test_db.get(TaxCalendarEntry, report.tax_calendar_entry_id)
+    assert entry.obligation_type == ObligationType.ANNUAL_REPORT
+    assert entry.tax_year == 2026
+
+
+def test_mismatched_existing_tax_calendar_fk_raises_conflict(test_db):
+    wrong = make_entry(
+        test_db,
+        obligation_type=ObligationType.VAT,
+        rule_type=DeadlineRuleType.VAT_MONTHLY,
+        period="2026-02",
+        months=1,
+        tax_year=2026,
+    )
+    client = vat_client(test_db, VatType.MONTHLY)
+    item = VatWorkItem(
+        client_record_id=client.id,
+        period="2026-01",
+        period_type=VatType.MONTHLY,
+        created_by=1,
+        tax_calendar_entry_id=wrong.id,
+        due_date_original=wrong.due_date,
+        due_date_effective=wrong.due_date,
+    )
+    test_db.add(item)
+    test_db.flush()
+
+    with pytest.raises(ConflictError):
+        TaxCalendarMaterializationService(test_db).link_vat_work_item(item)
+
+
+def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
+    client = vat_client(test_db, VatType.MONTHLY)
+    item = create_work_item(
+        VatWorkItemRepository(test_db), test_db,
+        client_record_id=client.id, period="2026-01", created_by=1,
+    )
+
+    groups = list_groups(
+        test_db,
+        start_year=2026,
+        end_year=2026,
+        obligation_type=ObligationType.VAT,
+        include_empty=False,
+    )
+
+    assert any(group.tax_calendar_entry_id == item.tax_calendar_entry_id and group.linked_count == 1 for group in groups)
+
+
+def test_null_link_diagnostics_reports_active_rows(test_db):
+    assert find_active_null_tax_calendar_links(test_db) == {
+        "vat_work_items": {"count": 0, "ids": []},
+        "advance_payments": {"count": 0, "ids": []},
+        "annual_reports": {"count": 0, "ids": []},
+    }
 
 
 def test_bootstrap_entries_allow_business_objects_to_link(test_db):

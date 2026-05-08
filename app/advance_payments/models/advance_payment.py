@@ -92,8 +92,8 @@ class AdvancePayment(Base):
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
     tax_calendar_entry_id = Column(
         Integer,
-        ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
-        nullable=True, index=True,
+        ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
+        nullable=False, index=True,
     )
 
     # ── Notes ─────────────────────────────────────────────────────────────────

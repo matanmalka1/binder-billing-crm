@@ -53,8 +53,8 @@ class AnnualReport(Base):
 
     tax_calendar_entry_id = Column(
         Integer,
-        ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
-        nullable=True, index=True,
+        ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
+        nullable=False, index=True,
     )
 
     notes = Column(Text, nullable=True)

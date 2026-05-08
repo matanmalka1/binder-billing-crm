@@ -13,6 +13,8 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
     AdvancePaymentAggregationRepository,
     advance_payment_status_text_expr,
 )
+from app.common.enums import ObligationType
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 
 
 class AdvancePaymentRepository(BaseRepository):
@@ -35,6 +37,10 @@ class AdvancePaymentRepository(BaseRepository):
         tax_calendar_entry_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> AdvancePayment:
+        if tax_calendar_entry_id is None:
+            tax_calendar_entry_id = TaxCalendarMaterializationService(self.db).ensure_periodic_entry(
+                ObligationType.ADVANCE_PAYMENT, period, period_months_count
+            ).id
         payment = AdvancePayment(
             client_record_id=client_record_id,
             period=period,

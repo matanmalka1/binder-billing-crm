@@ -19,6 +19,7 @@ from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from tests.helpers.identity import seed_client_identity
 
 
@@ -90,6 +91,10 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
     repo = VatClientSummaryRepository(test_db)
     business = _create_business(test_db, "VAT Client", "100000002")
     user = _create_user(test_db)
+    materializer = TaxCalendarMaterializationService(test_db)
+    jan_entry = materializer.ensure_periodic_entry("vat", "2025-01", 1)
+    feb_entry = materializer.ensure_periodic_entry("vat", "2025-02", 1)
+    prev_entry = materializer.ensure_periodic_entry("vat", "2024-12", 1)
 
     january = VatWorkItem(
         client_record_id=business.client_record_id,
@@ -99,6 +104,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_output_vat=Decimal("150.50"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("150.50"),
+        tax_calendar_entry_id=jan_entry.id,
     )
     february = VatWorkItem(
         client_record_id=business.client_record_id,
@@ -108,6 +114,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_output_vat=Decimal("149.50"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("149.50"),
+        tax_calendar_entry_id=feb_entry.id,
     )
     previous_year = VatWorkItem(
         client_record_id=business.client_record_id,
@@ -117,6 +124,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_output_vat=Decimal("999.00"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("999.00"),
+        tax_calendar_entry_id=prev_entry.id,
     )
     test_db.add_all([january, february, previous_year])
     test_db.commit()

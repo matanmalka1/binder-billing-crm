@@ -9,7 +9,7 @@ from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
 from app.common.enums import ObligationType, VatType
 from app.common.due_date_rules import periodic_due_date
-from app.tax_calendar.services.entry_lookup import find_periodic_entry
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import (
@@ -166,12 +166,10 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 status = _status_for_period(rng, period, cfg.reference_date)
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
-            tax_calendar_entry = None
             period_months_count = _VAT_PERIOD_MONTHS_COUNT.get(period_type)
-            if period_months_count is not None:
-                tax_calendar_entry = find_periodic_entry(
-                    db, ObligationType.VAT, period, period_months_count
-                )
+            tax_calendar_entry = TaxCalendarMaterializationService(db).ensure_periodic_entry(
+                ObligationType.VAT, period, period_months_count
+            )
             work_item = VatWorkItem(
                 client_record_id=business.client_id,
                 created_by=created_by,
@@ -184,9 +182,9 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 pending_materials_note="ממתינים לחשבוניות מהלקוח"
                 if status == VatWorkItemStatus.PENDING_MATERIALS and rng.random() < 0.5
                 else None,
-                tax_calendar_entry_id=tax_calendar_entry.id if tax_calendar_entry else None,
-                due_date_original=tax_calendar_entry.due_date if tax_calendar_entry else None,
-                due_date_effective=tax_calendar_entry.due_date if tax_calendar_entry else None,
+                tax_calendar_entry_id=tax_calendar_entry.id,
+                due_date_original=tax_calendar_entry.due_date,
+                due_date_effective=tax_calendar_entry.due_date,
             )
             work_item.client_id = business.client_id  # type: ignore[attr-defined]
             if status == VatWorkItemStatus.FILED:

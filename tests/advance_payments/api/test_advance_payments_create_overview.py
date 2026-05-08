@@ -8,6 +8,7 @@ from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from tests.helpers.identity import seed_business, seed_client_identity
 
 
@@ -45,6 +46,7 @@ def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -
 def _vat_work_item(db, business_id: int, created_by: int, period: str, output_vat: Decimal):
     business = db.get(Business, business_id)
     assert business is not None
+    entry = TaxCalendarMaterializationService(db).ensure_periodic_entry("vat", period, 1)
     item = VatWorkItem(
         client_record_id=business.client_record_id,
         created_by=created_by,
@@ -54,6 +56,7 @@ def _vat_work_item(db, business_id: int, created_by: int, period: str, output_va
         total_output_vat=output_vat,
         total_input_vat=Decimal("0"),
         net_vat=output_vat,
+        tax_calendar_entry_id=entry.id,
     )
     db.add(item)
     db.commit()

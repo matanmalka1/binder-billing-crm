@@ -71,8 +71,8 @@ class VatWorkItem(Base):
     # Cross-domain link to regulatory calendar fact
     tax_calendar_entry_id = Column(
         Integer,
-        ForeignKey("tax_calendar_entries.id", ondelete="SET NULL"),
-        nullable=True, index=True,
+        ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
+        nullable=False, index=True,
     )
     due_date_original = Column(Date, nullable=True)
     due_date_effective = Column(Date, nullable=True)

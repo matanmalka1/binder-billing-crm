@@ -14,7 +14,7 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.users.services.user_lookup import get_user_or_raise
-from app.tax_calendar.services.entry_lookup import find_annual_entry_id
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
@@ -90,9 +90,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
         else:
             filing_deadline = None  # custom — caller can set note
 
-        tax_calendar_entry_id = find_annual_entry_id(self.db, tax_year)
-        # Transitional nullable FK: annual report creation must not fail when
-        # tax calendar entries have not been generated for the requested year.
+        tax_calendar_entry = TaxCalendarMaterializationService(self.db).ensure_annual_entry(tax_year)
         report = self.repo.create(
             client_record_id=client_record_id,
             tax_year=tax_year,
@@ -103,7 +101,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             status=AnnualReportStatus.NOT_STARTED,
             deadline_type=dt,
             filing_deadline=filing_deadline,
-            tax_calendar_entry_id=tax_calendar_entry_id,
+            tax_calendar_entry_id=tax_calendar_entry.id,
             notes=notes,
             submission_method=SubmissionMethod(submission_method) if submission_method else None,
             extension_reason=ExtensionReason(extension_reason) if extension_reason else None,
@@ -113,6 +111,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             has_depreciation=has_depreciation,
             has_exempt_rental=has_exempt_rental,
         )
+        TaxCalendarMaterializationService(self.db).link_annual_report(report)
 
         # Auto-generate required schedules
         self._generate_schedules(report)

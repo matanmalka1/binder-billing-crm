@@ -6,6 +6,7 @@ import openpyxl
 import pytest
 
 from app.common.enums import VatType
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -13,6 +14,9 @@ EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.
 
 
 def _seed_work_items(db, client_record_id: int, created_by: int):
+    materializer = TaxCalendarMaterializationService(db)
+    feb_entry = materializer.ensure_periodic_entry("vat", "2026-02", 1)
+    jan_entry = materializer.ensure_periodic_entry("vat", "2026-01", 1)
     items = [
         VatWorkItem(
             client_record_id=client_record_id,
@@ -26,6 +30,9 @@ def _seed_work_items(db, client_record_id: int, created_by: int):
             total_output_net=Decimal("0.00"),
             total_input_net=Decimal("0.00"),
             final_vat_amount=None,
+            tax_calendar_entry_id=feb_entry.id,
+            due_date_original=feb_entry.due_date,
+            due_date_effective=feb_entry.due_date,
         ),
         VatWorkItem(
             client_record_id=client_record_id,
@@ -41,6 +48,9 @@ def _seed_work_items(db, client_record_id: int, created_by: int):
             final_vat_amount=Decimal("600.00"),
             filed_at=datetime(2026, 2, 15),
             filed_by=created_by,
+            tax_calendar_entry_id=jan_entry.id,
+            due_date_original=jan_entry.due_date,
+            due_date_effective=jan_entry.due_date,
         ),
     ]
     db.add_all(items)

@@ -20,7 +20,7 @@ from app.vat_reports.services.messages import (
     VAT_PENDING_MATERIALS_NOTE_REQUIRED,
     VAT_WORK_ITEM_CONFLICT,
 )
-from app.tax_calendar.services.entry_lookup import find_periodic_entry
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 
 
@@ -28,7 +28,6 @@ _VAT_PERIOD_MONTHS_COUNT = {VatType.MONTHLY: 1, VatType.BIMONTHLY: 2}
 
 
 def _validate_period_for_vat_type(period: str, vat_type: VatType) -> None:
-    """Raise AppError if period doesn't match the client's reporting frequency."""
     if vat_type == VatType.EXEMPT:
         raise AppError(
             VAT_CLIENT_EXEMPT,
@@ -54,7 +53,6 @@ def create_work_item(
     mark_pending: bool = False,
     pending_materials_note: Optional[str] = None,
 ):
-    """Create a VAT work item after client, period, and duplicate checks."""
     client_record, legal_entity = VatClientContextService(db).get_active_client_and_entity(client_record_id)
     if client_record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
@@ -83,10 +81,12 @@ def create_work_item(
     else:
         status = VatWorkItemStatus.MATERIAL_RECEIVED
 
-    period_months_count = _VAT_PERIOD_MONTHS_COUNT.get(effective_vat_type)
-    tax_calendar_entry = None
-    if period_months_count is not None:
-        tax_calendar_entry = find_periodic_entry(db, ObligationType.VAT, period, period_months_count)
+    materializer = TaxCalendarMaterializationService(db)
+    tax_calendar_entry = materializer.ensure_periodic_entry(
+        ObligationType.VAT,
+        period,
+        _VAT_PERIOD_MONTHS_COUNT[effective_vat_type],
+    )
 
     item = work_item_repo.create(
         client_record_id=client_record_id,
@@ -96,11 +96,11 @@ def create_work_item(
         status=status,
         pending_materials_note=pending_materials_note,
         assigned_to=assigned_to,
+        tax_calendar_entry_id=tax_calendar_entry.id,
+        due_date_original=tax_calendar_entry.due_date,
+        due_date_effective=tax_calendar_entry.due_date,
     )
-    if tax_calendar_entry is not None:
-        item.tax_calendar_entry_id = tax_calendar_entry.id
-        item.due_date_original = tax_calendar_entry.due_date
-        item.due_date_effective = tax_calendar_entry.due_date
+    materializer.link_vat_work_item(item)
     db.flush()
 
     action = ACTION_WORK_ITEM_CREATED_PENDING if mark_pending else ACTION_MATERIAL_RECEIVED
@@ -120,7 +120,6 @@ def mark_materials_complete(
     item_id: int,
     performed_by: int,
 ):
-    """Transition PENDING_MATERIALS to MATERIAL_RECEIVED."""
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
         raise NotFoundError(VAT_ITEM_NOT_FOUND.format(item_id=item_id), "VAT.NOT_FOUND")

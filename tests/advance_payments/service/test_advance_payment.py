@@ -15,6 +15,7 @@ from app.common.enums import VatType
 from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from tests.helpers.identity import seed_client_identity
 
 
@@ -74,6 +75,7 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
 
     assert service.suggest_expected_amount_for_client(business.client_record_id, 2026) is None
 
+    entry = TaxCalendarMaterializationService(test_db).ensure_periodic_entry("vat", "2025-02", 1)
     vat_item = VatWorkItem(
         client_record_id=business.client_record_id,
         created_by=test_user.id,
@@ -83,6 +85,7 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
         total_output_vat=Decimal("18000"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("18000"),
+        tax_calendar_entry_id=entry.id,
     )
     test_db.add(vat_item)
     test_db.commit()

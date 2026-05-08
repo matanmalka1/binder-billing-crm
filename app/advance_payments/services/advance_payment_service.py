@@ -20,11 +20,10 @@ from app.advance_payments.services.constants import (
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.common.enums import AdvancePaymentFrequency
-from app.common.enums import ObligationType
+from app.common.enums import AdvancePaymentFrequency, ObligationType
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
-from app.tax_calendar.services.entry_lookup import find_periodic_entry_id
+from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 
 
 class AdvancePaymentService:
@@ -104,12 +103,12 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
-        tax_calendar_entry_id = find_periodic_entry_id(
-            self.db, ObligationType.ADVANCE_PAYMENT, period, period_months_count
+        entry = TaxCalendarMaterializationService(self.db).ensure_periodic_entry(
+            ObligationType.ADVANCE_PAYMENT,
+            period,
+            period_months_count,
         )
-        # Transitional nullable FK: missing calendar rows are allowed while
-        # generation coverage rolls out, so creation keeps existing behavior.
-        return self.repo.create(
+        payment = self.repo.create(
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
@@ -118,9 +117,10 @@ class AdvancePaymentService:
             paid_amount=paid_amount,
             payment_method=payment_method,
             annual_report_id=annual_report_id,
-            tax_calendar_entry_id=tax_calendar_entry_id,
+            tax_calendar_entry_id=entry.id,
             notes=notes,
         )
+        return TaxCalendarMaterializationService(self.db).link_advance_payment(payment)
 
     # ─── Update ───────────────────────────────────────────────────────────────
 

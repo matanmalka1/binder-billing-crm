@@ -8,6 +8,7 @@ from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType
+from app.tax_calendar.services.link_diagnostics import find_active_null_tax_calendar_links
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
@@ -25,6 +26,7 @@ class SeedIntegrityValidator:
         self._check_active_clients_have_binders()
         self._check_no_vat_items_for_exempt_clients()
         self._check_no_duplicate_annual_reports()
+        self._check_no_null_tax_calendar_links()
         if self._errors:
             error_list = "\n".join(f"  - {e}" for e in self._errors)
             raise SeedIntegrityError(
@@ -89,3 +91,10 @@ class SeedIntegrityValidator:
                 f"Client {client_id} has {count} annual reports for year {tax_year}"
             )
 
+    def _check_no_null_tax_calendar_links(self) -> None:
+        diagnostics = find_active_null_tax_calendar_links(self.db)
+        for table, result in diagnostics.items():
+            if result["count"]:
+                self._errors.append(
+                    f"{table} has {result['count']} active row(s) without tax_calendar_entry_id"
+                )
