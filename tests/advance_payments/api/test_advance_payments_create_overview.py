@@ -10,6 +10,7 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 _client_seq = count(1)
@@ -136,8 +137,8 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    feb = repo.create(client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
+    feb = create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
     repo.update(feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200"))
 
     resp = client.get(

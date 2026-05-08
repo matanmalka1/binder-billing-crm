@@ -21,6 +21,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from tests.helpers.identity import seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 _seq = count(1)
@@ -58,14 +59,14 @@ def test_list_by_client_record_year_filters_and_orders(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Client One", "100000001")
 
-    january = repo.create(
+    january = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2025-01",
         period_months_count=1,
         due_date=date(2025, 2, 15),
         expected_amount=Decimal("100.00"),
     )
-    february = repo.create(
+    february = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2025-02",
         period_months_count=1,
@@ -138,13 +139,13 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     business_a = _create_business(test_db, "Alpha", "100000003")
     business_b = _create_business(test_db, "Beta", "100000004")
 
-    payment_a = repo.create(
+    payment_a = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business_a.client_record_id,
         period="2025-01",
         period_months_count=1,
         due_date=date(2025, 2, 10),
     )
-    payment_b = repo.create(
+    payment_b = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business_b.client_record_id,
         period="2025-01",
         period_months_count=1,
@@ -152,7 +153,7 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     )
     repo.update(payment_b, status=AdvancePaymentStatus.PAID)
 
-    repo.create(
+    create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business_a.client_record_id,
         period="2025-02",
         period_months_count=1,
@@ -175,7 +176,7 @@ def test_list_by_client_record_year_handles_legacy_uppercase_status_values(test_
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Legacy Client", "100000005")
 
-    payment = repo.create(
+    payment = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-03",
         period_months_count=1,

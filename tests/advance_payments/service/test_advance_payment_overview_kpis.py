@@ -7,6 +7,7 @@ from app.advance_payments.repositories.advance_payment_repository import Advance
 from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService as AdvancePaymentService
 from app.businesses.models.business import Business
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 _seq = count(1)
@@ -36,8 +37,8 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
     b1 = _business(test_db, 1)
     b2 = _business(test_db, 2)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_record_id=b2.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
-    paid = repo.create(
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=b2.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15), expected_amount=Decimal("100"))
+    paid = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=b1.client_record_id,
         period="2026-02",
         period_months_count=1,
@@ -63,7 +64,7 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
 def test_get_overview_kpis_collection_rate_rounds(test_db):
     business = _business(test_db, 3)
     repo = AdvancePaymentRepository(test_db)
-    partial = repo.create(
+    partial = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -72,7 +73,7 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
     )
     repo.update(partial, paid_amount=Decimal("50"), status=AdvancePaymentStatus.PARTIAL)
 
-    paid = repo.create(
+    paid = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,

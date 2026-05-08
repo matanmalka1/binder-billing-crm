@@ -7,6 +7,7 @@ from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_report_service import VatReportService
+from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
 
 def _user(test_db) -> User:
@@ -55,13 +56,13 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     service = VatReportService(test_db)
     now = datetime.now(UTC)
 
-    older = service.work_item_repo.create(
+    older = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
-    newer = service.work_item_repo.create(
+    newer = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
@@ -97,13 +98,13 @@ def test_list_work_items_filters_by_period_type(test_db):
     test_db.commit()
 
     service = VatReportService(test_db)
-    monthly = service.work_item_repo.create(
+    monthly = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
         client_record_id=monthly_client_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
-    service.work_item_repo.create(
+    create_linked_vat_work_item(test_db, repo=service.work_item_repo,
         client_record_id=client_record.id,
         period="2026-02",
         period_type=VatType.BIMONTHLY,

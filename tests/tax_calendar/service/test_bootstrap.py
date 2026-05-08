@@ -10,6 +10,12 @@ from app.tax_calendar.services.bootstrap import (
 )
 
 
+def _clear_tax_calendar(db) -> None:
+    db.query(TaxCalendarEntry).delete()
+    db.query(DeadlineRule).delete()
+    db.commit()
+
+
 def _rule_count(db) -> int:
     return db.query(DeadlineRule).count()
 
@@ -19,6 +25,7 @@ def _entry_count(db) -> int:
 
 
 def test_default_rules_are_created_when_missing(test_db):
+    _clear_tax_calendar(test_db)
     created = seed_default_deadline_rules(test_db)
     test_db.commit()
 

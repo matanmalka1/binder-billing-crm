@@ -6,6 +6,7 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
 
 def _user(test_db):
@@ -22,7 +23,9 @@ def _user(test_db):
 
 
 def _item(repo, client_id: int, user_id: int, period: str, status):
-    return repo.create(
+    return create_linked_vat_work_item(
+        repo.db,
+        repo=repo,
         client_record_id=client_id,
         period=period,
         period_type=VatType.MONTHLY,

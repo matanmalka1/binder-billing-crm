@@ -1,18 +1,17 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType as DRT, ObligationType
-from app.core.exceptions import ConflictError
-from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.services.tax_calendar_entry_service import _resolve_rule, annual_due_date, periodic_due_date
-
-_DEFAULT_RULES = {DRT.VAT_MONTHLY: (15, 1), DRT.VAT_BIMONTHLY: (15, 2), DRT.ADVANCE_MONTHLY: (15, 1), DRT.ADVANCE_BIMONTHLY: (15, 2), DRT.ANNUAL_REPORT: (31, 4)}
 _PERIODIC_RULES = {(ObligationType.VAT, 1): DRT.VAT_MONTHLY, (ObligationType.VAT, 2): DRT.VAT_BIMONTHLY, (ObligationType.ADVANCE_PAYMENT, 1): DRT.ADVANCE_MONTHLY, (ObligationType.ADVANCE_PAYMENT, 2): DRT.ADVANCE_BIMONTHLY}
+_PERIOD_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 class TaxCalendarMaterializationService:
@@ -21,13 +20,12 @@ class TaxCalendarMaterializationService:
 
     def ensure_periodic_entry(self, obligation_type, period: str, period_months_count: int) -> TaxCalendarEntry:
         obligation_type = self._obligation(obligation_type)
+        year, month = self._parse_period(period)
+        rule_type = self._periodic_rule_type(obligation_type, period_months_count)
         existing = self._find_periodic(obligation_type, period, period_months_count)
         if existing:
             return existing
-        year = int(period[:4])
-        month = int(period[5:7])
-        rule_type = self._periodic_rule_type(obligation_type, period_months_count)
-        rule = self._resolve_or_create_rule(rule_type, date(year, 1, 1))
+        rule = self._resolve_required_rule(rule_type, date(year, 1, 1))
         entry = TaxCalendarEntry(
             obligation_type=obligation_type, period=period, period_months_count=period_months_count,
             tax_year=year, due_date=periodic_due_date(rule, year, month), deadline_rule_id=rule.id,
@@ -35,10 +33,11 @@ class TaxCalendarMaterializationService:
         return self._insert_or_refetch(entry, lambda: self._find_periodic(obligation_type, period, period_months_count))
 
     def ensure_annual_entry(self, tax_year: int) -> TaxCalendarEntry:
+        tax_year = self._parse_tax_year(tax_year)
         existing = self._find_annual(tax_year)
         if existing:
             return existing
-        rule = self._resolve_or_create_rule(DRT.ANNUAL_REPORT, date(tax_year + 1, 1, 1))
+        rule = self._resolve_required_rule(DRT.ANNUAL_REPORT, date(tax_year + 1, 1, 1))
         entry = TaxCalendarEntry(
             obligation_type=ObligationType.ANNUAL_REPORT, period=None, period_months_count=None,
             tax_year=tax_year, due_date=annual_due_date(rule, tax_year), deadline_rule_id=rule.id,
@@ -69,17 +68,14 @@ class TaxCalendarMaterializationService:
         self.db.flush()
         return report
 
-    def _resolve_or_create_rule(self, rule_type, on_date: date) -> DeadlineRule:
+    def _resolve_required_rule(self, rule_type, on_date: date):
         try:
             return _resolve_rule(self.db, rule_type=rule_type, on_date=on_date)
         except LookupError:
-            day, offset = _DEFAULT_RULES[rule_type]
-            rule = DeadlineRule(
-                rule_type=rule_type, due_day_of_month=day, offset_months=offset,
-                effective_from=date(2023, 1, 1), effective_to=None,
-                description="Default tax calendar materialization rule",
+            raise AppError(
+                "לא מוגדר כלל מועד מתאים ליומן המס",
+                "TAX_CALENDAR.DEADLINE_RULE_MISSING",
             )
-            return self._insert_or_refetch(rule, lambda: _resolve_rule(self.db, rule_type=rule_type, on_date=on_date))
 
     def _insert_or_refetch(self, entity, refetch):
         savepoint = self.db.begin_nested()
@@ -116,11 +112,33 @@ class TaxCalendarMaterializationService:
     @staticmethod
     def _periodic_rule_type(obligation_type, months):
         obligation_type = TaxCalendarMaterializationService._obligation(obligation_type)
-        return _PERIODIC_RULES[(obligation_type, months)]
+        rule_type = _PERIODIC_RULES.get((obligation_type, months))
+        if rule_type is None:
+            raise AppError("תקופת החובה אינה נתמכת", "TAX_CALENDAR.INVALID_PERIOD_FREQUENCY")
+        return rule_type
 
     @staticmethod
     def _obligation(value):
-        return value if isinstance(value, ObligationType) else ObligationType(value)
+        try:
+            return value if isinstance(value, ObligationType) else ObligationType(value)
+        except ValueError:
+            raise AppError("סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE")
+
+    @staticmethod
+    def _parse_period(period: str) -> tuple[int, int]:
+        if not isinstance(period, str) or not _PERIOD_RE.match(period):
+            raise AppError("תקופת המס אינה תקינה", "TAX_CALENDAR.INVALID_PERIOD")
+        return int(period[:4]), int(period[5:7])
+
+    @staticmethod
+    def _parse_tax_year(tax_year) -> int:
+        try:
+            year = int(tax_year)
+        except (TypeError, ValueError):
+            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
+        if year < 1900 or year > 2200:
+            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
+        return year
 
     @staticmethod
     def _assign_entry(entity, entry: TaxCalendarEntry) -> None:

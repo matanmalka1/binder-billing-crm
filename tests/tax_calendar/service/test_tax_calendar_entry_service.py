@@ -15,6 +15,13 @@ from app.tax_calendar.services.tax_calendar_entry_service import (
 )
 
 
+@pytest.fixture(autouse=True)
+def empty_default_tax_calendar(test_db):
+    test_db.query(TaxCalendarEntry).delete()
+    test_db.query(DeadlineRule).delete()
+    test_db.commit()
+
+
 def _seed_rule(
     db,
     *,

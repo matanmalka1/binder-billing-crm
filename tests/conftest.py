@@ -25,6 +25,8 @@ from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  #
 from app.clients.enums import ClientStatus
 from app.businesses.models.business import BusinessStatus
 from app.common.enums import IdNumberType
+from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.tax_calendar.services.bootstrap import seed_default_deadline_rules
 from tests.helpers.identity import seed_business, seed_client_identity
 
 
@@ -79,6 +81,10 @@ def test_db():
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     db = TestSessionLocal()
+    seed_default_deadline_rules(db)
+    for rule in db.query(DeadlineRule).all():
+        rule.effective_from = date(1900, 1, 1)
+    db.flush()
     
     try:
         yield db

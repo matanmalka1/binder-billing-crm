@@ -15,6 +15,7 @@ from app.vat_reports.models.vat_enums import (
 )
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
 
 _client_seq = count(1)
@@ -67,10 +68,10 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(
+    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-05", period_type=VatType.MONTHLY, created_by=user.id
     )
-    other_item = work_item_repo.create(
+    other_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-06", period_type=VatType.MONTHLY, created_by=user.id
     )
 
@@ -123,13 +124,13 @@ def test_sum_income_net_by_business_year_filters_by_business_year_and_income_onl
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    target_item = work_item_repo.create(
+    target_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
     )
-    previous_year_item = work_item_repo.create(
+    previous_year_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
     )
-    other_business_item = work_item_repo.create(
+    other_business_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=other_client_record_id, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id
     )
 
@@ -186,10 +187,10 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    active_item = work_item_repo.create(
+    active_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id
     )
-    deleted_item = work_item_repo.create(
+    deleted_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-04", period_type=VatType.MONTHLY, created_by=user.id
     )
 
@@ -228,7 +229,7 @@ def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(
+    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id,
         period="2026-07",
         period_type=VatType.MONTHLY,
@@ -292,7 +293,7 @@ def test_credit_notes_reduce_vat_and_net_totals(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(
+    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id,
         period="2026-08",
         period_type=VatType.MONTHLY,
@@ -359,7 +360,7 @@ def test_credit_notes_reduce_income_turnover_for_yearly_ceiling(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(
+    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-09", period_type=VatType.MONTHLY, created_by=user.id
     )
 
@@ -395,7 +396,7 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = work_item_repo.create(
+    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
         client_record_id=client_record_id, period="2026-10", period_type=VatType.MONTHLY, created_by=user.id
     )
 

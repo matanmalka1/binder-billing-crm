@@ -11,6 +11,7 @@ from app.clients.enums import ClientStatus
 from app.common.enums import AdvancePaymentFrequency, VatType
 from app.core.exceptions import ForbiddenError, NotFoundError
 from tests.helpers.identity import seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 _seq = count(1)
@@ -64,7 +65,7 @@ def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
 
-    existing = repo.create(
+    existing = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,

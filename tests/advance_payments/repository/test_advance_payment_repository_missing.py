@@ -7,6 +7,7 @@ from app.advance_payments.repositories.advance_payment_analytics_repository impo
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 _seq = count(1)
@@ -35,7 +36,7 @@ def test_advance_payment_get_by_id_for_client_and_soft_delete(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _business(test_db)
 
-    payment = repo.create(
+    payment = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -55,7 +56,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     repo = AdvancePaymentRepository(test_db)
     business = _business(test_db)
 
-    jan = repo.create(
+    jan = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -64,7 +65,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
     )
     repo.update(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
 
-    feb = repo.create(
+    feb = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,
@@ -83,7 +84,7 @@ def test_advance_payment_analytics_annual_kpis(test_db):
     analytics = AdvancePaymentAnalyticsRepository(test_db)
     business = _business(test_db)
 
-    jan = repo.create(
+    jan = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -92,7 +93,7 @@ def test_advance_payment_analytics_annual_kpis(test_db):
     )
     repo.update(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
 
-    feb = repo.create(
+    feb = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,

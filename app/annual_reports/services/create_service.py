@@ -111,13 +111,13 @@ class AnnualReportCreateService(AnnualReportBaseService):
             has_depreciation=has_depreciation,
             has_exempt_rental=has_exempt_rental,
         )
-        TaxCalendarMaterializationService(self.db).link_annual_report(report)
+        linked_report = TaxCalendarMaterializationService(self.db).link_annual_report(report)
 
         # Auto-generate required schedules
-        self._generate_schedules(report)
+        self._generate_schedules(linked_report)
 
         self.repo.append_status_history(
-            annual_report_id=report.id,
+            annual_report_id=linked_report.id,
             from_status=None,
             to_status=AnnualReportStatus.NOT_STARTED,
             changed_by=created_by,
@@ -129,7 +129,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
 
         EntityAuditWriter(self.db).record_create(
             ENTITY_ANNUAL_REPORT,
-            report.id,
+            linked_report.id,
             created_by,
             new_value={
                 "tax_year": tax_year,
@@ -138,4 +138,4 @@ class AnnualReportCreateService(AnnualReportBaseService):
                 "form_type": form_type,
             },
         )
-        return report
+        return linked_report

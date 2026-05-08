@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
 from tests.helpers.identity import seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def _create_business(test_db) -> Business:
@@ -23,11 +24,11 @@ def _create_business(test_db) -> Business:
 def test_list_advance_payments_paginates(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    repo.create(client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    repo.create(client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
-    repo.create(client_record_id=business.client_record_id, period="2026-03", period_months_count=1, due_date=date(2026, 4, 15))
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-03", period_months_count=1, due_date=date(2026, 4, 15))
     # Extra year entry should be filtered out
-    repo.create(client_record_id=business.client_record_id, period="2025-12", period_months_count=1, due_date=date(2026, 1, 15))
+    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2025-12", period_months_count=1, due_date=date(2026, 1, 15))
 
     response = client.get(
         f"/api/v1/clients/{business.client_record_id}/advance-payments?year=2026&page=1&page_size=2",
@@ -51,7 +52,7 @@ def test_list_advance_payments_paginates(client, test_db, advisor_headers):
 def test_update_advance_payment_success(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    payment = repo.create(
+    payment = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-05",
         period_months_count=1,
@@ -75,7 +76,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
 def test_update_advance_payment_invalid_status_returns_400(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    payment = repo.create(
+    payment = create_linked_advance_payment(test_db, repo=repo,
         client_record_id=business.client_record_id,
         period="2026-07",
         period_months_count=1,

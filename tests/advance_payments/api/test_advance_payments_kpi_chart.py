@@ -5,6 +5,7 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
 from app.businesses.models.business import Business
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def _business(db) -> Business:
@@ -23,7 +24,7 @@ def _business(db) -> Business:
 
 def _seed_payments(db, client_record_id: int):
     repo = AdvancePaymentRepository(db)
-    jan = repo.create(
+    jan = create_linked_advance_payment(db, repo=repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -32,7 +33,7 @@ def _seed_payments(db, client_record_id: int):
     )
     repo.update(jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID)
 
-    mar = repo.create(
+    mar = create_linked_advance_payment(db, repo=repo,
         client_record_id=client_record_id,
         period="2026-03",
         period_months_count=1,

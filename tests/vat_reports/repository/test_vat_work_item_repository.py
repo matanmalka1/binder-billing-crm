@@ -12,6 +12,7 @@ from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
 
 _client_seq = count(1)
@@ -64,21 +65,21 @@ def test_status_listing_totals_and_audit_trail(test_db):
     _, client_record_id = _business(test_db)
     now = utcnow()
 
-    oldest = repo.create(
+    oldest = create_linked_vat_work_item(test_db, repo=repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
-    newest = repo.create(
+    newest = create_linked_vat_work_item(test_db, repo=repo,
         client_record_id=client_record_id,
         period="2026-03",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
-    middle = repo.create(
+    middle = create_linked_vat_work_item(test_db, repo=repo,
         client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
@@ -127,7 +128,7 @@ def test_global_work_item_lists_hide_deleted_clients_and_restore_visibility(test
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
     _, client_record_id = _business(test_db)
-    item = repo.create(
+    item = create_linked_vat_work_item(test_db, repo=repo,
         client_record_id=client_record_id,
         period="2026-04",
         period_type=VatType.MONTHLY,
@@ -151,7 +152,7 @@ def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
     _, client_record_id = _business(test_db)
-    item = repo.create(
+    item = create_linked_vat_work_item(test_db, repo=repo,
         client_record_id=client_record_id,
         period="2026-11",
         period_type=VatType.MONTHLY,

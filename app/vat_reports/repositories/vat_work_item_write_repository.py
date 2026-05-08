@@ -76,15 +76,6 @@ class VatWorkItemWriteRepository:
     ) -> VatWorkItem:
         if client_record_id is None or period is None or period_type is None or created_by is None:
             raise TypeError("client_record_id, period, period_type, and created_by are required")
-        if tax_calendar_entry_id is None:
-            from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
-            period_type_value = period_type.value if hasattr(period_type, "value") else period_type
-            entry = TaxCalendarMaterializationService(self.db).ensure_periodic_entry(
-                "vat", period, 2 if period_type_value == "bimonthly" else 1
-            )
-            tax_calendar_entry_id = entry.id
-            due_date_original = due_date_original or entry.due_date
-            due_date_effective = due_date_effective or entry.due_date
         item = VatWorkItem(
             client_record_id=client_record_id,
             period=period,

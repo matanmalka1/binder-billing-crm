@@ -8,6 +8,12 @@ from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.services.deadline_rule_service import has_overlapping_rule
 
 
+@pytest.fixture(autouse=True)
+def empty_default_rules(test_db):
+    test_db.query(DeadlineRule).delete()
+    test_db.commit()
+
+
 def _make_rule(
     *,
     rule_type: DeadlineRuleType = DeadlineRuleType.VAT_MONTHLY,
