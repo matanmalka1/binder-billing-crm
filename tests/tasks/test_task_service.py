@@ -1,10 +1,11 @@
 from datetime import date, timedelta
 
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.tasks.schemas.task import DeadlineTask, TaskType, TaskUrgency
 from app.tasks.services.task_service import TaskService
 from tests.helpers.task_helpers import create_business
+from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def test_unpaid_charge_task_after_threshold(test_db):
@@ -50,14 +51,12 @@ def test_unified_includes_tasks_and_reminders(test_db):
     from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
     biz = create_business(test_db)
     today = date.today()
-    payment = AdvancePayment(
+    create_linked_advance_payment(
+        test_db,
         client_record_id=biz.client_id,
         period="2026-05",
-        period_months_count=1,
         due_date=today + timedelta(days=5),
-        status=AdvancePaymentStatus.PENDING,
     )
-    test_db.add(payment)
     reminder = Reminder(
         client_record_id=biz.client_id,
         reminder_type=ReminderType.CUSTOM,
@@ -79,16 +78,15 @@ def test_unified_includes_tasks_and_reminders(test_db):
 def test_unified_advance_payment_includes_source_payload(test_db):
     biz = create_business(test_db)
     due_date = date.today() - timedelta(days=1)
-    payment = AdvancePayment(
+    payment = create_linked_advance_payment(
+        test_db,
         client_record_id=biz.client_id,
         period="2026-02",
-        period_months_count=1,
         due_date=due_date,
         expected_amount=1000,
         paid_amount=250,
-        status=AdvancePaymentStatus.PARTIAL,
     )
-    test_db.add(payment)
+    payment.status = AdvancePaymentStatus.PARTIAL
     test_db.commit()
 
     items = TaskService(test_db).get_unified(client_record_id=biz.client_id)
@@ -113,16 +111,15 @@ def test_unified_tasks_api_returns_advance_payment_payload(
 ):
     biz = create_business(test_db)
     due_date = date.today() - timedelta(days=1)
-    payment = AdvancePayment(
+    p = create_linked_advance_payment(
+        test_db,
         client_record_id=biz.client_id,
         period="2026-02",
-        period_months_count=1,
         due_date=due_date,
         expected_amount=1000,
         paid_amount=250,
-        status=AdvancePaymentStatus.PARTIAL,
     )
-    test_db.add(payment)
+    p.status = AdvancePaymentStatus.PARTIAL
     test_db.commit()
 
     response = client.get(

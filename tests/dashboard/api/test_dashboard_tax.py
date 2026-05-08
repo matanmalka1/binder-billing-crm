@@ -9,6 +9,7 @@ from app.annual_reports.models.annual_report_enums import (
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_tax_calendar_entry_for_annual
 
 
 def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
@@ -51,6 +52,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
         db.refresh(business)
     for business, crm_client in zip(businesses, clients, strict=False):
         business.client_id = crm_client.id
+    entry = create_tax_calendar_entry_for_annual(db, tax_year)
 
     reports = [
         AnnualReport(
@@ -63,6 +65,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("100.00"),
             tax_due=Decimal("50.00"),
+            tax_calendar_entry_id=entry.id,
         ),
         AnnualReport(
             client_record_id=clients[1].id,
@@ -74,6 +77,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("20.00"),
             tax_due=Decimal("75.00"),
+            tax_calendar_entry_id=entry.id,
         ),
         AnnualReport(
             client_record_id=clients[2].id,
@@ -85,6 +89,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             deadline_type=FilingDeadlineType.STANDARD,
             refund_due=Decimal("0.00"),
             tax_due=Decimal("0.00"),
+            tax_calendar_entry_id=entry.id,
         ),
         AnnualReport(
             client_record_id=clients[3].id,
@@ -94,6 +99,7 @@ def _seed_businesses_and_reports(db, creator_id: int, tax_year: int):
             form_type=AnnualReportForm.FORM_1301,
             status=AnnualReportStatus.NOT_STARTED,
             deadline_type=FilingDeadlineType.STANDARD,
+            tax_calendar_entry_id=entry.id,
         ),
     ]
     db.add_all(reports)

@@ -23,6 +23,12 @@ from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  #
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business, BusinessStatus
+from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.tax_calendar.services.bootstrap import seed_default_deadline_rules
+from tests.helpers.tax_calendar_links import (
+    create_tax_calendar_entry_for_annual,
+    create_tax_calendar_entry_for_period,
+)
 
 
 @pytest.fixture
@@ -35,6 +41,10 @@ def db():
     Base.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
     session = Session()
+    seed_default_deadline_rules(session)
+    for rule in session.query(DeadlineRule).all():
+        rule.effective_from = date(1900, 1, 1)
+    session.flush()
     try:
         yield session
     finally:
@@ -97,10 +107,12 @@ class TestW1AnnualReport:
         client = _make_client(db)
         record = _make_client_record(db, client.id)
         user = _make_user(db)
+        entry = create_tax_calendar_entry_for_annual(db, 2024)
 
         report = AnnualReport(
             client_record_id=record.id,
             tax_year=2024,
+            tax_calendar_entry_id=entry.id,
             client_type=ClientAnnualFilingType.INDIVIDUAL,
             form_type=PrimaryAnnualReportForm("1301"),
             status=AnnualReportStatus.NOT_STARTED,
@@ -145,6 +157,7 @@ class TestW2VatWorkItem:
         client = _make_client(db)
         record = _make_client_record(db, client.id)
         user = _make_user(db)
+        entry = create_tax_calendar_entry_for_period(db, "vat", "2024-01", 1)
 
         item = VatWorkItem(
             client_record_id=record.id,
@@ -152,6 +165,7 @@ class TestW2VatWorkItem:
             period_type=VatType.MONTHLY,
             created_by=user.id,
             status=VatWorkItemStatus.MATERIAL_RECEIVED,
+            tax_calendar_entry_id=entry.id,
         )
         db.add(item)
         db.flush()
@@ -244,6 +258,7 @@ class TestW5AdvancePayment:
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
+        entry = create_tax_calendar_entry_for_period(db, "advance_payment", "2024-01", 1)
 
         payment = AdvancePayment(
             client_record_id=record.id,
@@ -252,6 +267,7 @@ class TestW5AdvancePayment:
             due_date=date(2024, 1, 15),
             paid_amount=0,
             status=AdvancePaymentStatus.PENDING,
+            tax_calendar_entry_id=entry.id,
         )
         db.add(payment)
         db.flush()

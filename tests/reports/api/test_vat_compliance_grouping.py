@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
+from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 from tests.reports.api.test_reports_additional_endpoints import _create_client_and_business
 
 
@@ -14,27 +14,25 @@ def test_vat_compliance_groups_same_client_by_period_type(
 ):
     crm_client, _ = _create_client_and_business(test_db, "VAT-GROUP")
     now = datetime.now(UTC)
-    test_db.add_all(
-        [
-            VatWorkItem(
-                client_record_id=crm_client.id,
-                created_by=test_user.id,
-                period="2026-01",
-                period_type=VatType.MONTHLY,
-                status=VatWorkItemStatus.FILED,
-                filed_at=datetime(2026, 2, 10, 9, 0, 0),
-                updated_at=now,
-            ),
-            VatWorkItem(
-                client_record_id=crm_client.id,
-                created_by=test_user.id,
-                period="2026-02",
-                period_type=VatType.BIMONTHLY,
-                status=VatWorkItemStatus.PENDING_MATERIALS,
-                updated_at=now,
-            ),
-        ]
+    item1 = create_linked_vat_work_item(
+        test_db,
+        period_type=VatType.MONTHLY,
+        client_record_id=crm_client.id,
+        created_by=test_user.id,
+        period="2026-01",
+        status=VatWorkItemStatus.FILED,
     )
+    item1.filed_at = datetime(2026, 2, 10, 9, 0, 0)
+    item1.updated_at = now
+    item2 = create_linked_vat_work_item(
+        test_db,
+        period_type=VatType.BIMONTHLY,
+        client_record_id=crm_client.id,
+        created_by=test_user.id,
+        period="2026-02",
+        status=VatWorkItemStatus.PENDING_MATERIALS,
+    )
+    item2.updated_at = now
     test_db.commit()
 
     response = client.get(

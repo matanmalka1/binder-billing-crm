@@ -13,6 +13,7 @@ from app.notification.models.notification import Notification, NotificationChann
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.timeline.services.timeline_service import TimelineService
 from tests.helpers.identity import seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import create_tax_calendar_entry_for_annual
 
 
 def _business(test_db):
@@ -68,10 +69,12 @@ def test_timeline_excludes_noisy_client_reminder_and_notification_events(test_db
 def test_timeline_annual_report_status_events_use_history_source(test_db, test_user):
     service = TimelineService(test_db)
     business = _business(test_db)
+    entry = create_tax_calendar_entry_for_annual(test_db, 2025)
     report = AnnualReport(
         client_record_id=business.client_id,
         created_by=test_user.id,
         tax_year=2025,
+        tax_calendar_entry_id=entry.id,
         client_type=ClientAnnualFilingType.INDIVIDUAL,
         form_type=PrimaryAnnualReportForm.FORM_1301,
         status=AnnualReportStatus.COLLECTING_DOCS,

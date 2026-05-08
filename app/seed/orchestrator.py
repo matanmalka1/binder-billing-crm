@@ -4,7 +4,7 @@ import importlib
 import random
 from pathlib import Path
 
-from sqlalchemy import func, inspect, select
+from sqlalchemy import func, inspect, select, text
 
 from app.database import Base, SessionLocal, engine
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
@@ -191,10 +191,16 @@ class SeedOrchestrator:
             db.close()
 
     def _reset(self, db) -> None:
-        for table in reversed(Base.metadata.sorted_tables):
-            if self.cfg.preserve_users and table.name in {"users", "user_audit_logs"}:
-                continue
-            db.execute(table.delete())
+        skip = {"users", "user_audit_logs"} if self.cfg.preserve_users else set()
+        tables = [t.name for t in Base.metadata.sorted_tables if t.name not in skip]
+        if engine.dialect.name == "postgresql":
+            names = ", ".join(f'"{t}"' for t in tables)
+            db.execute(text(f"TRUNCATE {names} RESTART IDENTITY CASCADE"))
+        else:
+            for table in reversed(Base.metadata.sorted_tables):
+                if table.name in skip:
+                    continue
+                db.execute(table.delete())
         db.commit()
 
     def _seed_users(self, db):

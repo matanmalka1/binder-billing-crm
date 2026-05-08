@@ -15,6 +15,10 @@ from app.common.enums import VatType
 from app.core.exceptions import AppError
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
+from tests.helpers.tax_calendar_links import (
+    create_tax_calendar_entry_for_annual,
+    create_tax_calendar_entry_for_period,
+)
 
 
 def _client(db, suffix: str, office_client_number: int) -> SeededClient:
@@ -42,11 +46,13 @@ def _business(db, client_id: int, name: str) -> Business:
 
 
 def _annual_report(db, client_id: int, year: int) -> AnnualReport:
+    entry = create_tax_calendar_entry_for_annual(db, year)
     report = AnnualReport(
         client_record_id=client_id,
         tax_year=year,
         client_type=ClientAnnualFilingType.SELF_EMPLOYED,
         form_type=PrimaryAnnualReportForm.FORM_1301,
+        tax_calendar_entry_id=entry.id,
     )
     db.add(report)
     db.commit()
@@ -55,11 +61,15 @@ def _annual_report(db, client_id: int, year: int) -> AnnualReport:
 
 
 def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkItem:
+    entry = create_tax_calendar_entry_for_period(db, "vat", period, 1)
     item = VatWorkItem(
         client_record_id=client_id,
         created_by=created_by,
         period=period,
         period_type=VatType.MONTHLY,
+        tax_calendar_entry_id=entry.id,
+        due_date_original=entry.due_date,
+        due_date_effective=entry.due_date,
     )
     db.add(item)
     db.commit()
