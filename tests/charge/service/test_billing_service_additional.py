@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.businesses.models.business import BusinessStatus

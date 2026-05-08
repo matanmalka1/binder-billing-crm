@@ -117,11 +117,11 @@ class ClientUpdateService:
             "entity_type_changed: client_id=%s old=%s new=%s actor=%s",
             client_id, old_entity_type, new_entity_type, actor_id,
         )
-        self._audit.append(
+        self._audit.record_update(
             ENTITY_CLIENT,
             client_id,
             actor_id,
-            ACTION_ENTITY_TYPE_CHANGED,
             old_value={"entity_type": old_entity_type},
             new_value={"entity_type": new_entity_type},
+            note=ACTION_ENTITY_TYPE_CHANGED,
         )

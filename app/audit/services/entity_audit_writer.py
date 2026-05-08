@@ -1,6 +1,9 @@
 """Write abstraction for generic business entity audit events."""
 
 import json
+from datetime import date, datetime
+from decimal import Decimal
+from enum import Enum
 from typing import Any, Optional
 
 from sqlalchemy.orm import Session
@@ -22,6 +25,7 @@ class EntityAuditWriter:
 
     def append(
         self,
+        *,
         entity_type: str,
         entity_id: int,
         actor_id: Optional[int],
@@ -46,32 +50,64 @@ class EntityAuditWriter:
         self, entity_type: str, entity_id: int, actor_id: Optional[int],
         new_value: Any = None, note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
-        return self.append(entity_type, entity_id, actor_id, ACTION_CREATED, new_value=new_value, note=note)
+        return self.append(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            actor_id=actor_id,
+            action=ACTION_CREATED,
+            new_value=new_value,
+            note=note,
+        )
 
     def record_update(
         self, entity_type: str, entity_id: int, actor_id: Optional[int],
         old_value: Any = None, new_value: Any = None, note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
-        return self.append(entity_type, entity_id, actor_id, ACTION_UPDATED, old_value, new_value, note)
+        return self.append(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            actor_id=actor_id,
+            action=ACTION_UPDATED,
+            old_value=old_value,
+            new_value=new_value,
+            note=note,
+        )
 
     def record_delete(
         self, entity_type: str, entity_id: int, actor_id: Optional[int],
         old_value: Any = None, note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
-        return self.append(entity_type, entity_id, actor_id, ACTION_DELETED, old_value=old_value, note=note)
+        return self.append(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            actor_id=actor_id,
+            action=ACTION_DELETED,
+            old_value=old_value,
+            note=note,
+        )
 
     def record_restore(
         self, entity_type: str, entity_id: int, actor_id: Optional[int],
         new_value: Any = None, note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
-        return self.append(entity_type, entity_id, actor_id, ACTION_RESTORED, new_value=new_value, note=note)
+        return self.append(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            actor_id=actor_id,
+            action=ACTION_RESTORED,
+            new_value=new_value,
+            note=note,
+        )
 
     def record_status_change(
         self, entity_type: str, entity_id: int, actor_id: Optional[int],
         old_status: Any, new_status: Any, note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
-            entity_type, entity_id, actor_id, ACTION_STATUS_CHANGED,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            actor_id=actor_id,
+            action=ACTION_STATUS_CHANGED,
             old_value={"status": self._status_value(old_status)},
             new_value={"status": self._status_value(new_status)},
             note=note,
@@ -82,7 +118,20 @@ class EntityAuditWriter:
             return None
         if isinstance(value, str):
             value = {"value": value}
-        return json.dumps(value, default=str, ensure_ascii=False)
+        return json.dumps(self._normalize_value(value), default=str, ensure_ascii=False)
+
+    def _normalize_value(self, value: Any) -> Any:
+        if isinstance(value, Enum):
+            return value.value
+        if isinstance(value, (date, datetime)):
+            return value.isoformat()
+        if isinstance(value, Decimal):
+            return str(value)
+        if isinstance(value, dict):
+            return {key: self._normalize_value(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [self._normalize_value(item) for item in value]
+        return value
 
     def _status_value(self, status: Any) -> Any:
         return status.value if hasattr(status, "value") else status

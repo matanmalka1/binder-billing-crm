@@ -12,7 +12,7 @@ from app.core.exceptions import ForbiddenError
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
-from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED
+from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED, ACTION_UPDATED, ENTITY_CLIENT
 from app.audit.models.entity_audit_log import EntityAuditLog
 from tests.helpers.identity import seed_client_identity
 
@@ -100,13 +100,19 @@ def test_entity_type_change_logs_audit_entry(test_db):
     audit_entries = (
         test_db.query(EntityAuditLog)
         .filter(
+            EntityAuditLog.entity_type == ENTITY_CLIENT,
             EntityAuditLog.entity_id == cr.id,
-            EntityAuditLog.action == ACTION_ENTITY_TYPE_CHANGED,
+            EntityAuditLog.action == ACTION_UPDATED,
         )
         .all()
     )
-    assert len(audit_entries) == 1
-    entry = audit_entries[0]
+    matching_entries = [
+        entry for entry in audit_entries
+        if entry.note == ACTION_ENTITY_TYPE_CHANGED
+    ]
+    assert len(matching_entries) == 1
+    entry = matching_entries[0]
+    assert entry.note == ACTION_ENTITY_TYPE_CHANGED
     assert entry.old_value is not None
     assert entry.new_value is not None
     assert entry.old_value != entry.new_value

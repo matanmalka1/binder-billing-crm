@@ -7,6 +7,7 @@ from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, validate_business_for_create
 from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.charge.services.billing_audit import record_charge_status_audit
 from app.charge.services.messages import (
     AMOUNT_MUST_BE_POSITIVE,
     CHARGE_ALREADY_CANCELED,
@@ -68,12 +69,9 @@ class BillingService:
             charge_type=charge_type,
             period=period, months_covered=months_covered, created_by=actor_id,
         )
-        self._audit.record_create(
-            ENTITY_CHARGE,
-            charge.id,
-            actor_id,
-            new_value={"amount": str(amount), "charge_type": charge_type},
-        )
+        self._audit.record_create(ENTITY_CHARGE, charge.id, actor_id, new_value={
+            "amount": str(amount), "charge_type": charge_type,
+        })
         return charge
 
     def issue_charge(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
@@ -88,9 +86,7 @@ class BillingService:
             charge_id, ChargeStatus.ISSUED, charge=charge,
             issued_at=utcnow(), issued_by=actor_id,
         )
-        self._audit.record_status_change(
-            ENTITY_CHARGE, charge_id, actor_id, ChargeStatus.DRAFT, ChargeStatus.ISSUED, note=ACTION_ISSUED,
-        )
+        record_charge_status_audit(self._audit, charge_id, actor_id, ACTION_ISSUED, ChargeStatus.DRAFT, ChargeStatus.ISSUED)
         return issued
 
     def mark_charge_paid(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
@@ -105,9 +101,7 @@ class BillingService:
             charge_id, ChargeStatus.PAID, charge=charge,
             paid_at=utcnow(), paid_by=actor_id,
         )
-        self._audit.record_status_change(
-            ENTITY_CHARGE, charge_id, actor_id, ChargeStatus.ISSUED, ChargeStatus.PAID, note=ACTION_PAID,
-        )
+        record_charge_status_audit(self._audit, charge_id, actor_id, ACTION_PAID, ChargeStatus.ISSUED, ChargeStatus.PAID)
         return paid
 
     def cancel_charge(self, charge_id: int, actor_id: Optional[int] = None, reason: Optional[str] = None) -> Charge:
@@ -123,9 +117,7 @@ class BillingService:
             charge_id, ChargeStatus.CANCELED, charge=charge,
             canceled_by=actor_id, canceled_at=utcnow(), cancellation_reason=reason,
         )
-        self._audit.record_status_change(
-            ENTITY_CHARGE, charge_id, actor_id, old_status, ChargeStatus.CANCELED, note=reason or ACTION_CANCELED,
-        )
+        record_charge_status_audit(self._audit, charge_id, actor_id, ACTION_CANCELED, old_status, ChargeStatus.CANCELED, note=reason)
         return canceled
 
     def delete_charge(self, charge_id: int, actor_id: Optional[int] = None) -> bool:

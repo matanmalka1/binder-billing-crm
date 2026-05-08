@@ -46,7 +46,7 @@ class FinancialCrudMixin:
             raise AppError(INVALID_INCOME_SOURCE_ERROR.format(source_type=source_type), "ANNUAL_REPORT.INVALID_TYPE")
         line = self.income_repo.add(report_id, IncomeSourceType(source_type), amount, description)
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_INCOME_ADDED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_INCOME_ADDED,
             new_value={"source_type": source_type, "amount": str(amount), "description": description},
         )
         return IncomeLineResponse.model_validate(line)
@@ -64,7 +64,7 @@ class FinancialCrudMixin:
         if not line:
             raise NotFoundError(INCOME_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_INCOME_UPDATED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_INCOME_UPDATED,
             old_value=old_value,
             new_value={k: audit_scalar(v) for k, v in fields.items()},
         )
@@ -77,7 +77,7 @@ class FinancialCrudMixin:
         if not self.income_repo.delete(line_id):
             raise NotFoundError(INCOME_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_INCOME_DELETED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_INCOME_DELETED,
             old_value=old_value, note=f"line_id={line_id}",
         )
 
@@ -102,7 +102,7 @@ class FinancialCrudMixin:
             recognition_rate, external_document_reference, supporting_document_id,
         )
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_EXPENSE_ADDED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_EXPENSE_ADDED,
             new_value={"category": category, "amount": str(amount), "description": description},
         )
         return ExpenseLineResponse.model_validate(line)
@@ -120,7 +120,7 @@ class FinancialCrudMixin:
         if not line:
             raise NotFoundError(EXPENSE_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_EXPENSE_UPDATED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_EXPENSE_UPDATED,
             old_value=old_value,
             new_value={k: audit_scalar(v) for k, v in fields.items()},
         )
@@ -133,7 +133,7 @@ class FinancialCrudMixin:
         if not self.expense_repo.delete(line_id):
             raise NotFoundError(EXPENSE_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
         EntityAuditWriter(self.db).append(
-            ENTITY_ANNUAL_REPORT, report_id, actor_id, ACTION_EXPENSE_DELETED,
+            entity_type=ENTITY_ANNUAL_REPORT, entity_id=report_id, actor_id=actor_id, action=ACTION_EXPENSE_DELETED,
             old_value=old_value, note=f"line_id={line_id}",
         )
 
