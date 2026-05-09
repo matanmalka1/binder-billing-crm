@@ -7,7 +7,6 @@ from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.models.user import UserRole
 from app.binders.repositories.binder_repository import BinderRepository
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.models.reminder import ReminderStatus
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
@@ -22,27 +21,25 @@ class DashboardService:
         self.db = db
         self.binder_repo = BinderRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
-        self.business_repo = BusinessRepository(db)
         self.reminder_repo = ReminderRepository(db)
         self.extended_service = DashboardExtendedService(db)
         self.vat_stats_service = TaxStatusStatsService(db)
 
     def get_summary(self, user_role: Optional[UserRole] = None) -> dict:
         today = israel_today()
-        attention_items = self.extended_service.get_attention_items(user_role=user_role)
+        attention_data = self.extended_service.get_attention_data(user_role=user_role)
         return {
             "total_clients": self.client_record_repo.count(),
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
             "active_binders": self.binder_repo.count_active(),
-            "binders_in_office": self.binder_repo.count_by_status(
-                BinderStatus.IN_OFFICE
-            ),
-            "binders_ready_for_pickup": self.binder_repo.count_by_status(
-                BinderStatus.READY_FOR_PICKUP
-            ),
-            "open_reminders": self.reminder_repo.count_by_status(
-                ReminderStatus.PENDING
-            ),
+            "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
+            "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
+            "open_reminders": self.reminder_repo.count_by_status(ReminderStatus.PENDING),
+            "open_charges_count": attention_data["open_charges_count"],
+            "open_charges_amount_ils": attention_data["open_charges_amount_ils"],
             "vat_stats": self.vat_stats_service.build(today),
-            "attention": {"items": attention_items, "total": len(attention_items)},
+            "attention": {
+                "items": attention_data["items"],
+                "total": len(attention_data["items"]),
+            },
         }

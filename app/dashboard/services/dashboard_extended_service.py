@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from types import SimpleNamespace
 from typing import Optional
 
@@ -10,7 +11,10 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.users.models.user import UserRole
-from app.dashboard.services.dashboard_extended_builders import unpaid_charge_attention_item
+from app.dashboard.services.dashboard_extended_builders import (
+    unpaid_charge_attention_item,
+    _format_ils_amount,
+)
 
 _UNPAID_CHARGES_FETCH_LIMIT = 500
 
@@ -25,15 +29,19 @@ class DashboardExtendedService:
         self.legal_entity_repo = LegalEntityRepository(db)
         self.charge_repo = ChargeRepository(db)
 
-    def get_attention_items(
+    def get_attention_data(
         self,
         user_role: Optional[UserRole] = None,
         reference_date: Optional[date] = None,
-    ) -> list[dict]:
+    ) -> dict:
+        """Returns attention items and open-charge aggregate stats (single charge fetch)."""
         if reference_date is None:
             reference_date = date.today()
 
-        items = []
+        items: list[dict] = []
+        open_charges_count = 0
+        open_charges_amount_ils: Optional[str] = None
+
         if user_role == UserRole.ADVISOR:
             unpaid_charges = self.charge_repo.list_charges(
                 status=ChargeStatus.ISSUED.value,
@@ -64,6 +72,7 @@ class DashboardExtendedService:
                 ]
                 legal_entity_map = {e.id: e.official_name for e in legal_entities if e}
                 client_record_map = {r.id: r for r in charge_client_records}
+                total_amount = Decimal("0")
                 for charge in unpaid_charges:
                     business = charge_business_map.get(charge.business_id)
                     if charge.business_id is not None and not business:
@@ -88,5 +97,24 @@ class DashboardExtendedService:
                             reference_date,
                         )
                     )
+                    try:
+                        total_amount += Decimal(str(charge.amount))
+                    except (InvalidOperation, TypeError):
+                        pass
 
-        return items
+                open_charges_count = len(items)
+                if open_charges_count > 0:
+                    open_charges_amount_ils = _format_ils_amount(total_amount)
+
+        return {
+            "items": items,
+            "open_charges_count": open_charges_count,
+            "open_charges_amount_ils": open_charges_amount_ils,
+        }
+
+    def get_attention_items(
+        self,
+        user_role: Optional[UserRole] = None,
+        reference_date: Optional[date] = None,
+    ) -> list[dict]:
+        return self.get_attention_data(user_role=user_role, reference_date=reference_date)["items"]

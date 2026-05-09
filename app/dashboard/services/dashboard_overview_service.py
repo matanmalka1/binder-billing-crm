@@ -48,27 +48,33 @@ class DashboardOverviewService:
         if reference_date is None:
             reference_date = israel_today()
 
-        attention_items = self.extended_service.get_attention_items(user_role=user_role)
-        quick_actions = self._build_quick_actions(reference_date)
+        vat_stats = self.vat_stats_service.build(reference_date)
+        attention_data = self.extended_service.get_attention_data(user_role=user_role, reference_date=reference_date)
+        open_reminders = self.reminder_repo.count_by_status(ReminderStatus.PENDING)
+        pending_vat = vat_stats["monthly"]["pending"] + vat_stats["bimonthly"]["pending"]
         total_clients = self.client_record_repo.count()
+
         return {
             "total_clients": total_clients,
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
             "active_binders": self.binder_repo.count_active(),
-            "binders_in_office": self.binder_repo.count_by_status(
-                BinderStatus.IN_OFFICE
-            ),
-            "binders_ready_for_pickup": self.binder_repo.count_by_status(
-                BinderStatus.READY_FOR_PICKUP
-            ),
-            "open_reminders": self.reminder_repo.count_by_status(
-                ReminderStatus.PENDING
-            ),
-            "vat_stats": self.vat_stats_service.build(reference_date),
-            "quick_actions": quick_actions,
-            "attention": {"items": attention_items, "total": len(attention_items)},
+            "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
+            "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
+            "open_reminders": open_reminders,
+            "open_charges_count": attention_data["open_charges_count"],
+            "open_charges_amount_ils": attention_data["open_charges_amount_ils"],
+            "vat_stats": vat_stats,
+            "quick_actions": self._build_quick_actions(reference_date),
+            "attention": {
+                "items": attention_data["items"],
+                "total": len(attention_data["items"]),
+            },
             "advisor_today": self.advisor_today_service.build(reference_date),
-            "attention_empty_checks": build_attention_empty_checks(),
+            "attention_empty_checks": build_attention_empty_checks(
+                open_reminders=open_reminders,
+                pending_vat=pending_vat,
+                open_charges=attention_data["open_charges_count"],
+            ),
         }
 
     def _build_quick_actions(self, today) -> list[dict]:

@@ -114,6 +114,8 @@ class DashboardOverviewResponse(BaseModel):
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0
     open_reminders: int = 0
+    open_charges_count: int = 0
+    open_charges_amount_ils: Optional[str] = None
     vat_stats: VatDashboardStats
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)

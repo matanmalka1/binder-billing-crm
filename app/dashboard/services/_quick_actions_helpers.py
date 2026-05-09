@@ -13,12 +13,13 @@ from app.annual_reports.repositories.annual_report_repository import (
 )
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_record_read_repository import get_full_record
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.dashboard.services.dashboard_periods import vat_deadline_for_period
 
 _MONTH_HE = {
     1: "ינואר",
@@ -61,9 +62,6 @@ _BINDER_REMINDER_COOLDOWN_DAYS = 5
 _ANNUAL_PENDING_CLIENT_DAYS = 3
 _ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 _UPCOMING_WINDOW_DAYS = 14
-_VAT_UPCOMING_DAY_OF_MONTH = (
-    8  # show upcoming from day 8 (7 days before deadline on 15th)
-)
 try:
     from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat_day
 
@@ -101,14 +99,18 @@ def _enrich(
     return action
 
 
-def _client_name(
-    db, client_record_id: int, business_repo: BusinessRepository
-) -> Optional[str]:
-    record = ClientRecordRepository(business_repo.db).get_by_id(client_record_id)
-    if not record:
-        return None
-    client = get_full_record(db, client_record_id)
-    return client["full_name"] if client else None
+def _batch_client_names(db, client_record_ids: list[int]) -> dict[int, Optional[str]]:
+    """Batch-load client display names by client record IDs (avoids N+1)."""
+    if not client_record_ids:
+        return {}
+    unique_ids = list(set(client_record_ids))
+    client_record_repo = ClientRecordRepository(db)
+    legal_entity_repo = LegalEntityRepository(db)
+    records = client_record_repo.list_by_ids(unique_ids)
+    legal_entity_ids = list({r.legal_entity_id for r in records if r.legal_entity_id})
+    entities = [legal_entity_repo.get_by_id(eid) for eid in legal_entity_ids]
+    entity_name_map = {e.id: e.official_name for e in entities if e}
+    return {r.id: entity_name_map.get(r.legal_entity_id) for r in records}
 
 
 def build_vat_actions(
@@ -118,26 +120,27 @@ def build_vat_actions(
 ) -> list[dict]:
     current_period = today.strftime("%Y-%m")
     items = vat_repo.list_open_up_to_period(current_period)
+    if not items:
+        return []
+
+    client_record_ids = [item.client_record_id for item in items if item.client_record_id]
+    client_name_map = _batch_client_names(business_repo.db, client_record_ids)
+
     result: list[dict] = []
-
     for item in items:
-        year, month = item.period.split("-")
-        deadline = date(int(year), int(month), _VAT_DEADLINE_DAY)
+        deadline = vat_deadline_for_period(item.period, _VAT_DEADLINE_DAY)
+        days_diff = (deadline - today).days
 
-        if deadline < today:
+        if days_diff < 0:
             urgency = "overdue"
-            days_overdue = (today - deadline).days
-            due_label = _vat_due_label(item.period, urgency, days_overdue)
-        elif today.day >= _VAT_UPCOMING_DAY_OF_MONTH and item.period == current_period:
+            due_label = _vat_due_label(item.period, urgency, abs(days_diff))
+        elif days_diff <= _UPCOMING_WINDOW_DAYS:
             urgency = "upcoming"
-            days_left = (deadline - today).days
-            due_label = _vat_due_label(item.period, urgency, days_left)
+            due_label = _vat_due_label(item.period, urgency, days_diff)
         else:
             continue
 
-        client_name = _client_name(
-            business_repo.db, item.client_record_id, business_repo
-        )
+        client_name = client_name_map.get(item.client_record_id)
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
@@ -160,9 +163,14 @@ def build_annual_report_actions(
     today: date,
 ) -> list[dict]:
     reports = annual_report_repo.list_for_dashboard()
-    now_utc = _dt.datetime.now(timezone.utc)
-    result: list[dict] = []
+    if not reports:
+        return []
 
+    now_utc = _dt.datetime.now(timezone.utc)
+    client_record_ids = [r.client_record_id for r in reports if r.client_record_id]
+    client_name_map = _batch_client_names(business_repo.db, client_record_ids)
+
+    result: list[dict] = []
     for report in reports:
         deadline_dt = report.filing_deadline
         if not deadline_dt:
@@ -180,9 +188,7 @@ def build_annual_report_actions(
         else:
             continue
 
-        client_name = _client_name(
-            business_repo.db, report.client_record_id, business_repo
-        )
+        client_name = client_name_map.get(report.client_record_id)
 
         is_pending_client = report.status == AnnualReportStatus.PENDING_CLIENT
         pending_days = 0
@@ -243,9 +249,14 @@ def build_binder_actions(
     notification_repo: NotificationRepository,
 ) -> list[dict]:
     binders = binder_repo.list_overdue_pickup(_BINDER_PICKUP_OVERDUE_DAYS)
-    now_utc = _dt.datetime.now(timezone.utc)
-    result: list[dict] = []
+    if not binders:
+        return []
 
+    now_utc = _dt.datetime.now(timezone.utc)
+    client_record_ids = [b.client_record_id for b in binders if b.client_record_id]
+    client_name_map = _batch_client_names(business_repo.db, client_record_ids)
+
+    result: list[dict] = []
     for binder in binders:
         last_reminder = notification_repo.get_last_for_binder_trigger(
             binder.id, NotificationTrigger.PICKUP_REMINDER
@@ -257,18 +268,7 @@ def build_binder_actions(
             if days_since < _BINDER_REMINDER_COOLDOWN_DAYS:
                 continue
 
-        record = ClientRecordRepository(business_repo.db).get_by_id(
-            binder.client_record_id
-        )
-        businesses = (
-            business_repo.list_by_legal_entity(
-                record.legal_entity_id, page=1, page_size=1
-            )
-            if record
-            else []
-        )
-        business = businesses[0] if businesses else None
-        client_name = business.full_name if business else None
+        client_name = client_name_map.get(binder.client_record_id)
 
         days_waiting = int(
             (now_utc - binder.ready_for_pickup_at.replace(tzinfo=timezone.utc)).days
