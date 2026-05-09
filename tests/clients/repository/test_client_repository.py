@@ -1,28 +1,35 @@
-from app.common.enums import IdNumberType
-from app.clients.repositories.client_repository import ClientRepository
+from app.common.enums import EntityType, IdNumberType
+from app.clients.repositories.client_record_repository import (
+    ClientRecordRepository,
+    apply_graph_update,
+)
+from app.clients.services.client_creation_service import ClientCreationService
 
 
 def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False):
-    repo = ClientRepository(db)
-    client = repo.create(
+    svc = ClientCreationService(db)
+    record = svc.create_client(
         full_name=full_name,
         id_number=id_number,
         id_number_type=IdNumberType.CORPORATION,
-        created_by=1,
+        entity_type=EntityType.COMPANY_LTD,
+        actor_id=1,
     )
     if deleted:
-        repo.soft_delete(client.id, deleted_by=2)
-        client = repo.get_by_id_including_deleted(client.id)
-    return client
+        ClientRecordRepository(db).soft_delete(record.id, deleted_by=2)
+        record = ClientRecordRepository(db).get_by_id_including_deleted(record.id)
+    return record
 
 
 def test_create_and_get_by_id_filters_deleted(test_db):
-    repo = ClientRepository(test_db)
-    created = repo.create(
+    repo = ClientRecordRepository(test_db)
+    svc = ClientCreationService(test_db)
+    created = svc.create_client(
         full_name="Repo Client",
         id_number="100000001",
         id_number_type=IdNumberType.CORPORATION,
-        created_by=1,
+        entity_type=EntityType.COMPANY_LTD,
+        actor_id=1,
     )
 
     assert repo.get_by_id(created.id) is not None
@@ -33,7 +40,7 @@ def test_create_and_get_by_id_filters_deleted(test_db):
 
 
 def test_get_active_and_deleted_by_id_number(test_db):
-    repo = ClientRepository(test_db)
+    repo = ClientRecordRepository(test_db)
     active = _create_client(test_db, full_name="Active", id_number="200000001")
     deleted = _create_client(
         test_db, full_name="Deleted", id_number="200000002", deleted=True
@@ -61,7 +68,7 @@ def test_restore_clears_deleted_fields(test_db):
     client = _create_client(
         test_db, full_name="Restore Me", id_number="300000001", deleted=True
     )
-    repo = ClientRepository(test_db)
+    repo = ClientRecordRepository(test_db)
 
     restored = repo.restore(client.id, restored_by=7)
 
@@ -80,7 +87,7 @@ def test_list_count_search_and_list_by_ids(test_db):
         test_db, full_name="Deleted Three", id_number="499999999", deleted=True
     )
 
-    repo = ClientRepository(test_db)
+    repo = ClientRecordRepository(test_db)
 
     items_page_1 = repo.list(page=1, page_size=1)
     assert len(items_page_1) == 1
@@ -105,16 +112,15 @@ def test_list_count_search_and_list_by_ids(test_db):
 
 
 def test_soft_delete_returns_false_for_missing_client(test_db):
-    repo = ClientRepository(test_db)
+    repo = ClientRecordRepository(test_db)
     assert repo.soft_delete(9999, deleted_by=1) is False
 
 
 def test_update_ignores_unknown_fields(test_db):
     client = _create_client(test_db, full_name="Old Name", id_number="500000001")
-    repo = ClientRepository(test_db)
 
-    updated = repo.update(client.id, full_name="New Name", does_not_exist="x")
+    updated = apply_graph_update(test_db, client.id, full_name="New Name", does_not_exist="x")
 
     assert updated is not None
-    assert updated.full_name == "New Name"
-    assert not hasattr(updated, "does_not_exist")
+    assert updated["full_name"] == "New Name"
+    assert "does_not_exist" not in updated

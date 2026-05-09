@@ -3,10 +3,12 @@ from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
 
-from app.common.enums import IdNumberType
 from app.clients.models.client_record import ClientRecord
-from app.clients.repositories.client_repository import ClientRepository
+from app.clients.services.client_creation_service import ClientCreationService
+from app.common.enums import EntityType
 from app.clients.services.client_excel_service import ClientExcelService
+from app.clients.services.client_query_service import ClientQueryService
+from app.common.enums import IdNumberType
 
 
 def test_client_excel_import_skips_blank_and_collects_errors(test_db):
@@ -57,11 +59,14 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
     ws.append(["full_name", "business_name", "id_number", "phone", "email"])
     ws.append(["Half Created", "Half Created Business", "ROLLBACK-1", "", ""])
 
+    creation_svc = ClientCreationService(test_db)
+
     class _ClientSvc:
         def create_client(self, **kwargs):
-            ClientRepository(test_db).create(
+            creation_svc.create_client(
                 full_name=kwargs["full_name"],
                 id_number=kwargs["id_number"],
+                id_number_type=IdNumberType.INDIVIDUAL,
             )
             raise RuntimeError("business failed")
 
@@ -75,15 +80,20 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
 def test_client_excel_export_and_template_generate_files(test_db):
     service = ClientExcelService(test_db)
 
-    crm_client = ClientRepository(test_db).create(
+    creation_svc = ClientCreationService(test_db)
+    client_record = creation_svc.create_client(
         full_name="Excel Name",
         id_number="750000001",
         id_number_type=IdNumberType.CORPORATION,
+        entity_type=EntityType.COMPANY_LTD,
         phone="0501234567",
         email="excel@test.com",
+        actor_id=1,
     )
+    test_db.commit()
+    full_client = ClientQueryService(test_db).get_full_client(client_record.id)
 
-    exported = service.export_clients([crm_client])
+    exported = service.export_clients([full_client])
     template = service.generate_template()
 
     assert Path(exported["filepath"]).exists()

@@ -48,7 +48,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             self.db = db
 
         def get_by_id(self, client_id):
-            return SimpleNamespace(full_name="Client PDF")
+            return SimpleNamespace(full_name="Client PDF", office_client_number=42)
 
     class _FinSvc:
         def __init__(self, db):
@@ -90,9 +90,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             )
 
     monkeypatch.setattr(pdf_mod, "AnnualReportRepository", _Repo)
-    monkeypatch.setattr(
-        "app.clients.repositories.client_repository.ClientRepository", _ClientRepo
-    )
+    monkeypatch.setattr(pdf_mod, "ClientRecordRepository", _ClientRepo)
     monkeypatch.setattr(pdf_mod, "AnnualReportFinancialService", _FinSvc)
     monkeypatch.setattr(pdf_mod, "AnnualReportDetailService", _DetailSvc)
     monkeypatch.setattr(pdf_mod, "build_pdf", lambda *args, **kwargs: b"pdf-bytes")

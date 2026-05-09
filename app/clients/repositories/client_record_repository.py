@@ -82,6 +82,65 @@ def get_full_record_including_deleted(
     return _full_record_dict(*row) if row else None
 
 
+_PERSON_FIELDS = frozenset(
+    {
+        "phone",
+        "email",
+        "address_street",
+        "address_building_number",
+        "address_apartment",
+        "address_city",
+        "address_zip_code",
+    }
+)
+_LEGAL_ENTITY_FIELDS = frozenset(
+    {
+        "entity_type",
+        "vat_reporting_frequency",
+        "advance_payment_frequency",
+        "advance_rate",
+        "advance_rate_updated_at",
+        "annual_revenue",
+    }
+)
+_RECORD_FIELDS = frozenset({"status", "accountant_id"})
+
+
+def apply_graph_update(db: Session, client_id: int, **fields) -> dict:
+    """Apply **fields to the Person / LegalEntity / ClientRecord graph and flush.
+
+    Returns the refreshed full-record dict, or raises NotFoundError.
+    """
+    from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+    from app.clients.repositories.person_repository import PersonRepository
+    from app.core.exceptions import NotFoundError
+
+    repo = ClientRecordRepository(db)
+    record = repo.get_by_id(client_id)
+    legal_entity = (
+        LegalEntityRepository(db).get_by_id(record.legal_entity_id) if record else None
+    )
+    if not record or not legal_entity:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    person = PersonRepository(db).get_owner_for_legal_entity(legal_entity.id)
+    if "full_name" in fields:
+        legal_entity.official_name = fields["full_name"]
+        if person is not None:
+            person.full_name = fields["full_name"]
+    for key, value in fields.items():
+        if key in _PERSON_FIELDS and person is not None:
+            setattr(person, key, value)
+        elif key in _LEGAL_ENTITY_FIELDS:
+            setattr(legal_entity, key, value)
+        elif key in _RECORD_FIELDS:
+            setattr(record, key, value)
+    db.flush()
+    updated = get_full_record(db, client_id)
+    if not updated:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    return updated
+
+
 def get_full_records_bulk(db: Session, client_record_ids: list[int]) -> dict[int, dict]:
     if not client_record_ids:
         return {}
@@ -259,7 +318,14 @@ class ClientRecordRepository:
         )
 
     def _apply_list_filters(
-        self, stmt, search=None, status=None, accountant_id=None, entity_type=None
+        self,
+        stmt,
+        search=None,
+        status=None,
+        accountant_id=None,
+        entity_type=None,
+        client_name=None,
+        id_number=None,
     ):
         if search:
             term = f"%{search.strip()}%"
@@ -267,6 +333,12 @@ class ClientRecordRepository:
                 LegalEntity.official_name.ilike(term)
                 | LegalEntity.id_number.ilike(term)
             )
+        if client_name:
+            stmt = stmt.where(
+                LegalEntity.official_name.ilike(f"%{client_name.strip()}%")
+            )
+        if id_number:
+            stmt = stmt.where(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
         if status:
             stmt = stmt.where(ClientRecord.status == status)
         if accountant_id is not None:
@@ -327,23 +399,14 @@ class ClientRecordRepository:
         page_size: int = 20,
     ) -> tuple[list[ClientRecord], int]:
         """Cross-domain search by name / id_number / status / entity_type."""
-        stmt = self._active_query()
-        if query:
-            term = f"%{query.strip()}%"
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(term)
-                | LegalEntity.id_number.ilike(term)
-            )
-        if client_name:
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(f"%{client_name.strip()}%")
-            )
-        if id_number:
-            stmt = stmt.where(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
-        if status:
-            stmt = stmt.where(ClientRecord.status == status)
-        if entity_type:
-            stmt = stmt.where(LegalEntity.entity_type == entity_type)
+        stmt = self._apply_list_filters(
+            self._active_query(),
+            search=query,
+            status=status,
+            entity_type=entity_type,
+            client_name=client_name,
+            id_number=id_number,
+        )
         total = self.db.scalar(select(func.count()).select_from(stmt.subquery()))
         offset = (page - 1) * page_size
         items = list(

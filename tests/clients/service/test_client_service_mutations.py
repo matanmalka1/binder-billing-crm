@@ -145,7 +145,7 @@ def test_update_delete_restore_flow(test_db):
         service.get_client_or_raise(created.id)
 
     restored = service.restore_client(created.id, actor_id=12)
-    restored_record = service.client_repo.get_by_id(created.id)
+    restored_record = service.record_repo.get_by_id(created.id)
     assert restored_record is not None
     assert restored_record.deleted_at is None
     assert restored_record.restored_by == 12
@@ -206,9 +206,9 @@ def test_list_clients_and_conflict_info(test_db):
     two = _svc_create(service, full_name="Beta", id_number="670000017")
     service.delete_client(two.id, actor_id=1)
 
-    items, total = service.list_clients(search="Alpha", page=1, page_size=10)
-    assert total == 1
-    assert [c.id for c in items] == [one.id]
+    result = service.list_full_clients(search="Alpha", page=1, page_size=10)
+    assert result.total == 1
+    assert [c.id for c in result.items] == [one.id]
 
     info_active = service.get_conflict_info("670000009")
     assert len(info_active.active_clients) == 1

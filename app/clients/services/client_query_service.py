@@ -1,5 +1,3 @@
-"""Read-only client queries extracted to keep client_service.py under 150 lines."""
-
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -7,14 +5,10 @@ from sqlalchemy.orm import Session
 from app.clients.enums import ClientStatus
 from app.common.enums import EntityType
 from app.clients.repositories.client_record_repository import (
+    ClientRecordRepository,
     get_full_record,
     get_full_record_including_deleted,
     get_full_records_bulk,
-)
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import (
-    ClientRecordView,
-    ClientRepository,
 )
 from app.clients.schemas.client_conflicts import (
     ActiveClientSummary,
@@ -33,49 +27,41 @@ from app.core.exceptions import NotFoundError
 class ClientQueryService:
     def __init__(self, db: Session):
         self.db = db
-        self.client_repo = ClientRepository(db)
         self.record_repo = ClientRecordRepository(db)
 
-    def list_clients(
-        self,
-        search: Optional[str] = None,
-        status: Optional[ClientStatus] = None,
-        sort_by: str = "full_name",
-        sort_order: str = "asc",
-        page: int = 1,
-        page_size: int = 20,
-    ) -> tuple[list[ClientRecordView], int]:
-        """List clients with pagination, optional status filter, and sorting."""
-        items = self.client_repo.list(
-            search=search,
-            status=status,
-            sort_by=sort_by,
-            sort_order=sort_order,
-            page=page,
-            page_size=page_size,
-        )
-        total = self.client_repo.count(search=search, status=status)
-        return items, total
-
     def get_client_stats(self) -> ClientRecordListStats:
-        counts = self.client_repo.count_by_status()
+        counts = self.record_repo.count_by_status()
         return ClientRecordListStats(
             active=counts.get(ClientStatus.ACTIVE, 0),
             frozen=counts.get(ClientStatus.FROZEN, 0),
             closed=counts.get(ClientStatus.CLOSED, 0),
         )
 
-    def list_all_clients(self) -> list[ClientRecordView]:
-        """Return all active clients."""
-        return self.client_repo.list_all()
+    def list_all_clients(self) -> list[ClientRecordResponse]:
+        records = self.record_repo.list_all()
+        full_map = get_full_records_bulk(self.db, [r.id for r in records])
+        return [ClientRecordResponse(**full_map[r.id]) for r in records if r.id in full_map]
 
     def get_conflict_info(self, id_number: str) -> ClientConflictInfo:
-        active = self.client_repo.get_active_by_id_number(id_number)
-        deleted = self.client_repo.get_deleted_by_id_number(id_number)
+        active_records = self.record_repo.get_active_by_id_number(id_number)
+        deleted_records = self.record_repo.get_deleted_by_id_number(id_number)
+        active_full = get_full_records_bulk(self.db, [r.id for r in active_records])
+        deleted_full = {
+            r.id: get_full_record_including_deleted(self.db, r.id)
+            for r in deleted_records
+        }
         return ClientConflictInfo(
             id_number=id_number,
-            active_clients=[ActiveClientSummary.model_validate(c) for c in active],
-            deleted_clients=[DeletedClientSummary.model_validate(c) for c in deleted],
+            active_clients=[
+                ActiveClientSummary(**active_full[r.id])
+                for r in active_records
+                if r.id in active_full
+            ],
+            deleted_clients=[
+                DeletedClientSummary(**deleted_full[r.id])
+                for r in deleted_records
+                if deleted_full.get(r.id)
+            ],
         )
 
     def get_full_client(

@@ -168,8 +168,10 @@ class BaseRepository(Generic[ModelType]):
         self.db.flush()
         return True
 
-    def _soft_delete_entity(self, entity_id: int, deleted_by: int | None = None) -> bool:
-        return self.soft_delete(entity_id, deleted_by)
+    def _soft_delete_entity(
+        self, entity_id: int, deleted_by: int | None = None
+    ) -> bool:
+        return BaseRepository.soft_delete(self, entity_id, deleted_by)
 
     def delete(
         self,
@@ -234,4 +236,3 @@ class BaseRepository(Generic[ModelType]):
             touch_updated_at=touch_updated_at,
             **additional_fields,
         )
-

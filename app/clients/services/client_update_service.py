@@ -14,10 +14,11 @@ from app.annual_reports.services.client_status_service import (
 )
 from app.binders.services.client_status_service import BinderClientStatusService
 from app.clients.enums import ClientStatus
-from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.clients.repositories.person_repository import PersonRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_record_repository import get_full_record
+from app.clients.repositories.client_record_repository import (
+    ClientRecordRepository,
+    apply_graph_update,
+    get_full_record,
+)
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.reminders.services.client_status_service import ReminderClientStatusService
 from app.users.models.user import UserRole
@@ -74,49 +75,7 @@ class ClientUpdateService:
         return updated
 
     def _update_client_record_graph(self, client_id: int, **fields):
-        record = self.record_repo.get_by_id(client_id)
-        legal_entity = (
-            LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-            if record
-            else None
-        )
-        if not record or not legal_entity:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-        person = PersonRepository(self.db).get_owner_for_legal_entity(legal_entity.id)
-        person_fields = {
-            "phone",
-            "email",
-            "address_street",
-            "address_building_number",
-            "address_apartment",
-            "address_city",
-            "address_zip_code",
-        }
-        legal_entity_fields = {
-            "entity_type",
-            "vat_reporting_frequency",
-            "advance_payment_frequency",
-            "advance_rate",
-            "advance_rate_updated_at",
-            "annual_revenue",
-        }
-        record_fields = {"status", "accountant_id"}
-        if "full_name" in fields:
-            legal_entity.official_name = fields["full_name"]
-            if person is not None:
-                person.full_name = fields["full_name"]
-        for key, value in fields.items():
-            if key in person_fields and person is not None:
-                setattr(person, key, value)
-            elif key in legal_entity_fields:
-                setattr(legal_entity, key, value)
-            elif key in record_fields:
-                setattr(record, key, value)
-        self.db.flush()
-        updated = get_full_record(self.db, client_id)
-        if not updated:
-            raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-        return updated
+        return apply_graph_update(self.db, client_id, **fields)
 
     def _update_client_record_status(
         self, client_id: int, new_status: ClientStatus
