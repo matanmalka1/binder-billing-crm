@@ -2,10 +2,11 @@
 
 from typing import Optional
 
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import utcnow
@@ -24,71 +25,52 @@ def _sort_col(sort_by: str, order: str):
     return col.asc() if order == "asc" else col.desc()
 
 
-class AnnualReportReportRepository(BaseRepository):
+class AnnualReportReportRepository(BaseRepository[AnnualReport]):
+    model = AnnualReport
+
     def __init__(self, db: Session):
         super().__init__(db)
 
     # ── AnnualReport CRUD / queries ─────────────────────────────────────────
 
-    def _active_client_query(self):
-        return scope_to_active_clients(self.db.query(AnnualReport), AnnualReport)
-
     def create(self, **kwargs) -> AnnualReport:
-        report = AnnualReport(**kwargs)
-        self.db.add(report)
-        self.db.flush()
-        return report
+        return self.build_and_add(**kwargs)
 
-    def get_by_id(self, report_id: int) -> Optional[AnnualReport]:
-        return (
-            self.db.query(AnnualReport)
-            .filter(AnnualReport.id == report_id, AnnualReport.deleted_at.is_(None))
-            .first()
-        )
-
-    def get_by_id_for_update(self, report_id: int) -> Optional[AnnualReport]:
-        """Fetch with a row-level lock for status transitions."""
-        return self._locked_first(
-            self.db.query(AnnualReport).filter(
-                AnnualReport.id == report_id, AnnualReport.deleted_at.is_(None)
-            )
-        )
+    def _active_client_stmt(self):
+        return scope_to_active_clients_stmt(select(AnnualReport), AnnualReport)
 
     def list_by_client_record(
         self, client_record_id: int, page: int = 1, page_size: int = 20
     ) -> list[AnnualReport]:
-        q = (
-            self.db.query(AnnualReport)
-            .filter(
+        stmt = (
+            select(AnnualReport)
+            .where(
                 AnnualReport.client_record_id == client_record_id,
                 AnnualReport.deleted_at.is_(None),
             )
             .order_by(AnnualReport.tax_year.desc())
         )
-        return self._paginate(q, page, page_size)
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count_by_client_record(self, client_record_id: int) -> int:
-        return (
-            self.db.query(AnnualReport)
-            .filter(
+        return self.db.scalar(
+            select(func.count(AnnualReport.id)).where(
                 AnnualReport.client_record_id == client_record_id,
                 AnnualReport.deleted_at.is_(None),
             )
-            .count()
         )
 
     def get_by_client_record_year(
         self, client_record_id: int, tax_year: int
     ) -> Optional[AnnualReport]:
-        return (
-            self.db.query(AnnualReport)
-            .filter(
+        return self.db.scalars(
+            select(AnnualReport).where(
                 AnnualReport.client_record_id == client_record_id,
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
             )
-            .first()
-        )
+        ).first()
 
     def list_by_status(
         self,
@@ -98,29 +80,32 @@ class AnnualReportReportRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[AnnualReport]:
-        q = self._active_client_query().filter(
+        stmt = self._active_client_stmt().where(
             AnnualReport.status == status,
             AnnualReport.deleted_at.is_(None),
         )
         if tax_year:
-            q = q.filter(AnnualReport.tax_year == tax_year)
+            stmt = stmt.where(AnnualReport.tax_year == tax_year)
         if assigned_to:
-            q = q.filter(AnnualReport.assigned_to == assigned_to)
-        q = q.order_by(AnnualReport.filing_deadline.asc())
-        return self._paginate(q, page, page_size)
+            stmt = stmt.where(AnnualReport.assigned_to == assigned_to)
+        stmt = stmt.order_by(AnnualReport.filing_deadline.asc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count_by_status(
         self,
         status: AnnualReportStatus,
         tax_year: Optional[int] = None,
     ) -> int:
-        q = self._active_client_query().filter(
+        stmt = scope_to_active_clients_stmt(
+            select(func.count(AnnualReport.id)), AnnualReport
+        ).where(
             AnnualReport.status == status,
             AnnualReport.deleted_at.is_(None),
         )
         if tax_year:
-            q = q.filter(AnnualReport.tax_year == tax_year)
-        return q.count()
+            stmt = stmt.where(AnnualReport.tax_year == tax_year)
+        return self.db.scalar(stmt)
 
     def list_by_tax_year(
         self,
@@ -130,23 +115,25 @@ class AnnualReportReportRepository(BaseRepository):
         sort_by: str = "status",
         order: str = "asc",
     ) -> list[AnnualReport]:
-        q = (
-            self._active_client_query()
-            .filter(
-                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
+        stmt = (
+            self._active_client_stmt()
+            .where(
+                AnnualReport.tax_year == tax_year,
+                AnnualReport.deleted_at.is_(None),
             )
             .order_by(_sort_col(sort_by, order))
         )
-        return self._paginate(q, page, page_size)
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count_by_tax_year(self, tax_year: int) -> int:
-        return (
-            self._active_client_query()
-            .filter(
-                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
-            )
-            .count()
+        stmt = scope_to_active_clients_stmt(
+            select(func.count(AnnualReport.id)), AnnualReport
+        ).where(
+            AnnualReport.tax_year == tax_year,
+            AnnualReport.deleted_at.is_(None),
         )
+        return self.db.scalar(stmt)
 
     def list_all(
         self,
@@ -155,39 +142,40 @@ class AnnualReportReportRepository(BaseRepository):
         sort_by: str = "tax_year",
         order: str = "desc",
     ) -> list[AnnualReport]:
-        q = (
-            self._active_client_query()
-            .filter(AnnualReport.deleted_at.is_(None))
+        stmt = (
+            self._active_client_stmt()
+            .where(
+                AnnualReport.deleted_at.is_(None),
+            )
             .order_by(_sort_col(sort_by, order))
         )
-        return self._paginate(q, page, page_size)
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count_all(self) -> int:
-        return (
-            self._active_client_query()
-            .filter(AnnualReport.deleted_at.is_(None))
-            .count()
-        )
+        stmt = scope_to_active_clients_stmt(
+            select(func.count(AnnualReport.id)), AnnualReport
+        ).where(AnnualReport.deleted_at.is_(None))
+        return self.db.scalar(stmt)
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:
         """Return (AnnualReport, client_record_id, LegalEntity.official_name) for status report."""
         from app.clients.models.legal_entity import LegalEntity
         from app.clients.models.client_record import ClientRecord
 
-        return (
-            self.db.query(
+        return self.db.execute(
+            select(
                 AnnualReport, AnnualReport.client_record_id, LegalEntity.official_name
             )
             .join(ClientRecord, ClientRecord.id == AnnualReport.client_record_id)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .filter(
+            .where(
                 AnnualReport.tax_year == tax_year,
                 AnnualReport.deleted_at.is_(None),
                 ClientRecord.deleted_at.is_(None),
             )
             .order_by(AnnualReport.filing_deadline.asc().nulls_last())
-            .all()
-        )
+        ).all()
 
     def update(
         self, report_id: int, report: Optional[AnnualReport] = None, **fields
@@ -198,13 +186,7 @@ class AnnualReportReportRepository(BaseRepository):
         return self._update_entity(entity, touch_updated_at=True, **fields)
 
     def soft_delete(self, report_id: int, deleted_by: int) -> bool:
-        report = self.get_by_id(report_id)
-        if not report:
-            return False
-        report.deleted_at = utcnow()
-        report.deleted_by = deleted_by
-        self.db.flush()
-        return True
+        return self._soft_delete_entity(report_id, deleted_by)
 
     def cancel_open_by_client_record(self, client_record_id: int) -> int:
         terminal = [
@@ -212,15 +194,13 @@ class AnnualReportReportRepository(BaseRepository):
             AnnualReportStatus.ACCEPTED,
             AnnualReportStatus.CLOSED,
         ]
-        rows = (
-            self.db.query(AnnualReport)
-            .filter(
+        rows = self.db.scalars(
+            select(AnnualReport).where(
                 AnnualReport.client_record_id == client_record_id,
                 AnnualReport.deleted_at.is_(None),
                 AnnualReport.status.notin_(terminal),
             )
-            .all()
-        )
+        ).all()
         for row in rows:
             row.status = AnnualReportStatus.CANCELED
             row.updated_at = utcnow()

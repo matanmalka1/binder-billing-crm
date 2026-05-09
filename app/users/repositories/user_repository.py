@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -10,19 +10,20 @@ from app.users.models.user import User, UserRole
 from app.utils.time_utils import utcnow
 
 
-class UserRepository(BaseRepository):
+class UserRepository(BaseRepository[User]):
     """Data access layer for User entities."""
+
+    model = User
 
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def get_by_id(self, user_id: int) -> Optional[User]:
-        """Retrieve user by ID."""
-        return self.db.query(User).filter(User.id == user_id).first()
+    def get_by_id(self, entity_id: int) -> Optional[User]:
+        return self.db.scalars(select(User).where(User.id == entity_id)).first()
 
     def get_by_email(self, email: str) -> Optional[User]:
         """Retrieve user by email."""
-        return self.db.query(User).filter(User.email == email).first()
+        return self.db.scalars(select(User).where(User.email == email)).first()
 
     def list(
         self,
@@ -32,48 +33,49 @@ class UserRepository(BaseRepository):
         search: Optional[str] = None,
     ) -> list[User]:
         """List users with pagination."""
-        query = self._apply_list_filters(
-            self.db.query(User),
+        stmt = self._apply_list_filters(
+            select(User),
             is_active=is_active,
             search=search,
-        )
-        return self._paginate(query.order_by(User.id.asc()), page, page_size)
+        ).order_by(User.id.asc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count(
         self, is_active: Optional[bool] = None, search: Optional[str] = None
     ) -> int:
         """Count users."""
-        query = self._apply_list_filters(
-            self.db.query(User),
+        stmt = self._apply_list_filters(
+            select(func.count(User.id)),
             is_active=is_active,
             search=search,
         )
-        return query.count()
+        return self.db.scalar(stmt)
 
     def _apply_list_filters(
         self,
-        query,
+        stmt,
         *,
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ):
         if is_active is not None:
-            query = query.filter(User.is_active == is_active)
+            stmt = stmt.where(User.is_active == is_active)
         if search and search.strip():
             pattern = f"%{search.strip()}%"
-            query = query.filter(
+            stmt = stmt.where(
                 or_(
                     User.full_name.ilike(pattern),
                     User.email.ilike(pattern),
                 )
             )
-        return query
+        return stmt
 
     def list_by_ids(self, user_ids: list[int]) -> list[User]:
         """Batch fetch users by a list of IDs (single query)."""
         if not user_ids:
             return []
-        return self.db.query(User).filter(User.id.in_(user_ids)).all()
+        return self.db.scalars(select(User).where(User.id.in_(user_ids))).all()
 
     def create(
         self,
@@ -97,8 +99,8 @@ class UserRepository(BaseRepository):
 
     def update_last_login(self, user_id: int) -> None:
         """Update last login timestamp."""
-        self.db.query(User).filter(User.id == user_id).update(
-            {"last_login_at": utcnow()}
+        self.db.execute(
+            update(User).where(User.id == user_id).values(last_login_at=utcnow())
         )
         self.db.flush()
 

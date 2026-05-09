@@ -8,9 +8,7 @@ from app.users.models.user import UserRole
 def test_get_attention_data_returns_empty_for_non_advisor(test_db):
     service = DashboardExtendedService(test_db)
 
-    data = service.get_attention_data(
-        user_role=None, reference_date=date(2026, 3, 10)
-    )
+    data = service.get_attention_data(user_role=None, reference_date=date(2026, 3, 10))
     assert data["items"] == []
 
 
@@ -55,9 +53,7 @@ def test_get_attention_data_advisor_appends_unpaid_charge_item(test_db):
     service.client_record_repo = SimpleNamespace(
         list_by_ids=lambda ids: [client_record]
     )
-    service.legal_entity_repo = SimpleNamespace(
-        list_by_ids=lambda ids: [legal_entity]
-    )
+    service.legal_entity_repo = SimpleNamespace(list_by_ids=lambda ids: [legal_entity])
 
     data = service.get_attention_data(
         user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
@@ -97,9 +93,7 @@ def test_get_attention_data_advisor_includes_client_level_charge(test_db):
     service.client_record_repo = SimpleNamespace(
         list_by_ids=lambda ids: [client_record]
     )
-    service.legal_entity_repo = SimpleNamespace(
-        list_by_ids=lambda ids: [legal_entity]
-    )
+    service.legal_entity_repo = SimpleNamespace(list_by_ids=lambda ids: [legal_entity])
 
     data = service.get_attention_data(
         user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.notes.models.entity_note import EntityNote
@@ -35,28 +36,29 @@ class EntityNoteRepository:
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[EntityNote], int]:
-        base = self.db.query(EntityNote).filter(
+        base_where = [
             EntityNote.entity_type == entity_type,
             EntityNote.entity_id == entity_id,
             EntityNote.deleted_at.is_(None),
+        ]
+        total = (
+            self.db.scalar(select(func.count(EntityNote.id)).where(*base_where)) or 0
         )
-        from sqlalchemy import func
-
-        total = base.with_entities(func.count()).scalar() or 0
-        items = (
-            base.order_by(EntityNote.created_at.desc())
+        items = self.db.scalars(
+            select(EntityNote)
+            .where(*base_where)
+            .order_by(EntityNote.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
-            .all()
-        )
+        ).all()
         return items, total
 
     def get_by_id(self, note_id: int) -> Optional[EntityNote]:
-        return (
-            self.db.query(EntityNote)
-            .filter(EntityNote.id == note_id, EntityNote.deleted_at.is_(None))
-            .first()
-        )
+        return self.db.scalars(
+            select(EntityNote).where(
+                EntityNote.id == note_id, EntityNote.deleted_at.is_(None)
+            )
+        ).first()
 
     def update(self, note_id: int, note: str) -> Optional[EntityNote]:
         obj = self.get_by_id(note_id)

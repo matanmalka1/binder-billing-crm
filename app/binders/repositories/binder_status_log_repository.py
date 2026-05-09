@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_status_log import BinderStatusLog
@@ -33,9 +34,8 @@ class BinderStatusLogRepository:
 
     def list_by_binder(self, binder_id: int) -> list[BinderStatusLog]:
         """Get all status logs for a binder."""
-        return (
-            self.db.query(BinderStatusLog)
-            .filter(BinderStatusLog.binder_id == binder_id)
+        return self.db.scalars(
+            select(BinderStatusLog)
+            .where(BinderStatusLog.binder_id == binder_id)
             .order_by(BinderStatusLog.changed_at.asc())
-            .all()
-        )
+        ).all()

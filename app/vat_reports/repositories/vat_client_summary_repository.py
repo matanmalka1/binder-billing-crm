@@ -1,6 +1,6 @@
 """Repository for client-level VAT summary queries."""
 
-from sqlalchemy import case, func, Integer, cast
+from sqlalchemy import case, func, Integer, cast, select
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -17,17 +17,17 @@ class VatClientSummaryRepository:
         client_record_id: int,
         year: int,
     ):
-        query = self.db.query(func.sum(VatWorkItem.total_output_vat)).filter(
-            VatWorkItem.client_record_id == client_record_id
+        return self.db.scalar(
+            select(func.sum(VatWorkItem.total_output_vat)).where(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.deleted_at.is_(None),
+            )
         )
-        return query.filter(
-            VatWorkItem.period.like(f"{year}-%"),
-            VatWorkItem.deleted_at.is_(None),
-        ).scalar()
 
     def get_periods_for_client(self, client_record_id: int) -> list[tuple]:
         net_sq = (
-            self.db.query(
+            select(
                 VatInvoice.work_item_id,
                 func.sum(
                     case(
@@ -52,37 +52,34 @@ class VatClientSummaryRepository:
             .subquery()
         )
 
-        return (
-            self.db.query(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
+        return self.db.execute(
+            select(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
             .outerjoin(net_sq, VatWorkItem.id == net_sq.c.work_item_id)
-            .filter(
+            .where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.period.desc())
-            .all()
-        )
+        ).all()
 
     def get_annual_turnover(self, client_record_id: int, year: int):
         """Sum of total_output_net for FILED work items in the given calendar year.
 
         Returns the scalar sum (Decimal or None if no FILED items exist).
         """
-        return (
-            self.db.query(func.sum(VatWorkItem.total_output_net))
-            .filter(
+        return self.db.scalar(
+            select(func.sum(VatWorkItem.total_output_net)).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.status == VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
             )
-            .scalar()
         )
 
     def get_annual_aggregates(self, client_record_id: int) -> list[dict[str, object]]:
         year_expr = cast(func.substr(VatWorkItem.period, 1, 4), Integer).label("year")
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 year_expr,
                 func.sum(VatWorkItem.total_output_vat).label("total_output_vat"),
                 func.sum(VatWorkItem.total_input_vat).label("total_input_vat"),
@@ -92,14 +89,13 @@ class VatClientSummaryRepository:
                     case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
                 ).label("filed_count"),
             )
-            .filter(
+            .where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.deleted_at.is_(None),
             )
             .group_by(year_expr)
             .order_by(year_expr.desc())
-            .all()
-        )
+        ).all()
 
         return [
             {

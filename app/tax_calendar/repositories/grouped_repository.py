@@ -1,4 +1,4 @@
-from sqlalchemy import String, case, func
+from sqlalchemy import String, case, func, select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -49,15 +49,15 @@ class TaxCalendarGroupedRepository:
         end_year: int | None,
         obligation_type: ObligationType | None,
     ) -> list[TaxCalendarEntry]:
-        query = self.db.query(TaxCalendarEntry)
+        stmt = select(TaxCalendarEntry)
         if start_year is not None:
-            query = query.filter(TaxCalendarEntry.tax_year >= start_year)
+            stmt = stmt.where(TaxCalendarEntry.tax_year >= start_year)
         if end_year is not None:
-            query = query.filter(TaxCalendarEntry.tax_year <= end_year)
+            stmt = stmt.where(TaxCalendarEntry.tax_year <= end_year)
         if obligation_type is not None:
-            query = query.filter(TaxCalendarEntry.obligation_type == obligation_type)
+            stmt = stmt.where(TaxCalendarEntry.obligation_type == obligation_type)
         else:
-            query = query.filter(
+            stmt = stmt.where(
                 TaxCalendarEntry.obligation_type.in_(
                     [
                         ObligationType.VAT,
@@ -66,74 +66,65 @@ class TaxCalendarGroupedRepository:
                     ]
                 )
             )
-        return query.order_by(*_entry_sort_clauses()).all()
+        return self.db.scalars(stmt.order_by(*_entry_sort_clauses())).all()
 
     def list_vat_for_entries(self, entry_ids: list[int]) -> list[VatWorkItem]:
         if not entry_ids:
             return []
-        return (
-            self.db.query(VatWorkItem)
-            .filter(VatWorkItem.tax_calendar_entry_id.in_(entry_ids))
-            .filter(VatWorkItem.deleted_at.is_(None))
-            .all()
-        )
+        return self.db.scalars(
+            select(VatWorkItem)
+            .where(VatWorkItem.tax_calendar_entry_id.in_(entry_ids))
+            .where(VatWorkItem.deleted_at.is_(None))
+        ).all()
 
     def list_advance_for_entries(self, entry_ids: list[int]) -> list[AdvancePayment]:
         if not entry_ids:
             return []
-        return (
-            self.db.query(AdvancePayment)
-            .filter(AdvancePayment.tax_calendar_entry_id.in_(entry_ids))
-            .filter(AdvancePayment.deleted_at.is_(None))
-            .all()
-        )
+        return self.db.scalars(
+            select(AdvancePayment)
+            .where(AdvancePayment.tax_calendar_entry_id.in_(entry_ids))
+            .where(AdvancePayment.deleted_at.is_(None))
+        ).all()
 
     def list_annual_for_entries(self, entry_ids: list[int]) -> list[AnnualReport]:
         if not entry_ids:
             return []
-        return (
-            self.db.query(AnnualReport)
-            .filter(AnnualReport.tax_calendar_entry_id.in_(entry_ids))
-            .filter(AnnualReport.deleted_at.is_(None))
-            .all()
-        )
+        return self.db.scalars(
+            select(AnnualReport)
+            .where(AnnualReport.tax_calendar_entry_id.in_(entry_ids))
+            .where(AnnualReport.deleted_at.is_(None))
+        ).all()
 
     def get_entry(self, entry_id: int) -> TaxCalendarEntry | None:
         return self.db.get(TaxCalendarEntry, entry_id)
 
     def list_vat_items(self, entry_id: int):
-        return (
-            self._with_client(VatWorkItem)
-            .filter(
+        return self.db.execute(
+            self._with_client(VatWorkItem).where(
                 VatWorkItem.tax_calendar_entry_id == entry_id,
                 VatWorkItem.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
 
     def list_advance_items(self, entry_id: int):
-        return (
-            self._with_client(AdvancePayment)
-            .filter(
+        return self.db.execute(
+            self._with_client(AdvancePayment).where(
                 AdvancePayment.tax_calendar_entry_id == entry_id,
                 AdvancePayment.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
 
     def list_annual_items(self, entry_id: int):
-        return (
-            self._with_client(AnnualReport)
-            .filter(
+        return self.db.execute(
+            self._with_client(AnnualReport).where(
                 AnnualReport.tax_calendar_entry_id == entry_id,
                 AnnualReport.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
 
     def _with_client(self, model):
         return (
-            self.db.query(model, ClientRecord, LegalEntity)
+            select(model, ClientRecord, LegalEntity)
             .join(ClientRecord, model.client_record_id == ClientRecord.id)
             .join(LegalEntity, ClientRecord.legal_entity_id == LegalEntity.id)
         )

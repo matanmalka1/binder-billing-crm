@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
@@ -40,13 +41,6 @@ class ReminderRepository(ReminderRepositoryRead):
         self.db.flush()
         return reminder
 
-    def get_by_id(self, reminder_id: int) -> Optional[Reminder]:
-        return (
-            self.db.query(Reminder)
-            .filter(Reminder.id == reminder_id, Reminder.deleted_at.is_(None))
-            .first()
-        )
-
     def update_status(
         self, reminder_id: int, new_status: ReminderStatus, **additional_fields
     ) -> Optional[Reminder]:
@@ -61,15 +55,13 @@ class ReminderRepository(ReminderRepositoryRead):
 
     def cancel_pending_by_client_record(self, client_record_id: int) -> int:
         now = utcnow()
-        rows = (
-            self.db.query(Reminder)
-            .filter(
+        rows = self.db.scalars(
+            select(Reminder).where(
                 Reminder.client_record_id == client_record_id,
                 Reminder.status == ReminderStatus.PENDING,
                 Reminder.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         for r in rows:
             r.status = ReminderStatus.CANCELED
             r.canceled_at = now

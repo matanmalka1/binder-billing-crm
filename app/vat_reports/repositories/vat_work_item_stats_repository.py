@@ -1,3 +1,4 @@
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.enums import VatType
@@ -10,13 +11,11 @@ class VatWorkItemStatsRepository:
         self.db = db
 
     def count_filed_by_period_type(self, period: str, vat_type: VatType) -> int:
-        return (
-            self.db.query(VatWorkItem)
-            .filter(
+        return self.db.scalar(
+            select(func.count(VatWorkItem.id)).where(
                 VatWorkItem.period == period,
                 VatWorkItem.period_type == vat_type,
                 VatWorkItem.status == VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
             )
-            .count()
         )

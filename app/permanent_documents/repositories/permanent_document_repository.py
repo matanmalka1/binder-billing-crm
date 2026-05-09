@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import String, cast
+from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.permanent_documents.models.permanent_document import (
@@ -53,14 +53,12 @@ class PermanentDocumentRepository:
         return document
 
     def get_by_id(self, document_id: int) -> Optional[PermanentDocument]:
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalars(
+            select(PermanentDocument).where(
                 PermanentDocument.id == document_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
-            .first()
-        )
+        ).first()
 
     def list_by_business(
         self,
@@ -70,19 +68,21 @@ class PermanentDocumentRepository:
         status: Optional[DocumentStatus] = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.business_id == business_id,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if not include_superseded:
-            q = q.filter(PermanentDocument.superseded_by == None)  # noqa: E711
+            stmt = stmt.where(PermanentDocument.superseded_by == None)  # noqa: E711
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
         if document_type is not None:
-            q = q.filter(PermanentDocument.document_type == document_type)
+            stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
-            q = q.filter(PermanentDocument.status == status)
-        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+            stmt = stmt.where(PermanentDocument.status == status)
+        return self.db.scalars(
+            stmt.order_by(PermanentDocument.uploaded_at.desc())
+        ).all()
 
     def list_by_client(
         self,
@@ -92,19 +92,21 @@ class PermanentDocumentRepository:
         status: Optional[DocumentStatus] = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if not include_superseded:
-            q = q.filter(PermanentDocument.superseded_by == None)  # noqa: E711
+            stmt = stmt.where(PermanentDocument.superseded_by == None)  # noqa: E711
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
         if document_type is not None:
-            q = q.filter(PermanentDocument.document_type == document_type)
+            stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
-            q = q.filter(PermanentDocument.status == status)
-        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+            stmt = stmt.where(PermanentDocument.status == status)
+        return self.db.scalars(
+            stmt.order_by(PermanentDocument.uploaded_at.desc())
+        ).all()
 
     def list_by_client_record(
         self,
@@ -115,76 +117,71 @@ class PermanentDocumentRepository:
         status: Optional[DocumentStatus] = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if scope is not None:
-            q = q.filter(PermanentDocument.scope == scope)
+            stmt = stmt.where(PermanentDocument.scope == scope)
         if not include_superseded:
-            q = q.filter(PermanentDocument.superseded_by == None)  # noqa: E711
+            stmt = stmt.where(PermanentDocument.superseded_by == None)  # noqa: E711
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
         if document_type is not None:
-            q = q.filter(PermanentDocument.document_type == document_type)
+            stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
-            q = q.filter(PermanentDocument.status == status)
-        return q.order_by(PermanentDocument.uploaded_at.desc()).all()
+            stmt = stmt.where(PermanentDocument.status == status)
+        return self.db.scalars(
+            stmt.order_by(PermanentDocument.uploaded_at.desc())
+        ).all()
 
     def count_by_client_record(self, client_record_id: int) -> int:
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalar(
+            select(func.count(PermanentDocument.id)).where(
                 PermanentDocument.client_record_id == client_record_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
-            .count()
         )
 
     def get_by_id_and_client_record(
         self, document_id: int, client_record_id: int
     ) -> Optional[PermanentDocument]:
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalars(
+            select(PermanentDocument).where(
                 PermanentDocument.id == document_id,
                 PermanentDocument.client_record_id == client_record_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
-            .first()
-        )
+        ).first()
 
     def count_by_business(self, business_id: int) -> int:
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalar(
+            select(func.count(PermanentDocument.id)).where(
                 PermanentDocument.business_id == business_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
-            .count()
         )
 
     def search_by_filename(
         self, filename: str, limit: int = 50
     ) -> list[PermanentDocument]:
         term = f"%{filename.strip()}%"
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalars(
+            select(PermanentDocument)
+            .where(
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
                 PermanentDocument.original_filename.ilike(term),
             )
             .order_by(PermanentDocument.uploaded_at.desc())
             .limit(limit)
-            .all()
-        )
+        ).all()
 
     def search_by_query(self, query: str, limit: int = 50) -> list[PermanentDocument]:
         term = f"%{query.strip()}%"
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalars(
+            select(PermanentDocument)
+            .where(
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
                 (
@@ -194,5 +191,4 @@ class PermanentDocumentRepository:
             )
             .order_by(PermanentDocument.uploaded_at.desc())
             .limit(limit)
-            .all()
-        )
+        ).all()

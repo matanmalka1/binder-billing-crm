@@ -62,8 +62,10 @@ class ClientRepository(BaseRepository):
     _ENTITY_TYPE_ORDER = ["osek_patur", "osek_murshe", "company_ltd", "employee"]
 
     def _base_query(self, *, include_deleted: bool = False):
-        query = (
-            self.db.query(ClientRecord, LegalEntity, Person)
+        from sqlalchemy import select
+
+        stmt = (
+            select(ClientRecord, LegalEntity, Person)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .outerjoin(
                 PersonLegalEntityLink,
@@ -75,8 +77,8 @@ class ClientRepository(BaseRepository):
             .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
         )
         if not include_deleted:
-            query = query.filter(ClientRecord.deleted_at.is_(None))
-        return query
+            stmt = stmt.where(ClientRecord.deleted_at.is_(None))
+        return stmt
 
     def _to_view(
         self,
@@ -119,12 +121,12 @@ class ClientRepository(BaseRepository):
             restored_by=record.restored_by,
         )
 
-    def _first_view(self, query) -> Optional[ClientRecordView]:
-        row = query.first()
+    def _first_view(self, stmt) -> Optional[ClientRecordView]:
+        row = self.db.execute(stmt).first()
         return self._to_view(*row) if row else None
 
-    def _list_views(self, query) -> list[ClientRecordView]:
-        return [self._to_view(*row) for row in query.all()]
+    def _list_views(self, stmt) -> list[ClientRecordView]:
+        return [self._to_view(*row) for row in self.db.execute(stmt).all()]
 
     def create(
         self,
@@ -189,25 +191,25 @@ class ClientRepository(BaseRepository):
         )
         return self.get_by_id(record.id)
 
-    def get_by_id(self, client_id: int) -> Optional[ClientRecordView]:
-        return self._first_view(self._base_query().filter(ClientRecord.id == client_id))
+    def get_by_id(self, entity_id: int) -> Optional[ClientRecordView]:
+        return self._first_view(self._base_query().where(ClientRecord.id == entity_id))
 
     def get_by_id_including_deleted(self, client_id: int) -> Optional[ClientRecordView]:
         return self._first_view(
-            self._base_query(include_deleted=True).filter(ClientRecord.id == client_id)
+            self._base_query(include_deleted=True).where(ClientRecord.id == client_id)
         )
 
     def get_active_by_id_number(self, id_number: str) -> list[ClientRecordView]:
         return self._list_views(
             self._base_query()
-            .filter(LegalEntity.id_number == id_number)
+            .where(LegalEntity.id_number == id_number)
             .order_by(ClientRecord.id.asc())
         )
 
     def get_deleted_by_id_number(self, id_number: str) -> list[ClientRecordView]:
         return self._list_views(
             self._base_query(include_deleted=True)
-            .filter(
+            .where(
                 LegalEntity.id_number == id_number,
                 ClientRecord.deleted_at.isnot(None),
             )
@@ -221,16 +223,16 @@ class ClientRepository(BaseRepository):
     def soft_delete(self, client_id: int, deleted_by: int) -> bool:
         return ClientRecordRepository(self.db).soft_delete(client_id, deleted_by)
 
-    def _apply_list_filters(self, query, search=None, status=None):
+    def _apply_list_filters(self, stmt, search=None, status=None):
         if search:
             term = f"%{search.strip()}%"
-            query = query.filter(
+            stmt = stmt.where(
                 LegalEntity.official_name.ilike(term)
                 | LegalEntity.id_number.ilike(term)
             )
         if status:
-            query = query.filter(ClientRecord.status == status)
-        return query
+            stmt = stmt.where(ClientRecord.status == status)
+        return stmt
 
     def list(
         self,
@@ -243,24 +245,25 @@ class ClientRepository(BaseRepository):
     ) -> list[ClientRecordView]:
         from sqlalchemy import asc, case, desc
 
-        query = self._apply_list_filters(self._base_query(), search, status)
+        stmt = self._apply_list_filters(self._base_query(), search, status)
         if sort_by == "entity_type":
             order_map = {v: i for i, v in enumerate(self._ENTITY_TYPE_ORDER)}
             sort_col = case(order_map, value=LegalEntity.entity_type)
         else:
             sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        query = query.order_by(
-            desc(sort_col) if sort_order == "desc" else asc(sort_col)
-        )
-        query = query.offset((page - 1) * page_size).limit(page_size)
-        return self._list_views(query)
+        stmt = stmt.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
+        stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+        return self._list_views(stmt)
 
     def count(
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
     ) -> int:
-        return self._apply_list_filters(self._base_query(), search, status).count()
+        from sqlalchemy import func, select
+
+        subq = self._apply_list_filters(self._base_query(), search, status).subquery()
+        return self.db.execute(select(func.count()).select_from(subq)).scalar_one()
 
     def search(
         self,
@@ -270,20 +273,25 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ClientRecordView], int]:
-        q = self._base_query()
+        from sqlalchemy import func, select
+
+        stmt = self._base_query()
         if query:
             term = f"%{query.strip()}%"
-            q = q.filter(
+            stmt = stmt.where(
                 LegalEntity.official_name.ilike(term)
                 | LegalEntity.id_number.ilike(term)
             )
         if client_name:
-            q = q.filter(LegalEntity.official_name.ilike(f"%{client_name.strip()}%"))
+            stmt = stmt.where(
+                LegalEntity.official_name.ilike(f"%{client_name.strip()}%")
+            )
         if id_number:
-            q = q.filter(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
-        total = q.count()
+            stmt = stmt.where(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
+        subq = stmt.subquery()
+        total = self.db.execute(select(func.count()).select_from(subq)).scalar_one()
         items = (
-            q.order_by(LegalEntity.official_name.asc())
+            stmt.order_by(LegalEntity.official_name.asc())
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
@@ -293,7 +301,7 @@ class ClientRepository(BaseRepository):
         if not client_ids:
             return []
         return self._list_views(
-            self._base_query().filter(ClientRecord.id.in_(client_ids))
+            self._base_query().where(ClientRecord.id.in_(client_ids))
         )
 
     def list_all(self) -> list[ClientRecordView]:
@@ -302,7 +310,9 @@ class ClientRepository(BaseRepository):
         )
 
     def update(self, client_id: int, **fields) -> Optional[ClientRecordView]:
-        row = self._base_query().filter(ClientRecord.id == client_id).first()
+        row = self.db.execute(
+            self._base_query().where(ClientRecord.id == client_id)
+        ).first()
         if not row:
             return None
         record, legal_entity, person = row
@@ -351,14 +361,14 @@ class ClientRepository(BaseRepository):
         return self.get_by_id(client_id)
 
     def count_by_status(self) -> dict[ClientStatus, int]:
-        from sqlalchemy import func
+        from sqlalchemy import func, select
 
-        rows = (
-            self.db.query(ClientRecord.status, func.count(ClientRecord.id))
-            .filter(ClientRecord.deleted_at.is_(None))
+        stmt = (
+            select(ClientRecord.status, func.count(ClientRecord.id))
+            .where(ClientRecord.deleted_at.is_(None))
             .group_by(ClientRecord.status)
-            .all()
         )
+        rows = self.db.execute(stmt).all()
         return {status: count for status, count in rows}
 
     def get_next_office_client_number(self) -> int:

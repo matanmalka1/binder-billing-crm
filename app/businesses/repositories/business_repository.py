@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository_read import BusinessRepositoryRead
@@ -51,7 +52,9 @@ class BusinessRepository(BusinessRepositoryRead):
         return True
 
     def restore(self, business_id: int, restored_by: int) -> Optional[Business]:
-        business = self.db.query(Business).filter(Business.id == business_id).first()
+        business = self.db.scalars(
+            select(Business).where(Business.id == business_id)
+        ).first()
         if not business or business.deleted_at is None:
             return None
         business.deleted_at = None
@@ -63,48 +66,39 @@ class BusinessRepository(BusinessRepositoryRead):
 
     # ─── Read (single) ───────────────────────────────────────────────────────
 
-    def get_by_id(self, business_id: int) -> Optional[Business]:
-        return (
-            self.db.query(Business)
-            .filter(Business.id == business_id, Business.deleted_at.is_(None))
-            .first()
-        )
-
     def get_by_id_including_deleted(self, business_id: int) -> Optional[Business]:
-        return self.db.query(Business).filter(Business.id == business_id).first()
+        return self.db.scalars(
+            select(Business).where(Business.id == business_id)
+        ).first()
 
     def exists_for_legal_entity(self, legal_entity_id: int) -> bool:
         return (
-            self.db.query(Business)
-            .filter(
-                Business.legal_entity_id == legal_entity_id,
-                Business.deleted_at.is_(None),
-            )
-            .first()
+            self.db.scalars(
+                select(Business).where(
+                    Business.legal_entity_id == legal_entity_id,
+                    Business.deleted_at.is_(None),
+                )
+            ).first()
         ) is not None
 
     def all_non_deleted_are_closed_for_legal_entity(self, legal_entity_id: int) -> bool:
-        businesses = (
-            self.db.query(Business)
-            .filter(
+        businesses = self.db.scalars(
+            select(Business).where(
                 Business.legal_entity_id == legal_entity_id,
                 Business.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         return bool(businesses) and all(
             b.status == BusinessStatus.CLOSED for b in businesses
         )
 
     def get_ids_by_legal_entity(self, legal_entity_id: int) -> list[int]:
-        rows = (
-            self.db.query(Business.id)
-            .filter(
+        rows = self.db.execute(
+            select(Business.id).where(
                 Business.legal_entity_id == legal_entity_id,
                 Business.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         return [r[0] for r in rows]
 
     def has_conflicting_sole_trader(

@@ -1,5 +1,7 @@
 from typing import Any
 
+from sqlalchemy import select
+
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
@@ -8,9 +10,10 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.annual_reports.services.constants import VALID_TRANSITIONS
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
+from app.common.services.base_service import BaseService
 
 
-class AnnualReportBaseService:
+class AnnualReportBaseService(BaseService):
     """Shared helpers for annual report service mixins."""
 
     repo: Any  # set by concrete service
@@ -49,9 +52,9 @@ class AnnualReportBaseService:
         legal_entities = (
             {
                 entity.id: entity
-                for entity in self.db.query(LegalEntity)
-                .filter(LegalEntity.id.in_(legal_entity_ids))
-                .all()
+                for entity in self.db.scalars(
+                    select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
+                ).all()
             }
             if legal_entity_ids
             else {}

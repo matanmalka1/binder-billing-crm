@@ -1,6 +1,8 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
+
 from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.schemas.binder import BinderResponse
@@ -25,9 +27,9 @@ class BinderListService:
         legal_entity_by_id = (
             {
                 entity.id: entity
-                for entity in self.db.query(LegalEntity)
-                .filter(LegalEntity.id.in_(legal_entity_ids))
-                .all()
+                for entity in self.db.scalars(
+                    select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
+                ).all()
             }
             if legal_entity_ids
             else {}

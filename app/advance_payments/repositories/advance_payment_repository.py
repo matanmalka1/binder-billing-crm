@@ -4,9 +4,9 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import exists, func, select
 from sqlalchemy.orm import Session
 
-from app.utils.time_utils import utcnow
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
@@ -18,7 +18,9 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
 )
 
 
-class AdvancePaymentRepository(BaseRepository):
+class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
+    model = AdvancePayment
+
     def __init__(self, db: Session):
         super().__init__(db)
         self._agg = AdvancePaymentAggregationRepository(db)
@@ -55,27 +57,16 @@ class AdvancePaymentRepository(BaseRepository):
         self.db.flush()
         return payment
 
-    def get_by_id(self, payment_id: int) -> Optional[AdvancePayment]:
-        return (
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.id == payment_id, AdvancePayment.deleted_at.is_(None)
-            )
-            .first()
-        )
-
     def get_by_id_for_client_record(
         self, payment_id: int, client_record_id: int
     ) -> Optional[AdvancePayment]:
-        return (
-            self.db.query(AdvancePayment)
-            .filter(
+        return self.db.scalars(
+            select(AdvancePayment).where(
                 AdvancePayment.id == payment_id,
                 AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.deleted_at.is_(None),
             )
-            .first()
-        )
+        ).first()
 
     def list_by_client_record_year(
         self,
@@ -85,57 +76,53 @@ class AdvancePaymentRepository(BaseRepository):
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
-        query = (
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.client_record_id == client_record_id,
-                AdvancePayment.period.like(f"{year}-%"),
-                AdvancePayment.deleted_at.is_(None),
-            )
-            .order_by(AdvancePayment.period.asc())
-        )
+        base_where = [
+            AdvancePayment.client_record_id == client_record_id,
+            AdvancePayment.period.like(f"{year}-%"),
+            AdvancePayment.deleted_at.is_(None),
+        ]
         if status:
             normalized = [s.value.lower() for s in status]
-            query = query.filter(advance_payment_status_text_expr().in_(normalized))
-        total = query.count()
-        items = self._paginate(query, page, page_size)
+            base_where.append(advance_payment_status_text_expr().in_(normalized))
+        total = self.db.scalar(select(func.count(AdvancePayment.id)).where(*base_where))
+        stmt = (
+            select(AdvancePayment)
+            .where(*base_where)
+            .order_by(AdvancePayment.period.asc())
+        )
+        stmt = self.apply_pagination(stmt, page, page_size)
+        items = list(self.db.scalars(stmt).all())
         return items, total
 
     def exists_for_period(self, client_record_id: int, period: str) -> bool:
-        return self.db.query(
-            self.db.query(AdvancePayment)
-            .filter(
-                AdvancePayment.client_record_id == client_record_id,
-                AdvancePayment.period == period,
-                AdvancePayment.deleted_at.is_(None),
+        return self.db.scalar(
+            select(
+                exists(
+                    select(AdvancePayment.id).where(
+                        AdvancePayment.client_record_id == client_record_id,
+                        AdvancePayment.period == period,
+                        AdvancePayment.deleted_at.is_(None),
+                    )
+                )
             )
-            .exists()
-        ).scalar()
+        )
 
     def get_by_period(
         self, client_record_id: int, period: str
     ) -> Optional[AdvancePayment]:
-        return (
-            self.db.query(AdvancePayment)
-            .filter(
+        return self.db.scalars(
+            select(AdvancePayment).where(
                 AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period == period,
                 AdvancePayment.deleted_at.is_(None),
             )
-            .first()
-        )
+        ).first()
 
     def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
 
     def soft_delete(self, payment_id: int, deleted_by: int) -> bool:
-        payment = self.get_by_id(payment_id)
-        if not payment:
-            return False
-        payment.deleted_at = utcnow()
-        payment.deleted_by = deleted_by
-        self.db.flush()
-        return True
+        return self._soft_delete_entity(payment_id, deleted_by)
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_intake_edit_log import BinderIntakeEditLog
@@ -33,9 +34,8 @@ class BinderIntakeEditLogRepository:
         return log
 
     def list_by_intake(self, intake_id: int) -> list[BinderIntakeEditLog]:
-        return (
-            self.db.query(BinderIntakeEditLog)
-            .filter(BinderIntakeEditLog.intake_id == intake_id)
+        return self.db.scalars(
+            select(BinderIntakeEditLog)
+            .where(BinderIntakeEditLog.intake_id == intake_id)
             .order_by(BinderIntakeEditLog.changed_at.asc())
-            .all()
-        )
+        ).all()

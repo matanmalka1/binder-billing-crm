@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.clients.models.person import Person
@@ -47,14 +48,12 @@ class PersonRepository:
     def get_by_id_number(
         self, id_number_type: IdNumberType, id_number: str
     ) -> Optional[Person]:
-        return (
-            self.db.query(Person)
-            .filter(
+        return self.db.scalars(
+            select(Person).where(
                 Person.id_number_type == id_number_type,
                 Person.id_number == id_number,
             )
-            .first()
-        )
+        ).first()
 
     def create_link(
         self,
@@ -73,18 +72,14 @@ class PersonRepository:
         return link
 
     def get_owner_for_legal_entity(self, legal_entity_id: int) -> Optional[Person]:
-        return (
-            self.db.query(Person)
-            .join(
-                PersonLegalEntityLink,
-                PersonLegalEntityLink.person_id == Person.id,
-            )
-            .filter(
+        return self.db.scalars(
+            select(Person)
+            .join(PersonLegalEntityLink, PersonLegalEntityLink.person_id == Person.id)
+            .where(
                 PersonLegalEntityLink.legal_entity_id == legal_entity_id,
                 PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER,
             )
-            .first()
-        )
+        ).first()
 
     def ensure_owner(
         self,

@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import (
@@ -58,9 +59,9 @@ class AdvancePaymentAnalyticsService:
         legal_entities = (
             {
                 entity.id: entity
-                for entity in self.db.query(LegalEntity)
-                .filter(LegalEntity.id.in_(legal_entity_ids))
-                .all()
+                for entity in self.db.scalars(
+                    select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
+                ).all()
             }
             if legal_entity_ids
             else {}

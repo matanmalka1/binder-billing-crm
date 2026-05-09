@@ -1,19 +1,17 @@
 from typing import Optional
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
-from app.advance_payments.repositories.advance_payment_repository import (
-    advance_payment_status_text_expr,
-)
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     advance_payment_matches_month_expr,
+    advance_payment_status_text_expr,
 )
 
 
@@ -23,8 +21,8 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
 
     def get_annual_kpis_for_client(self, client_record_id: int, year: int) -> dict:
         today_expr = func.current_date()
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
                     "total_expected"
                 ),
@@ -55,14 +53,12 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                         else_=0,
                     )
                 ).label("on_time_count"),
-            )
-            .filter(
+            ).where(
                 AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
-            .one()
-        )
+        ).one()
         return {
             "total_expected": float(rows.total_expected),
             "total_paid": float(rows.total_paid),
@@ -76,22 +72,22 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         month: Optional[int],
         statuses: list[AdvancePaymentStatus],
     ) -> dict:
-        query = scope_to_active_clients(
-            self.db.query(
+        stmt = scope_to_active_clients_stmt(
+            select(
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
                 func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
             ),
             AdvancePayment,
-        ).filter(
+        ).where(
             AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
-            query = query.filter(advance_payment_matches_month_expr(month))
+            stmt = stmt.where(advance_payment_matches_month_expr(month))
         if statuses:
             normalized = [s.value.lower() for s in statuses]
-            query = query.filter(advance_payment_status_text_expr().in_(normalized))
-        total_expected, total_paid = query.one()
+            stmt = stmt.where(advance_payment_status_text_expr().in_(normalized))
+        total_expected, total_paid = self.db.execute(stmt).one()
         return {
             "total_expected": float(total_expected),
             "total_paid": float(total_paid),

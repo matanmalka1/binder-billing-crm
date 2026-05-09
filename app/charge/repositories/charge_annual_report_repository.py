@@ -1,5 +1,6 @@
 """Charge queries scoped to a specific annual report."""
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -19,13 +20,12 @@ class ChargeAnnualReportRepository(BaseRepository):
         page_size: int = 20,
     ) -> tuple[list[Charge], int]:
         """Return paginated charges linked to an annual report and their total count."""
-        q = (
-            self.db.query(Charge)
-            .filter(
-                Charge.annual_report_id == annual_report_id,
-                Charge.deleted_at.is_(None),
-            )
-            .order_by(Charge.created_at.desc())
+        where = (
+            Charge.annual_report_id == annual_report_id,
+            Charge.deleted_at.is_(None),
         )
-        total = q.count()
-        return self._paginate(q, page, page_size), total
+        total = self.db.scalar(select(func.count(Charge.id)).where(*where))
+        stmt = select(Charge).where(*where).order_by(Charge.created_at.desc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        items = list(self.db.scalars(stmt).all())
+        return items, total

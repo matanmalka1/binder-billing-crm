@@ -32,8 +32,12 @@ class TestDeadlineFieldsFromSnapshot:
             result = deadline_fields_from_snapshot(
                 _snapshot_item(effective), submission_method=method
             )
-            assert result["submission_deadline"] == effective, f"failed for method={method}"
-            assert result["extended_deadline"] == effective, f"extended mismatch for method={method}"
+            assert result["submission_deadline"] == effective, (
+                f"failed for method={method}"
+            )
+            assert result["extended_deadline"] == effective, (
+                f"extended mismatch for method={method}"
+            )
             assert result["statutory_deadline"] == effective
 
     def test_regression_2026_08_exception_no_double_extension(self):

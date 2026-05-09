@@ -51,5 +51,3 @@ def bimonthly_advance_payment_period(reference_date: date) -> tuple[str, str]:
     if start_year != year:
         label = f"{HEBREW_MONTHS[start_month - 1]} {start_year}-{HEBREW_MONTHS[end_month - 1]} {year}"
     return period_key(start_year, start_month), label
-
-

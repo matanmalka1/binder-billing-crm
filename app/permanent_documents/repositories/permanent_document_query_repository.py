@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.permanent_documents.models.permanent_document import PermanentDocument
@@ -18,73 +19,72 @@ class PermanentDocumentQueryRepository:
         tax_year: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> Optional[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
             PermanentDocument.superseded_by == None,  # noqa: E711
         )
         if business_id is None:
-            q = q.filter(PermanentDocument.business_id == None)  # noqa: E711
+            stmt = stmt.where(PermanentDocument.business_id == None)  # noqa: E711
         else:
-            q = q.filter(PermanentDocument.business_id == business_id)
+            stmt = stmt.where(PermanentDocument.business_id == business_id)
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
-        return q.order_by(PermanentDocument.version.desc()).first()
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
+        return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).first()
 
     def get_all_versions(
         self, business_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.business_id == business_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
-        return q.order_by(PermanentDocument.version.desc()).all()
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
+        return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).all()
 
     def get_all_versions_by_client(
         self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
-        return q.order_by(PermanentDocument.version.desc()).all()
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
+        return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).all()
 
     def get_all_versions_by_client_record(
         self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
     ) -> list[PermanentDocument]:
-        q = self.db.query(PermanentDocument).filter(
+        stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
             PermanentDocument.is_deleted == False,  # noqa: E712
         )
         if tax_year is not None:
-            q = q.filter(PermanentDocument.tax_year == tax_year)
-        return q.order_by(PermanentDocument.version.desc()).all()
+            stmt = stmt.where(PermanentDocument.tax_year == tax_year)
+        return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).all()
 
     def list_by_annual_report(self, annual_report_id: int) -> list[PermanentDocument]:
-        return (
-            self.db.query(PermanentDocument)
-            .filter(
+        return self.db.scalars(
+            select(PermanentDocument)
+            .where(
                 PermanentDocument.annual_report_id == annual_report_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
             )
             .order_by(PermanentDocument.uploaded_at.desc())
-            .all()
-        )
+        ).all()
 
     def missing_by_type(
         self, business_id: int, client_record_id: int, required_types: list[str]
     ) -> list[str]:
-        existing = (
-            self.db.query(PermanentDocument.document_type)
-            .filter(
+        existing = self.db.execute(
+            select(PermanentDocument.document_type)
+            .where(
                 (
                     (PermanentDocument.business_id == business_id)
                     | (PermanentDocument.client_record_id == client_record_id)
@@ -93,23 +93,21 @@ class PermanentDocumentQueryRepository:
                 PermanentDocument.superseded_by == None,  # noqa: E711
             )
             .distinct()
-            .all()
-        )
+        ).all()
         existing_types = {row[0] for row in existing}
         return [t for t in required_types if t not in existing_types]
 
     def missing_by_client_type(
         self, client_record_id: int, required_types: list[str]
     ) -> list[str]:
-        existing = (
-            self.db.query(PermanentDocument.document_type)
-            .filter(
+        existing = self.db.execute(
+            select(PermanentDocument.document_type)
+            .where(
                 PermanentDocument.client_record_id == client_record_id,
                 PermanentDocument.is_deleted == False,  # noqa: E712
                 PermanentDocument.superseded_by == None,  # noqa: E711
             )
             .distinct()
-            .all()
-        )
+        ).all()
         existing_types = {row[0] for row in existing}
         return [t for t in required_types if t not in existing_types]

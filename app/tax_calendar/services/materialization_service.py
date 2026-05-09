@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -126,23 +127,21 @@ class TaxCalendarMaterializationService:
 
     def _find_periodic(self, obligation_type, period, months):
         obligation_type = self._obligation(obligation_type)
-        return (
-            self.db.query(TaxCalendarEntry)
-            .filter(TaxCalendarEntry.obligation_type == obligation_type.value)
-            .filter(TaxCalendarEntry.period == period)
-            .filter(TaxCalendarEntry.period_months_count == months)
-            .one_or_none()
-        )
+        return self.db.scalars(
+            select(TaxCalendarEntry).where(
+                TaxCalendarEntry.obligation_type == obligation_type.value,
+                TaxCalendarEntry.period == period,
+                TaxCalendarEntry.period_months_count == months,
+            )
+        ).one_or_none()
 
     def _find_annual(self, tax_year: int):
-        return (
-            self.db.query(TaxCalendarEntry)
-            .filter(
-                TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT.value
+        return self.db.scalars(
+            select(TaxCalendarEntry).where(
+                TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT.value,
+                TaxCalendarEntry.tax_year == tax_year,
             )
-            .filter(TaxCalendarEntry.tax_year == tax_year)
-            .one_or_none()
-        )
+        ).one_or_none()
 
     @staticmethod
     def _periodic_rule_type(obligation_type, months):

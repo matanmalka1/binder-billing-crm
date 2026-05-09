@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_intake import BinderIntake
@@ -32,22 +33,22 @@ class BinderIntakeRepository:
 
     def get_by_id(self, intake_id: int) -> Optional[BinderIntake]:
         """Get a single intake by ID."""
-        return self.db.query(BinderIntake).filter(BinderIntake.id == intake_id).first()
+        return self.db.scalars(
+            select(BinderIntake).where(BinderIntake.id == intake_id)
+        ).first()
 
     def get_first_by_binder(self, binder_id: int) -> Optional[BinderIntake]:
         """Get the earliest intake for a binder (first material received)."""
-        return (
-            self.db.query(BinderIntake)
-            .filter(BinderIntake.binder_id == binder_id)
+        return self.db.scalars(
+            select(BinderIntake)
+            .where(BinderIntake.binder_id == binder_id)
             .order_by(BinderIntake.received_at.asc())
-            .first()
-        )
+        ).first()
 
     def list_by_binder(self, binder_id: int) -> list[BinderIntake]:
         """Get all intakes for a binder, ordered by received_at ascending."""
-        return (
-            self.db.query(BinderIntake)
-            .filter(BinderIntake.binder_id == binder_id)
+        return self.db.scalars(
+            select(BinderIntake)
+            .where(BinderIntake.binder_id == binder_id)
             .order_by(BinderIntake.received_at.asc())
-            .all()
-        )
+        ).all()

@@ -1,7 +1,9 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.dashboard.services.dashboard_extended_builders import unpaid_charge_attention_item
+from app.dashboard.services.dashboard_extended_builders import (
+    unpaid_charge_attention_item,
+)
 
 
 def test_dashboard_extended_builders_return_expected_payload_shapes():

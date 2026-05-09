@@ -124,7 +124,9 @@ def build_vat_actions(
     if not items:
         return []
 
-    client_record_ids = [item.client_record_id for item in items if item.client_record_id]
+    client_record_ids = [
+        item.client_record_id for item in items if item.client_record_id
+    ]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
 
     result: list[dict] = []

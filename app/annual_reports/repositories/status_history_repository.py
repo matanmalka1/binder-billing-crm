@@ -1,5 +1,6 @@
 """Repository operations for annual report status history."""
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
@@ -34,9 +35,8 @@ class AnnualReportStatusHistoryRepository:
     def get_status_history(
         self, annual_report_id: int
     ) -> list[AnnualReportStatusHistory]:
-        return (
-            self.db.query(AnnualReportStatusHistory)
-            .filter(AnnualReportStatusHistory.annual_report_id == annual_report_id)
+        return self.db.scalars(
+            select(AnnualReportStatusHistory)
+            .where(AnnualReportStatusHistory.annual_report_id == annual_report_id)
             .order_by(AnnualReportStatusHistory.occurred_at.asc())
-            .all()
-        )
+        ).all()

@@ -2,11 +2,13 @@
 
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.enums import VatType
 from app.clients.models.client_record import ClientRecord
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories import vat_work_item_extra_queries as extra_queries
@@ -20,20 +22,18 @@ class VatWorkItemQueryRepository:
         self.db = db
 
     def get_by_id(self, item_id: int) -> Optional[VatWorkItem]:
-        return (
-            self.db.query(VatWorkItem)
-            .filter(VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None))
-            .first()
-        )
+        return self.db.scalars(
+            select(VatWorkItem).where(
+                VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None)
+            )
+        ).first()
 
     def _query(self, status: Optional[VatWorkItemStatus] = None):
-        query = scope_to_active_clients(
-            self.db.query(VatWorkItem),
+        stmt = scope_to_active_clients_stmt(
+            select(VatWorkItem),
             VatWorkItem,
-        ).filter(VatWorkItem.deleted_at.is_(None))
-        return (
-            query.filter(VatWorkItem.status == status) if status is not None else query
-        )
+        ).where(VatWorkItem.deleted_at.is_(None))
+        return stmt.where(VatWorkItem.status == status) if status is not None else stmt
 
     def _filtered_query(
         self,
@@ -51,39 +51,35 @@ class VatWorkItemQueryRepository:
 
     def get_by_id_for_update(self, item_id: int) -> Optional[VatWorkItem]:
         """Fetch with a row-level lock for status transitions."""
-        return (
-            self.db.query(VatWorkItem)
-            .filter(VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None))
+        return self.db.scalars(
+            select(VatWorkItem)
+            .where(VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None))
             .with_for_update()
-            .first()
-        )
+        ).first()
 
     def get_by_client_record_period(
         self, client_record_id: int, period: str
     ) -> Optional[VatWorkItem]:
-        return (
-            self.db.query(VatWorkItem)
-            .filter(
+        return self.db.scalars(
+            select(VatWorkItem).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period == period,
                 VatWorkItem.deleted_at.is_(None),
             )
-            .first()
-        )
+        ).first()
 
     def list_by_client_record(
         self, client_record_id: int, limit: int = 200
     ) -> list[VatWorkItem]:
-        return (
-            self.db.query(VatWorkItem)
-            .filter(
+        return self.db.scalars(
+            select(VatWorkItem)
+            .where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.deleted_at.is_(None),
             )
             .order_by(VatWorkItem.period.desc())
             .limit(limit)
-            .all()
-        )
+        ).all()
 
     def list_by_business_activity(
         self, business_activity_id: int, limit: int = 200
@@ -101,11 +97,11 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> list[VatWorkItem]:
-        offset = (page - 1) * page_size
-        q = self._filtered_query(status, period, client_record_ids, period_type)
-        return (
-            q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        stmt = self._filtered_query(status, period, client_record_ids, period_type)
+        stmt = BaseRepository.apply_pagination(
+            stmt.order_by(VatWorkItem.period.desc()), page, page_size
         )
+        return list(self.db.scalars(stmt).all())
 
     def count_by_status(
         self,
@@ -114,9 +110,9 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> int:
-        return self._filtered_query(
-            status, period, client_record_ids, period_type
-        ).count()
+        stmt = self._filtered_query(status, period, client_record_ids, period_type)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        return self.db.scalar(count_stmt)
 
     def list_all(
         self,
@@ -126,11 +122,11 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> list[VatWorkItem]:
-        offset = (page - 1) * page_size
-        q = self._filtered_query(None, period, client_record_ids, period_type)
-        return (
-            q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        stmt = self._filtered_query(None, period, client_record_ids, period_type)
+        stmt = BaseRepository.apply_pagination(
+            stmt.order_by(VatWorkItem.period.desc()), page, page_size
         )
+        return list(self.db.scalars(stmt).all())
 
     def count_all(
         self,
@@ -138,21 +134,20 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> int:
-        return self._filtered_query(
-            None, period, client_record_ids, period_type
-        ).count()
+        stmt = self._filtered_query(None, period, client_record_ids, period_type)
+        count_stmt = select(func.count()).select_from(stmt.subquery())
+        return self.db.scalar(count_stmt)
 
     def count_by_period_not_filed(self, period: str) -> int:
-        return (
-            self.db.query(VatWorkItem)
+        return self.db.scalar(
+            select(func.count(VatWorkItem.id))
             .join(ClientRecord, ClientRecord.id == VatWorkItem.client_record_id)
-            .filter(
+            .where(
                 VatWorkItem.period == period,
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
                 ClientRecord.deleted_at.is_(None),
             )
-            .count()
         )
 
     def sum_net_vat_by_client_record_year(

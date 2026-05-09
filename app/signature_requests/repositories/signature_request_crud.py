@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.signature_requests.models.signature_request import (
@@ -50,46 +51,42 @@ class SignatureRequestCrudMixin:
         return req
 
     def get_by_id(self, request_id: int) -> Optional[SignatureRequest]:
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None)
-            )
-            .first()
+        stmt = select(SignatureRequest).where(
+            SignatureRequest.id == request_id,
+            SignatureRequest.deleted_at.is_(None),
         )
+        return self.db.scalars(stmt).first()
 
     def get_by_token(self, token: str) -> Optional[SignatureRequest]:
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.signing_token == token,
-                SignatureRequest.deleted_at.is_(None),
-            )
-            .first()
+        stmt = select(SignatureRequest).where(
+            SignatureRequest.signing_token == token,
+            SignatureRequest.deleted_at.is_(None),
         )
+        return self.db.scalars(stmt).first()
 
     def get_by_id_for_update(self, request_id: int) -> Optional[SignatureRequest]:
         """Fetch with a row-level lock for status transitions."""
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None)
+        stmt = (
+            select(SignatureRequest)
+            .where(
+                SignatureRequest.id == request_id,
+                SignatureRequest.deleted_at.is_(None),
             )
             .with_for_update()
-            .first()
         )
+        return self.db.scalars(stmt).first()
 
     def get_by_token_for_update(self, token: str) -> Optional[SignatureRequest]:
         """Fetch by signing token with a row-level lock for signer actions."""
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
+        stmt = (
+            select(SignatureRequest)
+            .where(
                 SignatureRequest.signing_token == token,
                 SignatureRequest.deleted_at.is_(None),
             )
             .with_for_update()
-            .first()
         )
+        return self.db.scalars(stmt).first()
 
     # ── List by client (primary) ──────────────────────────────────────────────
 
@@ -101,32 +98,32 @@ class SignatureRequestCrudMixin:
         page_size: int = 20,
     ) -> list[SignatureRequest]:
         """All requests for a legal entity, regardless of business."""
-        query = self.db.query(SignatureRequest).filter(
+        stmt = select(SignatureRequest).where(
             SignatureRequest.client_record_id == client_record_id,
             SignatureRequest.deleted_at.is_(None),
         )
         if status:
-            query = query.filter(SignatureRequest.status == status)
+            stmt = stmt.where(SignatureRequest.status == status)
         offset = (page - 1) * page_size
-        return (
-            query.order_by(SignatureRequest.created_at.desc())
+        stmt = (
+            stmt.order_by(SignatureRequest.created_at.desc())
             .offset(offset)
             .limit(page_size)
-            .all()
         )
+        return self.db.scalars(stmt).all()
 
     def count_by_client_record(
         self,
         client_record_id: int,
         status: Optional[SignatureRequestStatus] = None,
     ) -> int:
-        query = self.db.query(SignatureRequest).filter(
+        stmt = select(func.count(SignatureRequest.id)).where(
             SignatureRequest.client_record_id == client_record_id,
             SignatureRequest.deleted_at.is_(None),
         )
         if status:
-            query = query.filter(SignatureRequest.status == status)
-        return query.count()
+            stmt = stmt.where(SignatureRequest.status == status)
+        return self.db.scalar(stmt)
 
     # ── List by business (scoped view) ────────────────────────────────────────
 
@@ -137,32 +134,32 @@ class SignatureRequestCrudMixin:
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
-        query = self.db.query(SignatureRequest).filter(
+        stmt = select(SignatureRequest).where(
             SignatureRequest.business_id == business_id,
             SignatureRequest.deleted_at.is_(None),
         )
         if status:
-            query = query.filter(SignatureRequest.status == status)
+            stmt = stmt.where(SignatureRequest.status == status)
         offset = (page - 1) * page_size
-        return (
-            query.order_by(SignatureRequest.created_at.desc())
+        stmt = (
+            stmt.order_by(SignatureRequest.created_at.desc())
             .offset(offset)
             .limit(page_size)
-            .all()
         )
+        return self.db.scalars(stmt).all()
 
     def count_by_business(
         self,
         business_id: int,
         status: Optional[SignatureRequestStatus] = None,
     ) -> int:
-        query = self.db.query(SignatureRequest).filter(
+        stmt = select(func.count(SignatureRequest.id)).where(
             SignatureRequest.business_id == business_id,
             SignatureRequest.deleted_at.is_(None),
         )
         if status:
-            query = query.filter(SignatureRequest.status == status)
-        return query.count()
+            stmt = stmt.where(SignatureRequest.status == status)
+        return self.db.scalar(stmt)
 
     # ── Pending (global advisor view) ─────────────────────────────────────────
 
@@ -170,27 +167,24 @@ class SignatureRequestCrudMixin:
         self, page: int = 1, page_size: int = 20
     ) -> list[SignatureRequest]:
         offset = (page - 1) * page_size
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
+        stmt = (
+            select(SignatureRequest)
+            .where(
                 SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
                 SignatureRequest.deleted_at.is_(None),
             )
             .order_by(SignatureRequest.sent_at.asc())
             .offset(offset)
             .limit(page_size)
-            .all()
         )
+        return self.db.scalars(stmt).all()
 
     def count_pending(self) -> int:
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
-                SignatureRequest.deleted_at.is_(None),
-            )
-            .count()
+        stmt = select(func.count(SignatureRequest.id)).where(
+            SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+            SignatureRequest.deleted_at.is_(None),
         )
+        return self.db.scalar(stmt)
 
     def update(
         self,
@@ -216,26 +210,20 @@ class SignatureRequestCrudMixin:
         self, annual_report_id: int
     ) -> list[SignatureRequest]:
         """Return all PENDING_SIGNATURE requests linked to the given annual report."""
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.annual_report_id == annual_report_id,
-                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
-                SignatureRequest.deleted_at.is_(None),
-            )
-            .all()
+        stmt = select(SignatureRequest).where(
+            SignatureRequest.annual_report_id == annual_report_id,
+            SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+            SignatureRequest.deleted_at.is_(None),
         )
+        return self.db.scalars(stmt).all()
 
     def list_expired_pending(self) -> list[SignatureRequest]:
         """Find PENDING_SIGNATURE requests whose expires_at has passed."""
         now = utcnow()
-        return (
-            self.db.query(SignatureRequest)
-            .filter(
-                SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
-                SignatureRequest.expires_at < now,
-                SignatureRequest.expires_at.isnot(None),
-                SignatureRequest.deleted_at.is_(None),
-            )
-            .all()
+        stmt = select(SignatureRequest).where(
+            SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
+            SignatureRequest.expires_at < now,
+            SignatureRequest.expires_at.isnot(None),
+            SignatureRequest.deleted_at.is_(None),
         )
+        return self.db.scalars(stmt).all()

@@ -5,3 +5,10 @@ def scope_to_active_clients(query, owner_model):
     return query.join(
         ClientRecord, ClientRecord.id == owner_model.client_record_id
     ).filter(ClientRecord.deleted_at.is_(None))
+
+
+def scope_to_active_clients_stmt(stmt, owner_model):
+    """SA 2.0 select()-compatible version. Takes a select() stmt, returns stmt with active-client join applied."""
+    return stmt.join(
+        ClientRecord, ClientRecord.id == owner_model.client_record_id
+    ).where(ClientRecord.deleted_at.is_(None))

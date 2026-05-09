@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
@@ -14,7 +15,7 @@ class HealthRepository:
         Must not use raw SQL.
         """
         try:
-            self.db.query(1).first()
+            self.db.execute(select(1))
             return True
         except Exception:
             return False

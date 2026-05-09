@@ -1,8 +1,8 @@
 from typing import Optional
 
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
@@ -32,11 +32,6 @@ class NotificationRepository:
         triggered_by: Optional[int] = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> Notification:
-        if client_record_id is None:
-            raise AppError(
-                "התראה חייבת לשייך לרשומת לקוח",
-                "NOTIFICATION.MISSING_CLIENT_RECORD",
-            )
         notification = Notification(
             client_record_id=client_record_id,
             business_id=business_id,
@@ -76,11 +71,9 @@ class NotificationRepository:
         return notification
 
     def get_by_id(self, notification_id: int) -> Optional[Notification]:
-        return (
-            self.db.query(Notification)
-            .filter(Notification.id == notification_id)
-            .first()
-        )
+        return self.db.scalars(
+            select(Notification).where(Notification.id == notification_id)
+        ).first()
 
     def list_by_client_record(
         self,
@@ -89,20 +82,19 @@ class NotificationRepository:
         page_size: int = 20,
     ) -> list[Notification]:
         offset = (page - 1) * page_size
-        return (
-            self.db.query(Notification)
-            .filter(Notification.client_record_id == client_record_id)
+        return self.db.scalars(
+            select(Notification)
+            .where(Notification.client_record_id == client_record_id)
             .order_by(Notification.created_at.desc())
             .offset(offset)
             .limit(page_size)
-            .all()
-        )
+        ).all()
 
     def count_by_client_record(self, client_record_id: int) -> int:
-        return (
-            self.db.query(Notification)
-            .filter(Notification.client_record_id == client_record_id)
-            .count()
+        return self.db.scalar(
+            select(func.count(Notification.id)).where(
+                Notification.client_record_id == client_record_id
+            )
         )
 
     # ── List by business (scoped view) ────────────────────────────────────────
@@ -114,20 +106,19 @@ class NotificationRepository:
         page_size: int = 20,
     ) -> list[Notification]:
         offset = (page - 1) * page_size
-        return (
-            self.db.query(Notification)
-            .filter(Notification.business_id == business_id)
+        return self.db.scalars(
+            select(Notification)
+            .where(Notification.business_id == business_id)
             .order_by(Notification.created_at.desc())
             .offset(offset)
             .limit(page_size)
-            .all()
-        )
+        ).all()
 
     def count_by_business(self, business_id: int) -> int:
-        return (
-            self.db.query(Notification)
-            .filter(Notification.business_id == business_id)
-            .count()
+        return self.db.scalar(
+            select(func.count(Notification.id)).where(
+                Notification.business_id == business_id
+            )
         )
 
     # ── Paginated list (supports both filters) ────────────────────────────────
@@ -140,18 +131,24 @@ class NotificationRepository:
         business_id: Optional[int] = None,
     ) -> tuple[list[Notification], int]:
         """Return paginated notifications and total count."""
-        q = self.db.query(Notification)
+        count_stmt = select(func.count(Notification.id))
+        list_stmt = select(Notification)
         if client_record_id is not None:
-            q = q.filter(Notification.client_record_id == client_record_id)
+            count_stmt = count_stmt.where(
+                Notification.client_record_id == client_record_id
+            )
+            list_stmt = list_stmt.where(
+                Notification.client_record_id == client_record_id
+            )
         if business_id is not None:
-            q = q.filter(Notification.business_id == business_id)
-        total = q.count()
-        items = (
-            q.order_by(Notification.created_at.desc())
+            count_stmt = count_stmt.where(Notification.business_id == business_id)
+            list_stmt = list_stmt.where(Notification.business_id == business_id)
+        total = self.db.scalar(count_stmt)
+        items = self.db.scalars(
+            list_stmt.order_by(Notification.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
-            .all()
-        )
+        ).all()
         return items, total
 
     def list_recent(
@@ -160,27 +157,30 @@ class NotificationRepository:
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> list[Notification]:
-        q = self.db.query(Notification)
+        stmt = select(Notification)
         if client_record_id is not None:
-            q = q.filter(Notification.client_record_id == client_record_id)
+            stmt = stmt.where(Notification.client_record_id == client_record_id)
         if business_id is not None:
-            q = q.filter(Notification.business_id == business_id)
-        return q.order_by(Notification.created_at.desc()).limit(limit).all()
+            stmt = stmt.where(Notification.business_id == business_id)
+        return self.db.scalars(
+            stmt.order_by(Notification.created_at.desc()).limit(limit)
+        ).all()
 
     # ── Read state ────────────────────────────────────────────────────────────
 
     def mark_read(self, notification_ids: list[int]) -> int:
         """Mark specific notifications as read. Returns count updated."""
         now = utcnow()
-        count = (
-            self.db.query(Notification)
-            .filter(
-                Notification.id.in_(notification_ids), Notification.is_read == False  # noqa: E712
+        result = self.db.execute(
+            update(Notification)
+            .where(
+                Notification.id.in_(notification_ids),
+                Notification.is_read == False,  # noqa: E712
             )
-            .update({"is_read": True, "read_at": now}, synchronize_session=False)
+            .values(is_read=True, read_at=now)
         )
         self.db.flush()
-        return count
+        return result.rowcount
 
     def mark_all_read(
         self,
@@ -189,59 +189,62 @@ class NotificationRepository:
     ) -> int:
         """Mark all unread notifications as read. Returns count updated."""
         now = utcnow()
-        q = self.db.query(Notification).filter(Notification.is_read == False)  # noqa: E712
+        stmt = (
+            update(Notification)
+            .where(Notification.is_read == False)  # noqa: E712
+            .values(is_read=True, read_at=now)
+        )
         if client_record_id is not None:
-            q = q.filter(Notification.client_record_id == client_record_id)
+            stmt = stmt.where(Notification.client_record_id == client_record_id)
         if business_id is not None:
-            q = q.filter(Notification.business_id == business_id)
-        count = q.update({"is_read": True, "read_at": now}, synchronize_session=False)
+            stmt = stmt.where(Notification.business_id == business_id)
+        result = self.db.execute(stmt)
         self.db.flush()
-        return count
+        return result.rowcount
 
     def count_unread(
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
     ) -> int:
-        q = self.db.query(Notification).filter(Notification.is_read == False)  # noqa: E712
+        stmt = select(func.count(Notification.id)).where(
+            Notification.is_read == False  # noqa: E712
+        )
         if client_record_id is not None:
-            q = q.filter(Notification.client_record_id == client_record_id)
+            stmt = stmt.where(Notification.client_record_id == client_record_id)
         if business_id is not None:
-            q = q.filter(Notification.business_id == business_id)
-        return q.count()
+            stmt = stmt.where(Notification.business_id == business_id)
+        return self.db.scalar(stmt)
 
     def exists_for_binder_trigger(
         self, binder_id: int, trigger: NotificationTrigger
     ) -> bool:
         return (
-            self.db.query(Notification)
-            .filter(
-                Notification.binder_id == binder_id, Notification.trigger == trigger
-            )
-            .first()
-        ) is not None
+            self.db.scalars(
+                select(Notification).where(
+                    Notification.binder_id == binder_id, Notification.trigger == trigger
+                )
+            ).first()
+            is not None
+        )
 
     def get_last_for_binder_trigger(
         self, binder_id: int, trigger: NotificationTrigger
     ) -> Optional[Notification]:
-        return (
-            self.db.query(Notification)
-            .filter(
-                Notification.binder_id == binder_id, Notification.trigger == trigger
-            )
+        return self.db.scalars(
+            select(Notification)
+            .where(Notification.binder_id == binder_id, Notification.trigger == trigger)
             .order_by(Notification.created_at.desc())
-            .first()
-        )
+        ).first()
 
     def get_last_for_annual_report_trigger(
         self, annual_report_id: int, trigger: NotificationTrigger
     ) -> Optional[Notification]:
-        return (
-            self.db.query(Notification)
-            .filter(
+        return self.db.scalars(
+            select(Notification)
+            .where(
                 Notification.annual_report_id == annual_report_id,
                 Notification.trigger == trigger,
             )
             .order_by(Notification.created_at.desc())
-            .first()
-        )
+        ).first()

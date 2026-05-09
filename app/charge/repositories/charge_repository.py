@@ -1,17 +1,19 @@
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.charge.models.charge import Charge, ChargeStatus
-from app.utils.time_utils import utcnow
 
 
-class ChargeRepository(BaseRepository):
+class ChargeRepository(BaseRepository[Charge]):
     """Data access layer for Charge entities."""
+
+    model = Charge
 
     def __init__(self, db: Session):
         super().__init__(db)
@@ -41,30 +43,14 @@ class ChargeRepository(BaseRepository):
         self.db.flush()
         return charge
 
-    def get_by_id(self, charge_id: int) -> Optional[Charge]:
-        """Retrieve charge by ID (excludes soft-deleted)."""
-        return (
-            self.db.query(Charge)
-            .filter(Charge.id == charge_id, Charge.deleted_at.is_(None))
-            .first()
-        )
-
-    def get_by_id_for_update(self, charge_id: int) -> Optional[Charge]:
-        """Retrieve charge with a row-level lock for status transitions."""
-        return self._locked_first(
-            self.db.query(Charge).filter(
-                Charge.id == charge_id, Charge.deleted_at.is_(None)
-            )
-        )
-
-    def _base_filter(
+    def _base_stmt(
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
         business_ids: Optional[list[int]] = None,
         status: Optional[str] = None,
         charge_type: Optional[str] = None,
-    ):
+    ) -> Optional[object]:
         """
         Shared filter builder for list and count queries.
 
@@ -73,28 +59,31 @@ class ChargeRepository(BaseRepository):
         - business_id → narrows to a single business within the client
         - business_ids → narrows to a set of businesses (used by bulk/overview queries)
           Note: business_id and business_ids are mutually exclusive; business_id wins.
+
+        Returns None when an explicit empty business_ids list is passed (caller wants
+        zero results).
         """
-        query = scope_to_active_clients(self.db.query(Charge), Charge).filter(
+        stmt = scope_to_active_clients_stmt(select(Charge), Charge).where(
             Charge.deleted_at.is_(None)
         )
 
         if client_record_id is not None:
-            query = query.filter(Charge.client_record_id == client_record_id)
+            stmt = stmt.where(Charge.client_record_id == client_record_id)
 
         if business_id is not None:
-            query = query.filter(Charge.business_id == business_id)
+            stmt = stmt.where(Charge.business_id == business_id)
         elif business_ids is not None:
             if not business_ids:
                 # Explicit empty list → caller wants zero results
                 return None
-            query = query.filter(Charge.business_id.in_(business_ids))
+            stmt = stmt.where(Charge.business_id.in_(business_ids))
 
         if status:
-            query = query.filter(Charge.status == status)
+            stmt = stmt.where(Charge.status == status)
         if charge_type:
-            query = query.filter(Charge.charge_type == charge_type)
+            stmt = stmt.where(Charge.charge_type == charge_type)
 
-        return query
+        return stmt
 
     def list_charges(
         self,
@@ -107,12 +96,14 @@ class ChargeRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Charge]:
         """List charges with optional filters and pagination."""
-        query = self._base_filter(
+        stmt = self._base_stmt(
             client_record_id, business_id, business_ids, status, charge_type
         )
-        if query is None:
+        if stmt is None:
             return []
-        return self._paginate(query.order_by(Charge.created_at.desc()), page, page_size)
+        stmt = stmt.order_by(Charge.created_at.desc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def list_charges_by_client_record(
         self,
@@ -141,12 +132,27 @@ class ChargeRepository(BaseRepository):
         charge_type: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
-        query = self._base_filter(
-            client_record_id, business_id, business_ids, status, charge_type
-        )
-        if query is None:
-            return 0
-        return query.count()
+        # Build a count-specific stmt reusing same filter logic
+        count_stmt = scope_to_active_clients_stmt(
+            select(func.count(Charge.id)), Charge
+        ).where(Charge.deleted_at.is_(None))
+
+        if client_record_id is not None:
+            count_stmt = count_stmt.where(Charge.client_record_id == client_record_id)
+
+        if business_id is not None:
+            count_stmt = count_stmt.where(Charge.business_id == business_id)
+        elif business_ids is not None:
+            if not business_ids:
+                return 0
+            count_stmt = count_stmt.where(Charge.business_id.in_(business_ids))
+
+        if status:
+            count_stmt = count_stmt.where(Charge.status == status)
+        if charge_type:
+            count_stmt = count_stmt.where(Charge.charge_type == charge_type)
+
+        return self.db.scalar(count_stmt)
 
     def count_charges_by_client_record(
         self,
@@ -183,22 +189,23 @@ class ChargeRepository(BaseRepository):
         charge_type: Optional[str] = None,
     ) -> dict[str, dict]:
         """Return count and total amount per status, ignoring status filter."""
-        from decimal import Decimal
-
-        query = scope_to_active_clients(
-            self.db.query(
-                Charge.status, func.count(Charge.id), func.sum(Charge.amount)
+        stmt = scope_to_active_clients_stmt(
+            select(
+                Charge.status,
+                func.count(Charge.id).label("cnt"),
+                func.sum(Charge.amount).label("total"),
             ),
             Charge,
-        ).filter(Charge.deleted_at.is_(None))
+        ).where(Charge.deleted_at.is_(None))
         if client_record_id is not None:
-            query = query.filter(Charge.client_record_id == client_record_id)
+            stmt = stmt.where(Charge.client_record_id == client_record_id)
         if charge_type:
-            query = query.filter(Charge.charge_type == charge_type)
-        rows = query.group_by(Charge.status).all()
+            stmt = stmt.where(Charge.charge_type == charge_type)
+        stmt = stmt.group_by(Charge.status)
+        rows = self.db.execute(stmt).all()
         return {
-            str(s.value): {"count": count, "amount": str(total or Decimal(0))}
-            for s, count, total in rows
+            str(s.value): {"count": cnt, "amount": str(total or Decimal(0))}
+            for s, cnt, total in rows
         }
 
     def get_aging_buckets(self, as_of_date: date) -> list:
@@ -209,9 +216,9 @@ class ChargeRepository(BaseRepository):
 
         issued_date = func.date(Charge.issued_at)
 
-        rows = (
-            scope_to_active_clients(
-                self.db.query(
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(
                     Charge.client_record_id,
                     func.sum(
                         case((issued_date >= str(cut_30), Charge.amount), else_=0)
@@ -246,22 +253,14 @@ class ChargeRepository(BaseRepository):
                 ),
                 Charge,
             )
-            .filter(
+            .where(
                 Charge.status == ChargeStatus.ISSUED.value,
                 Charge.issued_at.isnot(None),
                 Charge.deleted_at.is_(None),
             )
             .group_by(Charge.client_record_id)
-            .all()
         )
-        return rows
+        return self.db.execute(stmt).all()
 
     def soft_delete(self, charge_id: int, deleted_by: int) -> bool:
-        """Soft-delete a charge by setting deleted_at."""
-        charge = self.get_by_id(charge_id)
-        if not charge:
-            return False
-        charge.deleted_at = utcnow()
-        charge.deleted_by = deleted_by
-        self.db.flush()
-        return True
+        return self._soft_delete_entity(charge_id, deleted_by)

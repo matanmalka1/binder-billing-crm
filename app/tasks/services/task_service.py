@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Dict, List, Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import (
@@ -14,7 +15,9 @@ from app.charge.models.charge import Charge, ChargeStatus
 from app.charge.services.constants import UNPAID_CHARGE_TASK_THRESHOLD_DAYS
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import (
+    scope_to_active_clients_stmt,
+)
 from app.reminders.models.reminder import ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.services.reminder_context import build_context_map
@@ -53,12 +56,12 @@ def _urgency(due_date: date, today: date) -> TaskUrgency:
 
 
 def _load_client_name_map(db: Session) -> Dict[int, str]:
-    rows = (
-        db.query(ClientRecord.id, LegalEntity.official_name)
+    stmt = (
+        select(ClientRecord.id, LegalEntity.official_name)
         .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-        .filter(ClientRecord.deleted_at.is_(None))
-        .all()
+        .where(ClientRecord.deleted_at.is_(None))
     )
+    rows = db.execute(stmt).all()
     return {row[0]: row[1] for row in rows}
 
 
@@ -149,16 +152,14 @@ class TaskService:
                 and row.client_record_id != client_record_id
             ):
                 continue
-            vat_item = (
-                self.db.query(VatWorkItem)
-                .filter(
+            vat_item = self.db.scalars(
+                select(VatWorkItem).where(
                     VatWorkItem.client_record_id == row.client_record_id,
                     VatWorkItem.period == row.period,
                     VatWorkItem.status != VatWorkItemStatus.FILED,
                     VatWorkItem.deleted_at.is_(None),
                 )
-                .first()
-            )
+            ).first()
             if not vat_item:
                 continue
             due_date = date(int(row.period[:4]), int(row.period[5:7]), 19)
@@ -181,17 +182,17 @@ class TaskService:
     ) -> List[DeadlineTask]:
         cutoff = self.today + timedelta(days=_UPCOMING_WINDOW_DAYS)
         annual_report = annual_report_models.AnnualReport
-        query = scope_to_active_clients(
-            self.db.query(annual_report),
+        stmt = scope_to_active_clients_stmt(
+            select(annual_report),
             annual_report,
-        ).filter(
+        ).where(
             annual_report.deleted_at.is_(None),
             annual_report.filing_deadline.isnot(None),
             annual_report.filing_deadline <= cutoff,
             annual_report.status.notin_([s.value for s in _DONE_ANNUAL_STATUSES]),
         )
         if client_record_id is not None:
-            query = query.filter(annual_report.client_record_id == client_record_id)
+            stmt = stmt.where(annual_report.client_record_id == client_record_id)
         return [
             DeadlineTask(
                 source_type=TaskType.ANNUAL_REPORT,
@@ -210,16 +211,16 @@ class TaskService:
                 client_name=self._client_name(report.client_record_id),
                 payload=annual_report_payload(report),
             )
-            for report in query.all()
+            for report in self.db.scalars(stmt).all()
         ]
 
     def _advance_payment_tasks(
         self, client_record_id: Optional[int]
     ) -> List[DeadlineTask]:
         cutoff = self.today + timedelta(days=_UPCOMING_WINDOW_DAYS)
-        query = scope_to_active_clients(
-            self.db.query(AdvancePayment), AdvancePayment
-        ).filter(
+        stmt = scope_to_active_clients_stmt(
+            select(AdvancePayment), AdvancePayment
+        ).where(
             AdvancePayment.deleted_at.is_(None),
             AdvancePayment.status.in_(
                 [AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PARTIAL]
@@ -227,7 +228,7 @@ class TaskService:
             AdvancePayment.due_date <= cutoff,
         )
         if client_record_id is not None:
-            query = query.filter(AdvancePayment.client_record_id == client_record_id)
+            stmt = stmt.where(AdvancePayment.client_record_id == client_record_id)
         return [
             DeadlineTask(
                 source_type=TaskType.ADVANCE_PAYMENT,
@@ -239,25 +240,25 @@ class TaskService:
                 client_name=self._client_name(ap.client_record_id),
                 payload=advance_payment_payload(ap),
             )
-            for ap in query.all()
+            for ap in self.db.scalars(stmt).all()
         ]
 
     def _unpaid_charge_tasks(
         self, client_record_id: Optional[int], business_id: Optional[int]
     ) -> List[DeadlineTask]:
         threshold = self.today - timedelta(days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS)
-        query = scope_to_active_clients(self.db.query(Charge), Charge).filter(
+        stmt = scope_to_active_clients_stmt(select(Charge), Charge).where(
             Charge.deleted_at.is_(None),
             Charge.status == ChargeStatus.ISSUED,
             Charge.issued_at.isnot(None),
             Charge.issued_at <= threshold,
         )
         if client_record_id is not None:
-            query = query.filter(Charge.client_record_id == client_record_id)
+            stmt = stmt.where(Charge.client_record_id == client_record_id)
         if business_id is not None:
-            query = query.filter(Charge.business_id == business_id)
+            stmt = stmt.where(Charge.business_id == business_id)
         tasks = []
-        for charge in query.all():
+        for charge in self.db.scalars(stmt).all():
             due_date = charge.issued_at.date() + timedelta(
                 days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS
             )

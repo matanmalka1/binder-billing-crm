@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.clients.models.legal_entity import LegalEntity
@@ -37,21 +38,21 @@ class LegalEntityRepository:
         return entity
 
     def get_by_id(self, entity_id: int) -> Optional[LegalEntity]:
-        return self.db.query(LegalEntity).filter(LegalEntity.id == entity_id).first()
+        return self.db.scalars(
+            select(LegalEntity).where(LegalEntity.id == entity_id)
+        ).first()
 
     def list_by_ids(self, ids: list[int]) -> list[LegalEntity]:
         if not ids:
             return []
-        return self.db.query(LegalEntity).filter(LegalEntity.id.in_(ids)).all()
+        return self.db.scalars(select(LegalEntity).where(LegalEntity.id.in_(ids))).all()
 
     def get_by_id_number(
         self, id_number_type: IdNumberType, id_number: str
     ) -> Optional[LegalEntity]:
-        return (
-            self.db.query(LegalEntity)
-            .filter(
+        return self.db.scalars(
+            select(LegalEntity).where(
                 LegalEntity.id_number_type == id_number_type,
                 LegalEntity.id_number == id_number,
             )
-            .first()
-        )
+        ).first()

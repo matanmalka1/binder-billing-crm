@@ -1,4 +1,4 @@
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import (
@@ -9,7 +9,7 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
     advance_payment_start_month_expr,
     advance_payment_status_text_expr,
 )
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 
 
@@ -20,9 +20,9 @@ class AdvancePaymentBatchRepository(BaseRepository):
     def batch_summary_by_month(self, year: int) -> list:
         today_expr = func.current_date()
         start_month = advance_payment_start_month_expr()
-        return (
-            scope_to_active_clients(
-                self.db.query(
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(
                     start_month.label("month"),
                     AdvancePayment.period_months_count,
                     func.max(AdvancePayment.due_date).label("due_date"),
@@ -71,11 +71,11 @@ class AdvancePaymentBatchRepository(BaseRepository):
                 ),
                 AdvancePayment,
             )
-            .filter(
+            .where(
                 AdvancePayment.period.like(f"{year}-%"),
                 AdvancePayment.deleted_at.is_(None),
             )
             .group_by(start_month, AdvancePayment.period_months_count)
             .order_by(start_month, AdvancePayment.period_months_count)
-            .all()
         )
+        return self.db.execute(stmt).all()

@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_handover import BinderHandover, BinderHandoverBinder
@@ -46,24 +47,21 @@ class BinderHandoverRepository:
         return handover
 
     def get_by_id(self, handover_id: int) -> Optional[BinderHandover]:
-        return (
-            self.db.query(BinderHandover)
-            .filter(BinderHandover.id == handover_id)
-            .first()
-        )
+        return self.db.scalars(
+            select(BinderHandover).where(BinderHandover.id == handover_id)
+        ).first()
 
     def list_by_client_record(self, client_record_id: int) -> list[BinderHandover]:
-        return (
-            self.db.query(BinderHandover)
-            .filter(BinderHandover.client_record_id == client_record_id)
+        return self.db.scalars(
+            select(BinderHandover)
+            .where(BinderHandover.client_record_id == client_record_id)
             .order_by(BinderHandover.handed_over_at.desc())
-            .all()
-        )
+        ).all()
 
     def get_binder_ids_for_handover(self, handover_id: int) -> list[int]:
-        rows = (
-            self.db.query(BinderHandoverBinder.binder_id)
-            .filter(BinderHandoverBinder.handover_id == handover_id)
-            .all()
-        )
+        rows = self.db.execute(
+            select(BinderHandoverBinder.binder_id).where(
+                BinderHandoverBinder.handover_id == handover_id
+            )
+        ).all()
         return [r.binder_id for r in rows]

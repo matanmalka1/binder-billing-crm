@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from sqlalchemy import case, func
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import DocumentType, InvoiceType, VatRateType
@@ -32,8 +32,8 @@ class VatInvoiceAggregationRepository:
           (EXEMPT and ZERO_RATE contribute 0 to output VAT)
         - Input VAT: sum of vat_amount * deduction_rate for EXPENSE invoices
         """
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 VatInvoice.invoice_type,
                 func.sum(
                     case(
@@ -56,13 +56,12 @@ class VatInvoiceAggregationRepository:
                     )
                 ).label("total"),
             )
-            .filter(
+            .where(
                 VatInvoice.work_item_id == work_item_id,
                 VatInvoice.invoice_type.in_((InvoiceType.INCOME, InvoiceType.EXPENSE)),
             )
             .group_by(VatInvoice.invoice_type)
-            .all()
-        )
+        ).all()
         grouped = {row.invoice_type: Decimal(str(row.total or 0)) for row in rows}
         output_vat = grouped.get(InvoiceType.INCOME, Decimal("0"))
         input_vat = grouped.get(InvoiceType.EXPENSE, Decimal("0"))
@@ -70,18 +69,17 @@ class VatInvoiceAggregationRepository:
 
     def sum_net_both_types(self, work_item_id: int) -> tuple[Decimal, Decimal]:
         """Return (output_net, input_net) — sum of net_amount for INCOME and EXPENSE."""
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 VatInvoice.invoice_type,
                 func.sum(self._signed_amount(VatInvoice.net_amount)).label("total"),
             )
-            .filter(
+            .where(
                 VatInvoice.work_item_id == work_item_id,
                 VatInvoice.invoice_type.in_((InvoiceType.INCOME, InvoiceType.EXPENSE)),
             )
             .group_by(VatInvoice.invoice_type)
-            .all()
-        )
+        ).all()
         grouped = {row.invoice_type: Decimal(str(row.total or 0)) for row in rows}
         return (
             grouped.get(InvoiceType.INCOME, Decimal("0")),
@@ -95,16 +93,15 @@ class VatInvoiceAggregationRepository:
 
         Used for OSEK PATUR ceiling enforcement.
         """
-        result = (
-            self.db.query(func.sum(self._signed_amount(VatInvoice.net_amount)))
+        result = self.db.scalar(
+            select(func.sum(self._signed_amount(VatInvoice.net_amount)))
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
-            .filter(
+            .where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatInvoice.invoice_type == InvoiceType.INCOME,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),
             )
-            .scalar()
         )
         return Decimal(str(result or 0))
 
@@ -116,21 +113,20 @@ class VatInvoiceAggregationRepository:
         Aggregates across all work items for this client in the given tax year.
         Used by annual reports auto-population to map VAT expense categories.
         """
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 VatInvoice.expense_category,
                 func.sum(self._signed_amount(VatInvoice.net_amount)).label("total"),
             )
             .join(VatWorkItem, VatInvoice.work_item_id == VatWorkItem.id)
-            .filter(
+            .where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatInvoice.invoice_type == InvoiceType.EXPENSE,
                 VatWorkItem.period.like(f"{year}-%"),
                 VatWorkItem.deleted_at.is_(None),
             )
             .group_by(VatInvoice.expense_category)
-            .all()
-        )
+        ).all()
         return {
             (row.expense_category.value if row.expense_category else "other"): Decimal(
                 str(row.total or 0)

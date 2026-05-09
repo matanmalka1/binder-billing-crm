@@ -5,9 +5,9 @@ from datetime import timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import israel_today, utcnow
@@ -23,8 +23,8 @@ DASHBOARD_FINAL_STATUSES = frozenset(
 
 
 class AnnualReportLifecycleRepository:
-    def _active_client_query(self):
-        return scope_to_active_clients(self.db.query(AnnualReport), AnnualReport)
+    def _active_client_stmt(self):
+        return scope_to_active_clients_stmt(select(AnnualReport), AnnualReport)
 
     def list_overdue(
         self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20
@@ -37,35 +37,32 @@ class AnnualReportLifecycleRepository:
             AnnualReportStatus.IN_PREPARATION,
             AnnualReportStatus.PENDING_CLIENT,
         ]
-        q = self._active_client_query().filter(
+        stmt = self._active_client_stmt().where(
             AnnualReport.status.in_(open_statuses),
             AnnualReport.filing_deadline < now,
             AnnualReport.filing_deadline.isnot(None),
             AnnualReport.deleted_at.is_(None),
         )
         if tax_year:
-            q = q.filter(AnnualReport.tax_year == tax_year)
-        q = q.order_by(AnnualReport.filing_deadline.asc())
-        return self._paginate(q, page, page_size)
+            stmt = stmt.where(AnnualReport.tax_year == tax_year)
+        stmt = stmt.order_by(AnnualReport.filing_deadline.asc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def sum_financials_by_year(self, tax_year: int) -> dict:
-        row = (
-            scope_to_active_clients(
-                self.db.query(
-                    func.coalesce(func.sum(AnnualReport.refund_due), 0).label(
-                        "total_refund_due"
-                    ),
-                    func.coalesce(func.sum(AnnualReport.tax_due), 0).label(
-                        "total_tax_due"
-                    ),
+        stmt = scope_to_active_clients_stmt(
+            select(
+                func.coalesce(func.sum(AnnualReport.refund_due), 0).label(
+                    "total_refund_due"
                 ),
-                AnnualReport,
-            )
-            .filter(
-                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
-            )
-            .one()
+                func.coalesce(func.sum(AnnualReport.tax_due), 0).label("total_tax_due"),
+            ),
+            AnnualReport,
+        ).where(
+            AnnualReport.tax_year == tax_year,
+            AnnualReport.deleted_at.is_(None),
         )
+        row = self.db.execute(stmt).one()
         return {
             "total_refund_due": Decimal(str(row.total_refund_due)),
             "total_tax_due": Decimal(str(row.total_tax_due)),
@@ -76,9 +73,9 @@ class AnnualReportLifecycleRepository:
     ) -> list[AnnualReport]:
         """Return reports stuck in PENDING_CLIENT or COLLECTING_DOCS for >= stale_days."""
         cutoff = _dt.datetime.now(timezone.utc) - _dt.timedelta(days=stale_days)
-        return (
-            self._active_client_query()
-            .filter(
+        stmt = (
+            self._active_client_stmt()
+            .where(
                 AnnualReport.status.in_(
                     [
                         AnnualReportStatus.PENDING_CLIENT,
@@ -90,16 +87,16 @@ class AnnualReportLifecycleRepository:
             )
             .order_by(AnnualReport.updated_at.asc())
             .limit(limit)
-            .all()
         )
+        return list(self.db.scalars(stmt).all())
 
     def list_for_dashboard(self, limit: int = 50) -> list[AnnualReport]:
         """Return non-final reports with a filing_deadline set, ordered by deadline asc.
         Excludes reports older than 2 years to avoid unsupported tax year errors."""
         cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=730)
-        return (
-            self._active_client_query()
-            .filter(
+        stmt = (
+            self._active_client_stmt()
+            .where(
                 AnnualReport.status.notin_(list(DASHBOARD_FINAL_STATUSES)),
                 AnnualReport.filing_deadline.isnot(None),
                 AnnualReport.filing_deadline >= cutoff,
@@ -107,13 +104,13 @@ class AnnualReportLifecycleRepository:
             )
             .order_by(AnnualReport.filing_deadline.asc())
             .limit(limit)
-            .all()
         )
+        return list(self.db.scalars(stmt).all())
 
     def get_default_tax_year_candidate(self) -> Optional[AnnualReport]:
-        return (
-            self._active_client_query()
-            .filter(
+        stmt = (
+            self._active_client_stmt()
+            .where(
                 AnnualReport.status.notin_(list(DASHBOARD_FINAL_STATUSES)),
                 AnnualReport.filing_deadline.isnot(None),
                 AnnualReport.filing_deadline >= israel_today(),
@@ -121,31 +118,28 @@ class AnnualReportLifecycleRepository:
             )
             .order_by(AnnualReport.filing_deadline.asc())
             .limit(1)
-            .first()
         )
+        return self.db.scalars(stmt).first()
 
     def get_latest_tax_year(self) -> Optional[int]:
-        return (
-            self._active_client_query()
-            .with_entities(func.max(AnnualReport.tax_year))
-            .filter(AnnualReport.deleted_at.is_(None))
-            .scalar()
-        )
+        stmt = scope_to_active_clients_stmt(
+            select(func.max(AnnualReport.tax_year)), AnnualReport
+        ).where(AnnualReport.deleted_at.is_(None))
+        return self.db.scalar(stmt)
 
     def get_season_summary(self, tax_year: int) -> dict:
-        rows = (
-            scope_to_active_clients(
-                self.db.query(
-                    AnnualReport.status, func.count(AnnualReport.id).label("cnt")
-                ),
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(AnnualReport.status, func.count(AnnualReport.id).label("cnt")),
                 AnnualReport,
             )
-            .filter(
-                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
+            .where(
+                AnnualReport.tax_year == tax_year,
+                AnnualReport.deleted_at.is_(None),
             )
             .group_by(AnnualReport.status)
-            .all()
         )
+        rows = self.db.execute(stmt).all()
         summary = {s.value: 0 for s in AnnualReportStatus}
         total = 0
         for row in rows:

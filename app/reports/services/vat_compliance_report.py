@@ -31,6 +31,8 @@ def _vat_deadline(period_year: int, period_month: int) -> date:
     return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
 
 
+from sqlalchemy import select  # noqa: E402
+
 from app.clients.models.legal_entity import LegalEntity  # noqa: E402
 from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: E402
 from app.reports.constants import VAT_STALE_PENDING_DAYS  # noqa: E402
@@ -129,9 +131,9 @@ class VatComplianceReportService:
         records = self.client_repo.list_by_ids(list(set(client_record_ids)))
         legal_entity_ids = list({record.legal_entity_id for record in records})
         entities = (
-            self.db.query(LegalEntity)
-            .filter(LegalEntity.id.in_(legal_entity_ids))
-            .all()
+            self.db.scalars(
+                select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
+            ).all()
             if legal_entity_ids
             else []
         )

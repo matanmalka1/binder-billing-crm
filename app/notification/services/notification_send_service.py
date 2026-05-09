@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import config
@@ -70,21 +71,17 @@ class NotificationSendService:
     def _get_business_and_client(
         self, business_id: int
     ) -> tuple[Business, Person | None] | None:
-        row = (
-            self.db.query(Business, Person)
-            .outerjoin(
-                LegalEntity,
-                LegalEntity.id == Business.legal_entity_id,
-            )
+        row = self.db.execute(
+            select(Business, Person)
+            .outerjoin(LegalEntity, LegalEntity.id == Business.legal_entity_id)
             .outerjoin(
                 PersonLegalEntityLink,
                 (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
                 & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
             )
             .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
-            .filter(Business.id == business_id)
-            .first()
-        )
+            .where(Business.id == business_id)
+        ).first()
         if not row:
             return None
         business, person = row
@@ -95,8 +92,8 @@ class NotificationSendService:
         return business, person
 
     def _get_client(self, client_record_id: int) -> Person | None:
-        person = (
-            self.db.query(Person)
+        person = self.db.execute(
+            select(Person)
             .select_from(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .outerjoin(
@@ -105,9 +102,8 @@ class NotificationSendService:
                 & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
             )
             .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
-            .filter(ClientRecord.id == client_record_id)
-            .first()
-        )
+            .where(ClientRecord.id == client_record_id)
+        ).scalar()
         if person is None:
             logger.warning("ClientRecord id=%s has no linked Person", client_record_id)
         return person
@@ -115,15 +111,12 @@ class NotificationSendService:
     def _get_client_record_id_for_business(self, business: Business) -> int | None:
         if business.legal_entity_id is None:
             return None
-        row = (
-            self.db.query(ClientRecord.id)
-            .filter(
+        return self.db.scalars(
+            select(ClientRecord.id).where(
                 ClientRecord.legal_entity_id == business.legal_entity_id,
                 ClientRecord.deleted_at.is_(None),
             )
-            .first()
-        )
-        return row[0] if row else None
+        ).first()
 
     def bulk_notify(
         self,

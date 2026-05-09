@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.signature_requests.models.signature_request import SignatureAuditEvent
@@ -36,9 +37,8 @@ class SignatureRequestAuditMixin:
         return event
 
     def list_audit_events(self, signature_request_id: int) -> list[SignatureAuditEvent]:
-        return (
-            self.db.query(SignatureAuditEvent)
-            .filter(SignatureAuditEvent.signature_request_id == signature_request_id)
+        return self.db.scalars(
+            select(SignatureAuditEvent)
+            .where(SignatureAuditEvent.signature_request_id == signature_request_id)
             .order_by(SignatureAuditEvent.occurred_at.asc())
-            .all()
-        )
+        ).all()

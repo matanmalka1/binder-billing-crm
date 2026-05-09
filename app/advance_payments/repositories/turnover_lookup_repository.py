@@ -3,6 +3,7 @@
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -36,16 +37,14 @@ class TurnoverLookupRepository:
             for i in range(period_months_count)
         ]
 
-        rows = (
-            self.db.query(VatWorkItem.id, VatWorkItem.total_output_net)
-            .filter(
+        rows = self.db.execute(
+            select(VatWorkItem.id, VatWorkItem.total_output_net).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(periods),
                 VatWorkItem.status.in_(_FINAL_STATUSES),
                 VatWorkItem.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         if not rows:
             return None, None
 
@@ -70,18 +69,16 @@ class TurnoverLookupRepository:
             for i in range(months_count):
                 all_periods.add(f"{year}-{str(start_month + i).zfill(2)}")
 
-        rows = (
-            self.db.query(
+        rows = self.db.execute(
+            select(
                 VatWorkItem.id, VatWorkItem.period, VatWorkItem.total_output_net
-            )
-            .filter(
+            ).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(all_periods),
                 VatWorkItem.status.in_(_FINAL_STATUSES),
                 VatWorkItem.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         by_period = {r.period: (r.id, Decimal(str(r.total_output_net))) for r in rows}
 
         result: dict[str, tuple[Optional[Decimal], Optional[int]]] = {}

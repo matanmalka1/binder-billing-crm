@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -55,14 +56,12 @@ class TimelineService:
             raise NotFoundError(
                 message="לקוח לא נמצא", code="TIMELINE.CLIENT_NOT_FOUND"
             )
-        businesses = (
-            self.db.query(Business)
-            .filter(
+        businesses = self.db.scalars(
+            select(Business).where(
                 Business.legal_entity_id == client_record.legal_entity_id,
                 Business.deleted_at.is_(None),
             )
-            .all()
-        )
+        ).all()
         business_ids = [business.id for business in businesses]
         client_record_id = int(client_record.id)
 
@@ -131,21 +130,20 @@ class TimelineService:
             events.append(binder_status_change_event(binder, status_log))
 
     def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
-        query = (
-            self.db.query(AnnualReport, AnnualReportStatusHistory)
+        stmt = (
+            select(AnnualReport, AnnualReportStatusHistory)
             .join(
                 AnnualReportStatusHistory,
                 AnnualReportStatusHistory.annual_report_id == AnnualReport.id,
             )
-            .filter(AnnualReport.deleted_at.is_(None))
+            .where(AnnualReport.deleted_at.is_(None))
         )
         if client_record_id is not None:
-            query = query.filter(AnnualReport.client_record_id == client_record_id)
-        rows = (
-            query.order_by(AnnualReportStatusHistory.occurred_at.desc())
-            .limit(_TIMELINE_BULK_LIMIT)
-            .all()
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        stmt = stmt.order_by(AnnualReportStatusHistory.occurred_at.desc()).limit(
+            _TIMELINE_BULK_LIMIT
         )
+        rows = self.db.execute(stmt).all()
         return [
             annual_report_status_changed_event(report, history)
             for report, history in rows

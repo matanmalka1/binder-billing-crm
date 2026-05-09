@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
@@ -79,9 +80,11 @@ class BinderOperationsService:
             binder.client_record_id
         )
         legal_entity = (
-            self.db.query(LegalEntity)
-            .filter(LegalEntity.id == client_record.legal_entity_id)
-            .first()
+            self.db.scalars(
+                select(LegalEntity).where(
+                    LegalEntity.id == client_record.legal_entity_id
+                )
+            ).first()
             if client_record
             else None
         )

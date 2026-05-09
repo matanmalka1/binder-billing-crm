@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from app.annual_reports.models.annual_report_income_line import (
     AnnualReportIncomeLine,
@@ -34,19 +34,16 @@ class AnnualReportIncomeRepository:
         return line
 
     def list_by_report(self, annual_report_id: int) -> list[AnnualReportIncomeLine]:
-        return (
-            self.db.query(AnnualReportIncomeLine)
-            .filter(AnnualReportIncomeLine.annual_report_id == annual_report_id)
+        return self.db.scalars(
+            select(AnnualReportIncomeLine)
+            .where(AnnualReportIncomeLine.annual_report_id == annual_report_id)
             .order_by(AnnualReportIncomeLine.source_type.asc())
-            .all()
-        )
+        ).all()
 
     def get_by_id(self, line_id: int) -> Optional[AnnualReportIncomeLine]:
-        return (
-            self.db.query(AnnualReportIncomeLine)
-            .filter(AnnualReportIncomeLine.id == line_id)
-            .first()
-        )
+        return self.db.scalars(
+            select(AnnualReportIncomeLine).where(AnnualReportIncomeLine.id == line_id)
+        ).first()
 
     def update(self, line_id: int, **fields) -> Optional[AnnualReportIncomeLine]:
         line = self.get_by_id(line_id)
@@ -69,10 +66,10 @@ class AnnualReportIncomeRepository:
         return True
 
     def total_income(self, annual_report_id: int) -> Decimal:
-        result = (
-            self.db.query(func.coalesce(func.sum(AnnualReportIncomeLine.amount), 0))
-            .filter(AnnualReportIncomeLine.annual_report_id == annual_report_id)
-            .scalar()
+        result = self.db.scalar(
+            select(func.coalesce(func.sum(AnnualReportIncomeLine.amount), 0)).where(
+                AnnualReportIncomeLine.annual_report_id == annual_report_id
+            )
         )
         return Decimal(str(result))
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
@@ -50,33 +50,36 @@ class CorrespondenceRepository:
         to_date: Optional[datetime] = None,
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
-        base = self.db.query(Correspondence).filter(
-            Correspondence.deleted_at.is_(None),
-        )
-
+        filters = [Correspondence.deleted_at.is_(None)]
         if client_record_id is not None:
-            base = base.filter(Correspondence.client_record_id == client_record_id)
+            filters.append(Correspondence.client_record_id == client_record_id)
         if business_id is not None:
-            base = base.filter(Correspondence.business_id == business_id)
+            filters.append(Correspondence.business_id == business_id)
         if correspondence_type is not None:
-            base = base.filter(
-                Correspondence.correspondence_type == correspondence_type
-            )
+            filters.append(Correspondence.correspondence_type == correspondence_type)
         if contact_id is not None:
-            base = base.filter(Correspondence.contact_id == contact_id)
+            filters.append(Correspondence.contact_id == contact_id)
         if from_date is not None:
-            base = base.filter(Correspondence.occurred_at >= from_date)
+            filters.append(Correspondence.occurred_at >= from_date)
         if to_date is not None:
-            base = base.filter(Correspondence.occurred_at <= to_date)
+            filters.append(Correspondence.occurred_at <= to_date)
 
-        total = base.with_entities(func.count()).scalar() or 0
+        total = (
+            self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
+        )
         order = (
             Correspondence.occurred_at.desc()
             if sort_dir == "desc"
             else Correspondence.occurred_at.asc()
         )
         offset = (page - 1) * page_size
-        items = base.order_by(order).offset(offset).limit(page_size).all()
+        items = self.db.scalars(
+            select(Correspondence)
+            .where(*filters)
+            .order_by(order)
+            .offset(offset)
+            .limit(page_size)
+        ).all()
         return items, total
 
     def list_by_client_paginated(
@@ -117,38 +120,44 @@ class CorrespondenceRepository:
         to_date: Optional[datetime] = None,
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
-        base = self.db.query(Correspondence).filter(
+        filters = [
             Correspondence.deleted_at.is_(None),
             Correspondence.client_record_id == client_record_id,
-        )
+        ]
         if business_id is not None:
-            base = base.filter(Correspondence.business_id == business_id)
+            filters.append(Correspondence.business_id == business_id)
         if correspondence_type is not None:
-            base = base.filter(
-                Correspondence.correspondence_type == correspondence_type
-            )
+            filters.append(Correspondence.correspondence_type == correspondence_type)
         if contact_id is not None:
-            base = base.filter(Correspondence.contact_id == contact_id)
+            filters.append(Correspondence.contact_id == contact_id)
         if from_date is not None:
-            base = base.filter(Correspondence.occurred_at >= from_date)
+            filters.append(Correspondence.occurred_at >= from_date)
         if to_date is not None:
-            base = base.filter(Correspondence.occurred_at <= to_date)
-        total = base.with_entities(func.count()).scalar() or 0
+            filters.append(Correspondence.occurred_at <= to_date)
+        total = (
+            self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
+        )
         order = (
             Correspondence.occurred_at.desc()
             if sort_dir == "desc"
             else Correspondence.occurred_at.asc()
         )
         offset = (page - 1) * page_size
-        items = base.order_by(order).offset(offset).limit(page_size).all()
+        items = self.db.scalars(
+            select(Correspondence)
+            .where(*filters)
+            .order_by(order)
+            .offset(offset)
+            .limit(page_size)
+        ).all()
         return items, total
 
     def get_by_id(self, entry_id: int) -> Optional[Correspondence]:
-        return (
-            self.db.query(Correspondence)
-            .filter(Correspondence.id == entry_id, Correspondence.deleted_at.is_(None))
-            .first()
-        )
+        return self.db.scalars(
+            select(Correspondence).where(
+                Correspondence.id == entry_id, Correspondence.deleted_at.is_(None)
+            )
+        ).first()
 
     def update(self, entry_id: int, **fields) -> Optional[Correspondence]:
         entry = self.get_by_id(entry_id)

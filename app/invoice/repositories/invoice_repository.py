@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.invoice.models.invoice import Invoice
@@ -34,18 +35,27 @@ class InvoiceRepository:
 
     def get_by_id(self, invoice_id: int) -> Optional[Invoice]:
         """Retrieve invoice by ID."""
-        return self.db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        return self.db.scalars(select(Invoice).where(Invoice.id == invoice_id)).first()
 
     def get_by_charge_id(self, charge_id: int) -> Optional[Invoice]:
         """Retrieve invoice by charge ID."""
-        return self.db.query(Invoice).filter(Invoice.charge_id == charge_id).first()
+        return self.db.scalars(
+            select(Invoice).where(Invoice.charge_id == charge_id)
+        ).first()
 
     def list_by_charge_ids(self, charge_ids: list[int]) -> list["Invoice"]:
         """Batch-fetch invoices for a list of charge IDs (single query)."""
         if not charge_ids:
             return []
-        return self.db.query(Invoice).filter(Invoice.charge_id.in_(charge_ids)).all()
+        return self.db.scalars(
+            select(Invoice).where(Invoice.charge_id.in_(charge_ids))
+        ).all()
 
     def exists_for_charge(self, charge_id: int) -> bool:
         """Check if invoice exists for charge."""
-        return self.db.query(Invoice).filter(Invoice.charge_id == charge_id).count() > 0
+        return (
+            self.db.scalar(
+                select(func.count(Invoice.id)).where(Invoice.charge_id == charge_id)
+            )
+            > 0
+        )

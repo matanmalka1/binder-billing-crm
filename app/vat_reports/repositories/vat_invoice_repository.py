@@ -8,6 +8,7 @@ This class re-exposes them via composition for backward compatibility.
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_enums import (
@@ -72,30 +73,30 @@ class VatInvoiceRepository:
         return invoice
 
     def get_by_id(self, invoice_id: int) -> Optional[VatInvoice]:
-        return self.db.query(VatInvoice).filter(VatInvoice.id == invoice_id).first()
+        return self.db.scalars(
+            select(VatInvoice).where(VatInvoice.id == invoice_id)
+        ).first()
 
     def get_by_number(
         self, work_item_id: int, invoice_type: InvoiceType, invoice_number: str
     ) -> Optional[VatInvoice]:
-        return (
-            self.db.query(VatInvoice)
-            .filter(
+        return self.db.scalars(
+            select(VatInvoice).where(
                 VatInvoice.work_item_id == work_item_id,
                 VatInvoice.invoice_type == invoice_type,
                 VatInvoice.invoice_number == invoice_number,
             )
-            .first()
-        )
+        ).first()
 
     def list_by_work_item(
         self,
         work_item_id: int,
         invoice_type: Optional[InvoiceType] = None,
     ) -> list[VatInvoice]:
-        q = self.db.query(VatInvoice).filter(VatInvoice.work_item_id == work_item_id)
+        stmt = select(VatInvoice).where(VatInvoice.work_item_id == work_item_id)
         if invoice_type:
-            q = q.filter(VatInvoice.invoice_type == invoice_type)
-        return q.order_by(VatInvoice.invoice_date.asc()).all()
+            stmt = stmt.where(VatInvoice.invoice_type == invoice_type)
+        return self.db.scalars(stmt.order_by(VatInvoice.invoice_date.asc())).all()
 
     def update(self, invoice_id: int, **fields) -> Optional[VatInvoice]:
         invoice = self.get_by_id(invoice_id)

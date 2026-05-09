@@ -2,6 +2,7 @@
 
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.vat_reports.models.vat_audit_log import VatAuditLog
@@ -35,20 +36,19 @@ class VatAuditLogRepository:
         return entry
 
     def count_audit_trail(self, work_item_id: int) -> int:
-        return (
-            self.db.query(VatAuditLog)
-            .filter(VatAuditLog.work_item_id == work_item_id)
-            .count()
+        return self.db.scalar(
+            select(func.count(VatAuditLog.id)).where(
+                VatAuditLog.work_item_id == work_item_id
+            )
         )
 
     def get_audit_trail(
         self, work_item_id: int, limit: int, offset: int
     ) -> list[VatAuditLog]:
-        return (
-            self.db.query(VatAuditLog)
-            .filter(VatAuditLog.work_item_id == work_item_id)
+        return self.db.scalars(
+            select(VatAuditLog)
+            .where(VatAuditLog.work_item_id == work_item_id)
             .order_by(VatAuditLog.performed_at.desc())
             .offset(offset)
             .limit(limit)
-            .all()
-        )
+        ).all()

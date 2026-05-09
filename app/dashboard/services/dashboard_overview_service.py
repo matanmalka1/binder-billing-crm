@@ -60,7 +60,9 @@ class DashboardOverviewService:
             else {"deadline_items": [], "reminder_items": []}
         )
         attention_empty_checks = (
-            build_attention_empty_checks(open_charges=attention_data["open_charges_count"])
+            build_attention_empty_checks(
+                open_charges=attention_data["open_charges_count"]
+            )
             if is_advisor
             else []
         )
@@ -68,8 +70,12 @@ class DashboardOverviewService:
         has_clients = self.client_record_repo.count() > 0
         return {
             "is_empty": not has_clients,
-            "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
-            "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
+            "binders_in_office": self.binder_repo.count_by_status(
+                BinderStatus.IN_OFFICE
+            ),
+            "binders_ready_for_pickup": self.binder_repo.count_by_status(
+                BinderStatus.READY_FOR_PICKUP
+            ),
             "manual_reminders_due_now": manual_reminders_due_now,
             "open_charges_count": attention_data["open_charges_count"],
             "open_charges_amount_ils": attention_data["open_charges_amount_ils"],

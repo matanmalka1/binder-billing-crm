@@ -1,14 +1,17 @@
 from typing import Optional
 
-from sqlalchemy.orm import Query as SAQuery, Session
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
 from app.utils.time_utils import utcnow
 
 
-class AuthorityContactRepository(BaseRepository):
+class AuthorityContactRepository(BaseRepository[AuthorityContact]):
     """Data access layer for AuthorityContact entities."""
+
+    model = AuthorityContact
 
     def __init__(self, db: Session):
         super().__init__(db)
@@ -37,26 +40,16 @@ class AuthorityContactRepository(BaseRepository):
         self.db.flush()
         return contact
 
-    def get_by_id(self, contact_id: int) -> Optional[AuthorityContact]:
-        """Retrieve contact by ID (excludes soft-deleted)."""
-        return (
-            self.db.query(AuthorityContact)
-            .filter(
-                AuthorityContact.id == contact_id, AuthorityContact.deleted_at.is_(None)
-            )
-            .first()
-        )
-
-    def _base_query(
+    def _base_where(
         self, client_record_id: int, contact_type: Optional[ContactType] = None
-    ) -> SAQuery:
-        query = self.db.query(AuthorityContact).filter(
+    ) -> list:
+        conditions = [
             AuthorityContact.client_record_id == client_record_id,
             AuthorityContact.deleted_at.is_(None),
-        )
+        ]
         if contact_type:
-            query = query.filter(AuthorityContact.contact_type == contact_type)
-        return query
+            conditions.append(AuthorityContact.contact_type == contact_type)
+        return conditions
 
     def list_by_client_record(
         self,
@@ -65,17 +58,24 @@ class AuthorityContactRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[AuthorityContact]:
-        query = self._base_query(client_record_id, contact_type).order_by(
-            AuthorityContact.created_at.desc()
+        stmt = (
+            select(AuthorityContact)
+            .where(*self._base_where(client_record_id, contact_type))
+            .order_by(AuthorityContact.created_at.desc())
         )
-        return self._paginate(query, page, page_size)
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count_by_client_record(
         self,
         client_record_id: int,
         contact_type: Optional[ContactType] = None,
     ) -> int:
-        return self._base_query(client_record_id, contact_type).count()
+        return self.db.scalar(
+            select(func.count(AuthorityContact.id)).where(
+                *self._base_where(client_record_id, contact_type)
+            )
+        )
 
     def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
         """Update contact fields."""

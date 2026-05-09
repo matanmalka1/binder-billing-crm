@@ -2,10 +2,10 @@
 
 from typing import Optional
 
-from sqlalchemy import Integer, String, case, cast, func
+from sqlalchemy import Integer, String, case, cast, func, select
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
@@ -44,37 +44,35 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         month: Optional[int],
         statuses: list[AdvancePaymentStatus],
     ) -> list[AdvancePayment]:
-        query = scope_to_active_clients(
-            self.db.query(AdvancePayment), AdvancePayment
-        ).filter(
+        stmt = scope_to_active_clients_stmt(
+            select(AdvancePayment), AdvancePayment
+        ).where(
             AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
-            query = query.filter(advance_payment_matches_month_expr(month))
+            stmt = stmt.where(advance_payment_matches_month_expr(month))
         if statuses:
             normalized = [s.value.lower() for s in statuses]
-            query = query.filter(advance_payment_status_text_expr().in_(normalized))
-        return query.all()
+            stmt = stmt.where(advance_payment_status_text_expr().in_(normalized))
+        return list(self.db.scalars(stmt).all())
 
     def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
-        result = (
-            self.db.query(func.coalesce(func.sum(AdvancePayment.paid_amount), 0))
-            .filter(
+        result = self.db.scalar(
+            select(func.coalesce(func.sum(AdvancePayment.paid_amount), 0)).where(
                 AdvancePayment.client_record_id == client_record_id,
                 AdvancePayment.period.like(f"{year}-%"),
                 advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value,
                 AdvancePayment.deleted_at.is_(None),
             )
-            .scalar()
         )
         return float(result)
 
     def get_collections_aggregates(self, year: int, month=None) -> list:
         """Per-client aggregates for the collections report."""
         today_expr = func.current_date()
-        query = scope_to_active_clients(
-            self.db.query(
+        stmt = scope_to_active_clients_stmt(
+            select(
                 AdvancePayment.client_record_id,
                 func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
                     "total_expected"
@@ -100,10 +98,10 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                 ).label("overdue_count"),
             ),
             AdvancePayment,
-        ).filter(
+        ).where(
             AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
-            query = query.filter(advance_payment_matches_month_expr(month))
-        return query.group_by(AdvancePayment.client_record_id).all()
+            stmt = stmt.where(advance_payment_matches_month_expr(month))
+        return self.db.execute(stmt.group_by(AdvancePayment.client_record_id)).all()

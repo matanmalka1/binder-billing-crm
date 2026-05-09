@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
@@ -21,11 +22,9 @@ class AnnualReportDetailRepository:
         self.db = db
 
     def get_by_report_id(self, report_id: int) -> Optional[AnnualReportDetail]:
-        return (
-            self.db.query(AnnualReportDetail)
-            .filter(AnnualReportDetail.report_id == report_id)
-            .first()
-        )
+        return self.db.scalars(
+            select(AnnualReportDetail).where(AnnualReportDetail.report_id == report_id)
+        ).first()
 
     def update_meta(self, report_id: int, **fields) -> AnnualReportDetail:
         """Update only business metadata columns (approval, notes, amendment reason, deductions)."""

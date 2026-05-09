@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -48,17 +49,16 @@ class UserAuditLogRepository(BaseRepository):
         from_ts: Optional[datetime] = None,
         to_ts: Optional[datetime] = None,
     ) -> list[UserAuditLog]:
-        query = self._build_query(
+        stmt = self._build_query(
             action=action,
             target_user_id=target_user_id,
             actor_user_id=actor_user_id,
             email=email,
             from_ts=from_ts,
             to_ts=to_ts,
-        )
-        return self._paginate(
-            query.order_by(UserAuditLog.created_at.desc()), page, page_size
-        )
+        ).order_by(UserAuditLog.created_at.desc())
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all())
 
     def count(
         self,
@@ -69,14 +69,16 @@ class UserAuditLogRepository(BaseRepository):
         from_ts: Optional[datetime] = None,
         to_ts: Optional[datetime] = None,
     ) -> int:
-        return self._build_query(
+        stmt = self._build_query(
             action=action,
             target_user_id=target_user_id,
             actor_user_id=actor_user_id,
             email=email,
             from_ts=from_ts,
             to_ts=to_ts,
-        ).count()
+            count_only=True,
+        )
+        return self.db.scalar(stmt)
 
     def _build_query(
         self,
@@ -86,18 +88,21 @@ class UserAuditLogRepository(BaseRepository):
         email: Optional[str],
         from_ts: Optional[datetime],
         to_ts: Optional[datetime],
+        count_only: bool = False,
     ):
-        query = self.db.query(UserAuditLog)
+        stmt = (
+            select(func.count(UserAuditLog.id)) if count_only else select(UserAuditLog)
+        )
         if action is not None:
-            query = query.filter(UserAuditLog.action == action)
+            stmt = stmt.where(UserAuditLog.action == action)
         if target_user_id is not None:
-            query = query.filter(UserAuditLog.target_user_id == target_user_id)
+            stmt = stmt.where(UserAuditLog.target_user_id == target_user_id)
         if actor_user_id is not None:
-            query = query.filter(UserAuditLog.actor_user_id == actor_user_id)
+            stmt = stmt.where(UserAuditLog.actor_user_id == actor_user_id)
         if email is not None:
-            query = query.filter(UserAuditLog.email == email)
+            stmt = stmt.where(UserAuditLog.email == email)
         if from_ts is not None:
-            query = query.filter(UserAuditLog.created_at >= from_ts)
+            stmt = stmt.where(UserAuditLog.created_at >= from_ts)
         if to_ts is not None:
-            query = query.filter(UserAuditLog.created_at <= to_ts)
-        return query
+            stmt = stmt.where(UserAuditLog.created_at <= to_ts)
+        return stmt

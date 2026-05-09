@@ -1,5 +1,6 @@
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
@@ -39,33 +40,30 @@ class BinderIntakeMaterialRepository:
         return material
 
     def list_by_intake(self, intake_id: int) -> list[BinderIntakeMaterial]:
-        return (
-            self.db.query(BinderIntakeMaterial)
-            .filter(BinderIntakeMaterial.intake_id == intake_id)
+        return self.db.scalars(
+            select(BinderIntakeMaterial)
+            .where(BinderIntakeMaterial.intake_id == intake_id)
             .order_by(BinderIntakeMaterial.id.asc())
-            .all()
-        )
+        ).all()
 
     def list_by_binder(self, binder_id: int) -> list[BinderIntakeMaterial]:
         """Return all materials across all intakes for a binder (via join)."""
         from app.binders.models.binder_intake import BinderIntake
 
-        return (
-            self.db.query(BinderIntakeMaterial)
+        return self.db.scalars(
+            select(BinderIntakeMaterial)
             .join(BinderIntake, BinderIntake.id == BinderIntakeMaterial.intake_id)
-            .filter(BinderIntake.binder_id == binder_id)
+            .where(BinderIntake.binder_id == binder_id)
             .order_by(BinderIntakeMaterial.id.asc())
-            .all()
-        )
+        ).all()
 
     def get_last_by_binder(self, binder_id: int) -> Optional[BinderIntakeMaterial]:
         """Return the most recent material across all intakes for a binder."""
         from app.binders.models.binder_intake import BinderIntake
 
-        return (
-            self.db.query(BinderIntakeMaterial)
+        return self.db.scalars(
+            select(BinderIntakeMaterial)
             .join(BinderIntake, BinderIntake.id == BinderIntakeMaterial.intake_id)
-            .filter(BinderIntake.binder_id == binder_id)
+            .where(BinderIntake.binder_id == binder_id)
             .order_by(BinderIntake.received_at.desc(), BinderIntakeMaterial.id.desc())
-            .first()
-        )
+        ).first()
