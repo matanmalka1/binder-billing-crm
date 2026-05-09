@@ -1,50 +1,23 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.binders.models.binder import BinderStatus
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.users.models.user import UserRole
 
 
-def test_get_attention_items_returns_idle_and_ready_items(test_db, monkeypatch):
+def test_get_attention_items_returns_empty_for_non_advisor(test_db):
     service = DashboardExtendedService(test_db)
-    ready_binder = SimpleNamespace(
-        id=2,
-        client_record_id=12,
-        binder_number="READY-1",
-        period_start=date(2026, 2, 15),
-        status=BinderStatus.READY_FOR_PICKUP,
-    )
-    business_ready = SimpleNamespace(id=12, full_name="Ready Client")
-
-    monkeypatch.setattr(
-        service,
-        "_active_binders_with_businesses",
-        lambda: [(ready_binder, business_ready)],
-    )
 
     items = service.get_attention_items(
         user_role=None, reference_date=date(2026, 3, 10)
     )
-    item_types = [item["item_type"] for item in items]
-    assert item_types == ["ready_for_pickup"]
+    assert items == []
 
 
 def test_get_attention_items_advisor_skips_unmapped_charge_clients(
-    test_db, monkeypatch
+    test_db,
 ):
     service = DashboardExtendedService(test_db)
-    binder = SimpleNamespace(
-        id=3,
-        client_record_id=13,
-        binder_number="NOATTN",
-        period_start=date(2026, 2, 15),
-        status=BinderStatus.IN_OFFICE,
-    )
-    business_obj = SimpleNamespace(id=13, full_name="No Attention")
-    monkeypatch.setattr(
-        service, "_active_binders_with_businesses", lambda: [(binder, business_obj)]
-    )
     service.charge_repo = SimpleNamespace(
         list_charges=lambda **kwargs: [
             SimpleNamespace(business_id=999, client_record_id=999, id=1, amount=10)
@@ -58,16 +31,8 @@ def test_get_attention_items_advisor_skips_unmapped_charge_clients(
     assert items == []
 
 
-def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeypatch):
+def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db):
     service = DashboardExtendedService(test_db)
-    binder = SimpleNamespace(
-        id=5,
-        client_record_id=20,
-        binder_number="NORM-1",
-        period_start=date(2026, 2, 1),
-        status=BinderStatus.IN_OFFICE,
-    )
-    business = SimpleNamespace(id=20, full_name="Mapped Business")
     mapped_charge_business = SimpleNamespace(id=77, business_name="Charge Business")
     charge = SimpleNamespace(
         id=4,
@@ -83,9 +48,6 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     client_record = SimpleNamespace(id=88, legal_entity_id=99)
     legal_entity = SimpleNamespace(id=99, official_name="Legal Client")
 
-    monkeypatch.setattr(
-        service, "_active_binders_with_businesses", lambda: [(binder, business)]
-    )
     service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])
     service.business_repo = SimpleNamespace(
         list_by_ids=lambda ids: [mapped_charge_business]
@@ -113,7 +75,7 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     assert items[0]["charge_period"] == "2026-02"
 
 
-def test_get_attention_items_advisor_includes_client_level_charge(test_db, monkeypatch):
+def test_get_attention_items_advisor_includes_client_level_charge(test_db):
     service = DashboardExtendedService(test_db)
     charge = SimpleNamespace(
         id=5,
@@ -129,7 +91,6 @@ def test_get_attention_items_advisor_includes_client_level_charge(test_db, monke
     client_record = SimpleNamespace(id=89, legal_entity_id=100)
     legal_entity = SimpleNamespace(id=100, official_name="Client Level")
 
-    monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [])
     service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])
     service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
     service.client_record_repo = SimpleNamespace(

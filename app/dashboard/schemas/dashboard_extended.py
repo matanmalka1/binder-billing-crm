@@ -52,13 +52,7 @@ class UnpaidChargesAttentionItem(BaseAttentionItem):
     item_type: Literal["unpaid_charges"]
 
 
-class ReadyForPickupAttentionItem(BaseAttentionItem):
-    item_type: Literal["ready_for_pickup"]
-
-
-AttentionItem = (
-    UnpaidChargeAttentionItem | UnpaidChargesAttentionItem | ReadyForPickupAttentionItem
-)
+AttentionItem = UnpaidChargeAttentionItem | UnpaidChargesAttentionItem
 
 
 class AttentionResponse(BaseModel):

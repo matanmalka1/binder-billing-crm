@@ -89,12 +89,10 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
   - monthly/bimonthly VAT: `/tax/vat?period=YYYY-MM&period_type=...`
   - ready reminders: `/reminders?status=pending&due=ready`
 - Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
-- Attention is computed from active binders and their statuses.
-- Advisor-only attention enrichment includes unpaid issued charges.
-- The attention payload uses typed items whose `item_type` is currently `ready_for_pickup`, `unpaid_charge`, or `unpaid_charges`.
+- Advisor-only attention includes unpaid issued charges.
+- The attention payload uses typed items whose `item_type` is currently `unpaid_charge` or `unpaid_charges`.
 - Tax-submission widget derives progress buckets from annual-report statuses and active client count.
 - `DashboardExtendedService` has hard in-memory safety limits:
-  - Active binders fetch ceiling: `1000`
   - Unpaid charges fetch ceiling: `500`
   - Exceeding limits raises `DASHBOARD.LIMIT_EXCEEDED`.
 

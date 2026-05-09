@@ -1,19 +1,10 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.dashboard.services.dashboard_extended_builders import (
-    ready_attention_item,
-    unpaid_charge_attention_item,
-)
+from app.dashboard.services.dashboard_extended_builders import unpaid_charge_attention_item
 
 
 def test_dashboard_extended_builders_return_expected_payload_shapes():
-    binder = SimpleNamespace(
-        id=10,
-        client_record_id=20,
-        binder_number="DB-100",
-        period_start=date(2026, 3, 1),
-    )
     business = SimpleNamespace(
         id=20, full_name="Dashboard Client", business_name="Dashboard Client"
     )
@@ -27,10 +18,6 @@ def test_dashboard_extended_builders_return_expected_payload_shapes():
         invoice=SimpleNamespace(id=1048),
         period="2026-03",
     )
-    ready = ready_attention_item(binder, business)
-    assert ready["item_type"] == "ready_for_pickup"
-    assert "מוכן לאיסוף" in ready["description"]
-
     unpaid = unpaid_charge_attention_item(
         charge, business, reference_date=date(2026, 3, 16)
     )

@@ -52,7 +52,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(
         service.extended_service,
         "get_attention_items",
-        lambda user_role=None: [{"item_type": "ready_for_pickup"}],
+        lambda user_role=None: [{"item_type": "unpaid_charge"}],
     )
 
     overview = service.get_overview(
@@ -68,14 +68,13 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     assert overview["vat_stats"]["bimonthly"]["period_label"] == "ינואר-פברואר 2026"
     assert overview["quick_actions"] == [{"key": "ready", "period": "2026-03"}]
     assert overview["attention"] == {
-        "items": [{"item_type": "ready_for_pickup"}],
+        "items": [{"item_type": "unpaid_charge"}],
         "total": 1,
     }
     assert overview["advisor_today"]["deadline_items"] == [{"id": 1, "label": "מע״מ"}]
     assert overview["attention_empty_checks"] == [
         {"key": "overdue_reminders", "label": "אין תזכורות באיחור"},
         {"key": "pending_vat", "label": "אין דוחות מע״מ ממתינים"},
-        {"key": "ready_binders", "label": "אין קלסרים שממתינים לאיסוף"},
         {"key": "open_charges", "label": "אין חיובים פתוחים"},
     ]
 
