@@ -76,6 +76,37 @@ def test_unified_includes_tasks_and_reminders(test_db):
     assert "reminder" in types
 
 
+def test_unified_can_exclude_reminders(test_db):
+    from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+
+    biz = create_business(test_db)
+    today = date.today()
+    create_linked_advance_payment(
+        test_db,
+        client_record_id=biz.client_id,
+        period="2026-05",
+        due_date=today + timedelta(days=5),
+    )
+    reminder = Reminder(
+        client_record_id=biz.client_id,
+        reminder_type=ReminderType.CUSTOM,
+        status=ReminderStatus.PENDING,
+        target_date=today + timedelta(days=2),
+        days_before=0,
+        send_on=today,
+        message="תזכורת בדיקה",
+    )
+    test_db.add(reminder)
+    test_db.commit()
+
+    items = TaskService(test_db).get_unified(
+        client_record_id=biz.client_id,
+        include_reminders=False,
+    )
+
+    assert {i.item_type for i in items} == {"task"}
+
+
 def test_unified_advance_payment_includes_source_payload(test_db):
     biz = create_business(test_db)
     due_date = date.today() - timedelta(days=1)

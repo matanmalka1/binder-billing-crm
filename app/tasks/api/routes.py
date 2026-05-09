@@ -42,9 +42,11 @@ def list_unified(
     client_record_id: Optional[int] = Query(None),
     business_id: Optional[int] = Query(None),
     exclude_source_types: Optional[List[TaskType]] = Query(None),
+    include_reminders: bool = Query(True),
 ):
     return TaskService(db).get_unified(
         client_record_id=client_record_id,
         business_id=business_id,
         exclude_source_types=exclude_source_types,
+        include_reminders=include_reminders,
     )

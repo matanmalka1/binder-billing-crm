@@ -95,11 +95,15 @@ class TaskService:
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
         exclude_source_types: Optional[List[TaskType]] = None,
+        include_reminders: bool = True,
     ) -> List[UnifiedItem]:
         unified: List[UnifiedItem] = [
             _task_to_unified(t)
             for t in self.get_tasks(client_record_id, business_id, exclude_source_types)
         ]
+        if not include_reminders:
+            unified.sort(key=lambda x: x.due_date)
+            return unified
 
         reminder_repo = ReminderRepository(self.db)
         business_repo = BusinessRepository(self.db)
