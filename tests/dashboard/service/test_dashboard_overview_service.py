@@ -59,7 +59,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         user_role=UserRole.ADVISOR,
     )
 
-    assert overview["total_clients"] == 6
+    assert overview["is_empty"] is False
     assert overview["manual_reminders_due_now"] == 3
     assert overview["open_charges_count"] == 1
     assert overview["open_charges_amount_ils"] == "₪300"
@@ -104,7 +104,7 @@ def test_get_overview_empty_checks_when_no_open_charges(test_db, monkeypatch):
         user_role=UserRole.ADVISOR,
     )
 
-    assert overview["total_clients"] == 6
+    assert overview["is_empty"] is False
     assert overview["manual_reminders_due_now"] == 0
     assert overview["open_charges_count"] == 0
     assert overview["attention_empty_checks"] == [
@@ -139,5 +139,4 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
 
     overview = service.get_overview(reference_date=date(2026, 4, 30))
 
-    assert overview["total_clients"] == 0
-    assert "empty_state" not in overview
+    assert overview["is_empty"] is True

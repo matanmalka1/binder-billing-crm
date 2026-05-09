@@ -8,9 +8,8 @@ Manages dashboard widgets and operational summaries (overview metrics, attention
 ## Scope
 
 This module provides:
-- Dashboard summary counters
 - Management overview metrics + quick actions
-- Attention items feed
+- Attention items embedded in the overview
 - Tax submission widget for annual reports
 - Role-based API access per widget
 
@@ -19,7 +18,6 @@ This module provides:
 Dashboard does not define persistent domain tables.
 
 It composes data from other domains and returns derived response models:
-- `DashboardSummaryResponse`
 - `DashboardOverviewResponse`
 - `AttentionResponse`
 - `AttentionItem`
@@ -27,45 +25,26 @@ It composes data from other domains and returns derived response models:
 - `TaxSubmissionWidgetResponse`
 
 Implementation references:
-- APIs: `app/dashboard/api/dashboard.py`, `app/dashboard/api/dashboard_overview.py`, `app/dashboard/api/dashboard_extended.py`, `app/dashboard/api/dashboard_tax.py`
-- Schemas: `app/dashboard/schemas/dashboard.py`, `app/dashboard/schemas/dashboard_extended.py`, `app/dashboard/schemas/dashboard_tax.py`
-- Services: `app/dashboard/services/dashboard_service.py`, `app/dashboard/services/dashboard_overview_service.py`, `app/dashboard/services/dashboard_extended_service.py`, `app/dashboard/services/dashboard_tax_service.py`
+- APIs: `app/dashboard/api/dashboard_overview.py`, `app/dashboard/api/dashboard_tax.py`
+- Schemas: `app/dashboard/schemas/dashboard_extended.py`, `app/dashboard/schemas/dashboard_tax.py`
+- Services: `app/dashboard/services/dashboard_overview_service.py`, `app/dashboard/services/dashboard_extended_service.py`, `app/dashboard/services/dashboard_tax_service.py`
 - Dashboard-specific helpers/builders: `app/dashboard/services/dashboard_extended_builders.py`, `app/dashboard/services/dashboard_quick_actions_builder.py`
 
 ## API
 
 Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
-### Summary
-- `GET /api/v1/dashboard/summary`
-- Roles: `ADVISOR`, `SECRETARY`
-- Returns:
-  - `total_clients`
-  - `active_clients`
-  - `binders_in_office`
-  - `binders_ready_for_pickup`
-  - `open_reminders`
-  - `vat_stats` (`monthly`, `bimonthly`)
-  - `attention` (`items`, `total`)
-
 ### Overview
 - `GET /api/v1/dashboard/overview`
-- Role: `ADVISOR` only
+- Roles: `ADVISOR`, `SECRETARY`
 - Returns management-level overview:
-  - `total_clients`
-  - `active_clients`
-  - `active_binders`
+  - `is_empty`
   - `binders_in_office`
   - `binders_ready_for_pickup`
-  - `open_reminders`
-  - `vat_stats` (`monthly`, `bimonthly`)
+  - `manual_reminders_due_now`
+  - `vat_stats` (`monthly`, `bimonthly`, `advance_payments`)
   - `quick_actions`
   - `attention`
-
-### Attention
-- `GET /api/v1/dashboard/attention`
-- Roles: `ADVISOR`, `SECRETARY`
-- Returns attention items requiring action/review.
 
 ### Tax submissions widget
 - `GET /api/v1/dashboard/tax-submissions`
@@ -80,11 +59,9 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
 ## Behavior Notes
 
-- Summary counters are based on binder statuses (`IN_OFFICE`, `READY_FOR_PICKUP`) and include attention feed.
 - Overview combines repository metrics with cross-domain quick actions and attention items.
 - Quick actions are advisor-only operational shortcuts for overdue binders, VAT work items, and stuck annual reports. Financial state mutations are intentionally kept out of quick actions.
 - Dashboard stat card links deep-link to their matching filtered list views:
-  - active clients: `/clients?status=active`
   - binders in office: `/binders?status=in_office`
   - monthly/bimonthly VAT: `/tax/vat?period=YYYY-MM&period_type=...`
   - ready reminders: `/reminders?status=pending&due=ready`
@@ -120,10 +97,8 @@ Dashboard aggregates across:
 ## Tests
 
 Dashboard test suites:
-- `tests/dashboard/api/test_dashboard_summary.py`
 - `tests/dashboard/api/test_dashboard_extended.py`
 - `tests/dashboard/api/test_dashboard_tax.py`
-- `tests/dashboard/service/test_dashboard_service.py`
 - `tests/dashboard/service/test_dashboard_extended_service.py`
 - `tests/dashboard/service/test_dashboard_overview_service.py`
 - `tests/dashboard/service/test_dashboard_tax_service.py`

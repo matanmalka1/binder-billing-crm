@@ -16,6 +16,13 @@ from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
 
+try:
+    from tax_rules.registry import get_effective_periodic_date as _registry_periodic
+except Exception:
+    _registry_periodic = None
+
+_REGISTRY_COLUMN = "effective_vat_periodic_and_income_tax_advances"
+
 
 def deadline_fields_from_snapshot(
     item, submission_method: Optional[SubmissionMethod] = None
@@ -58,15 +65,33 @@ def compute_deadline_fields(
         due_month_raw = end_month + 1
         deadline_year = year + 1 if due_month_raw > 12 else year
         deadline_month = due_month_raw - 12 if due_month_raw > 12 else due_month_raw
-        statutory_deadline = date(
+        registry_deadline = None
+        if _registry_periodic is not None:
+            cal_year = year + (end_month - 1) // 12
+            cal_month = (end_month - 1) % 12 + 1
+            period_key = f"{cal_year}-{cal_month:02d}"
+            try:
+                raw = _registry_periodic(cal_year, period_key, _REGISTRY_COLUMN)
+                registry_deadline = date.fromisoformat(raw) if raw else None
+            except Exception as exc:
+                logger.warning(
+                    "Failed to load VAT deadline from tax rules for period '%s': %s",
+                    item.period,
+                    exc,
+                )
+        statutory_deadline = registry_deadline or date(
             deadline_year,
             deadline_month,
             VAT_STATUTORY_DEADLINE_DAY,
         )
-        extended_deadline = date(
-            deadline_year,
-            deadline_month,
-            VAT_ONLINE_EXTENDED_DEADLINE_DAY,
+        extended_deadline = (
+            statutory_deadline
+            if registry_deadline
+            else date(
+                deadline_year,
+                deadline_month,
+                VAT_ONLINE_EXTENDED_DEADLINE_DAY,
+            )
         )
         submission_deadline = (
             extended_deadline

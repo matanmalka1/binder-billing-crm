@@ -68,14 +68,10 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     assert r_history.status_code == 200
     assert r_history.json()["binder_id"] == b_open.id
 
-    r_summary = client.get("/api/v1/dashboard/summary", headers=advisor_headers)
-    assert r_summary.status_code == 200
-    assert "binders_in_office" in r_summary.json()
-
     r_overview = client.get("/api/v1/dashboard/overview", headers=advisor_headers)
     assert r_overview.status_code == 200
-    assert "total_clients" in r_overview.json()
-    assert "active_clients" in r_overview.json()
+    assert "is_empty" in r_overview.json()
+    assert "binders_in_office" in r_overview.json()
 
     assert test_db.query(Binder).count() == baseline["binders"]
     assert test_db.query(BinderStatusLog).count() == baseline["logs"]

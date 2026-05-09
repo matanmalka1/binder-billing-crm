@@ -17,6 +17,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.dashboard.services.dashboard_periods import monthly_vat_period
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
@@ -118,7 +119,7 @@ def build_vat_actions(
     business_repo: BusinessRepository,
     today: date,
 ) -> list[dict]:
-    current_period = today.strftime("%Y-%m")
+    current_period, _label = monthly_vat_period(today)
     items = vat_repo.list_open_up_to_period(current_period)
     if not items:
         return []

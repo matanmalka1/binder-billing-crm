@@ -109,10 +109,3 @@ class DashboardExtendedService:
             "open_charges_count": open_charges_count,
             "open_charges_amount_ils": open_charges_amount_ils,
         }
-
-    def get_attention_items(
-        self,
-        user_role: Optional[UserRole] = None,
-        reference_date: Optional[date] = None,
-    ) -> list[dict]:
-        return self.get_attention_data(user_role=user_role, reference_date=reference_date)["items"]

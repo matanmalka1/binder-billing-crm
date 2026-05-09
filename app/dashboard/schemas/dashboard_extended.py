@@ -102,7 +102,7 @@ class AttentionEmptyCheck(BaseModel):
 class DashboardOverviewResponse(BaseModel):
     """Dashboard overview — advisor gets full data, secretary gets operational subset."""
 
-    total_clients: int
+    is_empty: bool
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0
     manual_reminders_due_now: int = 0

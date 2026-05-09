@@ -65,8 +65,9 @@ class DashboardOverviewService:
             else []
         )
 
+        has_clients = self.client_record_repo.count() > 0
         return {
-            "total_clients": self.client_record_repo.count(),
+            "is_empty": not has_clients,
             "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(BinderStatus.READY_FOR_PICKUP),
             "manual_reminders_due_now": manual_reminders_due_now,

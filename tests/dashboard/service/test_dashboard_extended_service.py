@@ -5,16 +5,16 @@ from app.dashboard.services.dashboard_extended_service import DashboardExtendedS
 from app.users.models.user import UserRole
 
 
-def test_get_attention_items_returns_empty_for_non_advisor(test_db):
+def test_get_attention_data_returns_empty_for_non_advisor(test_db):
     service = DashboardExtendedService(test_db)
 
-    items = service.get_attention_items(
+    data = service.get_attention_data(
         user_role=None, reference_date=date(2026, 3, 10)
     )
-    assert items == []
+    assert data["items"] == []
 
 
-def test_get_attention_items_advisor_skips_unmapped_charge_clients(
+def test_get_attention_data_advisor_skips_unmapped_charge_clients(
     test_db,
 ):
     service = DashboardExtendedService(test_db)
@@ -25,13 +25,13 @@ def test_get_attention_items_advisor_skips_unmapped_charge_clients(
     )
     service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
 
-    items = service.get_attention_items(
+    data = service.get_attention_data(
         user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
     )
-    assert items == []
+    assert data["items"] == []
 
 
-def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db):
+def test_get_attention_data_advisor_appends_unpaid_charge_item(test_db):
     service = DashboardExtendedService(test_db)
     mapped_charge_business = SimpleNamespace(id=77, business_name="Charge Business")
     charge = SimpleNamespace(
@@ -59,9 +59,10 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db):
         list_by_ids=lambda ids: [legal_entity]
     )
 
-    items = service.get_attention_items(
+    data = service.get_attention_data(
         user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
     )
+    items = data["items"]
 
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"
@@ -75,7 +76,7 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db):
     assert items[0]["charge_period"] == "2026-02"
 
 
-def test_get_attention_items_advisor_includes_client_level_charge(test_db):
+def test_get_attention_data_advisor_includes_client_level_charge(test_db):
     service = DashboardExtendedService(test_db)
     charge = SimpleNamespace(
         id=5,
@@ -100,9 +101,10 @@ def test_get_attention_items_advisor_includes_client_level_charge(test_db):
         list_by_ids=lambda ids: [legal_entity]
     )
 
-    items = service.get_attention_items(
+    data = service.get_attention_data(
         user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
     )
+    items = data["items"]
 
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"

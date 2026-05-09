@@ -60,13 +60,19 @@ def test_build_vat_actions_overdue():
 
 def test_build_vat_actions_upcoming():
     today = date(2026, 4, 10)
-    deadline = date(2026, 4, 15)  # 5 days from today
-    period = "2026-04"
+    deadline = date(2026, 4, 15)
+    period = "2026-03"
     item = SimpleNamespace(id=2, client_record_id=11, period=period)
     from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
     item.status = VatWorkItemStatus.PENDING_MATERIALS
-    vat_repo = SimpleNamespace(list_open_up_to_period=lambda up_to, limit=50: [item])
+    captured = {}
+
+    def list_open_up_to_period(up_to, limit=50):
+        captured["up_to"] = up_to
+        return [item]
+
+    vat_repo = SimpleNamespace(list_open_up_to_period=list_open_up_to_period)
     business_repo = _make_business_repo()
 
     with (
@@ -82,8 +88,9 @@ def test_build_vat_actions_upcoming():
         actions = helpers.build_vat_actions(vat_repo, business_repo, today)
 
     assert len(actions) == 1
+    assert captured["up_to"] == "2026-03"
     assert actions[0]["urgency"] == "upcoming"
-    assert actions[0]["due_label"] == "דוח מע״מ · אפריל 2026 · עוד 5 ימים"
+    assert actions[0]["due_label"] == "דוח מע״מ · מרץ 2026 · עוד 5 ימים"
     assert actions[0]["description"] == "ממתין לחומרים"
 
 
