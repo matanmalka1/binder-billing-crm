@@ -60,13 +60,17 @@ class SignatureRequestService:
         return signer_actions.record_view(self.repo, **kwargs)
 
     def sign_request(self, **kwargs):
-        req, annual_report_id, signed_at = signer_actions.sign_request(self.repo, **kwargs)
+        req, annual_report_id, signed_at = signer_actions.sign_request(
+            self.repo, **kwargs
+        )
         if annual_report_id:
             self.repo.append_audit_event(
                 signature_request_id=req.id,
                 event_type="annual_report_signed",
                 actor_type="system",
-                notes=ANNUAL_REPORT_SIGNED_NOTE.format(annual_report_id=annual_report_id),
+                notes=ANNUAL_REPORT_SIGNED_NOTE.format(
+                    annual_report_id=annual_report_id
+                ),
             )
             self._auto_advance_annual_report(annual_report_id, signed_at)
         return req

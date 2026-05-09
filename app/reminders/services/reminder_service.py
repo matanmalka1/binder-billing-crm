@@ -12,7 +12,11 @@ from app.core.exceptions import AppError
 from app.reminders.models.reminder import Reminder, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.reminders.schemas.reminders import ReminderCreateRequest
-from app.reminders.services import factory as reminder_factory, request_dispatch, status_changes
+from app.reminders.services import (
+    factory as reminder_factory,
+    request_dispatch,
+    status_changes,
+)
 from app.reminders.services.reminder_context import ReminderContext, build_context_map
 
 
@@ -25,7 +29,9 @@ class ReminderService:
         self.binder_repo = BinderRepository(db)
 
     def create_from_request(self, request: ReminderCreateRequest, *, created_by: int):
-        return request_dispatch.create_from_request(self, request, created_by=created_by)
+        return request_dispatch.create_from_request(
+            self, request, created_by=created_by
+        )
 
     def create_idle_binder_reminder(self, **kwargs):
         return reminder_factory.create_idle_binder_reminder(
@@ -60,9 +66,14 @@ class ReminderService:
             )
         status_enum = ReminderStatus(status)
         items = self.reminder_repo.list_by_status(
-            status=status_enum, page=page, page_size=page_size, created_before=created_before
+            status=status_enum,
+            page=page,
+            page_size=page_size,
+            created_before=created_before,
         )
-        total = self.reminder_repo.count_by_status(status_enum, created_before=created_before)
+        total = self.reminder_repo.count_by_status(
+            status_enum, created_before=created_before
+        )
         return items, total, build_context_map(self.db, self.business_repo, items)
 
     def get_reminders_by_business(
@@ -90,7 +101,11 @@ class ReminderService:
         return self.reminder_repo.get_by_id(reminder_id)
 
     def mark_sent(self, reminder_id: int, actor_id: int):
-        return status_changes.mark_sent(self.reminder_repo, reminder_id, actor_id=actor_id)
+        return status_changes.mark_sent(
+            self.reminder_repo, reminder_id, actor_id=actor_id
+        )
 
     def cancel_reminder(self, reminder_id: int, actor_id: int):
-        return status_changes.cancel_reminder(self.reminder_repo, reminder_id, actor_id=actor_id)
+        return status_changes.cancel_reminder(
+            self.reminder_repo, reminder_id, actor_id=actor_id
+        )

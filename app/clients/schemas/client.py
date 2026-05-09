@@ -24,6 +24,7 @@ class ClientImportResponse(BaseModel):
     total_rows: int
     errors: list[ClientImportError]
 
+
 __all__ = [
     "ActiveClientSummary",
     "ClientConflictInfo",

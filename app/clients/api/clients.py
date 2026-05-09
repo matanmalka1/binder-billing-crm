@@ -85,7 +85,9 @@ def create_client(
             detail=exc.detail,
         ) from exc
 
+
 # ─── Read ─────────────────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=ClientRecordListResponse)
 def list_clients(
@@ -118,6 +120,7 @@ def list_clients(
     )
     return result
 
+
 @router.get("/{client_id}", response_model=ClientRecordResponse)
 def get_client(
     client_id: int,
@@ -128,6 +131,7 @@ def get_client(
     service = ClientService(db)
     return service.get_full_client(client_id, tax_year=tax_year)
 
+
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
 def get_conflict_info(
     id_number: str,
@@ -137,7 +141,9 @@ def get_conflict_info(
     service = ClientService(db)
     return service.get_conflict_info(id_number)
 
+
 # ─── Update ───────────────────────────────────────────────────────────────────
+
 
 @router.patch("/{client_id}", response_model=ClientRecordResponse)
 def update_client(
@@ -156,7 +162,9 @@ def update_client(
     )
     return service.get_full_client(client_id)
 
+
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
+
 
 @router.delete(
     "/{client_id}",
@@ -168,6 +176,7 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
     service = ClientService(db)
     service.delete_client(client_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 
 @router.post(
     "/{client_id}/restore",

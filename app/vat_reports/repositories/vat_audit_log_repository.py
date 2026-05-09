@@ -36,11 +36,14 @@ class VatAuditLogRepository(BaseRepository[VatAuditLog]):
         )
 
     def count_audit_trail(self, work_item_id: int) -> int:
-        return self.db.scalar(
-            select(func.count(VatAuditLog.id)).where(
-                VatAuditLog.work_item_id == work_item_id
+        return (
+            self.db.scalar(
+                select(func.count(VatAuditLog.id)).where(
+                    VatAuditLog.work_item_id == work_item_id
+                )
             )
-        ) or 0
+            or 0
+        )
 
     def get_audit_trail(
         self, work_item_id: int, limit: int, offset: int
