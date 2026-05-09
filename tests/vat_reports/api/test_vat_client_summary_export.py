@@ -9,6 +9,8 @@ from app.common.enums import VatType
 from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
+from app.vat_reports.services.vat_client_summary_service import get_client_summary
+from app.vat_reports.services.vat_export_service import _load as export_load
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
@@ -135,3 +137,40 @@ def test_vat_client_export_import_error_returns_detail(client, advisor_headers, 
             f"/api/v1/vat/clients/{vat_client.id}/export?format=excel&year=2026",
             headers=advisor_headers,
         )
+
+
+def test_client_summary_service_uses_snapshot_deadline(test_db, vat_client, test_user):
+    """get_client_summary must use due_date_effective (snapshot), not period+15 (legacy compute)."""
+    _seed_work_items(test_db, vat_client.id, test_user.id)
+    materializer = TaxCalendarMaterializationService(test_db)
+    jan_entry = materializer.ensure_periodic_entry("vat", "2026-01", 1)
+
+    result = get_client_summary(test_db, client_record_id=vat_client.id)
+
+    jan_row = next(p for p in result.periods if p.period == "2026-01")
+    assert jan_row.statutory_deadline == jan_entry.due_date, (
+        f"expected registry-shifted date {jan_entry.due_date!r} from snapshot"
+    )
+    assert jan_row.statutory_deadline is not None
+    from datetime import date
+    assert jan_row.statutory_deadline != date(2026, 2, 15), (
+        "statutory_deadline must not be the hardcoded period+15 legacy value"
+    )
+
+
+def test_export_service_uses_snapshot_deadline(test_db, vat_client, test_user):
+    """export _load must use due_date_effective (snapshot), not period+15 (legacy compute)."""
+    _seed_work_items(test_db, vat_client.id, test_user.id)
+    materializer = TaxCalendarMaterializationService(test_db)
+    jan_entry = materializer.ensure_periodic_entry("vat", "2026-01", 1)
+
+    _, periods = export_load(test_db, vat_client.id, 2026)
+
+    jan_row = next(p for p in periods if p.period == "2026-01")
+    assert jan_row.statutory_deadline == jan_entry.due_date, (
+        f"expected registry-shifted date {jan_entry.due_date!r} from snapshot"
+    )
+    from datetime import date
+    assert jan_row.statutory_deadline != date(2026, 2, 15), (
+        "statutory_deadline must not be the hardcoded period+15 legacy value"
+    )

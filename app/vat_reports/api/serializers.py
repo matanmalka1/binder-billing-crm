@@ -3,10 +3,7 @@
 from app.actions.vat_report_actions import get_vat_work_item_actions
 from app.users.models.user import UserRole
 from app.vat_reports.schemas.vat_report import VatWorkItemResponse
-from app.vat_reports.services.vat_report_queries import (
-    compute_deadline_fields,
-    deadline_fields_from_snapshot,
-)
+from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 from app.vat_reports.services.vat_report_service import VatReportService
 
 
@@ -25,10 +22,7 @@ def serialize_enriched_work_item(
     data.client_name = name_map.get(item.client_record_id)
     data.client_id_number = id_number_map.get(item.client_record_id)
     data.client_status = status_map.get(item.client_record_id)
-    if item.due_date_effective is not None:
-        deadline = deadline_fields_from_snapshot(item, submission_method=item.submission_method)
-    else:
-        deadline = compute_deadline_fields(item, submission_method=item.submission_method)
+    deadline = get_vat_deadline_fields(item, item.submission_method)
     data.submission_deadline = deadline["submission_deadline"]
     data.statutory_deadline = deadline["statutory_deadline"]
     data.extended_deadline = deadline["extended_deadline"]

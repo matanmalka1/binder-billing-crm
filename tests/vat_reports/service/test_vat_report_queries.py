@@ -7,7 +7,7 @@ from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services import vat_report_queries
-from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
+from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot, get_vat_deadline_fields
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 _ONLINE_DELTA = 4  # VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
@@ -63,6 +63,27 @@ class TestDeadlineFieldsFromSnapshot:
 
         result = deadline_fields_from_snapshot(_NoPeriodItem(), submission_method=SubmissionMethod.ONLINE)
         assert result["submission_deadline"] == date(2026, 9, 28)
+
+
+class TestGetVatDeadlineFields:
+    def test_routes_to_snapshot_when_effective_set(self):
+        effective = date(2026, 9, 24)
+        item = MagicMock()
+        item.due_date_effective = effective
+        item.due_date_original = effective
+        result = get_vat_deadline_fields(item, SubmissionMethod.ONLINE)
+        assert result["submission_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
+        assert result["statutory_deadline"] == effective
+
+    def test_routes_to_compute_fallback_when_no_effective(self):
+        """Legacy unlinked row (due_date_effective=None) must use period-based computation."""
+        item = MagicMock()
+        item.due_date_effective = None
+        item.period = "2030-06"
+        item.period_type = None
+        result = get_vat_deadline_fields(item, SubmissionMethod.MANUAL)
+        assert result["statutory_deadline"] == date(2030, 7, 15)
+        assert result["submission_deadline"] == date(2030, 7, 15)
 
 
 def test_get_work_item_not_found_raises_not_found_error():

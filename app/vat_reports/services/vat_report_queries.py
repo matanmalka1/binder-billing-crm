@@ -82,6 +82,14 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
             "is_overdue": None,
         }
 
+
+def get_vat_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+    """Unified public entry point: snapshot path when due_date_effective is set, legacy fallback otherwise."""
+    if item.due_date_effective is not None:
+        return deadline_fields_from_snapshot(item, submission_method)
+    return compute_deadline_fields(item, submission_method)
+
+
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     item = work_item_repo.get_by_id(item_id)
     if not item:

@@ -7,9 +7,12 @@ from app.common.enums import SubmissionMethod
 from app.vat_reports.api.serializers import serialize_enriched_work_item
 
 
-def test_serializer_calls_snapshot_not_compute_when_effective_set():
-    """serialize_enriched_work_item must use deadline_fields_from_snapshot,
-    not compute_deadline_fields, when due_date_effective is present."""
+def test_serializer_calls_get_vat_deadline_fields_not_raw_compute(
+):
+    """serialize_enriched_work_item must delegate to get_vat_deadline_fields.
+
+    Snapshot vs. legacy routing is owned by get_vat_deadline_fields, not the serializer.
+    """
     item = MagicMock()
     item.due_date_effective = date(2026, 9, 24)
     item.submission_method = SubmissionMethod.ONLINE
@@ -27,15 +30,14 @@ def test_serializer_calls_snapshot_not_compute_when_effective_set():
 
     with (
         patch(
-            "app.vat_reports.api.serializers.deadline_fields_from_snapshot",
+            "app.vat_reports.api.serializers.get_vat_deadline_fields",
             return_value=snap_result,
-        ) as mock_snap,
-        patch("app.vat_reports.api.serializers.compute_deadline_fields") as mock_compute,
+        ) as mock_deadline,
         patch("app.vat_reports.api.serializers.VatWorkItemResponse") as MockResp,
         patch("app.vat_reports.api.serializers.get_vat_work_item_actions", return_value=[]),
     ):
         MockResp.model_validate.return_value = MagicMock()
-        serialize_enriched_work_item(
+        result = serialize_enriched_work_item(
             item,
             office_client_number_map={},
             name_map={},
@@ -44,5 +46,5 @@ def test_serializer_calls_snapshot_not_compute_when_effective_set():
             user_map={},
         )
 
-    mock_snap.assert_called_once_with(item, submission_method=SubmissionMethod.ONLINE)
-    mock_compute.assert_not_called()
+    mock_deadline.assert_called_once_with(item, SubmissionMethod.ONLINE)
+    assert result.submission_deadline == date(2026, 9, 28)

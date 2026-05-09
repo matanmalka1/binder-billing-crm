@@ -16,7 +16,7 @@ from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
 from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_export_excel import export_vat_to_excel
 from app.vat_reports.services.vat_export_pdf import export_vat_to_pdf
-from app.vat_reports.services.vat_report_queries import compute_deadline_fields
+from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 
 
 def _get_export_dir() -> str:
@@ -45,7 +45,7 @@ def _load(db: Session, client_record_id: int, year: int):
             total_input_net=r.total_input_net,
             final_vat_amount=r.final_vat_amount,
             filed_at=r.filed_at,
-            **compute_deadline_fields(r, r.submission_method),
+            **get_vat_deadline_fields(r, r.submission_method),
         )
         for r, *_ in all_periods
         if r.period.startswith(str(year))
