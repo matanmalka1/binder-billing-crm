@@ -7,14 +7,16 @@ from sqlalchemy import select
 
 from app.annual_reports import models as annual_report_models
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_compliance_repository import (
     VatComplianceRepository,
 )
 from app.work_queue.schemas.work_queue import WorkQueueItem, WorkQueueSourceType
 from app.work_queue.services.common import UPCOMING_WINDOW_DAYS, WorkQueueContext
 from app.work_queue.services.payloads import annual_report_payload, vat_work_item_payload
+
+# Day-19 is the digital filing extension granted by the tax authority.
+# Used only when VatWorkItem.due_date_effective is absent (legacy rows).
+_VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19
 
 _DONE_ANNUAL_STATUSES = {
     annual_report_models.AnnualReportStatus.CLOSED,
@@ -23,31 +25,42 @@ _DONE_ANNUAL_STATUSES = {
 }
 
 
+def _vat_due_date(item, period: str) -> date:
+    """Return the effective due date for a VAT work item.
+
+    Prefer the stored due_date_effective (linked from the tax calendar).
+    Fall back to day-19 of the period month only for legacy rows that
+    pre-date the tax_calendar link.
+    """
+    if item.due_date_effective is not None:
+        return (
+            item.due_date_effective.date()
+            if hasattr(item.due_date_effective, "date")
+            else item.due_date_effective
+        )
+    # Fallback: infer from period string "YYYY-MM"
+    return date(int(period[:4]), int(period[5:7]), _VAT_ONLINE_EXTENDED_DEADLINE_DAY)
+
+
 def vat_filing_items(
     ctx: WorkQueueContext, client_record_id: Optional[int]
 ) -> list[WorkQueueItem]:
+    """Return work-queue items for unfiled VAT periods.
+
+    get_overdue_unfiled returns full VatWorkItem objects — no per-row query.
+    """
     items = []
-    for row in VatComplianceRepository(ctx.db).get_overdue_unfiled(ctx.today):
-        if client_record_id is not None and row.client_record_id != client_record_id:
+    for vat_item in VatComplianceRepository(ctx.db).get_overdue_unfiled(ctx.today):
+        if client_record_id is not None and vat_item.client_record_id != client_record_id:
             continue
-        vat_item = ctx.db.scalars(
-            select(VatWorkItem).where(
-                VatWorkItem.client_record_id == row.client_record_id,
-                VatWorkItem.period == row.period,
-                VatWorkItem.status != VatWorkItemStatus.FILED,
-                VatWorkItem.deleted_at.is_(None),
-            )
-        ).first()
-        if not vat_item:
-            continue
-        due_date = date(int(row.period[:4]), int(row.period[5:7]), 19)
+        due_date = _vat_due_date(vat_item, vat_item.period)
         items.append(
             ctx.item(
                 WorkQueueSourceType.VAT_FILING,
                 vat_item.id,
-                f'מע"מ לא הוגש: {row.period}',
+                f'מע"מ לא הוגש: {vat_item.period}',
                 due_date,
-                row.client_record_id,
+                vat_item.client_record_id,
                 payload=vat_work_item_payload(vat_item, due_date),
             )
         )

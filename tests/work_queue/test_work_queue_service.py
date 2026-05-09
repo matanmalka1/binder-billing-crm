@@ -2,7 +2,8 @@ from datetime import date, timedelta
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.reminders.models.reminder import Reminder, ReminderActionType, ReminderStatus
+from app.utils.time_utils import utcnow
 from app.work_queue.schemas.work_queue import (
     WorkQueueItem,
     WorkQueueSourceType,
@@ -55,16 +56,13 @@ def test_unpaid_charge_before_threshold_excluded(test_db):
 
 def test_work_queue_excludes_reminders(test_db):
     biz = create_business(test_db)
-    today = date.today()
     test_db.add(
         Reminder(
-            client_record_id=biz.client_id,
-            reminder_type=ReminderType.CUSTOM,
-            status=ReminderStatus.PENDING,
-            target_date=today + timedelta(days=2),
-            days_before=0,
-            send_on=today,
-            message="תזכורת בדיקה",
+            fire_at=utcnow(),
+            action_type=ReminderActionType.SEND_NOTIFICATION,
+            status=ReminderStatus.SCHEDULED,
+            source_domain="client_record",
+            source_id=biz.client_id,
         )
     )
     test_db.commit()
@@ -142,3 +140,129 @@ def test_work_queue_item_can_be_unscoped_to_client():
     )
 
     assert item.client_record_id is None
+
+
+# ── Pagination ────────────────────────────────────────────────────────────────
+
+def test_work_queue_pagination_limit(test_db):
+    biz = create_business(test_db)
+    for days_ago in [31, 32, 33]:
+        test_db.add(
+            Charge(
+                client_record_id=biz.client_id,
+                business_id=biz.id,
+                amount=100,
+                charge_type=ChargeType.OTHER,
+                status=ChargeStatus.ISSUED,
+                issued_at=date.today() - timedelta(days=days_ago),
+            )
+        )
+    test_db.commit()
+
+    page1 = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, limit=2, offset=0
+    )
+    page2 = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, limit=2, offset=2
+    )
+
+    assert len(page1) == 2
+    assert len(page2) == 1
+    assert {i.source_id for i in page1}.isdisjoint({i.source_id for i in page2})
+
+
+def test_work_queue_pagination_offset_beyond_end(test_db):
+    biz = create_business(test_db)
+    test_db.add(
+        Charge(
+            client_record_id=biz.client_id,
+            business_id=biz.id,
+            amount=100,
+            charge_type=ChargeType.OTHER,
+            status=ChargeStatus.ISSUED,
+            issued_at=date.today() - timedelta(days=31),
+        )
+    )
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, limit=50, offset=999
+    )
+    assert items == []
+
+
+# ── business_id filter semantics ──────────────────────────────────────────────
+
+def test_business_id_filter_hides_client_level_sources(test_db):
+    """When business_id is set, VAT/annual/advance sources must not appear."""
+    biz = create_business(test_db)
+    due_date = date.today() - timedelta(days=1)
+    payment = create_linked_advance_payment(
+        test_db,
+        client_record_id=biz.client_id,
+        period="2026-03",
+        due_date=due_date,
+        expected_amount=500,
+        paid_amount=0,
+    )
+    payment.status = AdvancePaymentStatus.PENDING
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(business_id=biz.id)
+    source_types = {i.source_type for i in items}
+
+    assert WorkQueueSourceType.ADVANCE_PAYMENT not in source_types
+    assert WorkQueueSourceType.VAT_FILING not in source_types
+    assert WorkQueueSourceType.ANNUAL_REPORT not in source_types
+
+
+def test_business_id_filter_returns_unpaid_charge_for_that_business(test_db):
+    biz = create_business(test_db)
+    other_biz = create_business(test_db)
+    charge = Charge(
+        client_record_id=biz.client_id,
+        business_id=biz.id,
+        amount=750,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=date.today() - timedelta(days=31),
+    )
+    other_charge = Charge(
+        client_record_id=other_biz.client_id,
+        business_id=other_biz.id,
+        amount=200,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=date.today() - timedelta(days=31),
+    )
+    test_db.add_all([charge, other_charge])
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(business_id=biz.id)
+    unpaid = [i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE]
+
+    assert len(unpaid) == 1
+    assert unpaid[0].source_id == charge.id
+
+
+# ── Charge urgency is always OVERDUE ─────────────────────────────────────────
+
+def test_unpaid_charge_urgency_always_overdue(test_db):
+    """Charges only appear after threshold — urgency is always OVERDUE by design."""
+    biz = create_business(test_db)
+    test_db.add(
+        Charge(
+            client_record_id=biz.client_id,
+            business_id=biz.id,
+            amount=300,
+            charge_type=ChargeType.OTHER,
+            status=ChargeStatus.ISSUED,
+            issued_at=date.today() - timedelta(days=31),
+        )
+    )
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
+    charge_items = [i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE]
+
+    assert all(i.urgency == WorkQueueUrgency.OVERDUE for i in charge_items)

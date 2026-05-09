@@ -11,6 +11,9 @@ from app.work_queue.services.work_queue_service import WorkQueueService
 
 router = APIRouter(prefix="/work-queue", tags=["work-queue"])
 
+_LIMIT_MAX = 200
+_LIMIT_DEFAULT = 50
+
 
 @router.get(
     "",
@@ -23,9 +26,13 @@ def list_work_queue(
     client_record_id: Optional[int] = Query(None),
     business_id: Optional[int] = Query(None),
     exclude_source_types: Optional[List[WorkQueueSourceType]] = Query(None),
+    limit: int = Query(_LIMIT_DEFAULT, ge=1, le=_LIMIT_MAX),
+    offset: int = Query(0, ge=0),
 ):
     return WorkQueueService(db).list_items(
         client_record_id=client_record_id,
         business_id=business_id,
         exclude_source_types=exclude_source_types,
+        limit=limit,
+        offset=offset,
     )

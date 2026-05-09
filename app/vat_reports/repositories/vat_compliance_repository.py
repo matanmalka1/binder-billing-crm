@@ -57,25 +57,22 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
         )
         return self.db.execute(stmt).all()
 
-    def get_overdue_unfiled(self, reference_date: date) -> list:
-        """Work items whose statutory deadline has passed and are not yet FILED."""
-        stmt = (
-            scope_to_active_clients_stmt(
-                select(
-                    VatWorkItem.client_record_id,
-                    VatWorkItem.period,
-                ),
-                VatWorkItem,
-            )
-            .where(
-                VatWorkItem.status != VatWorkItemStatus.FILED,
-                VatWorkItem.deleted_at.is_(None),
-                func.substr(VatWorkItem.period, 1, 7)
-                < reference_date.strftime("%Y-%m"),
-            )
-            .order_by(VatWorkItem.period.asc())
-        )
-        return self.db.execute(stmt).all()
+    def get_overdue_unfiled(self, reference_date: date) -> list[VatWorkItem]:
+        """Work items whose period has passed and are not yet FILED.
+
+        Returns full VatWorkItem rows so callers can read due_date_effective
+        without issuing per-row queries.
+        """
+        stmt = scope_to_active_clients_stmt(
+            select(VatWorkItem),
+            VatWorkItem,
+        ).where(
+            VatWorkItem.status != VatWorkItemStatus.FILED,
+            VatWorkItem.deleted_at.is_(None),
+            func.substr(VatWorkItem.period, 1, 7)
+            < reference_date.strftime("%Y-%m"),
+        ).order_by(VatWorkItem.period.asc())
+        return list(self.db.scalars(stmt))
 
     def get_stale_pending(self, year: int) -> list:
         """All PENDING_MATERIALS items for a year, ordered by updated_at."""

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Dict, Optional
+from typing import Dict, Iterable, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -27,11 +27,15 @@ def urgency(due_date: date, today: date) -> WorkQueueUrgency:
     return WorkQueueUrgency.UPCOMING
 
 
-def load_client_name_map(db: Session) -> Dict[int, str]:
+def load_client_names(db: Session, client_record_ids: Iterable[int]) -> Dict[int, str]:
+    """Fetch names only for the client ids present in the result set."""
+    ids = list(client_record_ids)
+    if not ids:
+        return {}
     stmt = (
         select(ClientRecord.id, LegalEntity.official_name)
         .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-        .where(ClientRecord.deleted_at.is_(None))
+        .where(ClientRecord.id.in_(ids), ClientRecord.deleted_at.is_(None))
     )
     return {row[0]: row[1] for row in db.execute(stmt).all()}
 
@@ -40,7 +44,18 @@ class WorkQueueContext:
     def __init__(self, db: Session, today: date):
         self.db = db
         self.today = today
-        self.client_names = load_client_name_map(db)
+        self._client_names: Optional[Dict[int, str]] = None
+        self._pending_ids: set[int] = set()
+
+    def register_client_id(self, client_record_id: int) -> None:
+        """Collect a client id for lazy batch name resolution."""
+        if self._client_names is None:
+            self._pending_ids.add(client_record_id)
+
+    def _resolve_names(self) -> Dict[int, str]:
+        if self._client_names is None:
+            self._client_names = load_client_names(self.db, self._pending_ids)
+        return self._client_names
 
     def item(
         self,
@@ -54,6 +69,13 @@ class WorkQueueContext:
         item_urgency: Optional[WorkQueueUrgency] = None,
         payload: Optional[dict] = None,
     ) -> WorkQueueItem:
+        if client_record_id is not None:
+            self.register_client_id(client_record_id)
+        client_name = (
+            self._resolve_names().get(client_record_id)
+            if client_record_id is not None
+            else None
+        )
         return WorkQueueItem(
             source_type=source_type,
             source_id=source_id,
@@ -61,9 +83,7 @@ class WorkQueueContext:
             due_date=due_date,
             urgency=item_urgency or urgency(due_date, self.today),
             client_record_id=client_record_id,
-            client_name=self.client_names.get(client_record_id)
-            if client_record_id is not None
-            else None,
+            client_name=client_name,
             business_id=business_id,
             payload=payload,
         )

@@ -36,3 +36,44 @@ def test_tasks_unified_route_removed(client, advisor_headers):
     response = client.get("/api/v1/tasks/unified", headers=advisor_headers)
 
     assert response.status_code == 404
+
+
+def test_work_queue_api_pagination(client, test_db, advisor_headers):
+    from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+    from tests.helpers.task_helpers import create_business
+
+    biz = create_business(test_db)
+    for days_ago in [31, 32, 33]:
+        test_db.add(
+            Charge(
+                client_record_id=biz.client_id,
+                business_id=biz.id,
+                amount=100,
+                charge_type=ChargeType.OTHER,
+                status=ChargeStatus.ISSUED,
+                issued_at=date.today() - timedelta(days=days_ago),
+            )
+        )
+    test_db.commit()
+
+    r1 = client.get(
+        f"/api/v1/work-queue?business_id={biz.id}&limit=2&offset=0",
+        headers=advisor_headers,
+    )
+    r2 = client.get(
+        f"/api/v1/work-queue?business_id={biz.id}&limit=2&offset=2",
+        headers=advisor_headers,
+    )
+
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    assert len(r1.json()) == 2
+    assert len(r2.json()) == 1
+
+
+def test_work_queue_api_limit_max_enforced(client, advisor_headers):
+    response = client.get(
+        "/api/v1/work-queue?limit=999",
+        headers=advisor_headers,
+    )
+    assert response.status_code == 422

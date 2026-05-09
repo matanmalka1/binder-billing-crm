@@ -80,6 +80,7 @@ def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
         due_date,
         charge.client_record_id,
         business_id=charge.business_id,
+        # Always OVERDUE: items only appear after the unpaid threshold has passed.
         item_urgency=WorkQueueUrgency.OVERDUE,
         payload=unpaid_charge_payload(charge, due_date),
     )
