@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+from typing import Optional
+
+from sqlalchemy.orm import Session
+
+from app.common.services.base_service import BaseService
+from app.core.exceptions import ConflictError, NotFoundError
+from app.tasks.models.task import Task, TaskPriority, TaskStatus
+from app.tasks.repositories.task_repository import TaskRepository
+from app.tasks.schemas.task import TaskCreateRequest, TaskUpdateRequest
+from app.utils.time_utils import utcnow
+
+_TERMINAL = {TaskStatus.DONE, TaskStatus.CANCELED}
+
+_NOT_FOUND = "TASK.NOT_FOUND"
+_CONFLICT = "TASK.CONFLICT"
+
+
+class TaskService(BaseService):
+    def __init__(self, db: Session):
+        super().__init__(db)
+        self.repo = TaskRepository(db)
+
+    def create(self, data: TaskCreateRequest, created_by_user_id: Optional[int]) -> Task:
+        with self.transaction():
+            return self.repo.create(
+                title=data.title,
+                created_by_user_id=created_by_user_id,
+                description=data.description,
+                priority=data.priority,
+                due_date=data.due_date,
+                assigned_to_user_id=data.assigned_to_user_id,
+                assigned_role=data.assigned_role,
+                source_domain=data.source_domain,
+                source_id=data.source_id,
+                action_key=data.action_key,
+                action_payload=data.action_payload,
+            )
+
+    def get(self, task_id: int) -> Task:
+        task = self.repo.get_by_id(task_id)
+        if not task or task.deleted_at is not None:
+            raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
+        return task
+
+    def list(
+        self,
+        status: Optional[TaskStatus] = None,
+        priority: Optional[TaskPriority] = None,
+        assigned_to_user_id: Optional[int] = None,
+        assigned_role: Optional[str] = None,
+        source_domain: Optional[str] = None,
+        source_id: Optional[int] = None,
+        due_before=None,
+        due_after=None,
+        page: int = 1,
+        page_size: int = 20,
+    ):
+        return self.repo.list_active(
+            status=status,
+            priority=priority,
+            assigned_to_user_id=assigned_to_user_id,
+            assigned_role=assigned_role,
+            source_domain=source_domain,
+            source_id=source_id,
+            due_before=due_before,
+            due_after=due_after,
+            page=page,
+            page_size=page_size,
+        )
+
+    def update(self, task_id: int, data: TaskUpdateRequest) -> Task:
+        task = self._get_active(task_id)
+        if task.status in _TERMINAL:
+            raise ConflictError("לא ניתן לערוך משימה שהושלמה או בוטלה", _CONFLICT)
+        updates = data.model_dump(exclude_unset=True)
+        with self.transaction():
+            for field, value in updates.items():
+                setattr(task, field, value)
+            task.updated_at = utcnow()
+        return task
+
+    def start(self, task_id: int) -> Task:
+        task = self._get_active(task_id)
+        if task.status != TaskStatus.OPEN:
+            raise ConflictError(
+                f"לא ניתן להתחיל משימה בסטטוס {task.status.value}", _CONFLICT
+            )
+        with self.transaction():
+            task.status = TaskStatus.IN_PROGRESS
+            task.updated_at = utcnow()
+        return task
+
+    def complete(self, task_id: int, completed_by_user_id: Optional[int]) -> Task:
+        task = self._get_active(task_id)
+        if task.status == TaskStatus.CANCELED:
+            raise ConflictError("לא ניתן להשלים משימה שבוטלה", _CONFLICT)
+        if task.status == TaskStatus.DONE:
+            raise ConflictError("משימה כבר הושלמה", _CONFLICT)
+        with self.transaction():
+            task.status = TaskStatus.DONE
+            task.completed_at = utcnow()
+            task.completed_by_user_id = completed_by_user_id
+            task.updated_at = utcnow()
+        return task
+
+    def cancel(self, task_id: int) -> Task:
+        task = self._get_active(task_id)
+        if task.status == TaskStatus.DONE:
+            raise ConflictError("לא ניתן לבטל משימה שהושלמה", _CONFLICT)
+        if task.status == TaskStatus.CANCELED:
+            raise ConflictError("משימה כבר בוטלה", _CONFLICT)
+        with self.transaction():
+            task.status = TaskStatus.CANCELED
+            task.canceled_at = utcnow()
+            task.updated_at = utcnow()
+        return task
+
+    def _get_active(self, task_id: int) -> Task:
+        task = self.repo.get_by_id(task_id)
+        if not task or task.deleted_at is not None:
+            raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
+        return task

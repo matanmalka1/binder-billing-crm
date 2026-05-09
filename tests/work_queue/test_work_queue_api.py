@@ -32,10 +32,10 @@ def test_work_queue_api_returns_advance_payment_payload(client, test_db, advisor
     assert item["payload"]["remaining_amount"] == "750.00"
 
 
-def test_tasks_unified_route_removed(client, advisor_headers):
-    response = client.get("/api/v1/tasks/unified", headers=advisor_headers)
+def test_tasks_route_exists(client, advisor_headers):
+    response = client.get("/api/v1/tasks", headers=advisor_headers)
 
-    assert response.status_code == 404
+    assert response.status_code == 200
 
 
 def test_work_queue_api_pagination(client, test_db, advisor_headers):
