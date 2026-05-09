@@ -54,7 +54,9 @@ class DashboardExtendedService:
                 )
                 if record is not None
             }
-            legal_entity_ids = [record.legal_entity_id for record in record_by_id.values()]
+            legal_entity_ids = [
+                record.legal_entity_id for record in record_by_id.values()
+            ]
             businesses = self.business_repo.list_by_legal_entity_ids(legal_entity_ids)
             business_map = {}
             for business in businesses:
@@ -96,13 +98,27 @@ class DashboardExtendedService:
                 page_size=_UNPAID_CHARGES_FETCH_LIMIT,
             )
             if unpaid_charges:
-                charge_business_ids = list({c.business_id for c in unpaid_charges if c.business_id is not None})
+                charge_business_ids = list(
+                    {c.business_id for c in unpaid_charges if c.business_id is not None}
+                )
                 charge_businesses = self.business_repo.list_by_ids(charge_business_ids)
                 charge_business_map = {b.id: b for b in charge_businesses}
-                charge_client_record_ids = list({c.client_record_id for c in unpaid_charges if c.client_record_id is not None})
-                charge_client_records = self.client_record_repo.list_by_ids(charge_client_record_ids)
-                legal_entity_ids = list({r.legal_entity_id for r in charge_client_records})
-                legal_entities = [self.legal_entity_repo.get_by_id(eid) for eid in legal_entity_ids]
+                charge_client_record_ids = list(
+                    {
+                        c.client_record_id
+                        for c in unpaid_charges
+                        if c.client_record_id is not None
+                    }
+                )
+                charge_client_records = self.client_record_repo.list_by_ids(
+                    charge_client_record_ids
+                )
+                legal_entity_ids = list(
+                    {r.legal_entity_id for r in charge_client_records}
+                )
+                legal_entities = [
+                    self.legal_entity_repo.get_by_id(eid) for eid in legal_entity_ids
+                ]
                 legal_entity_map = {e.id: e.official_name for e in legal_entities if e}
                 client_record_map = {r.id: r for r in charge_client_records}
                 for charge in unpaid_charges:

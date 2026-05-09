@@ -21,13 +21,17 @@ def export_vat_to_excel(
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
     except ImportError:
-        raise ImportError("הספרייה openpyxl נדרשת. יש להתקין באמצעות: pip install openpyxl")
+        raise ImportError(
+            "הספרייה openpyxl נדרשת. יש להתקין באמצעות: pip install openpyxl"
+        )
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = f"מע״מ {year}"
 
-    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_fill = PatternFill(
+        start_color="366092", end_color="366092", fill_type="solid"
+    )
     header_font = Font(bold=True, color="FFFFFF")
     center = Alignment(horizontal="center", vertical="center")
 
@@ -53,8 +57,16 @@ def export_vat_to_excel(
         ws.cell(row=row, column=3, value=float(p.total_output_vat))
         ws.cell(row=row, column=4, value=float(p.total_input_vat))
         ws.cell(row=row, column=5, value=float(p.net_vat))
-        ws.cell(row=row, column=6, value=float(p.final_vat_amount) if p.final_vat_amount is not None else "")
-        ws.cell(row=row, column=7, value=p.filed_at.strftime("%d/%m/%Y") if p.filed_at else "")
+        ws.cell(
+            row=row,
+            column=6,
+            value=float(p.final_vat_amount) if p.final_vat_amount is not None else "",
+        )
+        ws.cell(
+            row=row,
+            column=7,
+            value=p.filed_at.strftime("%d/%m/%Y") if p.filed_at else "",
+        )
         totals["output"] += p.total_output_vat
         totals["input"] += p.total_input_vat
         totals["net"] += p.net_vat

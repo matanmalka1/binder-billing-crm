@@ -1,8 +1,14 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey,
-    Index, Integer, String, Text,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
@@ -12,7 +18,9 @@ from app.utils.time_utils import utcnow
 
 class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
-    CLOSED_IN_OFFICE = "closed_in_office"   # full, no more intake, still physically present
+    CLOSED_IN_OFFICE = (
+        "closed_in_office"  # full, no more intake, still physically present
+    )
     ARCHIVED_IN_OFFICE = "archived_in_office"
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
@@ -31,11 +39,14 @@ class Binder(Base):
     All materials from all of the client's businesses are stored in the same binder.
     The material type is defined at the BinderIntakeMaterial level, not at binder level.
     """
+
     __tablename__ = "binders"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    client_record_id = Column(
+        Integer, ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # Globally unique number (the label number on the physical binder).
     binder_number = Column(String, nullable=False)
@@ -74,10 +85,12 @@ class Binder(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
+    intakes = relationship(
+        "BinderIntake", back_populates="binder", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
-        Index("idx_binder_status",        "status"),
+        Index("idx_binder_status", "status"),
         Index("idx_binder_period_start", "period_start"),
         Index(
             "uq_binder_number_per_client",
@@ -88,6 +101,7 @@ class Binder(Base):
             sqlite_where=deleted_at.is_(None),
         ),
     )
+
     def __repr__(self):
         return (
             f"<Binder(id={self.id}, number='{self.binder_number}', "

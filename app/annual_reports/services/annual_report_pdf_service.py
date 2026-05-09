@@ -7,9 +7,14 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import NotFoundError
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.detail_service import AnnualReportDetailService
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.annual_reports.services.annual_report_pdf_builder import build_pdf
-from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND, CLIENT_FALLBACK_NAME
+from app.annual_reports.services.messages import (
+    ANNUAL_REPORT_NOT_FOUND,
+    CLIENT_FALLBACK_NAME,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
@@ -21,9 +26,14 @@ class AnnualReportPdfService:
         repo = AnnualReportRepository(self.db)
         report = repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
+                "ANNUAL_REPORT.NOT_FOUND",
+            )
 
-        client_record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)
+        client_record = ClientRecordRepository(self.db).get_by_id(
+            report.client_record_id
+        )
         client_name = (
             f"לקוח #{client_record.office_client_number}"
             if client_record and client_record.office_client_number

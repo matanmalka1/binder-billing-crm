@@ -36,7 +36,9 @@ class AnnualReportAnnexService(AnnualReportBaseService):
             # before being stored in the JSON column (SQLite/PostgreSQL JSON type).
             raw = validated.model_dump(exclude_none=True)
             return {
-                k: float(v) if hasattr(v, "__round__") and not isinstance(v, (int, float, bool)) else v
+                k: float(v)
+                if hasattr(v, "__round__") and not isinstance(v, (int, float, bool))
+                else v
                 for k, v in raw.items()
             }
         except Exception as exc:
@@ -62,10 +64,14 @@ class AnnualReportAnnexService(AnnualReportBaseService):
     ) -> AnnexDataLineResponse:
         self._get_or_raise(report_id)
         data = self._validate_annex_data(schedule, data)
-        schedule_entry = self.annex_repo.get_or_create_schedule_entry(report_id, schedule)  # type: ignore[attr-defined]
+        schedule_entry = self.annex_repo.get_or_create_schedule_entry(
+            report_id, schedule
+        )  # type: ignore[attr-defined]
         line_number = self.annex_repo.next_line_number(schedule_entry.id)  # type: ignore[attr-defined]
         row = self.annex_repo.add_line(schedule_entry.id, line_number, data, notes)  # type: ignore[attr-defined]
-        self._record_annex_audit(report_id, actor_id, ACTION_ANNEX_LINE_ADDED, new_value=_annex_snapshot(row))
+        self._record_annex_audit(
+            report_id, actor_id, ACTION_ANNEX_LINE_ADDED, new_value=_annex_snapshot(row)
+        )
         return AnnexDataLineResponse.model_validate(row)
 
     def update_annex_line(
@@ -79,29 +85,50 @@ class AnnualReportAnnexService(AnnualReportBaseService):
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
         if not existing or existing.annual_report_id != report_id:
-            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(
+                ANNEX_LINE_NOT_FOUND.format(line_id=line_id),
+                "ANNUAL_REPORT.LINE_NOT_FOUND",
+            )
         old_value = _annex_snapshot(existing)
         data = self._validate_annex_data(existing.schedule, data)
         row = self.annex_repo.update_line(line_id, data, notes)  # type: ignore[attr-defined]
         if not row:
-            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(
+                ANNEX_LINE_NOT_FOUND.format(line_id=line_id),
+                "ANNUAL_REPORT.LINE_NOT_FOUND",
+            )
         self._record_annex_audit(
-            report_id, actor_id, ACTION_ANNEX_LINE_UPDATED,
-            old_value=old_value, new_value=_annex_snapshot(row),
+            report_id,
+            actor_id,
+            ACTION_ANNEX_LINE_UPDATED,
+            old_value=old_value,
+            new_value=_annex_snapshot(row),
         )
         return AnnexDataLineResponse.model_validate(row)
 
-    def delete_annex_line(self, report_id: int, line_id: int, actor_id: Optional[int] = None) -> None:
+    def delete_annex_line(
+        self, report_id: int, line_id: int, actor_id: Optional[int] = None
+    ) -> None:
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
         if not existing or existing.annual_report_id != report_id:
-            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
+            raise NotFoundError(
+                ANNEX_LINE_NOT_FOUND.format(line_id=line_id),
+                "ANNUAL_REPORT.LINE_NOT_FOUND",
+            )
         old_value = _annex_snapshot(existing)
         if not self.annex_repo.delete_line(line_id):  # type: ignore[attr-defined]
-            raise NotFoundError(ANNEX_LINE_NOT_FOUND.format(line_id=line_id), "ANNUAL_REPORT.LINE_NOT_FOUND")
-        self._record_annex_audit(report_id, actor_id, ACTION_ANNEX_LINE_DELETED, old_value=old_value)
+            raise NotFoundError(
+                ANNEX_LINE_NOT_FOUND.format(line_id=line_id),
+                "ANNUAL_REPORT.LINE_NOT_FOUND",
+            )
+        self._record_annex_audit(
+            report_id, actor_id, ACTION_ANNEX_LINE_DELETED, old_value=old_value
+        )
 
-    def _record_annex_audit(self, report_id: int, actor_id: Optional[int], action: str, **values) -> None:
+    def _record_annex_audit(
+        self, report_id: int, actor_id: Optional[int], action: str, **values
+    ) -> None:
         EntityAuditWriter(self.db).append(
             entity_type=ENTITY_ANNUAL_REPORT,
             entity_id=report_id,

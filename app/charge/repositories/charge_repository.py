@@ -52,7 +52,9 @@ class ChargeRepository(BaseRepository):
     def get_by_id_for_update(self, charge_id: int) -> Optional[Charge]:
         """Retrieve charge with a row-level lock for status transitions."""
         return self._locked_first(
-            self.db.query(Charge).filter(Charge.id == charge_id, Charge.deleted_at.is_(None))
+            self.db.query(Charge).filter(
+                Charge.id == charge_id, Charge.deleted_at.is_(None)
+            )
         )
 
     def _base_filter(
@@ -105,7 +107,9 @@ class ChargeRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Charge]:
         """List charges with optional filters and pagination."""
-        query = self._base_filter(client_record_id, business_id, business_ids, status, charge_type)
+        query = self._base_filter(
+            client_record_id, business_id, business_ids, status, charge_type
+        )
         if query is None:
             return []
         return self._paginate(query.order_by(Charge.created_at.desc()), page, page_size)
@@ -137,7 +141,9 @@ class ChargeRepository(BaseRepository):
         charge_type: Optional[str] = None,
     ) -> int:
         """Count charges with optional filters."""
-        query = self._base_filter(client_record_id, business_id, business_ids, status, charge_type)
+        query = self._base_filter(
+            client_record_id, business_id, business_ids, status, charge_type
+        )
         if query is None:
             return 0
         return query.count()
@@ -178,13 +184,13 @@ class ChargeRepository(BaseRepository):
     ) -> dict[str, dict]:
         """Return count and total amount per status, ignoring status filter."""
         from decimal import Decimal
-        query = (
-            scope_to_active_clients(
-                self.db.query(Charge.status, func.count(Charge.id), func.sum(Charge.amount)),
-                Charge,
-            )
-            .filter(Charge.deleted_at.is_(None))
-        )
+
+        query = scope_to_active_clients(
+            self.db.query(
+                Charge.status, func.count(Charge.id), func.sum(Charge.amount)
+            ),
+            Charge,
+        ).filter(Charge.deleted_at.is_(None))
         if client_record_id is not None:
             query = query.filter(Charge.client_record_id == client_record_id)
         if charge_type:
@@ -206,27 +212,37 @@ class ChargeRepository(BaseRepository):
         rows = (
             scope_to_active_clients(
                 self.db.query(
-                Charge.client_record_id,
-                func.sum(
-                    case((issued_date >= str(cut_30), Charge.amount), else_=0)
-                ).label("current"),
-                func.sum(
-                    case(
-                        (issued_date.between(str(cut_60), str(cut_30 - timedelta(days=1))), Charge.amount),
-                        else_=0,
-                    )
-                ).label("days_30"),
-                func.sum(
-                    case(
-                        (issued_date.between(str(cut_90), str(cut_60 - timedelta(days=1))), Charge.amount),
-                        else_=0,
-                    )
-                ).label("days_60"),
-                func.sum(
-                    case((issued_date < str(cut_90), Charge.amount), else_=0)
-                ).label("days_90_plus"),
-                func.sum(Charge.amount).label("total"),
-                func.min(Charge.issued_at).label("oldest_issued_at"),
+                    Charge.client_record_id,
+                    func.sum(
+                        case((issued_date >= str(cut_30), Charge.amount), else_=0)
+                    ).label("current"),
+                    func.sum(
+                        case(
+                            (
+                                issued_date.between(
+                                    str(cut_60), str(cut_30 - timedelta(days=1))
+                                ),
+                                Charge.amount,
+                            ),
+                            else_=0,
+                        )
+                    ).label("days_30"),
+                    func.sum(
+                        case(
+                            (
+                                issued_date.between(
+                                    str(cut_90), str(cut_60 - timedelta(days=1))
+                                ),
+                                Charge.amount,
+                            ),
+                            else_=0,
+                        )
+                    ).label("days_60"),
+                    func.sum(
+                        case((issued_date < str(cut_90), Charge.amount), else_=0)
+                    ).label("days_90_plus"),
+                    func.sum(Charge.amount).label("total"),
+                    func.min(Charge.issued_at).label("oldest_issued_at"),
                 ),
                 Charge,
             )

@@ -9,7 +9,13 @@ from sqlalchemy.orm import Session
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services import data_entry, filing, intake, period_options, vat_report_queries
+from app.vat_reports.services import (
+    data_entry,
+    filing,
+    intake,
+    period_options,
+    vat_report_queries,
+)
 from app.vat_reports.services import vat_report_enrichment
 from app.users.repositories.user_repository import UserRepository
 
@@ -28,7 +34,8 @@ class VatReportService:
 
     def create_work_item(self, **kwargs):
         return intake.create_work_item(
-            self.work_item_repo, self.db,
+            self.work_item_repo,
+            self.db,
             **kwargs,
         )
 
@@ -48,10 +55,14 @@ class VatReportService:
         return data_entry.add_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
 
     def delete_invoice(self, **kwargs):
-        return data_entry.delete_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
+        return data_entry.delete_invoice(
+            self.work_item_repo, self.invoice_repo, **kwargs
+        )
 
     def update_invoice(self, **kwargs):
-        return data_entry.update_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
+        return data_entry.update_invoice(
+            self.work_item_repo, self.invoice_repo, **kwargs
+        )
 
     def mark_ready_for_review(self, **kwargs):
         return data_entry.mark_ready_for_review(self.work_item_repo, **kwargs)
@@ -70,7 +81,9 @@ class VatReportService:
         return vat_report_queries.get_work_item(self.work_item_repo, item_id)
 
     def list_client_work_items(self, client_record_id: int):
-        return vat_report_queries.list_client_work_items(self.work_item_repo, client_record_id)
+        return vat_report_queries.list_client_work_items(
+            self.work_item_repo, client_record_id
+        )
 
     def list_work_items_by_status(self, **kwargs):
         return vat_report_queries.list_work_items_by_status(
@@ -89,7 +102,9 @@ class VatReportService:
         return self.work_item_repo.get_by_client_record_period(client_record_id, period)
 
     def get_audit_trail(self, item_id: int, limit: int, offset: int):
-        return vat_report_queries.get_audit_trail(self.work_item_repo, item_id, limit, offset)
+        return vat_report_queries.get_audit_trail(
+            self.work_item_repo, item_id, limit, offset
+        )
 
     def get_work_item_enriched(self, item_id: int) -> dict:
         return vat_report_enrichment.get_work_item_enriched(

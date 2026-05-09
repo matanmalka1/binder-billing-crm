@@ -15,6 +15,7 @@ from .test_annual_report_enums import (
 from .test_annual_report_repo import InMemoryRepo
 from app.utils.time_utils import utcnow
 
+
 class AnnualReportService:
     def __init__(self):
         self.repo = InMemoryRepo()
@@ -50,7 +51,10 @@ class AnnualReportService:
         try:
             dt = DeadlineType(deadline_type)
         except ValueError:
-            raise AppError(f"סוג מועד אחרון '{deadline_type}' אינו חוקי", "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(
+                f"סוג מועד אחרון '{deadline_type}' אינו חוקי",
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
 
         if self.repo.get_by_client_year(client_id, tax_year):
             raise ConflictError(
@@ -60,7 +64,9 @@ class AnnualReportService:
 
         form_type = FORM_MAP[ct]
         filing_deadline = (
-            standard_deadline(tax_year, client_type=ct, submission_method=submission_method)
+            standard_deadline(
+                tax_year, client_type=ct, submission_method=submission_method
+            )
             if dt == DeadlineType.STANDARD
             else extended_deadline(tax_year)
             if dt == DeadlineType.EXTENDED
@@ -85,23 +91,33 @@ class AnnualReportService:
         )
 
         if ct in {ClientTypeForReport.SELF_EMPLOYED, ClientTypeForReport.PARTNERSHIP}:
-            self.repo.add_schedule(report.id, AnnualReportSchedule.SCHEDULE_A, is_required=True)
+            self.repo.add_schedule(
+                report.id, AnnualReportSchedule.SCHEDULE_A, is_required=True
+            )
         if ct == ClientTypeForReport.PARTNERSHIP:
-            self.repo.add_schedule(report.id, AnnualReportSchedule.FORM_1504, is_required=True)
+            self.repo.add_schedule(
+                report.id, AnnualReportSchedule.FORM_1504, is_required=True
+            )
 
         for flag_attr, schedule in SCHEDULE_FLAGS:
             if getattr(report, flag_attr, False):
                 self.repo.add_schedule(report.id, schedule, is_required=True)
 
-        self.repo.append_status_history(report.id, None, AnnualReportStatus.NOT_STARTED, created_by)
+        self.repo.append_status_history(
+            report.id, None, AnnualReportStatus.NOT_STARTED, created_by
+        )
         return report
 
-    def transition_status(self, report_id, new_status, changed_by, changed_by_name, note=None, **kwargs):
+    def transition_status(
+        self, report_id, new_status, changed_by, changed_by_name, note=None, **kwargs
+    ):
         report = self._get_or_raise(report_id)
         try:
             ns = AnnualReportStatus(new_status)
         except ValueError:
-            raise AppError(f"סטטוס '{new_status}' אינו חוקי", "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(
+                f"סטטוס '{new_status}' אינו חוקי", "ANNUAL_REPORT.INVALID_STATUS"
+            )
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
             allowed = [s.value for s in VALID_TRANSITIONS.get(report.status, set())]
             raise AppError(
@@ -115,7 +131,9 @@ class AnnualReportService:
             if kwargs.get("ita_reference"):
                 update["ita_reference"] = kwargs["ita_reference"]
         self.repo.update(report_id, **update)
-        self.repo.append_status_history(report_id, previous_status, ns, changed_by, note)
+        self.repo.append_status_history(
+            report_id, previous_status, ns, changed_by, note
+        )
         return self.repo.get_by_id(report_id)
 
     def get_report(self, rid):
@@ -139,7 +157,9 @@ class AnnualReportService:
         try:
             sched = AnnualReportSchedule(schedule)
         except ValueError:
-            raise AppError(f"לוח זמנים '{schedule}' אינו חוקי", "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(
+                f"לוח זמנים '{schedule}' אינו חוקי", "ANNUAL_REPORT.INVALID_TYPE"
+            )
         entry = self.repo.mark_schedule_complete(rid, sched)
         if not entry:
             raise NotFoundError("לוח זמנים לא נמצא", "ANNUAL_REPORT.LINE_NOT_FOUND")

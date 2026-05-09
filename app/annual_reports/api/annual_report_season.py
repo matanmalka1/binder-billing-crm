@@ -27,7 +27,9 @@ def list_active_season_reports(
 ):
     tax_year = get_active_annual_report_tax_year()
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(
+        tax_year=tax_year, page=page, page_size=page_size
+    )
     return AnnualReportListResponse(
         items=items,
         page=page,
@@ -57,7 +59,9 @@ def list_season_reports(
 ):
     """All reports for a given tax year — the advisor's season dashboard."""
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(
+        tax_year=tax_year, page=page, page_size=page_size
+    )
     return AnnualReportListResponse(
         items=items,
         page=page,

@@ -46,5 +46,9 @@ def test_create_request_rejects_manual_vat_frequency_for_osek_patur():
 def test_create_request_rejects_conflicting_company_identifier_type():
     with pytest.raises(ValidationError):
         CreateClientRequest.model_validate(
-            _payload(entity_type="company_ltd", id_number="039337423", id_number_type="individual"),
+            _payload(
+                entity_type="company_ltd",
+                id_number="039337423",
+                id_number_type="individual",
+            ),
         )

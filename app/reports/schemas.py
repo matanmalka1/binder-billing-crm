@@ -3,7 +3,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.annual_reports.models.annual_report_enums import AnnualReportForm, AnnualReportStatus
+from app.annual_reports.models.annual_report_enums import (
+    AnnualReportForm,
+    AnnualReportStatus,
+)
 
 
 class VatComplianceReportItemResponse(BaseModel):

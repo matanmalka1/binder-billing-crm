@@ -12,10 +12,11 @@ from app.signature_requests.models.signature_request import (
 
 # ── Audit event ───────────────────────────────────────────────────────────────
 
+
 class SignatureAuditEventResponse(BaseModel):
     id: int
-    event_type: str     # String במודל — לא enum, מרחיב בחופשיות
-    actor_type: str     # String במודל — לא enum
+    event_type: str  # String במודל — לא enum, מרחיב בחופשיות
+    actor_type: str  # String במודל — לא enum
     actor_id: Optional[int] = None
     actor_name: Optional[str] = None
     ip_address: Optional[str] = None
@@ -27,12 +28,13 @@ class SignatureAuditEventResponse(BaseModel):
 
 # ── Core response ─────────────────────────────────────────────────────────────
 
+
 class SignatureRequestResponse(BaseModel):
     id: int
-    client_record_id: int                              # PRIMARY anchor — always present
+    client_record_id: int  # PRIMARY anchor — always present
     office_client_number: Optional[int] = None
-    business_id: Optional[int] = None          # OPTIONAL context
-    business_name: Optional[str] = None        # enriched by route layer when business_id set
+    business_id: Optional[int] = None  # OPTIONAL context
+    business_name: Optional[str] = None  # enriched by route layer when business_id set
     created_by: int
     request_type: SignatureRequestType
     title: str
@@ -68,9 +70,12 @@ class SignatureRequestWithAuditResponse(SignatureRequestResponse):
 
 # ── Advisor create request ────────────────────────────────────────────────────
 
+
 class SignatureRequestCreateRequest(BaseModel):
-    client_record_id: int = Field(gt=0)                        # PRIMARY anchor — always required
-    business_id: Optional[int] = Field(None, gt=0)     # OPTIONAL; validated server-side for ownership
+    client_record_id: int = Field(gt=0)  # PRIMARY anchor — always required
+    business_id: Optional[int] = Field(
+        None, gt=0
+    )  # OPTIONAL; validated server-side for ownership
     request_type: SignatureRequestType
     title: str = Field(min_length=3, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
@@ -88,6 +93,7 @@ class SignatureRequestSendRequest(BaseModel):
 
 class SignatureRequestSentResponse(SignatureRequestResponse):
     """Returned once only — token is not persisted server-side after this response."""
+
     signing_token: Optional[str] = None
     signing_url_hint: Optional[str] = None
 
@@ -98,8 +104,10 @@ class CancelRequest(BaseModel):
 
 # ── Signer-facing (public, no JWT) ───────────────────────────────────────────
 
+
 class SignerViewResponse(BaseModel):
     """Minimal — no internal IDs or financial data."""
+
     request_id: int
     title: str
     description: Optional[str] = None
@@ -114,7 +122,11 @@ class SignerViewResponse(BaseModel):
         if self.expires_at is None:
             return False
         now = datetime.now(timezone.utc)
-        exp = self.expires_at if self.expires_at.tzinfo else self.expires_at.replace(tzinfo=timezone.utc)
+        exp = (
+            self.expires_at
+            if self.expires_at.tzinfo
+            else self.expires_at.replace(tzinfo=timezone.utc)
+        )
         return exp < now
 
 

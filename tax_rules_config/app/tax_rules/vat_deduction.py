@@ -71,7 +71,6 @@ VAT_DEDUCTION_RULES: tuple[VatDeductionRule, ...] = (
         label_he="עמלות בנק",
         source_ids=("tax_authority_vat_law_38_41",),
     ),
-
     # ── ניכוי חלקי 2/3 — הוצאות מעורבות ─────────────────────────────────────
     VatDeductionRule(
         category="travel",
@@ -108,7 +107,6 @@ VAT_DEDUCTION_RULES: tuple[VatDeductionRule, ...] = (
         condition_he="ברירת מחדל שמרנית להוצאה מעורבת שלא סווגה.",
         source_ids=("tax_authority_vat_law_38_41",),
     ),
-
     # ── רכב — שיעור תלוי סוג ─────────────────────────────────────────────────
     # רכב פרטי (לפי תקנות): 2/3 ניכוי.
     # רכב מסחרי (משא, אמבולנס, וכו'): ניכוי מלא — מחוץ לטבלה זו.
@@ -137,7 +135,6 @@ VAT_DEDUCTION_RULES: tuple[VatDeductionRule, ...] = (
         condition_he="2/3 ניכוי — כרכב עצמו.",
         source_ids=("tax_authority_vat_law_38_41",),
     ),
-
     # ── ללא ניכוי — 0% ───────────────────────────────────────────────────────
     VatDeductionRule(
         category="salary",

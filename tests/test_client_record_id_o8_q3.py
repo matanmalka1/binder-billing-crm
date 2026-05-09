@@ -49,8 +49,13 @@ def _make_client_record(db, legal_entity_id: int):
 
 class TestPermanentDocumentClientRecord:
     def test_scope_client_visible_via_client_record(self, db):
-        from app.permanent_documents.models.permanent_document import DocumentScope, DocumentStatus
-        from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
+        from app.permanent_documents.models.permanent_document import (
+            DocumentScope,
+            DocumentStatus,
+        )
+        from app.permanent_documents.repositories.permanent_document_repository import (
+            PermanentDocumentRepository,
+        )
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
@@ -69,8 +74,13 @@ class TestPermanentDocumentClientRecord:
         assert docs[0].client_record_id == record.id
 
     def test_scope_business_visible_via_client_record(self, db):
-        from app.permanent_documents.models.permanent_document import DocumentScope, DocumentStatus
-        from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
+        from app.permanent_documents.models.permanent_document import (
+            DocumentScope,
+            DocumentStatus,
+        )
+        from app.permanent_documents.repositories.permanent_document_repository import (
+            PermanentDocumentRepository,
+        )
         from app.businesses.models.business import Business, BusinessStatus
 
         client = _make_client(db, "C302")

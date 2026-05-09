@@ -35,9 +35,15 @@ class VatAuditLogRepository:
         return entry
 
     def count_audit_trail(self, work_item_id: int) -> int:
-        return self.db.query(VatAuditLog).filter(VatAuditLog.work_item_id == work_item_id).count()
+        return (
+            self.db.query(VatAuditLog)
+            .filter(VatAuditLog.work_item_id == work_item_id)
+            .count()
+        )
 
-    def get_audit_trail(self, work_item_id: int, limit: int, offset: int) -> list[VatAuditLog]:
+    def get_audit_trail(
+        self, work_item_id: int, limit: int, offset: int
+    ) -> list[VatAuditLog]:
         return (
             self.db.query(VatAuditLog)
             .filter(VatAuditLog.work_item_id == work_item_id)

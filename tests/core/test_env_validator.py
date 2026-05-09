@@ -1,4 +1,5 @@
 """Tests for environment validation."""
+
 import os
 from unittest.mock import patch
 
@@ -23,8 +24,9 @@ def test_validation_noops_when_no_extra_vars_defined():
 
 def test_validation_still_handles_future_required_vars():
     """If REQUIRED_VARS is populated, missing values should trigger exit."""
-    with patch.object(EnvValidator, "REQUIRED_VARS", ["SOME_REQUIRED"]), patch.dict(
-        os.environ, {}, clear=True
+    with (
+        patch.object(EnvValidator, "REQUIRED_VARS", ["SOME_REQUIRED"]),
+        patch.dict(os.environ, {}, clear=True),
     ):
         with pytest.raises(SystemExit) as exc_info:
             EnvValidator.validate()
@@ -32,8 +34,9 @@ def test_validation_still_handles_future_required_vars():
 
 
 def test_validation_reports_missing_and_empty_to_stderr(capsys):
-    with patch.object(EnvValidator, "REQUIRED_VARS", ["MISSING_VAR", "EMPTY_VAR"]), patch.dict(
-        os.environ, {"EMPTY_VAR": "   "}, clear=True
+    with (
+        patch.object(EnvValidator, "REQUIRED_VARS", ["MISSING_VAR", "EMPTY_VAR"]),
+        patch.dict(os.environ, {"EMPTY_VAR": "   "}, clear=True),
     ):
         with pytest.raises(SystemExit):
             EnvValidator.validate()

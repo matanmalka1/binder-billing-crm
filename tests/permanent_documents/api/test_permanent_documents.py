@@ -3,8 +3,13 @@ from itertools import count
 
 from app.businesses.models.business import Business
 from app.common.enums import IdNumberType
-from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
-from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
+from app.permanent_documents.models.permanent_document import (
+    DocumentScope,
+    DocumentType,
+)
+from app.permanent_documents.repositories.permanent_document_repository import (
+    PermanentDocumentRepository,
+)
 from tests.helpers.identity import seed_client_with_business
 
 
@@ -31,7 +36,11 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", file_bytes, "application/pdf")},
-        data={"client_record_id": business.client_id, "business_id": business.id, "document_type": "id_copy"},
+        data={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "document_type": "id_copy",
+        },
     )
     assert resp.status_code == 201
     doc = resp.json()
@@ -42,7 +51,9 @@ def test_upload_and_list_documents(client, test_db, advisor_headers):
     assert doc["is_present"] is True
     doc_id = doc["id"]
 
-    list_resp = client.get(f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers)
+    list_resp = client.get(
+        f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers
+    )
     assert list_resp.status_code == 200
     items = list_resp.json()["items"]
     assert len(items) == 1
@@ -61,7 +72,9 @@ def test_get_download_url_and_replace_document(client, test_db, advisor_headers)
         uploaded_by=1,
     )
 
-    url_resp = client.get(f"/api/v1/documents/{doc.id}/download-url", headers=advisor_headers)
+    url_resp = client.get(
+        f"/api/v1/documents/{doc.id}/download-url", headers=advisor_headers
+    )
     assert url_resp.status_code == 200
     assert "url" in url_resp.json()
 
@@ -91,12 +104,16 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     del_resp = client.delete(f"/api/v1/documents/{doc.id}", headers=advisor_headers)
     assert del_resp.status_code == 204
 
-    list_resp = client.get(f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers)
+    list_resp = client.get(
+        f"/api/v1/documents/client/{business.client_id}", headers=advisor_headers
+    )
     assert list_resp.status_code == 200
     assert list_resp.json()["items"] == []
 
 
-def test_upload_without_business_id_creates_client_owned_document(client, test_db, advisor_headers):
+def test_upload_without_business_id_creates_client_owned_document(
+    client, test_db, advisor_headers
+):
     business = _business(test_db)
 
     resp = client.post(

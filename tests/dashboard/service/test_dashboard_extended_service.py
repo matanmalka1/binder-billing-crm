@@ -23,12 +23,16 @@ def test_get_attention_items_returns_idle_and_ready_items(test_db, monkeypatch):
         lambda: [(ready_binder, business_ready)],
     )
 
-    items = service.get_attention_items(user_role=None, reference_date=date(2026, 3, 10))
+    items = service.get_attention_items(
+        user_role=None, reference_date=date(2026, 3, 10)
+    )
     item_types = [item["item_type"] for item in items]
     assert item_types == ["ready_for_pickup"]
 
 
-def test_get_attention_items_advisor_skips_unmapped_charge_clients(test_db, monkeypatch):
+def test_get_attention_items_advisor_skips_unmapped_charge_clients(
+    test_db, monkeypatch
+):
     service = DashboardExtendedService(test_db)
     binder = SimpleNamespace(
         id=3,
@@ -38,7 +42,9 @@ def test_get_attention_items_advisor_skips_unmapped_charge_clients(test_db, monk
         status=BinderStatus.IN_OFFICE,
     )
     business_obj = SimpleNamespace(id=13, full_name="No Attention")
-    monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business_obj)])
+    monkeypatch.setattr(
+        service, "_active_binders_with_businesses", lambda: [(binder, business_obj)]
+    )
     service.charge_repo = SimpleNamespace(
         list_charges=lambda **kwargs: [
             SimpleNamespace(business_id=999, client_record_id=999, id=1, amount=10)
@@ -46,7 +52,9 @@ def test_get_attention_items_advisor_skips_unmapped_charge_clients(test_db, monk
     )
     service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
 
-    items = service.get_attention_items(user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10))
+    items = service.get_attention_items(
+        user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
+    )
     assert items == []
 
 
@@ -75,13 +83,23 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db, monkeyp
     client_record = SimpleNamespace(id=88, legal_entity_id=99)
     legal_entity = SimpleNamespace(id=99, official_name="Legal Client")
 
-    monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [(binder, business)])
+    monkeypatch.setattr(
+        service, "_active_binders_with_businesses", lambda: [(binder, business)]
+    )
     service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])
-    service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [mapped_charge_business])
-    service.client_record_repo = SimpleNamespace(list_by_ids=lambda ids: [client_record])
-    service.legal_entity_repo = SimpleNamespace(get_by_id=lambda legal_entity_id: legal_entity)
+    service.business_repo = SimpleNamespace(
+        list_by_ids=lambda ids: [mapped_charge_business]
+    )
+    service.client_record_repo = SimpleNamespace(
+        list_by_ids=lambda ids: [client_record]
+    )
+    service.legal_entity_repo = SimpleNamespace(
+        get_by_id=lambda legal_entity_id: legal_entity
+    )
 
-    items = service.get_attention_items(user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10))
+    items = service.get_attention_items(
+        user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
+    )
 
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"
@@ -114,10 +132,16 @@ def test_get_attention_items_advisor_includes_client_level_charge(test_db, monke
     monkeypatch.setattr(service, "_active_binders_with_businesses", lambda: [])
     service.charge_repo = SimpleNamespace(list_charges=lambda **kwargs: [charge])
     service.business_repo = SimpleNamespace(list_by_ids=lambda ids: [])
-    service.client_record_repo = SimpleNamespace(list_by_ids=lambda ids: [client_record])
-    service.legal_entity_repo = SimpleNamespace(get_by_id=lambda legal_entity_id: legal_entity)
+    service.client_record_repo = SimpleNamespace(
+        list_by_ids=lambda ids: [client_record]
+    )
+    service.legal_entity_repo = SimpleNamespace(
+        get_by_id=lambda legal_entity_id: legal_entity
+    )
 
-    items = service.get_attention_items(user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10))
+    items = service.get_attention_items(
+        user_role=UserRole.ADVISOR, reference_date=date(2026, 3, 10)
+    )
 
     assert len(items) == 1
     assert items[0]["item_type"] == "unpaid_charge"

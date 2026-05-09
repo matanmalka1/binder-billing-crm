@@ -5,6 +5,7 @@ path (get_by_id_for_update) and correctly enforce state guards.
 Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy) and invalid-state handling only.
 """
+
 from datetime import date
 
 import pytest
@@ -17,7 +18,9 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_client(db):
-    return seed_client_identity(db, full_name="Locking Binder Client", id_number="BINLOCK001")
+    return seed_client_identity(
+        db, full_name="Locking Binder Client", id_number="BINLOCK001"
+    )
 
 
 def _create_binder(db, client_id, status=BinderStatus.IN_OFFICE):
@@ -37,6 +40,7 @@ def _create_binder(db, client_id, status=BinderStatus.IN_OFFICE):
 
 # ── Code-path verification ────────────────────────────────────────────────────
 
+
 def test_mark_ready_for_pickup_uses_locked_fetch(test_db, test_user, monkeypatch):
     client = _create_client(test_db)
     binder = _create_binder(test_db, client.id)
@@ -45,7 +49,8 @@ def test_mark_ready_for_pickup_uses_locked_fetch(test_db, test_user, monkeypatch
     calls = []
     original = svc.binder_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.binder_repo, "get_by_id_for_update",
+        svc.binder_repo,
+        "get_by_id_for_update",
         lambda bid: calls.append(bid) or original(bid),
     )
 
@@ -61,11 +66,14 @@ def test_return_binder_uses_locked_fetch(test_db, test_user, monkeypatch):
     calls = []
     original = svc.binder_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.binder_repo, "get_by_id_for_update",
+        svc.binder_repo,
+        "get_by_id_for_update",
         lambda bid: calls.append(bid) or original(bid),
     )
 
-    svc.return_binder(binder.id, pickup_person_name="Test Person", returned_by=test_user.id)
+    svc.return_binder(
+        binder.id, pickup_person_name="Test Person", returned_by=test_user.id
+    )
     assert binder.id in calls, "return_binder must call get_by_id_for_update"
 
 
@@ -77,7 +85,8 @@ def test_revert_ready_uses_locked_fetch(test_db, test_user, monkeypatch):
     calls = []
     original = svc.binder_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.binder_repo, "get_by_id_for_update",
+        svc.binder_repo,
+        "get_by_id_for_update",
         lambda bid: calls.append(bid) or original(bid),
     )
 
@@ -86,6 +95,7 @@ def test_revert_ready_uses_locked_fetch(test_db, test_user, monkeypatch):
 
 
 # ── Invalid-state guard ───────────────────────────────────────────────────────
+
 
 def test_mark_ready_already_ready_raises(test_db, test_user):
     client = _create_client(test_db)

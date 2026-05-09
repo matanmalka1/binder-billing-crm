@@ -49,6 +49,7 @@ class BinderIntakeMaterialRepository:
     def list_by_binder(self, binder_id: int) -> list[BinderIntakeMaterial]:
         """Return all materials across all intakes for a binder (via join)."""
         from app.binders.models.binder_intake import BinderIntake
+
         return (
             self.db.query(BinderIntakeMaterial)
             .join(BinderIntake, BinderIntake.id == BinderIntakeMaterial.intake_id)
@@ -60,6 +61,7 @@ class BinderIntakeMaterialRepository:
     def get_last_by_binder(self, binder_id: int) -> Optional[BinderIntakeMaterial]:
         """Return the most recent material across all intakes for a binder."""
         from app.binders.models.binder_intake import BinderIntake
+
         return (
             self.db.query(BinderIntakeMaterial)
             .join(BinderIntake, BinderIntake.id == BinderIntakeMaterial.intake_id)

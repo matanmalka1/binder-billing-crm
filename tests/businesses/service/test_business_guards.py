@@ -28,8 +28,11 @@ def test_assert_business_allows_create_blocks_closed_and_frozen():
     assert frozen.value.code == "BUSINESS.FROZEN"
 
 
-def _create_business(test_db, status: BusinessStatus = BusinessStatus.ACTIVE) -> Business:
+def _create_business(
+    test_db, status: BusinessStatus = BusinessStatus.ACTIVE
+) -> Business:
     from datetime import date
+
     client = seed_client_identity(
         test_db,
         full_name="Business Guard Client",

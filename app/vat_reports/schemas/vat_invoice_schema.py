@@ -28,7 +28,9 @@ class VatInvoiceValidatorMixin(BaseModel):
     counterparty_id: Optional[str] = None
     counterparty_id_type: Optional[CounterpartyIdType] = None
 
-    @field_validator("invoice_number", "counterparty_name", "counterparty_id", check_fields=False)
+    @field_validator(
+        "invoice_number", "counterparty_name", "counterparty_id", check_fields=False
+    )
     @classmethod
     def normalize_optional_strings(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
@@ -48,9 +50,9 @@ class VatInvoiceValidatorMixin(BaseModel):
             if cid is None:
                 raise ValueError("יש להזין מספר מזהה ישראלי כאשר סוג המזהה הוא ישראלי")
             if not cid.isdigit() or len(cid) != 9:
-                raise ValueError("מספר עוסק / ת\"ז ישראלי חייב להיות 9 ספרות")
+                raise ValueError('מספר עוסק / ת"ז ישראלי חייב להיות 9 ספרות')
             if not validate_israeli_id_checksum(cid):
-                raise ValueError("מספר עוסק / ת\"ז ישראלי אינו תקין")
+                raise ValueError('מספר עוסק / ת"ז ישראלי אינו תקין')
             return self
 
         if cid_type == CounterpartyIdType.FOREIGN:
@@ -68,12 +70,18 @@ class VatInvoiceValidatorMixin(BaseModel):
 class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     invoice_type: InvoiceType
     business_activity_id: Optional[int] = None
-    invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
-    invoice_date: Optional[date] = None    # Date — לא DateTime
-    counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
+    invoice_number: Optional[str] = Field(
+        default=None, max_length=MAX_INVOICE_NUMBER_LENGTH
+    )
+    invoice_date: Optional[date] = None  # Date — לא DateTime
+    counterparty_name: Optional[str] = Field(
+        default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH
+    )
     net_amount: ApiDecimal
     vat_amount: Optional[ApiDecimal] = None
-    counterparty_id: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
+    counterparty_id: Optional[str] = Field(
+        default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH
+    )
     counterparty_id_type: Optional[CounterpartyIdType] = None
     expense_category: Optional[ExpenseCategory] = None
     rate_type: VatRateType = VatRateType.STANDARD
@@ -90,7 +98,7 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     @classmethod
     def vat_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         if v is not None and v < 0:
-            raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
+            raise ValueError('הסכום של המע"מ לא יכול להיות שלילי')
         return v
 
 
@@ -101,7 +109,7 @@ class VatInvoiceResponse(BaseModel):
     invoice_type: InvoiceType
     document_type: Optional[DocumentType] = None
     invoice_number: str
-    invoice_date: date                     # Date — לא DateTime
+    invoice_date: date  # Date — לא DateTime
     counterparty_name: str
     counterparty_id: Optional[str] = None
     counterparty_id_type: Optional[CounterpartyIdType] = None  # קיים במודל
@@ -112,7 +120,7 @@ class VatInvoiceResponse(BaseModel):
     deduction_rate: ApiDecimal
     is_exceptional: bool
     created_by: int
-    created_at: date                       # Date במודל
+    created_at: date  # Date במודל
     # Non-null only on create response — True when annual turnover crosses 80% of OSEK PATUR ceiling
     ceiling_warning: bool = False
 

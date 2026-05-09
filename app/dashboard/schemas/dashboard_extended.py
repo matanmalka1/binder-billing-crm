@@ -57,9 +57,7 @@ class ReadyForPickupAttentionItem(BaseAttentionItem):
 
 
 AttentionItem = (
-    UnpaidChargeAttentionItem
-    | UnpaidChargesAttentionItem
-    | ReadyForPickupAttentionItem
+    UnpaidChargeAttentionItem | UnpaidChargesAttentionItem | ReadyForPickupAttentionItem
 )
 
 

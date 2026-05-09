@@ -1,6 +1,5 @@
 """Business delete and restore operations."""
 
-
 from sqlalchemy.orm import Session
 
 from app.audit.constants import ENTITY_BUSINESS
@@ -23,7 +22,9 @@ class BusinessLifecycleService:
         self.business_repo.soft_delete(business_id, deleted_by=actor_id)
         self._audit.record_delete(ENTITY_BUSINESS, business_id, actor_id)
 
-    def restore_business(self, business_id: int, actor_id: int, actor_role: UserRole) -> Business:
+    def restore_business(
+        self, business_id: int, actor_id: int, actor_role: UserRole
+    ) -> Business:
         if actor_role != UserRole.ADVISOR:
             raise ForbiddenError("רק יועצים יכולים לשחזר עסקים", "BUSINESS.FORBIDDEN")
         business = self.business_repo.get_by_id_including_deleted(business_id)

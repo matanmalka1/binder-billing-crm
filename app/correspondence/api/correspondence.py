@@ -27,7 +27,9 @@ client_router = APIRouter(
 )
 
 
-@client_router.get("/{client_record_id}/correspondence", response_model=CorrespondenceListResponse)
+@client_router.get(
+    "/{client_record_id}/correspondence", response_model=CorrespondenceListResponse
+)
 def list_correspondence_by_client(
     client_record_id: int,
     db: DBSession,
@@ -128,4 +130,6 @@ def delete_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    CorrespondenceService(db).delete_entry(correspondence_id, client_record_id, actor_id=user.id)
+    CorrespondenceService(db).delete_entry(
+        correspondence_id, client_record_id, actor_id=user.id
+    )

@@ -3,13 +3,16 @@ from typing import Callable
 
 from app.core.logging_config import get_logger
 from app.database import SessionLocal
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.signature_requests.services.admin_actions import expire_overdue_requests
 
 logger = get_logger(__name__)
 
 try:
     from app.config import config as _cfg
+
     _INTERVAL: int = getattr(_cfg, "BACKGROUND_JOB_INTERVAL_SECONDS", 86_400)
 except Exception:
     _INTERVAL = 86_400

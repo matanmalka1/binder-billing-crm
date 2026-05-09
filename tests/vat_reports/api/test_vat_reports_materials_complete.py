@@ -1,7 +1,9 @@
 from tests.vat_reports.api.test_vat_reports_utils import create_work_item
 
 
-def test_materials_complete_transitions_pending_to_material_received(client, advisor_headers, vat_client):
+def test_materials_complete_transitions_pending_to_material_received(
+    client, advisor_headers, vat_client
+):
     create_resp = client.post(
         "/api/v1/vat/work-items",
         headers=advisor_headers,

@@ -45,6 +45,8 @@ class BulkBillingService:
             except AppError as exc:
                 failed.append(BulkChargeFailedItem(id=charge_id, error=exc.message))
             except Exception:
-                failed.append(BulkChargeFailedItem(id=charge_id, error=BULK_ACTION_INTERNAL_ERROR))
+                failed.append(
+                    BulkChargeFailedItem(id=charge_id, error=BULK_ACTION_INTERNAL_ERROR)
+                )
 
         return succeeded, failed

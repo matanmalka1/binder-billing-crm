@@ -56,7 +56,8 @@ class ClientCreateRequest(BaseModel):
             provided_id_number_type=self.id_number_type,
             id_number_type_was_set="id_number_type" in self.model_fields_set,
             vat_reporting_frequency=self.vat_reporting_frequency,
-            vat_reporting_frequency_was_set="vat_reporting_frequency" in self.model_fields_set,
+            vat_reporting_frequency_was_set="vat_reporting_frequency"
+            in self.model_fields_set,
             vat_exempt_ceiling_was_set="vat_exempt_ceiling" in self.model_fields_set,
             advance_payment_frequency=self.advance_payment_frequency,
         )
@@ -105,7 +106,9 @@ class CreateClientRequest(BaseModel):
         )
         for field_name, value in required_values:
             if value is None or (isinstance(value, str) and not value.strip()):
-                raise ValueError(f"יש להזין {CREATE_CLIENT_REQUIRED_LABELS[field_name]}")
+                raise ValueError(
+                    f"יש להזין {CREATE_CLIENT_REQUIRED_LABELS[field_name]}"
+                )
         if self.client.entity_type is None:
             raise ValueError("יש לבחור סוג ישות")
         if self.client.email is None:
@@ -124,7 +127,8 @@ class ClientImpactPreviewClientRequest(BaseModel):
         validate_preview_entity_rules(
             entity_type=self.entity_type,
             vat_reporting_frequency=self.vat_reporting_frequency,
-            vat_reporting_frequency_was_set="vat_reporting_frequency" in self.model_fields_set,
+            vat_reporting_frequency_was_set="vat_reporting_frequency"
+            in self.model_fields_set,
         )
         return self
 

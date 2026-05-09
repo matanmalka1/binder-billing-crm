@@ -1,9 +1,14 @@
 from sqlalchemy.orm import Session
 
 from app.binders.services.binder_operations_service import BinderOperationsService
-from app.clients.schemas.client_record_response import AnnualTurnover, ClientRecordResponse
+from app.clients.schemas.client_record_response import (
+    AnnualTurnover,
+    ClientRecordResponse,
+)
 from app.utils.time_utils import utcnow
-from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from app.vat_reports.repositories.vat_client_summary_repository import (
+    VatClientSummaryRepository,
+)
 
 
 class ClientEnrichmentService:
@@ -18,7 +23,9 @@ class ClientEnrichmentService:
         if reported is not None:
             return AnnualTurnover(amount=reported, source="reported", year=year)
         if client.annual_revenue is not None:
-            return AnnualTurnover(amount=client.annual_revenue, source="manual", year=year)
+            return AnnualTurnover(
+                amount=client.annual_revenue, source="manual", year=year
+            )
         return AnnualTurnover(amount=None, source="none", year=year)
 
     def enrich_single(
@@ -36,7 +43,9 @@ class ClientEnrichmentService:
     ) -> list[ClientRecordResponse]:
         if not items:
             return items
-        active_binders = self._binder_service.map_active_binders_for_clients([c.id for c in items])
+        active_binders = self._binder_service.map_active_binders_for_clients(
+            [c.id for c in items]
+        )
         year = tax_year or utcnow().year
         for client in items:
             if client.id in active_binders:

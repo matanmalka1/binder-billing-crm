@@ -17,15 +17,13 @@ class VatComplianceRepository:
     def get_compliance_aggregates(self, year: int) -> list:
         """Per-client aggregates: expected periods and filed count for a given year."""
         year_str = str(year)
-        filed_case = case(
-            (VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0
-        )
+        filed_case = case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
         query = self.db.query(
-                VatWorkItem.client_record_id,
-                VatWorkItem.period_type,
-                func.count(VatWorkItem.id).label("periods_expected"),
-                func.sum(filed_case).label("periods_filed"),
-            )
+            VatWorkItem.client_record_id,
+            VatWorkItem.period_type,
+            func.count(VatWorkItem.id).label("periods_expected"),
+            func.sum(filed_case).label("periods_filed"),
+        )
         return (
             scope_to_active_clients(query, VatWorkItem)
             .filter(
@@ -41,11 +39,11 @@ class VatComplianceRepository:
         """All filed work items for a year with filing timestamps."""
         year_str = str(year)
         query = self.db.query(
-                VatWorkItem.client_record_id,
-                VatWorkItem.period_type,
-                VatWorkItem.period,
-                VatWorkItem.filed_at,
-            )
+            VatWorkItem.client_record_id,
+            VatWorkItem.period_type,
+            VatWorkItem.period,
+            VatWorkItem.filed_at,
+        )
         return (
             scope_to_active_clients(query, VatWorkItem)
             .filter(
@@ -60,15 +58,16 @@ class VatComplianceRepository:
     def get_overdue_unfiled(self, reference_date: date) -> list:
         """Work items whose statutory deadline has passed and are not yet FILED."""
         query = self.db.query(
-                VatWorkItem.client_record_id,
-                VatWorkItem.period,
-            )
+            VatWorkItem.client_record_id,
+            VatWorkItem.period,
+        )
         return (
             scope_to_active_clients(query, VatWorkItem)
             .filter(
                 VatWorkItem.status != VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
-                func.substr(VatWorkItem.period, 1, 7) < reference_date.strftime("%Y-%m"),
+                func.substr(VatWorkItem.period, 1, 7)
+                < reference_date.strftime("%Y-%m"),
             )
             .order_by(VatWorkItem.period.asc())
             .all()
@@ -78,10 +77,10 @@ class VatComplianceRepository:
         """All PENDING_MATERIALS items for a year, ordered by updated_at."""
         year_str = str(year)
         query = self.db.query(
-                VatWorkItem.client_record_id,
-                VatWorkItem.period,
-                VatWorkItem.updated_at,
-            )
+            VatWorkItem.client_record_id,
+            VatWorkItem.period,
+            VatWorkItem.updated_at,
+        )
         return (
             scope_to_active_clients(query, VatWorkItem)
             .filter(

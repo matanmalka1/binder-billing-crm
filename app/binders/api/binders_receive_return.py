@@ -26,7 +26,9 @@ router = APIRouter(
 )
 
 
-@router.post("/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED
+)
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
     """Receive material into existing binder or create new one."""
     service = BinderService(db)
@@ -48,7 +50,9 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
 
 
 @router.post("/mark-ready-bulk", response_model=list[BinderResponse])
-def mark_ready_bulk(request: BinderMarkReadyBulkRequest, db: DBSession, user: CurrentUser):
+def mark_ready_bulk(
+    request: BinderMarkReadyBulkRequest, db: DBSession, user: CurrentUser
+):
     """Mark all eligible binders for a client as ready for pickup up to a cutoff period."""
     service = BinderService(db)
     binders = service.mark_ready_bulk(
@@ -82,7 +86,9 @@ def return_binder(
         if request and request.pickup_person_name and request.pickup_person_name.strip()
         else user.full_name
     )
-    returned_by = request.returned_by if request and request.returned_by is not None else user.id
+    returned_by = (
+        request.returned_by if request and request.returned_by is not None else user.id
+    )
     binder = service.return_binder(
         binder_id=binder_id,
         pickup_person_name=pickup_person_name,
@@ -100,7 +106,11 @@ def revert_ready(binder_id: int, db: DBSession, user: CurrentUser):
     return fetch_client_and_build_response(binder, db)
 
 
-@router.post("/handover", response_model=BinderHandoverResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/handover",
+    response_model=BinderHandoverResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_handover(request: BinderHandoverRequest, db: DBSession, user: CurrentUser):
     """Return multiple binders to a client in a single grouped handover event."""
     service = BinderHandoverService(db)

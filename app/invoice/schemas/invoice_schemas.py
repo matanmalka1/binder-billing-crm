@@ -7,6 +7,7 @@ from app.core.api_types import ApiDateTime
 
 class InvoiceAttachRequest(BaseModel):
     """צירוף חשבונית חיצונית לחיוב קיים."""
+
     charge_id: int
     provider: str
     external_invoice_id: str

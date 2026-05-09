@@ -13,7 +13,11 @@ from app.reminders.services.reminder_service import ReminderService
 list_router = APIRouter()
 
 
-@list_router.get("/", response_model=ReminderListResponse, dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))])
+@list_router.get(
+    "/",
+    response_model=ReminderListResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
 def list_reminders(
     db: DBSession,
     _user: CurrentUser,
@@ -22,15 +26,26 @@ def list_reminders(
     status_filter: Optional[str] = Query(None, alias="status"),
     business_id: Optional[int] = Query(None),
     client_record_id: Optional[int] = Query(None),
-    created_before: Optional[datetime] = Query(None, description="סינון תזכורות שנוצרו לפני תאריך זה (ISO 8601)"),
+    created_before: Optional[datetime] = Query(
+        None, description="סינון תזכורות שנוצרו לפני תאריך זה (ISO 8601)"
+    ),
 ):
     service = ReminderService(db)
     if business_id is not None:
-        items, total, context_map = service.get_reminders_by_business(business_id=business_id, page=page, page_size=page_size)
+        items, total, context_map = service.get_reminders_by_business(
+            business_id=business_id, page=page, page_size=page_size
+        )
     elif client_record_id is not None:
-        items, total, context_map = service.get_reminders_by_client(client_record_id=client_record_id, page=page, page_size=page_size)
+        items, total, context_map = service.get_reminders_by_client(
+            client_record_id=client_record_id, page=page, page_size=page_size
+        )
     else:
-        items, total, context_map = service.get_reminders(status=status_filter, created_before=created_before, page=page, page_size=page_size)
+        items, total, context_map = service.get_reminders(
+            status=status_filter,
+            created_before=created_before,
+            page=page,
+            page_size=page_size,
+        )
 
     def _to_response(r) -> ReminderResponse:
         resp = ReminderResponse.model_validate(r)
@@ -45,4 +60,9 @@ def list_reminders(
             resp.display_label = ctx["display_label"]
         return resp
 
-    return ReminderListResponse(items=[_to_response(r) for r in items], page=page, page_size=page_size, total=total)
+    return ReminderListResponse(
+        items=[_to_response(r) for r in items],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )

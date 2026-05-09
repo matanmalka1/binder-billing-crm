@@ -6,6 +6,7 @@ Provides:
 - No stack trace leaks in responses
 - Proper error logging with traces
 """
+
 from typing import Any
 
 from fastapi import FastAPI, Request, status
@@ -111,7 +112,9 @@ async def _validation_exception_handler(
             }
             safe_err["ctx"] = safe_ctx
         safe_errors.append(safe_err)
-    return _error_json(status.HTTP_422_UNPROCESSABLE_ENTITY, safe_errors, "validation_error")
+    return _error_json(
+        status.HTTP_422_UNPROCESSABLE_ENTITY, safe_errors, "validation_error"
+    )
 
 
 async def _database_exception_handler(
@@ -122,18 +125,20 @@ async def _database_exception_handler(
         exc_info=exc,
         extra={"path": request.url.path},
     )
-    return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "database_error")
+    return _error_json(
+        status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "database_error"
+    )
 
 
-async def _general_exception_handler(
-    request: Request, exc: Exception
-) -> JSONResponse:
+async def _general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error(
         "Unhandled exception",
         exc_info=exc,
         extra={"path": request.url.path},
     )
-    return _error_json(status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "server_error")
+    return _error_json(
+        status.HTTP_500_INTERNAL_SERVER_ERROR, "שגיאת שרת פנימית", "server_error"
+    )
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:

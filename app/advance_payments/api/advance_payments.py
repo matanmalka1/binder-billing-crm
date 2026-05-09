@@ -12,9 +12,13 @@ from app.advance_payments.schemas.advance_payment import (
     AnnualKPIResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
-from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
+from app.advance_payments.services.advance_payment_analytics_service import (
+    AdvancePaymentAnalyticsService,
+)
 from app.advance_payments.services.constants import parse_period_year
-from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
+from app.advance_payments.repositories.turnover_lookup_repository import (
+    TurnoverLookupRepository,
+)
 
 router = APIRouter(
     prefix="/clients/{client_record_id}/advance-payments",
@@ -42,11 +46,21 @@ def list_advance_payments(
         page_size=page_size,
     )
     turnover_repo = TurnoverLookupRepository(db)
-    period_list = [(p.period, p.period_months_count) for p in items if p.reported_turnover is None]
-    live_map = turnover_repo.get_turnover_for_many(client_record_id, period_list) if period_list else {}
+    period_list = [
+        (p.period, p.period_months_count) for p in items if p.reported_turnover is None
+    ]
+    live_map = (
+        turnover_repo.get_turnover_for_many(client_record_id, period_list)
+        if period_list
+        else {}
+    )
 
     def _to_row(p) -> AdvancePaymentRow:
-        live, _ = live_map.get(p.period, (None, None)) if p.reported_turnover is None else (None, None)
+        live, _ = (
+            live_map.get(p.period, (None, None))
+            if p.reported_turnover is None
+            else (None, None)
+        )
         row = AdvancePaymentRow.model_validate(p)
         row.live_turnover = live
         row.missing_turnover = p.reported_turnover is None and live is None
@@ -96,7 +110,9 @@ def suggest_advance_payment(
     period_months_count: int | None = Query(None, ge=1, le=2),
 ):
     service = AdvancePaymentService(db)
-    suggested = service.suggest_expected_amount_for_client(client_record_id, year, period_months_count)
+    suggested = service.suggest_expected_amount_for_client(
+        client_record_id, year, period_months_count
+    )
     return AdvancePaymentSuggestionResponse(
         client_record_id=client_record_id,
         year=year,
@@ -113,7 +129,9 @@ def get_annual_kpis(
     year: int = Query(...),
 ):
     service = AdvancePaymentAnalyticsService(db)
-    data = service.get_annual_kpis_for_client(client_record_id=client_record_id, year=year)
+    data = service.get_annual_kpis_for_client(
+        client_record_id=client_record_id, year=year
+    )
     return AnnualKPIResponse(**data)
 
 
@@ -140,8 +158,13 @@ def update_advance_payment(
     if payment.status == AdvancePaymentStatus.PAID and payment.period:
         try:
             tax_year = parse_period_year(payment.period)
-            from app.annual_reports.services.financial_service import AnnualReportFinancialService
-            AnnualReportFinancialService(db).invalidate_tax_if_open(client_record_id, tax_year)
+            from app.annual_reports.services.financial_service import (
+                AnnualReportFinancialService,
+            )
+
+            AnnualReportFinancialService(db).invalidate_tax_if_open(
+                client_record_id, tax_year
+            )
         except Exception:
             pass  # Non-critical: do not fail the payment update if hook errors
     return AdvancePaymentRow.model_validate(payment)
@@ -158,4 +181,6 @@ def delete_advance_payment(
     db: DBSession,
     user: CurrentUser,
 ):
-    AdvancePaymentService(db).delete_payment_for_client(client_record_id, payment_id, actor_id=user.id)
+    AdvancePaymentService(db).delete_payment_for_client(
+        client_record_id, payment_id, actor_id=user.id
+    )

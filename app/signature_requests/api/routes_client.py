@@ -8,7 +8,9 @@ from app.signature_requests.schemas.signature_request import (
     SignatureRequestListResponse,
     SignatureRequestResponse,
 )
-from app.signature_requests.services.signature_request_service import SignatureRequestService
+from app.signature_requests.services.signature_request_service import (
+    SignatureRequestService,
+)
 from app.users.api.deps import CurrentUser, DBSession, require_role
 
 client_router = APIRouter(
@@ -39,12 +41,16 @@ def list_client_signature_requests(
     )
     office_number_map = {
         record.id: record.office_client_number
-        for record in ClientRecordRepository(db).list_by_ids(sorted({item.client_record_id for item in items}))
+        for record in ClientRecordRepository(db).list_by_ids(
+            sorted({item.client_record_id for item in items})
+        )
     }
     return SignatureRequestListResponse(
         items=[
             SignatureRequestResponse.model_validate(r).model_copy(
-                update={"office_client_number": office_number_map.get(r.client_record_id)}
+                update={
+                    "office_client_number": office_number_map.get(r.client_record_id)
+                }
             )
             for r in items
         ],

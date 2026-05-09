@@ -10,13 +10,18 @@ from app.permanent_documents.schemas.permanent_document import (
     PermanentDocumentListResponse,
     PermanentDocumentResponse,
 )
-from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
-from app.permanent_documents.services.response_builder import PermanentDocumentResponseBuilder
+from app.permanent_documents.services.permanent_document_service import (
+    PermanentDocumentService,
+)
+from app.permanent_documents.services.response_builder import (
+    PermanentDocumentResponseBuilder,
+)
 
 router = APIRouter(
     prefix="/documents",
     tags=["permanent-documents"],
 )
+
 
 @router.post(
     "/upload",
@@ -49,6 +54,7 @@ def upload_permanent_document(
     )
     return PermanentDocumentResponseBuilder(db).build_one(document)
 
+
 @router.get(
     "/client/{client_record_id}",
     response_model=PermanentDocumentListResponse,
@@ -68,6 +74,7 @@ def list_client_documents(
         items=PermanentDocumentResponseBuilder(db).build_many(documents)
     )
 
+
 @router.get(
     "/client/{client_record_id}/signals",
     response_model=OperationalSignalsResponse,
@@ -79,7 +86,9 @@ def get_operational_signals(
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    signals = PermanentDocumentService(db).get_client_operational_signals(client_record_id)
+    signals = PermanentDocumentService(db).get_client_operational_signals(
+        client_record_id
+    )
     return OperationalSignalsResponse(**signals)
 
 

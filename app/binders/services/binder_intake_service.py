@@ -13,9 +13,13 @@ from app.binders.services.messages import (
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
+from app.binders.repositories.binder_intake_material_repository import (
+    BinderIntakeMaterialRepository,
+)
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -61,10 +65,13 @@ class BinderIntakeService:
         Returns (binder, intake, is_new_binder).
         """
         from app.binders.services.messages import BINDER_OFFICE_NUMBER_MISSING
+
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
 
-        businesses = self.business_repo.list_by_legal_entity(client_record.legal_entity_id)
+        businesses = self.business_repo.list_by_legal_entity(
+            client_record.legal_entity_id
+        )
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
@@ -85,16 +92,22 @@ class BinderIntakeService:
         else:
             if active_binder and open_new_binder:
                 # Close the current active binder in office and open a fresh IN_OFFICE binder.
-                active_binder.period_end = self._resolve_closing_period_structured(active_binder.id, received_at)
+                active_binder.period_end = self._resolve_closing_period_structured(
+                    active_binder.id, received_at
+                )
                 active_binder.status = BinderStatus.CLOSED_IN_OFFICE
                 self.db.flush()
 
             if client_record.office_client_number is None:
-                raise AppError(BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING")
+                raise AppError(
+                    BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING"
+                )
             seq = self.binder_repo.count_all_by_client(client_record_id) + 1
             binder = self.binder_repo.create(
                 client_record_id=client_record_id,
-                binder_number=self._build_binder_number(client_record.office_client_number, seq),
+                binder_number=self._build_binder_number(
+                    client_record.office_client_number, seq
+                ),
                 period_start=None,
                 created_by=received_by,
             )
@@ -118,7 +131,7 @@ class BinderIntakeService:
             notes=notes,
         )
 
-        for mat in (materials or []):
+        for mat in materials or []:
             self.material_repo.create(
                 intake_id=intake.id,
                 material_type=mat["material_type"],
@@ -139,6 +152,7 @@ class BinderIntakeService:
             pm = first.get("period_month_start")
             if py and pm:
                 from datetime import date as _date
+
                 binder.period_start = _date(py, pm, 1)
                 self.db.flush()
 
@@ -156,9 +170,10 @@ class BinderIntakeService:
     ) -> None:
         """Advance PENDING_MATERIALS → MATERIAL_RECEIVED for linked VAT work items."""
         from app.vat_reports.services.constants import ACTION_STATUS_CHANGED
+
         vat_repo = VatWorkItemRepository(self.db)
         seen: set[int] = set()
-        for mat in (materials or []):
+        for mat in materials or []:
             if mat.get("material_type") != "vat":
                 continue
             vat_id = mat.get("vat_report_id")
@@ -168,7 +183,12 @@ class BinderIntakeService:
             item = vat_repo.get_by_id_for_update(vat_id)
             if not item or item.status != VatWorkItemStatus.PENDING_MATERIALS:
                 continue
-            vat_repo.update_status(vat_id, VatWorkItemStatus.MATERIAL_RECEIVED, item=item, pending_materials_note=None)
+            vat_repo.update_status(
+                vat_id,
+                VatWorkItemStatus.MATERIAL_RECEIVED,
+                item=item,
+                pending_materials_note=None,
+            )
             vat_repo.append_audit(
                 work_item_id=vat_id,
                 performed_by=performed_by,
@@ -237,7 +257,10 @@ class BinderIntakeService:
                 continue
             if binder.period_start is None or binder.period_end is None:
                 continue
-            if binder.period_start <= min_period_start and max_period_end <= binder.period_end:
+            if (
+                binder.period_start <= min_period_start
+                and max_period_end <= binder.period_end
+            ):
                 candidates.append(binder)
 
         return candidates[-1] if candidates else None
@@ -281,6 +304,7 @@ class BinderIntakeService:
         Raises AppError if the condition is violated.
         """
         from app.binders.services.messages import BINDER_OLD_PERIOD_NOTE_REQUIRED
+
         if not materials or binder.period_start is None:
             return
         for mat in materials:
@@ -289,15 +313,22 @@ class BinderIntakeService:
             if not py or not pm:
                 continue
             from datetime import date as _date
+
             mat_period_start = _date(py, pm, 1)
             if mat_period_start < binder.period_start:
                 if not notes or not notes.strip():
-                    raise AppError(BINDER_OLD_PERIOD_NOTE_REQUIRED, "BINDER.OLD_PERIOD_NOTE_REQUIRED")
+                    raise AppError(
+                        BINDER_OLD_PERIOD_NOTE_REQUIRED,
+                        "BINDER.OLD_PERIOD_NOTE_REQUIRED",
+                    )
                 break
 
-    def _resolve_closing_period_structured(self, binder_id: int, fallback: date) -> date:
+    def _resolve_closing_period_structured(
+        self, binder_id: int, fallback: date
+    ) -> date:
         """Derive period_end from the last material's structured period fields."""
         import calendar as _cal
+
         last_mat = self.material_repo.get_last_by_binder(binder_id)
         if last_mat and last_mat.period_year and last_mat.period_month_end:
             year, month = last_mat.period_year, last_mat.period_month_end

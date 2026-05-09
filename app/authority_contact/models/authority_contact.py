@@ -35,25 +35,27 @@ from app.utils.time_utils import utcnow
 
 
 class ContactType(str, PyEnum):
-    ASSESSING_OFFICER  = "assessing_officer"   # פקיד שומה
-    VAT_BRANCH         = "vat_branch"           # סניף מע"מ
-    NATIONAL_INSURANCE = "national_insurance"   # ביטוח לאומי
-    OTHER              = "other"
+    ASSESSING_OFFICER = "assessing_officer"  # פקיד שומה
+    VAT_BRANCH = "vat_branch"  # סניף מע"מ
+    NATIONAL_INSURANCE = "national_insurance"  # ביטוח לאומי
+    OTHER = "other"
 
 
 class AuthorityContact(Base):
     __tablename__ = "authority_contacts"
 
-    id               = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    client_record_id = Column(
+        Integer, ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # ── Contact identity ──────────────────────────────────────────────────────
     contact_type = Column(pg_enum(ContactType), nullable=False)
-    name         = Column(String, nullable=False)
-    office       = Column(String, nullable=True)   # שם הסניף / המחלקה
-    phone        = Column(String, nullable=True)
-    email        = Column(String, nullable=True)
-    notes        = Column(Text,   nullable=True)
+    name = Column(String, nullable=False)
+    office = Column(String, nullable=True)  # שם הסניף / המחלקה
+    phone = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     created_at = Column(DateTime, default=utcnow, nullable=False)
@@ -63,9 +65,7 @@ class AuthorityContact(Base):
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    __table_args__ = (
-        Index("idx_authority_contact_type", "contact_type"),
-    )
+    __table_args__ = (Index("idx_authority_contact_type", "contact_type"),)
 
     def __repr__(self):
         return (

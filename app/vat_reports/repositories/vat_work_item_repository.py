@@ -10,8 +10,12 @@ VatWorkItemRepository is now an alias for VatWorkItemWriteRepository, which
 exposes all read helpers via delegation to the query repository.
 """
 
-from app.vat_reports.repositories.vat_work_item_query_repository import VatWorkItemQueryRepository
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository
+from app.vat_reports.repositories.vat_work_item_query_repository import (
+    VatWorkItemQueryRepository,
+)
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository,
+)
 
 # Alias so all existing `from ...vat_work_item_repository import VatWorkItemRepository` imports work.
 VatWorkItemRepository = VatWorkItemWriteRepository

@@ -100,7 +100,9 @@ def test_upload_document_business_not_found(test_db):
     assert exc_info.value.code == "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND"
 
 
-def test_upload_document_without_business_uses_client_as_primary_owner(test_db, test_user):
+def test_upload_document_without_business_uses_client_as_primary_owner(
+    test_db, test_user
+):
     client = seed_client_identity(
         test_db,
         full_name="Doc Test Client No Business",

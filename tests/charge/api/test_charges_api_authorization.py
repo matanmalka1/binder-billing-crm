@@ -1,4 +1,3 @@
-
 from app.businesses.models.business import Business, BusinessStatus
 from tests.helpers.identity import seed_client_with_business
 
@@ -38,12 +37,19 @@ def test_advisor_can_create_charge(client, advisor_headers, test_db):
     assert data["paid_at"] is None
 
 
-def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_headers, test_db):
+def test_secretary_cannot_mutate_charges(
+    client, secretary_headers, advisor_headers, test_db
+):
     business = _create_business(test_db)
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 50.0, "charge_type": "monthly_retainer"},
+        json={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "amount": 50.0,
+            "charge_type": "monthly_retainer",
+        },
     )
     charge_id = create_res.json()["id"]
 
@@ -51,21 +57,48 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
         client.post(
             "/api/v1/charges",
             headers=secretary_headers,
-            json={"client_record_id": business.client_id, "business_id": business.id, "amount": 1, "charge_type": "other"},
+            json={
+                "client_record_id": business.client_id,
+                "business_id": business.id,
+                "amount": 1,
+                "charge_type": "other",
+            },
         ).status_code
         == 403
     )
-    assert client.post(f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers).status_code == 403
-    assert client.post(f"/api/v1/charges/{charge_id}/mark-paid", headers=secretary_headers).status_code == 403
-    assert client.post(f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers).status_code == 403
+    assert (
+        client.post(
+            f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            f"/api/v1/charges/{charge_id}/mark-paid", headers=secretary_headers
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers
+        ).status_code
+        == 403
+    )
 
 
-def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, test_db):
+def test_secretary_can_read_charges(
+    client, secretary_headers, advisor_headers, test_db
+):
     business = _create_business(test_db)
     create_res = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 75.0, "charge_type": "consultation_fee"},
+        json={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "amount": 75.0,
+            "charge_type": "consultation_fee",
+        },
     )
     charge_id = create_res.json()["id"]
 
@@ -82,4 +115,9 @@ def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, 
 
 def test_charges_requires_auth(client):
     assert client.get("/api/v1/charges").status_code == 401
-    assert client.get("/api/v1/charges", headers={"Authorization": "Bearer not-a-jwt"}).status_code == 401
+    assert (
+        client.get(
+            "/api/v1/charges", headers={"Authorization": "Bearer not-a-jwt"}
+        ).status_code
+        == 401
+    )

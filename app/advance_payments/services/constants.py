@@ -8,6 +8,7 @@ from app.config import config
 try:
     from tax_rules.registry import get_advance_payment_due_day as _get_adv
     import datetime as _dt
+
     ADVANCE_PAYMENT_DUE_DAY: int = _get_adv(_dt.date.today().year)
 except Exception:
     ADVANCE_PAYMENT_DUE_DAY = 15

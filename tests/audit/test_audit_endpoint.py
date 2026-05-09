@@ -9,9 +9,15 @@ def test_audit_endpoint_paginates_and_sorts_newest_first(
 ):
     client_record, _business = create_client_with_business(id_number="AUDIT-001")
     writer = EntityAuditWriter(test_db)
-    first = writer.record_update(ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 1})
-    second = writer.record_update(ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 2})
-    third = writer.record_update(ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 3})
+    first = writer.record_update(
+        ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 1}
+    )
+    second = writer.record_update(
+        ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 2}
+    )
+    third = writer.record_update(
+        ENTITY_CLIENT, client_record.id, test_user.id, new_value={"step": 3}
+    )
     first.performed_at = third.performed_at - timedelta(minutes=2)
     second.performed_at = third.performed_at - timedelta(minutes=1)
     test_db.commit()
@@ -27,7 +33,9 @@ def test_audit_endpoint_paginates_and_sorts_newest_first(
     assert payload["limit"] == 2
     assert payload["offset"] == 1
     assert [item["id"] for item in payload["items"]] == [second.id, first.id]
-    assert all(item["performed_by_name"] == test_user.full_name for item in payload["items"])
+    assert all(
+        item["performed_by_name"] == test_user.full_name for item in payload["items"]
+    )
 
 
 def test_audit_endpoint_limit_validation(client, advisor_headers):

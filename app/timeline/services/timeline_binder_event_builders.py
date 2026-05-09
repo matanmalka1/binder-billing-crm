@@ -11,7 +11,9 @@ def _attach_actions(event: dict, actions: list) -> dict:
 
 def binder_received_event(binder) -> dict:
     actions = get_binder_actions(binder)
-    received_on = getattr(binder, "received_at", None) or getattr(binder, "period_start")
+    received_on = getattr(binder, "received_at", None) or getattr(
+        binder, "period_start"
+    )
     return _attach_actions(
         {
             "event_type": "binder_received",
@@ -66,4 +68,3 @@ def binder_status_change_event(binder, status_log) -> dict:
         },
         actions,
     )
-

@@ -1,4 +1,5 @@
 """Shared helpers for task service tests."""
+
 from __future__ import annotations
 
 from itertools import count

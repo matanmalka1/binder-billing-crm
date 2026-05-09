@@ -9,7 +9,9 @@ def test_draft_charge_cancel_confirmation_uses_unambiguous_confirm_label():
     charge = SimpleNamespace(id=20, status=ChargeStatus.DRAFT)
 
     actions = get_charge_actions(charge)
-    cancel_action = next(action for action in actions if action["key"] == "cancel_charge")
+    cancel_action = next(
+        action for action in actions if action["key"] == "cancel_charge"
+    )
 
     assert cancel_action["confirm"]["confirm_label"] == "אשר ביטול"
 

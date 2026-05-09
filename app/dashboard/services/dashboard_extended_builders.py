@@ -28,7 +28,9 @@ def _charge_type_label(charge_type) -> str:
 
 
 def _charge_date(charge) -> date | None:
-    timestamp = getattr(charge, "issued_at", None) or getattr(charge, "created_at", None)
+    timestamp = getattr(charge, "issued_at", None) or getattr(
+        charge, "created_at", None
+    )
     if timestamp is None:
         return None
     return timestamp.date() if hasattr(timestamp, "date") else timestamp

@@ -1,5 +1,9 @@
 from .vat import VAT_RULES
-from .income_tax import INCOME_TAX_ADVANCE_RULES, ANNUAL_REPORT_RULES, ANNUAL_REPORT_ATTACHMENTS
+from .income_tax import (
+    INCOME_TAX_ADVANCE_RULES,
+    ANNUAL_REPORT_RULES,
+    ANNUAL_REPORT_ATTACHMENTS,
+)
 from .national_insurance import NATIONAL_INSURANCE_RULES
 from .withholding import WITHHOLDING_RULES
 from .annual_reports import ANNUAL_REPORT_RULES_V2

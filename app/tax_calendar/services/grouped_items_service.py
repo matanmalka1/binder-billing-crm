@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.common.enums import ObligationType
 from app.core.exceptions import NotFoundError
-from app.tax_calendar.repositories.grouped_repository import TaxCalendarGroupedRepository
+from app.tax_calendar.repositories.grouped_repository import (
+    TaxCalendarGroupedRepository,
+)
 from app.tax_calendar.schemas.grouped import (
     TaxCalendarGroupItem,
     TaxCalendarGroupItemsResponse,

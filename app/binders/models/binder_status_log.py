@@ -11,6 +11,7 @@ class BinderStatusLog(Base):
     IN_OFFICE -> CLOSED_IN_OFFICE -> READY_FOR_PICKUP -> RETURNED.
     Used for auditing and tracking binders that were not collected for a long time.
     """
+
     __tablename__ = "binder_status_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

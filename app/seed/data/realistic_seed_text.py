@@ -20,7 +20,7 @@ STAFF_DIRECTORY = [
 CHARGE_TYPE_DETAILS = {
     ChargeType.MONTHLY_RETAINER: ("שכר טרחה חודשי עבור הנהלת חשבונות", 850, 3200),
     ChargeType.ANNUAL_REPORT_FEE: ("הכנת דוח שנתי והגשה לרשות המסים", 1800, 6500),
-    ChargeType.VAT_FILING_FEE: ("טיפול בדיווח מע\"מ תקופתי", 450, 1800),
+    ChargeType.VAT_FILING_FEE: ('טיפול בדיווח מע"מ תקופתי', 450, 1800),
     ChargeType.REPRESENTATION_FEE: ("ייצוג בדיון מול רשות המסים", 1200, 7500),
     ChargeType.CONSULTATION_FEE: ("פגישת ייעוץ מקצועית חד פעמית", 650, 2800),
     ChargeType.OTHER: ("חיוב חריג שאושר מול הלקוח", 300, 2200),
@@ -34,13 +34,16 @@ DOCUMENT_TYPE_DETAILS = {
     DocumentType.RECEIPT: ("קבלה מספק", "kabala.pdf"),
     DocumentType.INVOICE_DOC: ("חשבונית מס", "heshbonit_mas.pdf"),
     DocumentType.BANK_APPROVAL: ("אישור ניהול חשבון בנק", "ishur_bank.pdf"),
-    DocumentType.WITHHOLDING_CERTIFICATE: ("אישור ניכוי מס במקור", "nikui_mas_bamakor.pdf"),
+    DocumentType.WITHHOLDING_CERTIFICATE: (
+        "אישור ניכוי מס במקור",
+        "nikui_mas_bamakor.pdf",
+    ),
     DocumentType.NII_APPROVAL: ("אישור ביטוח לאומי", "bituah_leumi.pdf"),
     DocumentType.OTHER: ("מסמך תומך נוסף", "mismach_tomech.pdf"),
 }
 
 MATERIAL_DESCRIPTIONS = {
-    MaterialType.VAT: "חשבוניות הכנסה והוצאה לדיווח מע\"מ",
+    MaterialType.VAT: 'חשבוניות הכנסה והוצאה לדיווח מע"מ',
     MaterialType.INCOME_TAX: "פנקס מקדמות ואישורי ניכוי מס במקור",
     MaterialType.ANNUAL_REPORT: "מסמכים לדוח שנתי כולל אישורי 106 ו-867",
     MaterialType.SALARY: "תלושי שכר וטופסי 102",
@@ -54,12 +57,12 @@ MATERIAL_DESCRIPTIONS = {
 }
 
 VAT_COUNTERPARTY_DETAILS = {
-    ExpenseCategory.INVENTORY: ("לב השרון שיווק והפצה בע\"מ", 1200, 24000),
-    ExpenseCategory.OFFICE: ("אלון ציוד משרדי בע\"מ", 150, 4800),
+    ExpenseCategory.INVENTORY: ('לב השרון שיווק והפצה בע"מ', 1200, 24000),
+    ExpenseCategory.OFFICE: ('אלון ציוד משרדי בע"מ', 150, 4800),
     ExpenseCategory.PROFESSIONAL_SERVICES: ("משרד עורכי דין רוזן", 900, 15000),
-    ExpenseCategory.EQUIPMENT: ("אפק מערכות מחשוב בע\"מ", 1800, 30000),
-    ExpenseCategory.RENT: ("לב העיר נכסים בע\"מ", 3500, 18000),
-    ExpenseCategory.MARKETING: ("פסיפס פרסום ודיגיטל בע\"מ", 700, 22000),
+    ExpenseCategory.EQUIPMENT: ('אפק מערכות מחשוב בע"מ', 1800, 30000),
+    ExpenseCategory.RENT: ('לב העיר נכסים בע"מ', 3500, 18000),
+    ExpenseCategory.MARKETING: ('פסיפס פרסום ודיגיטל בע"מ', 700, 22000),
     ExpenseCategory.FUEL: ("דלק ישראל", 250, 3500),
     ExpenseCategory.COMMUNICATION: ("בזק עסקים", 180, 1800),
     ExpenseCategory.BANK_FEES: ("בנק לאומי", 40, 900),
@@ -68,9 +71,9 @@ VAT_COUNTERPARTY_DETAILS = {
 
 VAT_INCOME_COUNTERPARTIES = [
     ("לקוח קמעונאי מקומי", 800, 9000),
-    ("קו חוף ייבוא וסחר בע\"מ", 4500, 45000),
-    ("פסגה הנדסה וניהול בע\"מ", 3000, 38000),
-    ("רימון מזון ואירוח בע\"מ", 1200, 18000),
+    ('קו חוף ייבוא וסחר בע"מ', 4500, 45000),
+    ('פסגה הנדסה וניהול בע"מ', 3000, 38000),
+    ('רימון מזון ואירוח בע"מ', 1200, 18000),
 ]
 
 INCOME_DESCRIPTIONS = {
@@ -80,7 +83,7 @@ INCOME_DESCRIPTIONS = {
     "dividends": "דיבידנד לפי אישורי ניכוי מס",
     "capital_gains": "רווחי הון לפי טופסי 867",
     "rental": "הכנסות שכירות מנכס",
-    "foreign": "הכנסה מחו\"ל לפי אישור מס זר",
+    "foreign": 'הכנסה מחו"ל לפי אישור מס זר',
 }
 
 EXPENSE_DESCRIPTIONS = {
@@ -108,10 +111,13 @@ SIGNATURE_COPY = {
         "נא לחתום על ייפוי כוח כדי שנוכל לטפל בפניות מול הרשויות",
     ),
     SignatureRequestType.VAT_RETURN_APPROVAL: (
-        "אישור דוח מע\"מ תקופתי",
+        'אישור דוח מע"מ תקופתי',
         "נא לאשר את סכום הדיווח לפני שידור הדוח במערכת",
     ),
-    SignatureRequestType.CUSTOM: ("חתימה על מסמך לקוח", "נא לעבור על המסמך המצורף ולאשר בחתימה דיגיטלית"),
+    SignatureRequestType.CUSTOM: (
+        "חתימה על מסמך לקוח",
+        "נא לעבור על המסמך המצורף ולאשר בחתימה דיגיטלית",
+    ),
 }
 
 INVOICE_TYPE_LABELS = {

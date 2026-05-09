@@ -9,20 +9,37 @@ class AnnualReportSignatureHelper:
     def _cancel_pending_signature_requests(
         self, report_id: int, actor_id: int, actor_name: str, reason: str
     ) -> None:
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
-        from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+        from app.signature_requests.services.signature_request_service import (
+            SignatureRequestService,
+        )
+        from app.signature_requests.repositories.signature_request_repository import (
+            SignatureRequestRepository,
+        )
+
         sig_repo = SignatureRequestRepository(self.db)  # type: ignore[attr-defined]
         pending = sig_repo.list_pending_by_annual_report(report_id)
         if not pending:
             return
         svc = SignatureRequestService(self.db)
         for req in pending:
-            svc.cancel_request(request_id=req.id, canceled_by=actor_id, canceled_by_name=actor_name, reason=reason)
+            svc.cancel_request(
+                request_id=req.id,
+                canceled_by=actor_id,
+                canceled_by_name=actor_name,
+                reason=reason,
+            )
 
-    def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
-        from app.signature_requests.services.signature_request_service import SignatureRequestService
+    def _trigger_signature_request(
+        self, report, created_by: int, created_by_name: str
+    ) -> None:
+        from app.signature_requests.services.signature_request_service import (
+            SignatureRequestService,
+        )
         from app.signature_requests.models.signature_request import SignatureRequestType
-        from app.clients.repositories.client_record_repository import ClientRecordRepository
+        from app.clients.repositories.client_record_repository import (
+            ClientRecordRepository,
+        )
+
         record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)  # type: ignore[attr-defined]
         if not record:
             return

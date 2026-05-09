@@ -7,18 +7,24 @@ from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestStatus,
 )
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.services.messages import INVALID_FILTER_STATUS
 from app.signature_requests.services.signature_request_validations import get_or_raise
 from app.core.exceptions import NotFoundError
 
 
-def get_request(repo: SignatureRequestRepository, request_id: int) -> Optional[SignatureRequest]:
+def get_request(
+    repo: SignatureRequestRepository, request_id: int
+) -> Optional[SignatureRequest]:
     return repo.get_by_id(request_id)
 
 
-def get_by_token(repo: SignatureRequestRepository, token: str) -> Optional[SignatureRequest]:
+def get_by_token(
+    repo: SignatureRequestRepository, token: str
+) -> Optional[SignatureRequest]:
     return repo.get_by_token(token)
 
 
@@ -28,7 +34,9 @@ def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
     valid_statuses = {e.value for e in SignatureRequestStatus}
     if status not in valid_statuses:
         raise AppError(
-            INVALID_FILTER_STATUS.format(status=status, valid_statuses=sorted(valid_statuses)),
+            INVALID_FILTER_STATUS.format(
+                status=status, valid_statuses=sorted(valid_statuses)
+            ),
             "SIGNATURE_REQUEST.INVALID_STATUS",
         )
     return SignatureRequestStatus(status)
@@ -46,8 +54,12 @@ def list_client_requests(
     status_enum = _parse_status(status)
     record = ClientRecordRepository(repo.db).get_by_id(client_record_id)
     if not record:
-        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
-    items = repo.list_by_client_record(client_record_id, status=status_enum, page=page, page_size=page_size)
+        raise NotFoundError(
+            f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
+        )
+    items = repo.list_by_client_record(
+        client_record_id, status=status_enum, page=page, page_size=page_size
+    )
     total = repo.count_by_client_record(client_record_id, status=status_enum)
     return items, total
 

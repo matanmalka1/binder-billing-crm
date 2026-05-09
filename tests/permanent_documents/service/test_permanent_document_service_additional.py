@@ -6,7 +6,9 @@ from app.businesses.models.business import Business
 from app.common.enums import IdNumberType
 from app.core.exceptions import AppError, NotFoundError
 from app.permanent_documents.models.permanent_document import DocumentType
-from app.permanent_documents.services.permanent_document_service import PermanentDocumentService
+from app.permanent_documents.services.permanent_document_service import (
+    PermanentDocumentService,
+)
 from tests.helpers.identity import seed_client_with_business
 
 

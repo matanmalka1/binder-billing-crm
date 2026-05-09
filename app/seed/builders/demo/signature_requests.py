@@ -55,14 +55,23 @@ def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict:
     now = datetime.now(UTC)
     created_at = now - timedelta(days=rng.randint(7, 90), hours=rng.randint(0, 23))
     if status == SignatureRequestStatus.DRAFT:
-        return {"created_at": created_at, "sent_at": None, "expires_at": None, "signed_at": None, "declined_at": None, "canceled_at": None}
+        return {
+            "created_at": created_at,
+            "sent_at": None,
+            "expires_at": None,
+            "signed_at": None,
+            "declined_at": None,
+            "canceled_at": None,
+        }
 
     sent_at = _random_between(rng, created_at, now - timedelta(hours=1))
     if sent_at <= created_at:
         sent_at = created_at + timedelta(minutes=1)
 
     if status == SignatureRequestStatus.EXPIRED:
-        expires_at = _random_between(rng, sent_at + timedelta(hours=1), now - timedelta(minutes=1))
+        expires_at = _random_between(
+            rng, sent_at + timedelta(hours=1), now - timedelta(minutes=1)
+        )
         if expires_at <= sent_at:
             expires_at = sent_at + timedelta(hours=1)
     else:
@@ -74,19 +83,42 @@ def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict:
     if event_upper <= sent_at:
         event_upper = sent_at + timedelta(hours=1)
 
-    signed_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.SIGNED else None
-    declined_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.DECLINED else None
-    canceled_at = _random_between(rng, sent_at + timedelta(minutes=1), event_upper) if status == SignatureRequestStatus.CANCELED else None
+    signed_at = (
+        _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
+        if status == SignatureRequestStatus.SIGNED
+        else None
+    )
+    declined_at = (
+        _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
+        if status == SignatureRequestStatus.DECLINED
+        else None
+    )
+    canceled_at = (
+        _random_between(rng, sent_at + timedelta(minutes=1), event_upper)
+        if status == SignatureRequestStatus.CANCELED
+        else None
+    )
 
-    return {"created_at": created_at, "sent_at": sent_at, "expires_at": expires_at, "signed_at": signed_at, "declined_at": declined_at, "canceled_at": canceled_at}
+    return {
+        "created_at": created_at,
+        "sent_at": sent_at,
+        "expires_at": expires_at,
+        "signed_at": signed_at,
+        "declined_at": declined_at,
+        "canceled_at": canceled_at,
+    }
 
 
-def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, annual_reports, documents):
+def create_signature_requests(
+    db, rng: Random, cfg, businesses, clients, users, annual_reports, documents
+):
     requests: list[SignatureRequest] = []
     clients_by_id = {client.id: client for client in clients}
     reports_by_client = _group_by_attr(annual_reports, "client_id")
     documents_by_client = _group_by_attr(documents, "client_id")
-    existing_count = int(db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one())
+    existing_count = int(
+        db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one()
+    )
     type_cycle = list(SignatureRequestType)
     status_cycle = list(SignatureRequestStatus)
     type_idx = 0
@@ -96,7 +128,9 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
         client = clients_by_id.get(client_businesses[0].client_id)
         if not client:
             continue
-        for business in _pick_businesses(rng, client_businesses, cfg.signature_requests_per_client):
+        for business in _pick_businesses(
+            rng, client_businesses, cfg.signature_requests_per_client
+        ):
             report = _pick_for_client(rng, reports_by_client, client.id)
             document = _pick_for_client(rng, documents_by_client, client.id)
             if status_idx < len(status_cycle):
@@ -112,9 +146,18 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
             else:
                 request_type = rng.choice(type_cycle)
             title_prefix, request_description = SIGNATURE_COPY[request_type]
-            canceled_by = rng.choice(users).id if status == SignatureRequestStatus.CANCELED else None
+            canceled_by = (
+                rng.choice(users).id
+                if status == SignatureRequestStatus.CANCELED
+                else None
+            )
             signing_token = f"seed-sign-{serial:010d}"
-            if status in (SignatureRequestStatus.SIGNED, SignatureRequestStatus.DECLINED, SignatureRequestStatus.EXPIRED, SignatureRequestStatus.CANCELED):
+            if status in (
+                SignatureRequestStatus.SIGNED,
+                SignatureRequestStatus.DECLINED,
+                SignatureRequestStatus.EXPIRED,
+                SignatureRequestStatus.CANCELED,
+            ):
                 signing_token = None
 
             req = SignatureRequest(
@@ -140,10 +183,18 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
                 declined_at=timestamps["declined_at"],
                 canceled_at=timestamps["canceled_at"],
                 canceled_by=canceled_by,
-                decline_reason="הלקוח ביקש לעדכן נוסח לפני חתימה" if status == SignatureRequestStatus.DECLINED else None,
-                signer_ip_address="127.0.0.1" if status == SignatureRequestStatus.SIGNED else None,
-                signer_user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" if status == SignatureRequestStatus.SIGNED else None,
-                signed_document_key=f"signed/signature_request_{serial}.pdf" if status == SignatureRequestStatus.SIGNED else None,
+                decline_reason="הלקוח ביקש לעדכן נוסח לפני חתימה"
+                if status == SignatureRequestStatus.DECLINED
+                else None,
+                signer_ip_address="127.0.0.1"
+                if status == SignatureRequestStatus.SIGNED
+                else None,
+                signer_user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+                if status == SignatureRequestStatus.SIGNED
+                else None,
+                signed_document_key=f"signed/signature_request_{serial}.pdf"
+                if status == SignatureRequestStatus.SIGNED
+                else None,
             )
             req.client_id = business.client_id  # type: ignore[attr-defined]
             db.add(req)
@@ -152,9 +203,13 @@ def create_signature_requests(db, rng: Random, cfg, businesses, clients, users, 
     return requests
 
 
-def create_signature_audit_events(db, rng: Random, requests: Iterable[SignatureRequest]) -> None:
+def create_signature_audit_events(
+    db, rng: Random, requests: Iterable[SignatureRequest]
+) -> None:
     for req in requests:
-        events: list[tuple[str, datetime, str]] = [("created", req.created_at, "advisor")]
+        events: list[tuple[str, datetime, str]] = [
+            ("created", req.created_at, "advisor")
+        ]
         if req.sent_at:
             events.append(("sent", req.sent_at, "advisor"))
         if req.signed_at:
@@ -167,14 +222,16 @@ def create_signature_audit_events(db, rng: Random, requests: Iterable[SignatureR
             events.append(("expired", req.expires_at, "system"))
 
         for event_type, ts, actor_type in events:
-            db.add(SignatureAuditEvent(
-                signature_request_id=req.id,
-                event_type=event_type,
-                actor_type=actor_type,
-                actor_id=req.created_by if actor_type == "advisor" else None,
-                actor_name="מערכת חתימות דיגיטליות",
-                ip_address="127.0.0.1",
-                user_agent="signature-service/2026.04",
-                occurred_at=ts,
-            ))
+            db.add(
+                SignatureAuditEvent(
+                    signature_request_id=req.id,
+                    event_type=event_type,
+                    actor_type=actor_type,
+                    actor_id=req.created_by if actor_type == "advisor" else None,
+                    actor_name="מערכת חתימות דיגיטליות",
+                    ip_address="127.0.0.1",
+                    user_agent="signature-service/2026.04",
+                    occurred_at=ts,
+                )
+            )
     db.flush()

@@ -17,12 +17,22 @@ from app.vat_reports.services.vat_report_queries import (
 
 
 def _build_client_maps(db, client_record_ids: list[int]) -> dict[str, dict]:
-    client_records = ClientRecordRepository(db).list_by_ids(client_record_ids) if client_record_ids else []
+    client_records = (
+        ClientRecordRepository(db).list_by_ids(client_record_ids)
+        if client_record_ids
+        else []
+    )
     legal_entity_ids = list({record.legal_entity_id for record in client_records})
-    legal_entity_by_id = {
-        entity.id: entity
-        for entity in db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
-    } if legal_entity_ids else {}
+    legal_entity_by_id = (
+        {
+            entity.id: entity
+            for entity in db.query(LegalEntity)
+            .filter(LegalEntity.id.in_(legal_entity_ids))
+            .all()
+        }
+        if legal_entity_ids
+        else {}
+    )
     return {
         "office_client_number_map": {
             record.id: record.office_client_number for record in client_records
@@ -66,7 +76,9 @@ def get_client_items_enriched(
 ) -> dict:
     """Return client work items + enrichment data."""
     items = list_client_work_items(work_item_repo, client_record_id)
-    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    user_ids = list(
+        {uid for item in items for uid in [item.assigned_to, item.filed_by] if uid}
+    )
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(work_item_repo.db, [client_record_id])
     return {
@@ -90,18 +102,29 @@ def get_list_enriched(
     """Return paginated work items + enrichment data."""
     if status_filter:
         items, total = list_work_items_by_status(
-            work_item_repo, status_filter,
-            db=work_item_repo.db, page=page, page_size=page_size,
-            period=period, period_type=period_type, client_name=client_name,
+            work_item_repo,
+            status_filter,
+            db=work_item_repo.db,
+            page=page,
+            page_size=page_size,
+            period=period,
+            period_type=period_type,
+            client_name=client_name,
         )
     else:
         items, total = list_all_work_items(
-            work_item_repo, work_item_repo.db,
-            page=page, page_size=page_size,
-            period=period, period_type=period_type, client_name=client_name,
+            work_item_repo,
+            work_item_repo.db,
+            page=page,
+            page_size=page_size,
+            period=period,
+            period_type=period_type,
+            client_name=client_name,
         )
     client_record_ids = list({item.client_record_id for item in items})
-    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    user_ids = list(
+        {uid for item in items for uid in [item.assigned_to, item.filed_by] if uid}
+    )
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(work_item_repo.db, client_record_ids)
     return {

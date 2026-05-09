@@ -18,7 +18,6 @@ def test_search_with_query(client, advisor_headers):
     assert response.status_code == 200
 
 
-
 def test_search_requires_auth(client):
     """Test search requires authentication."""
     response = client.get("/api/v1/search")

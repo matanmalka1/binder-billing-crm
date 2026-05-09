@@ -5,10 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
-from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
-from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+from app.correspondence.repositories.correspondence_repository import (
+    CorrespondenceRepository,
+)
+from app.authority_contact.repositories.authority_contact_repository import (
+    AuthorityContactRepository,
+)
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 _NOT_FOUND = "CORRESPONDENCE.NOT_FOUND"
@@ -22,7 +28,9 @@ class CorrespondenceService:
         self.contact_repo = AuthorityContactRepository(db)
         self.business_repo = BusinessRepository(db)
 
-    def _assert_business_belongs_to_client(self, business_id: int, legal_entity_id: int) -> None:
+    def _assert_business_belongs_to_client(
+        self, business_id: int, legal_entity_id: int
+    ) -> None:
         """Validate optional business context belongs to the same client."""
         business = self.business_repo.get_by_id(business_id)
         if not business:
@@ -32,10 +40,14 @@ class CorrespondenceService:
     def _get_client_record_or_raise(self, client_record_id: int):
         record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not record:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
+            )
         return record
 
-    def _assert_contact_belongs_to_client(self, contact_id: int, client_record_id: int) -> None:
+    def _assert_contact_belongs_to_client(
+        self, contact_id: int, client_record_id: int
+    ) -> None:
         """
         authority_contacts belong to a CLIENT (not a business).
         Validate against client_record_id — not business_id.
@@ -47,7 +59,9 @@ class CorrespondenceService:
                 _FORBIDDEN_CONTACT,
             )
 
-    def _get_entry_or_raise(self, entry_id: int, client_record_id: int) -> Correspondence:
+    def _get_entry_or_raise(
+        self, entry_id: int, client_record_id: int
+    ) -> Correspondence:
         """Fetch entry and verify it belongs to the given client."""
         entry = self.repo.get_by_id(entry_id)
         if not entry or entry.client_record_id != client_record_id:
@@ -72,7 +86,9 @@ class CorrespondenceService:
     ) -> Correspondence:
         client_record = self._get_client_record_or_raise(client_record_id)
         if business_id is not None:
-            self._assert_business_belongs_to_client(business_id, client_record.legal_entity_id)
+            self._assert_business_belongs_to_client(
+                business_id, client_record.legal_entity_id
+            )
 
         if contact_id is not None:
             self._assert_contact_belongs_to_client(contact_id, client_record_id)
@@ -92,13 +108,17 @@ class CorrespondenceService:
         self._get_client_record_or_raise(client_record_id)
         return self._get_entry_or_raise(entry_id, client_record_id)
 
-    def update_entry(self, entry_id: int, client_record_id: int, **fields) -> Correspondence:
+    def update_entry(
+        self, entry_id: int, client_record_id: int, **fields
+    ) -> Correspondence:
         client_record = self._get_client_record_or_raise(client_record_id)
         entry = self._get_entry_or_raise(entry_id, client_record_id)
 
         business_id = fields.get("business_id", entry.business_id)
         if business_id is not None:
-            self._assert_business_belongs_to_client(business_id, client_record.legal_entity_id)
+            self._assert_business_belongs_to_client(
+                business_id, client_record.legal_entity_id
+            )
 
         contact_id = fields.get("contact_id", entry.contact_id)
         if contact_id is not None:
@@ -133,7 +153,9 @@ class CorrespondenceService:
         """All correspondence for a client, optionally filtered by business context."""
         client_record = self._get_client_record_or_raise(client_record_id)
         if business_id is not None:
-            self._assert_business_belongs_to_client(business_id, client_record.legal_entity_id)
+            self._assert_business_belongs_to_client(
+                business_id, client_record.legal_entity_id
+            )
         return self.repo.list_by_client_record_paginated(
             client_record.id,
             business_id=business_id,

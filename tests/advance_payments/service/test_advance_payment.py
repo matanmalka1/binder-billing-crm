@@ -15,7 +15,9 @@ from app.common.enums import VatType
 from app.core.exceptions import AppError, ConflictError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from tests.helpers.identity import seed_client_identity
 
 
@@ -25,6 +27,7 @@ _seq = count(1)
 def _business(db) -> Business:
     idx = next(_seq)
     from app.common.enums import AdvancePaymentFrequency
+
     client = seed_client_identity(
         db,
         full_name=f"Advance Service Client {idx}",
@@ -68,14 +71,22 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     business = _business(test_db)
     service = AdvancePaymentService(test_db)
 
-    assert service.suggest_expected_amount_for_client(business.client_record_id, 2026) is None
+    assert (
+        service.suggest_expected_amount_for_client(business.client_record_id, 2026)
+        is None
+    )
 
     business.legal_entity.advance_rate = Decimal("6.0")
     test_db.commit()
 
-    assert service.suggest_expected_amount_for_client(business.client_record_id, 2026) is None
+    assert (
+        service.suggest_expected_amount_for_client(business.client_record_id, 2026)
+        is None
+    )
 
-    entry = TaxCalendarMaterializationService(test_db).ensure_periodic_entry("vat", "2025-02", 1)
+    entry = TaxCalendarMaterializationService(test_db).ensure_periodic_entry(
+        "vat", "2025-02", 1
+    )
     vat_item = VatWorkItem(
         client_record_id=business.client_record_id,
         created_by=test_user.id,
@@ -90,7 +101,9 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
     test_db.add(vat_item)
     test_db.commit()
 
-    assert service.suggest_expected_amount_for_client(business.client_record_id, 2026) == Decimal("500")
+    assert service.suggest_expected_amount_for_client(
+        business.client_record_id, 2026
+    ) == Decimal("500")
 
 
 def test_calculate_expected_amount_rounds_half_up():
@@ -129,7 +142,9 @@ def test_list_payments_filters_by_status(test_db):
         paid_amount=Decimal("200"),
     )
 
-    all_items, total = service.list_payments_for_client(business.client_record_id, year=2026)
+    all_items, total = service.list_payments_for_client(
+        business.client_record_id, year=2026
+    )
     assert total == 2
     assert [p.id for p in all_items] == [first.id, second.id]
 

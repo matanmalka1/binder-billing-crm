@@ -17,7 +17,9 @@ def _business(db, suffix: str) -> Business:
     return business
 
 
-def _create_signature_request(api_client, headers, business: Business, title: str) -> int:
+def _create_signature_request(
+    api_client, headers, business: Business, title: str
+) -> int:
     resp = api_client.post(
         "/api/v1/signature-requests",
         headers=headers,
@@ -35,7 +37,9 @@ def _create_signature_request(api_client, headers, business: Business, title: st
 
 def test_cancel_signature_request(client, test_db, advisor_headers):
     business = _business(test_db, "A")
-    request_id = _create_signature_request(client, advisor_headers, business, "Cancelable")
+    request_id = _create_signature_request(
+        client, advisor_headers, business, "Cancelable"
+    )
 
     cancel_resp = client.post(
         f"/api/v1/signature-requests/{request_id}/cancel",
@@ -46,24 +50,32 @@ def test_cancel_signature_request(client, test_db, advisor_headers):
     assert cancel_resp.status_code == 200
     assert cancel_resp.json()["status"] == "canceled"
 
-    detail = client.get(f"/api/v1/signature-requests/{request_id}", headers=advisor_headers)
+    detail = client.get(
+        f"/api/v1/signature-requests/{request_id}", headers=advisor_headers
+    )
     assert detail.status_code == 200
     events = [e["event_type"] for e in detail.json()["audit_trail"]]
     assert "canceled" in events
 
 
-def test_list_signature_requests_by_client_with_status_filter(client, test_db, advisor_headers):
+def test_list_signature_requests_by_client_with_status_filter(
+    client, test_db, advisor_headers
+):
     business_a = _business(test_db, "B")
     business_b = _business(test_db, "C")
 
-    req_a_pending = _create_signature_request(client, advisor_headers, business_a, "Pending A")
+    req_a_pending = _create_signature_request(
+        client, advisor_headers, business_a, "Pending A"
+    )
     client.post(
         f"/api/v1/signature-requests/{req_a_pending}/send",
         headers=advisor_headers,
         json={"expiry_days": 7},
     )
 
-    req_a_draft = _create_signature_request(client, advisor_headers, business_a, "Draft A")
+    req_a_draft = _create_signature_request(
+        client, advisor_headers, business_a, "Draft A"
+    )
     _create_signature_request(client, advisor_headers, business_b, "Other client")
 
     all_resp = client.get(

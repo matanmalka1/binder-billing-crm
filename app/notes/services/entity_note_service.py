@@ -14,7 +14,9 @@ class EntityNoteService:
         self.db = db
         self.repo = EntityNoteRepository(db)
 
-    def _get_or_raise(self, note_id: int, entity_type: str, entity_id: int) -> EntityNote:
+    def _get_or_raise(
+        self, note_id: int, entity_type: str, entity_id: int
+    ) -> EntityNote:
         note = self.repo.get_by_id(note_id)
         if not note or note.entity_type != entity_type or note.entity_id != entity_id:
             raise NotFoundError(

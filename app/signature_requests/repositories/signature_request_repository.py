@@ -7,8 +7,12 @@ preserving the original public API and import path.
 
 from sqlalchemy.orm import Session
 
-from app.signature_requests.repositories.signature_request_audit import SignatureRequestAuditMixin
-from app.signature_requests.repositories.signature_request_crud import SignatureRequestCrudMixin
+from app.signature_requests.repositories.signature_request_audit import (
+    SignatureRequestAuditMixin,
+)
+from app.signature_requests.repositories.signature_request_crud import (
+    SignatureRequestCrudMixin,
+)
 
 
 class SignatureRequestRepository(SignatureRequestCrudMixin, SignatureRequestAuditMixin):

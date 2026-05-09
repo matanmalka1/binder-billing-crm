@@ -41,6 +41,7 @@ ApiDecimal = Annotated[
     WithJsonSchema({"type": "string", "format": "decimal", "examples": ["123.45"]}),
 ]
 
+
 class PaginatedResponse(BaseModel, Generic[T]):
     items: list[T]
     page: int

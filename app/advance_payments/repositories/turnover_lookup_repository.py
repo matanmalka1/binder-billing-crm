@@ -71,7 +71,9 @@ class TurnoverLookupRepository:
                 all_periods.add(f"{year}-{str(start_month + i).zfill(2)}")
 
         rows = (
-            self.db.query(VatWorkItem.id, VatWorkItem.period, VatWorkItem.total_output_net)
+            self.db.query(
+                VatWorkItem.id, VatWorkItem.period, VatWorkItem.total_output_net
+            )
             .filter(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(all_periods),
@@ -87,8 +89,7 @@ class TurnoverLookupRepository:
             year = int(period[:4])
             start_month = int(period[5:7])
             sub_periods = [
-                f"{year}-{str(start_month + i).zfill(2)}"
-                for i in range(months_count)
+                f"{year}-{str(start_month + i).zfill(2)}" for i in range(months_count)
             ]
             found = [by_period[p] for p in sub_periods if p in by_period]
             if not found:

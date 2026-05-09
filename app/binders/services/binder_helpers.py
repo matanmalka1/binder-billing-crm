@@ -6,8 +6,6 @@ from app.core.exceptions import AppError
 from app.binders.models.binder import Binder, BinderStatus
 
 
-
-
 def validate_ready_transition(binder: Binder) -> None:
     """Validate binder can be marked ready for pickup.
 

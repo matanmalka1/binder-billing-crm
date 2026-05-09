@@ -6,7 +6,10 @@ from app.core.exceptions import AppError
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from tax_rules import get_income_tax_brackets, get_credit_point_config
 from tax_rules.registry import get_supported_years as _get_supported_years
-from tax_rules.statutory import DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE, DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS
+from tax_rules.statutory import (
+    DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE,
+    DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS,
+)
 
 try:
     _BASE_RESIDENT_CREDIT_POINTS: float = get_credit_point_config(
@@ -58,7 +61,9 @@ def calculate_tax(
         credit_point_value = get_credit_point_config(tax_year).annual_value_ils
     except KeyError:
         raise AppError(
-            UNSUPPORTED_TAX_YEAR_ERROR.format(tax_year=tax_year, supported_years=list(_get_supported_years())),
+            UNSUPPORTED_TAX_YEAR_ERROR.format(
+                tax_year=tax_year, supported_years=list(_get_supported_years())
+            ),
             "TAX_ENGINE.INVALID_INPUT",
             status_code=400,
         )
@@ -68,7 +73,11 @@ def calculate_tax(
 
     credit_points_value = round(credit_points * credit_point_value, 2)
     _donation_amt = max(donation_amount, 0.0)
-    donation_credit = round(_donation_amt * _DONATION_CREDIT_RATE, 2) if _donation_amt >= _DONATION_MINIMUM_ILS else 0.0
+    donation_credit = (
+        round(_donation_amt * _DONATION_CREDIT_RATE, 2)
+        if _donation_amt >= _DONATION_MINIMUM_ILS
+        else 0.0
+    )
     other_credits_val = round(max(other_credits, 0.0), 2)
     total_credits = credit_points_value + donation_credit + other_credits_val
 
@@ -97,20 +106,44 @@ def calculate_tax(
             tax_in_bracket = taxable_in_bracket * rate
             tax += tax_in_bracket
             if taxable_in_bracket > 0:
-                breakdown.append(BracketBreakdownItem(rate, prev, None, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
+                breakdown.append(
+                    BracketBreakdownItem(
+                        rate,
+                        prev,
+                        None,
+                        round(taxable_in_bracket, 2),
+                        round(tax_in_bracket, 2),
+                    )
+                )
             break
         if adjusted_income <= upper:
             taxable_in_bracket = adjusted_income - prev
             tax_in_bracket = taxable_in_bracket * rate
             tax += tax_in_bracket
             if taxable_in_bracket > 0:
-                breakdown.append(BracketBreakdownItem(rate, prev, upper, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
+                breakdown.append(
+                    BracketBreakdownItem(
+                        rate,
+                        prev,
+                        upper,
+                        round(taxable_in_bracket, 2),
+                        round(tax_in_bracket, 2),
+                    )
+                )
             break
         taxable_in_bracket = upper - prev
         tax_in_bracket = taxable_in_bracket * rate
         tax += tax_in_bracket
         if taxable_in_bracket > 0:
-            breakdown.append(BracketBreakdownItem(rate, prev, upper, round(taxable_in_bracket, 2), round(tax_in_bracket, 2)))
+            breakdown.append(
+                BracketBreakdownItem(
+                    rate,
+                    prev,
+                    upper,
+                    round(taxable_in_bracket, 2),
+                    round(tax_in_bracket, 2),
+                )
+            )
         prev = upper
 
     tax_after_credits = max(0.0, tax - total_credits)

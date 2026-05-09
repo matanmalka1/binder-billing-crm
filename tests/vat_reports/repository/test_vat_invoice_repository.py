@@ -68,11 +68,21 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-05", period_type=VatType.MONTHLY, created_by=user.id
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-05",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
-    other_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-06", period_type=VatType.MONTHLY, created_by=user.id
+    other_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-06",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
 
     expense = invoice_repo.create(
@@ -111,12 +121,15 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     all_for_item = invoice_repo.list_by_work_item(item.id)
     assert [inv.id for inv in all_for_item] == [expense.id, income.id]
 
-    income_only = invoice_repo.list_by_work_item(item.id, invoice_type=InvoiceType.INCOME)
+    income_only = invoice_repo.list_by_work_item(
+        item.id, invoice_type=InvoiceType.INCOME
+    )
     assert [inv.id for inv in income_only] == [income.id]
 
 
-
-def test_sum_income_net_by_business_year_filters_by_business_year_and_income_only(test_db):
+def test_sum_income_net_by_business_year_filters_by_business_year_and_income_only(
+    test_db,
+):
     user = _user(test_db)
     business, client_record_id = _business(test_db)
     other_business, other_client_record_id = _business(test_db)
@@ -124,14 +137,29 @@ def test_sum_income_net_by_business_year_filters_by_business_year_and_income_onl
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    target_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id
+    target_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-01",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
-    previous_year_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2025-12", period_type=VatType.MONTHLY, created_by=user.id
+    previous_year_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2025-12",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
-    other_business_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=other_client_record_id, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id
+    other_business_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=other_client_record_id,
+        period="2026-02",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
 
     invoice_repo.create(
@@ -187,11 +215,21 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    active_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id
+    active_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-03",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
-    deleted_item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-04", period_type=VatType.MONTHLY, created_by=user.id
+    deleted_item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-04",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
 
     invoice_repo.create(
@@ -229,7 +267,9 @@ def test_sum_vat_and_net_both_types_aggregate_in_single_result_set(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
         client_record_id=client_record_id,
         period="2026-07",
         period_type=VatType.MONTHLY,
@@ -293,7 +333,9 @@ def test_credit_notes_reduce_vat_and_net_totals(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
         client_record_id=client_record_id,
         period="2026-08",
         period_type=VatType.MONTHLY,
@@ -360,8 +402,13 @@ def test_credit_notes_reduce_income_turnover_for_yearly_ceiling(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-09", period_type=VatType.MONTHLY, created_by=user.id
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-09",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
 
     invoice_repo.create(
@@ -396,8 +443,13 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
     work_item_repo = VatWorkItemRepository(test_db)
     invoice_repo = VatInvoiceRepository(test_db)
 
-    item = create_linked_vat_work_item(test_db, repo=work_item_repo,
-        client_record_id=client_record_id, period="2026-10", period_type=VatType.MONTHLY, created_by=user.id
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=work_item_repo,
+        client_record_id=client_record_id,
+        period="2026-10",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
     )
 
     invoice_repo.create(
@@ -424,9 +476,9 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
         document_type=DocumentType.CREDIT_NOTE,
     )
 
-    assert invoice_repo.sum_expense_net_by_client_year_grouped(client_record_id, 2026) == {
-        "office": 450.0
-    }
+    assert invoice_repo.sum_expense_net_by_client_year_grouped(
+        client_record_id, 2026
+    ) == {"office": 450.0}
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

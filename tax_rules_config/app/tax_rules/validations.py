@@ -45,9 +45,7 @@ def validate_advance_requires_rate(profile: ClientTaxProfile) -> str | None:
     if freq in (ReportingFrequency.MONTHLY, ReportingFrequency.BIMONTHLY):
         rate = profile.get("income_tax_advance_rate")
         if rate is None:
-            return (
-                "לקוח עם מקדמות מס הכנסה חייב שדה income_tax_advance_rate מוגדר."
-            )
+            return "לקוח עם מקדמות מס הכנסה חייב שדה income_tax_advance_rate מוגדר."
     return None
 
 
@@ -55,9 +53,7 @@ def validate_pcn874_requires_flag(profile: ClientTaxProfile) -> str | None:
     """אין PCN874 בלי סימון מתאים."""
     # אם מישהו מנסה לייצר PCN874 ל-client ללא הדגל
     if profile.get("_generate_pcn874") and not profile.get("requires_pcn874"):
-        return (
-            "לא ניתן לייצר דוח PCN874 ללא שדה requires_pcn874=True על הלקוח."
-        )
+        return "לא ניתן לייצר דוח PCN874 ללא שדה requires_pcn874=True על הלקוח."
     return None
 
 
@@ -70,14 +66,18 @@ def validate_employee_no_vat(profile: ClientTaxProfile) -> str | None:
     return None
 
 
-def validate_withholding_126_requires_employees(profile: ClientTaxProfile) -> str | None:
+def validate_withholding_126_requires_employees(
+    profile: ClientTaxProfile,
+) -> str | None:
     """טופס 126 רלוונטי רק למי שיש עובדים."""
     if profile.get("_generate_form_126") and not profile.get("has_employees"):
         return "טופס 126 מתאים למעסיקים בלבד — has_employees חייב להיות True."
     return None
 
 
-def validate_btl_self_employed_requires_advance_amount(profile: ClientTaxProfile) -> str | None:
+def validate_btl_self_employed_requires_advance_amount(
+    profile: ClientTaxProfile,
+) -> str | None:
     """עצמאי בביטוח לאומי ללא סכום מקדמה."""
     if profile.get("btl_status") == "self_employed":
         if profile.get("btl_advance_amount") is None:

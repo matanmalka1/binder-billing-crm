@@ -1,4 +1,5 @@
 """NotificationService — public facade used by API and cross-domain callers."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -8,7 +9,11 @@ from sqlalchemy.orm import Session
 from app.binders.models.binder import Binder
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.logging_config import get_logger
-from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationSeverity,
+    NotificationTrigger,
+)
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import NotificationResponse
 from app.notification.services.messages import (
@@ -70,7 +75,9 @@ class NotificationService:
             binder_id=binder.id,
         )
 
-    def notify_pickup_reminder(self, binder: Binder, client_record_id: int, triggered_by: Optional[int] = None) -> bool:
+    def notify_pickup_reminder(
+        self, binder: Binder, client_record_id: int, triggered_by: Optional[int] = None
+    ) -> bool:
         person = self._send_svc._get_client(client_record_id)
         name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
         content = PICKUP_REMINDER_NOTIFICATION_CONTENT.format(
@@ -122,8 +129,12 @@ class NotificationService:
     def notify_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
         return self._send_svc.send_client_reminder(client_record_id, reminder_text)
 
-    def notify_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
-        return self._send_svc.send_client_record_reminder(client_record_id, reminder_text)
+    def notify_client_record_reminder(
+        self, client_record_id: int, reminder_text: str
+    ) -> bool:
+        return self._send_svc.send_client_record_reminder(
+            client_record_id, reminder_text
+        )
 
     def bulk_notify(
         self,

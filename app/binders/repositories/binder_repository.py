@@ -19,8 +19,12 @@ class BinderRepository(BaseRepository):
 
     @staticmethod
     def _order_by_period_start(query, descending: bool):
-        order_expr = Binder.period_start.desc() if descending else Binder.period_start.asc()
-        return query.order_by(nullslast(order_expr), Binder.id.desc() if descending else Binder.id.asc())
+        order_expr = (
+            Binder.period_start.desc() if descending else Binder.period_start.asc()
+        )
+        return query.order_by(
+            nullslast(order_expr), Binder.id.desc() if descending else Binder.id.asc()
+        )
 
     def _active_client_query(self):
         return scope_to_active_clients(self.db.query(Binder), Binder)
@@ -57,7 +61,9 @@ class BinderRepository(BaseRepository):
     def get_by_id_for_update(self, binder_id: int) -> Optional[Binder]:
         """Fetch with a row-level lock for status transitions."""
         return self._locked_first(
-            self.db.query(Binder).filter(Binder.id == binder_id, Binder.deleted_at.is_(None))
+            self.db.query(Binder).filter(
+                Binder.id == binder_id, Binder.deleted_at.is_(None)
+            )
         )
 
     def get_active_by_number(self, binder_number: str) -> Optional[Binder]:
@@ -101,7 +107,9 @@ class BinderRepository(BaseRepository):
             query = query.filter(Binder.status == status)
 
         if binder_number:
-            query = query.filter(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
+            query = query.filter(
+                Binder.binder_number.ilike(f"%{binder_number.strip()}%")
+            )
 
         sort_col_map = {
             "period_start": Binder.period_start,
@@ -144,14 +152,13 @@ class BinderRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Binder]:
         """List open binders (status != RETURNED, not soft-deleted) with pagination."""
-        query = (
-            self._active_client_query()
-            .filter(
-                Binder.status != BinderStatus.RETURNED,
-                Binder.deleted_at.is_(None),
-            )
+        query = self._active_client_query().filter(
+            Binder.status != BinderStatus.RETURNED,
+            Binder.deleted_at.is_(None),
         )
-        return self._paginate(self._order_by_period_start(query, descending=True), page, page_size)
+        return self._paginate(
+            self._order_by_period_start(query, descending=True), page, page_size
+        )
 
     def count_open_binders(self) -> int:
         """Count open binders (not soft-deleted)."""
@@ -185,29 +192,23 @@ class BinderRepository(BaseRepository):
 
     def list_by_client(self, client_record_id: int) -> list[Binder]:
         """Return all non-deleted binders for a client (all statuses)."""
-        return (
-            self._order_by_period_start(
-                self.db.query(Binder).filter(
-                    Binder.client_record_id == client_record_id,
-                    Binder.deleted_at.is_(None),
-                ),
-                descending=False,
-            )
-            .all()
-        )
+        return self._order_by_period_start(
+            self.db.query(Binder).filter(
+                Binder.client_record_id == client_record_id,
+                Binder.deleted_at.is_(None),
+            ),
+            descending=False,
+        ).all()
 
     def list_by_client_record(self, client_record_id: int) -> list[Binder]:
         """Return all non-deleted binders for a client_record (all statuses)."""
-        return (
-            self._order_by_period_start(
-                self.db.query(Binder).filter(
-                    Binder.client_record_id == client_record_id,
-                    Binder.deleted_at.is_(None),
-                ),
-                descending=False,
-            )
-            .all()
-        )
+        return self._order_by_period_start(
+            self.db.query(Binder).filter(
+                Binder.client_record_id == client_record_id,
+                Binder.deleted_at.is_(None),
+            ),
+            descending=False,
+        ).all()
 
     def get_active_by_client_record(self, client_record_id: int) -> Optional[Binder]:
         """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""
@@ -228,14 +229,13 @@ class BinderRepository(BaseRepository):
         page_size: int = 20,
     ) -> list[Binder]:
         """List all binders for a client (not soft-deleted) with pagination."""
-        query = (
-            self._active_client_query()
-            .filter(
-                Binder.client_record_id == client_record_id,
-                Binder.deleted_at.is_(None),
-            )
+        query = self._active_client_query().filter(
+            Binder.client_record_id == client_record_id,
+            Binder.deleted_at.is_(None),
         )
-        return self._paginate(self._order_by_period_start(query, descending=True), page, page_size)
+        return self._paginate(
+            self._order_by_period_start(query, descending=True), page, page_size
+        )
 
     def count_by_client(self, client_record_id: int) -> int:
         """Count binders for a client (not soft-deleted)."""
@@ -268,7 +268,9 @@ class BinderRepository(BaseRepository):
             .count()
         )
 
-    def map_active_by_clients(self, client_record_ids: list[int]) -> dict[int, "Binder"]:
+    def map_active_by_clients(
+        self, client_record_ids: list[int]
+    ) -> dict[int, "Binder"]:
         """Return {client_record_id: binder} for the open (IN_OFFICE) binder of each client."""
         if not client_record_ids:
             return {}
@@ -291,10 +293,12 @@ class BinderRepository(BaseRepository):
             .filter(
                 Binder.client_record_id == client_record_id,
                 Binder.deleted_at.is_(None),
-                Binder.status.in_([
-                    BinderStatus.IN_OFFICE,
-                    BinderStatus.CLOSED_IN_OFFICE,
-                ]),
+                Binder.status.in_(
+                    [
+                        BinderStatus.IN_OFFICE,
+                        BinderStatus.CLOSED_IN_OFFICE,
+                    ]
+                ),
             )
             .all()
         )
@@ -304,7 +308,9 @@ class BinderRepository(BaseRepository):
             self.db.flush()
         return len(rows)
 
-    def list_overdue_pickup(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
+    def list_overdue_pickup(
+        self, overdue_days: int = 30, limit: int = 50
+    ) -> list[Binder]:
         """Return READY_FOR_PICKUP binders where ready_for_pickup_at is older than overdue_days."""
         cutoff = utcnow() - _dt.timedelta(days=overdue_days)
         return (

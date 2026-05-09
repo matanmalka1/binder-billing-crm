@@ -18,7 +18,9 @@ def _binder(db, client_record_id: int, user_id: int, number: str, status: Binder
     return binder
 
 
-def test_get_summary_counts_statuses_and_attention(monkeypatch, test_db, test_user, create_client_with_business):
+def test_get_summary_counts_statuses_and_attention(
+    monkeypatch, test_db, test_user, create_client_with_business
+):
     client, _business = create_client_with_business(
         full_name="Dash Client",
         id_number="D-001",
@@ -33,7 +35,11 @@ def test_get_summary_counts_statuses_and_attention(monkeypatch, test_db, test_us
         lambda **kwargs: 1 if kwargs.get("status") else 3,
     )
     monkeypatch.setattr(service.business_repo, "count", lambda **kwargs: 2)
-    monkeypatch.setattr(service.extended_service, "get_attention_items", lambda user_role=None: [{"id": 1}])
+    monkeypatch.setattr(
+        service.extended_service,
+        "get_attention_items",
+        lambda user_role=None: [{"id": 1}],
+    )
 
     summary = service.get_summary()
 

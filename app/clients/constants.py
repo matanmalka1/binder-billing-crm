@@ -1,4 +1,3 @@
-
 from app.common.enums import EntityType
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
@@ -24,32 +23,46 @@ CLIENT_TEMPLATE_COLUMNS = [
     ("email", "Email (optional)"),
 ]
 
-CLIENT_TEMPLATE_SAMPLE_ROW = ["יוסי כהן", "יוסי כהן ייעוץ", "123456789", "0501234567", "yossi@example.com"]
+CLIENT_TEMPLATE_SAMPLE_ROW = [
+    "יוסי כהן",
+    "יוסי כהן ייעוץ",
+    "123456789",
+    "0501234567",
+    "yossi@example.com",
+]
 CLIENT_EXCEL_SHEET_TITLE = "Clients"
 CLIENT_EXCEL_FREEZE_PANES = "A2"
 
 CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH = 10
-CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset({
-    "entity_type",
-    "vat_reporting_frequency",
-    "advance_payment_frequency",
-})
-SUPPORTED_CREATE_ENTITY_TYPES = frozenset({
-    EntityType.OSEK_PATUR,
-    EntityType.OSEK_MURSHE,
-    EntityType.COMPANY_LTD,
-})
+CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset(
+    {
+        "entity_type",
+        "vat_reporting_frequency",
+        "advance_payment_frequency",
+    }
+)
+SUPPORTED_CREATE_ENTITY_TYPES = frozenset(
+    {
+        EntityType.OSEK_PATUR,
+        EntityType.OSEK_MURSHE,
+        EntityType.COMPANY_LTD,
+    }
+)
 
 UNSUPPORTED_EMPLOYEE_CREATE_ERROR = "פתיחת לקוח מסוג שכיר אינה נתמכת במערכת"
 CONFLICTING_ID_NUMBER_TYPE_ERROR = "סוג המזהה שסופק אינו תואם לסוג הישות"
 PATUR_MANUAL_VAT_FREQUENCY_ERROR = 'אין להזין תדירות דיווח מע"מ עבור עוסק פטור'
-SYSTEM_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת להזנה ידנית'
-EDIT_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+SYSTEM_VAT_EXEMPT_CEILING_ERROR = (
+    'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת להזנה ידנית'
+)
+EDIT_VAT_EXEMPT_CEILING_ERROR = (
+    'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+)
 NON_PATUR_VAT_EXEMPT_CEILING_ERROR = 'תקרת פטור מע"מ מותרת לעוסק פטור בלבד'
 VAT_FREQUENCY_REQUIRED_ERROR = 'יש לציין תדירות דיווח מע"מ עבור עוסק/חברה'
 COMPANY_EXEMPT_VAT_ERROR = 'חברה בע"מ אינה יכולה להיות מוגדרת כפטורה ממע"מ'
 COMPANY_CORPORATION_ID_ERROR = 'חברה בע"מ חייבת להיווצר עם ח.פ'
-ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR = 'יש לציין תדירות מקדמות מס הכנסה'
+ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR = "יש לציין תדירות מקדמות מס הכנסה"
 
 ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] = {
     EntityType.OSEK_PATUR: ClientTypeForReport.EXEMPT_DEALER,

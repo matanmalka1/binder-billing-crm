@@ -41,7 +41,9 @@ def _business(db):
     return business
 
 
-def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, test_user):
+def test_timeline_orders_events_newest_first(
+    client, test_db, advisor_headers, test_user
+):
     business = _business(test_db)
     original_build_client_events = timeline_service_module.build_client_events
     timeline_service_module.build_client_events = lambda *args, **kwargs: []

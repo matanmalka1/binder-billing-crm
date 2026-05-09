@@ -15,6 +15,7 @@ from app.clients.constants import (
     CLIENT_OBLIGATION_TRIGGER_FIELDS,
     ENTITY_TYPE_TO_REPORT_CLIENT_TYPE,
 )
+
 _log = logging.getLogger(__name__)
 
 
@@ -30,7 +31,9 @@ class ObligationResult:
 
 def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
     if not 2 <= CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH <= 12:
-        raise ValueError("CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH must be between 2 and 12")
+        raise ValueError(
+            "CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH must be between 2 and 12"
+        )
     today = reference_date or date.today()
     years = [today.year]
     if today.month >= CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH:
@@ -120,7 +123,9 @@ def generate_client_obligations_result(
             sp.rollback()  # דוח קיים — מדלגים; חייבים לסיים את ה-savepoint
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
-            _log.exception("שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_record_id, year)
+            _log.exception(
+                "שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_record_id, year
+            )
             if not best_effort:
                 raise
             result.errors.append(f"annual_report_creation_failed:{year}")

@@ -5,6 +5,7 @@ locked fetch path (get_by_id_for_update) and correctly enforce state guards.
 Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy) and invalid-state handling only.
 """
+
 from types import SimpleNamespace
 
 import pytest
@@ -17,17 +18,21 @@ from tests.helpers.identity import seed_client_identity
 
 def _stub_sig_service():
     """Return stub classes that prevent cross-domain calls in status_service."""
+
     class _SigSvc:
         def __init__(self, db):
             pass
+
         def create_request(self, **kwargs):
             return SimpleNamespace(id=1)
+
         def cancel_request(self, **kwargs):
             pass
 
     class _SigRepo:
         def __init__(self, db):
             pass
+
         def list_pending_by_annual_report(self, report_id):
             return []
 
@@ -35,7 +40,9 @@ def _stub_sig_service():
 
 
 def _create_report(db):
-    client = seed_client_identity(db, full_name="Locking AR Client", id_number="ARLOCK001")
+    client = seed_client_identity(
+        db, full_name="Locking AR Client", id_number="ARLOCK001"
+    )
     return AnnualReportService(db).create_report(
         client_record_id=client.id,
         tax_year=2027,
@@ -49,9 +56,11 @@ def _create_report(db):
 
 # ── Code-path verification ────────────────────────────────────────────────────
 
+
 def test_transition_status_uses_locked_fetch(test_db, monkeypatch):
     import app.signature_requests.services.signature_request_service as sig_svc_mod
     import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
+
     _SigSvc, _SigRepo = _stub_sig_service()
     monkeypatch.setattr(sig_svc_mod, "SignatureRequestService", _SigSvc)
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)
@@ -62,7 +71,8 @@ def test_transition_status_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_id_for_update",
+        svc.repo,
+        "get_by_id_for_update",
         lambda rid: calls.append(rid) or original(rid),
     )
 
@@ -82,7 +92,8 @@ def test_update_deadline_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_id_for_update",
+        svc.repo,
+        "get_by_id_for_update",
         lambda rid: calls.append(rid) or original(rid),
     )
 
@@ -97,10 +108,12 @@ def test_update_deadline_uses_locked_fetch(test_db, monkeypatch):
 
 # ── Invalid-state guard ───────────────────────────────────────────────────────
 
+
 def test_transition_to_same_status_raises(test_db, monkeypatch):
     """Transitioning to the current status (or any invalid transition) raises."""
     import app.signature_requests.services.signature_request_service as sig_svc_mod
     import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
+
     _SigSvc, _SigRepo = _stub_sig_service()
     monkeypatch.setattr(sig_svc_mod, "SignatureRequestService", _SigSvc)
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)
@@ -121,7 +134,9 @@ def test_transition_to_same_status_raises(test_db, monkeypatch):
 
 def test_auto_advance_skips_non_pending_client(test_db):
     """_auto_advance_annual_report is a no-op when report status != PENDING_CLIENT."""
-    from app.signature_requests.services.signature_request_service import SignatureRequestService
+    from app.signature_requests.services.signature_request_service import (
+        SignatureRequestService,
+    )
 
     report = _create_report(test_db)
     sig_request_svc = SignatureRequestService(test_db)

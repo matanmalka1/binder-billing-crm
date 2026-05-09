@@ -15,9 +15,15 @@ class VatClientContextService:
     def get_active_client_and_entity(self, client_record_id: int):
         client_record = self.record_repo.get_by_id(client_record_id)
         if not client_record:
-            raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+            raise NotFoundError(
+                VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+                "VAT.NOT_FOUND",
+            )
         assert_client_record_is_active(client_record)
         legal_entity = self.legal_entity_repo.get_by_id(client_record.legal_entity_id)
         if not legal_entity:
-            raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+            raise NotFoundError(
+                VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+                "VAT.NOT_FOUND",
+            )
         return client_record, legal_entity

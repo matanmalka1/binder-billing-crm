@@ -4,6 +4,7 @@ Request ID middleware for request tracking.
 Generates unique request ID for each request and propagates
 it through logging context.
 """
+
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware

@@ -67,7 +67,9 @@ def test_charges_endpoint_creates_draft_charge(client, advisor_headers, test_db)
     assert data["status"] == "draft"
 
 
-def test_document_signals_endpoint_lists_missing_documents(client, advisor_headers, secretary_headers, test_db):
+def test_document_signals_endpoint_lists_missing_documents(
+    client, advisor_headers, secretary_headers, test_db
+):
     """Regression: document signals still list missing documents."""
     test_client = seed_client_identity(
         test_db,

@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import AdvancePaymentFrequency, IdNumberType
 from app.common.enums import EntityType, VatType
-from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
+from app.clients.repositories.client_repository import (
+    ClientRecordView,
+    ClientRepository,
+)
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordResponse,
@@ -38,7 +41,7 @@ class ClientService:
         self,
         full_name: str,
         id_number: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
@@ -77,11 +80,17 @@ class ClientService:
     def get_client_or_raise(self, client_id: int) -> ClientRecordView:
         client = self.client_repo.get_by_id(client_id)
         if not client:
-            raise NotFoundError(CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                CLIENT_NOT_FOUND.format(client_id=client_id), "CLIENT.NOT_FOUND"
+            )
         return client
 
-    def update_client(self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields) -> ClientRecordView:
-        return self._update.update_client(client_id, actor_id=actor_id, actor_role=actor_role, **fields)
+    def update_client(
+        self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields
+    ) -> ClientRecordView:
+        return self._update.update_client(
+            client_id, actor_id=actor_id, actor_role=actor_role, **fields
+        )
 
     def delete_client(self, client_id: int, actor_id: int) -> None:
         self._lifecycle.delete_client(client_id, actor_id)
@@ -91,9 +100,22 @@ class ClientService:
 
     # ─── Query delegation ────────────────────────────────────────────────────
 
-    def list_clients(self, search=None, status=None, sort_by="full_name", sort_order="asc", page=1, page_size=20):
+    def list_clients(
+        self,
+        search=None,
+        status=None,
+        sort_by="full_name",
+        sort_order="asc",
+        page=1,
+        page_size=20,
+    ):
         return self._query.list_clients(
-            search=search, status=status, sort_by=sort_by, sort_order=sort_order, page=page, page_size=page_size,
+            search=search,
+            status=status,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
         )
 
     def get_client_stats(self):

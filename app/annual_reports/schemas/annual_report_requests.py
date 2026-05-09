@@ -34,7 +34,7 @@ class AmendRequest(BaseModel):
 
 
 class StatusTransitionRequest(BaseModel):
-    status: AnnualReportStatus              # enum — לא str חופשי
+    status: AnnualReportStatus  # enum — לא str חופשי
     note: Optional[str] = None
     ita_reference: Optional[str] = None
     assessment_amount: Optional[ApiDecimal] = None
@@ -43,7 +43,7 @@ class StatusTransitionRequest(BaseModel):
 
 
 class DeadlineUpdateRequest(BaseModel):
-    deadline_type: FilingDeadlineType             # enum
+    deadline_type: FilingDeadlineType  # enum
     custom_deadline_note: Optional[str] = None
 
 
@@ -55,13 +55,13 @@ class SubmitRequest(BaseModel):
 
 
 class StageTransitionRequest(BaseModel):
-    to_stage: ReportStage                   # enum
+    to_stage: ReportStage  # enum
 
 
 class ScheduleAddRequest(BaseModel):
-    schedule: AnnualReportSchedule          # enum
+    schedule: AnnualReportSchedule  # enum
     notes: Optional[str] = None
 
 
 class ScheduleCompleteRequest(BaseModel):
-    schedule: AnnualReportSchedule          # enum
+    schedule: AnnualReportSchedule  # enum

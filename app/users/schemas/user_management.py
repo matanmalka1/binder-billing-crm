@@ -57,7 +57,7 @@ class UserAuditLogResponse(BaseModel):
     email: Optional[str] = None
     status: AuditStatus
     reason: Optional[str] = None
-    metadata: Optional[dict] = None    
+    metadata: Optional[dict] = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}

@@ -28,16 +28,24 @@ def _validate_amendment(
 ) -> None:
     amended_item = work_item_repo.get_by_id(amends_item_id)
     if amended_item is None:
-        raise AppError(AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404)
+        raise AppError(
+            AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404
+        )
     if amended_item.client_record_id != item.client_record_id:
-        raise AppError(AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
+        raise AppError(
+            AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400
+        )
     if amended_item.status != VatWorkItemStatus.FILED:
-        raise AppError(AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400)
+        raise AppError(
+            AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400
+        )
 
     current_item = amended_item
     while current_item is not None:
         if current_item.id == item.id:
-            raise AppError(AMENDMENT_CYCLE_DETECTED, code="AMENDMENT_CYCLE", status_code=400)
+            raise AppError(
+                AMENDMENT_CYCLE_DETECTED, code="AMENDMENT_CYCLE", status_code=400
+            )
         if current_item.amends_item_id is None:
             break
         current_item = work_item_repo.get_by_id(current_item.amends_item_id)
@@ -67,13 +75,19 @@ def file_vat_return(
     is_overridden = override_amount is not None
 
     if is_overridden and override_amount <= 0:
-        raise AppError(OVERRIDE_AMOUNT_MUST_BE_POSITIVE, code="INVALID_OVERRIDE_AMOUNT", status_code=400)
+        raise AppError(
+            OVERRIDE_AMOUNT_MUST_BE_POSITIVE,
+            code="INVALID_OVERRIDE_AMOUNT",
+            status_code=400,
+        )
 
     if is_overridden and not override_justification:
         raise AppError(OVERRIDE_JUSTIFICATION_REQUIRED, "VAT.JUSTIFICATION_REQUIRED")
 
     if item.net_vat is None and override_amount is None:
-        raise AppError(FINAL_VAT_AMOUNT_REQUIRED, code="MISSING_FINAL_AMOUNT", status_code=400)
+        raise AppError(
+            FINAL_VAT_AMOUNT_REQUIRED, code="MISSING_FINAL_AMOUNT", status_code=400
+        )
 
     if is_overridden:
         final_amount = override_amount
@@ -105,11 +119,13 @@ def file_vat_return(
         work_item_id=item_id,
         performed_by=filed_by,
         action=ACTION_FILED,
-        new_value=json.dumps({
-            "final_vat_amount": str(final_amount),
-            "submission_method": submission_method.value,
-            "is_overridden": is_overridden,
-        }),
+        new_value=json.dumps(
+            {
+                "final_vat_amount": str(final_amount),
+                "submission_method": submission_method.value,
+                "is_overridden": is_overridden,
+            }
+        ),
     )
 
     return filed_item

@@ -20,21 +20,29 @@ class _FakeAgingService:
         return {"items": [], "summary": {}}
 
 
-def test_export_aging_report_import_error_maps_to_500(client, advisor_headers, monkeypatch):
+def test_export_aging_report_import_error_maps_to_500(
+    client, advisor_headers, monkeypatch
+):
     monkeypatch.setattr(reports_export_service, "AgingReportService", _FakeAgingService)
     monkeypatch.setattr(reports_export_service, "ExportService", _FakeExportService)
 
-    resp = client.get("/api/v1/reports/aging/export?format=excel", headers=advisor_headers)
+    resp = client.get(
+        "/api/v1/reports/aging/export?format=excel", headers=advisor_headers
+    )
 
     assert resp.status_code == 500
     assert "ספריית הייצוא אינה מותקנת" in resp.json()["detail"]
 
 
-def test_export_aging_report_generic_error_maps_to_500(client, advisor_headers, monkeypatch):
+def test_export_aging_report_generic_error_maps_to_500(
+    client, advisor_headers, monkeypatch
+):
     monkeypatch.setattr(reports_export_service, "AgingReportService", _FakeAgingService)
     monkeypatch.setattr(reports_export_service, "ExportService", _FakeExportService)
 
-    resp = client.get("/api/v1/reports/aging/export?format=pdf", headers=advisor_headers)
+    resp = client.get(
+        "/api/v1/reports/aging/export?format=pdf", headers=advisor_headers
+    )
 
     assert resp.status_code == 500
     assert "הייצוא נכשל" in resp.json()["detail"]

@@ -96,15 +96,11 @@ def resolve_obligation_rules(profile: ClientTaxProfile) -> list[ObligationRule]:
       has_representative: bool
     """
     return [
-        rule
-        for rule in ALL_OBLIGATION_RULES
-        if _scope_matches(rule.scope, profile)
+        rule for rule in ALL_OBLIGATION_RULES if _scope_matches(rule.scope, profile)
     ]
 
 
-def resolve_annual_report_rule(
-    entity_type: str, tax_year: int
-) -> dict | None:
+def resolve_annual_report_rule(entity_type: str, tax_year: int) -> dict | None:
     """מחזיר חוק דוח שנתי לפי סוג ישות ושנת מס."""
     try:
         parsed = EntityType(entity_type)

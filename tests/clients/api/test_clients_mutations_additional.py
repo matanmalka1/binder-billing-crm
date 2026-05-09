@@ -3,7 +3,9 @@ from tests.helpers.identity import seed_client_identity
 
 
 def test_get_and_patch_client(client, advisor_headers):
-    created = create_client_via_api(client, advisor_headers, full_name="Client A", id_number="700000011")
+    created = create_client_via_api(
+        client, advisor_headers, full_name="Client A", id_number="700000011"
+    )
     client_id = created.json()["client"]["id"]
 
     fetched = client.get(f"/api/v1/clients/{client_id}", headers=advisor_headers)
@@ -28,7 +30,9 @@ def test_get_client_not_found_returns_domain_error(client, advisor_headers):
     assert data["error"] == "CLIENT.NOT_FOUND"
 
 
-def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary_headers):
+def test_delete_and_restore_client_role_rules(
+    client, advisor_headers, secretary_headers
+):
     created = create_client_via_api(client, advisor_headers, id_number="700000029")
     client_id = created.json()["client"]["id"]
 
@@ -38,19 +42,29 @@ def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary
     deleted = client.delete(f"/api/v1/clients/{client_id}", headers=advisor_headers)
     assert deleted.status_code == 204
 
-    fetched_after_delete = client.get(f"/api/v1/clients/{client_id}", headers=advisor_headers)
+    fetched_after_delete = client.get(
+        f"/api/v1/clients/{client_id}", headers=advisor_headers
+    )
     assert fetched_after_delete.status_code == 404
 
-    restore_denied = client.post(f"/api/v1/clients/{client_id}/restore", headers=secretary_headers)
+    restore_denied = client.post(
+        f"/api/v1/clients/{client_id}/restore", headers=secretary_headers
+    )
     assert restore_denied.status_code == 403
 
-    restored = client.post(f"/api/v1/clients/{client_id}/restore", headers=advisor_headers)
+    restored = client.post(
+        f"/api/v1/clients/{client_id}/restore", headers=advisor_headers
+    )
     assert restored.status_code == 200
     assert restored.json()["id"] == client_id
 
 
-def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, test_db):
-    first = create_client_via_api(client, advisor_headers, full_name="Old One", id_number="700000037")
+def test_restore_conflict_when_active_duplicate_exists(
+    client, advisor_headers, test_db
+):
+    first = create_client_via_api(
+        client, advisor_headers, full_name="Old One", id_number="700000037"
+    )
     first_id = first.json()["client"]["id"]
 
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
@@ -61,18 +75,24 @@ def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, 
         created_by=1,
     )
 
-    restored = client.post(f"/api/v1/clients/{first_id}/restore", headers=advisor_headers)
+    restored = client.post(
+        f"/api/v1/clients/{first_id}/restore", headers=advisor_headers
+    )
 
     assert restored.status_code == 409
     assert restored.json()["error"] == "CLIENT.CONFLICT"
 
 
 def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers):
-    first = create_client_via_api(client, advisor_headers, full_name="Deleted Source", id_number="700000045")
+    first = create_client_via_api(
+        client, advisor_headers, full_name="Deleted Source", id_number="700000045"
+    )
     first_id = first.json()["client"]["id"]
     client.delete(f"/api/v1/clients/{first_id}", headers=advisor_headers)
 
-    duplicate = create_client_via_api(client, advisor_headers, full_name="Try Again", id_number="700000045")
+    duplicate = create_client_via_api(
+        client, advisor_headers, full_name="Try Again", id_number="700000045"
+    )
 
     assert duplicate.status_code == 409
     payload = duplicate.json()["detail"]
@@ -82,18 +102,28 @@ def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers)
 
 
 def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
-    _active = create_client_via_api(client, advisor_headers, full_name="Conflict Active", id_number="700000052")
-    deleted = create_client_via_api(client, advisor_headers, full_name="Conflict Deleted", id_number="700000060")
+    _active = create_client_via_api(
+        client, advisor_headers, full_name="Conflict Active", id_number="700000052"
+    )
+    deleted = create_client_via_api(
+        client, advisor_headers, full_name="Conflict Deleted", id_number="700000060"
+    )
 
-    client.delete(f"/api/v1/clients/{deleted.json()['client']['id']}", headers=advisor_headers)
+    client.delete(
+        f"/api/v1/clients/{deleted.json()['client']['id']}", headers=advisor_headers
+    )
 
-    active_info = client.get("/api/v1/clients/conflict/700000052", headers=advisor_headers)
+    active_info = client.get(
+        "/api/v1/clients/conflict/700000052", headers=advisor_headers
+    )
     assert active_info.status_code == 200
     body_active = active_info.json()
     assert len(body_active["active_clients"]) == 1
     assert len(body_active["deleted_clients"]) == 0
 
-    deleted_info = client.get("/api/v1/clients/conflict/700000060", headers=advisor_headers)
+    deleted_info = client.get(
+        "/api/v1/clients/conflict/700000060", headers=advisor_headers
+    )
     assert deleted_info.status_code == 200
     body_deleted = deleted_info.json()
     assert len(body_deleted["active_clients"]) == 0
@@ -101,9 +131,13 @@ def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
 
 
 def test_create_conflict_payload_contains_conflict_lists(client, advisor_headers):
-    create_client_via_api(client, advisor_headers, full_name="First", id_number="700000078")
+    create_client_via_api(
+        client, advisor_headers, full_name="First", id_number="700000078"
+    )
 
-    duplicate = create_client_via_api(client, advisor_headers, full_name="Second", id_number="700000078")
+    duplicate = create_client_via_api(
+        client, advisor_headers, full_name="Second", id_number="700000078"
+    )
 
     assert duplicate.status_code == 409
     payload = duplicate.json()["detail"]
@@ -132,7 +166,10 @@ def test_create_validates_israeli_checksum_for_individual(client, advisor_header
                 "vat_reporting_frequency": "monthly",
                 "accountant_id": 1,
             },
-            "business": {"business_name": "Checksum Invalid Business", "opened_at": "2026-04-19"},
+            "business": {
+                "business_name": "Checksum Invalid Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
 
@@ -159,7 +196,10 @@ def test_create_validates_israeli_checksum_for_corporation(client, advisor_heade
                 "vat_reporting_frequency": "monthly",
                 "accountant_id": 1,
             },
-            "business": {"business_name": "Bad Corp Business", "opened_at": "2026-04-19"},
+            "business": {
+                "business_name": "Bad Corp Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
 
@@ -173,7 +213,7 @@ def test_create_rejects_manual_vat_frequency_for_osek_patur(client, advisor_head
         json={
             "client": {
                 "full_name": "Exempt Client",
-            "id_number": "039337423",
+                "id_number": "039337423",
                 "entity_type": "osek_patur",
                 "phone": "050-1234567",
                 "email": "exempt@example.com",
@@ -305,14 +345,19 @@ def test_update_rejects_manual_vat_exempt_ceiling_payload(client, advisor_header
     assert response.status_code == 422
     errors = response.json()["detail"]
     assert any(
-        error["msg"] == 'Value error, תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+        error["msg"]
+        == 'Value error, תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
         for error in errors
     )
 
 
 def test_list_clients_respects_search_and_pagination(client, advisor_headers):
-    create_client_via_api(client, advisor_headers, full_name="Alpha Client", id_number="700000086")
-    create_client_via_api(client, advisor_headers, full_name="Beta Client", id_number="700000094")
+    create_client_via_api(
+        client, advisor_headers, full_name="Alpha Client", id_number="700000086"
+    )
+    create_client_via_api(
+        client, advisor_headers, full_name="Beta Client", id_number="700000094"
+    )
 
     response = client.get(
         "/api/v1/clients?search=Alpha&page=1&page_size=1",

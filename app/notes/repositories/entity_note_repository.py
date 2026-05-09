@@ -35,15 +35,13 @@ class EntityNoteRepository:
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[EntityNote], int]:
-        base = (
-            self.db.query(EntityNote)
-            .filter(
-                EntityNote.entity_type == entity_type,
-                EntityNote.entity_id == entity_id,
-                EntityNote.deleted_at.is_(None),
-            )
+        base = self.db.query(EntityNote).filter(
+            EntityNote.entity_type == entity_type,
+            EntityNote.entity_id == entity_id,
+            EntityNote.deleted_at.is_(None),
         )
         from sqlalchemy import func
+
         total = base.with_entities(func.count()).scalar() or 0
         items = (
             base.order_by(EntityNote.created_at.desc())

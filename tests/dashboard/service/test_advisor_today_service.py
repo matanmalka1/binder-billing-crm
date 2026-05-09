@@ -1,7 +1,10 @@
 from datetime import date
 from types import SimpleNamespace
 
-from app.dashboard.services.advisor_today_service import AdvisorTodayService, _reminder_item
+from app.dashboard.services.advisor_today_service import (
+    AdvisorTodayService,
+    _reminder_item,
+)
 from app.reminders.models.reminder import ReminderType
 
 

@@ -1,4 +1,5 @@
 """Sends a follow-up reminder to client when annual report is stuck in PENDING_CLIENT."""
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -7,7 +8,9 @@ from datetime import timezone
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.core.exceptions import AppError, NotFoundError
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -41,7 +44,10 @@ class AnnualReportClientReminderService:
             report_id, NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
         )
         if last:
-            days_since = (_dt.datetime.now(timezone.utc) - last.created_at.replace(tzinfo=timezone.utc)).days
+            days_since = (
+                _dt.datetime.now(timezone.utc)
+                - last.created_at.replace(tzinfo=timezone.utc)
+            ).days
             if days_since < _REMINDER_COOLDOWN_DAYS:
                 raise AppError(
                     f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {_REMINDER_COOLDOWN_DAYS} ימים.",

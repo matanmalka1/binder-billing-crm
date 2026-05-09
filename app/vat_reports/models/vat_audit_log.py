@@ -19,16 +19,17 @@ from app.utils.time_utils import utcnow
 class VatAuditLog(Base):
     __tablename__ = "vat_audit_logs"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    work_item_id = Column(Integer, ForeignKey("vat_work_items.id"),
-                          nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    work_item_id = Column(
+        Integer, ForeignKey("vat_work_items.id"), nullable=False, index=True
+    )
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Use ACTION_* constants from constants.py — never raw strings in service code
-    action    = Column(String, nullable=False)
-    old_value = Column(Text, nullable=True)   # JSON snapshot
-    new_value = Column(Text, nullable=True)   # JSON snapshot
-    note      = Column(Text, nullable=True)
+    action = Column(String, nullable=False)
+    old_value = Column(Text, nullable=True)  # JSON snapshot
+    new_value = Column(Text, nullable=True)  # JSON snapshot
+    note = Column(Text, nullable=True)
 
     # Direct FK for efficient "show history of invoice X" queries
     invoice_id = Column(

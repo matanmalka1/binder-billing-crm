@@ -91,13 +91,14 @@ def test_mark_sent_enforces_pending_status(test_db):
     crm_client = _client(test_db)
     business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
-    reminder = _reminder(repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT)
+    reminder = _reminder(
+        repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT
+    )
 
     with pytest.raises(AppError) as exc_info:
         ReminderService(test_db).mark_sent(reminder.id, actor_id=1)
 
     assert exc_info.value.code == "REMINDER.INVALID_STATUS"
-
 
 
 def test_get_reminders_without_status_defaults_to_pending(test_db):
@@ -146,7 +147,9 @@ def test_cancel_enforces_pending_status(test_db):
     crm_client = _client(test_db)
     business = _business(test_db, crm_client)
     repo = ReminderRepository(test_db)
-    reminder = _reminder(repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT)
+    reminder = _reminder(
+        repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT
+    )
 
     with pytest.raises(AppError) as exc_info:
         ReminderService(test_db).cancel_reminder(reminder.id, actor_id=1)

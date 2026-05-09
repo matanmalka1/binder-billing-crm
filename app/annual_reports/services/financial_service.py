@@ -5,7 +5,9 @@ from app.annual_reports.services.financial_crud_service import FinancialCrudMixi
 from app.annual_reports.services.financial_tax_service import FinancialTaxMixin
 
 
-class AnnualReportFinancialService(FinancialCrudMixin, FinancialTaxMixin, FinancialBaseService):
+class AnnualReportFinancialService(
+    FinancialCrudMixin, FinancialTaxMixin, FinancialBaseService
+):
     """Backward-compatible service combining CRUD, tax, and readiness logic."""
 
 

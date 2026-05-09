@@ -1,6 +1,9 @@
 """Regression tests: due-date source-of-truth is TaxCalendarEntry, not hardcoded day constants."""
+
 from datetime import date
-from unittest.mock import MagicMock  # used in unit tests that don't need Pydantic validation
+from unittest.mock import (
+    MagicMock,
+)  # used in unit tests that don't need Pydantic validation
 
 from app.common.enums import DeadlineRuleType, ObligationType, SubmissionMethod, VatType
 from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
@@ -12,12 +15,15 @@ from tests.tax_calendar.service.linking_helpers import make_entry, vat_client
 
 # ── deadline_fields_from_snapshot ────────────────────────────────────────────
 
+
 def test_snapshot_statutory_filer_uses_due_date_effective():
     item = MagicMock()
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.MANUAL)
+    result = deadline_fields_from_snapshot(
+        item, submission_method=SubmissionMethod.MANUAL
+    )
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
@@ -31,7 +37,9 @@ def test_snapshot_online_filer_adds_extension_days():
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
+    result = deadline_fields_from_snapshot(
+        item, submission_method=SubmissionMethod.ONLINE
+    )
 
     assert result["submission_deadline"] == date(2026, 2, 20)
     assert result["statutory_deadline"] == date(2026, 2, 16)
@@ -44,7 +52,9 @@ def test_snapshot_standard_month_matches_legacy_constants():
     item.due_date_original = date(2026, 3, 15)
     item.due_date_effective = date(2026, 3, 15)
 
-    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
+    result = deadline_fields_from_snapshot(
+        item, submission_method=SubmissionMethod.ONLINE
+    )
 
     assert result["submission_deadline"] == date(2026, 3, 19)
     assert result["statutory_deadline"] == date(2026, 3, 15)
@@ -56,13 +66,16 @@ def test_snapshot_falls_back_to_effective_when_original_is_none():
     item.due_date_original = None
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.MANUAL)
+    result = deadline_fields_from_snapshot(
+        item, submission_method=SubmissionMethod.MANUAL
+    )
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
 
 
 # ── serializer routing ────────────────────────────────────────────────────────
+
 
 def test_serializer_prefers_snapshot_over_computed_deadline(test_db):
     """When due_date_effective is set, submission_deadline must come from snapshot, not period+15."""
@@ -80,11 +93,16 @@ def test_serializer_prefers_snapshot_over_computed_deadline(test_db):
 
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
-    assert item.due_date_effective == date(2026, 2, 16), "snapshot must use entry.due_date=16th"
+    assert item.due_date_effective == date(2026, 2, 16), (
+        "snapshot must use entry.due_date=16th"
+    )
 
     result = serialize_enriched_work_item(
         item,
@@ -109,7 +127,10 @@ def test_serializer_routing_uses_snapshot_when_effective_set():
     item.due_date_original = date(2026, 2, 16)
     item.submission_method = None
 
-    from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
+    from app.vat_reports.services.vat_report_queries import (
+        deadline_fields_from_snapshot,
+    )
+
     result = deadline_fields_from_snapshot(item)
 
     # Verify snapshot path produces 16th, not hardcoded 15th

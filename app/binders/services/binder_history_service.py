@@ -5,10 +5,18 @@ from sqlalchemy.orm import Session
 from app.binders.models.binder import Binder
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
-from app.binders.schemas.binder import BinderHistoryEntry, BinderIntakeMaterialResponse, BinderIntakeResponse
+from app.binders.repositories.binder_intake_material_repository import (
+    BinderIntakeMaterialRepository,
+)
+from app.binders.schemas.binder import (
+    BinderHistoryEntry,
+    BinderIntakeMaterialResponse,
+    BinderIntakeResponse,
+)
 from app.core.exceptions import NotFoundError
 from app.binders.services.messages import BINDER_NOT_FOUND
 from app.users.repositories.user_repository import UserRepository
@@ -25,7 +33,9 @@ class BinderHistoryService:
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.user_repo = UserRepository(db)
 
-    def build_history_entries(self, logs: list[BinderStatusLog]) -> list[BinderHistoryEntry]:
+    def build_history_entries(
+        self, logs: list[BinderStatusLog]
+    ) -> list[BinderHistoryEntry]:
         """Enrich status log records with changed_by user names."""
         user_ids = {log.changed_by for log in logs}
         users = [self.user_repo.get_by_id(uid) for uid in user_ids]

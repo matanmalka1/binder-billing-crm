@@ -9,7 +9,9 @@ _client_seq = count(1)
 
 
 def _create_report(db):
-    client = seed_client_identity(db, full_name="Annex Client", id_number=f"45454545{next(_client_seq)}")
+    client = seed_client_identity(
+        db, full_name="Annex Client", id_number=f"45454545{next(_client_seq)}"
+    )
 
     svc = AnnualReportService(db)
     return svc.create_report(
@@ -57,10 +59,13 @@ def test_annex_crud_flow(client, test_db, advisor_headers):
         headers=advisor_headers,
     )
     assert delete.status_code == 204
-    assert client.get(
-        f"/api/v1/annual-reports/{report.id}/annex/{schedule}",
-        headers=advisor_headers,
-    ).json()["items"] == []
+    assert (
+        client.get(
+            f"/api/v1/annual-reports/{report.id}/annex/{schedule}",
+            headers=advisor_headers,
+        ).json()["items"]
+        == []
+    )
 
 
 def test_add_annex_requires_report_exists(client, advisor_headers):

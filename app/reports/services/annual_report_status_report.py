@@ -5,7 +5,9 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 
 
 class AnnualReportStatusReportService:
@@ -26,7 +28,9 @@ class AnnualReportStatusReportService:
                     if hasattr(report.filing_deadline, "date")
                     else report.filing_deadline
                 )
-            days_until = (filing_deadline_date - today).days if filing_deadline_date else None
+            days_until = (
+                (filing_deadline_date - today).days if filing_deadline_date else None
+            )
 
             grouped[report.status.value].append(
                 {

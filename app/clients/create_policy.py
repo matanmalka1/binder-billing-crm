@@ -24,7 +24,9 @@ def normalize_vat_reporting_frequency(
     return vat_reporting_frequency
 
 
-def normalize_vat_exempt_ceiling(entity_type: Optional[EntityType]) -> Optional[ApiDecimal]:
+def normalize_vat_exempt_ceiling(
+    entity_type: Optional[EntityType],
+) -> Optional[ApiDecimal]:
     if entity_type == EntityType.OSEK_PATUR:
         year = date.today().year
         return Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))

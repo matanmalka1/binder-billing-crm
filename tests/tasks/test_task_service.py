@@ -49,6 +49,7 @@ def test_unpaid_charge_before_threshold_excluded(test_db):
 
 def test_unified_includes_tasks_and_reminders(test_db):
     from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+
     biz = create_business(test_db)
     today = date.today()
     create_linked_advance_payment(
@@ -153,10 +154,16 @@ def test_unified_excludes_requested_task_source_types(test_db, monkeypatch):
         client_record_id=1,
     )
 
-    monkeypatch.setattr(service, "_vat_filing_tasks", lambda client_record_id: [vat_task])
-    monkeypatch.setattr(service, "_annual_report_tasks", lambda client_record_id: [annual_task])
+    monkeypatch.setattr(
+        service, "_vat_filing_tasks", lambda client_record_id: [vat_task]
+    )
+    monkeypatch.setattr(
+        service, "_annual_report_tasks", lambda client_record_id: [annual_task]
+    )
     monkeypatch.setattr(service, "_advance_payment_tasks", lambda client_record_id: [])
-    monkeypatch.setattr(service, "_unpaid_charge_tasks", lambda client_record_id, business_id: [])
+    monkeypatch.setattr(
+        service, "_unpaid_charge_tasks", lambda client_record_id, business_id: []
+    )
 
     items = service.get_unified(
         exclude_source_types=[TaskType.VAT_FILING, TaskType.ANNUAL_REPORT]
@@ -174,6 +181,8 @@ def test_get_tasks_skips_excluded_builders(test_db, monkeypatch):
         lambda client_record_id: (_ for _ in ()).throw(AssertionError("should skip")),
     )
     monkeypatch.setattr(service, "_advance_payment_tasks", lambda client_record_id: [])
-    monkeypatch.setattr(service, "_unpaid_charge_tasks", lambda client_record_id, business_id: [])
+    monkeypatch.setattr(
+        service, "_unpaid_charge_tasks", lambda client_record_id, business_id: []
+    )
 
     assert service.get_tasks(exclude_source_types=[TaskType.ANNUAL_REPORT]) == []

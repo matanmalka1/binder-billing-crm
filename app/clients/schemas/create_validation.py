@@ -20,9 +20,9 @@ from app.utils.id_validation import validate_israeli_id_checksum
 def validate_identifier_for_entity(entity_type: EntityType, id_number: str) -> None:
     if entity_type == EntityType.COMPANY_LTD:
         if not id_number.isdigit():
-            raise ValueError('ח.פ חייב להכיל ספרות בלבד')
+            raise ValueError("ח.פ חייב להכיל ספרות בלבד")
         if len(id_number) != 9:
-            raise ValueError('ח.פ חייב להכיל בדיוק 9 ספרות')
+            raise ValueError("ח.פ חייב להכיל בדיוק 9 ספרות")
         if not validate_israeli_id_checksum(id_number):
             raise ValueError("מספר ח.פ אינו תקין")
         return
@@ -65,7 +65,10 @@ def validate_create_entity_rules(
     else:
         if vat_reporting_frequency is None:
             raise ValueError(VAT_FREQUENCY_REQUIRED_ERROR)
-        if entity_type == EntityType.COMPANY_LTD and vat_reporting_frequency == VatType.EXEMPT:
+        if (
+            entity_type == EntityType.COMPANY_LTD
+            and vat_reporting_frequency == VatType.EXEMPT
+        ):
             raise ValueError(COMPANY_EXEMPT_VAT_ERROR)
         if vat_exempt_ceiling_was_set:
             raise ValueError(NON_PATUR_VAT_EXEMPT_CEILING_ERROR)
@@ -93,10 +96,16 @@ def validate_preview_entity_rules(
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
     if entity_type == EntityType.OSEK_PATUR:
-        if vat_reporting_frequency_was_set and vat_reporting_frequency != VatType.EXEMPT:
+        if (
+            vat_reporting_frequency_was_set
+            and vat_reporting_frequency != VatType.EXEMPT
+        ):
             raise ValueError(PATUR_MANUAL_VAT_FREQUENCY_ERROR)
         return
-    if entity_type == EntityType.COMPANY_LTD and vat_reporting_frequency == VatType.EXEMPT:
+    if (
+        entity_type == EntityType.COMPANY_LTD
+        and vat_reporting_frequency == VatType.EXEMPT
+    ):
         raise ValueError(COMPANY_EXEMPT_VAT_ERROR)
     if vat_reporting_frequency is None:
         raise ValueError(VAT_FREQUENCY_REQUIRED_ERROR)

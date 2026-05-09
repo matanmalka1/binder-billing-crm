@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
+from app.annual_reports.repositories.report_repository import (
+    AnnualReportReportRepository,
+)
 
 
 class AnnualReportClientStatusService:

@@ -18,7 +18,7 @@ def authority_office_name(contact_type: ContactType, city: str | None) -> str:
     if contact_type == ContactType.ASSESSING_OFFICER:
         return f"פקיד שומה {office_city}"
     if contact_type == ContactType.VAT_BRANCH:
-        return f"משרד מע\"מ {office_city}"
+        return f'משרד מע"מ {office_city}'
     if contact_type == ContactType.NATIONAL_INSURANCE:
         return f"ביטוח לאומי {office_city}"
     return f"רשות {office_city}"

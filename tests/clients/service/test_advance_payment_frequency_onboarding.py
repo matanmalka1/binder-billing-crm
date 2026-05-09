@@ -1,7 +1,9 @@
 from datetime import date
 
 from app.advance_payments.models.advance_payment import AdvancePayment
-from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
+from app.clients.services.client_onboarding_orchestrator import (
+    ClientOnboardingOrchestrator,
+)
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from tests.helpers.identity import seed_client_identity
 

@@ -1,7 +1,9 @@
 from datetime import date
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from tests.helpers.identity import seed_client_identity
 
 
@@ -24,12 +26,21 @@ def _seed_binder_with_history(db, user_id: int):
     db.refresh(binder)
 
     log_repo = BinderStatusLogRepository(db)
-    log_repo.append(binder.id, old_status="null", new_status="in_office", changed_by=user_id)
-    log_repo.append(binder.id, old_status="in_office", new_status="ready_for_pickup", changed_by=user_id)
+    log_repo.append(
+        binder.id, old_status="null", new_status="in_office", changed_by=user_id
+    )
+    log_repo.append(
+        binder.id,
+        old_status="in_office",
+        new_status="ready_for_pickup",
+        changed_by=user_id,
+    )
     return binder
 
 
-def test_binder_history_endpoint_returns_logs(client, test_db, advisor_headers, test_user):
+def test_binder_history_endpoint_returns_logs(
+    client, test_db, advisor_headers, test_user
+):
     binder = _seed_binder_with_history(test_db, test_user.id)
 
     resp = client.get(f"/api/v1/binders/{binder.id}/history", headers=advisor_headers)

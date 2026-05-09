@@ -63,10 +63,7 @@ class VatInvoiceAggregationRepository:
             .group_by(VatInvoice.invoice_type)
             .all()
         )
-        grouped = {
-            row.invoice_type: Decimal(str(row.total or 0))
-            for row in rows
-        }
+        grouped = {row.invoice_type: Decimal(str(row.total or 0)) for row in rows}
         output_vat = grouped.get(InvoiceType.INCOME, Decimal("0"))
         input_vat = grouped.get(InvoiceType.EXPENSE, Decimal("0"))
         return output_vat, input_vat
@@ -85,16 +82,15 @@ class VatInvoiceAggregationRepository:
             .group_by(VatInvoice.invoice_type)
             .all()
         )
-        grouped = {
-            row.invoice_type: Decimal(str(row.total or 0))
-            for row in rows
-        }
+        grouped = {row.invoice_type: Decimal(str(row.total or 0)) for row in rows}
         return (
             grouped.get(InvoiceType.INCOME, Decimal("0")),
             grouped.get(InvoiceType.EXPENSE, Decimal("0")),
         )
 
-    def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> Decimal:
+    def sum_income_net_by_client_year(
+        self, client_record_id: int, year: int
+    ) -> Decimal:
         """Sum net_amount of INCOME invoices for a client across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.
@@ -136,7 +132,8 @@ class VatInvoiceAggregationRepository:
             .all()
         )
         return {
-            (row.expense_category.value if row.expense_category else "other"): Decimal(str(row.total or 0))
+            (row.expense_category.value if row.expense_category else "other"): Decimal(
+                str(row.total or 0)
+            )
             for row in rows
         }
-

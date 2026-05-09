@@ -12,7 +12,11 @@ from app.core.exceptions import ForbiddenError
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.businesses.models.business import Business
-from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED, ACTION_UPDATED, ENTITY_CLIENT
+from app.audit.constants import (
+    ACTION_ENTITY_TYPE_CHANGED,
+    ACTION_UPDATED,
+    ENTITY_CLIENT,
+)
 from app.audit.models.entity_audit_log import EntityAuditLog
 from tests.helpers.identity import seed_client_identity
 
@@ -46,7 +50,11 @@ def _setup(db) -> tuple:
     cr = db.query(ClientRecord).filter(ClientRecord.id == seeded.id).one()
     le = db.query(LegalEntity).filter(LegalEntity.id == seeded.legal_entity_id).one()
 
-    biz = Business(legal_entity_id=le.id, business_name=seeded.full_name, opened_at=date(2026, 1, 1))
+    biz = Business(
+        legal_entity_id=le.id,
+        business_name=seeded.full_name,
+        opened_at=date(2026, 1, 1),
+    )
     db.add(biz)
     db.commit()
     db.refresh(cr)
@@ -107,8 +115,7 @@ def test_entity_type_change_logs_audit_entry(test_db):
         .all()
     )
     matching_entries = [
-        entry for entry in audit_entries
-        if entry.note == ACTION_ENTITY_TYPE_CHANGED
+        entry for entry in audit_entries if entry.note == ACTION_ENTITY_TYPE_CHANGED
     ]
     assert len(matching_entries) == 1
     entry = matching_entries[0]

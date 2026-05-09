@@ -27,7 +27,14 @@ def test_generate_raises_not_found_when_report_missing(test_db):
 
 
 def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
-    fake_report = SimpleNamespace(id=7, client_record_id=10, tax_year=2026, client_type="corporation", status=SimpleNamespace(value="not_started"), ita_reference=None)
+    fake_report = SimpleNamespace(
+        id=7,
+        client_record_id=10,
+        tax_year=2026,
+        client_type="corporation",
+        status=SimpleNamespace(value="not_started"),
+        ita_reference=None,
+    )
 
     class _Repo:
         def __init__(self, db):
@@ -50,7 +57,9 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
         def get_financial_summary(self, report_id):
             return SimpleNamespace(
                 income_lines=[SimpleNamespace(source_type="salary", amount=1000)],
-                expense_lines=[SimpleNamespace(category="other", recognized_amount=100)],
+                expense_lines=[
+                    SimpleNamespace(category="other", recognized_amount=100)
+                ],
                 total_income=1000,
                 recognized_expenses=100,
             )
@@ -66,7 +75,9 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
                 tax_after_credits=80,
                 effective_rate=8.9,
                 total_liability=120,
-                national_insurance=SimpleNamespace(base_amount=10, high_amount=5, total=15),
+                national_insurance=SimpleNamespace(
+                    base_amount=10, high_amount=5, total=15
+                ),
             )
 
     class _DetailSvc:
@@ -74,10 +85,14 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             self.db = db
 
         def get_detail(self, report_id):
-            return SimpleNamespace(tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120"))
+            return SimpleNamespace(
+                tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120")
+            )
 
     monkeypatch.setattr(pdf_mod, "AnnualReportRepository", _Repo)
-    monkeypatch.setattr("app.clients.repositories.client_repository.ClientRepository", _ClientRepo)
+    monkeypatch.setattr(
+        "app.clients.repositories.client_repository.ClientRepository", _ClientRepo
+    )
     monkeypatch.setattr(pdf_mod, "AnnualReportFinancialService", _FinSvc)
     monkeypatch.setattr(pdf_mod, "AnnualReportDetailService", _DetailSvc)
     monkeypatch.setattr(pdf_mod, "build_pdf", lambda *args, **kwargs: b"pdf-bytes")

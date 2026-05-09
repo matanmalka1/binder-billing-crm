@@ -24,6 +24,7 @@ class BinderHandoverRepository:
         notes: Optional[str] = None,
     ) -> BinderHandover:
         from app.utils.time_utils import utcnow
+
         handover = BinderHandover(
             client_record_id=client_record_id,
             received_by_name=received_by_name,

@@ -5,7 +5,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
-from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
+from app.annual_reports.models.annual_report_schedule_entry import (
+    AnnualReportScheduleEntry,
+)
 from app.utils.time_utils import utcnow
 
 

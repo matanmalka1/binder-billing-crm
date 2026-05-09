@@ -45,10 +45,14 @@ class ClientRecordRepository:
         self.db.flush()
         return record
 
-    def update_status(self, client_record_id: int, status: ClientStatus) -> Optional[ClientRecord]:
+    def update_status(
+        self, client_record_id: int, status: ClientStatus
+    ) -> Optional[ClientRecord]:
         record = (
             self.db.query(ClientRecord)
-            .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
+            .filter(
+                ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
+            )
             .first()
         )
         if not record:
@@ -70,7 +74,9 @@ class ClientRecordRepository:
         self.db.flush()
         return True
 
-    def restore(self, client_record_id: int, restored_by: int) -> Optional[ClientRecord]:
+    def restore(
+        self, client_record_id: int, restored_by: int
+    ) -> Optional[ClientRecord]:
         record = (
             self.db.query(ClientRecord)
             .filter(ClientRecord.id == client_record_id)
@@ -90,11 +96,15 @@ class ClientRecordRepository:
     def get_by_id(self, client_record_id: int) -> Optional[ClientRecord]:
         return (
             self.db.query(ClientRecord)
-            .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
+            .filter(
+                ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
+            )
             .first()
         )
 
-    def get_by_id_including_deleted(self, client_record_id: int) -> Optional[ClientRecord]:
+    def get_by_id_including_deleted(
+        self, client_record_id: int
+    ) -> Optional[ClientRecord]:
         return (
             self.db.query(ClientRecord)
             .filter(ClientRecord.id == client_record_id)
@@ -115,7 +125,9 @@ class ClientRecordRepository:
         """Return legal_entity_id for a ClientRecord, or raise NotFoundError."""
         row = (
             self.db.query(ClientRecord.legal_entity_id)
-            .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
+            .filter(
+                ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
+            )
             .first()
         )
         if row is None:
@@ -132,7 +144,9 @@ class ClientRecordRepository:
         return (
             self.db.query(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .filter(LegalEntity.id_number == id_number, ClientRecord.deleted_at.is_(None))
+            .filter(
+                LegalEntity.id_number == id_number, ClientRecord.deleted_at.is_(None)
+            )
             .all()
         )
 
@@ -141,7 +155,9 @@ class ClientRecordRepository:
         return (
             self.db.query(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .filter(LegalEntity.id_number == id_number, ClientRecord.deleted_at.isnot(None))
+            .filter(
+                LegalEntity.id_number == id_number, ClientRecord.deleted_at.isnot(None)
+            )
             .order_by(ClientRecord.deleted_at.desc())
             .all()
         )
@@ -153,7 +169,10 @@ class ClientRecordRepository:
             return []
         return (
             self.db.query(ClientRecord)
-            .filter(ClientRecord.id.in_(client_record_ids), ClientRecord.deleted_at.is_(None))
+            .filter(
+                ClientRecord.id.in_(client_record_ids),
+                ClientRecord.deleted_at.is_(None),
+            )
             .all()
         )
 
@@ -180,7 +199,8 @@ class ClientRecordRepository:
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
-                LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term)
+                LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
             )
         if status:
             query = query.filter(ClientRecord.status == status)
@@ -209,7 +229,9 @@ class ClientRecordRepository:
             sort_col = case(order_map, value=LegalEntity.entity_type)
         else:
             sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        query = query.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
+        query = query.order_by(
+            desc(sort_col) if sort_order == "desc" else asc(sort_col)
+        )
         offset = (page - 1) * page_size
         return query.offset(offset).limit(page_size).all()
 
@@ -238,7 +260,10 @@ class ClientRecordRepository:
         q = self._active_query()
         if query:
             term = f"%{query.strip()}%"
-            q = q.filter(LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term))
+            q = q.filter(
+                LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
+            )
         if client_name:
             q = q.filter(LegalEntity.official_name.ilike(f"%{client_name.strip()}%"))
         if id_number:
@@ -249,16 +274,17 @@ class ClientRecordRepository:
             q = q.filter(LegalEntity.entity_type == entity_type)
         total = q.count()
         offset = (page - 1) * page_size
-        items = q.order_by(LegalEntity.official_name.asc()).offset(offset).limit(page_size).all()
+        items = (
+            q.order_by(LegalEntity.official_name.asc())
+            .offset(offset)
+            .limit(page_size)
+            .all()
+        )
         return items, total
 
     def list_all(self) -> list[ClientRecord]:
         """All active ClientRecords ordered by official_name."""
-        return (
-            self._active_query()
-            .order_by(LegalEntity.official_name.asc())
-            .all()
-        )
+        return self._active_query().order_by(LegalEntity.official_name.asc()).all()
 
     def count_by_status(self) -> dict[ClientStatus, int]:
         """Active ClientRecords grouped by status."""
@@ -271,5 +297,7 @@ class ClientRecordRepository:
         return {status: count for status, count in rows}
 
     def get_next_office_client_number(self) -> int:
-        current_max = self.db.query(func.max(ClientRecord.office_client_number)).scalar()
+        current_max = self.db.query(
+            func.max(ClientRecord.office_client_number)
+        ).scalar()
         return 1 if current_max is None else current_max + 1

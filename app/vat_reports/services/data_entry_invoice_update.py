@@ -59,12 +59,16 @@ def update_invoice(
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
         raise NotFoundError(
-            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(invoice_id=invoice_id, item_id=item_id),
+            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(
+                invoice_id=invoice_id, item_id=item_id
+            ),
             "VAT.NOT_FOUND",
         )
 
     if invoice_number and invoice_number != invoice.invoice_number:
-        existing = invoice_repo.get_by_number(item_id, invoice.invoice_type, invoice_number)
+        existing = invoice_repo.get_by_number(
+            item_id, invoice.invoice_type, invoice_number
+        )
         if existing:
             raise ConflictError(
                 VAT_INVOICE_NUMBER_CONFLICT.format(invoice_number=invoice_number),
@@ -72,7 +76,9 @@ def update_invoice(
             )
 
     if net_amount is not None and net_amount <= 0:
-        raise AppError(VAT_NET_AMOUNT_POSITIVE_REQUIRED, code="INVALID_NET_AMOUNT", status_code=400)
+        raise AppError(
+            VAT_NET_AMOUNT_POSITIVE_REQUIRED, code="INVALID_NET_AMOUNT", status_code=400
+        )
     if vat_amount is not None and vat_amount < 0:
         raise AppError(VAT_NEGATIVE_AMOUNT, code="INVALID_VAT_AMOUNT", status_code=400)
 
@@ -101,12 +107,22 @@ def update_invoice(
         )
     if expense_category is not None:
         update_fields["deduction_rate"] = get_vat_deduction_rate(expense_category.value)
-    _threshold = Decimal(str(get_financial(int(item.period[:4]), "exceptional_invoice_threshold_ils").value))
+    _threshold = Decimal(
+        str(
+            get_financial(
+                int(item.period[:4]), "exceptional_invoice_threshold_ils"
+            ).value
+        )
+    )
     update_fields["is_exceptional"] = Decimal(str(effective_net)) > _threshold
 
     updated = invoice_repo.update(
         invoice_id,
-        **{k: v for k, v in update_fields.items() if v is not None or k == "is_exceptional"},
+        **{
+            k: v
+            for k, v in update_fields.items()
+            if v is not None or k == "is_exceptional"
+        },
     )
 
     recalculate_totals(work_item_repo, invoice_repo, item_id)

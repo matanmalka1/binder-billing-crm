@@ -25,11 +25,21 @@ def test_billing_service_validation_and_not_found_paths(test_db):
     service = BillingService(test_db)
 
     with pytest.raises(AppError) as amount_exc:
-        service.create_charge(client_record_id=business.client_id, business_id=business.id, amount=0, charge_type=ChargeType.OTHER)
+        service.create_charge(
+            client_record_id=business.client_id,
+            business_id=business.id,
+            amount=0,
+            charge_type=ChargeType.OTHER,
+        )
     assert amount_exc.value.code == "CHARGE.AMOUNT_INVALID"
 
     with pytest.raises(NotFoundError):
-        service.create_charge(client_record_id=business.client_id, business_id=999999, amount=10, charge_type=ChargeType.OTHER)
+        service.create_charge(
+            client_record_id=business.client_id,
+            business_id=999999,
+            amount=10,
+            charge_type=ChargeType.OTHER,
+        )
 
     with pytest.raises(NotFoundError):
         service.mark_charge_paid(999999)

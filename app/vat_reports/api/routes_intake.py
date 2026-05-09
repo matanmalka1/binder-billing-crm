@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, status
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.vat_reports.api.serializers import serialize_work_item
-from app.vat_reports.schemas.vat_report import VatWorkItemCreateRequest, VatWorkItemResponse
+from app.vat_reports.schemas.vat_report import (
+    VatWorkItemCreateRequest,
+    VatWorkItemResponse,
+)
 from app.vat_reports.services.vat_report_service import VatReportService
 
 router = APIRouter(prefix="/vat", tags=["vat-reports"])

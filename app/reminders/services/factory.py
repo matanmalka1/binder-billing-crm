@@ -25,7 +25,9 @@ def _require_non_negative_days(days_before: int) -> None:
         raise AppError(NEGATIVE_DAYS, "REMINDER.NEGATIVE_DAYS")
 
 
-def _resolve_client_record_id(client_record_id: int, repo: ClientRecordRepository) -> int:
+def _resolve_client_record_id(
+    client_record_id: int, repo: ClientRecordRepository
+) -> int:
     client_record = repo.get_by_id(client_record_id)
     assert_client_record_is_active(client_record)
     return client_record.id
@@ -48,7 +50,9 @@ def create_idle_binder_reminder(
 ) -> Reminder:
     binder = binder_repo.get_by_id(binder_id)
     if not binder:
-        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "REMINDER.NOT_FOUND")
+        raise NotFoundError(
+            BINDER_NOT_FOUND.format(binder_id=binder_id), "REMINDER.NOT_FOUND"
+        )
     _require_non_negative_days(days_idle)
     target_date = date.today() + timedelta(days=days_idle)
     send_on = date.today()
@@ -81,7 +85,9 @@ def create_document_missing_reminder(
     if not message or not message.strip():
         raise AppError(DOCUMENT_MISSING_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
     send_on = target_date - timedelta(days=days_before)
-    client_record_id = _resolve_business_client_record_id(business, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_business_client_record_id(
+        business, ClientRecordRepository(reminder_repo.db)
+    )
     return reminder_repo.create(
         client_record_id=client_record_id,
         business_id=business_id,
@@ -110,17 +116,28 @@ def create_custom_reminder(
         resolved_client_record_id = _resolve_business_client_record_id(
             business, ClientRecordRepository(reminder_repo.db)
         )
-        if client_record_id is not None and client_record_id != resolved_client_record_id:
-            raise AppError("business_id אינו שייך ל-client_record_id שסופק", "REMINDER.BUSINESS_CLIENT_MISMATCH")
+        if (
+            client_record_id is not None
+            and client_record_id != resolved_client_record_id
+        ):
+            raise AppError(
+                "business_id אינו שייך ל-client_record_id שסופק",
+                "REMINDER.BUSINESS_CLIENT_MISMATCH",
+            )
     elif client_record_id is not None:
         resolved_client_record_id = client_record_id
     else:
-        raise AppError("client_record_id או business_id נדרש עבור תזכורת מותאמת אישית", "REMINDER.MISSING_ANCHOR")
+        raise AppError(
+            "client_record_id או business_id נדרש עבור תזכורת מותאמת אישית",
+            "REMINDER.MISSING_ANCHOR",
+        )
     _require_non_negative_days(days_before)
     if not message or not message.strip():
         raise AppError(CUSTOM_REMINDER_MESSAGE_REQUIRED, "REMINDER.MESSAGE_REQUIRED")
     send_on = target_date - timedelta(days=days_before)
-    client_record_id = _resolve_client_record_id(resolved_client_record_id, ClientRecordRepository(reminder_repo.db))
+    client_record_id = _resolve_client_record_id(
+        resolved_client_record_id, ClientRecordRepository(reminder_repo.db)
+    )
     return reminder_repo.create(
         client_record_id=client_record_id,
         business_id=business_id,

@@ -29,10 +29,16 @@ def get_period_options(
     """Return period options for UI selection based on client VAT frequency."""
     client_record = ClientRecordRepository(db).get_by_id(client_record_id)
     if not client_record:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+        raise NotFoundError(
+            VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+            "VAT.NOT_FOUND",
+        )
     legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
     if not legal_entity:
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+        raise NotFoundError(
+            VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+            "VAT.NOT_FOUND",
+        )
 
     selected_year = year or date.today().year
 
@@ -46,7 +52,8 @@ def get_period_options(
     start_months = range(1, 12, 2) if period_type == VatType.BIMONTHLY else range(1, 13)
     year_prefix = f"{selected_year}-"
     opened_periods = {
-        i.period for i in work_item_repo.list_by_client_record(client_record_id)
+        i.period
+        for i in work_item_repo.list_by_client_record(client_record_id)
         if i.period.startswith(year_prefix)
     }
     options = []

@@ -10,12 +10,17 @@ from app.clients.constants import (
     COMPANY_CORPORATION_ID_ERROR,
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
 )
-from app.clients.create_policy import normalize_vat_exempt_ceiling, normalize_vat_reporting_frequency
+from app.clients.create_policy import (
+    normalize_vat_exempt_ceiling,
+    normalize_vat_reporting_frequency,
+)
 from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.repositories.person_repository import PersonRepository
-from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
+from app.clients.services.client_onboarding_orchestrator import (
+    ClientOnboardingOrchestrator,
+)
 from app.clients.services.messages import (
     CLIENT_ID_NUMBER_DELETED,
     CLIENT_ID_NUMBER_EXISTS,
@@ -34,7 +39,7 @@ class ClientCreationService:
         self,
         full_name: str,
         id_number: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
@@ -53,22 +58,32 @@ class ClientCreationService:
     ) -> ClientRecord:
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
-        if entity_type == EntityType.COMPANY_LTD and id_number_type != IdNumberType.CORPORATION:
+        if (
+            entity_type == EntityType.COMPANY_LTD
+            and id_number_type != IdNumberType.CORPORATION
+        ):
             raise ValueError(COMPANY_CORPORATION_ID_ERROR)
 
-        effective_vat_reporting_frequency = normalize_vat_reporting_frequency(entity_type, vat_reporting_frequency)
+        effective_vat_reporting_frequency = normalize_vat_reporting_frequency(
+            entity_type, vat_reporting_frequency
+        )
         effective_vat_exempt_ceiling = normalize_vat_exempt_ceiling(entity_type)
 
         if self.record_repo.get_active_by_id_number(id_number):
-            raise ConflictError(CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT")
+            raise ConflictError(
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT"
+            )
         if self.record_repo.get_deleted_by_id_number(id_number):
             raise ConflictError(
-                CLIENT_ID_NUMBER_DELETED.format(id_number=id_number), "CLIENT.DELETED_EXISTS"
+                CLIENT_ID_NUMBER_DELETED.format(id_number=id_number),
+                "CLIENT.DELETED_EXISTS",
             )
 
         le_repo = LegalEntityRepository(self.db)
         if le_repo.get_by_id_number(id_number_type, id_number):
-            raise ConflictError(CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT")
+            raise ConflictError(
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT"
+            )
 
         legal_entity = le_repo.create(
             id_number=id_number,
@@ -101,7 +116,9 @@ class ClientCreationService:
                 created_by=actor_id,
             )
         except IntegrityError as exc:
-            raise ConflictError(CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT") from exc
+            raise ConflictError(
+                CLIENT_ID_NUMBER_EXISTS.format(id_number=id_number), "CLIENT.CONFLICT"
+            ) from exc
         ClientOnboardingOrchestrator(self.db).run(
             client_record.id,
             actor_id=actor_id,

@@ -12,7 +12,9 @@ from app.reports.constants import (
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 
-def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str, object]:
+def export_aging_report_to_excel(
+    report_data: dict, export_dir: str
+) -> Dict[str, object]:
     """
     Build an Excel file for the aging report.
     Returns download metadata.
@@ -21,7 +23,9 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
     except ImportError:
-        raise ImportError("הספרייה openpyxl נדרשת לצורך ייצוא לאקסל. יש להתקין באמצעות: pip install openpyxl")
+        raise ImportError(
+            "הספרייה openpyxl נדרשת לצורך ייצוא לאקסל. יש להתקין באמצעות: pip install openpyxl"
+        )
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -56,7 +60,13 @@ def export_aging_report_to_excel(report_data: dict, export_dir: str) -> Dict[str
         ws.cell(row=row, column=4, value=item["days_30"])
         ws.cell(row=row, column=5, value=item["days_60"])
         ws.cell(row=row, column=6, value=item["days_90_plus"])
-        ws.cell(row=row, column=7, value=str(item["oldest_invoice_date"]) if item["oldest_invoice_date"] else "")
+        ws.cell(
+            row=row,
+            column=7,
+            value=str(item["oldest_invoice_date"])
+            if item["oldest_invoice_date"]
+            else "",
+        )
         ws.cell(row=row, column=8, value=item["oldest_invoice_days"] or "")
         row += 1
 

@@ -32,7 +32,15 @@ Design notes:
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column, Date, DateTime, ForeignKey, Index, Integer, Numeric, String, text,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    text,
 )
 from app.utils.enum_utils import pg_enum
 from app.database import Base
@@ -42,20 +50,20 @@ from app.utils.time_utils import utcnow
 class AdvancePaymentStatus(str, PyEnum):
     """Lifecycle status of an advance payment."""
 
-    PENDING = "pending"   # Not yet paid
-    PAID    = "paid"      # Paid in full
-    PARTIAL = "partial"   # Paid partially
+    PENDING = "pending"  # Not yet paid
+    PAID = "paid"  # Paid in full
+    PARTIAL = "partial"  # Paid partially
 
 
 class PaymentMethod(str, PyEnum):
     """Supported payment methods for an advance payment."""
 
     BANK_TRANSFER = "bank_transfer"  # Bank transfer
-    CREDIT_CARD   = "credit_card"    # Credit card
-    CHECK         = "check"          # Check
-    DIRECT_DEBIT  = "direct_debit"   # Direct debit — very common for advance payments
-    CASH          = "cash"           # Cash — rare, exists at post office bank
-    OTHER         = "other"
+    CREDIT_CARD = "credit_card"  # Credit card
+    CHECK = "check"  # Check
+    DIRECT_DEBIT = "direct_debit"  # Direct debit — very common for advance payments
+    CASH = "cash"  # Cash — rare, exists at post office bank
+    OTHER = "other"
 
 
 class AdvancePayment(Base):
@@ -63,37 +71,51 @@ class AdvancePayment(Base):
 
     __tablename__ = "advance_payments"
 
-    id               = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    client_record_id = Column(
+        Integer, ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # ── Period ────────────────────────────────────────────────────────────────
-    period              = Column(String(7), nullable=False)       # "YYYY-MM" — first month in period
-    period_months_count = Column(Integer, nullable=False, default=1)  # 1=monthly, 2=bi-monthly
-    due_date            = Column(Date, nullable=False)            # Usually the 15th of the month after the period
-    due_date_original   = Column(Date, nullable=True)
-    due_date_effective  = Column(Date, nullable=True)
+    period = Column(String(7), nullable=False)  # "YYYY-MM" — first month in period
+    period_months_count = Column(
+        Integer, nullable=False, default=1
+    )  # 1=monthly, 2=bi-monthly
+    due_date = Column(
+        Date, nullable=False
+    )  # Usually the 15th of the month after the period
+    due_date_original = Column(Date, nullable=True)
+    due_date_effective = Column(Date, nullable=True)
     due_date_override_reason = Column(String(500), nullable=True)
 
     # ── Amounts ───────────────────────────────────────────────────────────────
     expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
-    paid_amount     = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+    paid_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
 
     # ── Status & payment ──────────────────────────────────────────────────────
-    status         = Column(pg_enum(AdvancePaymentStatus),
-                            default=AdvancePaymentStatus.PENDING, nullable=False)
-    paid_at        = Column(DateTime, nullable=True)
+    status = Column(
+        pg_enum(AdvancePaymentStatus),
+        default=AdvancePaymentStatus.PENDING,
+        nullable=False,
+    )
+    paid_at = Column(DateTime, nullable=True)
     payment_method = Column(pg_enum(PaymentMethod), nullable=True)
 
     # ── Turnover snapshot (saved when payment reaches paid status) ────────────
-    reported_turnover              = Column(Numeric(14, 2), nullable=True)
-    turnover_source_vat_work_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True)
+    reported_turnover = Column(Numeric(14, 2), nullable=True)
+    turnover_source_vat_work_item_id = Column(
+        Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True
+    )
 
     # ── Cross-domain links ────────────────────────────────────────────────────
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
+    annual_report_id = Column(
+        Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
+    )
     tax_calendar_entry_id = Column(
         Integer,
         ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
-        nullable=False, index=True,
+        nullable=False,
+        index=True,
     )
 
     # ── Notes ─────────────────────────────────────────────────────────────────
@@ -110,14 +132,15 @@ class AdvancePayment(Base):
     __table_args__ = (
         Index(
             "uq_advance_payment_client_record_period_active",
-            "client_record_id", "period",
+            "client_record_id",
+            "period",
             unique=True,
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("idx_advance_payment_client_record_period", "client_record_id", "period"),
-        Index("idx_advance_payment_status",               "status"),
-        Index("idx_advance_payment_due_date",             "due_date"),
+        Index("idx_advance_payment_status", "status"),
+        Index("idx_advance_payment_due_date", "due_date"),
     )
 
     def __repr__(self):

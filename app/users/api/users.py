@@ -19,7 +19,9 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED
+)
 def create_user(request: UserCreateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     return service.create_user(
@@ -50,7 +52,9 @@ def list_users(
         is_active=is_active,
         search=search,
     )
-    return UserManagementListResponse(items=items, page=page, page_size=page_size, total=total)
+    return UserManagementListResponse(
+        items=items, page=page, page_size=page_size, total=total
+    )
 
 
 @router.get("/{user_id}", response_model=UserManagementResponse)
@@ -60,7 +64,9 @@ def get_user(user_id: int, db: DBSession, user: CurrentUser):
 
 
 @router.patch("/{user_id}", response_model=UserManagementResponse)
-def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser):
+def update_user(
+    user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser
+):
     service = UserManagementService(db)
     update_data = request.model_dump(exclude_unset=True, exclude_none=True)
     return service.update_user(
@@ -92,7 +98,9 @@ def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
 
 
 @router.post("/{user_id}/reset-password", response_model=UserManagementResponse)
-def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser):
+def reset_password(
+    user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser
+):
     service = UserManagementService(db)
     return service.reset_password(
         actor_user_id=user.id,

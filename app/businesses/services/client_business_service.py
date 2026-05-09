@@ -5,8 +5,13 @@ from sqlalchemy.orm import Session
 from app.actions.action_contracts import get_business_actions
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.schemas.business_schemas import BusinessResponse, ClientBusinessesResponse
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.schemas.business_schemas import (
+    BusinessResponse,
+    ClientBusinessesResponse,
+)
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.businesses.services.business_service import BusinessService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
@@ -19,7 +24,9 @@ class ClientBusinessService:
         self.business_repo = BusinessRepository(db)
         self.client_repo = ClientRecordRepository(db)
 
-    def to_response(self, business: Business, user_role: UserRole, client_id: int | None = None) -> BusinessResponse:
+    def to_response(
+        self, business: Business, user_role: UserRole, client_id: int | None = None
+    ) -> BusinessResponse:
         response = BusinessResponse.model_validate(business)
         if client_id is not None:
             response.client_id = client_id
@@ -45,7 +52,10 @@ class ClientBusinessService:
         )
         return ClientBusinessesResponse(
             client_id=client_id,
-            items=[self.to_response(business, user_role, client_id=client_id) for business in items],
+            items=[
+                self.to_response(business, user_role, client_id=client_id)
+                for business in items
+            ],
             page=page,
             page_size=page_size,
             total=total,
@@ -56,7 +66,9 @@ class ClientBusinessService:
         self._assert_business_belongs_to_client(business, client_id)
         return business
 
-    def delete_for_client(self, client_id: int, business_id: int, actor_id: int) -> None:
+    def delete_for_client(
+        self, client_id: int, business_id: int, actor_id: int
+    ) -> None:
         self.get_for_client(client_id, business_id)
         self.business_service.delete_business(business_id, actor_id=actor_id)
 
@@ -78,7 +90,9 @@ class ClientBusinessService:
             actor_role=actor_role,
         )
 
-    def _assert_business_belongs_to_client(self, business: Business, client_id: int) -> None:
+    def _assert_business_belongs_to_client(
+        self, business: Business, client_id: int
+    ) -> None:
         client_record = self.client_repo.get_by_id(client_id)
         if not client_record:
             raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")

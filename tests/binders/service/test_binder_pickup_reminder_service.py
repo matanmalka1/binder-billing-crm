@@ -4,7 +4,9 @@ from types import SimpleNamespace
 import pytest
 
 from app.binders.models.binder import BinderStatus
-from app.binders.services.binder_pickup_reminder_service import BinderPickupReminderService
+from app.binders.services.binder_pickup_reminder_service import (
+    BinderPickupReminderService,
+)
 from app.core.exceptions import AppError, NotFoundError
 
 
@@ -20,13 +22,17 @@ def _service(monkeypatch, binder, last=None):
     )
     monkeypatch.setattr(
         "app.binders.services.binder_pickup_reminder_service.NotificationService",
-        lambda db: SimpleNamespace(notify_pickup_reminder=lambda **kwargs: sent.update(kwargs) or True),
+        lambda db: SimpleNamespace(
+            notify_pickup_reminder=lambda **kwargs: sent.update(kwargs) or True
+        ),
     )
     return BinderPickupReminderService(SimpleNamespace()), sent
 
 
 def test_send_pickup_reminder_sends_for_ready_binder(monkeypatch):
-    binder = SimpleNamespace(id=7, status=BinderStatus.READY_FOR_PICKUP, client_record_id=3)
+    binder = SimpleNamespace(
+        id=7, status=BinderStatus.READY_FOR_PICKUP, client_record_id=3
+    )
     service, sent = _service(monkeypatch, binder)
 
     service.send_pickup_reminder(binder_id=7, triggered_by=11)
@@ -46,7 +52,9 @@ def test_send_pickup_reminder_rejects_missing_binder(monkeypatch):
 
 
 def test_send_pickup_reminder_enforces_cooldown(monkeypatch):
-    binder = SimpleNamespace(id=8, status=BinderStatus.READY_FOR_PICKUP, client_record_id=4)
+    binder = SimpleNamespace(
+        id=8, status=BinderStatus.READY_FOR_PICKUP, client_record_id=4
+    )
     last = SimpleNamespace(created_at=datetime.now(timezone.utc) - timedelta(days=2))
     service, _ = _service(monkeypatch, binder, last=last)
 

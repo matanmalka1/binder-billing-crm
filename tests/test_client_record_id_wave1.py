@@ -7,6 +7,7 @@ Tests per entity (W1–W5):
   3. Fallback works when no ClientRecord exists
   4. Legacy rows become visible through the new read path after backfill
 """
+
 import pytest
 from datetime import date
 import sqlalchemy as sa
@@ -54,6 +55,7 @@ def db():
 
 def _make_client(db, id_number="C001", vat_type=None):
     from app.common.enums import VatType
+
     client = LegalEntity(
         official_name="Test Client",
         id_number=id_number,
@@ -86,21 +88,47 @@ def _make_user(db):
 
 
 def _apply_wave1_backfill(db):
-    db.execute(sa.text("UPDATE annual_reports SET client_record_id = client_id WHERE client_record_id IS NULL"))
-    db.execute(sa.text("UPDATE vat_work_items SET client_record_id = client_id WHERE client_record_id IS NULL"))
-    db.execute(sa.text("UPDATE binders SET client_record_id = client_id WHERE client_record_id IS NULL"))
-    db.execute(sa.text("UPDATE advance_payments SET client_record_id = client_id WHERE client_record_id IS NULL"))
-    db.execute(sa.text("UPDATE businesses SET legal_entity_id = client_id WHERE legal_entity_id IS NULL"))
+    db.execute(
+        sa.text(
+            "UPDATE annual_reports SET client_record_id = client_id WHERE client_record_id IS NULL"
+        )
+    )
+    db.execute(
+        sa.text(
+            "UPDATE vat_work_items SET client_record_id = client_id WHERE client_record_id IS NULL"
+        )
+    )
+    db.execute(
+        sa.text(
+            "UPDATE binders SET client_record_id = client_id WHERE client_record_id IS NULL"
+        )
+    )
+    db.execute(
+        sa.text(
+            "UPDATE advance_payments SET client_record_id = client_id WHERE client_record_id IS NULL"
+        )
+    )
+    db.execute(
+        sa.text(
+            "UPDATE businesses SET legal_entity_id = client_id WHERE legal_entity_id IS NULL"
+        )
+    )
     db.flush()
 
 
 # ── W1: AnnualReport ──────────────────────────────────────────────────────────
 
+
 class TestW1AnnualReport:
     def test_repo_list_by_client_record(self, db):
-        from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
+        from app.annual_reports.repositories.report_repository import (
+            AnnualReportReportRepository,
+        )
         from app.annual_reports.models.annual_report_enums import (
-            ClientAnnualFilingType, PrimaryAnnualReportForm, AnnualReportStatus, FilingDeadlineType,
+            ClientAnnualFilingType,
+            PrimaryAnnualReportForm,
+            AnnualReportStatus,
+            FilingDeadlineType,
         )
         from app.annual_reports.models.annual_report_model import AnnualReport
 
@@ -128,7 +156,9 @@ class TestW1AnnualReport:
         assert results[0].client_record_id == record.id
 
     def test_service_resolves_client_record_id_on_create(self, db):
-        from app.annual_reports.services.annual_report_service import AnnualReportService
+        from app.annual_reports.services.annual_report_service import (
+            AnnualReportService,
+        )
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
@@ -147,9 +177,12 @@ class TestW1AnnualReport:
 
 # ── W2: VatWorkItem ───────────────────────────────────────────────────────────
 
+
 class TestW2VatWorkItem:
     def test_repo_list_by_client_record(self, db):
-        from app.vat_reports.repositories.vat_work_item_query_repository import VatWorkItemQueryRepository
+        from app.vat_reports.repositories.vat_work_item_query_repository import (
+            VatWorkItemQueryRepository,
+        )
         from app.vat_reports.models.vat_work_item import VatWorkItem
         from app.vat_reports.models.vat_enums import VatWorkItemStatus
         from app.common.enums import VatType
@@ -177,12 +210,16 @@ class TestW2VatWorkItem:
 
     def test_service_sets_client_record_id_on_create(self, db):
         from app.vat_reports.services.intake import create_work_item
-        from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+        from app.vat_reports.repositories.vat_work_item_repository import (
+            VatWorkItemRepository,
+        )
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
         business = Business(
-            legal_entity_id=record.legal_entity_id, business_name="Biz", status=BusinessStatus.ACTIVE,
+            legal_entity_id=record.legal_entity_id,
+            business_name="Biz",
+            status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )
         db.add(business)
@@ -200,6 +237,7 @@ class TestW2VatWorkItem:
 
 
 # ── W4: Binder ────────────────────────────────────────────────────────────────
+
 
 class TestW4Binder:
     def test_repo_list_by_client_record(self, db):
@@ -234,7 +272,9 @@ class TestW4Binder:
         user = _make_user(db)
 
         business = Business(
-            legal_entity_id=record.legal_entity_id, business_name="B", status=BusinessStatus.ACTIVE,
+            legal_entity_id=record.legal_entity_id,
+            business_name="B",
+            status=BusinessStatus.ACTIVE,
             opened_at=date.today(),
         )
         db.add(business)
@@ -251,14 +291,22 @@ class TestW4Binder:
 
 # ── W5: AdvancePayment ────────────────────────────────────────────────────────
 
+
 class TestW5AdvancePayment:
     def test_repo_list_by_client_record_year(self, db):
-        from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-        from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+        from app.advance_payments.repositories.advance_payment_repository import (
+            AdvancePaymentRepository,
+        )
+        from app.advance_payments.models.advance_payment import (
+            AdvancePayment,
+            AdvancePaymentStatus,
+        )
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
-        entry = create_tax_calendar_entry_for_period(db, "advance_payment", "2024-01", 1)
+        entry = create_tax_calendar_entry_for_period(
+            db, "advance_payment", "2024-01", 1
+        )
 
         payment = AdvancePayment(
             client_record_id=record.id,
@@ -278,7 +326,9 @@ class TestW5AdvancePayment:
         assert items[0].client_record_id == record.id
 
     def test_service_sets_client_record_id_on_create(self, db):
-        from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+        from app.advance_payments.services.advance_payment_service import (
+            AdvancePaymentService,
+        )
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)

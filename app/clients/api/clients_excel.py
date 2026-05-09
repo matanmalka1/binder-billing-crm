@@ -1,11 +1,22 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.constants import EXCEL_MEDIA_TYPE, MAX_CLIENT_IMPORT_UPLOAD_SIZE
 from app.clients.schemas.client import ClientImportResponse
-from app.clients.services.client_excel_service import ClientExcelImportError, ClientExcelService
+from app.clients.services.client_excel_service import (
+    ClientExcelImportError,
+    ClientExcelService,
+)
 from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.client_service import ClientService
 
@@ -16,6 +27,7 @@ router = APIRouter(
     tags=["clients"],
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
+
 
 @router.get("/export")
 def export_clients(db: DBSession):

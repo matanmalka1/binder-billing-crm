@@ -33,11 +33,11 @@ from app.utils.time_utils import utcnow_aware
 
 
 class CorrespondenceType(str, PyEnum):
-    CALL    = "call"     # שיחת טלפון
-    LETTER  = "letter"   # מכתב / דואר רשום
-    EMAIL   = "email"    # דואר אלקטרוני
+    CALL = "call"  # שיחת טלפון
+    LETTER = "letter"  # מכתב / דואר רשום
+    EMAIL = "email"  # דואר אלקטרוני
     MEETING = "meeting"  # פגישה פיזית או זום
-    FAX     = "fax"      # פקס (תקשורת חוקית עם רשויות מס)
+    FAX = "fax"  # פקס (תקשורת חוקית עם רשויות מס)
 
 
 class Correspondence(Base):
@@ -76,14 +76,18 @@ class Correspondence(Base):
 
     # ── Soft delete ───────────────────────────────────────────────────────────
     deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    deleted_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    deleted_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    contact = relationship("AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True)
+    contact = relationship(
+        "AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True
+    )
 
     __table_args__ = (
         Index("idx_correspondence_business_occurred", "business_id", "occurred_at"),
-        Index("idx_correspondence_occurred",          "occurred_at"),
+        Index("idx_correspondence_occurred", "occurred_at"),
     )
 
     def __repr__(self) -> str:

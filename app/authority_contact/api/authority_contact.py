@@ -11,7 +11,9 @@ from app.authority_contact.schemas.authority_contact import (
     AuthorityContactResponse,
     AuthorityContactUpdateRequest,
 )
-from app.authority_contact.services.authority_contact_service import AuthorityContactService
+from app.authority_contact.services.authority_contact_service import (
+    AuthorityContactService,
+)
 
 router = APIRouter(
     prefix="/clients",
@@ -50,7 +52,10 @@ def create_authority_contact(
     return _to_contact_response(contact)
 
 
-@router.get("/{client_record_id}/authority-contacts", response_model=AuthorityContactListResponse)
+@router.get(
+    "/{client_record_id}/authority-contacts",
+    response_model=AuthorityContactListResponse,
+)
 def list_authority_contacts(
     client_record_id: int,
     db: DBSession,

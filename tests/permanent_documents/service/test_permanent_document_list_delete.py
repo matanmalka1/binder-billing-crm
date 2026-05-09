@@ -1,10 +1,12 @@
-
 import pytest
 
 from app.businesses.models.business import Business
 from app.common.enums import IdNumberType
 from app.core.exceptions import NotFoundError
-from app.permanent_documents.models.permanent_document import DocumentScope, DocumentType
+from app.permanent_documents.models.permanent_document import (
+    DocumentScope,
+    DocumentType,
+)
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
 )

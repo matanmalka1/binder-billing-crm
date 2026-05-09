@@ -6,7 +6,9 @@ import openpyxl
 import pytest
 
 from app.common.enums import VatType
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.services.vat_client_summary_service import get_client_summary
@@ -62,10 +64,14 @@ def _seed_work_items(db, client_record_id: int, created_by: int):
     return items
 
 
-def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_headers, vat_client, test_user):
+def test_vat_client_summary_returns_periods_and_annual(
+    client, test_db, advisor_headers, vat_client, test_user
+):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
-    resp = client.get(f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers)
+    resp = client.get(
+        f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers
+    )
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["client_record_id"] == vat_client.id
@@ -79,7 +85,9 @@ def test_vat_client_summary_returns_periods_and_annual(client, test_db, advisor_
     assert payload["annual"][0]["filed_count"] == 1
 
 
-def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_client, test_user):
+def test_vat_client_work_items_endpoint(
+    client, test_db, advisor_headers, vat_client, test_user
+):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
@@ -96,7 +104,9 @@ def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_cl
     assert payload["items"][1]["filed_by_name"] == test_user.full_name
 
 
-def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, test_user):
+def test_vat_client_export_excel(
+    client, test_db, advisor_headers, vat_client, test_user
+):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
@@ -113,7 +123,9 @@ def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, t
     assert sheet["A4"].value == "2026-02"
 
 
-def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers, vat_client, monkeypatch):
+def test_vat_client_export_pdf_service_error_returns_500(
+    client, advisor_headers, vat_client, monkeypatch
+):
     monkeypatch.setattr(
         "app.vat_reports.api.routes_client_summary.export",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("fail")),
@@ -126,10 +138,14 @@ def test_vat_client_export_pdf_service_error_returns_500(client, advisor_headers
         )
 
 
-def test_vat_client_export_import_error_returns_detail(client, advisor_headers, vat_client, monkeypatch):
+def test_vat_client_export_import_error_returns_detail(
+    client, advisor_headers, vat_client, monkeypatch
+):
     monkeypatch.setattr(
         "app.vat_reports.api.routes_client_summary.export",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("openpyxl missing")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ImportError("openpyxl missing")
+        ),
     )
 
     with pytest.raises(ImportError, match="openpyxl missing"):

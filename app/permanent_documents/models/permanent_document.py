@@ -22,8 +22,15 @@ Design decisions:
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    BigInteger, Boolean, Column, DateTime, ForeignKey,
-    Index, Integer, SmallInteger, String,
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import CheckConstraint
@@ -34,27 +41,27 @@ from app.utils.time_utils import utcnow
 
 
 class DocumentType(str, PyEnum):
-    ID_COPY                  = "id_copy"                   # צילום ת.ז.
-    POWER_OF_ATTORNEY        = "power_of_attorney"          # ייפוי כוח
-    ENGAGEMENT_AGREEMENT     = "engagement_agreement"       # הסכם התקשרות
-    TAX_FORM                 = "tax_form"                   # טופס מס
-    RECEIPT                  = "receipt"                    # קבלה
-    INVOICE_DOC              = "invoice_doc"                # חשבונית
-    BANK_APPROVAL            = "bank_approval"              # אישור בנקאי
-    WITHHOLDING_CERTIFICATE  = "withholding_certificate"    # אישור ניכוי מס במקור
-    NII_APPROVAL             = "nii_approval"               # אישור ביטוח לאומי
-    OTHER                    = "other"
+    ID_COPY = "id_copy"  # צילום ת.ז.
+    POWER_OF_ATTORNEY = "power_of_attorney"  # ייפוי כוח
+    ENGAGEMENT_AGREEMENT = "engagement_agreement"  # הסכם התקשרות
+    TAX_FORM = "tax_form"  # טופס מס
+    RECEIPT = "receipt"  # קבלה
+    INVOICE_DOC = "invoice_doc"  # חשבונית
+    BANK_APPROVAL = "bank_approval"  # אישור בנקאי
+    WITHHOLDING_CERTIFICATE = "withholding_certificate"  # אישור ניכוי מס במקור
+    NII_APPROVAL = "nii_approval"  # אישור ביטוח לאומי
+    OTHER = "other"
 
 
 class DocumentStatus(str, PyEnum):
-    PENDING  = "pending"   # הועלה, ממתין לבדיקה
+    PENDING = "pending"  # הועלה, ממתין לבדיקה
     RECEIVED = "received"  # התקבל פיזית
     APPROVED = "approved"  # אושר
     REJECTED = "rejected"  # נדחה — יש להעלות מחדש
 
 
 class DocumentScope(str, PyEnum):
-    CLIENT   = "client"    # מסמך זהות — שייך לאדם
+    CLIENT = "client"  # מסמך זהות — שייך לאדם
     BUSINESS = "business"  # מסמך עסקי — שייך לעסק
 
 
@@ -72,41 +79,48 @@ class PermanentDocument(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # ── Ownership ─────────────────────────────────────────────────────────────
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
-    business_id      = Column(Integer, ForeignKey("businesses.id"),     nullable=True,  index=True)
-    scope       = Column(pg_enum(DocumentScope), nullable=False)
+    client_record_id = Column(
+        Integer, ForeignKey("client_records.id"), nullable=False, index=True
+    )
+    business_id = Column(
+        Integer, ForeignKey("businesses.id"), nullable=True, index=True
+    )
+    scope = Column(pg_enum(DocumentScope), nullable=False)
 
     # ── Document identity ─────────────────────────────────────────────────────
-    document_type     = Column(pg_enum(DocumentType), nullable=False)
-    storage_key       = Column(String,     nullable=False)   # מפתח ב-S3/R2
-    original_filename = Column(String,     nullable=True)
-    file_size_bytes   = Column(BigInteger, nullable=True)
-    mime_type         = Column(String,     nullable=True)
-    tax_year          = Column(SmallInteger, nullable=True, index=True)
+    document_type = Column(pg_enum(DocumentType), nullable=False)
+    storage_key = Column(String, nullable=False)  # מפתח ב-S3/R2
+    original_filename = Column(String, nullable=True)
+    file_size_bytes = Column(BigInteger, nullable=True)
+    mime_type = Column(String, nullable=True)
+    tax_year = Column(SmallInteger, nullable=True, index=True)
 
     # ── Status ────────────────────────────────────────────────────────────────
-    is_present = Column(Boolean, default=True,  nullable=False)
+    is_present = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    status     = Column(pg_enum(DocumentStatus),
-                        default=DocumentStatus.PENDING, nullable=False)
+    status = Column(
+        pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False
+    )
 
     # ── Versioning ────────────────────────────────────────────────────────────
-    version      = Column(Integer, default=1, nullable=False, server_default="1")
+    version = Column(Integer, default=1, nullable=False, server_default="1")
     superseded_by = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
     superseded_by_doc = relationship(
-        "PermanentDocument", foreign_keys="[PermanentDocument.superseded_by]",
-        remote_side="PermanentDocument.id", uselist=False,
+        "PermanentDocument",
+        foreign_keys="[PermanentDocument.superseded_by]",
+        remote_side="PermanentDocument.id",
+        uselist=False,
     )
 
     # ── Cross-domain link ─────────────────────────────────────────────────────
     annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    uploaded_by = Column(Integer,  ForeignKey("users.id"), nullable=False)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     uploaded_at = Column(DateTime, default=utcnow, nullable=False)
-    approved_by = Column(Integer,  ForeignKey("users.id"), nullable=True)
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
-    rejected_by = Column(Integer,  ForeignKey("users.id"), nullable=True)  # מי דחה
+    rejected_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # מי דחה
     rejected_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
@@ -114,10 +128,18 @@ class PermanentDocument(Base):
             "(scope = 'client') OR (scope = 'business' AND business_id IS NOT NULL)",
             name="ck_document_business_scope_requires_business_id",
         ),
-        Index("ix_permanent_documents_client_record_type_year",
-              "client_record_id", "document_type", "tax_year"),
-        Index("ix_permanent_documents_business",
-              "business_id", "document_type", "tax_year"),
+        Index(
+            "ix_permanent_documents_client_record_type_year",
+            "client_record_id",
+            "document_type",
+            "tax_year",
+        ),
+        Index(
+            "ix_permanent_documents_business",
+            "business_id",
+            "document_type",
+            "tax_year",
+        ),
     )
 
     def __repr__(self):

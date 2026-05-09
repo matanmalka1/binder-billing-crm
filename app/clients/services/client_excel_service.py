@@ -38,10 +38,16 @@ class ClientExcelService:
         wb, ws = self._create_workbook_with_columns(CLIENT_EXPORT_COLUMNS)
         for row_index, client in enumerate(clients, start=2):
             for col_index, (attr, _) in enumerate(CLIENT_EXPORT_COLUMNS, start=1):
-                ws.cell(row=row_index, column=col_index, value=self._value_from_client(client, attr))
+                ws.cell(
+                    row=row_index,
+                    column=col_index,
+                    value=self._value_from_client(client, attr),
+                )
 
         adjust_column_widths(ws)
-        return save_workbook_to_temp(wb, prefix="clients_export", export_dir=self.export_dir)
+        return save_workbook_to_temp(
+            wb, prefix="clients_export", export_dir=self.export_dir
+        )
 
     def generate_template(self) -> dict:
         """Create a client import template that includes helper headers."""
@@ -50,14 +56,18 @@ class ClientExcelService:
             ws.cell(row=2, column=col_index, value=value)
 
         adjust_column_widths(ws)
-        return save_workbook_to_temp(wb, prefix="clients_template", export_dir=self.export_dir)
+        return save_workbook_to_temp(
+            wb, prefix="clients_template", export_dir=self.export_dir
+        )
 
     def _create_workbook_with_columns(self, columns: list[tuple[str, str]]):
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Alignment, Font
         except ImportError as exc:
-            raise ImportError("הספרייה openpyxl נדרשת לצורך ייצוא לקוחות לאקסל") from exc
+            raise ImportError(
+                "הספרייה openpyxl נדרשת לצורך ייצוא לקוחות לאקסל"
+            ) from exc
 
         wb = Workbook()
         ws = wb.active
@@ -83,7 +93,9 @@ class ClientExcelService:
         created = 0
         errors: list[dict] = []
 
-        for row_index, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
+        for row_index, row in enumerate(
+            worksheet.iter_rows(min_row=2, values_only=True), start=2
+        ):
             if not any(cell is not None and str(cell).strip() for cell in row):
                 continue
 
@@ -93,7 +105,12 @@ class ClientExcelService:
             id_number = values["id_number"]
 
             if not (full_name and business_name and id_number):
-                errors.append({"row": row_index, "error": "שם מלא, שם עסק ומספר מזהה הם שדות חובה"})
+                errors.append(
+                    {
+                        "row": row_index,
+                        "error": "שם מלא, שם עסק ומספר מזהה הם שדות חובה",
+                    }
+                )
                 continue
 
             savepoint = self.db.begin_nested()

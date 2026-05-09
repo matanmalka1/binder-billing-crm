@@ -39,7 +39,9 @@ class UserRepository(BaseRepository):
         )
         return self._paginate(query.order_by(User.id.asc()), page, page_size)
 
-    def count(self, is_active: Optional[bool] = None, search: Optional[str] = None) -> int:
+    def count(
+        self, is_active: Optional[bool] = None, search: Optional[str] = None
+    ) -> int:
         """Count users."""
         query = self._apply_list_filters(
             self.db.query(User),
@@ -130,7 +132,9 @@ class UserRepository(BaseRepository):
         self.db.flush()
         return user
 
-    def set_password_and_bump_token(self, user_id: int, password_hash: str) -> Optional[User]:
+    def set_password_and_bump_token(
+        self, user_id: int, password_hash: str
+    ) -> Optional[User]:
         """Update password hash and invalidate active tokens."""
         user = self.get_by_id(user_id)
         if not user:

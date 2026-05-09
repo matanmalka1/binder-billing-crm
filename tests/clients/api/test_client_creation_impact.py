@@ -48,16 +48,26 @@ def test_preview_impact_matches_actual_future_generation(test_db):
         actor_id=1,
         reference_date=reference_date,
     )
-    vat_work_items_count = test_db.query(VatWorkItem).filter(
-        VatWorkItem.client_record_id == client_record.id
-    ).count()
-    advance_payments_count = test_db.query(AdvancePayment).filter(
-        AdvancePayment.client_record_id == client_record.id
-    ).count()
-    reports_count = test_db.query(AnnualReport).filter(
-        AnnualReport.client_record_id == client_record.id
-    ).count()
-    binders_count = test_db.query(Binder).filter(Binder.client_record_id == client_record.id).count()
+    vat_work_items_count = (
+        test_db.query(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == client_record.id)
+        .count()
+    )
+    advance_payments_count = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
+        .count()
+    )
+    reports_count = (
+        test_db.query(AnnualReport)
+        .filter(AnnualReport.client_record_id == client_record.id)
+        .count()
+    )
+    binders_count = (
+        test_db.query(Binder)
+        .filter(Binder.client_record_id == client_record.id)
+        .count()
+    )
 
     assert binders_count == 1
     assert vat_work_items_count == counts.get('תיקי מע"מ', 0)

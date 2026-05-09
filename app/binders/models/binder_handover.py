@@ -11,10 +11,13 @@ class BinderHandover(Base):
     Records who received the binders on the client side, when, and up to which
     reporting-period cutoff the binders were returned.
     """
+
     __tablename__ = "binder_handovers"
 
-    id               = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    client_record_id = Column(
+        Integer, ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # Name of the person who physically received the binders on the client side.
     received_by_name = Column(String, nullable=False)
@@ -40,16 +43,21 @@ class BinderHandover(Base):
 
 class BinderHandoverBinder(Base):
     """Association between a handover event and the specific binders returned in it."""
+
     __tablename__ = "binder_handover_binders"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     handover_id = Column(
-        Integer, ForeignKey("binder_handovers.id", ondelete="CASCADE"),
-        nullable=False, index=True,
+        Integer,
+        ForeignKey("binder_handovers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     binder_id = Column(
-        Integer, ForeignKey("binders.id"),
-        nullable=False, index=True,
+        Integer,
+        ForeignKey("binders.id"),
+        nullable=False,
+        index=True,
     )
 
     __table_args__ = (

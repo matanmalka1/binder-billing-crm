@@ -22,7 +22,16 @@ Compatibility matrix (obligation_type → allowed rule_type):
 import re
 
 from sqlalchemy import (
-    CheckConstraint, Column, Date, DateTime, ForeignKey, Index, Integer, String, event, text,
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    event,
+    text,
 )
 from sqlalchemy.orm import validates
 
@@ -37,7 +46,8 @@ _PERIOD_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 _RULE_COMPATIBILITY: dict[ObligationType, set[DeadlineRuleType]] = {
     ObligationType.VAT: {DeadlineRuleType.VAT_MONTHLY, DeadlineRuleType.VAT_BIMONTHLY},
     ObligationType.ADVANCE_PAYMENT: {
-        DeadlineRuleType.ADVANCE_MONTHLY, DeadlineRuleType.ADVANCE_BIMONTHLY,
+        DeadlineRuleType.ADVANCE_MONTHLY,
+        DeadlineRuleType.ADVANCE_BIMONTHLY,
     },
     ObligationType.ANNUAL_REPORT: {DeadlineRuleType.ANNUAL_REPORT},
 }
@@ -62,16 +72,17 @@ class TaxCalendarEntry(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    obligation_type     = Column(pg_enum(ObligationType), nullable=False, index=True)
-    period              = Column(String(7), nullable=True)
+    obligation_type = Column(pg_enum(ObligationType), nullable=False, index=True)
+    period = Column(String(7), nullable=True)
     period_months_count = Column(Integer, nullable=True)
-    tax_year            = Column(Integer, nullable=False)
-    due_date            = Column(Date, nullable=False, index=True)
+    tax_year = Column(Integer, nullable=False)
+    due_date = Column(Date, nullable=False, index=True)
 
     deadline_rule_id = Column(
         Integer,
         ForeignKey("deadline_rules.id", ondelete="RESTRICT"),
-        nullable=False, index=True,
+        nullable=False,
+        index=True,
     )
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
@@ -91,14 +102,17 @@ class TaxCalendarEntry(Base):
         ),
         Index(
             "uq_tax_calendar_entry_periodic",
-            "obligation_type", "period", "period_months_count",
+            "obligation_type",
+            "period",
+            "period_months_count",
             unique=True,
             postgresql_where=text("obligation_type <> 'annual_report'"),
             sqlite_where=text("obligation_type <> 'annual_report'"),
         ),
         Index(
             "uq_tax_calendar_entry_annual",
-            "obligation_type", "tax_year",
+            "obligation_type",
+            "tax_year",
             unique=True,
             postgresql_where=text("obligation_type = 'annual_report'"),
             sqlite_where=text("obligation_type = 'annual_report'"),
@@ -116,9 +130,7 @@ class TaxCalendarEntry(Base):
     @validates("period_months_count")
     def _validate_months_count(self, _key, value):
         if value is not None and value not in (1, 2):
-            raise ValueError(
-                f"period_months_count must be 1 or 2, got {value}."
-            )
+            raise ValueError(f"period_months_count must be 1 or 2, got {value}.")
         return value
 
     def __repr__(self) -> str:
@@ -152,7 +164,9 @@ def _validate_consistency(entry: "TaxCalendarEntry", db_session=None) -> None:
         if period is not None:
             raise ValueError("ANNUAL_REPORT entries must have period=NULL.")
         if months_count is not None:
-            raise ValueError("ANNUAL_REPORT entries must have period_months_count=NULL.")
+            raise ValueError(
+                "ANNUAL_REPORT entries must have period_months_count=NULL."
+            )
     else:
         if period is None:
             raise ValueError(f"{obligation.value} entries require a period.")
@@ -193,6 +207,7 @@ def _validate_consistency(entry: "TaxCalendarEntry", db_session=None) -> None:
 @event.listens_for(TaxCalendarEntry, "before_insert")
 def _before_insert(_mapper, connection, target):
     from sqlalchemy.orm import Session
+
     session = Session.object_session(target)
     _validate_consistency(target, db_session=session)
 
@@ -200,5 +215,6 @@ def _before_insert(_mapper, connection, target):
 @event.listens_for(TaxCalendarEntry, "before_update")
 def _before_update(_mapper, connection, target):
     from sqlalchemy.orm import Session
+
     session = Session.object_session(target)
     _validate_consistency(target, db_session=session)

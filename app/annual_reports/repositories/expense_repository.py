@@ -27,7 +27,11 @@ class AnnualReportExpenseRepository:
         external_document_reference: Optional[str] = None,
         supporting_document_id: Optional[int] = None,
     ) -> AnnualReportExpenseLine:
-        rate = recognition_rate if recognition_rate is not None else default_recognition_rate(category)
+        rate = (
+            recognition_rate
+            if recognition_rate is not None
+            else default_recognition_rate(category)
+        )
         line = AnnualReportExpenseLine(
             annual_report_id=annual_report_id,
             category=category,
@@ -89,7 +93,10 @@ class AnnualReportExpenseRepository:
         """Sum of amount × recognition_rate across all expense lines."""
         lines = self.list_by_report(annual_report_id)
         return sum(
-            (Decimal(str(line.amount)) * Decimal(str(line.recognition_rate)) for line in lines),
+            (
+                Decimal(str(line.amount)) * Decimal(str(line.recognition_rate))
+                for line in lines
+            ),
             Decimal("0"),
         )
 

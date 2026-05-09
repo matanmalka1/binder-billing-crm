@@ -27,22 +27,41 @@ def build_context_map(
     record_by_id = {record.id: record for record in client_records}
     legal_entity_ids = list({record.legal_entity_id for record in client_records})
     legal_entity_by_id = (
-        {entity.id: entity for entity in db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()}
-        if legal_entity_ids else {}
+        {
+            entity.id: entity
+            for entity in db.query(LegalEntity)
+            .filter(LegalEntity.id.in_(legal_entity_ids))
+            .all()
+        }
+        if legal_entity_ids
+        else {}
     )
-    businesses = {b.id: b for b in business_repo.list_by_ids(business_ids)} if business_ids else {}
-    return {r.id: _build_context(r, record_by_id, legal_entity_by_id, businesses) for r in items}
+    businesses = (
+        {b.id: b for b in business_repo.list_by_ids(business_ids)}
+        if business_ids
+        else {}
+    )
+    return {
+        r.id: _build_context(r, record_by_id, legal_entity_by_id, businesses)
+        for r in items
+    }
 
 
 def _build_context(r, record_by_id, legal_entity_by_id, businesses):
     client_record = record_by_id.get(r.client_record_id)
-    legal_entity = legal_entity_by_id.get(client_record.legal_entity_id) if client_record else None
+    legal_entity = (
+        legal_entity_by_id.get(client_record.legal_entity_id) if client_record else None
+    )
     business = businesses.get(r.business_id) if r.business_id else None
     return ReminderContext(
         client_record_id=r.client_record_id,
-        client_name=legal_entity.official_name if legal_entity else f"לקוח #{r.client_record_id}",
+        client_name=legal_entity.official_name
+        if legal_entity
+        else f"לקוח #{r.client_record_id}",
         client_id_number=legal_entity.id_number if legal_entity else None,
-        office_client_number=client_record.office_client_number if client_record else None,
+        office_client_number=client_record.office_client_number
+        if client_record
+        else None,
         business_id=r.business_id,
         business_name=business.business_name if business else None,
         display_label=None,

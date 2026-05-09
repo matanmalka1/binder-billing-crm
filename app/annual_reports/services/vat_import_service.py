@@ -12,9 +12,15 @@ from sqlalchemy.orm import Session
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
-from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
-from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
-from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
+from app.annual_reports.repositories.income_repository import (
+    AnnualReportIncomeRepository,
+)
+from app.annual_reports.repositories.expense_repository import (
+    AnnualReportExpenseRepository,
+)
+from app.annual_reports.repositories.report_repository import (
+    AnnualReportReportRepository,
+)
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.repositories.vat_invoice_aggregation_repository import (
     VatInvoiceAggregationRepository,
@@ -81,7 +87,10 @@ class VatImportService:
         """
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
+                "ANNUAL_REPORT.NOT_FOUND",
+            )
 
         if report.status not in _ALLOWED_STATUSES:
             raise AppError(
@@ -107,7 +116,9 @@ class VatImportService:
                 self.expense_repo.delete(line.id)
                 lines_deleted += 1
 
-        income_total = self.vat_agg_repo.sum_income_net_by_client_year(report.client_record_id, report.tax_year)
+        income_total = self.vat_agg_repo.sum_income_net_by_client_year(
+            report.client_record_id, report.tax_year
+        )
         expense_by_vat_cat = self.vat_agg_repo.sum_expense_net_by_client_year_grouped(
             report.client_record_id, report.tax_year
         )
@@ -126,7 +137,9 @@ class VatImportService:
         merged: dict[ExpenseCategoryType, Decimal] = {}
         for vat_cat, amount in expense_by_vat_cat.items():
             annual_cat = _VAT_TO_ANNUAL.get(vat_cat, ExpenseCategoryType.OTHER)
-            merged[annual_cat] = merged.get(annual_cat, Decimal("0")) + Decimal(str(amount))
+            merged[annual_cat] = merged.get(annual_cat, Decimal("0")) + Decimal(
+                str(amount)
+            )
 
         expense_lines_created = 0
         expense_total = Decimal("0")

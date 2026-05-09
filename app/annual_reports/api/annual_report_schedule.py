@@ -18,15 +18,24 @@ router = APIRouter(
 )
 
 
-@router.post("/{report_id}/schedules", response_model=ScheduleEntryResponse, status_code=201, dependencies=[Depends(require_role(UserRole.ADVISOR))])
-def add_schedule(report_id: int, body: ScheduleAddRequest, db: DBSession, user: CurrentUser):
+@router.post(
+    "/{report_id}/schedules",
+    response_model=ScheduleEntryResponse,
+    status_code=201,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def add_schedule(
+    report_id: int, body: ScheduleAddRequest, db: DBSession, user: CurrentUser
+):
     """Manually add a schedule to a report (auto-generated ones are created at report creation)."""
     service = AnnualReportService(db)
     entry = service.add_schedule(report_id, body.schedule, notes=body.notes)
     return ScheduleEntryResponse.model_validate(entry)
 
 
-@router.get("/{report_id}/schedules", response_model=PaginatedResponse[ScheduleEntryResponse])
+@router.get(
+    "/{report_id}/schedules", response_model=PaginatedResponse[ScheduleEntryResponse]
+)
 def list_schedules(
     report_id: int,
     db: DBSession,
@@ -39,12 +48,21 @@ def list_schedules(
     all_schedules = service.get_schedules(report_id)
     total = len(all_schedules)
     start = (page - 1) * page_size
-    items = [ScheduleEntryResponse.model_validate(e) for e in all_schedules[start:start + page_size]]
+    items = [
+        ScheduleEntryResponse.model_validate(e)
+        for e in all_schedules[start : start + page_size]
+    ]
     return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
-@router.post("/{report_id}/schedules/complete", response_model=ScheduleEntryResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
-def complete_schedule(report_id: int, body: ScheduleCompleteRequest, db: DBSession, user: CurrentUser):
+@router.post(
+    "/{report_id}/schedules/complete",
+    response_model=ScheduleEntryResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def complete_schedule(
+    report_id: int, body: ScheduleCompleteRequest, db: DBSession, user: CurrentUser
+):
     """Mark a specific schedule as complete."""
     service = AnnualReportService(db)
     entry = service.complete_schedule(report_id, body.schedule)

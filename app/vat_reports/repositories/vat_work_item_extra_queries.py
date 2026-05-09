@@ -6,10 +6,16 @@ from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
-_FILED_STATUSES = {VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED, VatWorkItemStatus.ARCHIVED}
+_FILED_STATUSES = {
+    VatWorkItemStatus.FILED,
+    VatWorkItemStatus.CANCELED,
+    VatWorkItemStatus.ARCHIVED,
+}
 
 
-def sum_net_vat_by_client_record_year(db, client_record_id: int, tax_year: int) -> Optional[float]:
+def sum_net_vat_by_client_record_year(
+    db, client_record_id: int, tax_year: int
+) -> Optional[float]:
     row = (
         db.query(sa_func.sum(VatWorkItem.net_vat).label("total_vat"))
         .filter(
@@ -51,12 +57,18 @@ def list_open_up_to_period(db, up_to_period: str, limit: int = 50) -> list[VatWo
     )
 
 
-def list_by_business_activity(db, business_activity_id: int, limit: int = 200) -> list[VatWorkItem]:
+def list_by_business_activity(
+    db, business_activity_id: int, limit: int = 200
+) -> list[VatWorkItem]:
     from app.vat_reports.models.vat_invoice import VatInvoice
+
     return (
         db.query(VatWorkItem)
         .join(VatInvoice, VatInvoice.work_item_id == VatWorkItem.id)
-        .filter(VatInvoice.business_activity_id == business_activity_id, VatWorkItem.deleted_at.is_(None))
+        .filter(
+            VatInvoice.business_activity_id == business_activity_id,
+            VatWorkItem.deleted_at.is_(None),
+        )
         .distinct()
         .order_by(VatWorkItem.period.desc())
         .limit(limit)

@@ -3,7 +3,9 @@ from itertools import count
 
 from app.businesses.models.business import Business
 from app.correspondence.models.correspondence import CorrespondenceType
-from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
+from app.correspondence.repositories.correspondence_repository import (
+    CorrespondenceRepository,
+)
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from tests.helpers.identity import seed_client_with_business

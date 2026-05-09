@@ -4,7 +4,15 @@ from fastapi import APIRouter, Body, Depends, Header, Query, Response, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.charge.schemas.charge import BulkChargeActionRequest, BulkChargeActionResponse, ChargeCancelRequest, ChargeCreateRequest, ChargeListResponse, ChargeResponse, ChargeResponseSecretary
+from app.charge.schemas.charge import (
+    BulkChargeActionRequest,
+    BulkChargeActionResponse,
+    ChargeCancelRequest,
+    ChargeCreateRequest,
+    ChargeListResponse,
+    ChargeResponse,
+    ChargeResponseSecretary,
+)
 from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
 from app.charge.services.charge_query_service import ChargeQueryService
@@ -68,9 +76,16 @@ def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
     response_model=ChargeResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def cancel_charge(charge_id: int, db: DBSession, user: CurrentUser, request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest)):
+def cancel_charge(
+    charge_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest),
+):
     """Cancel a charge (ADVISOR only)."""
-    charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
+    charge = BillingService(db).cancel_charge(
+        charge_id, actor_id=user.id, reason=request.reason
+    )
     return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
@@ -99,6 +114,7 @@ def list_charges(
         page=page,
         page_size=page_size,
     )
+
 
 @router.get(
     "/{charge_id}",

@@ -40,9 +40,24 @@ def test_list_client_binders_returns_only_requested_client_binders(test_db):
     client_b = _client(test_db)
 
     binder_repo = BinderRepository(test_db)
-    b1 = Binder(client_record_id=client_a.id, binder_number="TL-B-001", period_start=date.today(), created_by=user.id)
-    b2 = Binder(client_record_id=client_a.id, binder_number="TL-B-002", period_start=date.today(), created_by=user.id)
-    b3 = Binder(client_record_id=client_b.id, binder_number="TL-B-003", period_start=date.today(), created_by=user.id)
+    b1 = Binder(
+        client_record_id=client_a.id,
+        binder_number="TL-B-001",
+        period_start=date.today(),
+        created_by=user.id,
+    )
+    b2 = Binder(
+        client_record_id=client_a.id,
+        binder_number="TL-B-002",
+        period_start=date.today(),
+        created_by=user.id,
+    )
+    b3 = Binder(
+        client_record_id=client_b.id,
+        binder_number="TL-B-003",
+        period_start=date.today(),
+        created_by=user.id,
+    )
     test_db.add_all([b1, b2, b3])
     test_db.commit()
 

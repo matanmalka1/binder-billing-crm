@@ -44,7 +44,9 @@ def test_create_client_success(test_db):
     assert cr.created_by == 3
 
 
-def test_create_client_assigns_next_office_client_number_and_creates_initial_binder(test_db):
+def test_create_client_assigns_next_office_client_number_and_creates_initial_binder(
+    test_db,
+):
     service = ClientService(test_db)
 
     first = _svc_create(service, full_name="First Client", id_number="610000010")
@@ -104,7 +106,7 @@ def test_create_client_rejects_employee_entity_type(test_db):
 def test_create_client_rejects_company_with_non_corporation_id_type(test_db):
     service = ClientService(test_db)
 
-    with pytest.raises(ValueError, match='חייבת להיווצר עם ח.פ'):
+    with pytest.raises(ValueError, match="חייבת להיווצר עם ח.פ"):
         service.create_client(
             full_name="Bad Company",
             id_number="039337423",
@@ -125,7 +127,9 @@ def test_get_client_or_raise_not_found(test_db):
 
 def test_update_delete_restore_flow(test_db):
     service = ClientService(test_db)
-    created = _svc_create(service, full_name="Before Update", id_number="640000006", actor_id=10)
+    created = _svc_create(
+        service, full_name="Before Update", id_number="640000006", actor_id=10
+    )
 
     updated = service.update_client(
         created.id,
@@ -150,7 +154,9 @@ def test_update_delete_restore_flow(test_db):
 
 def test_create_client_always_creates_initial_binder(test_db):
     service = ClientService(test_db)
-    created = _svc_create(service, full_name="Auto Binder Client", id_number="640000022", actor_id=10)
+    created = _svc_create(
+        service, full_name="Auto Binder Client", id_number="640000022", actor_id=10
+    )
 
     assert BinderRepository(test_db).count_by_client(created.id) == 1
     binder = BinderRepository(test_db).get_active_by_client(created.id)
@@ -180,7 +186,9 @@ def test_restore_raises_when_not_deleted(test_db):
 
 
 def test_restore_raises_when_active_duplicate_exists(test_db):
-    deleted = _create_client(test_db, full_name="Old", id_number="660000001", deleted=True)
+    deleted = _create_client(
+        test_db, full_name="Old", id_number="660000001", deleted=True
+    )
     active = ClientRecord(legal_entity_id=deleted.legal_entity_id, created_by=1)
     test_db.add(active)
     test_db.commit()
@@ -255,7 +263,9 @@ def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkey
     created = _svc_create(service, full_name="To Restore", id_number="690000013")
     service.delete_client(created.id, actor_id=1)
 
-    monkeypatch.setattr(service._lifecycle.record_repo, "restore", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        service._lifecycle.record_repo, "restore", lambda *_args, **_kwargs: None
+    )
 
     with pytest.raises(NotFoundError) as exc:
         service.restore_client(created.id, actor_id=2)

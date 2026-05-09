@@ -1,6 +1,14 @@
 """Annual report schedule entries (annex tracking)."""
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
@@ -16,11 +24,20 @@ class AnnualReportScheduleEntry(Base):
 
     __tablename__ = "annual_report_schedules"
     __table_args__ = (
-        UniqueConstraint("annual_report_id", "schedule", name="uq_annual_report_schedules_report_schedule"),
+        UniqueConstraint(
+            "annual_report_id",
+            "schedule",
+            name="uq_annual_report_schedules_report_schedule",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True)
+    annual_report_id = Column(
+        Integer,
+        ForeignKey("annual_reports.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
     is_required = Column(Boolean, default=True, nullable=False)
@@ -37,5 +54,6 @@ class AnnualReportScheduleEntry(Base):
         cascade="all, delete-orphan",
         lazy="select",
     )
+
 
 __all__ = ["AnnualReportScheduleEntry"]

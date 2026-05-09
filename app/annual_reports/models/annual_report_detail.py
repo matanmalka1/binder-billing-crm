@@ -21,7 +21,12 @@ class AnnualReportDetail(Base):
     __tablename__ = "annual_report_details"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    report_id = Column(Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, unique=True)
+    report_id = Column(
+        Integer,
+        ForeignKey("annual_reports.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
 
     report = relationship("AnnualReport", back_populates="detail", uselist=False)
 
@@ -34,14 +39,12 @@ class AnnualReportDetail(Base):
     client_approved_at = Column(DateTime, nullable=True)
 
     # ── Internal notes ────────────────────────────────────────────────────
-    internal_notes = Column(Text,        nullable=True)
+    internal_notes = Column(Text, nullable=True)
     amendment_reason = Column(String(500), nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────
     created_at = Column(DateTime, nullable=False, default=utcnow)
-    updated_at = Column(DateTime, nullable=True,  onupdate=utcnow)
+    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
 
     def __repr__(self):
-        return (
-            f"<AnnualReportDetail(id={self.id}, report_id={self.report_id})>"
-        )
+        return f"<AnnualReportDetail(id={self.id}, report_id={self.report_id})>"

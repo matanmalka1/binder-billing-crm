@@ -35,17 +35,29 @@ def export_vat_to_pdf(
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import cm
-        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from reportlab.platypus import (
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+        )
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
     except ImportError:
-        raise ImportError("הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab")
+        raise ImportError(
+            "הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab"
+        )
 
     font_name = "Assistant"
     font_name_bold = "Assistant-Bold"
     try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        font_regular = os.path.join(project_root, "assets", "fonts", "Assistant-Regular.ttf")
+        project_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        )
+        font_regular = os.path.join(
+            project_root, "assets", "fonts", "Assistant-Regular.ttf"
+        )
         font_bold = os.path.join(project_root, "assets", "fonts", "Assistant-Bold.ttf")
         pdfmetrics.registerFont(TTFont(font_name, font_regular))
         pdfmetrics.registerFont(TTFont(font_name_bold, font_bold))
@@ -55,7 +67,9 @@ def export_vat_to_pdf(
             "Ensure assets/fonts/ directory contains Assistant-Regular.ttf and Assistant-Bold.ttf"
         ) from e
 
-    filename = f"vat_{client_record_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = (
+        f"vat_{client_record_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    )
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))
@@ -83,45 +97,72 @@ def export_vat_to_pdf(
     # Header Section: Client info (right) and Report type (left)
     header_data = [
         [
-            Paragraph(f"<b>{_hebrew('דוח תקציר מע״מ')}</b><br/>{_hebrew(f'שנה: {year}')}", subtitle_style),
+            Paragraph(
+                f"<b>{_hebrew('דוח תקציר מע״מ')}</b><br/>{_hebrew(f'שנה: {year}')}",
+                subtitle_style,
+            ),
             Paragraph(f"<b>{_hebrew(client_name)}</b>", title_style),
         ]
     ]
     header_table = Table(header_data, colWidths=[12 * cm, 15 * cm])
-    header_table.setStyle(TableStyle([
-        ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("VALIGN", (0, 0), (-1, 0), "TOP"),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ("TOPPADDING", (0, 0), (-1, 0), 8),
-        ("LINEBELOW", (0, 0), (-1, 0), 1.5, colors.HexColor("#366092")),
-    ]))
+    header_table.setStyle(
+        TableStyle(
+            [
+                ("ALIGN", (0, 0), (0, 0), "CENTER"),
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                ("VALIGN", (0, 0), (-1, 0), "TOP"),
+                ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+                ("TOPPADDING", (0, 0), (-1, 0), 8),
+                ("LINEBELOW", (0, 0), (-1, 0), 1.5, colors.HexColor("#366092")),
+            ]
+        )
+    )
     elements.append(header_table)
     elements.append(Spacer(1, 0.4 * cm))
 
-    table_data = [[_hebrew(col) for col in ["תקופה", "סטטוס", "עסקאות", "תשומות", "נטו", "סופי", "הוגש"]]]
+    table_data = [
+        [
+            _hebrew(col)
+            for col in ["תקופה", "סטטוס", "עסקאות", "תשומות", "נטו", "סופי", "הוגש"]
+        ]
+    ]
     totals = {"output": Decimal(0), "input": Decimal(0), "net": Decimal(0)}
 
     for p in periods:
         status_str = p.status.value if hasattr(p.status, "value") else str(p.status)
         filed = p.filed_at.strftime("%d/%m/%Y") if p.filed_at else "—"
         final = _fmt(p.final_vat_amount)
-        table_data.append([
-            p.period, _hebrew(status_str),
-            _fmt(p.total_output_vat), _fmt(p.total_input_vat),
-            _fmt(p.net_vat), final, filed,
-        ])
+        table_data.append(
+            [
+                p.period,
+                _hebrew(status_str),
+                _fmt(p.total_output_vat),
+                _fmt(p.total_input_vat),
+                _fmt(p.net_vat),
+                final,
+                filed,
+            ]
+        )
         totals["output"] += p.total_output_vat
         totals["input"] += p.total_input_vat
         totals["net"] += p.net_vat
 
-    table_data.append([
-        _hebrew("סה״כ"), "",
-        _fmt(totals["output"]), _fmt(totals["input"]),
-        _fmt(totals["net"]), "", "",
-    ])
+    table_data.append(
+        [
+            _hebrew("סה״כ"),
+            "",
+            _fmt(totals["output"]),
+            _fmt(totals["input"]),
+            _fmt(totals["net"]),
+            "",
+            "",
+        ]
+    )
 
-    table = Table(table_data, colWidths=[2.2 * cm, 2.2 * cm, 3 * cm, 3 * cm, 2.8 * cm, 2.8 * cm, 3 * cm])
+    table = Table(
+        table_data,
+        colWidths=[2.2 * cm, 2.2 * cm, 3 * cm, 3 * cm, 2.8 * cm, 2.8 * cm, 3 * cm],
+    )
 
     # Advanced table styling
     table_style_list = [
@@ -137,22 +178,24 @@ def export_vat_to_pdf(
         ("ALIGN", (0, 0), (1, 0), "CENTER"),
         ("ALIGN", (2, 0), (-1, 0), "RIGHT"),
         ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
-
         # Data rows: zebra striping
         ("BACKGROUND", (0, 1), (-1, -2), colors.white),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -2), [colors.white, colors.HexColor("#F4F7F9")]),
+        (
+            "ROWBACKGROUNDS",
+            (0, 1),
+            (-1, -2),
+            [colors.white, colors.HexColor("#F4F7F9")],
+        ),
         ("FONTNAME", (0, 1), (-1, -2), font_name),
         ("FONTSIZE", (0, 1), (-1, -2), 10),
         ("TOPPADDING", (0, 1), (-1, -2), 8),
         ("BOTTOMPADDING", (0, 1), (-1, -2), 8),
         ("LEFTPADDING", (0, 1), (-1, -2), 10),
         ("RIGHTPADDING", (0, 1), (-1, -2), 10),
-
         # Data alignment: period and status centered, amounts right-aligned
         ("ALIGN", (0, 1), (1, -2), "CENTER"),
         ("ALIGN", (2, 1), (-1, -2), "RIGHT"),
         ("VALIGN", (0, 1), (-1, -2), "MIDDLE"),
-
         # Totals row styling
         ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#E6EEF5")),
         ("FONTNAME", (0, -1), (-1, -1), font_name_bold),
@@ -165,7 +208,6 @@ def export_vat_to_pdf(
         ("ALIGN", (2, -1), (-1, -1), "RIGHT"),
         ("VALIGN", (0, -1), (-1, -1), "MIDDLE"),
         ("LINEABOVE", (0, -1), (-1, -1), 2, colors.HexColor("#366092")),
-
         # Borders: horizontal only, no vertical borders, light grey
         ("LINEBELOW", (0, 0), (-1, 0), 1.5, colors.HexColor("#366092")),
         ("LINEBELOW", (0, 1), (-1, -1), 0.5, colors.HexColor("#D1D1D1")),
@@ -182,10 +224,17 @@ def export_vat_to_pdf(
         textColor=colors.HexColor("#999999"),
         alignment=2,  # Right align for RTL
     )
-    elements.append(Paragraph(
-        f"{_hebrew('נוצר')}: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        footer_style,
-    ))
+    elements.append(
+        Paragraph(
+            f"{_hebrew('נוצר')}: {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+            footer_style,
+        )
+    )
 
     doc.build(elements)
-    return {"filepath": filepath, "filename": filename, "format": "pdf", "generated_at": datetime.now()}
+    return {
+        "filepath": filepath,
+        "filename": filename,
+        "format": "pdf",
+        "generated_at": datetime.now(),
+    }

@@ -39,7 +39,9 @@ class LegalEntityRepository:
     def get_by_id(self, entity_id: int) -> Optional[LegalEntity]:
         return self.db.query(LegalEntity).filter(LegalEntity.id == entity_id).first()
 
-    def get_by_id_number(self, id_number_type: IdNumberType, id_number: str) -> Optional[LegalEntity]:
+    def get_by_id_number(
+        self, id_number_type: IdNumberType, id_number: str
+    ) -> Optional[LegalEntity]:
         return (
             self.db.query(LegalEntity)
             .filter(

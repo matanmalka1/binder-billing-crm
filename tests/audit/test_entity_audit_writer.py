@@ -42,7 +42,10 @@ def test_writer_serializes_enum_inside_dict_as_value(test_db, test_user):
         ENTITY_CLIENT,
         10,
         test_user.id,
-        new_value={"entity_type": EntityType.COMPANY_LTD, "items": [EntityType.OSEK_MURSHE]},
+        new_value={
+            "entity_type": EntityType.COMPANY_LTD,
+            "items": [EntityType.OSEK_MURSHE],
+        },
     )
 
     entry = test_db.query(EntityAuditLog).one()
@@ -65,7 +68,9 @@ def test_writer_serializes_date_and_decimal_inside_dict(test_db, test_user):
 
 
 def test_writer_skips_when_actor_is_none(test_db):
-    result = EntityAuditWriter(test_db).record_create(ENTITY_CLIENT, 10, None, new_value={"x": 1})
+    result = EntityAuditWriter(test_db).record_create(
+        ENTITY_CLIENT, 10, None, new_value={"x": 1}
+    )
 
     assert result is None
     assert test_db.query(EntityAuditLog).count() == 0

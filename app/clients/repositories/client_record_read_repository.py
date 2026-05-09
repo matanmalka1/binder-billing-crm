@@ -1,4 +1,5 @@
 """Read-side helpers for ClientRecord — full JOIN queries returning ClientRecordResponse."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
@@ -6,7 +7,10 @@ from sqlalchemy.orm import Session
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
 
 
 def _build_full_join(db: Session):
@@ -65,13 +69,11 @@ def get_full_record(db: Session, client_record_id: int) -> dict | None:
     return _row_to_dict(*row)
 
 
-def get_full_record_including_deleted(db: Session, client_record_id: int) -> dict | None:
+def get_full_record_including_deleted(
+    db: Session, client_record_id: int
+) -> dict | None:
     """Same as get_full_record but includes soft-deleted records."""
-    row = (
-        _build_full_join(db)
-        .filter(ClientRecord.id == client_record_id)
-        .first()
-    )
+    row = _build_full_join(db).filter(ClientRecord.id == client_record_id).first()
     if not row:
         return None
     return _row_to_dict(*row)

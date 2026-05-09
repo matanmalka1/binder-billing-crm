@@ -2,7 +2,6 @@ from datetime import datetime
 from enum import Enum as PyEnum
 
 
-
 class ClientTypeForReport(str, PyEnum):
     INDIVIDUAL = "individual"
     SELF_EMPLOYED = "self_employed"
@@ -68,13 +67,31 @@ FORM_MAP = {
 
 VALID_TRANSITIONS = {
     AnnualReportStatus.NOT_STARTED: {AnnualReportStatus.COLLECTING_DOCS},
-    AnnualReportStatus.COLLECTING_DOCS: {AnnualReportStatus.DOCS_COMPLETE, AnnualReportStatus.NOT_STARTED},
-    AnnualReportStatus.DOCS_COMPLETE: {AnnualReportStatus.IN_PREPARATION, AnnualReportStatus.COLLECTING_DOCS},
-    AnnualReportStatus.IN_PREPARATION: {AnnualReportStatus.PENDING_CLIENT, AnnualReportStatus.DOCS_COMPLETE},
-    AnnualReportStatus.PENDING_CLIENT: {AnnualReportStatus.IN_PREPARATION, AnnualReportStatus.SUBMITTED},
-    AnnualReportStatus.SUBMITTED: {AnnualReportStatus.ACCEPTED, AnnualReportStatus.ASSESSMENT_ISSUED},
+    AnnualReportStatus.COLLECTING_DOCS: {
+        AnnualReportStatus.DOCS_COMPLETE,
+        AnnualReportStatus.NOT_STARTED,
+    },
+    AnnualReportStatus.DOCS_COMPLETE: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.COLLECTING_DOCS,
+    },
+    AnnualReportStatus.IN_PREPARATION: {
+        AnnualReportStatus.PENDING_CLIENT,
+        AnnualReportStatus.DOCS_COMPLETE,
+    },
+    AnnualReportStatus.PENDING_CLIENT: {
+        AnnualReportStatus.IN_PREPARATION,
+        AnnualReportStatus.SUBMITTED,
+    },
+    AnnualReportStatus.SUBMITTED: {
+        AnnualReportStatus.ACCEPTED,
+        AnnualReportStatus.ASSESSMENT_ISSUED,
+    },
     AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
-    AnnualReportStatus.ASSESSMENT_ISSUED: {AnnualReportStatus.OBJECTION_FILED, AnnualReportStatus.CLOSED},
+    AnnualReportStatus.ASSESSMENT_ISSUED: {
+        AnnualReportStatus.OBJECTION_FILED,
+        AnnualReportStatus.CLOSED,
+    },
     AnnualReportStatus.OBJECTION_FILED: {AnnualReportStatus.CLOSED},
     AnnualReportStatus.CLOSED: set(),
 }
@@ -87,7 +104,11 @@ SCHEDULE_FLAGS = [
 
 
 def standard_deadline(tax_year: int, client_type=None, submission_method=None):
-    if client_type in {ClientTypeForReport.CORPORATION, ClientTypeForReport.PUBLIC_INSTITUTION, ClientTypeForReport.CONTROL_HOLDER}:
+    if client_type in {
+        ClientTypeForReport.CORPORATION,
+        ClientTypeForReport.PUBLIC_INSTITUTION,
+        ClientTypeForReport.CONTROL_HOLDER,
+    }:
         return datetime(tax_year + 1, 7, 31, 23, 59, 59)
     if submission_method in {"online", "representative"}:
         return datetime(tax_year + 1, 6, 30, 23, 59, 59)

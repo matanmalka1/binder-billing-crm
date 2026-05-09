@@ -102,22 +102,34 @@ class TaxCalendarGroupedRepository:
         return self.db.get(TaxCalendarEntry, entry_id)
 
     def list_vat_items(self, entry_id: int):
-        return self._with_client(VatWorkItem).filter(
-            VatWorkItem.tax_calendar_entry_id == entry_id,
-            VatWorkItem.deleted_at.is_(None),
-        ).all()
+        return (
+            self._with_client(VatWorkItem)
+            .filter(
+                VatWorkItem.tax_calendar_entry_id == entry_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .all()
+        )
 
     def list_advance_items(self, entry_id: int):
-        return self._with_client(AdvancePayment).filter(
-            AdvancePayment.tax_calendar_entry_id == entry_id,
-            AdvancePayment.deleted_at.is_(None),
-        ).all()
+        return (
+            self._with_client(AdvancePayment)
+            .filter(
+                AdvancePayment.tax_calendar_entry_id == entry_id,
+                AdvancePayment.deleted_at.is_(None),
+            )
+            .all()
+        )
 
     def list_annual_items(self, entry_id: int):
-        return self._with_client(AnnualReport).filter(
-            AnnualReport.tax_calendar_entry_id == entry_id,
-            AnnualReport.deleted_at.is_(None),
-        ).all()
+        return (
+            self._with_client(AnnualReport)
+            .filter(
+                AnnualReport.tax_calendar_entry_id == entry_id,
+                AnnualReport.deleted_at.is_(None),
+            )
+            .all()
+        )
 
     def _with_client(self, model):
         return (

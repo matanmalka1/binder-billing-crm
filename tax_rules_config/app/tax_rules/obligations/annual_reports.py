@@ -101,7 +101,7 @@ ANNUAL_REPORT_RULES_V2: tuple[AnnualReportRule, ...] = (
         ),
         form="6111",
         is_attachment=True,
-        default_due_month=0,   # 0 = תלוי בדוח השנתי האב
+        default_due_month=0,  # 0 = תלוי בדוח השנתי האב
         default_due_day=0,
         tax_year_specific_due_dates={},
         rule_version=_VERSION,

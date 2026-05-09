@@ -4,7 +4,11 @@ from datetime import datetime
 from app.audit.constants import ENTITY_ANNUAL_REPORT
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.core.exceptions import AppError, NotFoundError
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus, FilingDeadlineType, SubmissionMethod
+from app.annual_reports.models.annual_report_enums import (
+    AnnualReportStatus,
+    FilingDeadlineType,
+    SubmissionMethod,
+)
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.utils.time_utils import utcnow
@@ -24,22 +28,30 @@ from .status_signature_helper import AnnualReportSignatureHelper
 
 
 class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseService):
-
     def _get_or_raise_for_update(self, report_id: int) -> AnnualReport:
         """Fetch annual report with a row-level lock for status transitions."""
         report = self.repo.get_by_id_for_update(report_id)
         if not report:
-            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
+                "ANNUAL_REPORT.NOT_FOUND",
+            )
         return report
 
     def _assert_filing_readiness(self, report_id: int) -> None:
         """Raise AppError listing all blocking issues before SUBMITTED transition."""
-        from app.annual_reports.services.financial_service import AnnualReportFinancialService
+        from app.annual_reports.services.financial_service import (
+            AnnualReportFinancialService,
+        )
+
         svc = AnnualReportFinancialService(self.db)
         result = svc.get_readiness_check(report_id)
         if not result.is_ready:
             issues_str = "; ".join(result.issues)
-            raise AppError(REPORT_NOT_READY_FOR_SUBMISSION.format(issues=issues_str), "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(
+                REPORT_NOT_READY_FOR_SUBMISSION.format(issues=issues_str),
+                "ANNUAL_REPORT.INVALID_STATUS",
+            )
 
     def transition_status(
         self,
@@ -58,7 +70,10 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         report = self._get_or_raise_for_update(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
         if new_status not in valid_statuses:
-            raise AppError(INVALID_ANNUAL_REPORT_STATUS.format(new_status=new_status), "ANNUAL_REPORT.INVALID_STATUS")
+            raise AppError(
+                INVALID_ANNUAL_REPORT_STATUS.format(new_status=new_status),
+                "ANNUAL_REPORT.INVALID_STATUS",
+            )
         ns = AnnualReportStatus(new_status)
 
         if ns not in VALID_TRANSITIONS.get(report.status, set()):
@@ -104,19 +119,38 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
 
         self.repo.append_status_history(
             annual_report_id=report_id,
-            from_status=old_status, to_status=ns,
-            changed_by=changed_by, note=note,
+            from_status=old_status,
+            to_status=ns,
+            changed_by=changed_by,
+            note=note,
         )
 
         EntityAuditWriter(self.db).record_status_change(
-            ENTITY_ANNUAL_REPORT, report_id, changed_by, old_status, ns,
+            ENTITY_ANNUAL_REPORT,
+            report_id,
+            changed_by,
+            old_status,
+            ns,
         )
 
-        if old_status == AnnualReportStatus.PENDING_CLIENT and ns != AnnualReportStatus.PENDING_CLIENT:
-            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, STATUS_CHANGE_CANCEL_SIGNATURE_REASON)
+        if (
+            old_status == AnnualReportStatus.PENDING_CLIENT
+            and ns != AnnualReportStatus.PENDING_CLIENT
+        ):
+            self._cancel_pending_signature_requests(
+                report_id,
+                changed_by,
+                changed_by_name,
+                STATUS_CHANGE_CANCEL_SIGNATURE_REASON,
+            )
 
         if ns == AnnualReportStatus.PENDING_CLIENT:
-            self._cancel_pending_signature_requests(report_id, changed_by, changed_by_name, REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON)
+            self._cancel_pending_signature_requests(
+                report_id,
+                changed_by,
+                changed_by_name,
+                REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON,
+            )
             self._trigger_signature_request(updated, changed_by, changed_by_name)
 
         return self._to_responses([updated])[0]
@@ -129,5 +163,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         changed_by_name: str,
         custom_deadline_note: Optional[str] = None,
     ) -> AnnualReportResponse:
-        updated = update_report_deadline(self, report_id, deadline_type, changed_by, custom_deadline_note)
+        updated = update_report_deadline(
+            self, report_id, deadline_type, changed_by, custom_deadline_note
+        )
         return self._to_responses([updated])[0]

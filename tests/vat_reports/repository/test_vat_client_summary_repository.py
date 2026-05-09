@@ -8,7 +8,9 @@ from app.clients.models.legal_entity import LegalEntity
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from app.vat_reports.repositories.vat_client_summary_repository import (
+    VatClientSummaryRepository,
+)
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
@@ -82,11 +84,26 @@ def test_vat_client_summary_repository_periods_and_annual_aggregates(test_db):
         status=VatWorkItemStatus.FILED,
     )
 
-    work_repo.update_vat_totals(i1.id, total_output_vat=170.0, total_input_vat=20.0, total_output_net=1000.0, total_input_net=200.0)
-    work_repo.update_vat_totals(i2.id, total_output_vat=85.0, total_input_vat=10.0, total_output_net=500.0, total_input_net=100.0)
+    work_repo.update_vat_totals(
+        i1.id,
+        total_output_vat=170.0,
+        total_input_vat=20.0,
+        total_output_net=1000.0,
+        total_input_net=200.0,
+    )
+    work_repo.update_vat_totals(
+        i2.id,
+        total_output_vat=85.0,
+        total_input_vat=10.0,
+        total_output_net=500.0,
+        total_input_net=100.0,
+    )
 
     periods = summary_repo.get_periods_for_client(client_record_id)
-    assert [work_item.period for work_item, _output_net, _input_net in periods] == ["2026-02", "2026-01"]
+    assert [work_item.period for work_item, _output_net, _input_net in periods] == [
+        "2026-02",
+        "2026-01",
+    ]
 
     annual = summary_repo.get_annual_aggregates(client_record_id)
     assert len(annual) == 1
@@ -104,9 +121,30 @@ def test_vat_work_item_repository_list_by_business(test_db):
     _, cr_id_2 = _business(test_db)
 
     repo = VatWorkItemRepository(test_db)
-    a = create_linked_vat_work_item(test_db, repo=repo, client_record_id=cr_id_1, period="2026-03", period_type=VatType.MONTHLY, created_by=user.id)
-    b = create_linked_vat_work_item(test_db, repo=repo, client_record_id=cr_id_1, period="2026-01", period_type=VatType.MONTHLY, created_by=user.id)
-    create_linked_vat_work_item(test_db, repo=repo, client_record_id=cr_id_2, period="2026-02", period_type=VatType.MONTHLY, created_by=user.id)
+    a = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
+        client_record_id=cr_id_1,
+        period="2026-03",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+    b = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
+        client_record_id=cr_id_1,
+        period="2026-01",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
+    create_linked_vat_work_item(
+        test_db,
+        repo=repo,
+        client_record_id=cr_id_2,
+        period="2026-02",
+        period_type=VatType.MONTHLY,
+        created_by=user.id,
+    )
 
     rows = repo.list_by_client_record(cr_id_1)
     assert [r.id for r in rows] == [a.id, b.id]
@@ -120,7 +158,14 @@ def test_vat_work_item_repository_list_by_business_applies_limit(test_db):
     for month in range(1, 301):
         year = 2026 + (month - 1) // 12
         month_in_year = ((month - 1) % 12) + 1
-        create_linked_vat_work_item(test_db, repo=repo, client_record_id=client_record_id, period=f"{year:04d}-{month_in_year:02d}", period_type=VatType.MONTHLY, created_by=user.id)
+        create_linked_vat_work_item(
+            test_db,
+            repo=repo,
+            client_record_id=client_record_id,
+            period=f"{year:04d}-{month_in_year:02d}",
+            period_type=VatType.MONTHLY,
+            created_by=user.id,
+        )
 
     rows = repo.list_by_client_record(client_record_id)
 

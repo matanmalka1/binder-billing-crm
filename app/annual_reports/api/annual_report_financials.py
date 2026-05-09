@@ -20,7 +20,9 @@ from app.annual_reports.schemas.annual_report_financials import (
     VatAutoPopulateResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.annual_reports.services.advances_summary_service import AnnualReportAdvancesSummaryService
+from app.annual_reports.services.advances_summary_service import (
+    AnnualReportAdvancesSummaryService,
+)
 from app.annual_reports.services.vat_import_service import VatImportService
 from app.annual_reports.services.tax_engine import calculate_tax
 
@@ -33,6 +35,7 @@ router = APIRouter(
 
 
 # ── Tax preview (pre-creation, no report_id needed) ──────────────────────────
+
 
 @router.post("/tax-preview", response_model=TaxPreviewResponse)
 def get_tax_preview(body: TaxPreviewRequest, _user: CurrentUser):
@@ -53,6 +56,7 @@ def get_tax_preview(body: TaxPreviewRequest, _user: CurrentUser):
 
 # ── Financial summary ─────────────────────────────────────────────────────────
 
+
 @router.get("/{report_id}/financials", response_model=FinancialSummaryResponse)
 def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
     """Income + expense lines and taxable income calculation."""
@@ -61,6 +65,7 @@ def get_financial_summary(report_id: int, db: DBSession, user: CurrentUser):
 
 
 # ── Tax calculation ───────────────────────────────────────────────────────────
+
 
 @router.get("/{report_id}/tax-calculation", response_model=TaxCalculationResponse)
 def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
@@ -71,6 +76,7 @@ def get_tax_calculation(report_id: int, db: DBSession, user: CurrentUser):
 
 # ── Advances summary ──────────────────────────────────────────────────────────
 
+
 @router.get("/{report_id}/advances-summary", response_model=AdvancesSummary)
 def get_advances_summary(report_id: int, db: DBSession, user: CurrentUser):
     """Advance payments summary and final tax balance for this report."""
@@ -79,6 +85,7 @@ def get_advances_summary(report_id: int, db: DBSession, user: CurrentUser):
 
 
 # ── Readiness check ───────────────────────────────────────────────────────────
+
 
 @router.get("/{report_id}/readiness", response_model=ReadinessCheckResponse)
 def get_readiness_check(report_id: int, db: DBSession, user: CurrentUser):
@@ -89,22 +96,37 @@ def get_readiness_check(report_id: int, db: DBSession, user: CurrentUser):
 
 # ── Income lines ──────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/{report_id}/income",
     response_model=IncomeLineResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def add_income_line(report_id: int, body: IncomeLineCreateRequest, db: DBSession, user: CurrentUser):
-    svc = AnnualReportFinancialService(db)
-    return svc.add_income(report_id, body.source_type, body.amount, body.description, actor_id=user.id)
-
-
-@router.patch("/{report_id}/income/{line_id}", response_model=IncomeLineResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
-def update_income_line(
-    report_id: int, line_id: int, body: IncomeLineUpdateRequest, db: DBSession, user: CurrentUser
+def add_income_line(
+    report_id: int, body: IncomeLineCreateRequest, db: DBSession, user: CurrentUser
 ):
     svc = AnnualReportFinancialService(db)
-    return svc.update_income(report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True))
+    return svc.add_income(
+        report_id, body.source_type, body.amount, body.description, actor_id=user.id
+    )
+
+
+@router.patch(
+    "/{report_id}/income/{line_id}",
+    response_model=IncomeLineResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def update_income_line(
+    report_id: int,
+    line_id: int,
+    body: IncomeLineUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    svc = AnnualReportFinancialService(db)
+    return svc.update_income(
+        report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True)
+    )
 
 
 @router.delete(
@@ -119,26 +141,44 @@ def delete_income_line(report_id: int, line_id: int, db: DBSession, user: Curren
 
 # ── Expense lines ─────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/{report_id}/expenses",
     response_model=ExpenseLineResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def add_expense_line(report_id: int, body: ExpenseLineCreateRequest, db: DBSession, user: CurrentUser):
+def add_expense_line(
+    report_id: int, body: ExpenseLineCreateRequest, db: DBSession, user: CurrentUser
+):
     svc = AnnualReportFinancialService(db)
     return svc.add_expense(
-        report_id, body.category, body.amount, body.description,
-        body.recognition_rate, body.external_document_reference, body.supporting_document_id,
+        report_id,
+        body.category,
+        body.amount,
+        body.description,
+        body.recognition_rate,
+        body.external_document_reference,
+        body.supporting_document_id,
         actor_id=user.id,
     )
 
 
-@router.patch("/{report_id}/expenses/{line_id}", response_model=ExpenseLineResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
+@router.patch(
+    "/{report_id}/expenses/{line_id}",
+    response_model=ExpenseLineResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def update_expense_line(
-    report_id: int, line_id: int, body: ExpenseLineUpdateRequest, db: DBSession, user: CurrentUser
+    report_id: int,
+    line_id: int,
+    body: ExpenseLineUpdateRequest,
+    db: DBSession,
+    user: CurrentUser,
 ):
     svc = AnnualReportFinancialService(db)
-    return svc.update_expense(report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True))
+    return svc.update_expense(
+        report_id, line_id, actor_id=user.id, **body.model_dump(exclude_none=True)
+    )
 
 
 @router.delete(
@@ -152,6 +192,7 @@ def delete_expense_line(report_id: int, line_id: int, db: DBSession, user: Curre
 
 
 # ── VAT auto-populate ─────────────────────────────────────────────────────────
+
 
 @router.post(
     "/{report_id}/auto-populate",

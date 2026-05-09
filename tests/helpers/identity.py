@@ -88,7 +88,11 @@ def seed_client_identity(
     db.flush()
 
     if create_person:
-        person_type = IdNumberType.OTHER if id_number_type == IdNumberType.CORPORATION else id_number_type
+        person_type = (
+            IdNumberType.OTHER
+            if id_number_type == IdNumberType.CORPORATION
+            else id_number_type
+        )
         person = Person(
             full_name=full_name,
             id_number=id_number,

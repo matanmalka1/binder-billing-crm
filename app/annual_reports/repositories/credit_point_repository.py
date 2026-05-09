@@ -14,12 +14,17 @@ _ZERO = Decimal("0")
 try:
     from tax_rules.registry import get_credit_point_config as _get_cp
     import datetime as _dt
-    _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal(str(_get_cp(_dt.date.today().year).default_resident_points))
+
+    _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal(
+        str(_get_cp(_dt.date.today().year).default_resident_points)
+    )
 except Exception:
     _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal("2.25")
-_TUITION_REASONS = frozenset({
-    CreditPointReason.ACADEMIC_DEGREE,
-})
+_TUITION_REASONS = frozenset(
+    {
+        CreditPointReason.ACADEMIC_DEGREE,
+    }
+)
 
 
 class AnnualReportCreditPointRepository:

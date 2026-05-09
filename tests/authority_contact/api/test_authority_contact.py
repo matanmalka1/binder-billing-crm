@@ -1,5 +1,7 @@
 from app.authority_contact.models.authority_contact import ContactType
-from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+from app.authority_contact.repositories.authority_contact_repository import (
+    AuthorityContactRepository,
+)
 from tests.helpers.identity import seed_client_identity
 
 
@@ -13,7 +15,9 @@ def _create_client(test_db):
     return client
 
 
-def _create_contact(test_db, client_id: int, contact_type: ContactType = ContactType.VAT_BRANCH):
+def _create_contact(
+    test_db, client_id: int, contact_type: ContactType = ContactType.VAT_BRANCH
+):
     client_record_id = client_id
     return AuthorityContactRepository(test_db).create(
         client_record_id=client_record_id,
@@ -65,7 +69,9 @@ def test_create_authority_contact_unknown_business_returns_404(client, advisor_h
     assert response.json()["error"] == "CLIENT.NOT_FOUND"
 
 
-def test_create_authority_contact_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+def test_create_authority_contact_invalid_contact_type_returns_422(
+    client, test_db, advisor_headers
+):
     crm_client = _create_client(test_db)
 
     response = client.post(
@@ -98,7 +104,9 @@ def test_list_authority_contacts_filters_by_type(client, test_db, advisor_header
     assert all(item["contact_type"] == "vat_branch" for item in data["items"])
 
 
-def test_list_authority_contacts_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+def test_list_authority_contacts_invalid_contact_type_returns_422(
+    client, test_db, advisor_headers
+):
     crm_client = _create_client(test_db)
 
     response = client.get(
@@ -126,7 +134,9 @@ def test_update_authority_contact(client, test_db, advisor_headers):
     assert data["updated_at"] is not None
 
 
-def test_update_authority_contact_invalid_contact_type_returns_422(client, test_db, advisor_headers):
+def test_update_authority_contact_invalid_contact_type_returns_422(
+    client, test_db, advisor_headers
+):
     crm_client = _create_client(test_db)
     contact = _create_contact(test_db, crm_client.id, ContactType.VAT_BRANCH)
 
@@ -177,9 +187,13 @@ def test_get_authority_contact_by_id_and_not_found(client, test_db, advisor_head
     crm_client = _create_client(test_db)
     contact = _create_contact(test_db, crm_client.id)
 
-    ok = client.get(f"/api/v1/clients/authority-contacts/{contact.id}", headers=advisor_headers)
+    ok = client.get(
+        f"/api/v1/clients/authority-contacts/{contact.id}", headers=advisor_headers
+    )
     assert ok.status_code == 200
     assert ok.json()["id"] == contact.id
 
-    missing = client.get("/api/v1/clients/authority-contacts/999999", headers=advisor_headers)
+    missing = client.get(
+        "/api/v1/clients/authority-contacts/999999", headers=advisor_headers
+    )
     assert missing.status_code == 404

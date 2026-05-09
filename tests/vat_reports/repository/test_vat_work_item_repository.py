@@ -65,21 +65,27 @@ def test_status_listing_totals_and_audit_trail(test_db):
     _, client_record_id = _business(test_db)
     now = utcnow()
 
-    oldest = create_linked_vat_work_item(test_db, repo=repo,
+    oldest = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
-    newest = create_linked_vat_work_item(test_db, repo=repo,
+    newest = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
         client_record_id=client_record_id,
         period="2026-03",
         period_type=VatType.MONTHLY,
         created_by=user.id,
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
-    middle = create_linked_vat_work_item(test_db, repo=repo,
+    middle = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
         client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
@@ -87,7 +93,9 @@ def test_status_listing_totals_and_audit_trail(test_db):
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
 
-    by_status = repo.list_by_status(VatWorkItemStatus.PENDING_MATERIALS, page=1, page_size=10)
+    by_status = repo.list_by_status(
+        VatWorkItemStatus.PENDING_MATERIALS, page=1, page_size=10
+    )
     assert [item.id for item in by_status] == [newest.id, middle.id]
     assert repo.count_by_status(VatWorkItemStatus.PENDING_MATERIALS) == 2
 
@@ -128,7 +136,9 @@ def test_global_work_item_lists_hide_deleted_clients_and_restore_visibility(test
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
     _, client_record_id = _business(test_db)
-    item = create_linked_vat_work_item(test_db, repo=repo,
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
         client_record_id=client_record_id,
         period="2026-04",
         period_type=VatType.MONTHLY,
@@ -152,7 +162,9 @@ def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
     _, client_record_id = _business(test_db)
-    item = create_linked_vat_work_item(test_db, repo=repo,
+    item = create_linked_vat_work_item(
+        test_db,
+        repo=repo,
         client_record_id=client_record_id,
         period="2026-11",
         period_type=VatType.MONTHLY,
@@ -178,9 +190,12 @@ def test_mark_filed_persists_amendment_and_reference_fields(test_db):
     assert filed.is_amendment is True
     assert filed.amends_item_id == 999
 
-    assert repo.mark_filed(
-        item_id=999999,
-        final_vat_amount=1.0,
-        submission_method=SubmissionMethod.MANUAL,
-        filed_by=user.id,
-    ) is None
+    assert (
+        repo.mark_filed(
+            item_id=999999,
+            final_vat_amount=1.0,
+            submission_method=SubmissionMethod.MANUAL,
+            filed_by=user.id,
+        )
+        is None
+    )

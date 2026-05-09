@@ -1,4 +1,5 @@
 """Read-only list queries for BusinessRepository — split to stay under 150-line limit."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -43,7 +44,9 @@ class BusinessRepositoryRead(BaseRepository):
         page_size: int = 20,
     ) -> list[Business]:
         query = self._build_base_query(status, entity_type, search)
-        return self._paginate(query.order_by(Business.opened_at.desc()), page, page_size)
+        return self._paginate(
+            query.order_by(Business.opened_at.desc()), page, page_size
+        )
 
     def count(
         self,
@@ -53,10 +56,15 @@ class BusinessRepositoryRead(BaseRepository):
     ) -> int:
         return self._build_base_query(status, entity_type, search).count()
 
-    def list_by_legal_entity(self, legal_entity_id: int, page: int = 1, page_size: int = 20) -> list[Business]:
+    def list_by_legal_entity(
+        self, legal_entity_id: int, page: int = 1, page_size: int = 20
+    ) -> list[Business]:
         query = (
             self.db.query(Business)
-            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .filter(
+                Business.legal_entity_id == legal_entity_id,
+                Business.deleted_at.is_(None),
+            )
             .order_by(Business.opened_at.asc())
         )
         return self._paginate(query, page, page_size)
@@ -64,11 +72,16 @@ class BusinessRepositoryRead(BaseRepository):
     def count_by_legal_entity(self, legal_entity_id: int) -> int:
         return (
             self.db.query(Business)
-            .filter(Business.legal_entity_id == legal_entity_id, Business.deleted_at.is_(None))
+            .filter(
+                Business.legal_entity_id == legal_entity_id,
+                Business.deleted_at.is_(None),
+            )
             .count()
         )
 
-    def list_by_legal_entity_including_deleted(self, legal_entity_id: int) -> list[Business]:
+    def list_by_legal_entity_including_deleted(
+        self, legal_entity_id: int
+    ) -> list[Business]:
         return (
             self.db.query(Business)
             .filter(Business.legal_entity_id == legal_entity_id)
@@ -81,7 +94,10 @@ class BusinessRepositoryRead(BaseRepository):
             return []
         return (
             self.db.query(Business)
-            .filter(Business.legal_entity_id.in_(legal_entity_ids), Business.deleted_at.is_(None))
+            .filter(
+                Business.legal_entity_id.in_(legal_entity_ids),
+                Business.deleted_at.is_(None),
+            )
             .all()
         )
 

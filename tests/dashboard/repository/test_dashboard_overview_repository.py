@@ -21,8 +21,16 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     )
     test_db.add(user)
 
-    le_a = LegalEntity(official_name="Alpha Ltd", id_number="C001", id_number_type=IdNumberType.INDIVIDUAL)
-    le_b = LegalEntity(official_name="Beta LLC", id_number="C002", id_number_type=IdNumberType.INDIVIDUAL)
+    le_a = LegalEntity(
+        official_name="Alpha Ltd",
+        id_number="C001",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    le_b = LegalEntity(
+        official_name="Beta LLC",
+        id_number="C002",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
     test_db.add_all([le_a, le_b])
     test_db.commit()
 

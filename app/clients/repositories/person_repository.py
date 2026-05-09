@@ -3,7 +3,10 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
 from app.common.enums import IdNumberType
 
 
@@ -84,17 +87,26 @@ class PersonRepository:
         )
 
     def ensure_owner(
-        self, *, legal_entity_id: int, full_name: str, id_number: str,
-        id_number_type: IdNumberType, **fields,
+        self,
+        *,
+        legal_entity_id: int,
+        full_name: str,
+        id_number: str,
+        id_number_type: IdNumberType,
+        **fields,
     ) -> None:
         owner_id_number_type = (
-            IdNumberType.OTHER if id_number_type == IdNumberType.CORPORATION else id_number_type
+            IdNumberType.OTHER
+            if id_number_type == IdNumberType.CORPORATION
+            else id_number_type
         )
         person = self.get_by_id_number(owner_id_number_type, id_number)
         if not person:
             person = self.create(
-                full_name=full_name, id_number=id_number,
-                id_number_type=owner_id_number_type, **fields,
+                full_name=full_name,
+                id_number=id_number,
+                id_number_type=owner_id_number_type,
+                **fields,
             )
         if not self.get_owner_for_legal_entity(legal_entity_id):
             self.create_link(person_id=person.id, legal_entity_id=legal_entity_id)

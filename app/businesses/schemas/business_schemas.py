@@ -9,11 +9,13 @@ from app.core.api_types import ApiDateTime, PaginatedResponse
 
 # ─── Requests ────────────────────────────────────────────────────────────────
 
+
 class BusinessCreateRequest(BaseModel):
     """
     יצירת עסק חדש תחת לקוח קיים.
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
+
     opened_at: Optional[date] = None
     business_name: str = Field(..., max_length=100)
     notes: Optional[str] = None
@@ -32,6 +34,7 @@ class ClientBusinessCreateRequest(BaseModel):
     פרטי עסק במסגרת פתיחת לקוח חדש.
     שם העסק נדרש לפתיחת פעילות ראשונה.
     """
+
     opened_at: Optional[date] = None
     business_name: str = Field(..., max_length=100)
     notes: Optional[str] = None
@@ -47,15 +50,18 @@ class ClientBusinessCreateRequest(BaseModel):
 
 class BusinessUpdateRequest(BaseModel):
     """עדכון פרטי עסק."""
+
     business_name: Optional[str] = None
-    status: Optional[BusinessStatus] = None         # enum
+    status: Optional[BusinessStatus] = None  # enum
     closed_at: Optional[date] = None
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────
 
+
 class BusinessResponse(BaseModel):
     """תגובת עסק."""
+
     id: int
     client_id: Optional[int] = None
     business_name: Optional[str] = None
@@ -71,6 +77,7 @@ class BusinessResponse(BaseModel):
 
 class BusinessWithClientResponse(BusinessResponse):
     """תגובת עסק עם פרטי לקוח — לרשימת עסקים כללית."""
+
     client_full_name: str
     client_id_number: str
 
@@ -82,6 +89,7 @@ BusinessListResponse = PaginatedResponse[BusinessWithClientResponse]
 
 class ClientBusinessesResponse(BaseModel):
     """רשימת עסקים של לקוח ספציפי."""
+
     client_id: int
     items: list[BusinessResponse]
     page: int

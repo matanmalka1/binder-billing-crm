@@ -30,7 +30,12 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
         num = rng.randint(cfg.min_charges_per_client, cfg.max_charges_per_client)
         for business in _pick_businesses(rng, client_businesses, num):
             status = rng.choices(
-                [ChargeStatus.DRAFT, ChargeStatus.ISSUED, ChargeStatus.PAID, ChargeStatus.CANCELED],
+                [
+                    ChargeStatus.DRAFT,
+                    ChargeStatus.ISSUED,
+                    ChargeStatus.PAID,
+                    ChargeStatus.CANCELED,
+                ],
                 weights=[20, 30, 40, 10],
                 k=1,
             )[0]
@@ -46,7 +51,9 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 paid_at = issued_at + timedelta(days=rng.randint(0, 20))
                 paid_by = rng.choice(users).id if users else None
 
-            charge_type = rng.choices(list(ChargeType), weights=[35, 20, 18, 8, 12, 7], k=1)[0]
+            charge_type = rng.choices(
+                list(ChargeType), weights=[35, 20, 18, 8, 12, 7], k=1
+            )[0]
             period = None
             months_covered = 1
             if charge_type == ChargeType.MONTHLY_RETAINER:
@@ -56,7 +63,10 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 months_covered = rng.choice([1, 1, 1, 2])
             elif charge_type == ChargeType.ANNUAL_REPORT_FEE:
                 period = f"{date.today().year - rng.randint(1, 3)}-12"
-            elif charge_type in (ChargeType.VAT_FILING_FEE, ChargeType.OTHER) and rng.random() < 0.4:
+            elif (
+                charge_type in (ChargeType.VAT_FILING_FEE, ChargeType.OTHER)
+                and rng.random() < 0.4
+            ):
                 month = rng.randint(1, 12)
                 year = date.today().year - rng.randint(0, 1)
                 period = f"{year}-{month:02d}"
@@ -70,10 +80,12 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
             if status == ChargeStatus.CANCELED:
                 canceled_at = created_at + timedelta(days=rng.randint(1, 8))
                 canceled_by = rng.choice(users).id if users else None
-                cancellation_reason = rng.choice([
-                    "החיוב בוטל לאחר זיכוי הלקוח",
-                    "החיוב נפתח בטעות ונסגר לפני הפקה",
-                ])
+                cancellation_reason = rng.choice(
+                    [
+                        "החיוב בוטל לאחר זיכוי הלקוח",
+                        "החיוב נפתח בטעות ונסגר לפני הפקה",
+                    ]
+                )
 
             charge = Charge(
                 client_record_id=business.client_id,
@@ -83,7 +95,16 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 period=period,
                 months_covered=months_covered,
                 status=status,
-                description=" | ".join(filter(None, [base_description, business.business_name, f"תקופה {period}" if period else None])),
+                description=" | ".join(
+                    filter(
+                        None,
+                        [
+                            base_description,
+                            business.business_name,
+                            f"תקופה {period}" if period else None,
+                        ],
+                    )
+                ),
                 created_at=created_at,
                 created_by=rng.choice(users).id if users else None,
                 issued_at=issued_at,
@@ -107,13 +128,15 @@ def create_invoices(db, charges) -> None:
         if charge.status not in (ChargeStatus.ISSUED, ChargeStatus.PAID):
             continue
         invoice_id = f"חשבונית-{invoice_serial}"
-        db.add(Invoice(
-            charge_id=charge.id,
-            provider="מערכת הנהלת חשבונות פנימית",
-            external_invoice_id=invoice_id,
-            document_url=f"{INVOICE_BASE_URL}/{invoice_id}.pdf",
-            issued_at=charge.issued_at or charge.created_at,
-            created_at=charge.created_at,
-        ))
+        db.add(
+            Invoice(
+                charge_id=charge.id,
+                provider="מערכת הנהלת חשבונות פנימית",
+                external_invoice_id=invoice_id,
+                document_url=f"{INVOICE_BASE_URL}/{invoice_id}.pdf",
+                issued_at=charge.issued_at or charge.created_at,
+                created_at=charge.created_at,
+            )
+        )
         invoice_serial += 1
     db.flush()

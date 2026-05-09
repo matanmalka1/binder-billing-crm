@@ -16,6 +16,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
+
 @router.get("", response_model=EntityNoteListResponse)
 def list_notes(
     client_id: int,

@@ -5,7 +5,9 @@ from app.binders.models.binder_status_log import BinderStatusLog
 from app.clients.models.client_record import ClientRecord
 
 
-def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, test_db, test_user, create_client_with_business):
+def test_readonly_get_endpoints_keep_db_state_intact(
+    client, advisor_headers, test_db, test_user, create_client_with_business
+):
     today = date.today()
     c, _business = create_client_with_business(
         full_name="Client D",
@@ -54,11 +56,15 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
         "statuses": {b.id: b.status.value for b in test_db.query(Binder).all()},
     }
 
-    r_client_binders = client.get(f"/api/v1/binders?client_record_id={c.id}", headers=advisor_headers)
+    r_client_binders = client.get(
+        f"/api/v1/binders?client_record_id={c.id}", headers=advisor_headers
+    )
     assert r_client_binders.status_code == 200
     assert r_client_binders.json()["total"] == 3
 
-    r_history = client.get(f"/api/v1/binders/{b_open.id}/history", headers=advisor_headers)
+    r_history = client.get(
+        f"/api/v1/binders/{b_open.id}/history", headers=advisor_headers
+    )
     assert r_history.status_code == 200
     assert r_history.json()["binder_id"] == b_open.id
 
@@ -74,4 +80,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(client, advisor_headers, te
     assert test_db.query(Binder).count() == baseline["binders"]
     assert test_db.query(BinderStatusLog).count() == baseline["logs"]
     assert test_db.query(ClientRecord).count() == baseline["clients"]
-    assert {b.id: b.status.value for b in test_db.query(Binder).all()} == baseline["statuses"]
+    assert {b.id: b.status.value for b in test_db.query(Binder).all()} == baseline[
+        "statuses"
+    ]

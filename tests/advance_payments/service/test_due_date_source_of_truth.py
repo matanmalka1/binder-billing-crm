@@ -1,7 +1,10 @@
 """Regression tests: advance payment due_date comes from TaxCalendarEntry, not build_due_date()."""
+
 from datetime import date
 
-from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
+from app.advance_payments.services.advance_payment_generator import (
+    generate_annual_schedule,
+)
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.common.enums import DeadlineRuleType, ObligationType
 from tests.tax_calendar.service.linking_helpers import advance_client, make_entry
@@ -79,7 +82,9 @@ def test_create_payment_directly_uses_entry_due_date(test_db):
         client_record_id=client.id,
         period="2026-03",
         period_months_count=1,
-        due_date=date(2026, 4, 15),  # caller passes 15th; must be ignored in favor of entry's 16th
+        due_date=date(
+            2026, 4, 15
+        ),  # caller passes 15th; must be ignored in favor of entry's 16th
     )
 
     assert payment.due_date == date(2026, 4, 16)
@@ -89,7 +94,9 @@ def test_create_payment_directly_uses_entry_due_date(test_db):
 
 def test_link_advance_payment_backfills_missing_snapshots(test_db):
     """link_advance_payment sets due_date_original/effective from entry when they are None."""
-    from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+    from app.tax_calendar.services.materialization_service import (
+        TaxCalendarMaterializationService,
+    )
     from app.advance_payments.models.advance_payment import AdvancePayment
 
     entry = make_entry(

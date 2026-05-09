@@ -5,7 +5,9 @@ from sqlalchemy import text
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.services.client_creation_service import ClientCreationService
-from app.clients.services.client_onboarding_orchestrator import ClientOnboardingOrchestrator
+from app.clients.services.client_onboarding_orchestrator import (
+    ClientOnboardingOrchestrator,
+)
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -28,9 +30,21 @@ def _create_vat_client(test_db, id_number: str):
 
 def test_onboarding_creates_vat_work_items_and_advance_payments(test_db):
     client_record = _create_vat_client(test_db, "123456780")
-    vat_items = test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id).all()
-    payments = test_db.query(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id).all()
-    reports = test_db.query(AnnualReport).filter(AnnualReport.client_record_id == client_record.id).all()
+    vat_items = (
+        test_db.query(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == client_record.id)
+        .all()
+    )
+    payments = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
+        .all()
+    )
+    reports = (
+        test_db.query(AnnualReport)
+        .filter(AnnualReport.client_record_id == client_record.id)
+        .all()
+    )
 
     assert len(vat_items) == 9
     assert len(payments) == 9
@@ -67,17 +81,29 @@ def test_onboarding_retry_does_not_duplicate_vat_work_items(test_db):
         reference_date=date(2026, 4, 30),
     )
 
-    count = test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id).count()
+    count = (
+        test_db.query(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == client_record.id)
+        .count()
+    )
     assert count == 9
-    payment_count = test_db.query(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id).count()
+    payment_count = (
+        test_db.query(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
+        .count()
+    )
     assert payment_count == 9
 
 
 def test_onboarding_does_not_create_empty_setup_placeholders(test_db):
     _create_vat_client(test_db, "123456782")
 
-    assert test_db.execute(text("select count(*) from authority_contacts")).scalar() == 0
-    assert test_db.execute(text("select count(*) from permanent_documents")).scalar() == 0
+    assert (
+        test_db.execute(text("select count(*) from authority_contacts")).scalar() == 0
+    )
+    assert (
+        test_db.execute(text("select count(*) from permanent_documents")).scalar() == 0
+    )
     assert test_db.execute(text("select count(*) from entity_notes")).scalar() == 0
 
 
@@ -98,7 +124,12 @@ def test_onboarding_exempt_client_creates_no_vat_items(test_db):
         reference_date=date(2026, 4, 30),
     )
 
-    assert test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == seeded.id).count() == 0
+    assert (
+        test_db.query(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == seeded.id)
+        .count()
+        == 0
+    )
 
 
 def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):
@@ -120,5 +151,7 @@ def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):
         .all()
     )
     # reference_date=2025-12-31 → years [2025, 2026]; 2025 yields 1 (2025-12), 2026 yields 12
-    assert len(payments) == 13, f"Expected 13 advance payments (monthly), got {len(payments)}"
+    assert len(payments) == 13, (
+        f"Expected 13 advance payments (monthly), got {len(payments)}"
+    )
     assert all(p.period_months_count == 1 for p in payments)

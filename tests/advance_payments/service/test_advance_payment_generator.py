@@ -4,8 +4,12 @@ from itertools import count
 import pytest
 
 from app.advance_payments.models.advance_payment import AdvancePayment
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
+from app.advance_payments.services.advance_payment_generator import (
+    generate_annual_schedule,
+)
 from app.businesses.models.business import Business
 from app.clients.enums import ClientStatus
 from app.common.enums import AdvancePaymentFrequency, VatType
@@ -66,7 +70,9 @@ def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
 
-    existing = create_linked_advance_payment(test_db, repo=repo,
+    existing = create_linked_advance_payment(
+        test_db,
+        repo=repo,
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -84,7 +90,10 @@ def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
 
     rows = (
         test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == business.client_record_id, AdvancePayment.period.like("2026-%"))
+        .filter(
+            AdvancePayment.client_record_id == business.client_record_id,
+            AdvancePayment.period.like("2026-%"),
+        )
         .all()
     )
     assert len(rows) == 12
@@ -112,7 +121,11 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     test_db.commit()
 
     created, skipped = generate_annual_schedule(
-        business.client_record_id, 2026, test_db, period_months_count=2, reference_date=date(2025, 12, 31)
+        business.client_record_id,
+        2026,
+        test_db,
+        period_months_count=2,
+        reference_date=date(2025, 12, 31),
     )
 
     assert skipped == 0
@@ -127,7 +140,10 @@ def test_generate_annual_schedule_skips_periods_before_reference_date(test_db):
     business = _business(test_db)
 
     created, skipped = generate_annual_schedule(
-        business.client_record_id, 2026, test_db, period_months_count=1,
+        business.client_record_id,
+        2026,
+        test_db,
+        period_months_count=1,
         reference_date=date(2026, 4, 1),
     )
 
@@ -136,7 +152,9 @@ def test_generate_annual_schedule_skips_periods_before_reference_date(test_db):
     assert all(p.due_date >= date(2026, 4, 1) for p in created)
 
 
-def test_generate_annual_schedule_uses_advance_payment_frequency_independent_of_vat(test_db):
+def test_generate_annual_schedule_uses_advance_payment_frequency_independent_of_vat(
+    test_db,
+):
     business = _business(test_db)
     # VAT bimonthly but advance monthly — should produce 12, not 6
     business.legal_entity.vat_reporting_frequency = VatType.BIMONTHLY

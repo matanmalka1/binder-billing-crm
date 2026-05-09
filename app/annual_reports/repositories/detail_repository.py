@@ -4,14 +4,16 @@ from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
 
-_META_COLUMNS = frozenset({
-    "client_approved_at",
-    "internal_notes",
-    "amendment_reason",
-    "pension_contribution",
-    "donation_amount",
-    "other_credits",
-})
+_META_COLUMNS = frozenset(
+    {
+        "client_approved_at",
+        "internal_notes",
+        "amendment_reason",
+        "pension_contribution",
+        "donation_amount",
+        "other_credits",
+    }
+)
 
 
 class AnnualReportDetailRepository:

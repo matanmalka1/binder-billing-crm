@@ -53,9 +53,12 @@ UML_DIR = Path("uml")
 # Audit / soft-delete columns hidden in compact mode
 NOISE_COLUMNS: frozenset[str] = frozenset(
     {
-        "created_at", "updated_at",
-        "deleted_at", "deleted_by",
-        "restored_at", "restored_by",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "deleted_by",
+        "restored_at",
+        "restored_by",
         "created_by",
     }
 )
@@ -64,20 +67,21 @@ NOISE_COLUMNS: frozenset[str] = frozenset(
 # Data model
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class FieldDef:
     name: str
     type_str: str
     nullable: bool
     is_fk: bool
-    fk_target: Optional[str] = None   # "table.column" or just "table"
+    fk_target: Optional[str] = None  # "table.column" or just "table"
 
 
 @dataclass
 class RelDef:
     name: str
     target_class: str
-    uselist: bool          # True → one-to-many / many-to-many; False → one-to-one / many-to-one
+    uselist: bool  # True → one-to-many / many-to-many; False → one-to-one / many-to-one
     back_populates: Optional[str]
     viewonly: bool
 
@@ -95,12 +99,13 @@ class ModelDef:
     domain: str
     fields: list[FieldDef] = field(default_factory=list)
     relationships: list[RelDef] = field(default_factory=list)
-    enums: list[EnumDef] = field(default_factory=list)   # enums defined in same module
+    enums: list[EnumDef] = field(default_factory=list)  # enums defined in same module
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Discovery
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def discover_model_modules() -> dict[str, list[str]]:
     """
@@ -115,14 +120,13 @@ def discover_model_modules() -> dict[str, list[str]]:
         if not models_dir.is_dir():
             continue
         files = sorted(
-            f for f in models_dir.iterdir()
+            f
+            for f in models_dir.iterdir()
             if f.suffix == ".py" and f.name != "__init__.py"
         )
         if not files:
             continue
-        result[entry.name] = [
-            f"app.{entry.name}.models.{f.stem}" for f in files
-        ]
+        result[entry.name] = [f"app.{entry.name}.models.{f.stem}" for f in files]
     return result
 
 
@@ -130,10 +134,21 @@ def discover_model_modules() -> dict[str, list[str]]:
 # SQLAlchemy introspection
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def _sa_type_str(col) -> str:
     """Return a short, normalised type string for a SQLAlchemy column type."""
     try:
-        from sqlalchemy import Integer, String, Text, Boolean, Numeric, Date, DateTime, Enum as SAEnum
+        from sqlalchemy import (
+            Integer,
+            String,
+            Text,
+            Boolean,
+            Numeric,
+            Date,
+            DateTime,
+            Enum as SAEnum,
+        )
+
         t = col.type
         # SAEnum must be checked BEFORE String — pg_enum subclasses both
         if isinstance(t, SAEnum):
@@ -190,10 +205,12 @@ def extract_models_from_module(module_dotpath: str, domain: str) -> list[ModelDe
             and obj.__module__ == mod.__name__
             and obj is not stdlib_enum.Enum
         ):
-            module_enums.append(EnumDef(
-                name=obj_name,
-                values=[m.value for m in obj],
-            ))
+            module_enums.append(
+                EnumDef(
+                    name=obj_name,
+                    values=[m.value for m in obj],
+                )
+            )
 
     enum_attached = False
 
@@ -225,24 +242,28 @@ def extract_models_from_module(module_dotpath: str, domain: str) -> list[ModelDe
             fk_targets = list(col.foreign_keys)
             is_fk = bool(fk_targets)
             fk_table_name = _fk_table(next(iter(fk_targets))) if is_fk else None
-            mdef.fields.append(FieldDef(
-                name=col.key,
-                type_str=_sa_type_str(col),
-                nullable=col.nullable if col.nullable is not None else True,
-                is_fk=is_fk,
-                fk_target=fk_table_name,
-            ))
+            mdef.fields.append(
+                FieldDef(
+                    name=col.key,
+                    type_str=_sa_type_str(col),
+                    nullable=col.nullable if col.nullable is not None else True,
+                    is_fk=is_fk,
+                    fk_target=fk_table_name,
+                )
+            )
 
         # ── Relationships ─────────────────────────────────────────────────────
         for rel in mapper.relationships:
             target_cls = rel.mapper.class_.__name__
-            mdef.relationships.append(RelDef(
-                name=rel.key,
-                target_class=target_cls,
-                uselist=rel.uselist,
-                back_populates=rel.back_populates,
-                viewonly=rel.viewonly,
-            ))
+            mdef.relationships.append(
+                RelDef(
+                    name=rel.key,
+                    target_class=target_cls,
+                    uselist=rel.uselist,
+                    back_populates=rel.back_populates,
+                    viewonly=rel.viewonly,
+                )
+            )
 
         results.append(mdef)
 
@@ -253,6 +274,7 @@ def extract_models_from_module(module_dotpath: str, domain: str) -> list[ModelDe
 # Table → Class mapping  (authoritative, built from actual model metadata)
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def build_table_class_map(domain_models: dict[str, list[ModelDef]]) -> dict[str, str]:
     """
     Build an exact table_name → class_name lookup from all extracted models.
@@ -261,15 +283,14 @@ def build_table_class_map(domain_models: dict[str, list[ModelDef]]) -> dict[str,
     plural table names like 'businesses', 'tax_deadlines', 'annual_reports', etc.
     """
     return {
-        m.table_name: m.class_name
-        for models in domain_models.values()
-        for m in models
+        m.table_name: m.class_name for models in domain_models.values() for m in models
     }
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PlantUML rendering helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 def _field_line(f: FieldDef, compact: bool) -> Optional[str]:
     if compact and f.name in NOISE_COLUMNS:
@@ -292,8 +313,8 @@ def _cardinality(rel: RelDef) -> tuple[str, str]:
 
 def _rel_arrow(rel: RelDef) -> str:
     if rel.viewonly:
-        return "..>"   # dashed = read-only / derived
-    return "-->"       # solid = navigable / cascade
+        return "..>"  # dashed = read-only / derived
+    return "-->"  # solid = navigable / cascade
 
 
 def _fk_edges(
@@ -427,16 +448,14 @@ def render_overview_puml(
     ]
 
     for domain, models in sorted(domain_models.items()):
-        lines.append(f"package \"{domain}\" {{")
+        lines.append(f'package "{domain}" {{')
         for m in models:
             lines.append(f"  class {m.class_name}")
         lines.append("}")
         lines.append("")
 
     all_models: dict[str, ModelDef] = {
-        m.class_name: m
-        for models in domain_models.values()
-        for m in models
+        m.class_name: m for models in domain_models.values() for m in models
     }
     all_class_names = set(all_models.keys())
     seen: set[frozenset] = set()
@@ -470,8 +489,7 @@ def render_overview_puml(
                     continue
                 # Skip if already covered by ORM edge in same direction
                 already_orm = any(
-                    rel.target_class == target_class
-                    for rel in m.relationships
+                    rel.target_class == target_class for rel in m.relationships
                 )
                 pair = frozenset({domain, target_domain, "fk"})
                 if pair in seen:
@@ -489,6 +507,7 @@ def render_overview_puml(
 # Helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def check_plantuml() -> bool:
     """Return True if the plantuml binary is available."""
     return shutil.which("plantuml") is not None
@@ -502,7 +521,9 @@ def render_svg(puml_path: Path) -> bool:
         text=True,
     )
     if result.returncode != 0:
-        print(f"    WARN: plantuml failed for {puml_path.name}: {result.stderr.strip()}")
+        print(
+            f"    WARN: plantuml failed for {puml_path.name}: {result.stderr.strip()}"
+        )
         return False
     return True
 
@@ -511,14 +532,20 @@ def render_svg(puml_path: Path) -> bool:
 # Main
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate UML diagrams for the CRM backend.")
+    parser = argparse.ArgumentParser(
+        description="Generate UML diagrams for the CRM backend."
+    )
     parser.add_argument(
-        "--mode", choices=["full", "compact"], default=None,
+        "--mode",
+        choices=["full", "compact"],
+        default=None,
         help="Force a single mode for all diagrams (default: both modes per domain).",
     )
     parser.add_argument(
-        "--no-render", action="store_true",
+        "--no-render",
+        action="store_true",
         help="Write .puml files only; skip plantuml rendering.",
     )
     args = parser.parse_args()
@@ -576,9 +603,7 @@ def main() -> None:
         domain_models[domain] = models
 
     all_class_names: set[str] = {
-        m.class_name
-        for models in domain_models.values()
-        for m in models
+        m.class_name for models in domain_models.values() for m in models
     }
     print(f"\nTotal models extracted: {len(all_class_names)}")
 
@@ -599,10 +624,7 @@ def main() -> None:
 
     # ── Per-domain diagrams ───────────────────────────────────────────────────
     print("\n[Per-domain] Writing domain diagrams...")
-    modes = (
-        [args.mode] if args.mode
-        else ["full", "compact"]
-    )
+    modes = [args.mode] if args.mode else ["full", "compact"]
 
     for domain, models in sorted(domain_models.items()):
         if not models:
@@ -624,7 +646,9 @@ def main() -> None:
                 puml_path.write_text(content, encoding="utf-8")
                 if has_plantuml and not args.no_render:
                     ok = render_svg(puml_path)
-                    print(f"{'OK' if ok else 'WARN'} → {puml_path.with_suffix('.svg').name}")
+                    print(
+                        f"{'OK' if ok else 'WARN'} → {puml_path.with_suffix('.svg').name}"
+                    )
                 else:
                     print(f"Written → {puml_path.name}")
             except Exception as exc:

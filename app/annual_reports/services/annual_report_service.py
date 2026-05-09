@@ -3,9 +3,13 @@ from sqlalchemy.orm import Session
 from app.audit.constants import ENTITY_ANNUAL_REPORT
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.core.exceptions import NotFoundError
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -44,17 +48,24 @@ class AnnualReportService(
     def assert_report_exists(self, report_id: int) -> None:
         """Raise NotFoundError if the report does not exist."""
         if not self.repo.get_by_id(report_id):
-            raise NotFoundError(ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
+                "ANNUAL_REPORT.NOT_FOUND",
+            )
 
     def delete_report(self, report_id: int, actor_id: int, actor_name: str) -> bool:
         """Soft-delete an annual report. Returns False if not found."""
         report = self.repo.get_by_id(report_id)
         if not report:
             return False
-        self._cancel_pending_signature_requests(report_id, actor_id, actor_name, ANNUAL_REPORT_DELETED_REASON)
+        self._cancel_pending_signature_requests(
+            report_id, actor_id, actor_name, ANNUAL_REPORT_DELETED_REASON
+        )
         result = self.repo.soft_delete(report_id, deleted_by=actor_id)
         if result:
-            EntityAuditWriter(self.db).record_delete(ENTITY_ANNUAL_REPORT, report_id, actor_id)
+            EntityAuditWriter(self.db).record_delete(
+                ENTITY_ANNUAL_REPORT, report_id, actor_id
+            )
         return result
 
 

@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from tax_rules import get_ni_brackets
 
-_NI_EXEMPT_TYPES = {ClientAnnualFilingType.INDIVIDUAL, ClientAnnualFilingType.CORPORATION}
+_NI_EXEMPT_TYPES = {
+    ClientAnnualFilingType.INDIVIDUAL,
+    ClientAnnualFilingType.CORPORATION,
+}
 
 _MONTHS = 12
 
@@ -33,6 +36,7 @@ def calculate_national_insurance(
         brackets = get_ni_brackets(tax_year)
     except KeyError:
         from tax_rules.registry import get_supported_years
+
         brackets = get_ni_brackets(max(get_supported_years()))
 
     income = max(float(income), 0.0)
@@ -54,7 +58,9 @@ def calculate_national_insurance(
         prev = annual_ceiling
 
     total = round(base_amount + high_amount, 2)
-    return NationalInsuranceResult(base_amount=base_amount, high_amount=high_amount, total=total)
+    return NationalInsuranceResult(
+        base_amount=base_amount, high_amount=high_amount, total=total
+    )
 
 
 __all__ = ["calculate_national_insurance", "NationalInsuranceResult"]

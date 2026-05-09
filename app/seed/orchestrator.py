@@ -58,11 +58,14 @@ def _ensure_schema_ready() -> None:
             missing_columns[table.name] = gaps
 
     if missing_columns:
-        preview_items = [f"{t}({', '.join(c[:4])})" for t, c in list(missing_columns.items())[:6]]
+        preview_items = [
+            f"{t}({', '.join(c[:4])})" for t, c in list(missing_columns.items())[:6]
+        ]
         suffix = "..." if len(missing_columns) > 6 else ""
         raise RuntimeError(
             "Database schema is not ready. Missing columns: "
-            + "; ".join(preview_items) + suffix
+            + "; ".join(preview_items)
+            + suffix
             + ". Run `alembic upgrade head` first."
         )
 
@@ -98,7 +101,9 @@ class SeedOrchestrator:
             # CreateClientService → automatically triggers ClientOnboardingOrchestrator
             # which creates: initial binder, TaxCalendar entries, VAT items (eligible only),
             # advance payments, annual report shell.
-            client_pairs = clients_builder.create_clients(db, self.rng, self.cfg, seeded_users)
+            client_pairs = clients_builder.create_clients(
+                db, self.rng, self.cfg, seeded_users
+            )
             client_records = [cr for cr, _ in client_pairs]
             primary_businesses = [biz for _, biz in client_pairs]
 
@@ -111,7 +116,9 @@ class SeedOrchestrator:
             db.flush()
 
             if self.cfg.onboarding_only:
-                clients_builder.create_entity_notes(db, self.rng, client_records, seeded_users)
+                clients_builder.create_entity_notes(
+                    db, self.rng, client_records, seeded_users
+                )
                 db.commit()
                 if not self.cfg.skip_validation:
                     SeedIntegrityValidator(db).validate()
@@ -119,46 +126,72 @@ class SeedOrchestrator:
                 return
 
             # ── Demo phase ───────────────────────────────────────────────────
-            clients_builder.create_entity_notes(db, self.rng, client_records, seeded_users)
+            clients_builder.create_entity_notes(
+                db, self.rng, client_records, seeded_users
+            )
 
             # Historical binders (on top of initial binder from onboarding)
-            demo_binders = binders_builder.create_binders(db, self.rng, self.cfg, all_businesses, seeded_users)
+            demo_binders = binders_builder.create_binders(
+                db, self.rng, self.cfg, all_businesses, seeded_users
+            )
             # All binders (for notifications/reminders)
             all_binders = self._load_all_binders(db, client_records)
 
             binder_intakes = binders_builder.create_binder_intakes(db, demo_binders)
 
-            seeded_charges = charges_builder.create_charges(db, self.rng, self.cfg, all_businesses, seeded_users)
+            seeded_charges = charges_builder.create_charges(
+                db, self.rng, self.cfg, all_businesses, seeded_users
+            )
             charges_builder.create_invoices(db, seeded_charges)
 
             # Historical annual reports (current year shell already exists from onboarding)
-            reports_builder.create_annual_reports(db, self.rng, self.cfg, all_businesses, seeded_users)
+            reports_builder.create_annual_reports(
+                db, self.rng, self.cfg, all_businesses, seeded_users
+            )
             # Load all reports (including onboarding shells) for enrichment
             all_reports = self._load_all_reports(db, client_records)
 
             contacts_seeded = contacts_builder.create_authority_contacts(
                 db, self.rng, self.cfg, client_records, all_businesses
             )
-            contacts_builder.create_correspondence(db, self.rng, all_businesses, seeded_users, contacts_seeded)
+            contacts_builder.create_correspondence(
+                db, self.rng, all_businesses, seeded_users, contacts_seeded
+            )
 
             reports_builder.create_annual_report_details(db, self.rng, all_reports)
             reports_builder.create_annual_report_income_lines(db, self.rng, all_reports)
-            reports_builder.create_annual_report_schedule_entries(db, self.rng, all_reports, seeded_users)
+            reports_builder.create_annual_report_schedule_entries(
+                db, self.rng, all_reports, seeded_users
+            )
             reports_builder.create_annual_report_annex_data(db, self.rng, all_reports)
-            reports_builder.create_annual_report_credit_points(db, self.rng, all_reports)
-            reports_builder.create_annual_report_status_history(db, self.rng, all_reports, seeded_users)
+            reports_builder.create_annual_report_credit_points(
+                db, self.rng, all_reports
+            )
+            reports_builder.create_annual_report_status_history(
+                db, self.rng, all_reports, seeded_users
+            )
 
-            seeded_documents = documents_builder.create_documents(db, self.rng, client_records, all_businesses, seeded_users)
-            reports_builder.create_annual_report_expense_lines(db, self.rng, all_reports, seeded_documents)
+            seeded_documents = documents_builder.create_documents(
+                db, self.rng, client_records, all_businesses, seeded_users
+            )
+            reports_builder.create_annual_report_expense_lines(
+                db, self.rng, all_reports, seeded_documents
+            )
 
             binders_builder.create_binder_intake_materials(
                 db, self.rng, demo_binders, all_businesses, all_reports, binder_intakes
             )
             binders_builder.create_binder_logs(db, self.rng, demo_binders, seeded_users)
-            binders_builder.create_binder_handovers(db, self.rng, demo_binders, seeded_users)
-            binders_builder.create_binder_intake_edit_logs(db, self.rng, binder_intakes, seeded_users)
+            binders_builder.create_binder_handovers(
+                db, self.rng, demo_binders, seeded_users
+            )
+            binders_builder.create_binder_intake_edit_logs(
+                db, self.rng, binder_intakes, seeded_users
+            )
 
-            users_builder.create_entity_audit_logs(db, self.rng, seeded_users, all_businesses, client_records)
+            users_builder.create_entity_audit_logs(
+                db, self.rng, seeded_users, all_businesses, client_records
+            )
 
             notifications_builder.create_notifications(
                 db, self.rng, client_records, all_businesses, all_binders, seeded_users
@@ -167,15 +200,26 @@ class SeedOrchestrator:
             vat_work_items = vat_builder.create_vat_work_items(
                 db, self.rng, self.cfg, all_businesses, seeded_users
             )
-            vat_builder.create_vat_invoices(db, self.rng, self.cfg, vat_work_items, seeded_users)
-            vat_builder.create_vat_audit_logs(db, self.rng, vat_work_items, seeded_users)
+            vat_builder.create_vat_invoices(
+                db, self.rng, self.cfg, vat_work_items, seeded_users
+            )
+            vat_builder.create_vat_audit_logs(
+                db, self.rng, vat_work_items, seeded_users
+            )
 
             reminders_builder.create_reminders(
                 db, self.rng, all_businesses, all_binders, seeded_charges, []
             )
 
             sig_requests = sig_builder.create_signature_requests(
-                db, self.rng, self.cfg, all_businesses, client_records, seeded_users, all_reports, seeded_documents
+                db,
+                self.rng,
+                self.cfg,
+                all_businesses,
+                client_records,
+                seeded_users,
+                all_reports,
+                seeded_documents,
             )
             sig_builder.create_signature_audit_events(db, self.rng, sig_requests)
 
@@ -218,6 +262,7 @@ class SeedOrchestrator:
 
     def _load_all_binders(self, db, client_records):
         from app.binders.models.binder import Binder
+
         client_ids = [cr.id for cr in client_records]
         binders = (
             db.execute(
@@ -237,6 +282,7 @@ class SeedOrchestrator:
 
     def _load_all_reports(self, db, client_records):
         from app.annual_reports.models.annual_report_model import AnnualReport
+
         client_ids = [cr.id for cr in client_records]
         reports = (
             db.execute(
@@ -256,6 +302,8 @@ class SeedOrchestrator:
     def _print_counts(self, db) -> None:
         print("Seeding completed. Row counts:")
         for table in Base.metadata.sorted_tables:
-            count = int(db.execute(select(func.count()).select_from(table)).scalar_one())
+            count = int(
+                db.execute(select(func.count()).select_from(table)).scalar_one()
+            )
             if count > 0:
                 print(f"  {table.name}: {count}")

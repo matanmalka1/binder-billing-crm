@@ -30,10 +30,14 @@ def _create_business_row(
 
 def test_create_business_rejects_duplicate_name_for_client(test_db):
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10)
+    )
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
-        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [SimpleNamespace(business_name="Dup Name")]
+        list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [
+            SimpleNamespace(business_name="Dup Name")
+        ],
     )
 
     with pytest.raises(ConflictError) as exc:
@@ -54,7 +58,9 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
         return SimpleNamespace(id=12, **kwargs)
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10)
+    )
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
         list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
@@ -71,7 +77,9 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
 
 
 def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
-    client = seed_client_identity(test_db, full_name="Service Client", id_number="BSRV001")
+    client = seed_client_identity(
+        test_db, full_name="Service Client", id_number="BSRV001"
+    )
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -87,7 +95,9 @@ def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
 
 
 def test_update_business_sets_closed_at_for_close_action(test_db):
-    client = seed_client_identity(test_db, full_name="Service Client", id_number="BSRV002")
+    client = seed_client_identity(
+        test_db, full_name="Service Client", id_number="BSRV002"
+    )
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 

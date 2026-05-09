@@ -40,6 +40,7 @@ def _draft_charge(db, business):
 
 # ── Code-path verification ────────────────────────────────────────────────────
 
+
 def test_issue_charge_uses_locked_fetch(test_db, monkeypatch):
     business = _business(test_db)
     charge = _draft_charge(test_db, business)
@@ -48,7 +49,8 @@ def test_issue_charge_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.charge_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.charge_repo, "get_by_id_for_update",
+        svc.charge_repo,
+        "get_by_id_for_update",
         lambda cid: calls.append(cid) or original(cid),
     )
 
@@ -66,7 +68,8 @@ def test_mark_charge_paid_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.charge_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.charge_repo, "get_by_id_for_update",
+        svc.charge_repo,
+        "get_by_id_for_update",
         lambda cid: calls.append(cid) or original(cid),
     )
 
@@ -82,7 +85,8 @@ def test_cancel_charge_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.charge_repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.charge_repo, "get_by_id_for_update",
+        svc.charge_repo,
+        "get_by_id_for_update",
         lambda cid: calls.append(cid) or original(cid),
     )
 
@@ -91,6 +95,7 @@ def test_cancel_charge_uses_locked_fetch(test_db, monkeypatch):
 
 
 # ── Invalid-state guard (sequential simulation of stale read) ─────────────────
+
 
 def test_issue_charge_already_issued_raises(test_db):
     """Second issue on an already-ISSUED charge must fail — simulates the guard

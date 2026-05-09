@@ -8,7 +8,9 @@ from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 
 
-def _make_rule(test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15) -> DeadlineRule:
+def _make_rule(
+    test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15
+) -> DeadlineRule:
     rule = DeadlineRule(
         rule_type=rule_type,
         due_day_of_month=due_day_of_month,
@@ -44,8 +46,11 @@ def _make_entry(
 def test_create_valid_periodic_vat_entry(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     test_db.commit()
@@ -55,8 +60,11 @@ def test_create_valid_periodic_vat_entry(test_db):
 def test_create_valid_annual_entry(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=None, tax_year=2025,
+        rule=rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add(entry)
@@ -67,8 +75,11 @@ def test_create_valid_annual_entry(test_db):
 def test_vat_with_null_period_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period=None, period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period=None,
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises((ValueError, IntegrityError)):
@@ -79,8 +90,11 @@ def test_vat_with_null_period_rejected(test_db):
 def test_advance_payment_with_null_period_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ADVANCE_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.ADVANCE_PAYMENT,
-        period=None, period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.ADVANCE_PAYMENT,
+        period=None,
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises((ValueError, IntegrityError)):
@@ -91,21 +105,29 @@ def test_advance_payment_with_null_period_rejected(test_db):
 def test_national_insurance_with_null_period_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.NATIONAL_INSURANCE,
-        period=None, period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.NATIONAL_INSURANCE,
+        period=None,
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises((ValueError, IntegrityError)) as exc:
         test_db.commit()
     test_db.rollback()
-    assert "NATIONAL_INSURANCE" in str(exc.value) or "national_insurance" in str(exc.value)
+    assert "NATIONAL_INSURANCE" in str(exc.value) or "national_insurance" in str(
+        exc.value
+    )
 
 
 def test_national_insurance_even_with_period_is_unsupported(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.NATIONAL_INSURANCE,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.NATIONAL_INSURANCE,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises(ValueError) as exc:
@@ -117,8 +139,11 @@ def test_national_insurance_even_with_period_is_unsupported(test_db):
 def test_vat_with_null_months_count_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=None, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=None,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises((ValueError, IntegrityError)):
@@ -129,8 +154,11 @@ def test_vat_with_null_months_count_rejected(test_db):
 def test_advance_payment_with_null_months_count_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ADVANCE_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.ADVANCE_PAYMENT,
-        period="2026-04", period_months_count=None, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.ADVANCE_PAYMENT,
+        period="2026-04",
+        period_months_count=None,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises((ValueError, IntegrityError)):
@@ -141,8 +169,11 @@ def test_advance_payment_with_null_months_count_rejected(test_db):
 def test_annual_report_with_non_null_period_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period="2025-12", period_months_count=None, tax_year=2025,
+        rule=rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period="2025-12",
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add(entry)
@@ -154,8 +185,11 @@ def test_annual_report_with_non_null_period_rejected(test_db):
 def test_annual_report_with_non_null_months_count_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=1, tax_year=2025,
+        rule=rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=1,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add(entry)
@@ -164,7 +198,9 @@ def test_annual_report_with_non_null_months_count_rejected(test_db):
     test_db.rollback()
 
 
-@pytest.mark.parametrize("bad_period", ["2026-13", "26-05", "2026/05", "2026-1", "abcd-ef"])
+@pytest.mark.parametrize(
+    "bad_period", ["2026-13", "26-05", "2026/05", "2026-1", "abcd-ef"]
+)
 def test_invalid_period_format_rejected(test_db, bad_period):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     with pytest.raises(ValueError):
@@ -195,8 +231,11 @@ def test_invalid_months_count_rejected_at_assignment(test_db, bad_count):
 def test_period_year_must_match_tax_year(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period="2026-12", period_months_count=1, tax_year=2027,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-12",
+        period_months_count=1,
+        tax_year=2027,
     )
     test_db.add(entry)
     with pytest.raises(ValueError) as exc:
@@ -208,15 +247,21 @@ def test_period_year_must_match_tax_year(test_db):
 def test_duplicate_periodic_entry_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     e1 = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(e1)
     test_db.commit()
 
     e2 = _make_entry(
-        rule=rule, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
         due_date=date(2026, 5, 19),
     )
     test_db.add(e2)
@@ -228,16 +273,22 @@ def test_duplicate_periodic_entry_rejected(test_db):
 def test_duplicate_annual_entry_rejected(test_db):
     rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
     e1 = _make_entry(
-        rule=rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=None, tax_year=2025,
+        rule=rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add(e1)
     test_db.commit()
 
     e2 = _make_entry(
-        rule=rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=None, tax_year=2025,
+        rule=rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 5, 31),
     )
     test_db.add(e2)
@@ -251,15 +302,21 @@ def test_periodic_unique_does_not_block_different_months_count(test_db):
     rule_b = _make_rule(test_db, DeadlineRuleType.VAT_BIMONTHLY)
 
     e1 = _make_entry(
-        rule=rule_m, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=rule_m,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(e1)
     test_db.commit()
 
     e2 = _make_entry(
-        rule=rule_b, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=2, tax_year=2026,
+        rule=rule_b,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=2,
+        tax_year=2026,
     )
     test_db.add(e2)
     test_db.commit()
@@ -269,8 +326,11 @@ def test_periodic_unique_does_not_block_different_months_count(test_db):
 def test_rule_compatibility_vat_rejects_advance_rule(test_db):
     bad_rule = _make_rule(test_db, DeadlineRuleType.ADVANCE_MONTHLY)
     entry = _make_entry(
-        rule=bad_rule, obligation_type=ObligationType.VAT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=bad_rule,
+        obligation_type=ObligationType.VAT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises(ValueError) as exc:
@@ -282,8 +342,11 @@ def test_rule_compatibility_vat_rejects_advance_rule(test_db):
 def test_rule_compatibility_advance_rejects_vat_rule(test_db):
     bad_rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=bad_rule, obligation_type=ObligationType.ADVANCE_PAYMENT,
-        period="2026-04", period_months_count=1, tax_year=2026,
+        rule=bad_rule,
+        obligation_type=ObligationType.ADVANCE_PAYMENT,
+        period="2026-04",
+        period_months_count=1,
+        tax_year=2026,
     )
     test_db.add(entry)
     with pytest.raises(ValueError) as exc:
@@ -295,8 +358,11 @@ def test_rule_compatibility_advance_rejects_vat_rule(test_db):
 def test_rule_compatibility_annual_rejects_periodic_rule(test_db):
     bad_rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     entry = _make_entry(
-        rule=bad_rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=None, tax_year=2025,
+        rule=bad_rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add(entry)
@@ -308,15 +374,23 @@ def test_rule_compatibility_annual_rejects_periodic_rule(test_db):
 
 def test_periodic_unique_does_not_block_annual_with_same_tax_year(test_db):
     vat_rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
-    annual_rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
+    annual_rule = _make_rule(
+        test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30
+    )
 
     periodic = _make_entry(
-        rule=vat_rule, obligation_type=ObligationType.VAT,
-        period="2025-12", period_months_count=1, tax_year=2025,
+        rule=vat_rule,
+        obligation_type=ObligationType.VAT,
+        period="2025-12",
+        period_months_count=1,
+        tax_year=2025,
     )
     annual = _make_entry(
-        rule=annual_rule, obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None, period_months_count=None, tax_year=2025,
+        rule=annual_rule,
+        obligation_type=ObligationType.ANNUAL_REPORT,
+        period=None,
+        period_months_count=None,
+        tax_year=2025,
         due_date=date(2026, 4, 30),
     )
     test_db.add_all([periodic, annual])

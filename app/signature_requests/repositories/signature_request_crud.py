@@ -20,7 +20,7 @@ class SignatureRequestCrudMixin:
         request_type: SignatureRequestType,
         title: str,
         signer_name: str,
-        business_id: Optional[int] = None,       # OPTIONAL context
+        business_id: Optional[int] = None,  # OPTIONAL context
         description: Optional[str] = None,
         signer_email: Optional[str] = None,
         signer_phone: Optional[str] = None,
@@ -52,14 +52,19 @@ class SignatureRequestCrudMixin:
     def get_by_id(self, request_id: int) -> Optional[SignatureRequest]:
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None))
+            .filter(
+                SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None)
+            )
             .first()
         )
 
     def get_by_token(self, token: str) -> Optional[SignatureRequest]:
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.signing_token == token, SignatureRequest.deleted_at.is_(None))
+            .filter(
+                SignatureRequest.signing_token == token,
+                SignatureRequest.deleted_at.is_(None),
+            )
             .first()
         )
 
@@ -67,7 +72,9 @@ class SignatureRequestCrudMixin:
         """Fetch with a row-level lock for status transitions."""
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None))
+            .filter(
+                SignatureRequest.id == request_id, SignatureRequest.deleted_at.is_(None)
+            )
             .with_for_update()
             .first()
         )
@@ -76,7 +83,10 @@ class SignatureRequestCrudMixin:
         """Fetch by signing token with a row-level lock for signer actions."""
         return (
             self.db.query(SignatureRequest)
-            .filter(SignatureRequest.signing_token == token, SignatureRequest.deleted_at.is_(None))
+            .filter(
+                SignatureRequest.signing_token == token,
+                SignatureRequest.deleted_at.is_(None),
+            )
             .with_for_update()
             .first()
         )
@@ -156,7 +166,9 @@ class SignatureRequestCrudMixin:
 
     # ── Pending (global advisor view) ─────────────────────────────────────────
 
-    def list_pending(self, page: int = 1, page_size: int = 20) -> list[SignatureRequest]:
+    def list_pending(
+        self, page: int = 1, page_size: int = 20
+    ) -> list[SignatureRequest]:
         offset = (page - 1) * page_size
         return (
             self.db.query(SignatureRequest)
@@ -200,7 +212,9 @@ class SignatureRequestCrudMixin:
         self.db.flush()
         return entity
 
-    def list_pending_by_annual_report(self, annual_report_id: int) -> list[SignatureRequest]:
+    def list_pending_by_annual_report(
+        self, annual_report_id: int
+    ) -> list[SignatureRequest]:
         """Return all PENDING_SIGNATURE requests linked to the given annual report."""
         return (
             self.db.query(SignatureRequest)

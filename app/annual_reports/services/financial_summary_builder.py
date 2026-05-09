@@ -21,5 +21,7 @@ def build_financial_summary(service, report_id: int) -> FinancialSummaryResponse
         recognized_expenses=float(recognized_expenses),
         taxable_income=float(total_income - recognized_expenses),
         income_lines=[IncomeLineResponse.model_validate(line) for line in income_lines],
-        expense_lines=[ExpenseLineResponse.model_validate(line) for line in expense_lines],
+        expense_lines=[
+            ExpenseLineResponse.model_validate(line) for line in expense_lines
+        ],
     )

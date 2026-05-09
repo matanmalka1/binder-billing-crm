@@ -8,7 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
 from app.common.repositories.base_repository import BaseRepository
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
     advance_payment_status_text_expr,
@@ -55,11 +58,15 @@ class AdvancePaymentRepository(BaseRepository):
     def get_by_id(self, payment_id: int) -> Optional[AdvancePayment]:
         return (
             self.db.query(AdvancePayment)
-            .filter(AdvancePayment.id == payment_id, AdvancePayment.deleted_at.is_(None))
+            .filter(
+                AdvancePayment.id == payment_id, AdvancePayment.deleted_at.is_(None)
+            )
             .first()
         )
 
-    def get_by_id_for_client_record(self, payment_id: int, client_record_id: int) -> Optional[AdvancePayment]:
+    def get_by_id_for_client_record(
+        self, payment_id: int, client_record_id: int
+    ) -> Optional[AdvancePayment]:
         return (
             self.db.query(AdvancePayment)
             .filter(
@@ -105,7 +112,9 @@ class AdvancePaymentRepository(BaseRepository):
             .exists()
         ).scalar()
 
-    def get_by_period(self, client_record_id: int, period: str) -> Optional[AdvancePayment]:
+    def get_by_period(
+        self, client_record_id: int, period: str
+    ) -> Optional[AdvancePayment]:
         return (
             self.db.query(AdvancePayment)
             .filter(

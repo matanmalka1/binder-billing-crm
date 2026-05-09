@@ -2,7 +2,10 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.clients.create_policy import derive_id_number_type, preview_vat_reporting_frequency
+from app.clients.create_policy import (
+    derive_id_number_type,
+    preview_vat_reporting_frequency,
+)
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.enums import ClientStatus
@@ -37,6 +40,7 @@ router = APIRouter(
 
 
 # ─── Create ───────────────────────────────────────────────────────────────────
+
 
 @router.post(
     "/preview-impact",
@@ -124,6 +128,7 @@ def create_client(
 
 # ─── Read ─────────────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=ClientRecordListResponse)
 def list_clients(
     db: DBSession,
@@ -132,7 +137,10 @@ def list_clients(
     entity_type: Optional[EntityType] = Query(None),
     accountant_id: Optional[int] = Query(None, ge=1),
     tax_year: Optional[int] = Query(None, ge=2000, le=2100),
-    sort_by: str = Query("official_name", pattern="^(official_name|full_name|created_at|status|entity_type)$"),
+    sort_by: str = Query(
+        "official_name",
+        pattern="^(official_name|full_name|created_at|status|entity_type)$",
+    ),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -174,12 +182,17 @@ def get_conflict_info(
     info = service.get_conflict_info(id_number)
     return ClientConflictInfo(
         id_number=id_number,
-        active_clients=[ActiveClientSummary.model_validate(c) for c in info["active_clients"]],
-        deleted_clients=[DeletedClientSummary.model_validate(c) for c in info["deleted_clients"]],
+        active_clients=[
+            ActiveClientSummary.model_validate(c) for c in info["active_clients"]
+        ],
+        deleted_clients=[
+            DeletedClientSummary.model_validate(c) for c in info["deleted_clients"]
+        ],
     )
 
 
 # ─── Update ───────────────────────────────────────────────────────────────────
+
 
 @router.patch("/{client_id}", response_model=ClientRecordResponse)
 def update_client(
@@ -200,6 +213,7 @@ def update_client(
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
+
 
 @router.delete(
     "/{client_id}",

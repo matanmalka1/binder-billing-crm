@@ -8,7 +8,9 @@ _client_seq = count(1)
 
 
 def _create_report(db):
-    client = seed_client_identity(db, full_name="Financial Client", id_number=f"56565656{next(_client_seq)}")
+    client = seed_client_identity(
+        db, full_name="Financial Client", id_number=f"56565656{next(_client_seq)}"
+    )
 
     svc = AnnualReportService(db)
     return svc.create_report(

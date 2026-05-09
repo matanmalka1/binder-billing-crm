@@ -149,7 +149,12 @@ def test_notification_repository_exists_for_binder_trigger(test_db):
     repo = NotificationRepository(test_db)
     business = _business(test_db, "4")
 
-    assert repo.exists_for_binder_trigger(binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED) is False
+    assert (
+        repo.exists_for_binder_trigger(
+            binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED
+        )
+        is False
+    )
 
     repo.create(
         client_record_id=_client_record_id(test_db, business),
@@ -161,5 +166,15 @@ def test_notification_repository_exists_for_binder_trigger(test_db):
         content_snapshot="binder received",
     )
 
-    assert repo.exists_for_binder_trigger(binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED) is True
-    assert repo.exists_for_binder_trigger(binder_id=77, trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP) is False
+    assert (
+        repo.exists_for_binder_trigger(
+            binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED
+        )
+        is True
+    )
+    assert (
+        repo.exists_for_binder_trigger(
+            binder_id=77, trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP
+        )
+        is False
+    )

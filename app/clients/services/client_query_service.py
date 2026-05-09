@@ -12,7 +12,10 @@ from app.clients.repositories.client_record_read_repository import (
     get_full_records_bulk,
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_repository import ClientRecordView, ClientRepository
+from app.clients.repositories.client_repository import (
+    ClientRecordView,
+    ClientRepository,
+)
 from app.clients.schemas.client import ClientListStats
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
@@ -79,15 +82,21 @@ class ClientQueryService:
     ) -> ClientRecordResponse:
         data = get_full_record(self.db, client_record_id)
         if not data:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
+            )
         return ClientEnrichmentService(self.db).enrich_single(
             ClientRecordResponse(**data), tax_year=tax_year
         )
 
-    def get_full_client_including_deleted(self, client_record_id: int) -> ClientRecordResponse:
+    def get_full_client_including_deleted(
+        self, client_record_id: int
+    ) -> ClientRecordResponse:
         data = get_full_record_including_deleted(self.db, client_record_id)
         if not data:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
+            )
         return ClientRecordResponse(**data)
 
     def list_full_clients(
@@ -113,11 +122,18 @@ class ClientQueryService:
             page_size=page_size,
         )
         total = self.record_repo.count(
-            search=search, status=status, accountant_id=accountant_id, entity_type=entity_type
+            search=search,
+            status=status,
+            accountant_id=accountant_id,
+            entity_type=entity_type,
         )
         record_ids = [r.id for r in records]
         full_map = get_full_records_bulk(self.db, record_ids)
-        items = [ClientRecordResponse(**full_map[rid]) for rid in record_ids if rid in full_map]
+        items = [
+            ClientRecordResponse(**full_map[rid])
+            for rid in record_ids
+            if rid in full_map
+        ]
         items = ClientEnrichmentService(self.db).enrich_list(items, tax_year=tax_year)
         counts = self.record_repo.count_by_status()
         stats = ClientRecordListStats(

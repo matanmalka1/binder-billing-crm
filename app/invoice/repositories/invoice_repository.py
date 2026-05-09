@@ -48,9 +48,4 @@ class InvoiceRepository:
 
     def exists_for_charge(self, charge_id: int) -> bool:
         """Check if invoice exists for charge."""
-        return (
-            self.db.query(Invoice)
-            .filter(Invoice.charge_id == charge_id)
-            .count()
-            > 0
-        )
+        return self.db.query(Invoice).filter(Invoice.charge_id == charge_id).count() > 0

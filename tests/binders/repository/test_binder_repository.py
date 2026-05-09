@@ -48,7 +48,9 @@ def test_active_queries_and_soft_delete(test_db):
         period_start=date(2024, 3, 2),
         created_by=user.id,
     )
-    repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
+    repo.update_status(
+        binder_returned.id, BinderStatus.RETURNED, binder=binder_returned
+    )
 
     _binder_other = repo.create(
         client_record_id=client_b.id,

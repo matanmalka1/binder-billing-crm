@@ -36,18 +36,47 @@ class FinancialTaxMixin:
         report = self._get_report_or_raise(report_id)
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
-        credit_points = float(self.credit_point_repo.total_points_by_report_id(report_id))
-        pension_deduction = float(detail.pension_contribution) if (detail and detail.pension_contribution is not None) else 0.0
-        donation_amount = float(detail.donation_amount) if (detail and detail.donation_amount is not None) else 0.0
-        other_credits = float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
+        credit_points = float(
+            self.credit_point_repo.total_points_by_report_id(report_id)
+        )
+        pension_deduction = (
+            float(detail.pension_contribution)
+            if (detail and detail.pension_contribution is not None)
+            else 0.0
+        )
+        donation_amount = (
+            float(detail.donation_amount)
+            if (detail and detail.donation_amount is not None)
+            else 0.0
+        )
+        other_credits = (
+            float(detail.other_credits)
+            if (detail and detail.other_credits is not None)
+            else 0.0
+        )
 
-        tax = calculate_tax(summary.taxable_income, report.tax_year, credit_points, pension_deduction, donation_amount, other_credits)
-        ni = calculate_national_insurance(summary.taxable_income, report.tax_year, report.client_type)
+        tax = calculate_tax(
+            summary.taxable_income,
+            report.tax_year,
+            credit_points,
+            pension_deduction,
+            donation_amount,
+            other_credits,
+        )
+        ni = calculate_national_insurance(
+            summary.taxable_income, report.tax_year, report.client_type
+        )
         net_profit = tax.taxable_income - tax.tax_after_credits
-        vat_balance = self.vat_repo.sum_net_vat_by_client_record_year(report.client_record_id, report.tax_year)
-        advances_paid = self.advance_repo.sum_paid_by_client_year(report.client_record_id, report.tax_year)  # type: ignore[attr-defined]
+        vat_balance = self.vat_repo.sum_net_vat_by_client_record_year(
+            report.client_record_id, report.tax_year
+        )
+        advances_paid = self.advance_repo.sum_paid_by_client_year(
+            report.client_record_id, report.tax_year
+        )  # type: ignore[attr-defined]
 
-        total_liability = round(tax.tax_after_credits + ni.total + (vat_balance or 0) - advances_paid, 2)
+        total_liability = round(
+            tax.tax_after_credits + ni.total + (vat_balance or 0) - advances_paid, 2
+        )
         return TaxCalculationResponse(
             taxable_income=tax.taxable_income,
             pension_deduction=tax.pension_deduction,
@@ -88,8 +117,12 @@ class FinancialTaxMixin:
             incomplete = [s for s in required if not s.is_complete]
             if incomplete:
                 for schedule in incomplete:
-                    label = self._SCHEDULE_LABELS.get(schedule.schedule.value, schedule.schedule.value)
-                    issues.append(INCOMPLETE_REQUIRED_SCHEDULE_ISSUE.format(label=label))
+                    label = self._SCHEDULE_LABELS.get(
+                        schedule.schedule.value, schedule.schedule.value
+                    )
+                    issues.append(
+                        INCOMPLETE_REQUIRED_SCHEDULE_ISSUE.format(label=label)
+                    )
             else:
                 passed += 1
         else:
@@ -121,7 +154,6 @@ class FinancialTaxMixin:
             completion_pct=completion_pct,
         )
 
-
     def save_tax_calculation(
         self,
         report_id: int,
@@ -135,7 +167,9 @@ class FinancialTaxMixin:
                 "ANNUAL_REPORT.TAX_CONFLICT",
             )
         report = self._get_report_or_raise(report_id)
-        updated = self.report_repo.update(report.id, tax_due=tax_due, refund_due=refund_due)
+        updated = self.report_repo.update(
+            report.id, tax_due=tax_due, refund_due=refund_due
+        )
         return TaxCalculationSaveResponse(
             annual_report_id=report_id,
             tax_due=updated.tax_due,
@@ -145,8 +179,13 @@ class FinancialTaxMixin:
 
     def invalidate_tax_if_open(self, client_record_id: int, tax_year: int) -> None:
         """Clear saved tax_due / refund_due when advances change before submission."""
-        from app.clients.repositories.client_record_repository import ClientRecordRepository
-        client_record = ClientRecordRepository(self.report_repo.db).get_by_id(client_record_id)
+        from app.clients.repositories.client_record_repository import (
+            ClientRecordRepository,
+        )
+
+        client_record = ClientRecordRepository(self.report_repo.db).get_by_id(
+            client_record_id
+        )
         if not client_record:
             return
         report = self.report_repo.get_by_client_record_year(client_record.id, tax_year)

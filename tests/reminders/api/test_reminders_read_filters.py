@@ -33,7 +33,9 @@ def _business(db, crm_client: SeededClient, user_id: int):
     return business
 
 
-def test_list_reminders_filters_by_business_and_status(client, test_db, advisor_headers, test_user):
+def test_list_reminders_filters_by_business_and_status(
+    client, test_db, advisor_headers, test_user
+):
     crm_client = _client(test_db)
     other_client = _client(test_db)
     business = _business(test_db, crm_client, test_user.id)
@@ -93,7 +95,6 @@ def test_invalid_status_filter_returns_400(client, advisor_headers):
     resp = client.get("/api/v1/reminders?status=unknown", headers=advisor_headers)
     assert resp.status_code == 400
     assert resp.json()["error"] == "REMINDER.INVALID_STATUS"
-
 
 
 def test_get_reminder_not_found_returns_404(client, advisor_headers):

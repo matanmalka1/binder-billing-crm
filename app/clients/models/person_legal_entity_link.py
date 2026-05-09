@@ -22,14 +22,22 @@ class PersonLegalEntityLink(Base):
 
     person_id = Column(Integer, ForeignKey("persons.id"), nullable=False)
     legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False)
-    role = Column(pg_enum(PersonLegalEntityRole), nullable=False, default=PersonLegalEntityRole.OWNER)
+    role = Column(
+        pg_enum(PersonLegalEntityRole),
+        nullable=False,
+        default=PersonLegalEntityRole.OWNER,
+    )
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
 
-    person = relationship("Person", foreign_keys=[person_id], lazy="select", viewonly=True)
+    person = relationship(
+        "Person", foreign_keys=[person_id], lazy="select", viewonly=True
+    )
 
     __table_args__ = (
-        UniqueConstraint("person_id", "legal_entity_id", "role", name="uq_person_legal_entity_role"),
+        UniqueConstraint(
+            "person_id", "legal_entity_id", "role", name="uq_person_legal_entity_role"
+        ),
         Index("ix_person_legal_entity_links_legal_entity_id", "legal_entity_id"),
     )
 

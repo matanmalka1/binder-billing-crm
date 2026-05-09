@@ -2,7 +2,15 @@
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, Numeric, String
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+)
 from app.utils.enum_utils import pg_enum
 
 from app.database import Base
@@ -10,15 +18,16 @@ from app.utils.time_utils import utcnow
 
 
 class IncomeSourceType(str, PyEnum):
-    BUSINESS = "business"           # הכנסות עסק / עצמאי
-    SALARY = "salary"               # משכורת / שכר עבודה
-    INTEREST = "interest"           # ריבית
-    DIVIDENDS = "dividends"         # דיבידנד
-    CAPITAL_GAINS = "capital_gains" # רווחי הון
-    RENTAL = "rental"               # שכירות
-    FOREIGN = "foreign"             # הכנסות מחו"ל
-    PENSION = "pension"             # פנסיה / קצבה
-    OTHER = "other"                 # אחר
+    BUSINESS = "business"  # הכנסות עסק / עצמאי
+    SALARY = "salary"  # משכורת / שכר עבודה
+    INTEREST = "interest"  # ריבית
+    DIVIDENDS = "dividends"  # דיבידנד
+    CAPITAL_GAINS = "capital_gains"  # רווחי הון
+    RENTAL = "rental"  # שכירות
+    FOREIGN = "foreign"  # הכנסות מחו"ל
+    PENSION = "pension"  # פנסיה / קצבה
+    OTHER = "other"  # אחר
+
 
 class AnnualReportIncomeLine(Base):
     """
@@ -29,12 +38,17 @@ class AnnualReportIncomeLine(Base):
 
     __tablename__ = "annual_report_income_lines"
     __table_args__ = (
-        CheckConstraint("amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"),
+        CheckConstraint(
+            "amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("annual_reports.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     source_type = Column(pg_enum(IncomeSourceType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)

@@ -56,13 +56,17 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     service = VatReportService(test_db)
     now = datetime.now(UTC)
 
-    older = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    older = create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
-    newer = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    newer = create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
@@ -73,8 +77,12 @@ def test_list_all_work_items_and_get_audit_trail(test_db):
     assert total == 2
     assert [item.id for item in items] == [newer.id]
 
-    late = service.work_item_repo.append_audit(work_item_id=older.id, performed_by=user.id, action="late")
-    early = service.work_item_repo.append_audit(work_item_id=older.id, performed_by=user.id, action="early")
+    late = service.work_item_repo.append_audit(
+        work_item_id=older.id, performed_by=user.id, action="late"
+    )
+    early = service.work_item_repo.append_audit(
+        work_item_id=older.id, performed_by=user.id, action="early"
+    )
     late.performed_at = now + timedelta(minutes=1)
     early.performed_at = now - timedelta(minutes=1)
     test_db.commit()
@@ -98,20 +106,26 @@ def test_list_work_items_filters_by_period_type(test_db):
     test_db.commit()
 
     service = VatReportService(test_db)
-    monthly = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    monthly = create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=monthly_client_id,
         period="2026-02",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
-    create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=client_record.id,
         period="2026-02",
         period_type=VatType.BIMONTHLY,
         created_by=user.id,
     )
 
-    items, total = service.list_all_work_items(period="2026-02", period_type=VatType.MONTHLY)
+    items, total = service.list_all_work_items(
+        period="2026-02", period_type=VatType.MONTHLY
+    )
 
     assert total == 1
     assert items[0].id == monthly.id

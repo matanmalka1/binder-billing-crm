@@ -24,7 +24,9 @@ def _client_and_business(db, suffix: str):
     return client, business
 
 
-def _charge(db, client_record_id: int, business_id: int, amount: str, issued_days_ago: int):
+def _charge(
+    db, client_record_id: int, business_id: int, amount: str, issued_days_ago: int
+):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
         client_record_id=client_record_id,
@@ -113,7 +115,12 @@ def test_export_service_excel_import_error(monkeypatch):
 
     with pytest.raises(ImportError):
         export_excel.export_aging_report_to_excel(
-            {"report_date": date.today(), "items": [], "summary": {}, "total_outstanding": 0},
+            {
+                "report_date": date.today(),
+                "items": [],
+                "summary": {},
+                "total_outstanding": 0,
+            },
             "/tmp",
         )
 
@@ -133,7 +140,12 @@ def test_export_service_pdf_import_error(monkeypatch):
 
     with pytest.raises(ImportError):
         export_pdf.export_aging_report_to_pdf(
-            {"report_date": date.today(), "items": [], "summary": {}, "total_outstanding": 0},
+            {
+                "report_date": date.today(),
+                "items": [],
+                "summary": {},
+                "total_outstanding": 0,
+            },
             "/tmp",
         )
 
@@ -151,10 +163,14 @@ def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):
         ]
     )
     service.client_record_repo = SimpleNamespace(
-        list_by_ids=lambda ids: [SimpleNamespace(id=7, legal_entity_id=70, office_client_number=1234)]
+        list_by_ids=lambda ids: [
+            SimpleNamespace(id=7, legal_entity_id=70, office_client_number=1234)
+        ]
     )
     service.legal_entity_repo = SimpleNamespace(
-        get_by_id=lambda legal_id: SimpleNamespace(id=legal_id, official_name="Advance Client")
+        get_by_id=lambda legal_id: SimpleNamespace(
+            id=legal_id, official_name="Advance Client"
+        )
     )
 
     report = service.get_collections_report(year=2026, month=3)

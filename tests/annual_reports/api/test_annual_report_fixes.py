@@ -1,4 +1,3 @@
-
 from tests.helpers.identity import seed_client_identity
 
 
@@ -6,7 +5,9 @@ def _create_client(db, id_number: str = "AR_FIX_001"):
     return seed_client_identity(db, full_name="Annual Fix Client", id_number=id_number)
 
 
-def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor_headers):
+def test_create_report_invalid_assigned_to_raises_error(
+    client, test_db, advisor_headers
+):
     """assigned_to with non-existent user ID must return 400."""
     c = _create_client(test_db, "AR_ASSIGN_001")
 
@@ -26,7 +27,9 @@ def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor
     assert response.json()["error"] == "USER.NOT_FOUND"
 
 
-def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_headers, test_user):
+def test_create_report_valid_assigned_to_succeeds(
+    client, test_db, advisor_headers, test_user
+):
     """assigned_to with an existing user ID must succeed."""
     c = _create_client(test_db, "AR_ASSIGN_002")
 
@@ -48,6 +51,7 @@ def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_heade
 
 
 # ── Sort tests ────────────────────────────────────────────────────────────────
+
 
 def _create_report(client, headers, db_client_id: int, tax_year: int):
     return client.post(
@@ -118,7 +122,10 @@ def test_list_reports_sort_by_tax_year_with_filter(client, test_db, advisor_head
     _create_report(client, advisor_headers, c.id, 2025)
     _create_report(client, advisor_headers, c2.id, 2025)
 
-    resp = client.get("/api/v1/annual-reports?tax_year=2025&sort_by=client_record_id&order=asc", headers=advisor_headers)
+    resp = client.get(
+        "/api/v1/annual-reports?tax_year=2025&sort_by=client_record_id&order=asc",
+        headers=advisor_headers,
+    )
     assert resp.status_code == 200
     items = resp.json()["items"]
     assert all(item["tax_year"] == 2025 for item in items)

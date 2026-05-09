@@ -2,12 +2,17 @@ from datetime import date
 
 import pytest
 
-from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType, PrimaryAnnualReportForm
+from app.annual_reports.models.annual_report_enums import (
+    ClientAnnualFilingType,
+    PrimaryAnnualReportForm,
+)
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
-from app.binders.repositories.binder_intake_edit_log_repository import BinderIntakeEditLogRepository
+from app.binders.repositories.binder_intake_edit_log_repository import (
+    BinderIntakeEditLogRepository,
+)
 from app.binders.services.binder_intake_edit_service import BinderIntakeEditService
 from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client_record import ClientRecord
@@ -77,7 +82,13 @@ def _vat_work_item(db, client_id: int, period: str, created_by: int) -> VatWorkI
     return item
 
 
-def _binder(db, client_id: int, number: str, created_by: int, status: BinderStatus = BinderStatus.IN_OFFICE) -> Binder:
+def _binder(
+    db,
+    client_id: int,
+    number: str,
+    created_by: int,
+    status: BinderStatus = BinderStatus.IN_OFFICE,
+) -> Binder:
     binder = Binder(
         client_record_id=client_id,
         binder_number=number,
@@ -125,7 +136,9 @@ def _intake_with_material(
     return intake
 
 
-def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(test_db, test_user):
+def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
+    test_db, test_user
+):
     source_client = _client(test_db, "001", office_client_number=401)
     target_client = _client(test_db, "002", office_client_number=402)
 
@@ -175,7 +188,9 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(te
     }
 
 
-def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(test_db, test_user):
+def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(
+    test_db, test_user
+):
     source_client = _client(test_db, "003", office_client_number=403)
     target_client = _client(test_db, "004", office_client_number=404)
 

@@ -41,11 +41,15 @@ class AuthorityContactRepository(BaseRepository):
         """Retrieve contact by ID (excludes soft-deleted)."""
         return (
             self.db.query(AuthorityContact)
-            .filter(AuthorityContact.id == contact_id, AuthorityContact.deleted_at.is_(None))
+            .filter(
+                AuthorityContact.id == contact_id, AuthorityContact.deleted_at.is_(None)
+            )
             .first()
         )
 
-    def _base_query(self, client_record_id: int, contact_type: Optional[ContactType] = None) -> SAQuery:
+    def _base_query(
+        self, client_record_id: int, contact_type: Optional[ContactType] = None
+    ) -> SAQuery:
         query = self.db.query(AuthorityContact).filter(
             AuthorityContact.client_record_id == client_record_id,
             AuthorityContact.deleted_at.is_(None),
@@ -61,7 +65,9 @@ class AuthorityContactRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[AuthorityContact]:
-        query = self._base_query(client_record_id, contact_type).order_by(AuthorityContact.created_at.desc())
+        query = self._base_query(client_record_id, contact_type).order_by(
+            AuthorityContact.created_at.desc()
+        )
         return self._paginate(query, page, page_size)
 
     def count_by_client_record(

@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 _ONLINE_EXTENSION_DAYS = VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
 
 
-def deadline_fields_from_snapshot(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+def deadline_fields_from_snapshot(
+    item, submission_method: Optional[SubmissionMethod] = None
+) -> dict:
     """Compute deadline fields from stored due_date_effective (preferred path for linked items)."""
     statutory = item.due_date_original or item.due_date_effective
     extended = statutory + timedelta(days=_ONLINE_EXTENSION_DAYS)
@@ -35,7 +37,9 @@ def deadline_fields_from_snapshot(item, submission_method: Optional[SubmissionMe
     }
 
 
-def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+def compute_deadline_fields(
+    item, submission_method: Optional[SubmissionMethod] = None
+) -> dict:
     """Legacy fallback: reconstruct deadline from period string + hardcoded day constants.
 
     Only reached when tax_calendar_entry_id is None (pre-linking legacy rows).
@@ -43,7 +47,9 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
     """
     try:
         year, month = int(item.period[:4]), int(item.period[5:7])
-        months_in_period = 2 if getattr(item, "period_type", None) == VatType.BIMONTHLY else 1
+        months_in_period = (
+            2 if getattr(item, "period_type", None) == VatType.BIMONTHLY else 1
+        )
         end_month = month + months_in_period - 1
         due_month_raw = end_month + 1
         deadline_year = year + 1 if due_month_raw > 12 else year
@@ -73,7 +79,9 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
             "is_overdue": days < 0,
         }
     except (ValueError, TypeError) as exc:
-        logger.warning("Failed to compute deadline for period '%s': %s", item.period, exc)
+        logger.warning(
+            "Failed to compute deadline for period '%s': %s", item.period, exc
+        )
         return {
             "submission_deadline": None,
             "statutory_deadline": None,
@@ -83,7 +91,9 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
         }
 
 
-def get_vat_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
+def get_vat_deadline_fields(
+    item, submission_method: Optional[SubmissionMethod] = None
+) -> dict:
     """Unified public entry point: snapshot path when due_date_effective is set, legacy fallback otherwise."""
     if getattr(item, "due_date_effective", None) is not None:
         return deadline_fields_from_snapshot(item, submission_method)
@@ -97,8 +107,11 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     return item
 
 
-def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_id: int):
+def list_client_work_items(
+    work_item_repo: VatWorkItemRepository, client_record_id: int
+):
     return work_item_repo.list_by_client_record(client_record_id)
+
 
 def _resolve_client_ids_by_name(
     db,
@@ -119,6 +132,7 @@ def _resolve_client_ids_by_name(
         )
     return [record.id for record in client_records]
 
+
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
     status: VatWorkItemStatus,
@@ -131,19 +145,33 @@ def list_work_items_by_status(
     client_repo=None,
 ):
     search_source = db or getattr(client_repo, "db", None)
-    client_record_ids = _resolve_client_ids_by_name(search_source, client_name) if search_source else None
+    client_record_ids = (
+        _resolve_client_ids_by_name(search_source, client_name)
+        if search_source
+        else None
+    )
     if client_record_ids is None and client_name and client_repo is not None:
-        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
+        client_record_ids = [
+            record.id for record in client_repo.list(search=client_name)
+        ]
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_by_status(
-        status, page=page, page_size=page_size, period=period,
-        client_record_ids=client_record_ids, period_type=period_type,
+        status,
+        page=page,
+        page_size=page_size,
+        period=period,
+        client_record_ids=client_record_ids,
+        period_type=period_type,
     )
     total = work_item_repo.count_by_status(
-        status, period=period, client_record_ids=client_record_ids, period_type=period_type,
+        status,
+        period=period,
+        client_record_ids=client_record_ids,
+        period_type=period_type,
     )
     return items, total
+
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
@@ -156,19 +184,31 @@ def list_all_work_items(
     client_repo=None,
 ):
     search_source = db or getattr(client_repo, "db", None)
-    client_record_ids = _resolve_client_ids_by_name(search_source, client_name) if search_source else None
+    client_record_ids = (
+        _resolve_client_ids_by_name(search_source, client_name)
+        if search_source
+        else None
+    )
     if client_record_ids is None and client_name and client_repo is not None:
-        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
+        client_record_ids = [
+            record.id for record in client_repo.list(search=client_name)
+        ]
     if client_name and not client_record_ids:
         return [], 0
     items = work_item_repo.list_all(
-        page=page, page_size=page_size, period=period,
-        client_record_ids=client_record_ids, period_type=period_type,
+        page=page,
+        page_size=page_size,
+        period=period,
+        client_record_ids=client_record_ids,
+        period_type=period_type,
     )
     total = work_item_repo.count_all(
-        period=period, client_record_ids=client_record_ids, period_type=period_type,
+        period=period,
+        client_record_ids=client_record_ids,
+        period_type=period_type,
     )
     return items, total
+
 
 def list_invoices(
     invoice_repo: VatInvoiceRepository,
@@ -177,8 +217,12 @@ def list_invoices(
 ):
     return invoice_repo.list_by_work_item(item_id, invoice_type=invoice_type)
 
-def get_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int, limit: int, offset: int):
+
+def get_audit_trail(
+    work_item_repo: VatWorkItemRepository, item_id: int, limit: int, offset: int
+):
     return work_item_repo.get_audit_trail(item_id, limit, offset)
+
 
 def count_audit_trail(work_item_repo: VatWorkItemRepository, item_id: int):
     return work_item_repo.count_audit_trail(item_id)

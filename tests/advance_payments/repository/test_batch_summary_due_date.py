@@ -1,4 +1,5 @@
 """Tests: batch_summary_by_month returns due_date from TaxCalendarEntry and groups correctly."""
+
 from datetime import date
 from itertools import count
 
@@ -7,7 +8,9 @@ from app.advance_payments.repositories.advance_payment_batch_repository import (
 )
 from app.common.enums import AdvancePaymentFrequency, DeadlineRuleType, ObligationType
 from tests.helpers.identity import seed_business, seed_client_identity
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from tests.tax_calendar.service.linking_helpers import make_entry
 
 
@@ -70,7 +73,9 @@ def test_batch_summary_returns_due_date_from_tax_calendar_entry(test_db):
     )
 
 
-def test_batch_summary_monthly_and_bimonthly_same_start_month_are_separate_rows(test_db):
+def test_batch_summary_monthly_and_bimonthly_same_start_month_are_separate_rows(
+    test_db,
+):
     """Monthly period '2026-01' and bimonthly period '2026-01' must NOT be merged."""
     entry_monthly = make_entry(
         test_db,

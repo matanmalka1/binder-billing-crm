@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Date, DateTime, Index, Integer, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -20,7 +29,10 @@ class LegalEntity(Base):
     official_name = Column(String, nullable=False)
 
     vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
-    advance_payment_frequency = Column(pg_enum(AdvancePaymentFrequency, name="advance_payment_frequency"), nullable=True)
+    advance_payment_frequency = Column(
+        pg_enum(AdvancePaymentFrequency, name="advance_payment_frequency"),
+        nullable=True,
+    )
     vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
     advance_rate_updated_at = Column(Date, nullable=True)
@@ -37,7 +49,9 @@ class LegalEntity(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("id_number_type", "id_number", name="uq_legal_entity_registration_id"),
+        UniqueConstraint(
+            "id_number_type", "id_number", name="uq_legal_entity_registration_id"
+        ),
         Index("ix_legal_entities_official_name", "official_name"),
     )
 

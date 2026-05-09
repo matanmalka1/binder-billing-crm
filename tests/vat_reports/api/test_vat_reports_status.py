@@ -1,4 +1,7 @@
-from tests.vat_reports.api.test_vat_reports_utils import add_income_invoice, create_work_item
+from tests.vat_reports.api.test_vat_reports_utils import (
+    add_income_invoice,
+    create_work_item,
+)
 
 
 class TestStatusTransitions:
@@ -8,7 +11,9 @@ class TestStatusTransitions:
         return item_id
 
     def test_mark_ready_for_review(self, client, advisor_headers, vat_client):
-        item_id = self._setup_item_with_invoice(client, advisor_headers, vat_client, "2026-11")
+        item_id = self._setup_item_with_invoice(
+            client, advisor_headers, vat_client, "2026-11"
+        )
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/ready-for-review",
             headers=advisor_headers,
@@ -25,7 +30,9 @@ class TestStatusTransitions:
         assert response.status_code == 403
 
     def test_send_back_success_as_advisor(self, client, advisor_headers, vat_client):
-        item_id = self._setup_item_with_invoice(client, advisor_headers, vat_client, "2026-10")
+        item_id = self._setup_item_with_invoice(
+            client, advisor_headers, vat_client, "2026-10"
+        )
         ready = client.post(
             f"/api/v1/vat/work-items/{item_id}/ready-for-review",
             headers=advisor_headers,

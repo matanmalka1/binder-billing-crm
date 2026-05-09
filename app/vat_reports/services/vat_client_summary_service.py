@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
+from app.vat_reports.repositories.vat_client_summary_repository import (
+    VatClientSummaryRepository,
+)
 from app.vat_reports.schemas.vat_client_summary_schema import (
     VatAnnualSummary,
     VatClientSummaryResponse,
@@ -16,10 +18,15 @@ from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 
 
-def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummaryResponse:
+def get_client_summary(
+    db: Session, *, client_record_id: int
+) -> VatClientSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
     if not ClientRecordRepository(db).get_by_id(client_record_id):
-        raise NotFoundError(VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "VAT.NOT_FOUND")
+        raise NotFoundError(
+            VAT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
+            "VAT.NOT_FOUND",
+        )
 
     raw_periods = summary_repo.get_periods_for_client(client_record_id)
     periods = [

@@ -56,7 +56,9 @@ class UserAuditLogRepository(BaseRepository):
             from_ts=from_ts,
             to_ts=to_ts,
         )
-        return self._paginate(query.order_by(UserAuditLog.created_at.desc()), page, page_size)
+        return self._paginate(
+            query.order_by(UserAuditLog.created_at.desc()), page, page_size
+        )
 
     def count(
         self,

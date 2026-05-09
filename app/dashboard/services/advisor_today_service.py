@@ -28,7 +28,9 @@ class AdvisorTodayService:
         }
 
     def _reminder_items(self, reference_date: date) -> list[dict]:
-        created_before = datetime.combine(reference_date - timedelta(days=_STALE_REMINDER_DAYS), datetime.max.time())
+        created_before = datetime.combine(
+            reference_date - timedelta(days=_STALE_REMINDER_DAYS), datetime.max.time()
+        )
         reminders = self.reminder_repo.list_by_status(
             ReminderStatus.PENDING,
             page=1,

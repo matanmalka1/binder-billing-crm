@@ -63,4 +63,6 @@ def test_business_actions_raises_when_client_id_missing():
         get_business_actions(business, user_role=UserRole.ADVISOR)
         assert False, "Expected ValueError when client_id is missing"
     except ValueError as exc:
-        assert str(exc) == "Business actions require client_id for endpoint construction"
+        assert (
+            str(exc) == "Business actions require client_id for endpoint construction"
+        )

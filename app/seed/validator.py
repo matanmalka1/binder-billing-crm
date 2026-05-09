@@ -8,7 +8,9 @@ from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType
-from app.tax_calendar.services.link_diagnostics import find_active_null_tax_calendar_links
+from app.tax_calendar.services.link_diagnostics import (
+    find_active_null_tax_calendar_links,
+)
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
@@ -35,19 +37,20 @@ class SeedIntegrityValidator:
 
     def _check_active_clients_have_binders(self) -> None:
         active_clients = (
-            self.db.execute(select(ClientRecord.id).where(ClientRecord.deleted_at.is_(None)))
+            self.db.execute(
+                select(ClientRecord.id).where(ClientRecord.deleted_at.is_(None))
+            )
             .scalars()
             .all()
         )
         for client_id in active_clients:
-            count = (
-                self.db.execute(
-                    select(func.count())
-                    .select_from(Binder)
-                    .where(Binder.client_record_id == client_id, Binder.deleted_at.is_(None))
+            count = self.db.execute(
+                select(func.count())
+                .select_from(Binder)
+                .where(
+                    Binder.client_record_id == client_id, Binder.deleted_at.is_(None)
                 )
-                .scalar_one()
-            )
+            ).scalar_one()
             if count == 0:
                 self._errors.append(f"Client {client_id} has no binders")
 
@@ -57,35 +60,35 @@ class SeedIntegrityValidator:
             self.db.execute(
                 select(ClientRecord.id)
                 .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-                .where(LegalEntity.entity_type.in_(exempt_types), ClientRecord.deleted_at.is_(None))
+                .where(
+                    LegalEntity.entity_type.in_(exempt_types),
+                    ClientRecord.deleted_at.is_(None),
+                )
             )
             .scalars()
             .all()
         )
         for client_id in exempt_client_ids:
-            count = (
-                self.db.execute(
-                    select(func.count())
-                    .select_from(VatWorkItem)
-                    .where(VatWorkItem.client_record_id == client_id, VatWorkItem.deleted_at.is_(None))
+            count = self.db.execute(
+                select(func.count())
+                .select_from(VatWorkItem)
+                .where(
+                    VatWorkItem.client_record_id == client_id,
+                    VatWorkItem.deleted_at.is_(None),
                 )
-                .scalar_one()
-            )
+            ).scalar_one()
             if count > 0:
                 self._errors.append(
                     f"Client {client_id} is EXEMPT but has {count} VAT work item(s)"
                 )
 
     def _check_no_duplicate_annual_reports(self) -> None:
-        dupes = (
-            self.db.execute(
-                select(AnnualReport.client_record_id, AnnualReport.tax_year, func.count())
-                .where(AnnualReport.deleted_at.is_(None))
-                .group_by(AnnualReport.client_record_id, AnnualReport.tax_year)
-                .having(func.count() > 1)
-            )
-            .all()
-        )
+        dupes = self.db.execute(
+            select(AnnualReport.client_record_id, AnnualReport.tax_year, func.count())
+            .where(AnnualReport.deleted_at.is_(None))
+            .group_by(AnnualReport.client_record_id, AnnualReport.tax_year)
+            .having(func.count() > 1)
+        ).all()
         for client_id, tax_year, count in dupes:
             self._errors.append(
                 f"Client {client_id} has {count} annual reports for year {tax_year}"

@@ -3,7 +3,11 @@ from typing import Optional
 from sqlalchemy import String, cast
 from sqlalchemy.orm import Session
 
-from app.permanent_documents.models.permanent_document import DocumentScope, DocumentStatus, PermanentDocument
+from app.permanent_documents.models.permanent_document import (
+    DocumentScope,
+    DocumentStatus,
+    PermanentDocument,
+)
 
 
 class PermanentDocumentRepository:
@@ -137,7 +141,9 @@ class PermanentDocumentRepository:
             .count()
         )
 
-    def get_by_id_and_client_record(self, document_id: int, client_record_id: int) -> Optional[PermanentDocument]:
+    def get_by_id_and_client_record(
+        self, document_id: int, client_record_id: int
+    ) -> Optional[PermanentDocument]:
         return (
             self.db.query(PermanentDocument)
             .filter(
@@ -158,7 +164,9 @@ class PermanentDocumentRepository:
             .count()
         )
 
-    def search_by_filename(self, filename: str, limit: int = 50) -> list[PermanentDocument]:
+    def search_by_filename(
+        self, filename: str, limit: int = 50
+    ) -> list[PermanentDocument]:
         term = f"%{filename.strip()}%"
         return (
             self.db.query(PermanentDocument)

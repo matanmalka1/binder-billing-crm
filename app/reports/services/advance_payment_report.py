@@ -2,7 +2,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 
@@ -16,7 +18,10 @@ class AdvancePaymentReportService:
     def get_collections_report(self, year: int, month: Optional[int]) -> dict:
         rows = self.repo.get_collections_aggregates(year, month)
         client_record_ids = [row.client_record_id for row in rows]
-        records = {record.id: record for record in self.client_record_repo.list_by_ids(client_record_ids)}
+        records = {
+            record.id: record
+            for record in self.client_record_repo.list_by_ids(client_record_ids)
+        }
         legal_entities = {
             legal_id: self.legal_entity_repo.get_by_id(legal_id)
             for legal_id in {record.legal_entity_id for record in records.values()}
@@ -31,7 +36,9 @@ class AdvancePaymentReportService:
                     else None
                 ),
                 "client_name": (
-                    legal_entities[records[r.client_record_id].legal_entity_id].official_name
+                    legal_entities[
+                        records[r.client_record_id].legal_entity_id
+                    ].official_name
                     if r.client_record_id in records
                     and legal_entities.get(records[r.client_record_id].legal_entity_id)
                     else f"לקוח #{r.client_record_id}"
@@ -46,7 +53,9 @@ class AdvancePaymentReportService:
 
         total_expected = sum(i["total_expected"] for i in items)
         total_paid = sum(i["total_paid"] for i in items)
-        collection_rate = round(total_paid / total_expected * 100, 2) if total_expected else 0.0
+        collection_rate = (
+            round(total_paid / total_expected * 100, 2) if total_expected else 0.0
+        )
         total_gap = total_expected - total_paid
 
         return {

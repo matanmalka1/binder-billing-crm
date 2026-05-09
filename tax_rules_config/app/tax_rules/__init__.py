@@ -4,6 +4,7 @@ tax_rules — מקור האמת הרשמי לחוקי מס ישראל.
 נקודת כניסה ראשית: registry.py
   from app.tax_rules.registry import get_obligations, get_financials, get_periodic_calendar, ...
 """
+
 from .registry import (
     get_annual_calendar,
     get_annual_report_rule,

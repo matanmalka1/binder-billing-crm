@@ -22,6 +22,7 @@ class AuditStatus(str, PyEnum):
     SUCCESS = "success"
     FAILURE = "failure"
 
+
 class UserAuditLog(Base):
     __tablename__ = "user_audit_logs"
 

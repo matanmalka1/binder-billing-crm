@@ -28,11 +28,22 @@ class InMemoryRepo:
         return self._reports.get(rid)
 
     def get_by_client_year(self, client_record_id, tax_year):
-        return next((r for r in self._reports.values() if r.client_record_id == client_record_id and r.tax_year == tax_year), None)
+        return next(
+            (
+                r
+                for r in self._reports.values()
+                if r.client_record_id == client_record_id and r.tax_year == tax_year
+            ),
+            None,
+        )
 
     def list_by_client(self, client_record_id):
         return sorted(
-            [r for r in self._reports.values() if r.client_record_id == client_record_id],
+            [
+                r
+                for r in self._reports.values()
+                if r.client_record_id == client_record_id
+            ],
             key=lambda r: r.tax_year,
             reverse=True,
         )
@@ -55,7 +66,9 @@ class InMemoryRepo:
         results = [
             r
             for r in self._reports.values()
-            if r.status in open_statuses and getattr(r, "filing_deadline", None) and r.filing_deadline < now
+            if r.status in open_statuses
+            and getattr(r, "filing_deadline", None)
+            and r.filing_deadline < now
         ]
         if tax_year:
             results = [r for r in results if r.tax_year == tax_year]
@@ -96,7 +109,9 @@ class InMemoryRepo:
     def schedules_complete(self, rid):
         return all(s.is_complete for s in self._schedules.get(rid, []) if s.is_required)
 
-    def append_status_history(self, annual_report_id, from_status, to_status, changed_by, note=None):
+    def append_status_history(
+        self, annual_report_id, from_status, to_status, changed_by, note=None
+    ):
         history = MagicMock()
         history.from_status = from_status
         history.to_status = to_status

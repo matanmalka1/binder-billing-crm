@@ -56,7 +56,9 @@ class BusinessService:
 
         effective_opened_at = opened_at or date.today()
 
-        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(record.legal_entity_id):
+        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(
+            record.legal_entity_id
+        ):
             raise AppError(
                 "כל העסקים של לקוח זה סגורים — לא ניתן להוסיף עסק חדש ללא אישור מפורש",
                 "BUSINESS.CLIENT_ALL_CLOSED",
@@ -64,8 +66,13 @@ class BusinessService:
             )
 
         if business_name:
-            for b in self.business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=10_000):
-                if b.business_name and b.business_name.strip().lower() == business_name.strip().lower():
+            for b in self.business_repo.list_by_legal_entity(
+                record.legal_entity_id, page=1, page_size=10_000
+            ):
+                if (
+                    b.business_name
+                    and b.business_name.strip().lower() == business_name.strip().lower()
+                ):
                     raise ConflictError(
                         f"עסק בשם '{business_name}' כבר קיים ללקוח זה",
                         "BUSINESS.NAME_CONFLICT",
@@ -121,8 +128,12 @@ class BusinessService:
         return items, total
 
     def update_business(
-        self, business_id: int, client_id: int, user_role: UserRole,
-        actor_id: Optional[int] = None, **fields
+        self,
+        business_id: int,
+        client_id: int,
+        user_role: UserRole,
+        actor_id: Optional[int] = None,
+        **fields,
     ) -> Business:
         record = self.client_repo.get_by_id(client_id)
         if not record:
@@ -139,5 +150,7 @@ class BusinessService:
     def delete_business(self, business_id: int, actor_id: int) -> None:
         self._lifecycle.delete_business(business_id, actor_id)
 
-    def restore_business(self, business_id: int, actor_id: int, actor_role: UserRole) -> Business:
+    def restore_business(
+        self, business_id: int, actor_id: int, actor_role: UserRole
+    ) -> Business:
         return self._lifecycle.restore_business(business_id, actor_id, actor_role)

@@ -1,4 +1,3 @@
-
 from app.common.enums import VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -37,13 +36,23 @@ def _item(repo, client_id: int, user_id: int, period: str, status):
 def test_list_open_up_to_period_excludes_later_final_and_deleted_items(test_db):
     repo = VatWorkItemRepository(test_db)
     user = _user(test_db)
-    client = seed_client_identity(test_db, full_name="VAT Open Client", id_number="VOC001")
-    deleted_client = seed_client_identity(test_db, full_name="VAT Deleted Client", id_number="VOC002")
-    oldest = _item(repo, client.id, user.id, "2026-01", VatWorkItemStatus.MATERIAL_RECEIVED)
-    current = _item(repo, client.id, user.id, "2026-03", VatWorkItemStatus.PENDING_MATERIALS)
+    client = seed_client_identity(
+        test_db, full_name="VAT Open Client", id_number="VOC001"
+    )
+    deleted_client = seed_client_identity(
+        test_db, full_name="VAT Deleted Client", id_number="VOC002"
+    )
+    oldest = _item(
+        repo, client.id, user.id, "2026-01", VatWorkItemStatus.MATERIAL_RECEIVED
+    )
+    current = _item(
+        repo, client.id, user.id, "2026-03", VatWorkItemStatus.PENDING_MATERIALS
+    )
     _item(repo, client.id, user.id, "2026-04", VatWorkItemStatus.PENDING_MATERIALS)
     _item(repo, client.id, user.id, "2026-02", VatWorkItemStatus.FILED)
-    deleted = _item(repo, deleted_client.id, user.id, "2026-02", VatWorkItemStatus.PENDING_MATERIALS)
+    deleted = _item(
+        repo, deleted_client.id, user.id, "2026-02", VatWorkItemStatus.PENDING_MATERIALS
+    )
     deleted.deleted_at = utcnow()
     test_db.commit()
 

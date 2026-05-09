@@ -17,11 +17,18 @@ router = APIRouter(
 
 
 def _enrich_detail_response(response: ReportDetailResponse, db) -> ReportDetailResponse:
-    from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+    from app.annual_reports.repositories.annual_report_repository import (
+        AnnualReportRepository,
+    )
+
     report = AnnualReportRepository(db).get_by_id(response.report_id)
     if report:
-        response.tax_refund_amount = float(report.refund_due) if report.refund_due is not None else None
-        response.tax_due_amount = float(report.tax_due) if report.tax_due is not None else None
+        response.tax_refund_amount = (
+            float(report.refund_due) if report.refund_due is not None else None
+        )
+        response.tax_due_amount = (
+            float(report.tax_due) if report.tax_due is not None else None
+        )
     return response
 
 

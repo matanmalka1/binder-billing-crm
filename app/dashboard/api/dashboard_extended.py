@@ -13,6 +13,7 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
+
 @router.get("/attention", response_model=AttentionResponse)
 def get_attention_items(
     db: DBSession,

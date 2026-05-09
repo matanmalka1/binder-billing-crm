@@ -92,6 +92,7 @@ DEFAULT_RECOGNITION_RATE = Decimal("1.00")
 def default_recognition_rate(category: ExpenseCategoryType) -> Decimal:
     return STATUTORY_RECOGNITION_RATES.get(category, DEFAULT_RECOGNITION_RATE)
 
+
 # ── Stuck-report defaults ──────────────────────────────────────────────────────
 STUCK_REPORT_STALE_DAYS = 7
 STUCK_REPORT_LIMIT = 3

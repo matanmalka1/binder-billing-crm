@@ -11,7 +11,9 @@ from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _business(test_db):
-    client = seed_client_identity(test_db, full_name="Timeline Signature", id_number="TSIG100")
+    client = seed_client_identity(
+        test_db, full_name="Timeline Signature", id_number="TSIG100"
+    )
     business = seed_business(
         test_db,
         legal_entity_id=client.legal_entity_id,
@@ -74,11 +76,19 @@ def test_signature_lifecycle_events_use_audit_source(test_db, test_user):
     events, _ = service.get_client_timeline(business.client_id, page=1, page_size=50)
     by_type = {event["event_type"]: event for event in events}
 
-    assert by_type["signature_request_sent"]["timestamp"] == audit_times["sent"].replace(tzinfo=None)
-    assert by_type["signature_request_signed"]["timestamp"] == audit_times["signed"].replace(tzinfo=None)
+    assert by_type["signature_request_sent"]["timestamp"] == audit_times[
+        "sent"
+    ].replace(tzinfo=None)
+    assert by_type["signature_request_signed"]["timestamp"] == audit_times[
+        "signed"
+    ].replace(tzinfo=None)
     assert by_type["signature_request_declined"]["metadata"]["reason"] == "Missing docs"
-    assert by_type["signature_request_canceled"]["timestamp"] == audit_times["canceled"].replace(tzinfo=None)
-    assert by_type["signature_request_expired"]["timestamp"] == audit_times["expired"].replace(tzinfo=None)
+    assert by_type["signature_request_canceled"]["timestamp"] == audit_times[
+        "canceled"
+    ].replace(tzinfo=None)
+    assert by_type["signature_request_expired"]["timestamp"] == audit_times[
+        "expired"
+    ].replace(tzinfo=None)
     assert "signature_request_created" not in by_type
 
 

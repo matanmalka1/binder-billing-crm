@@ -25,7 +25,11 @@ router = APIRouter(
 )
 
 
-@router.post("/{report_id}/status", response_model=AnnualReportResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
+@router.post(
+    "/{report_id}/status",
+    response_model=AnnualReportResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def transition_status(
     report_id: int,
     body: StatusTransitionRequest,
@@ -46,14 +50,20 @@ def transition_status(
         changed_by_name=user.full_name,
         note=body.note,
         ita_reference=body.ita_reference,
-        assessment_amount=float(body.assessment_amount) if body.assessment_amount else None,
+        assessment_amount=float(body.assessment_amount)
+        if body.assessment_amount
+        else None,
         refund_due=float(body.refund_due) if body.refund_due else None,
         tax_due=float(body.tax_due) if body.tax_due else None,
     )
     return report
 
 
-@router.post("/{report_id}/submit", response_model=AnnualReportDetailResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
+@router.post(
+    "/{report_id}/submit",
+    response_model=AnnualReportDetailResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def submit_report(
     report_id: int,
     body: SubmitRequest,
@@ -69,7 +79,9 @@ def submit_report(
         note=body.note,
         ita_reference=body.ita_reference,
         submitted_at=body.submitted_at,
-        submission_method=body.submission_method.value if body.submission_method else None,
+        submission_method=body.submission_method.value
+        if body.submission_method
+        else None,
     )
     detail = service.get_detail_report(report_id)
     if detail is None:
@@ -77,7 +89,11 @@ def submit_report(
     return detail
 
 
-@router.post("/{report_id}/deadline", response_model=AnnualReportResponse, dependencies=[Depends(require_role(UserRole.ADVISOR))])
+@router.post(
+    "/{report_id}/deadline",
+    response_model=AnnualReportResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
 def update_deadline(
     report_id: int,
     body: DeadlineUpdateRequest,
@@ -101,7 +117,9 @@ def update_deadline(
     return report
 
 
-@router.get("/{report_id}/history", response_model=PaginatedResponse[StatusHistoryResponse])
+@router.get(
+    "/{report_id}/history", response_model=PaginatedResponse[StatusHistoryResponse]
+)
 def get_status_history(
     report_id: int,
     db: DBSession,
@@ -113,5 +131,5 @@ def get_status_history(
     all_history = service.get_status_history(report_id)
     total = len(all_history)
     start = (page - 1) * page_size
-    items = all_history[start:start + page_size]
+    items = all_history[start : start + page_size]
     return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)

@@ -45,7 +45,10 @@ INCOME_TAX_ADVANCE_RULES: tuple[ObligationRule, ...] = (
         kind=ObligationKind.INCOME_TAX_ADVANCE,
         scope=ObligationScope(
             entity_types=(EntityType.OSEK_PATUR,),
-            advance_frequencies=(ReportingFrequency.MONTHLY, ReportingFrequency.BIMONTHLY),
+            advance_frequencies=(
+                ReportingFrequency.MONTHLY,
+                ReportingFrequency.BIMONTHLY,
+            ),
         ),
         frequency=ReportingFrequency.MONTHLY,
         label_he="מקדמות מס הכנסה — עוסק פטור",
@@ -68,7 +71,10 @@ INCOME_TAX_ADVANCE_RULES: tuple[ObligationRule, ...] = (
         kind=ObligationKind.INCOME_TAX_ADVANCE,
         scope=ObligationScope(
             entity_types=(EntityType.OSEK_MURSHE,),
-            advance_frequencies=(ReportingFrequency.MONTHLY, ReportingFrequency.BIMONTHLY),
+            advance_frequencies=(
+                ReportingFrequency.MONTHLY,
+                ReportingFrequency.BIMONTHLY,
+            ),
         ),
         frequency=ReportingFrequency.MONTHLY,
         label_he="מקדמות מס הכנסה — עוסק מורשה",
@@ -86,7 +92,10 @@ INCOME_TAX_ADVANCE_RULES: tuple[ObligationRule, ...] = (
         kind=ObligationKind.INCOME_TAX_ADVANCE,
         scope=ObligationScope(
             entity_types=(EntityType.COMPANY_LTD,),
-            advance_frequencies=(ReportingFrequency.MONTHLY, ReportingFrequency.BIMONTHLY),
+            advance_frequencies=(
+                ReportingFrequency.MONTHLY,
+                ReportingFrequency.BIMONTHLY,
+            ),
         ),
         frequency=ReportingFrequency.MONTHLY,
         label_he="מקדמות מס הכנסה — חברה בע״מ",

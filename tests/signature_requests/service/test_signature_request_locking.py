@@ -5,6 +5,7 @@ path and correctly enforce state guards.
 Note: SQLite does not support real SELECT … FOR UPDATE blocking.
 Tests verify code path (monkeypatch spy) and invalid-state handling only.
 """
+
 from datetime import date
 
 import pytest
@@ -12,8 +13,12 @@ import pytest
 from app.businesses.models.business import Business
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import SignatureRequestType
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
-from app.signature_requests.services.signature_request_service import SignatureRequestService
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
+from app.signature_requests.services.signature_request_service import (
+    SignatureRequestService,
+)
 from tests.helpers.identity import seed_client_with_business
 
 
@@ -53,6 +58,7 @@ def _send_request(db, request_id, user_id=1):
 
 # ── Code-path verification ────────────────────────────────────────────────────
 
+
 def test_send_request_uses_locked_fetch(test_db, monkeypatch):
     req = _create_draft_request(test_db)
     svc = SignatureRequestService(test_db)
@@ -60,7 +66,8 @@ def test_send_request_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_id_for_update",
+        svc.repo,
+        "get_by_id_for_update",
         lambda rid: calls.append(rid) or original(rid),
     )
 
@@ -75,7 +82,8 @@ def test_cancel_request_uses_locked_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_id_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_id_for_update",
+        svc.repo,
+        "get_by_id_for_update",
         lambda rid: calls.append(rid) or original(rid),
     )
 
@@ -92,7 +100,8 @@ def test_sign_request_uses_locked_token_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_token_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_token_for_update",
+        svc.repo,
+        "get_by_token_for_update",
         lambda t: calls.append(t) or original(t),
     )
 
@@ -109,7 +118,8 @@ def test_decline_request_uses_locked_token_fetch(test_db, monkeypatch):
     calls = []
     original = svc.repo.get_by_token_for_update
     monkeypatch.setattr(
-        svc.repo, "get_by_token_for_update",
+        svc.repo,
+        "get_by_token_for_update",
         lambda t: calls.append(t) or original(t),
     )
 
@@ -118,6 +128,7 @@ def test_decline_request_uses_locked_token_fetch(test_db, monkeypatch):
 
 
 # ── Invalid-state guard ───────────────────────────────────────────────────────
+
 
 def test_send_already_pending_raises(test_db):
     req = _create_draft_request(test_db)

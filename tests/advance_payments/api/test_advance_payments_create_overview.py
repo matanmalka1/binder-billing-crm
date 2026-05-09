@@ -3,12 +3,16 @@ from decimal import Decimal
 from itertools import count
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
@@ -18,6 +22,7 @@ _client_seq = count(1)
 
 def _business(db):
     from app.common.enums import AdvancePaymentFrequency
+
     id_number = f"66666666{next(_client_seq)}"
     client = seed_client_identity(
         db,
@@ -44,10 +49,14 @@ def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -
     db.commit()
 
 
-def _vat_work_item(db, business_id: int, created_by: int, period: str, output_vat: Decimal):
+def _vat_work_item(
+    db, business_id: int, created_by: int, period: str, output_vat: Decimal
+):
     business = db.get(Business, business_id)
     assert business is not None
-    entry = TaxCalendarMaterializationService(db).ensure_periodic_entry("vat", period, 1)
+    entry = TaxCalendarMaterializationService(db).ensure_periodic_entry(
+        "vat", period, 1
+    )
     item = VatWorkItem(
         client_record_id=business.client_record_id,
         created_by=created_by,
@@ -94,8 +103,11 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert isinstance(data["error_meta"]["detail"], str)
 
 
-def test_create_advance_payment_uses_advance_payment_frequency(client, test_db, advisor_headers):
+def test_create_advance_payment_uses_advance_payment_frequency(
+    client, test_db, advisor_headers
+):
     from app.common.enums import AdvancePaymentFrequency
+
     business = _business(test_db)
     business.legal_entity.advance_payment_frequency = AdvancePaymentFrequency.BIMONTHLY
     test_db.commit()
@@ -116,7 +128,9 @@ def test_create_advance_payment_uses_advance_payment_frequency(client, test_db, 
     assert data["period_months_count"] == 2
 
 
-def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advisor_headers, test_user):
+def test_suggest_expected_amount_uses_vat_and_advance_rate(
+    client, test_db, advisor_headers, test_user
+):
     business = _business(test_db)
     _tax_profile(test_db, business.id, advance_rate=Decimal("6.0"))
     _vat_work_item(test_db, business.id, test_user.id, "2025-01", Decimal("18000"))
@@ -137,8 +151,22 @@ def test_suggest_expected_amount_uses_vat_and_advance_rate(client, test_db, advi
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-01", period_months_count=1, due_date=date(2026, 2, 15))
-    feb = create_linked_advance_payment(test_db, repo=repo, client_record_id=business.client_record_id, period="2026-02", period_months_count=1, due_date=date(2026, 3, 15))
+    create_linked_advance_payment(
+        test_db,
+        repo=repo,
+        client_record_id=business.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    feb = create_linked_advance_payment(
+        test_db,
+        repo=repo,
+        client_record_id=business.client_record_id,
+        period="2026-02",
+        period_months_count=1,
+        due_date=date(2026, 3, 15),
+    )
     repo.update(feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200"))
 
     resp = client.get(

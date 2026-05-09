@@ -27,13 +27,20 @@ class AdvancePaymentBatchRepository(BaseRepository):
                     AdvancePayment.period_months_count,
                     func.max(AdvancePayment.due_date).label("due_date"),
                     func.count(AdvancePayment.id).label("client_count"),
-                    func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
-                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                    func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
+                        "total_expected"
+                    ),
+                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
+                        "total_paid"
+                    ),
                     func.sum(
                         case(
                             (
                                 (AdvancePayment.due_date < today_expr)
-                                & (advance_payment_status_text_expr() != AdvancePaymentStatus.PAID.value),
+                                & (
+                                    advance_payment_status_text_expr()
+                                    != AdvancePaymentStatus.PAID.value
+                                ),
                                 1,
                             ),
                             else_=0,
@@ -43,7 +50,9 @@ class AdvancePaymentBatchRepository(BaseRepository):
                         case(
                             (
                                 AdvancePayment.reported_turnover.is_(None)
-                                & AdvancePayment.turnover_source_vat_work_item_id.is_(None),
+                                & AdvancePayment.turnover_source_vat_work_item_id.is_(
+                                    None
+                                ),
                                 1,
                             ),
                             else_=0,
@@ -52,7 +61,8 @@ class AdvancePaymentBatchRepository(BaseRepository):
                     func.sum(
                         case(
                             (
-                                advance_payment_status_text_expr() == AdvancePaymentStatus.PENDING.value,
+                                advance_payment_status_text_expr()
+                                == AdvancePaymentStatus.PENDING.value,
                                 1,
                             ),
                             else_=0,

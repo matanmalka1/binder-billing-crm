@@ -1,4 +1,5 @@
 """Binder pickup reminder — sends a follow-up notification when client hasn't collected."""
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -26,16 +27,24 @@ class BinderPickupReminderService:
     def send_pickup_reminder(self, binder_id: int, triggered_by: int) -> None:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
+            raise NotFoundError(
+                BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
+            )
 
-        if binder.status not in (BinderStatus.READY_FOR_PICKUP, BinderStatus.READY_FOR_PICKUP.value):
+        if binder.status not in (
+            BinderStatus.READY_FOR_PICKUP,
+            BinderStatus.READY_FOR_PICKUP.value,
+        ):
             raise AppError("הקלסר אינו במצב מוכן לאיסוף", "BINDER.NOT_READY_FOR_PICKUP")
 
         last = self.notification_repo.get_last_for_binder_trigger(
             binder_id, NotificationTrigger.PICKUP_REMINDER
         )
         if last:
-            days_since = (_dt.datetime.now(timezone.utc) - last.created_at.replace(tzinfo=timezone.utc)).days
+            days_since = (
+                _dt.datetime.now(timezone.utc)
+                - last.created_at.replace(tzinfo=timezone.utc)
+            ).days
             if days_since < _REMINDER_COOLDOWN_DAYS:
                 raise AppError(
                     f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {_REMINDER_COOLDOWN_DAYS} ימים.",

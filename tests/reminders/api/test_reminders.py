@@ -64,7 +64,6 @@ def _charge(db, business) -> Charge:
     return charge
 
 
-
 def test_create_custom_missing_message_returns_422(client, advisor_headers):
     resp = client.post(
         "/api/v1/reminders",
@@ -81,7 +80,9 @@ def test_create_custom_missing_message_returns_422(client, advisor_headers):
     assert any("message" in err["msg"] for err in resp.json()["detail"])
 
 
-def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_headers, test_user):
+def test_cancel_reminder_marks_status_and_canceled_at(
+    client, test_db, advisor_headers, test_user
+):
     crm_client = _client(test_db)
     business = _business(test_db, crm_client, test_user.id)
     repo = ReminderRepository(test_db)
@@ -95,7 +96,9 @@ def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_h
         message="Ping",
     )
 
-    resp = client.post(f"/api/v1/reminders/{reminder.id}/cancel", headers=advisor_headers)
+    resp = client.post(
+        f"/api/v1/reminders/{reminder.id}/cancel", headers=advisor_headers
+    )
 
     assert resp.status_code == 200
     body = resp.json()
@@ -104,4 +107,3 @@ def test_cancel_reminder_marks_status_and_canceled_at(client, test_db, advisor_h
 
     updated = repo.get_by_id(reminder.id)
     assert updated.status == ReminderStatus.CANCELED
-

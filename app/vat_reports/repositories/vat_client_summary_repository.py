@@ -30,10 +30,22 @@ class VatClientSummaryRepository:
             self.db.query(
                 VatInvoice.work_item_id,
                 func.sum(
-                    case((VatInvoice.invoice_type == InvoiceType.INCOME, VatInvoice.net_amount), else_=0)
+                    case(
+                        (
+                            VatInvoice.invoice_type == InvoiceType.INCOME,
+                            VatInvoice.net_amount,
+                        ),
+                        else_=0,
+                    )
                 ).label("output_net"),
                 func.sum(
-                    case((VatInvoice.invoice_type == InvoiceType.EXPENSE, VatInvoice.net_amount), else_=0)
+                    case(
+                        (
+                            VatInvoice.invoice_type == InvoiceType.EXPENSE,
+                            VatInvoice.net_amount,
+                        ),
+                        else_=0,
+                    )
                 ).label("input_net"),
             )
             .group_by(VatInvoice.work_item_id)

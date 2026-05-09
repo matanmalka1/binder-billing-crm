@@ -10,11 +10,7 @@ class Invoice(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     charge_id = Column(
-        Integer,
-        ForeignKey("charges.id"),
-        nullable=False,
-        unique=True,
-        index=True
+        Integer, ForeignKey("charges.id"), nullable=False, unique=True, index=True
     )
     provider = Column(String, nullable=False)
     external_invoice_id = Column(String, nullable=False)

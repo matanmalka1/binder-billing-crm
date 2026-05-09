@@ -1,6 +1,14 @@
 """Annex (schedule) data lines for an annual report."""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, Text, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    JSON,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
@@ -13,7 +21,11 @@ class AnnualReportAnnexData(Base):
 
     __tablename__ = "annual_report_annex_data"
     __table_args__ = (
-        UniqueConstraint("schedule_entry_id", "line_number", name="uq_annual_report_annex_data_schedule_entry_line"),
+        UniqueConstraint(
+            "schedule_entry_id",
+            "line_number",
+            name="uq_annual_report_annex_data_schedule_entry_line",
+        ),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -29,7 +41,9 @@ class AnnualReportAnnexData(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines")
+    schedule_entry = relationship(
+        "AnnualReportScheduleEntry", back_populates="annex_lines"
+    )
 
     @hybrid_property
     def annual_report_id(self):

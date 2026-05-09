@@ -63,19 +63,39 @@ def test_pending_status_and_business_queries(test_db):
     business_b = _business(test_db, client_b)
 
     _due_earliest = _create_reminder(
-        repo, business_b.id, client_record_id=client_b.id, send_on=today - timedelta(days=2), message="due earliest"
+        repo,
+        business_b.id,
+        client_record_id=client_b.id,
+        send_on=today - timedelta(days=2),
+        message="due earliest",
     )
     due_old = _create_reminder(
-        repo, business_a.id, client_record_id=client_a.id, send_on=today - timedelta(days=1), message="due old"
+        repo,
+        business_a.id,
+        client_record_id=client_a.id,
+        send_on=today - timedelta(days=1),
+        message="due old",
     )
     due_today = _create_reminder(
-        repo, business_a.id, client_record_id=client_a.id, send_on=today, message="due today"
+        repo,
+        business_a.id,
+        client_record_id=client_a.id,
+        send_on=today,
+        message="due today",
     )
     future = _create_reminder(
-        repo, business_a.id, client_record_id=client_a.id, send_on=today + timedelta(days=3), message="future"
+        repo,
+        business_a.id,
+        client_record_id=client_a.id,
+        send_on=today + timedelta(days=3),
+        message="future",
     )
     sent = _create_reminder(
-        repo, business_a.id, client_record_id=client_a.id, send_on=today - timedelta(days=3), message="sent"
+        repo,
+        business_a.id,
+        client_record_id=client_a.id,
+        send_on=today - timedelta(days=3),
+        message="sent",
     )
 
     repo.update_status(sent.id, ReminderStatus.SENT, sent_at=now)
@@ -86,14 +106,18 @@ def test_pending_status_and_business_queries(test_db):
     sent.created_at = now - timedelta(minutes=1)
     test_db.commit()
 
-
     sent_list = repo.list_by_status(status=ReminderStatus.SENT, page=1, page_size=20)
     assert [item.id for item in sent_list] == [sent.id]
     assert repo.count_by_status(ReminderStatus.SENT) == 1
 
     assert repo.count_by_business(business_a.id) == 4
     by_business = repo.list_by_business(business_a.id, page=1, page_size=20)
-    assert [item.id for item in by_business] == [sent.id, future.id, due_today.id, due_old.id]
+    assert [item.id for item in by_business] == [
+        sent.id,
+        future.id,
+        due_today.id,
+        due_old.id,
+    ]
 
 
 def test_update_status_returns_none_for_missing_reminder(test_db):

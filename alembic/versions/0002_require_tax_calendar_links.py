@@ -24,18 +24,24 @@ _TABLES = (
 def _assert_no_null_links() -> None:
     conn = op.get_bind()
     for table, _fk in _TABLES:
-        count = conn.execute(sa.text(
-            f"SELECT COUNT(*) FROM {table} "
-            "WHERE deleted_at IS NULL AND tax_calendar_entry_id IS NULL"
-        )).scalar()
+        count = conn.execute(
+            sa.text(
+                f"SELECT COUNT(*) FROM {table} "
+                "WHERE deleted_at IS NULL AND tax_calendar_entry_id IS NULL"
+            )
+        ).scalar()
         if count:
-            raise RuntimeError(f"{table} has {count} active rows without tax_calendar_entry_id")
+            raise RuntimeError(
+                f"{table} has {count} active rows without tax_calendar_entry_id"
+            )
 
 
 def _set_nullable(nullable: bool) -> None:
     for table, _fk in _TABLES:
         with op.batch_alter_table(table) as batch:
-            batch.alter_column("tax_calendar_entry_id", existing_type=sa.Integer(), nullable=nullable)
+            batch.alter_column(
+                "tax_calendar_entry_id", existing_type=sa.Integer(), nullable=nullable
+            )
 
 
 def _replace_fk(ondelete: str) -> None:

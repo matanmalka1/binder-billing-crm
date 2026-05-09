@@ -1,10 +1,13 @@
 """Tests for ClientRecordRepository — Fix 1 lookup chain."""
+
 from datetime import date
 
 import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -13,7 +16,11 @@ from app.core.exceptions import NotFoundError
 
 
 def _seed(db, *, id_number="LE-TEST-001") -> tuple[LegalEntity, ClientRecord]:
-    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
+    le = LegalEntity(
+        id_number=id_number,
+        id_number_type=IdNumberType.INDIVIDUAL,
+        official_name="Test Entity",
+    )
     db.add(le)
     db.flush()
     cr = ClientRecord(legal_entity_id=le.id)
@@ -25,6 +32,7 @@ def _seed(db, *, id_number="LE-TEST-001") -> tuple[LegalEntity, ClientRecord]:
 
 
 # ── Direct client-record lookups ─────────────────────────────────────────────
+
 
 def test_get_by_id_returns_record(test_db):
     le, cr = _seed(test_db)
@@ -55,8 +63,15 @@ def test_get_legal_entity_id_by_client_record_id_raises_for_unknown(test_db):
 
 # ── Fix 2: guard assert_business_belongs_to_legal_entity end-to-end ──────────
 
-def _seed_business_with_legal_entity(db, id_number="LE-BIZ-001") -> tuple[LegalEntity, ClientRecord, Business]:
-    le = LegalEntity(id_number=id_number, id_number_type=IdNumberType.INDIVIDUAL, official_name="Test Entity")
+
+def _seed_business_with_legal_entity(
+    db, id_number="LE-BIZ-001"
+) -> tuple[LegalEntity, ClientRecord, Business]:
+    le = LegalEntity(
+        id_number=id_number,
+        id_number_type=IdNumberType.INDIVIDUAL,
+        official_name="Test Entity",
+    )
     db.add(le)
     db.flush()
     cr = ClientRecord(legal_entity_id=le.id)
@@ -91,6 +106,7 @@ def test_assert_business_belongs_to_legal_entity_raises_on_mismatch(test_db):
 
 # ── Fix 2: BusinessService.update_business uses client-record lookup path ────
 
+
 def test_update_business_via_legal_entity_id(test_db):
     """Confirms the lookup chain: client_id → ClientRecord → legal_entity_id → guard passes."""
     from app.businesses.services.business_service import BusinessService
@@ -110,11 +126,16 @@ def test_update_business_via_legal_entity_id(test_db):
 
 # ── Fix 4: correspondence ownership now raises NotFoundError ─────────────────
 
+
 def test_correspondence_ownership_raises_not_found_error(test_db):
     from app.correspondence.services.correspondence_service import CorrespondenceService
 
-    le_a = LegalEntity(id_number="CORR-A", id_number_type=IdNumberType.OTHER, official_name="Client A")
-    le_b = LegalEntity(id_number="CORR-B", id_number_type=IdNumberType.OTHER, official_name="Client B")
+    le_a = LegalEntity(
+        id_number="CORR-A", id_number_type=IdNumberType.OTHER, official_name="Client A"
+    )
+    le_b = LegalEntity(
+        id_number="CORR-B", id_number_type=IdNumberType.OTHER, official_name="Client B"
+    )
     test_db.add_all([le_a, le_b])
     test_db.flush()
     client_a = ClientRecord(legal_entity_id=le_a.id)

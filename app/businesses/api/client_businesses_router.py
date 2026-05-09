@@ -25,7 +25,9 @@ client_businesses_router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def create_business(client_id: int, request: BusinessCreateRequest, db: DBSession, user: CurrentUser):
+def create_business(
+    client_id: int, request: BusinessCreateRequest, db: DBSession, user: CurrentUser
+):
     """יצירת עסק חדש תחת לקוח קיים (ADVISOR only)."""
     business = BusinessService(db).create_business(
         client_id=client_id,
@@ -34,7 +36,9 @@ def create_business(client_id: int, request: BusinessCreateRequest, db: DBSessio
         notes=request.notes,
         actor_id=user.id,
     )
-    return ClientBusinessService(db).to_response(business, user.role, client_id=client_id)
+    return ClientBusinessService(db).to_response(
+        business, user.role, client_id=client_id
+    )
 
 
 @client_businesses_router.get("", response_model=ClientBusinessesResponse)
@@ -75,7 +79,9 @@ def update_business(
         actor_id=user.id,
         **request.model_dump(exclude_unset=True),
     )
-    return ClientBusinessService(db).to_response(business, user.role, client_id=client_id)
+    return ClientBusinessService(db).to_response(
+        business, user.role, client_id=client_id
+    )
 
 
 @client_businesses_router.delete(
@@ -84,7 +90,9 @@ def update_business(
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def delete_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
-    ClientBusinessService(db).delete_for_client(client_id, business_id, actor_id=user.id)
+    ClientBusinessService(db).delete_for_client(
+        client_id, business_id, actor_id=user.id
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -93,7 +101,9 @@ def delete_business(client_id: int, business_id: int, db: DBSession, user: Curre
     response_model=BusinessResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def restore_business(client_id: int, business_id: int, db: DBSession, user: CurrentUser):
+def restore_business(
+    client_id: int, business_id: int, db: DBSession, user: CurrentUser
+):
     service = ClientBusinessService(db)
     business = service.restore_for_client(
         client_id,

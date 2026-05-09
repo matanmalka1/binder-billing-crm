@@ -6,6 +6,7 @@ from tests.helpers.identity import seed_business, seed_client_identity
 
 def _business(db) -> Business:
     from app.common.enums import AdvancePaymentFrequency
+
     crm_client = seed_client_identity(
         db,
         full_name="Advance Gen API Client",

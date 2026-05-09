@@ -10,7 +10,9 @@ from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories import vat_work_item_extra_queries as extra_queries
-from app.vat_reports.repositories.vat_work_item_filters import apply_vat_work_item_filters
+from app.vat_reports.repositories.vat_work_item_filters import (
+    apply_vat_work_item_filters,
+)
 
 
 class VatWorkItemQueryRepository:
@@ -29,7 +31,9 @@ class VatWorkItemQueryRepository:
             self.db.query(VatWorkItem),
             VatWorkItem,
         ).filter(VatWorkItem.deleted_at.is_(None))
-        return query.filter(VatWorkItem.status == status) if status is not None else query
+        return (
+            query.filter(VatWorkItem.status == status) if status is not None else query
+        )
 
     def _filtered_query(
         self,
@@ -54,7 +58,9 @@ class VatWorkItemQueryRepository:
             .first()
         )
 
-    def get_by_client_record_period(self, client_record_id: int, period: str) -> Optional[VatWorkItem]:
+    def get_by_client_record_period(
+        self, client_record_id: int, period: str
+    ) -> Optional[VatWorkItem]:
         return (
             self.db.query(VatWorkItem)
             .filter(
@@ -65,7 +71,9 @@ class VatWorkItemQueryRepository:
             .first()
         )
 
-    def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
+    def list_by_client_record(
+        self, client_record_id: int, limit: int = 200
+    ) -> list[VatWorkItem]:
         return (
             self.db.query(VatWorkItem)
             .filter(
@@ -77,8 +85,12 @@ class VatWorkItemQueryRepository:
             .all()
         )
 
-    def list_by_business_activity(self, business_activity_id: int, limit: int = 200) -> list[VatWorkItem]:
-        return extra_queries.list_by_business_activity(self.db, business_activity_id, limit)
+    def list_by_business_activity(
+        self, business_activity_id: int, limit: int = 200
+    ) -> list[VatWorkItem]:
+        return extra_queries.list_by_business_activity(
+            self.db, business_activity_id, limit
+        )
 
     def list_by_status(
         self,
@@ -91,7 +103,9 @@ class VatWorkItemQueryRepository:
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
         q = self._filtered_query(status, period, client_record_ids, period_type)
-        return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        return (
+            q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        )
 
     def count_by_status(
         self,
@@ -100,7 +114,9 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> int:
-        return self._filtered_query(status, period, client_record_ids, period_type).count()
+        return self._filtered_query(
+            status, period, client_record_ids, period_type
+        ).count()
 
     def list_all(
         self,
@@ -112,7 +128,9 @@ class VatWorkItemQueryRepository:
     ) -> list[VatWorkItem]:
         offset = (page - 1) * page_size
         q = self._filtered_query(None, period, client_record_ids, period_type)
-        return q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        return (
+            q.order_by(VatWorkItem.period.desc()).offset(offset).limit(page_size).all()
+        )
 
     def count_all(
         self,
@@ -120,7 +138,9 @@ class VatWorkItemQueryRepository:
         client_record_ids: Optional[list[int]] = None,
         period_type: Optional[VatType] = None,
     ) -> int:
-        return self._filtered_query(None, period, client_record_ids, period_type).count()
+        return self._filtered_query(
+            None, period, client_record_ids, period_type
+        ).count()
 
     def count_by_period_not_filed(self, period: str) -> int:
         return (
@@ -135,11 +155,19 @@ class VatWorkItemQueryRepository:
             .count()
         )
 
-    def sum_net_vat_by_client_record_year(self, client_record_id: int, tax_year: int) -> Optional[float]:
-        return extra_queries.sum_net_vat_by_client_record_year(self.db, client_record_id, tax_year)
+    def sum_net_vat_by_client_record_year(
+        self, client_record_id: int, tax_year: int
+    ) -> Optional[float]:
+        return extra_queries.sum_net_vat_by_client_record_year(
+            self.db, client_record_id, tax_year
+        )
 
-    def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
+    def list_not_filed_for_period(
+        self, period: str, limit: int = 3
+    ) -> list[VatWorkItem]:
         return extra_queries.list_not_filed_for_period(self.db, period, limit)
 
-    def list_open_up_to_period(self, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
+    def list_open_up_to_period(
+        self, up_to_period: str, limit: int = 50
+    ) -> list[VatWorkItem]:
         return extra_queries.list_open_up_to_period(self.db, up_to_period, limit)

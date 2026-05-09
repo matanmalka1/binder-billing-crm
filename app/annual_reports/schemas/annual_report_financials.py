@@ -12,8 +12,9 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 # ── Income ────────────────────────────────────────────────────────────────────
 
+
 class IncomeLineCreateRequest(BaseModel):
-    source_type: IncomeSourceType           # enum — לא str חופשי
+    source_type: IncomeSourceType  # enum — לא str חופשי
     amount: ApiDecimal = Field(ge=0)
     description: Optional[str] = None
 
@@ -38,14 +39,17 @@ class IncomeLineResponse(BaseModel):
 
 # ── Expenses ──────────────────────────────────────────────────────────────────
 
+
 class ExpenseLineCreateRequest(BaseModel):
-    category: ExpenseCategoryType           # enum — לא str חופשי
+    category: ExpenseCategoryType  # enum — לא str חופשי
     amount: ApiDecimal = Field(gt=0)
     description: Optional[str] = None
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
     external_document_reference: Optional[str] = Field(
         default=None,
-        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
+        validation_alias=AliasChoices(
+            "external_document_reference", "supporting_document_ref"
+        ),
     )
     supporting_document_id: Optional[int] = None
 
@@ -57,7 +61,9 @@ class ExpenseLineUpdateRequest(BaseModel):
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
     external_document_reference: Optional[str] = Field(
         default=None,
-        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
+        validation_alias=AliasChoices(
+            "external_document_reference", "supporting_document_ref"
+        ),
     )
     supporting_document_id: Optional[int] = None
 
@@ -83,17 +89,21 @@ class ExpenseLineResponse(BaseModel):
         instance = super().model_validate(obj, *args, **kwargs)
         if hasattr(obj, "supporting_document") and obj.supporting_document is not None:
             key = obj.supporting_document.storage_key or ""
-            object.__setattr__(instance, "supporting_document_filename", key.split("/")[-1])
+            object.__setattr__(
+                instance, "supporting_document_filename", key.split("/")[-1]
+            )
         return instance
 
     def model_post_init(self, __context) -> None:
         object.__setattr__(
-            self, "recognized_amount",
-            (self.amount * self.recognition_rate).quantize(Decimal("0.01"))
+            self,
+            "recognized_amount",
+            (self.amount * self.recognition_rate).quantize(Decimal("0.01")),
         )
 
 
 # ── Financial summary ─────────────────────────────────────────────────────────
+
 
 class FinancialSummaryResponse(BaseModel):
     annual_report_id: int
@@ -106,6 +116,7 @@ class FinancialSummaryResponse(BaseModel):
 
 
 # ── Tax calculation ───────────────────────────────────────────────────────────
+
 
 class BracketBreakdownItem(BaseModel):
     rate: float
@@ -139,6 +150,7 @@ class TaxCalculationResponse(BaseModel):
 
 # ── Advances summary ──────────────────────────────────────────────────────────
 
+
 class AdvancesSummary(BaseModel):
     total_advances_paid: ApiDecimal
     advances_count: int
@@ -148,14 +160,16 @@ class AdvancesSummary(BaseModel):
 
 # ── Readiness check ───────────────────────────────────────────────────────────
 
+
 class ReadinessCheckResponse(BaseModel):
     annual_report_id: int
     is_ready: bool
     issues: list[str]
-    completion_pct: float   # 0.0–100.0, rounded to 1 decimal
+    completion_pct: float  # 0.0–100.0, rounded to 1 decimal
 
 
 # ── Tax calculation save ──────────────────────────────────────────────────────
+
 
 class TaxCalculationSaveRequest(BaseModel):
     tax_due: Optional[ApiDecimal] = None
@@ -170,6 +184,7 @@ class TaxCalculationSaveResponse(BaseModel):
 
 
 # ── Tax preview (pre-creation) ────────────────────────────────────────────────
+
 
 class TaxPreviewRequest(BaseModel):
     tax_year: int
@@ -186,6 +201,7 @@ class TaxPreviewResponse(BaseModel):
 
 
 # ── VAT auto-populate ─────────────────────────────────────────────────────────
+
 
 class VatAutoPopulateResponse(BaseModel):
     annual_report_id: int

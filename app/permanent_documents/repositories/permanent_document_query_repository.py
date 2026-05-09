@@ -98,7 +98,9 @@ class PermanentDocumentQueryRepository:
         existing_types = {row[0] for row in existing}
         return [t for t in required_types if t not in existing_types]
 
-    def missing_by_client_type(self, client_record_id: int, required_types: list[str]) -> list[str]:
+    def missing_by_client_type(
+        self, client_record_id: int, required_types: list[str]
+    ) -> list[str]:
         existing = (
             self.db.query(PermanentDocument.document_type)
             .filter(

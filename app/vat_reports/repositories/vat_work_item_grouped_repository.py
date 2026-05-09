@@ -9,14 +9,16 @@ from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.vat_reports.repositories.vat_work_item_filters import apply_vat_work_item_filters
+from app.vat_reports.repositories.vat_work_item_filters import (
+    apply_vat_work_item_filters,
+)
 from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
 def _base_query(db: Session):
-    return scope_to_active_clients(
-        db.query(VatWorkItem), VatWorkItem
-    ).filter(VatWorkItem.deleted_at.is_(None))
+    return scope_to_active_clients(db.query(VatWorkItem), VatWorkItem).filter(
+        VatWorkItem.deleted_at.is_(None)
+    )
 
 
 def list_due_date_groups(
@@ -110,9 +112,12 @@ def list_by_due_date_paginated(
             item.due_date_effective
             if item.due_date_effective is not None
             else compute_deadline_fields(item)["submission_deadline"]
-        ) == due_date
+        )
+        == due_date
     ]
     total = len(matching)
     start = (page - 1) * page_size
-    items = sorted(matching, key=lambda item: item.client_record_id)[start:start + page_size]
+    items = sorted(matching, key=lambda item: item.client_record_id)[
+        start : start + page_size
+    ]
     return items, total

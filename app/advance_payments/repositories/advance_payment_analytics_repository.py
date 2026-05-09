@@ -5,9 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_repository import advance_payment_status_text_expr
-from app.advance_payments.repositories.advance_payment_aggregation_repository import advance_payment_matches_month_expr
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
+from app.advance_payments.repositories.advance_payment_repository import (
+    advance_payment_status_text_expr,
+)
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    advance_payment_matches_month_expr,
+)
 
 
 class AdvancePaymentAnalyticsRepository(BaseRepository):
@@ -18,14 +25,21 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
         today_expr = func.current_date()
         rows = (
             self.db.query(
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
+                    "total_expected"
+                ),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
+                    "total_paid"
+                ),
                 func.count(AdvancePayment.id).label("total_count"),
                 func.sum(
                     case(
                         (
                             (AdvancePayment.due_date < today_expr)
-                            & (advance_payment_status_text_expr() != AdvancePaymentStatus.PAID.value),
+                            & (
+                                advance_payment_status_text_expr()
+                                != AdvancePaymentStatus.PAID.value
+                            ),
                             1,
                         ),
                         else_=0,
@@ -33,7 +47,11 @@ class AdvancePaymentAnalyticsRepository(BaseRepository):
                 ).label("overdue_count"),
                 func.sum(
                     case(
-                        (advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value, 1),
+                        (
+                            advance_payment_status_text_expr()
+                            == AdvancePaymentStatus.PAID.value,
+                            1,
+                        ),
                         else_=0,
                     )
                 ).label("on_time_count"),

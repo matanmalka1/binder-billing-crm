@@ -1,9 +1,13 @@
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
+from app.annual_reports.models.annual_report_status_history import (
+    AnnualReportStatusHistory,
+)
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.businesses.models.business import Business
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.charge.repositories.charge_repository import ChargeRepository
@@ -21,7 +25,9 @@ from app.timeline.services.timeline_charge_event_builders import (
     invoice_attached_event,
 )
 from app.timeline.services.timeline_client_aggregator import build_client_events
-from app.timeline.services.timeline_tax_builders import annual_report_status_changed_event
+from app.timeline.services.timeline_tax_builders import (
+    annual_report_status_changed_event,
+)
 
 # Safety ceiling for per-entity bulk fetches — per-client, not global.
 _TIMELINE_BULK_LIMIT = 500
@@ -46,10 +52,15 @@ class TimelineService:
     ) -> tuple[list[dict], int]:
         client_record = self.client_record_repo.get_by_id(client_record_id)
         if not client_record:
-            raise NotFoundError(message="לקוח לא נמצא", code="TIMELINE.CLIENT_NOT_FOUND")
+            raise NotFoundError(
+                message="לקוח לא נמצא", code="TIMELINE.CLIENT_NOT_FOUND"
+            )
         businesses = (
             self.db.query(Business)
-            .filter(Business.legal_entity_id == client_record.legal_entity_id, Business.deleted_at.is_(None))
+            .filter(
+                Business.legal_entity_id == client_record.legal_entity_id,
+                Business.deleted_at.is_(None),
+            )
             .all()
         )
         business_ids = [business.id for business in businesses]
@@ -60,7 +71,9 @@ class TimelineService:
         # Bounded: _TIMELINE_BULK_LIMIT — older binders silently excluded if exceeded.
         binders = self.binder_repo.list_by_client_record(client_record_id)
         for binder in binders:
-            if getattr(binder, "received_at", None) or getattr(binder, "period_start", None):
+            if getattr(binder, "received_at", None) or getattr(
+                binder, "period_start", None
+            ):
                 events.append(binder_received_event(binder))
             if binder.returned_at:
                 events.append(binder_returned_event(binder))
@@ -85,10 +98,12 @@ class TimelineService:
             if invoice:
                 events.append(invoice_attached_event(charge, invoice))
 
-        events.extend(self._build_annual_report_events(client_record.id if client_record else None))
         events.extend(
-            build_client_events(self.db, client_record_id, business_ids)
+            self._build_annual_report_events(
+                client_record.id if client_record else None
+            )
         )
+        events.extend(build_client_events(self.db, client_record_id, business_ids))
 
         events.sort(key=lambda e: e["timestamp"], reverse=True)
         total = len(events)
@@ -131,4 +146,7 @@ class TimelineService:
             .limit(_TIMELINE_BULK_LIMIT)
             .all()
         )
-        return [annual_report_status_changed_event(report, history) for report, history in rows]
+        return [
+            annual_report_status_changed_event(report, history)
+            for report, history in rows
+        ]

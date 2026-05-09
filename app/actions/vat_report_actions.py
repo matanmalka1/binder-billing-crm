@@ -32,7 +32,9 @@ def get_vat_work_item_actions(
                 label="אישור קבלת חומרים",
                 method="post",
                 endpoint=f"/vat/work-items/{item.id}/materials-complete",
-                action_id=_generate_action_id("vat_work_item", item.id, "materials_complete"),
+                action_id=_generate_action_id(
+                    "vat_work_item", item.id, "materials_complete"
+                ),
             )
         )
 
@@ -58,31 +60,39 @@ def get_vat_work_item_actions(
                 label="שלח לבדיקה",
                 method="post",
                 endpoint=f"/vat/work-items/{item.id}/ready-for-review",
-                action_id=_generate_action_id("vat_work_item", item.id, "ready_for_review"),
+                action_id=_generate_action_id(
+                    "vat_work_item", item.id, "ready_for_review"
+                ),
             )
         )
 
     if _is_advisor(user_role) and status == VatWorkItemStatus.READY_FOR_REVIEW.value:
-        actions.extend([
-            build_action(
-                key="file_vat_return",
-                label='הגש מע"מ',
-                method="post",
-                endpoint=f"/vat/work-items/{item.id}/file",
-                action_id=_generate_action_id("vat_work_item", item.id, "file_vat_return"),
-            ),
-            build_action(
-                key="send_back",
-                label="החזר לתיקון",
-                method="post",
-                endpoint=f"/vat/work-items/{item.id}/send-back",
-                action_id=_generate_action_id("vat_work_item", item.id, "send_back"),
-                confirm=build_confirm(
-                    "החזרה לתיקון",
-                    "יש לציין הערה לפני החזרת התיק לתיקון.",
+        actions.extend(
+            [
+                build_action(
+                    key="file_vat_return",
+                    label='הגש מע"מ',
+                    method="post",
+                    endpoint=f"/vat/work-items/{item.id}/file",
+                    action_id=_generate_action_id(
+                        "vat_work_item", item.id, "file_vat_return"
+                    ),
                 ),
-            ),
-        ])
+                build_action(
+                    key="send_back",
+                    label="החזר לתיקון",
+                    method="post",
+                    endpoint=f"/vat/work-items/{item.id}/send-back",
+                    action_id=_generate_action_id(
+                        "vat_work_item", item.id, "send_back"
+                    ),
+                    confirm=build_confirm(
+                        "החזרה לתיקון",
+                        "יש לציין הערה לפני החזרת התיק לתיקון.",
+                    ),
+                ),
+            ]
+        )
 
     return actions
 

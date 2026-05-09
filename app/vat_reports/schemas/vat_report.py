@@ -13,9 +13,10 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 # ── Work Item ─────────────────────────────────────────────────────────────────
 
+
 class VatWorkItemCreateRequest(BaseModel):
     client_record_id: int
-    period: str                             # "YYYY-MM"
+    period: str  # "YYYY-MM"
     assigned_to: Optional[int] = None
     mark_pending: bool = False
     pending_materials_note: Optional[str] = None
@@ -32,18 +33,18 @@ class VatWorkItemResponse(BaseModel):
     id: int
     client_record_id: int
     office_client_number: Optional[int] = None  # enriched by service
-    client_name: Optional[str] = None       # enriched by service
+    client_name: Optional[str] = None  # enriched by service
     client_id_number: Optional[str] = None  # enriched by service
-    client_status: Optional[str] = None    # enriched by service
+    client_status: Optional[str] = None  # enriched by service
     period: str
-    period_type: VatType                   # snapshot at creation — immutable historical record
+    period_type: VatType  # snapshot at creation — immutable historical record
     status: VatWorkItemStatus
     pending_materials_note: Optional[str] = None
     total_output_vat: Decimal
     total_input_vat: Decimal
     net_vat: Decimal
-    total_output_net: Decimal              # קיים במודל — שדה 87
-    total_input_net: Decimal               # קיים במודל — שדה 66
+    total_output_net: Decimal  # קיים במודל — שדה 87
+    total_input_net: Decimal  # קיים במודל — שדה 66
     final_vat_amount: Optional[Decimal] = None
     is_overridden: bool
     override_justification: Optional[str] = None
@@ -118,6 +119,7 @@ class VatPeriodOptionsResponse(BaseModel):
 
 # ── Status transitions ────────────────────────────────────────────────────────
 
+
 class SendBackForCorrectionRequest(BaseModel):
     correction_note: str = Field(min_length=1, max_length=1000)
 
@@ -132,6 +134,7 @@ class SendBackForCorrectionRequest(BaseModel):
 
 # ── Filing ────────────────────────────────────────────────────────────────────
 
+
 class VatWorkItemLookupResponse(BaseModel):
     id: int
     status: VatWorkItemStatus
@@ -141,7 +144,7 @@ class VatWorkItemLookupResponse(BaseModel):
 
 
 class FileVatReturnRequest(BaseModel):
-    submission_method: SubmissionMethod    # שם חדש — תואם המודל
+    submission_method: SubmissionMethod  # שם חדש — תואם המודל
     override_amount: Optional[Decimal] = None
     override_justification: Optional[str] = None
     submission_reference: Optional[str] = None

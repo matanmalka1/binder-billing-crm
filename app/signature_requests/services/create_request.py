@@ -10,14 +10,18 @@ from app.signature_requests.services.messages import (
     SIGNATURE_REQUEST_CREATED_NOTE,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.businesses.services.business_contact_service import BusinessContactService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestType,
 )
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 
 
 def create_request(
@@ -46,13 +50,17 @@ def create_request(
     """
     client_record = ClientRecordRepository(repo.db).get_by_id(client_record_id)
     if not client_record:
-        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+        raise NotFoundError(
+            f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
+        )
 
     # Validate business ownership when business_id is supplied
     if business_id is not None:
         business = business_repo.get_by_id(business_id)
         if not business:
-            raise NotFoundError(BUSINESS_NOT_FOUND.format(business_id=business_id), "BUSINESS.NOT_FOUND")
+            raise NotFoundError(
+                BUSINESS_NOT_FOUND.format(business_id=business_id), "BUSINESS.NOT_FOUND"
+            )
         assert_business_belongs_to_legal_entity(business, client_record.legal_entity_id)
         contact_service = BusinessContactService(repo.db)
         contact_email = contact_service.contact_email(business)

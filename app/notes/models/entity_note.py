@@ -27,9 +27,7 @@ class EntityNote(Base):
     deleted_at = Column(DateTime, nullable=True)
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    __table_args__ = (
-        Index("idx_entity_notes_type_id", "entity_type", "entity_id"),
-    )
+    __table_args__ = (Index("idx_entity_notes_type_id", "entity_type", "entity_id"),)
 
     def __repr__(self) -> str:
         return (

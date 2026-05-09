@@ -12,19 +12,23 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.utils.time_utils import israel_today, utcnow
 
-DASHBOARD_FINAL_STATUSES = frozenset({
-    AnnualReportStatus.SUBMITTED,
-    AnnualReportStatus.ACCEPTED,
-    AnnualReportStatus.CLOSED,
-    AnnualReportStatus.CANCELED,
-})
+DASHBOARD_FINAL_STATUSES = frozenset(
+    {
+        AnnualReportStatus.SUBMITTED,
+        AnnualReportStatus.ACCEPTED,
+        AnnualReportStatus.CLOSED,
+        AnnualReportStatus.CANCELED,
+    }
+)
 
 
 class AnnualReportLifecycleRepository:
     def _active_client_query(self):
         return scope_to_active_clients(self.db.query(AnnualReport), AnnualReport)
 
-    def list_overdue(self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20) -> list[AnnualReport]:
+    def list_overdue(
+        self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20
+    ) -> list[AnnualReport]:
         now = utcnow()
         open_statuses = [
             AnnualReportStatus.NOT_STARTED,
@@ -33,14 +37,11 @@ class AnnualReportLifecycleRepository:
             AnnualReportStatus.IN_PREPARATION,
             AnnualReportStatus.PENDING_CLIENT,
         ]
-        q = (
-            self._active_client_query()
-            .filter(
-                AnnualReport.status.in_(open_statuses),
-                AnnualReport.filing_deadline < now,
-                AnnualReport.filing_deadline.isnot(None),
-                AnnualReport.deleted_at.is_(None),
-            )
+        q = self._active_client_query().filter(
+            AnnualReport.status.in_(open_statuses),
+            AnnualReport.filing_deadline < now,
+            AnnualReport.filing_deadline.isnot(None),
+            AnnualReport.deleted_at.is_(None),
         )
         if tax_year:
             q = q.filter(AnnualReport.tax_year == tax_year)
@@ -51,12 +52,18 @@ class AnnualReportLifecycleRepository:
         row = (
             scope_to_active_clients(
                 self.db.query(
-                func.coalesce(func.sum(AnnualReport.refund_due), 0).label("total_refund_due"),
-                func.coalesce(func.sum(AnnualReport.tax_due), 0).label("total_tax_due"),
+                    func.coalesce(func.sum(AnnualReport.refund_due), 0).label(
+                        "total_refund_due"
+                    ),
+                    func.coalesce(func.sum(AnnualReport.tax_due), 0).label(
+                        "total_tax_due"
+                    ),
                 ),
                 AnnualReport,
             )
-            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
+            .filter(
+                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
+            )
             .one()
         )
         return {
@@ -64,16 +71,20 @@ class AnnualReportLifecycleRepository:
             "total_tax_due": Decimal(str(row.total_tax_due)),
         }
 
-    def list_stuck_reports(self, stale_days: int = 7, limit: int = 3) -> list[AnnualReport]:
+    def list_stuck_reports(
+        self, stale_days: int = 7, limit: int = 3
+    ) -> list[AnnualReport]:
         """Return reports stuck in PENDING_CLIENT or COLLECTING_DOCS for >= stale_days."""
         cutoff = _dt.datetime.now(timezone.utc) - _dt.timedelta(days=stale_days)
         return (
             self._active_client_query()
             .filter(
-                AnnualReport.status.in_([
-                    AnnualReportStatus.PENDING_CLIENT,
-                    AnnualReportStatus.COLLECTING_DOCS,
-                ]),
+                AnnualReport.status.in_(
+                    [
+                        AnnualReportStatus.PENDING_CLIENT,
+                        AnnualReportStatus.COLLECTING_DOCS,
+                    ]
+                ),
                 AnnualReport.deleted_at.is_(None),
                 AnnualReport.updated_at <= cutoff,
             )
@@ -124,10 +135,14 @@ class AnnualReportLifecycleRepository:
     def get_season_summary(self, tax_year: int) -> dict:
         rows = (
             scope_to_active_clients(
-                self.db.query(AnnualReport.status, func.count(AnnualReport.id).label("cnt")),
+                self.db.query(
+                    AnnualReport.status, func.count(AnnualReport.id).label("cnt")
+                ),
                 AnnualReport,
             )
-            .filter(AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None))
+            .filter(
+                AnnualReport.tax_year == tax_year, AnnualReport.deleted_at.is_(None)
+            )
             .group_by(AnnualReport.status)
             .all()
         )

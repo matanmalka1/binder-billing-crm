@@ -4,13 +4,17 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
-from app.advance_payments.models.advance_payment import AdvancePaymentStatus, PaymentMethod
+from app.advance_payments.models.advance_payment import (
+    AdvancePaymentStatus,
+    PaymentMethod,
+)
 from app.advance_payments.services.constants import (
     BIMONTHLY_START_MONTHS,
     SUPPORTED_PERIOD_MONTH_COUNTS,
     parse_period_month,
 )
 from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
+
 
 class AdvancePaymentRow(BaseModel):
     id: int
@@ -52,13 +56,16 @@ class AdvancePaymentRow(BaseModel):
     def paid_late(self) -> bool:
         if self.paid_at is None or self.status != AdvancePaymentStatus.PAID:
             return False
-        paid_date = self.paid_at.date() if isinstance(self.paid_at, datetime) else self.paid_at
+        paid_date = (
+            self.paid_at.date() if isinstance(self.paid_at, datetime) else self.paid_at
+        )
         return paid_date > self.due_date
 
     model_config = {"from_attributes": True, "use_enum_values": True}
 
 
 AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
+
 
 class AdvancePaymentCreateRequest(BaseModel):
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
@@ -84,12 +91,17 @@ class AdvancePaymentCreateRequest(BaseModel):
             raise ValueError("מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי")
         return self
 
-    model_config = {"json_schema_extra": {"example": {
-        "period": "2026-03",
-        "period_months_count": 1,
-        "due_date": "2026-04-15",
-        "expected_amount": "2500.00",
-    }}}
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "period": "2026-03",
+                "period_months_count": 1,
+                "due_date": "2026-04-15",
+                "expected_amount": "2500.00",
+            }
+        }
+    }
+
 
 class AdvancePaymentUpdateRequest(BaseModel):
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
@@ -101,19 +113,27 @@ class AdvancePaymentUpdateRequest(BaseModel):
 
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "AdvancePaymentUpdateRequest":
-        if all(v is None for v in [
-            self.paid_amount, self.expected_amount,
-            self.status, self.paid_at,
-            self.payment_method, self.notes,
-        ]):
+        if all(
+            v is None
+            for v in [
+                self.paid_amount,
+                self.expected_amount,
+                self.status,
+                self.paid_at,
+                self.payment_method,
+                self.notes,
+            ]
+        ):
             raise ValueError("יש לספק לפחות שדה אחד לעדכון")
         return self
+
 
 class AdvancePaymentSuggestionResponse(BaseModel):
     client_record_id: int
     year: int
     suggested_amount: Optional[ApiDecimal] = None
     has_data: bool
+
 
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
@@ -149,6 +169,7 @@ class AdvancePaymentOverviewRow(BaseModel):
 
     model_config = {"from_attributes": False, "use_enum_values": True}
 
+
 class AdvancePaymentOverviewResponse(BaseModel):
     items: list[AdvancePaymentOverviewRow]
     page: int
@@ -158,6 +179,7 @@ class AdvancePaymentOverviewResponse(BaseModel):
     total_paid: Optional[ApiDecimal] = None
     collection_rate: Optional[float] = None  # 0.0–100.0
 
+
 class AnnualKPIResponse(BaseModel):
     client_record_id: int
     year: int
@@ -166,6 +188,7 @@ class AnnualKPIResponse(BaseModel):
     collection_rate: float  # 0.0–100.0
     overdue_count: int
     on_time_count: int
+
 
 class MonthBatchSummary(BaseModel):
     year: int
@@ -180,6 +203,7 @@ class MonthBatchSummary(BaseModel):
     total_paid: Optional[ApiDecimal] = None
     collection_rate: float = 0.0
 
+
 class GenerateScheduleRequest(BaseModel):
     year: int
     period_months_count: Optional[int] = Field(None, ge=1, le=2)
@@ -190,6 +214,7 @@ class GenerateScheduleRequest(BaseModel):
             "ברירת מחדל: היום."
         ),
     )
+
 
 class GenerateScheduleResponse(BaseModel):
     created: int

@@ -3,7 +3,10 @@ from datetime import date
 import pytest
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.binders.services.binder_helpers import validate_ready_transition, validate_return_transition
+from app.binders.services.binder_helpers import (
+    validate_ready_transition,
+    validate_return_transition,
+)
 
 
 def _binder(status: BinderStatus) -> Binder:

@@ -1,4 +1,5 @@
 """NotificationSendService — low-level delivery (email + WhatsApp) and persistence."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -12,9 +13,16 @@ from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
 from app.businesses.models.business import Business
-from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationSeverity,
+    NotificationTrigger,
+)
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.constants import BULK_NOTIFY_LIMIT
 from app.notification.services.messages import (
@@ -81,7 +89,9 @@ class NotificationSendService:
             return None
         business, person = row
         if person is None:
-            logger.warning("LegalEntity for business_id=%s has no linked Person", business_id)
+            logger.warning(
+                "LegalEntity for business_id=%s has no linked Person", business_id
+            )
         return business, person
 
     def _get_client(self, client_record_id: int) -> Person | None:
@@ -131,8 +141,12 @@ class NotificationSendService:
             )
         results = [
             self.send_notification(
-                business_id=bid, trigger=trigger, content=template,
-                triggered_by=triggered_by, preferred_channel=channel.value, severity=severity,
+                business_id=bid,
+                trigger=trigger,
+                content=template,
+                triggered_by=triggered_by,
+                preferred_channel=channel.value,
+                severity=severity,
             )
             for bid in business_ids
         ]
@@ -158,7 +172,9 @@ class NotificationSendService:
 
             subject = _SUBJECTS.get(trigger)
             if subject is None:
-                logger.warning("No subject mapping for trigger=%s, using default", trigger)
+                logger.warning(
+                    "No subject mapping for trigger=%s, using default", trigger
+                )
                 subject = DEFAULT_NOTIFICATION_SUBJECT
 
             phone = person.phone if person else None
@@ -180,15 +196,24 @@ class NotificationSendService:
                 ok, err = self.whatsapp.send(phone, content)
                 if ok:
                     self.notification_repo.mark_sent(n.id)
-                    logger.info("WhatsApp sent | business=%s trigger=%s", business_id, trigger.value)
+                    logger.info(
+                        "WhatsApp sent | business=%s trigger=%s",
+                        business_id,
+                        trigger.value,
+                    )
                     return True
                 self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
-                logger.warning("WhatsApp failed business=%s, falling back to email: %s", business_id, err)
+                logger.warning(
+                    "WhatsApp failed business=%s, falling back to email: %s",
+                    business_id,
+                    err,
+                )
 
             if not email:
                 logger.info(
                     "send_notification: business %s has no email, skipping trigger=%s",
-                    business_id, trigger.value,
+                    business_id,
+                    trigger.value,
                 )
                 return False
 
@@ -206,18 +231,26 @@ class NotificationSendService:
             success, error = self.email.send(email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(n.id)
-                logger.info("Notification sent | business=%s trigger=%s", business_id, trigger.value)
+                logger.info(
+                    "Notification sent | business=%s trigger=%s",
+                    business_id,
+                    trigger.value,
+                )
                 return True
             self.notification_repo.mark_failed(n.id, error or "unknown error")
             logger.error(
                 "Notification failed | business=%s trigger=%s error=%s",
-                business_id, trigger.value, error,
+                business_id,
+                trigger.value,
+                error,
             )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_notification | business=%s trigger=%s error=%s",
-                business_id, trigger, exc,
+                business_id,
+                trigger,
+                exc,
             )
         return False
 
@@ -235,12 +268,16 @@ class NotificationSendService:
         try:
             person = self._get_client(client_record_id)
             if not person:
-                logger.warning("send_client_notification: client %s not found", client_record_id)
+                logger.warning(
+                    "send_client_notification: client %s not found", client_record_id
+                )
                 return False
 
             subject = _SUBJECTS.get(trigger)
             if subject is None:
-                logger.warning("No subject mapping for trigger=%s, using default", trigger)
+                logger.warning(
+                    "No subject mapping for trigger=%s, using default", trigger
+                )
                 subject = DEFAULT_NOTIFICATION_SUBJECT
 
             phone = person.phone if person else None
@@ -261,15 +298,24 @@ class NotificationSendService:
                 ok, err = self.whatsapp.send(phone, content)
                 if ok:
                     self.notification_repo.mark_sent(n.id)
-                    logger.info("Client notification sent via WhatsApp | client=%s trigger=%s", client_record_id, trigger.value)
+                    logger.info(
+                        "Client notification sent via WhatsApp | client=%s trigger=%s",
+                        client_record_id,
+                        trigger.value,
+                    )
                     return True
                 self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
-                logger.warning("WhatsApp failed client=%s, falling back to email: %s", client_record_id, err)
+                logger.warning(
+                    "WhatsApp failed client=%s, falling back to email: %s",
+                    client_record_id,
+                    err,
+                )
 
             if not email:
                 logger.info(
                     "send_client_notification: client %s has no email, skipping trigger=%s",
-                    client_record_id, trigger.value,
+                    client_record_id,
+                    trigger.value,
                 )
                 return False
 
@@ -287,18 +333,26 @@ class NotificationSendService:
             success, error = self.email.send(email, content, subject=subject)
             if success:
                 self.notification_repo.mark_sent(n.id)
-                logger.info("Client notification sent | client=%s trigger=%s", client_record_id, trigger.value)
+                logger.info(
+                    "Client notification sent | client=%s trigger=%s",
+                    client_record_id,
+                    trigger.value,
+                )
                 return True
             self.notification_repo.mark_failed(n.id, error or "unknown error")
             logger.error(
                 "Client notification failed | client=%s trigger=%s error=%s",
-                client_record_id, trigger.value, error,
+                client_record_id,
+                trigger.value,
+                error,
             )
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_client_notification | client=%s trigger=%s error=%s",
-                client_record_id, trigger, exc,
+                client_record_id,
+                trigger,
+                exc,
             )
         return False
 
@@ -307,11 +361,17 @@ class NotificationSendService:
         try:
             person = self._get_client(client_record_id)
             if person is None:
-                logger.warning("send_client_reminder: client_record %s has no linked Person", client_record_id)
+                logger.warning(
+                    "send_client_reminder: client_record %s has no linked Person",
+                    client_record_id,
+                )
                 return False
             email = person.email
             if not email:
-                logger.info("send_client_reminder: client %s has no email or not found", client_record_id)
+                logger.info(
+                    "send_client_reminder: client %s has no email or not found",
+                    client_record_id,
+                )
                 return False
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
@@ -320,27 +380,45 @@ class NotificationSendService:
                 recipient=email,
                 content_snapshot=reminder_text,
             )
-            ok, err = self.email.send(email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
+            ok, err = self.email.send(
+                email, reminder_text, subject=CLIENT_REMINDER_SUBJECT
+            )
             if ok:
                 self.notification_repo.mark_sent(n.id)
                 logger.info("Client reminder sent | client=%s", client_record_id)
                 return True
             self.notification_repo.mark_failed(n.id, err or "unknown error")
-            logger.error("send_client_reminder failed | client=%s error=%s", client_record_id, err)
+            logger.error(
+                "send_client_reminder failed | client=%s error=%s",
+                client_record_id,
+                err,
+            )
         except Exception as exc:  # noqa: BLE001
-            logger.error("Unexpected error in send_client_reminder | client=%s error=%s", client_record_id, exc)
+            logger.error(
+                "Unexpected error in send_client_reminder | client=%s error=%s",
+                client_record_id,
+                exc,
+            )
         return False
 
-    def send_client_record_reminder(self, client_record_id: int, reminder_text: str) -> bool:
+    def send_client_record_reminder(
+        self, client_record_id: int, reminder_text: str
+    ) -> bool:
         """Send reminder to a client resolved from client_record_id via LegalEntity → Person."""
         try:
             person = self._get_client(client_record_id)
             if person is None:
-                logger.warning("send_client_record_reminder: client_record %s has no linked Person", client_record_id)
+                logger.warning(
+                    "send_client_record_reminder: client_record %s has no linked Person",
+                    client_record_id,
+                )
                 return False
             email = person.email
             if not email:
-                logger.info("send_client_record_reminder: client_record %s has no email", client_record_id)
+                logger.info(
+                    "send_client_record_reminder: client_record %s has no email",
+                    client_record_id,
+                )
                 return False
             n = self.notification_repo.create(
                 client_record_id=client_record_id,
@@ -349,13 +427,25 @@ class NotificationSendService:
                 recipient=email,
                 content_snapshot=reminder_text,
             )
-            ok, err = self.email.send(email, reminder_text, subject=CLIENT_REMINDER_SUBJECT)
+            ok, err = self.email.send(
+                email, reminder_text, subject=CLIENT_REMINDER_SUBJECT
+            )
             if ok:
                 self.notification_repo.mark_sent(n.id)
-                logger.info("Client record reminder sent | client_record=%s", client_record_id)
+                logger.info(
+                    "Client record reminder sent | client_record=%s", client_record_id
+                )
                 return True
             self.notification_repo.mark_failed(n.id, err or "unknown error")
-            logger.error("send_client_record_reminder failed | client_record=%s error=%s", client_record_id, err)
+            logger.error(
+                "send_client_record_reminder failed | client_record=%s error=%s",
+                client_record_id,
+                err,
+            )
         except Exception as exc:  # noqa: BLE001
-            logger.error("Unexpected error in send_client_record_reminder | client_record=%s error=%s", client_record_id, exc)
+            logger.error(
+                "Unexpected error in send_client_record_reminder | client_record=%s error=%s",
+                client_record_id,
+                exc,
+            )
         return False

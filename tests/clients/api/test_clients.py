@@ -43,7 +43,9 @@ def test_identity_only_client_creation_is_not_available(client, advisor_headers)
     assert response.status_code == 422
 
 
-def test_create_client_creates_client_and_initial_business(client, test_db, advisor_headers):
+def test_create_client_creates_client_and_initial_business(
+    client, test_db, advisor_headers
+):
     response = client.post(
         "/api/v1/clients",
         headers=advisor_headers,
@@ -87,6 +89,7 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
     )
     assert stored_business.opened_at.isoformat() == "2026-04-19"
 
+
 def test_create_client_requires_advisor_role(client, secretary_headers):
     response = client.post(
         "/api/v1/clients",
@@ -106,7 +109,10 @@ def test_create_client_requires_advisor_role(client, secretary_headers):
                 "vat_reporting_frequency": "monthly",
                 "accountant_id": 1,
             },
-            "business": {"business_name": "Secretary Business", "opened_at": "2026-04-19"},
+            "business": {
+                "business_name": "Secretary Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
 
@@ -174,7 +180,10 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
                 "advance_payment_frequency": "monthly",
                 "accountant_id": 1,
             },
-            "business": {"business_name": "Friendly Business", "opened_at": "2026-04-19"},
+            "business": {
+                "business_name": "Friendly Business",
+                "opened_at": "2026-04-19",
+            },
         },
     )
 

@@ -15,7 +15,9 @@ from app.notification.models.notification import (
 from ...data.demo_catalog import demo_email
 
 
-def create_notifications(db, rng: Random, clients, businesses, binders, users=None) -> None:
+def create_notifications(
+    db, rng: Random, clients, businesses, binders, users=None
+) -> None:
     clients_by_id = {c.id: c for c in clients}
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
@@ -33,18 +35,33 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             continue
 
         is_email = rng.random() < 0.35
-        channel = NotificationChannel.EMAIL if is_email else NotificationChannel.WHATSAPP
-        recipient = getattr(client, "email", None) if is_email else (getattr(client, "phone", None) or "0500000000")
+        channel = (
+            NotificationChannel.EMAIL if is_email else NotificationChannel.WHATSAPP
+        )
+        recipient = (
+            getattr(client, "email", None)
+            if is_email
+            else (getattr(client, "phone", None) or "0500000000")
+        )
         if not recipient:
             recipient = demo_email("client", client.id)
 
         if binder.status == BinderStatus.READY_FOR_PICKUP:
             trigger = NotificationTrigger.BINDER_READY_FOR_PICKUP
         else:
-            trigger = rng.choice([NotificationTrigger.BINDER_RECEIVED, NotificationTrigger.MANUAL_PAYMENT_REMINDER])
+            trigger = rng.choice(
+                [
+                    NotificationTrigger.BINDER_RECEIVED,
+                    NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                ]
+            )
 
         status = rng.choices(
-            [NotificationStatus.SENT, NotificationStatus.PENDING, NotificationStatus.FAILED],
+            [
+                NotificationStatus.SENT,
+                NotificationStatus.PENDING,
+                NotificationStatus.FAILED,
+            ],
             weights=[75, 18, 7],
             k=1,
         )[0]
@@ -52,9 +69,17 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
         sent_at = None
         failed_at = None
         if status == NotificationStatus.SENT:
-            sent_at = min(datetime.now(UTC), created_at + timedelta(days=rng.randint(0, 5), hours=rng.randint(0, 12)))
+            sent_at = min(
+                datetime.now(UTC),
+                created_at
+                + timedelta(days=rng.randint(0, 5), hours=rng.randint(0, 12)),
+            )
         elif status == NotificationStatus.FAILED:
-            failed_at = min(datetime.now(UTC), created_at + timedelta(days=rng.randint(0, 3), hours=rng.randint(0, 12)))
+            failed_at = min(
+                datetime.now(UTC),
+                created_at
+                + timedelta(days=rng.randint(0, 3), hours=rng.randint(0, 12)),
+            )
 
         triggered_by = None
         if trigger == NotificationTrigger.MANUAL_PAYMENT_REMINDER and users:
@@ -72,7 +97,9 @@ def create_notifications(db, rng: Random, clients, businesses, binders, users=No
             content_snapshot=f"הודעה אוטומטית עבור קלסר {binder.binder_number}",
             sent_at=sent_at,
             failed_at=failed_at,
-            error_message="פסק זמן מול הספק" if status == NotificationStatus.FAILED else None,
+            error_message="פסק זמן מול הספק"
+            if status == NotificationStatus.FAILED
+            else None,
             triggered_by=triggered_by,
             created_at=created_at,
         )

@@ -64,13 +64,48 @@ CONSTANTS_2024: dict[str, FinancialConstant] = {
 # שים לב: הקוד הישן ב-tax_engine.py הציג 81,480 תחת 2024 — שגוי, אלו מדרגות 2023.
 
 INCOME_TAX_BRACKETS_2024: tuple[IncomeTaxBracket, ...] = (
-    IncomeTaxBracket(from_ils=0,       up_to_ils=84_120,  rate=0.10, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=84_121,  up_to_ils=120_720, rate=0.14, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=120_721, up_to_ils=193_800, rate=0.20, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=193_801, up_to_ils=269_280, rate=0.31, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=269_281, up_to_ils=560_280, rate=0.35, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=560_281, up_to_ils=721_560, rate=0.47, source_ids=("tax_authority_income_tax_brackets_2024",)),
-    IncomeTaxBracket(from_ils=721_561, up_to_ils=None,    rate=0.50, source_ids=("tax_authority_income_tax_brackets_2024",)),
+    IncomeTaxBracket(
+        from_ils=0,
+        up_to_ils=84_120,
+        rate=0.10,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=84_121,
+        up_to_ils=120_720,
+        rate=0.14,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=120_721,
+        up_to_ils=193_800,
+        rate=0.20,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=193_801,
+        up_to_ils=269_280,
+        rate=0.31,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=269_281,
+        up_to_ils=560_280,
+        rate=0.35,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=560_281,
+        up_to_ils=721_560,
+        rate=0.47,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
+    IncomeTaxBracket(
+        from_ils=721_561,
+        up_to_ils=None,
+        rate=0.50,
+        source_ids=("tax_authority_income_tax_brackets_2024",),
+    ),
 )
 
 # ── נקודת זיכוי — 2024 ───────────────────────────────────────────────────────

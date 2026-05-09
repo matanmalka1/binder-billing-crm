@@ -1,4 +1,5 @@
 """Per-category builders for dashboard quick actions."""
+
 from __future__ import annotations
 
 import datetime as _dt
@@ -7,7 +8,9 @@ from typing import Optional
 
 from app.actions.action_helpers import build_action, build_confirm
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_read_repository import get_full_record
@@ -18,9 +21,18 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 
 _MONTH_HE = {
-    1: "ינואר", 2: "פברואר", 3: "מרץ", 4: "אפריל",
-    5: "מאי", 6: "יוני", 7: "יולי", 8: "אוגוסט",
-    9: "ספטמבר", 10: "אוקטובר", 11: "נובמבר", 12: "דצמבר",
+    1: "ינואר",
+    2: "פברואר",
+    3: "מרץ",
+    4: "אפריל",
+    5: "מאי",
+    6: "יוני",
+    7: "יולי",
+    8: "אוגוסט",
+    9: "ספטמבר",
+    10: "אוקטובר",
+    11: "נובמבר",
+    12: "דצמבר",
 }
 _ANNUAL_STATUS_LABEL_HE = {
     AnnualReportStatus.NOT_STARTED: "טרם החל",
@@ -49,9 +61,12 @@ _BINDER_REMINDER_COOLDOWN_DAYS = 5
 _ANNUAL_PENDING_CLIENT_DAYS = 3
 _ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 _UPCOMING_WINDOW_DAYS = 14
-_VAT_UPCOMING_DAY_OF_MONTH = 8  # show upcoming from day 8 (7 days before deadline on 15th)
+_VAT_UPCOMING_DAY_OF_MONTH = (
+    8  # show upcoming from day 8 (7 days before deadline on 15th)
+)
 try:
     from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat_day
+
     _VAT_DEADLINE_DAY: int = _get_stat_day(_dt.date.today().year)
 except Exception:
     _VAT_DEADLINE_DAY = 15
@@ -76,7 +91,9 @@ def _vat_status_label(status) -> str:
     return _VAT_STATUS_LABEL_HE.get(status, str(getattr(status, "value", status)))
 
 
-def _enrich(action: dict, category: str, urgency: str, due_date: date, due_label: str) -> dict:
+def _enrich(
+    action: dict, category: str, urgency: str, due_date: date, due_label: str
+) -> dict:
     action["category"] = category
     action["urgency"] = urgency
     action["due_date"] = due_date.isoformat()
@@ -84,7 +101,9 @@ def _enrich(action: dict, category: str, urgency: str, due_date: date, due_label
     return action
 
 
-def _client_name(db, client_record_id: int, business_repo: BusinessRepository) -> Optional[str]:
+def _client_name(
+    db, client_record_id: int, business_repo: BusinessRepository
+) -> Optional[str]:
     record = ClientRecordRepository(business_repo.db).get_by_id(client_record_id)
     if not record:
         return None
@@ -116,7 +135,9 @@ def build_vat_actions(
         else:
             continue
 
-        client_name = _client_name(business_repo.db, item.client_record_id, business_repo)
+        client_name = _client_name(
+            business_repo.db, item.client_record_id, business_repo
+        )
         action = build_action(
             key="vat_navigate",
             label='פתח דוח מע"מ',
@@ -159,20 +180,27 @@ def build_annual_report_actions(
         else:
             continue
 
-        client_name = _client_name(business_repo.db, report.client_record_id, business_repo)
+        client_name = _client_name(
+            business_repo.db, report.client_record_id, business_repo
+        )
 
         is_pending_client = report.status == AnnualReportStatus.PENDING_CLIENT
         pending_days = 0
         if is_pending_client:
-            pending_days = (now_utc - report.updated_at.replace(tzinfo=timezone.utc)).days
+            pending_days = (
+                now_utc - report.updated_at.replace(tzinfo=timezone.utc)
+            ).days
 
         if is_pending_client and pending_days >= _ANNUAL_PENDING_CLIENT_DAYS:
             last_reminder = notification_repo.get_last_for_annual_report_trigger(
                 report.id, NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
             )
             cooldown_ok = (
-                not last_reminder or
-                (now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)).days >= _ANNUAL_REMINDER_COOLDOWN_DAYS
+                not last_reminder
+                or (
+                    now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
+                ).days
+                >= _ANNUAL_REMINDER_COOLDOWN_DAYS
             )
             if cooldown_ok:
                 action = build_action(
@@ -201,7 +229,9 @@ def build_annual_report_actions(
             action_id=f"annual-{report.id}-navigate",
         )
         action["client_name"] = client_name
-        _enrich(action, "annual_reports", urgency, deadline, f"{status_label} · {due_label}")
+        _enrich(
+            action, "annual_reports", urgency, deadline, f"{status_label} · {due_label}"
+        )
         result.append(action)
 
     return result
@@ -221,16 +251,28 @@ def build_binder_actions(
             binder.id, NotificationTrigger.PICKUP_REMINDER
         )
         if last_reminder:
-            days_since = (now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)).days
+            days_since = (
+                now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
+            ).days
             if days_since < _BINDER_REMINDER_COOLDOWN_DAYS:
                 continue
 
-        record = ClientRecordRepository(business_repo.db).get_by_id(binder.client_record_id)
-        businesses = business_repo.list_by_legal_entity(record.legal_entity_id, page=1, page_size=1) if record else []
+        record = ClientRecordRepository(business_repo.db).get_by_id(
+            binder.client_record_id
+        )
+        businesses = (
+            business_repo.list_by_legal_entity(
+                record.legal_entity_id, page=1, page_size=1
+            )
+            if record
+            else []
+        )
         business = businesses[0] if businesses else None
         client_name = business.full_name if business else None
 
-        days_waiting = int((now_utc - binder.ready_for_pickup_at.replace(tzinfo=timezone.utc)).days)
+        days_waiting = int(
+            (now_utc - binder.ready_for_pickup_at.replace(tzinfo=timezone.utc)).days
+        )
         due_date = binder.ready_for_pickup_at.date()
         due_label = f"ממתין לאיסוף {days_waiting} ימים"
 

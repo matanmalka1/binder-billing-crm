@@ -11,43 +11,43 @@ from app.database import Base
 
 # Explicit model imports — required for autogenerate to detect all tables.
 # Add new model files here when introducing new ORM models.
-import app.users.models.user                                            # noqa
-import app.users.models.user_audit_log                                  # noqa
-import app.clients.models.person                                        # noqa
-import app.clients.models.legal_entity                                  # noqa
-import app.clients.models.client_record                                 # noqa
-import app.clients.models.person_legal_entity_link                      # noqa
-import app.businesses.models.business                                   # noqa
-import app.binders.models.binder                                        # noqa
-import app.binders.models.binder_intake                                 # noqa
-import app.binders.models.binder_intake_edit_log                        # noqa
-import app.binders.models.binder_intake_material                        # noqa
-import app.binders.models.binder_status_log                             # noqa
-import app.binders.models.binder_handover                               # noqa
-import app.annual_reports.models.annual_report_model                    # noqa
-import app.annual_reports.models.annual_report_detail                   # noqa
-import app.annual_reports.models.annual_report_status_history           # noqa
-import app.annual_reports.models.annual_report_schedule_entry           # noqa
-import app.annual_reports.models.annual_report_annex_data               # noqa
-import app.annual_reports.models.annual_report_income_line              # noqa
-import app.annual_reports.models.annual_report_expense_line             # noqa
-import app.annual_reports.models.annual_report_credit_point_reason      # noqa
-import app.vat_reports.models.vat_work_item                             # noqa
-import app.vat_reports.models.vat_invoice                               # noqa
-import app.vat_reports.models.vat_audit_log                             # noqa
-import app.charge.models.charge                                         # noqa
-import app.invoice.models.invoice                                       # noqa
-import app.advance_payments.models.advance_payment                      # noqa
-import app.tax_calendar.models.deadline_rule                            # noqa
-import app.tax_calendar.models.tax_calendar_entry                       # noqa
-import app.reminders.models.reminder                                    # noqa
-import app.notification.models.notification                             # noqa
-import app.permanent_documents.models.permanent_document                # noqa
-import app.signature_requests.models.signature_request                  # noqa
-import app.correspondence.models.correspondence                          # noqa
-import app.audit.models.entity_audit_log                                # noqa
-import app.authority_contact.models.authority_contact                   # noqa
-import app.notes.models.entity_note                                     # noqa
+import app.users.models.user  # noqa
+import app.users.models.user_audit_log  # noqa
+import app.clients.models.person  # noqa
+import app.clients.models.legal_entity  # noqa
+import app.clients.models.client_record  # noqa
+import app.clients.models.person_legal_entity_link  # noqa
+import app.businesses.models.business  # noqa
+import app.binders.models.binder  # noqa
+import app.binders.models.binder_intake  # noqa
+import app.binders.models.binder_intake_edit_log  # noqa
+import app.binders.models.binder_intake_material  # noqa
+import app.binders.models.binder_status_log  # noqa
+import app.binders.models.binder_handover  # noqa
+import app.annual_reports.models.annual_report_model  # noqa
+import app.annual_reports.models.annual_report_detail  # noqa
+import app.annual_reports.models.annual_report_status_history  # noqa
+import app.annual_reports.models.annual_report_schedule_entry  # noqa
+import app.annual_reports.models.annual_report_annex_data  # noqa
+import app.annual_reports.models.annual_report_income_line  # noqa
+import app.annual_reports.models.annual_report_expense_line  # noqa
+import app.annual_reports.models.annual_report_credit_point_reason  # noqa
+import app.vat_reports.models.vat_work_item  # noqa
+import app.vat_reports.models.vat_invoice  # noqa
+import app.vat_reports.models.vat_audit_log  # noqa
+import app.charge.models.charge  # noqa
+import app.invoice.models.invoice  # noqa
+import app.advance_payments.models.advance_payment  # noqa
+import app.tax_calendar.models.deadline_rule  # noqa
+import app.tax_calendar.models.tax_calendar_entry  # noqa
+import app.reminders.models.reminder  # noqa
+import app.notification.models.notification  # noqa
+import app.permanent_documents.models.permanent_document  # noqa
+import app.signature_requests.models.signature_request  # noqa
+import app.correspondence.models.correspondence  # noqa
+import app.audit.models.entity_audit_log  # noqa
+import app.authority_contact.models.authority_contact  # noqa
+import app.notes.models.entity_note  # noqa
 
 alembic_config = context.config
 
@@ -84,21 +84,27 @@ def _widen_alembic_version_if_needed(connectable) -> None:
     Alembic's own migration transaction.
     """
     with connectable.connect() as conn:
-        exists = conn.execute(text(
-            "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
-            "WHERE table_name = 'alembic_version')"
-        )).scalar()
+        exists = conn.execute(
+            text(
+                "SELECT EXISTS (SELECT 1 FROM information_schema.tables "
+                "WHERE table_name = 'alembic_version')"
+            )
+        ).scalar()
         if exists:
-            conn.execute(text(
-                "ALTER TABLE alembic_version "
-                "ALTER COLUMN version_num TYPE VARCHAR(255)"
-            ))
+            conn.execute(
+                text(
+                    "ALTER TABLE alembic_version "
+                    "ALTER COLUMN version_num TYPE VARCHAR(255)"
+                )
+            )
         else:
-            conn.execute(text(
-                "CREATE TABLE alembic_version "
-                "(version_num VARCHAR(255) NOT NULL, "
-                "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
-            ))
+            conn.execute(
+                text(
+                    "CREATE TABLE alembic_version "
+                    "(version_num VARCHAR(255) NOT NULL, "
+                    "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+                )
+            )
         conn.commit()
 
 

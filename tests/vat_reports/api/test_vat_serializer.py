@@ -7,8 +7,7 @@ from app.common.enums import SubmissionMethod
 from app.vat_reports.api.serializers import serialize_enriched_work_item
 
 
-def test_serializer_calls_get_vat_deadline_fields_not_raw_compute(
-):
+def test_serializer_calls_get_vat_deadline_fields_not_raw_compute():
     """serialize_enriched_work_item must delegate to get_vat_deadline_fields.
 
     Snapshot vs. legacy routing is owned by get_vat_deadline_fields, not the serializer.
@@ -34,7 +33,9 @@ def test_serializer_calls_get_vat_deadline_fields_not_raw_compute(
             return_value=snap_result,
         ) as mock_deadline,
         patch("app.vat_reports.api.serializers.VatWorkItemResponse") as MockResp,
-        patch("app.vat_reports.api.serializers.get_vat_work_item_actions", return_value=[]),
+        patch(
+            "app.vat_reports.api.serializers.get_vat_work_item_actions", return_value=[]
+        ),
     ):
         MockResp.model_validate.return_value = MagicMock()
         result = serialize_enriched_work_item(

@@ -19,15 +19,15 @@ class AnnualTurnover(BaseModel):
 
 
 class ClientRecordResponse(BaseModel):
-    id: int                                          # ClientRecord.id
-    full_name: str                                   # LegalEntity.official_name / owner Person.full_name
-    id_number: str                                   # LegalEntity.id_number
-    id_number_type: Optional[IdNumberType] = None   # LegalEntity.id_number_type
-    entity_type: Optional[EntityType] = None        # LegalEntity.entity_type
-    status: ClientStatus = ClientStatus.ACTIVE      # ClientRecord.status
-    office_client_number: Optional[int] = None      # ClientRecord.office_client_number
-    accountant_id: Optional[int] = None            # ClientRecord.accountant_id
-    notes: Optional[str] = None                     # ClientRecord.notes
+    id: int  # ClientRecord.id
+    full_name: str  # LegalEntity.official_name / owner Person.full_name
+    id_number: str  # LegalEntity.id_number
+    id_number_type: Optional[IdNumberType] = None  # LegalEntity.id_number_type
+    entity_type: Optional[EntityType] = None  # LegalEntity.entity_type
+    status: ClientStatus = ClientStatus.ACTIVE  # ClientRecord.status
+    office_client_number: Optional[int] = None  # ClientRecord.office_client_number
+    accountant_id: Optional[int] = None  # ClientRecord.accountant_id
+    notes: Optional[str] = None  # ClientRecord.notes
     # ── Tax reporting (LegalEntity) ───────────────────────────────────────────
     vat_reporting_frequency: Optional[VatType] = None
     advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
@@ -44,9 +44,9 @@ class ClientRecordResponse(BaseModel):
     address_city: Optional[str] = None
     address_zip_code: Optional[str] = None
     # ── Metadata ──────────────────────────────────────────────────────────────
-    created_at: Optional[ApiDateTime] = None        # ClientRecord.created_at
-    updated_at: Optional[ApiDateTime] = None        # ClientRecord.updated_at
-    created_by: Optional[int] = None               # ClientRecord.created_by
+    created_at: Optional[ApiDateTime] = None  # ClientRecord.created_at
+    updated_at: Optional[ApiDateTime] = None  # ClientRecord.updated_at
+    created_by: Optional[int] = None  # ClientRecord.created_by
     # ── Enriched (set by API layer) ───────────────────────────────────────────
     active_binder_number: Optional[str] = None
     annual_turnover: Optional[AnnualTurnover] = None

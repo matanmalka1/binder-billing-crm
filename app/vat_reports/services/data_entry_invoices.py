@@ -87,7 +87,9 @@ def add_invoice(
         raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
 
     if business_activity_id is not None:
-        business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
+        business = (
+            BusinessRepository(db).get_by_id(business_activity_id) if db else None
+        )
         if (
             not business
             or not record
@@ -99,10 +101,17 @@ def add_invoice(
             )
 
     if vat_amount is None:
-        vat_amount = float(calculate_vat_amount(net_amount, rate_type, int(item.period[:4])))
+        vat_amount = float(
+            calculate_vat_amount(net_amount, rate_type, int(item.period[:4]))
+        )
 
     derived = resolve_invoice_derived_fields(
-        invoice_type, expense_category, document_type, counterparty_id, net_amount, vat_amount,
+        invoice_type,
+        expense_category,
+        document_type,
+        counterparty_id,
+        net_amount,
+        vat_amount,
         year=int(item.period[:4]),
     )
     deduction_rate = derived["deduction_rate"]
@@ -125,7 +134,8 @@ def add_invoice(
             counterparty_name = VAT_INCOME_COUNTERPARTY_NAME
         else:
             counterparty_name = CATEGORY_LABELS_SERVER.get(
-                expense_category.value if expense_category else "", VAT_UNKNOWN_COUNTERPARTY_NAME
+                expense_category.value if expense_category else "",
+                VAT_UNKNOWN_COUNTERPARTY_NAME,
             )
 
     existing = invoice_repo.get_by_number(item_id, invoice_type, invoice_number)

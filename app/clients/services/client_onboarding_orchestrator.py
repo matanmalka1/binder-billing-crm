@@ -5,7 +5,9 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.actions.obligation_orchestrator import generate_client_obligations
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
@@ -58,7 +60,11 @@ class ClientOnboardingOrchestrator:
             best_effort=False,
         )
         today = reference_date or date.today()
-        le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id) if record else None
+        le = (
+            LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+            if record
+            else None
+        )
         vat_type = getattr(le, "vat_reporting_frequency", None) if le else None
         ap_frequency = getattr(le, "advance_payment_frequency", None) if le else None
         ap_entity_type = getattr(le, "entity_type", None) if le else None
@@ -84,12 +90,15 @@ class ClientOnboardingOrchestrator:
         reference_date: date,
     ) -> int:
         from app.actions.obligation_orchestrator import _years_to_generate
+
         years = _years_to_generate(reference_date)
         created = 0
         for year in years:
             plans = vat_deadline_plan(vat_type, year, reference_date)
             for plan in plans:
-                item = self.vat_repo.get_by_client_record_period(client_record_id, plan.period)
+                item = self.vat_repo.get_by_client_record_period(
+                    client_record_id, plan.period
+                )
                 if item is None and actor_id is not None:
                     try:
                         create_work_item(
@@ -117,6 +126,7 @@ class ClientOnboardingOrchestrator:
             return 0
         from app.actions.obligation_orchestrator import _years_to_generate
         from app.common.enums import AdvancePaymentFrequency as APF
+
         period_months_count = 2 if frequency == APF.BIMONTHLY else 1
         years = _years_to_generate(reference_date)
         created = 0

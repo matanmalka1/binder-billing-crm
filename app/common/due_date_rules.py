@@ -1,6 +1,8 @@
 from datetime import date
 
-from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY as _FALLBACK_DUE_DAY
+from app.vat_reports.services.constants import (
+    VAT_STATUTORY_DEADLINE_DAY as _FALLBACK_DUE_DAY,
+)
 
 try:
     from tax_rules import get_effective_periodic_date as _get_periodic_date
@@ -11,10 +13,14 @@ except ImportError:
     _PERIODIC_CALENDAR_AVAILABLE = False
 
 
-def periodic_due_date(filing_year: int, filing_month: int, calendar_period: str) -> date:
+def periodic_due_date(
+    filing_year: int, filing_month: int, calendar_period: str
+) -> date:
     if _PERIODIC_CALENDAR_AVAILABLE:
         try:
-            raw = _get_periodic_date(filing_year, calendar_period, _PERIODIC_CALENDAR_COLUMN)
+            raw = _get_periodic_date(
+                filing_year, calendar_period, _PERIODIC_CALENDAR_COLUMN
+            )
         except KeyError:
             raw = None
         if raw:

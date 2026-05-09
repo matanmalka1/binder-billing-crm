@@ -1,7 +1,10 @@
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
@@ -80,7 +83,9 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
     test_db.add_all([filed, stale_pending, stale_pending_other_year])
     test_db.commit()
 
-    response = client.get("/api/v1/reports/vat-compliance?year=2026", headers=advisor_headers)
+    response = client.get(
+        "/api/v1/reports/vat-compliance?year=2026", headers=advisor_headers
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -94,10 +99,16 @@ def test_reports_vat_compliance_endpoint(client, test_db, advisor_headers, test_
     assert payload["stale_pending"][0]["days_pending"] >= 40
 
 
-def test_reports_advance_payments_endpoint_month_filter(client, test_db, advisor_headers):
+def test_reports_advance_payments_endpoint_month_filter(
+    client, test_db, advisor_headers
+):
     crm_client, _ = _create_client_and_business(test_db, "ADV")
-    jan_entry = create_tax_calendar_entry_for_period(test_db, "advance_payment", "2026-01", 1)
-    feb_entry = create_tax_calendar_entry_for_period(test_db, "advance_payment", "2026-02", 1)
+    jan_entry = create_tax_calendar_entry_for_period(
+        test_db, "advance_payment", "2026-01", 1
+    )
+    feb_entry = create_tax_calendar_entry_for_period(
+        test_db, "advance_payment", "2026-02", 1
+    )
 
     jan = AdvancePayment(
         client_record_id=crm_client.id,
@@ -156,7 +167,9 @@ def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_
     test_db.add(report)
     test_db.commit()
 
-    response = client.get("/api/v1/reports/annual-reports?tax_year=2026", headers=advisor_headers)
+    response = client.get(
+        "/api/v1/reports/annual-reports?tax_year=2026", headers=advisor_headers
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -168,5 +181,7 @@ def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_
 
 
 def test_reports_aging_export_invalid_format_returns_422(client, advisor_headers):
-    response = client.get("/api/v1/reports/aging/export?format=csv", headers=advisor_headers)
+    response = client.get(
+        "/api/v1/reports/aging/export?format=csv", headers=advisor_headers
+    )
     assert response.status_code == 422

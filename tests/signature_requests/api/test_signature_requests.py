@@ -1,7 +1,9 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from tests.helpers.identity import seed_client_with_business
 
 
@@ -59,7 +61,9 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
     assert approve_resp.status_code == 200
     assert approve_resp.json()["status"] == "signed"
 
-    detail_resp = client.get(f"/api/v1/signature-requests/{request_id}", headers=advisor_headers)
+    detail_resp = client.get(
+        f"/api/v1/signature-requests/{request_id}", headers=advisor_headers
+    )
     assert detail_resp.status_code == 200
     detail = detail_resp.json()
     assert detail["status"] == "signed"
@@ -145,12 +149,12 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     ids = []
     for i in range(2):
         resp = client.post(
-                "/api/v1/signature-requests",
-                headers=advisor_headers,
-                json={
-                    "business_id": business.id,
-                    "client_record_id": business.client_id,
-                    "request_type": "custom",
+            "/api/v1/signature-requests",
+            headers=advisor_headers,
+            json={
+                "business_id": business.id,
+                "client_record_id": business.client_id,
+                "request_type": "custom",
                 "title": f"Pending {i}",
                 "signer_name": "Signer",
             },

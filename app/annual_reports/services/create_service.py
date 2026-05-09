@@ -14,7 +14,9 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.users.services.user_lookup import get_user_or_raise
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
@@ -52,18 +54,30 @@ class AnnualReportCreateService(AnnualReportBaseService):
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             from app.core.exceptions import NotFoundError
-            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
+
+            raise NotFoundError(
+                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(
+                    client_record_id=client_record_id
+                ),
+                "ANNUAL_REPORT.CLIENT_NOT_FOUND",
+            )
         assert_client_record_is_active(client_record)
         client_record_id = int(client_record.id)
 
         valid_client_types = {e.value for e in ClientAnnualFilingType}
         if client_type not in valid_client_types:
-            raise AppError(INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type), "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(
+                INVALID_CLIENT_TYPE_ERROR.format(client_type=client_type),
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         ct = ClientAnnualFilingType(client_type)
 
         valid_deadline_types = {e.value for e in FilingDeadlineType}
         if deadline_type not in valid_deadline_types:
-            raise AppError(INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type), "ANNUAL_REPORT.INVALID_TYPE")
+            raise AppError(
+                INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type),
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
         dt = FilingDeadlineType(deadline_type)
 
         if assigned_to is not None:
@@ -71,26 +85,33 @@ class AnnualReportCreateService(AnnualReportBaseService):
 
         existing = self.repo.get_by_client_record_year(client_record_id, tax_year)
         if existing:
-            raise ConflictError(ANNUAL_REPORT_ALREADY_EXISTS.format(
-                client_record_id=client_record_id,
-                tax_year=tax_year,
-                existing_id=existing.id,
-                status=existing.status.value,
-            ), "ANNUAL_REPORT.CONFLICT")
+            raise ConflictError(
+                ANNUAL_REPORT_ALREADY_EXISTS.format(
+                    client_record_id=client_record_id,
+                    tax_year=tax_year,
+                    existing_id=existing.id,
+                    status=existing.status.value,
+                ),
+                "ANNUAL_REPORT.CONFLICT",
+            )
 
         form_type = FORM_MAP[ct]
         if dt == FilingDeadlineType.STANDARD:
             filing_deadline = standard_deadline(
                 tax_year,
                 client_type=ct,
-                submission_method=SubmissionMethod(submission_method) if submission_method else None,
+                submission_method=SubmissionMethod(submission_method)
+                if submission_method
+                else None,
             )
         elif dt == FilingDeadlineType.EXTENDED:
             filing_deadline = extended_deadline(tax_year)
         else:
             filing_deadline = None  # custom — caller can set note
 
-        tax_calendar_entry = TaxCalendarMaterializationService(self.db).ensure_annual_entry(tax_year)
+        tax_calendar_entry = TaxCalendarMaterializationService(
+            self.db
+        ).ensure_annual_entry(tax_year)
         report = self.repo.create(
             client_record_id=client_record_id,
             tax_year=tax_year,
@@ -103,15 +124,21 @@ class AnnualReportCreateService(AnnualReportBaseService):
             filing_deadline=filing_deadline,
             tax_calendar_entry_id=tax_calendar_entry.id,
             notes=notes,
-            submission_method=SubmissionMethod(submission_method) if submission_method else None,
-            extension_reason=ExtensionReason(extension_reason) if extension_reason else None,
+            submission_method=SubmissionMethod(submission_method)
+            if submission_method
+            else None,
+            extension_reason=ExtensionReason(extension_reason)
+            if extension_reason
+            else None,
             has_rental_income=has_rental_income,
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
             has_depreciation=has_depreciation,
             has_exempt_rental=has_exempt_rental,
         )
-        linked_report = TaxCalendarMaterializationService(self.db).link_annual_report(report)
+        linked_report = TaxCalendarMaterializationService(self.db).link_annual_report(
+            report
+        )
 
         # Auto-generate required schedules
         self._generate_schedules(linked_report)
@@ -123,7 +150,9 @@ class AnnualReportCreateService(AnnualReportBaseService):
             changed_by=created_by,
             note=ANNUAL_REPORT_CREATED_NOTE.format(
                 form_type=form_type.value,
-                filing_deadline=filing_deadline.strftime('%d/%m/%Y') if filing_deadline else DEADLINE_NOT_SET,
+                filing_deadline=filing_deadline.strftime("%d/%m/%Y")
+                if filing_deadline
+                else DEADLINE_NOT_SET,
             ),
         )
 

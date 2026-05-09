@@ -2,7 +2,13 @@
 
 
 def audit_scalar(value):
-    return value.value if hasattr(value, "value") else str(value) if value is not None else None
+    return (
+        value.value
+        if hasattr(value, "value")
+        else str(value)
+        if value is not None
+        else None
+    )
 
 
 def income_line_snapshot(line) -> dict:

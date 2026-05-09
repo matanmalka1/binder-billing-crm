@@ -7,9 +7,15 @@ from app.annual_reports.models.annual_report_enums import (
     PrimaryAnnualReportForm,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.annual_reports.models.annual_report_status_history import AnnualReportStatusHistory
+from app.annual_reports.models.annual_report_status_history import (
+    AnnualReportStatusHistory,
+)
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.notification.models.notification import Notification, NotificationChannel, NotificationTrigger
+from app.notification.models.notification import (
+    Notification,
+    NotificationChannel,
+    NotificationTrigger,
+)
 from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
 from app.timeline.services.timeline_service import TimelineService
 from tests.helpers.identity import seed_business, seed_client_identity
@@ -17,7 +23,9 @@ from tests.helpers.tax_calendar_links import create_tax_calendar_entry_for_annua
 
 
 def _business(test_db):
-    client = seed_client_identity(test_db, full_name="Timeline Policy", id_number="TP100")
+    client = seed_client_identity(
+        test_db, full_name="Timeline Policy", id_number="TP100"
+    )
     business = seed_business(
         test_db,
         legal_entity_id=client.legal_entity_id,

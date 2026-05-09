@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from app.core.exceptions import AppError, NotFoundError
-from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.models.signature_request import (
+    SignatureRequest,
+    SignatureRequestStatus,
+)
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.signature_requests.services.messages import (
     INVALID_SIGNING_TOKEN,
     REQUEST_NOT_ACTIONABLE_IN_STATUS,
@@ -14,26 +19,38 @@ from app.utils.time_utils import utcnow
 def get_or_raise(repo: SignatureRequestRepository, request_id: int) -> SignatureRequest:
     req = repo.get_by_id(request_id)
     if not req:
-        raise NotFoundError(SIGNATURE_REQUEST_NOT_FOUND.format(request_id=request_id), "SIGNATURE_REQUEST.NOT_FOUND")
+        raise NotFoundError(
+            SIGNATURE_REQUEST_NOT_FOUND.format(request_id=request_id),
+            "SIGNATURE_REQUEST.NOT_FOUND",
+        )
     return req
 
 
-def get_or_raise_for_update(repo: SignatureRequestRepository, request_id: int) -> SignatureRequest:
+def get_or_raise_for_update(
+    repo: SignatureRequestRepository, request_id: int
+) -> SignatureRequest:
     """Fetch with a row-level lock. Use for transition entrypoints."""
     req = repo.get_by_id_for_update(request_id)
     if not req:
-        raise NotFoundError(SIGNATURE_REQUEST_NOT_FOUND.format(request_id=request_id), "SIGNATURE_REQUEST.NOT_FOUND")
+        raise NotFoundError(
+            SIGNATURE_REQUEST_NOT_FOUND.format(request_id=request_id),
+            "SIGNATURE_REQUEST.NOT_FOUND",
+        )
     return req
 
 
-def get_by_token_or_raise(repo: SignatureRequestRepository, token: str) -> SignatureRequest:
+def get_by_token_or_raise(
+    repo: SignatureRequestRepository, token: str
+) -> SignatureRequest:
     req = repo.get_by_token(token)
     if not req:
         raise AppError(INVALID_SIGNING_TOKEN, "SIGNATURE_REQUEST.TOKEN_INVALID")
     return req
 
 
-def get_by_token_or_raise_for_update(repo: SignatureRequestRepository, token: str) -> SignatureRequest:
+def get_by_token_or_raise_for_update(
+    repo: SignatureRequestRepository, token: str
+) -> SignatureRequest:
     """Fetch by token with a row-level lock. Use for signer transition entrypoints."""
     req = repo.get_by_token_for_update(token)
     if not req:

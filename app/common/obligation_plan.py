@@ -43,7 +43,9 @@ def vat_deadline_plan(
             calendar_period = f"{year}-{period_end:02d}"
             due_dates.append(
                 PeriodicDeadlinePlan(
-                    due_date=periodic_due_date(filing_year, filing_month, calendar_period),
+                    due_date=periodic_due_date(
+                        filing_year, filing_month, calendar_period
+                    ),
                     period=period,
                 )
             )

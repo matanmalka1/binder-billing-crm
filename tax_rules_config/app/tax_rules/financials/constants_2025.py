@@ -37,7 +37,6 @@ CONSTANTS_2025: dict[str, FinancialConstant] = {
         source_ids=("tax_authority_vat_amounts_2026",),
         note_he="חשבונית מעל סכום זה דורשת דיווח מיוחד (חשבונית ישראל).",
     ),
-
     # נקודת זיכוי מס הכנסה
     "credit_point_value_ils": FinancialConstant(
         id="credit_point_value_ils",
@@ -49,7 +48,6 @@ CONSTANTS_2025: dict[str, FinancialConstant] = {
         source_ids=("tax_authority_credit_points_2025",),
         note_he="שווי נקודת זיכוי שנתית לשנת 2025.",
     ),
-
     # ביטוח לאומי — עצמאי
     "btl_average_wage_ils_monthly": FinancialConstant(
         id="btl_average_wage_ils_monthly",
@@ -128,13 +126,48 @@ CONSTANTS_2025: dict[str, FinancialConstant] = {
 # אימות: 84,120 / 120,720 / 193,800 / 269,280 / 560,280 / 721,560
 
 INCOME_TAX_BRACKETS_2025: tuple[IncomeTaxBracket, ...] = (
-    IncomeTaxBracket(from_ils=0,       up_to_ils=84_120,  rate=0.10, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=84_121,  up_to_ils=120_720, rate=0.14, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=120_721, up_to_ils=193_800, rate=0.20, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=193_801, up_to_ils=269_280, rate=0.31, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=269_281, up_to_ils=560_280, rate=0.35, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=560_281, up_to_ils=721_560, rate=0.47, source_ids=("tax_authority_income_tax_brackets_2025",)),
-    IncomeTaxBracket(from_ils=721_561, up_to_ils=None,    rate=0.50, source_ids=("tax_authority_income_tax_brackets_2025",)),
+    IncomeTaxBracket(
+        from_ils=0,
+        up_to_ils=84_120,
+        rate=0.10,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=84_121,
+        up_to_ils=120_720,
+        rate=0.14,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=120_721,
+        up_to_ils=193_800,
+        rate=0.20,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=193_801,
+        up_to_ils=269_280,
+        rate=0.31,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=269_281,
+        up_to_ils=560_280,
+        rate=0.35,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=560_281,
+        up_to_ils=721_560,
+        rate=0.47,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
+    IncomeTaxBracket(
+        from_ils=721_561,
+        up_to_ils=None,
+        rate=0.50,
+        source_ids=("tax_authority_income_tax_brackets_2025",),
+    ),
 )
 
 # ── נקודת זיכוי — 2025 ───────────────────────────────────────────────────────

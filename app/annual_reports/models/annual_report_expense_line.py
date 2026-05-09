@@ -10,19 +10,20 @@ from app.utils.enum_utils import pg_enum
 from app.database import Base
 from app.utils.time_utils import utcnow
 
+
 class ExpenseCategoryType(str, PyEnum):
-    OFFICE_RENT = "office_rent"               # שכירות משרד
+    OFFICE_RENT = "office_rent"  # שכירות משרד
     PROFESSIONAL_SERVICES = "professional_services"  # שירותים מקצועיים
-    SALARIES = "salaries"                     # שכר עבודה
-    DEPRECIATION = "depreciation"             # פחת
-    VEHICLE = "vehicle"                       # רכב
-    MARKETING = "marketing"                   # שיווק ופרסום
-    INSURANCE = "insurance"                   # ביטוח
-    COMMUNICATION = "communication"           # תקשורת
-    TRAVEL = "travel"                         # נסיעות
-    TRAINING = "training"                     # הכשרה מקצועית
-    BANK_FEES = "bank_fees"                   # עמלות בנק
-    OTHER = "other"                           # אחר
+    SALARIES = "salaries"  # שכר עבודה
+    DEPRECIATION = "depreciation"  # פחת
+    VEHICLE = "vehicle"  # רכב
+    MARKETING = "marketing"  # שיווק ופרסום
+    INSURANCE = "insurance"  # ביטוח
+    COMMUNICATION = "communication"  # תקשורת
+    TRAVEL = "travel"  # נסיעות
+    TRAINING = "training"  # הכשרה מקצועית
+    BANK_FEES = "bank_fees"  # עמלות בנק
+    OTHER = "other"  # אחר
 
 
 class AnnualReportExpenseLine(Base):
@@ -34,7 +35,10 @@ class AnnualReportExpenseLine(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer,
+        ForeignKey("annual_reports.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     category = Column(pg_enum(ExpenseCategoryType), nullable=False)
     amount = Column(Numeric(14, 2), nullable=False)

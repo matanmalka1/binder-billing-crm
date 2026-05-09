@@ -10,12 +10,12 @@ VALID_TRANSITIONS: dict[VatWorkItemStatus, set[VatWorkItemStatus]] = {
         VatWorkItemStatus.MATERIAL_RECEIVED,
     },
     VatWorkItemStatus.MATERIAL_RECEIVED: {
-        VatWorkItemStatus.PENDING_MATERIALS,   # send back if incomplete
+        VatWorkItemStatus.PENDING_MATERIALS,  # send back if incomplete
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
     },
     VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS: {
         VatWorkItemStatus.READY_FOR_REVIEW,
-        VatWorkItemStatus.MATERIAL_RECEIVED,   # rollback
+        VatWorkItemStatus.MATERIAL_RECEIVED,  # rollback
     },
     VatWorkItemStatus.READY_FOR_REVIEW: {
         VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,  # advisor sends back for correction
@@ -65,8 +65,12 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
 # 15 = statutory deadline by law; 19 = digital filing extension granted by tax authority.
 # Work items use the statutory deadline as the conservative target.
 try:
-    from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat, get_vat_online_extended_deadline_day as _get_ext
+    from tax_rules.registry import (
+        get_vat_statutory_deadline_day as _get_stat,
+        get_vat_online_extended_deadline_day as _get_ext,
+    )
     import datetime as _dt
+
     _cur_year = _dt.date.today().year
     VAT_STATUTORY_DEADLINE_DAY: int = _get_stat(_cur_year)
     VAT_ONLINE_EXTENDED_DEADLINE_DAY: int = _get_ext(_cur_year)

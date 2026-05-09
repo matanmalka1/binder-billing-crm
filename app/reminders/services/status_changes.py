@@ -6,7 +6,9 @@ from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow
 
 
-def mark_sent(reminder_repo: ReminderRepository, reminder_id: int, *, actor_id: int) -> Reminder:
+def mark_sent(
+    reminder_repo: ReminderRepository, reminder_id: int, *, actor_id: int
+) -> Reminder:
     reminder = reminder_repo.get_by_id(reminder_id)
     if not reminder:
         raise NotFoundError(f"תזכורת {reminder_id} לא נמצאה", "REMINDER.NOT_FOUND")
@@ -24,7 +26,9 @@ def mark_sent(reminder_repo: ReminderRepository, reminder_id: int, *, actor_id: 
     )
 
 
-def cancel_reminder(reminder_repo: ReminderRepository, reminder_id: int, *, actor_id: int) -> Reminder:
+def cancel_reminder(
+    reminder_repo: ReminderRepository, reminder_id: int, *, actor_id: int
+) -> Reminder:
     reminder = reminder_repo.get_by_id(reminder_id)
     if not reminder:
         raise NotFoundError(f"תזכורת {reminder_id} לא נמצאה", "REMINDER.NOT_FOUND")

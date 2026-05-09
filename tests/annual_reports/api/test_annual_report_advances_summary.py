@@ -2,16 +2,22 @@ from datetime import date
 from decimal import Decimal
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.annual_reports.services.ni_engine import calculate_national_insurance as _calculate_ni
+from app.annual_reports.services.ni_engine import (
+    calculate_national_insurance as _calculate_ni,
+)
 from app.annual_reports.services.tax_engine import calculate_tax as _calculate_tax
 from tests.helpers.identity import seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def _create_report(db):
-    client = seed_client_identity(db, full_name="Advances Client", id_number="878787878")
+    client = seed_client_identity(
+        db, full_name="Advances Client", id_number="878787878"
+    )
 
     svc = AnnualReportService(db)
     return svc.create_report(
@@ -27,7 +33,9 @@ def _create_report(db):
 def _patch_decimal_tax_input(monkeypatch):
     monkeypatch.setattr(
         "app.annual_reports.services.financial_tax_service.calculate_tax",
-        lambda taxable_income, *args, **kwargs: _calculate_tax(float(taxable_income), *args, **kwargs),
+        lambda taxable_income, *args, **kwargs: _calculate_tax(
+            float(taxable_income), *args, **kwargs
+        ),
     )
     monkeypatch.setattr(
         "app.annual_reports.services.financial_tax_service.calculate_national_insurance",
@@ -35,13 +43,17 @@ def _patch_decimal_tax_input(monkeypatch):
     )
 
 
-def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_db, advisor_headers, monkeypatch):
+def test_advances_summary_reports_refund_when_advances_exceed_tax(
+    client, test_db, advisor_headers, monkeypatch
+):
     _patch_decimal_tax_input(monkeypatch)
     report = _create_report(test_db)
     # No income/expense → tax_after_credits = 0
 
     repo = AdvancePaymentRepository(test_db)
-    payment = create_linked_advance_payment(test_db, repo=repo,
+    payment = create_linked_advance_payment(
+        test_db,
+        repo=repo,
         client_record_id=report.client_record_id,
         period="2026-01",
         period_months_count=1,
@@ -50,7 +62,9 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
         paid_amount=Decimal("100.00"),
         annual_report_id=report.id,
     )
-    repo.update(payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00"))
+    repo.update(
+        payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00")
+    )
 
     resp = client.get(
         f"/api/v1/annual-reports/{report.id}/advances-summary",
@@ -64,7 +78,9 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(client, test_d
     assert float(body["final_balance"]) == -100.0
 
 
-def test_advances_summary_zero_balance_without_paid_advances(client, test_db, advisor_headers, monkeypatch):
+def test_advances_summary_zero_balance_without_paid_advances(
+    client, test_db, advisor_headers, monkeypatch
+):
     _patch_decimal_tax_input(monkeypatch)
     report = _create_report(test_db)
     resp = client.get(
@@ -76,5 +92,7 @@ def test_advances_summary_zero_balance_without_paid_advances(client, test_db, ad
 
 
 def test_advances_summary_not_found(client, advisor_headers):
-    resp = client.get("/api/v1/annual-reports/999999/advances-summary", headers=advisor_headers)
+    resp = client.get(
+        "/api/v1/annual-reports/999999/advances-summary", headers=advisor_headers
+    )
     assert resp.status_code == 404

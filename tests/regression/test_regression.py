@@ -3,7 +3,9 @@ from datetime import date, timedelta
 from app.binders.models.binder import Binder, BinderStatus
 
 
-def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_headers, create_client_with_business):
+def test_binder_receive_endpoint_creates_in_office_binder(
+    client, advisor_headers, create_client_with_business
+):
     """Regression: binder receive endpoint unchanged."""
     test_client, _business = create_client_with_business(
         full_name="Regression Test Client",
@@ -35,7 +37,9 @@ def test_binder_receive_endpoint_creates_in_office_binder(client, advisor_header
     assert data["binder"]["status"] == "in_office"
 
 
-def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, test_user, create_client_with_business):
+def test_open_binders_endpoint_returns_items(
+    client, advisor_headers, test_db, test_user, create_client_with_business
+):
     """Regression: operational endpoints unchanged."""
     test_client, _business = create_client_with_business(
         full_name="Regression Client",
@@ -58,7 +62,9 @@ def test_open_binders_endpoint_returns_items(client, advisor_headers, test_db, t
     assert "items" in response.json()
 
 
-def test_charges_endpoints_create_and_list_draft_charge(client, advisor_headers, create_client_with_business):
+def test_charges_endpoints_create_and_list_draft_charge(
+    client, advisor_headers, create_client_with_business
+):
     """Regression: billing endpoints unchanged."""
     test_client, business = create_client_with_business(
         full_name="Regression Client",

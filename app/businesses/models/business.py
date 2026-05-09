@@ -1,6 +1,17 @@
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, String, Text, column, and_
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    column,
+    and_,
+)
 from sqlalchemy.orm import relationship
 from app.utils.enum_utils import pg_enum
 
@@ -25,11 +36,14 @@ class Business(Base):
 
     Contact override columns are persisted here. Owner fallback is resolved in the service layer.
     """
+
     __tablename__ = "businesses"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
+    legal_entity_id = Column(
+        Integer, ForeignKey("legal_entities.id"), nullable=False, index=True
+    )
 
     legal_entity = relationship(
         "LegalEntity",
@@ -39,7 +53,9 @@ class Business(Base):
     )
 
     # Business details.
-    business_name = Column(String, nullable=False)   # required: every activity must have a name
+    business_name = Column(
+        String, nullable=False
+    )  # required: every activity must have a name
     status = Column(
         pg_enum(BusinessStatus),
         default=BusinessStatus.ACTIVE,
@@ -65,7 +81,6 @@ class Business(Base):
     restored_at = Column(DateTime, nullable=True)
     restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-
     # ── Computed properties ───────────────────────────────────────────────────
 
     @property
@@ -89,7 +104,11 @@ class Business(Base):
             "legal_entity_id",
             "business_name",
             unique=True,
-            postgresql_where=and_(column("business_name").isnot(None), column("deleted_at").is_(None)),
-            sqlite_where=and_(column("business_name").isnot(None), column("deleted_at").is_(None)),
+            postgresql_where=and_(
+                column("business_name").isnot(None), column("deleted_at").is_(None)
+            ),
+            sqlite_where=and_(
+                column("business_name").isnot(None), column("deleted_at").is_(None)
+            ),
         ),
     )

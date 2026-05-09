@@ -6,7 +6,10 @@ from sqlalchemy.orm import Session
 
 try:
     from tax_rules.registry import get_effective_periodic_date as _get_periodic_date
-    from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY
+    from app.vat_reports.services.constants import (
+        VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY,
+    )
+
     _CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
     _CALENDAR_AVAILABLE = True
 except Exception:
@@ -27,11 +30,14 @@ def _vat_deadline(period_year: int, period_month: int) -> date:
             pass
     return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
 
+
 from app.clients.models.legal_entity import LegalEntity  # noqa: E402
 from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: E402
 from app.reports.constants import VAT_STALE_PENDING_DAYS  # noqa: E402
 from app.utils.time_utils import utcnow  # noqa: E402
-from app.vat_reports.repositories.vat_compliance_repository import VatComplianceRepository  # noqa: E402
+from app.vat_reports.repositories.vat_compliance_repository import (  # noqa: E402
+    VatComplianceRepository,
+)
 
 
 class VatComplianceReportService:
@@ -52,7 +58,9 @@ class VatComplianceReportService:
             period_year = int(fi.period[:4])
             period_month = int(fi.period[5:7])
             deadline = _vat_deadline(period_year, period_month)
-            filed_date = fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
+            filed_date = (
+                fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
+            )
             is_late = filed_date > deadline
             bucket = late_map if is_late else on_time_map
             period_type = str(fi.period_type.value)
@@ -84,7 +92,9 @@ class VatComplianceReportService:
                     "periods_open": expected - filed,
                     "on_time_count": on_time,
                     "late_count": late,
-                    "compliance_rate": round(filed / expected * 100, 2) if expected else 0.0,
+                    "compliance_rate": round(filed / expected * 100, 2)
+                    if expected
+                    else 0.0,
                 }
             )
 

@@ -39,20 +39,20 @@ from app.utils.time_utils import utcnow
 
 
 class SignatureRequestStatus(str, PyEnum):
-    DRAFT             = "draft"
+    DRAFT = "draft"
     PENDING_SIGNATURE = "pending_signature"
-    SIGNED            = "signed"
-    DECLINED          = "declined"
-    EXPIRED           = "expired"
-    CANCELED          = "canceled"
+    SIGNED = "signed"
+    DECLINED = "declined"
+    EXPIRED = "expired"
+    CANCELED = "canceled"
 
 
 class SignatureRequestType(str, PyEnum):
-    ENGAGEMENT_AGREEMENT   = "engagement_agreement"    # הסכם התקשרות
+    ENGAGEMENT_AGREEMENT = "engagement_agreement"  # הסכם התקשרות
     ANNUAL_REPORT_APPROVAL = "annual_report_approval"  # אישור דוח שנתי
-    POWER_OF_ATTORNEY      = "power_of_attorney"       # ייפוי כוח
-    VAT_RETURN_APPROVAL    = "vat_return_approval"     # אישור דוח מע"מ
-    CUSTOM                 = "custom"                  # חתימה כללית
+    POWER_OF_ATTORNEY = "power_of_attorney"  # ייפוי כוח
+    VAT_RETURN_APPROVAL = "vat_return_approval"  # אישור דוח מע"מ
+    CUSTOM = "custom"  # חתימה כללית
 
 
 class SignatureRequest(Base):
@@ -83,13 +83,17 @@ class SignatureRequest(Base):
     request_type: Mapped[SignatureRequestType] = mapped_column(
         pg_enum(SignatureRequestType), nullable=False
     )
-    title:        Mapped[str]           = mapped_column(String, nullable=False)
-    description:  Mapped[Optional[str]] = mapped_column(Text,   nullable=True)
-    content_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # SHA-256
-    storage_key:  Mapped[Optional[str]] = mapped_column(String, nullable=True)  # S3/R2 original
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    content_hash: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # SHA-256
+    storage_key: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # S3/R2 original
 
     # ── Signer identity ───────────────────────────────────────────────────────
-    signer_name:  Mapped[str]           = mapped_column(String, nullable=False)
+    signer_name: Mapped[str] = mapped_column(String, nullable=False)
     signer_email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     signer_phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
@@ -105,34 +109,50 @@ class SignatureRequest(Base):
     )
 
     # ── Lifecycle timestamps ──────────────────────────────────────────────────
-    created_at:  Mapped[datetime.datetime]           = mapped_column(default=utcnow, nullable=False)
-    sent_at:     Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    expires_at:  Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    expiry_days: Mapped[int]                         = mapped_column(nullable=False, default=14, server_default="14")
-    signed_at:   Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        default=utcnow, nullable=False
+    )
+    sent_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    expiry_days: Mapped[int] = mapped_column(
+        nullable=False, default=14, server_default="14"
+    )
+    signed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
     declined_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
     canceled_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    canceled_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    canceled_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     # ── Signer evidence (captured at signing/declining time) ──────────────────
-    signer_ip_address:   Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    signer_user_agent:   Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    decline_reason:      Mapped[Optional[str]] = mapped_column(Text,   nullable=True)
-    signed_document_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # S3/R2 countersigned PDF
+    signer_ip_address: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    signer_user_agent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    decline_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    signed_document_key: Mapped[Optional[str]] = mapped_column(
+        String, nullable=True
+    )  # S3/R2 countersigned PDF
 
     # ── Soft delete ───────────────────────────────────────────────────────────
     deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    deleted_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    annual_report = relationship("AnnualReport", foreign_keys="[SignatureRequest.annual_report_id]", viewonly=True)
-    audit_events  = relationship("SignatureAuditEvent", back_populates="signature_request")
+    annual_report = relationship(
+        "AnnualReport",
+        foreign_keys="[SignatureRequest.annual_report_id]",
+        viewonly=True,
+    )
+    audit_events = relationship(
+        "SignatureAuditEvent", back_populates="signature_request"
+    )
 
     __table_args__ = (
         Index("idx_sig_request_client_record", "client_record_id"),
-        Index("idx_sig_request_business",      "business_id"),
+        Index("idx_sig_request_business", "business_id"),
         Index("idx_sig_request_annual_report", "annual_report_id"),
-        Index("idx_sig_request_status",        "status"),
+        Index("idx_sig_request_status", "status"),
     )
 
     def __repr__(self) -> str:
@@ -145,6 +165,7 @@ class SignatureRequest(Base):
 
 class SignatureAuditEvent(Base):
     """Append-only audit trail — no soft delete, no updated_at."""
+
     __tablename__ = "signature_audit_events"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -153,22 +174,26 @@ class SignatureAuditEvent(Base):
     )
 
     # String (not enum) — expands freely without migrations
-    event_type: Mapped[str] = mapped_column(String, nullable=False)  # created, sent, viewed, signed, declined, canceled, expired
-    actor_type: Mapped[str] = mapped_column(String, nullable=False)  # advisor, signer, system
+    event_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # created, sent, viewed, signed, declined, canceled, expired
+    actor_type: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # advisor, signer, system
 
-    actor_id:   Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    actor_name: Mapped[Optional[str]] = mapped_column(String,  nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String,  nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(String,  nullable=True)
-    notes:      Mapped[Optional[str]] = mapped_column(Text,    nullable=True)
-    occurred_at: Mapped[datetime.datetime] = mapped_column(nullable=False, default=utcnow)
+    actor_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    actor_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    user_agent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime.datetime] = mapped_column(
+        nullable=False, default=utcnow
+    )
 
     # ── Relationships ─────────────────────────────────────────────────────────
     signature_request = relationship("SignatureRequest", back_populates="audit_events")
 
-    __table_args__ = (
-        Index("idx_sig_audit_occurred", "occurred_at"),
-    )
+    __table_args__ = (Index("idx_sig_audit_occurred", "occurred_at"),)
 
     def __repr__(self) -> str:
         return (

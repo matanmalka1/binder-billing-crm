@@ -80,7 +80,9 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     response_model=VatWorkItemListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_client_work_items(client_record_id: int, db: DBSession, current_user: CurrentUser):
+def list_client_work_items(
+    client_record_id: int, db: DBSession, current_user: CurrentUser
+):
     service = VatReportService(db)
     enriched = service.get_client_items_enriched(client_record_id)
     items = [
@@ -115,8 +117,12 @@ def list_work_items(
 ):
     service = VatReportService(db)
     enriched = service.get_list_enriched(
-        status_filter=status_filter, page=page, page_size=page_size,
-        period=period, period_type=period_type, client_name=client_name,
+        status_filter=status_filter,
+        page=page,
+        page_size=page_size,
+        period=period,
+        period_type=period_type,
+        client_name=client_name,
     )
     items = [
         serialize_enriched_work_item(
@@ -138,8 +144,13 @@ def list_work_items(
     response_model=VatAuditTrailResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def get_audit_trail(item_id: int, db: DBSession, current_user: CurrentUser,
-                    limit: int = Query(25, ge=1, le=100), offset: int = Query(0, ge=0)):
+def get_audit_trail(
+    item_id: int,
+    db: DBSession,
+    current_user: CurrentUser,
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
     service = VatReportService(db)
     enriched = service.get_audit_trail_enriched(item_id, limit, offset)
     items = []

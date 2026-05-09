@@ -26,7 +26,10 @@ def test_export_clients_excel(client, advisor_headers):
     response = client.get("/api/v1/clients/export", headers=advisor_headers)
 
     assert response.status_code == 200
-    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"]
+    assert (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        in response.headers["content-type"]
+    )
     assert "attachment; filename=" in response.headers.get("content-disposition", "")
 
 
@@ -34,33 +37,60 @@ def test_template_download(client, advisor_headers):
     response = client.get("/api/v1/clients/template", headers=advisor_headers)
 
     assert response.status_code == 200
-    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"]
+    assert (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        in response.headers["content-type"]
+    )
 
 
-def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers, monkeypatch):
+def test_import_clients_excel_advisor_only(
+    client, advisor_headers, secretary_headers, monkeypatch
+):
     calls = []
 
     def _create_client_stub(self, **kwargs):
         calls.append(kwargs)
         return object(), object()
 
-    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
-    payload = _workbook_bytes([
-        ["full_name", "business_name", "id_number", "phone", "email"],
-        ["Excel User", "Excel User Business", "710000001", "0500000000", "excel@example.com"],
-    ])
+    monkeypatch.setattr(
+        clients_excel_api.CreateClientService, "create_client", _create_client_stub
+    )
+    payload = _workbook_bytes(
+        [
+            ["full_name", "business_name", "id_number", "phone", "email"],
+            [
+                "Excel User",
+                "Excel User Business",
+                "710000001",
+                "0500000000",
+                "excel@example.com",
+            ],
+        ]
+    )
 
     denied = client.post(
         "/api/v1/clients/import",
         headers={**secretary_headers, **IDEMPOTENCY_HEADER},
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
     assert denied.status_code == 403
 
     ok = client.post(
         "/api/v1/clients/import",
         headers={**advisor_headers, **IDEMPOTENCY_HEADER},
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
     assert ok.status_code == 200
     body = ok.json()
@@ -81,18 +111,28 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkey
         seen.add(id_number)
         return object(), object()
 
-    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
-    payload = _workbook_bytes([
-        ["full_name", "business_name", "id_number", "phone", "email"],
-        ["", "", "", None, None],
-        ["Duplicate One", "Duplicate One Business", "720000001", None, None],
-        ["Duplicate Two", "Duplicate Two Business", "720000001", None, None],
-    ])
+    monkeypatch.setattr(
+        clients_excel_api.CreateClientService, "create_client", _create_client_stub
+    )
+    payload = _workbook_bytes(
+        [
+            ["full_name", "business_name", "id_number", "phone", "email"],
+            ["", "", "", None, None],
+            ["Duplicate One", "Duplicate One Business", "720000001", None, None],
+            ["Duplicate Two", "Duplicate Two Business", "720000001", None, None],
+        ]
+    )
 
     response = client.post(
         "/api/v1/clients/import",
         headers={**advisor_headers, **IDEMPOTENCY_HEADER},
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
 
     assert response.status_code == 200
@@ -104,7 +144,12 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkey
 
 
 def test_import_clients_excel_rejects_large_content_length(client, advisor_headers):
-    payload = _workbook_bytes([["full_name", "business_name", "id_number"], ["Big", "Big Business", "730000001"]])
+    payload = _workbook_bytes(
+        [
+            ["full_name", "business_name", "id_number"],
+            ["Big", "Big Business", "730000001"],
+        ]
+    )
 
     response = client.post(
         "/api/v1/clients/import",
@@ -113,7 +158,13 @@ def test_import_clients_excel_rejects_large_content_length(client, advisor_heade
             **IDEMPOTENCY_HEADER,
             "Content-Length": str(11 * 1024 * 1024),
         },
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
 
     assert response.status_code == 413
@@ -129,11 +180,15 @@ def test_import_clients_excel_invalid_file(client, advisor_headers):
     assert response.status_code == 400
 
 
-def test_export_clients_excel_handles_service_import_error(client, advisor_headers, monkeypatch):
+def test_export_clients_excel_handles_service_import_error(
+    client, advisor_headers, monkeypatch
+):
     monkeypatch.setattr(
         clients_excel_api.ClientExcelService,
         "export_clients",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing dependency")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ImportError("missing dependency")
+        ),
     )
 
     response = client.get("/api/v1/clients/export", headers=advisor_headers)
@@ -142,11 +197,15 @@ def test_export_clients_excel_handles_service_import_error(client, advisor_heade
     assert response.json()["detail"] == "missing dependency"
 
 
-def test_template_download_handles_service_import_error(client, advisor_headers, monkeypatch):
+def test_template_download_handles_service_import_error(
+    client, advisor_headers, monkeypatch
+):
     monkeypatch.setattr(
         clients_excel_api.ClientExcelService,
         "generate_template",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing template dependency")),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ImportError("missing template dependency")
+        ),
     )
 
     response = client.get("/api/v1/clients/template", headers=advisor_headers)
@@ -155,20 +214,30 @@ def test_template_download_handles_service_import_error(client, advisor_headers,
     assert response.json()["detail"] == "missing template dependency"
 
 
-def test_import_clients_excel_rejects_large_body_without_content_length(client, advisor_headers, monkeypatch):
+def test_import_clients_excel_rejects_large_body_without_content_length(
+    client, advisor_headers, monkeypatch
+):
     monkeypatch.setattr(clients_excel_api, "MAX_UPLOAD_SIZE", 32)
     payload = b"x" * 40
 
     response = client.post(
         "/api/v1/clients/import",
         headers={**advisor_headers, **IDEMPOTENCY_HEADER},
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
 
     assert response.status_code == 413
 
 
-def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_headers, monkeypatch):
+def test_import_clients_excel_openpyxl_missing_returns_500(
+    client, advisor_headers, monkeypatch
+):
     original_import = __import__
 
     def _import(name, *args, **kwargs):
@@ -177,22 +246,32 @@ def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_heade
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr("builtins.__import__", _import)
-    payload = _workbook_bytes([
-        ["full_name", "business_name", "id_number"],
-        ["Openpyxl Missing", "Openpyxl Missing Business", "740000001"],
-    ])
+    payload = _workbook_bytes(
+        [
+            ["full_name", "business_name", "id_number"],
+            ["Openpyxl Missing", "Openpyxl Missing Business", "740000001"],
+        ]
+    )
 
     response = client.post(
         "/api/v1/clients/import",
         headers={**advisor_headers, **IDEMPOTENCY_HEADER},
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
 
     assert response.status_code == 500
     assert "openpyxl" in response.json()["detail"]
 
 
-def test_import_clients_excel_rejects_large_body_after_read_without_content_length(monkeypatch, test_db):
+def test_import_clients_excel_rejects_large_body_after_read_without_content_length(
+    monkeypatch, test_db
+):
     monkeypatch.setattr(clients_excel_api, "MAX_UPLOAD_SIZE", 8)
     file_obj = UploadFile(filename="clients.xlsx", file=io.BytesIO(b"0123456789"))
     request = SimpleNamespace(headers={})
@@ -213,15 +292,23 @@ def test_import_clients_excel_rejects_large_body_after_read_without_content_leng
 
 
 def test_import_clients_excel_requires_idempotency_key(client, advisor_headers):
-    payload = _workbook_bytes([
-        ["full_name", "business_name", "id_number"],
-        ["Missing Key", "Missing Key Business", "770000001"],
-    ])
+    payload = _workbook_bytes(
+        [
+            ["full_name", "business_name", "id_number"],
+            ["Missing Key", "Missing Key Business", "770000001"],
+        ]
+    )
 
     response = client.post(
         "/api/v1/clients/import",
         headers=advisor_headers,
-        files={"file": ("clients.xlsx", payload, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
     )
 
     assert response.status_code == 422

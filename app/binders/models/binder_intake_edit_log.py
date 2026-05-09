@@ -11,13 +11,17 @@ class BinderIntakeEditLog(Base):
     One record per changed field per edit operation. Records the old and new value
     as strings for human-readable audit display.
     """
+
     __tablename__ = "binder_intake_edit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # The intake that was edited.
     intake_id = Column(
-        Integer, ForeignKey("binder_intakes.id"), nullable=False, index=True,
+        Integer,
+        ForeignKey("binder_intakes.id"),
+        nullable=False,
+        index=True,
     )
 
     # Name of the field that changed (e.g. "received_at", "notes", "business_id").

@@ -33,12 +33,18 @@ def test_document_download_and_replace(client, test_db, advisor_headers):
         "/api/v1/documents/upload",
         headers=advisor_headers,
         files={"file": ("id.pdf", BytesIO(b"orig"), "application/pdf")},
-        data={"client_record_id": crm_client.id, "business_id": business.id, "document_type": "id_copy"},
+        data={
+            "client_record_id": crm_client.id,
+            "business_id": business.id,
+            "document_type": "id_copy",
+        },
     )
     assert upload_resp.status_code == 201
     doc_id = upload_resp.json()["id"]
 
-    download_resp = client.get(f"/api/v1/documents/{doc_id}/download-url", headers=advisor_headers)
+    download_resp = client.get(
+        f"/api/v1/documents/{doc_id}/download-url", headers=advisor_headers
+    )
     assert download_resp.status_code == 200
     assert "url" in download_resp.json()
 

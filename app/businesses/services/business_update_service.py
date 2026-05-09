@@ -9,7 +9,9 @@ from app.audit.constants import ENTITY_BUSINESS
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
@@ -45,7 +47,11 @@ class BusinessUpdateService:
             record = ClientRecordRepository(self._db).get_by_id(client_id)
             if not record:
                 raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-            legal_entity_id = int(record.legal_entity_id) if record.legal_entity_id is not None else None
+            legal_entity_id = (
+                int(record.legal_entity_id)
+                if record.legal_entity_id is not None
+                else None
+            )
         if legal_entity_id is not None and business.legal_entity_id is not None:
             assert_business_belongs_to_legal_entity(business, legal_entity_id)
 
@@ -54,13 +60,17 @@ class BusinessUpdateService:
                 fields["status"] = BusinessStatus(fields["status"])
             except ValueError:
                 raise AppError(
-                    f"סטטוס לא חוקי: {fields['status']}", "BUSINESS.INVALID_STATUS", status_code=400
+                    f"סטטוס לא חוקי: {fields['status']}",
+                    "BUSINESS.INVALID_STATUS",
+                    status_code=400,
                 )
 
         new_status = fields.get("status")
         if new_status in (BusinessStatus.FROZEN, BusinessStatus.CLOSED):
             if user_role != UserRole.ADVISOR:
-                raise ForbiddenError("רק יועצים יכולים להקפיא או לסגור עסקים", "BUSINESS.FORBIDDEN")
+                raise ForbiddenError(
+                    "רק יועצים יכולים להקפיא או לסגור עסקים", "BUSINESS.FORBIDDEN"
+                )
         if new_status == BusinessStatus.CLOSED:
             fields.setdefault("closed_at", date.today())
         if new_status == BusinessStatus.ACTIVE:
@@ -68,9 +78,13 @@ class BusinessUpdateService:
 
         fields.pop("entity_type", None)
 
-        old_snapshot = {k: getattr(business, k, None) for k in fields if hasattr(business, k)}
+        old_snapshot = {
+            k: getattr(business, k, None) for k in fields if hasattr(business, k)
+        }
         updated = self._repo.update(business_id, **fields)
-        new_snapshot = {k: getattr(updated, k, None) for k in fields if hasattr(updated, k)}
+        new_snapshot = {
+            k: getattr(updated, k, None) for k in fields if hasattr(updated, k)
+        }
 
         self._audit.record_update(
             ENTITY_BUSINESS,

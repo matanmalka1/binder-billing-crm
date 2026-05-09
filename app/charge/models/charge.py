@@ -14,18 +14,20 @@ import datetime
 
 
 class ChargeType(str, PyEnum):
-    MONTHLY_RETAINER   = "monthly_retainer"    # Monthly retainer
-    ANNUAL_REPORT_FEE  = "annual_report_fee"   # For a specific annual report
-    VAT_FILING_FEE     = "vat_filing_fee"      # VAT work outside the retainer
-    REPRESENTATION_FEE = "representation_fee"  # Representation in discussions / objections
-    CONSULTATION_FEE   = "consultation_fee"    # One-time consultation
-    OTHER              = "other"
+    MONTHLY_RETAINER = "monthly_retainer"  # Monthly retainer
+    ANNUAL_REPORT_FEE = "annual_report_fee"  # For a specific annual report
+    VAT_FILING_FEE = "vat_filing_fee"  # VAT work outside the retainer
+    REPRESENTATION_FEE = (
+        "representation_fee"  # Representation in discussions / objections
+    )
+    CONSULTATION_FEE = "consultation_fee"  # One-time consultation
+    OTHER = "other"
 
 
 class ChargeStatus(str, PyEnum):
-    DRAFT    = "draft"
-    ISSUED   = "issued"
-    PAID     = "paid"
+    DRAFT = "draft"
+    ISSUED = "issued"
+    PAID = "paid"
     CANCELED = "canceled"
 
 
@@ -48,51 +50,67 @@ class Charge(Base):
     )
 
     # ── Core fields ───────────────────────────────────────────────────────────
-    charge_type: Mapped[ChargeType] = mapped_column(
-        pg_enum(ChargeType), nullable=False
-    )
+    charge_type: Mapped[ChargeType] = mapped_column(pg_enum(ChargeType), nullable=False)
     status: Mapped[ChargeStatus] = mapped_column(
         pg_enum(ChargeStatus), default=ChargeStatus.DRAFT, nullable=False
     )
     amount: Mapped[Decimal] = mapped_column(
-        Numeric(10, 2), nullable=False  # Always ₪, no currency column
+        Numeric(10, 2),
+        nullable=False,  # Always ₪, no currency column
     )
 
     # ── Period ────────────────────────────────────────────────────────────────
     period: Mapped[Optional[str]] = mapped_column(
-        String(7), nullable=True, index=True  # "YYYY-MM" — first month of coverage
+        String(7),
+        nullable=True,
+        index=True,  # "YYYY-MM" — first month of coverage
     )
     months_covered: Mapped[int] = mapped_column(
-        default=1, nullable=False  # How many months this charge covers
+        default=1,
+        nullable=False,  # How many months this charge covers
     )
 
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # ── Lifecycle timestamps + actors ─────────────────────────────────────────
-    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
-    created_by: Mapped[Optional[int]]     = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        default=utcnow, nullable=False
+    )
+    created_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     issued_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    issued_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    issued_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     paid_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    paid_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    paid_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     canceled_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    canceled_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
-    cancellation_reason: Mapped[Optional[str]]        = mapped_column(Text, nullable=True)
+    canceled_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    cancellation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # ── Soft delete ───────────────────────────────────────────────────────────
     deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    deleted_by: Mapped[Optional[int]]               = mapped_column(ForeignKey("users.id"), nullable=True)
+    deleted_by: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    annual_report = relationship("AnnualReport", foreign_keys="[Charge.annual_report_id]", viewonly=True)
-    invoice       = relationship("Invoice",      foreign_keys="[Invoice.charge_id]",   uselist=False)
+    annual_report = relationship(
+        "AnnualReport", foreign_keys="[Charge.annual_report_id]", viewonly=True
+    )
+    invoice = relationship("Invoice", foreign_keys="[Invoice.charge_id]", uselist=False)
 
     __table_args__ = (
         Index("idx_charge_client_record_period", "client_record_id", "period"),
-        Index("idx_charge_status",               "status"),
+        Index("idx_charge_status", "status"),
     )
 
     def __repr__(self) -> str:

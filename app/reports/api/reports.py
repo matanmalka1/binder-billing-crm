@@ -14,7 +14,9 @@ from app.reports.schemas import (
 )
 from app.reports.services.reports_service import AgingReportService
 from app.reports.services.reports_export_service import ReportsExportService
-from app.reports.services.annual_report_status_report import AnnualReportStatusReportService
+from app.reports.services.annual_report_status_report import (
+    AnnualReportStatusReportService,
+)
 from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.vat_compliance_report import VatComplianceReportService
 

@@ -2,7 +2,10 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
-from app.binders.schemas.binder_extended import BinderDetailResponse, BinderListResponseExtended
+from app.binders.schemas.binder_extended import (
+    BinderDetailResponse,
+    BinderListResponseExtended,
+)
 from app.binders.services.binder_operations_service import BinderOperationsService
 from app.clients.services.client_service import ClientService
 
@@ -30,10 +33,7 @@ def list_client_binders(
         page_size=page_size,
     )
 
-    enriched = [
-        BinderDetailResponse(**service.enrich_binder(b))
-        for b in items
-    ]
+    enriched = [BinderDetailResponse(**service.enrich_binder(b)) for b in items]
 
     return BinderListResponseExtended(
         items=enriched,

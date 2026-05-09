@@ -33,27 +33,27 @@ from app.utils.time_utils import utcnow
 
 class NotificationChannel(str, PyEnum):
     WHATSAPP = "whatsapp"
-    EMAIL    = "email"
+    EMAIL = "email"
 
 
 class NotificationStatus(str, PyEnum):
     PENDING = "pending"
-    SENT    = "sent"
-    FAILED  = "failed"
+    SENT = "sent"
+    FAILED = "failed"
 
 
 class NotificationTrigger(str, PyEnum):
-    BINDER_RECEIVED                 = "binder_received"
-    BINDER_READY_FOR_PICKUP         = "binder_ready_for_pickup"
-    PICKUP_REMINDER                 = "pickup_reminder"
-    ANNUAL_REPORT_CLIENT_REMINDER   = "annual_report_client_reminder"
-    MANUAL_PAYMENT_REMINDER         = "manual_payment_reminder"
+    BINDER_RECEIVED = "binder_received"
+    BINDER_READY_FOR_PICKUP = "binder_ready_for_pickup"
+    PICKUP_REMINDER = "pickup_reminder"
+    ANNUAL_REPORT_CLIENT_REMINDER = "annual_report_client_reminder"
+    MANUAL_PAYMENT_REMINDER = "manual_payment_reminder"
 
 
 class NotificationSeverity(str, PyEnum):
-    INFO     = "info"
-    WARNING  = "warning"
-    URGENT   = "urgent"
+    INFO = "info"
+    WARNING = "warning"
+    URGENT = "urgent"
     CRITICAL = "critical"
 
 
@@ -91,8 +91,10 @@ class Notification(Base):
         default=NotificationSeverity.INFO,
         nullable=False,
     )
-    recipient:        Mapped[str] = mapped_column(String, nullable=False)  # phone or email
-    content_snapshot: Mapped[str] = mapped_column(Text,   nullable=False)  # rendered at send time
+    recipient: Mapped[str] = mapped_column(String, nullable=False)  # phone or email
+    content_snapshot: Mapped[str] = mapped_column(
+        Text, nullable=False
+    )  # rendered at send time
 
     # ── Delivery status ───────────────────────────────────────────────────────
     status: Mapped[NotificationStatus] = mapped_column(
@@ -100,27 +102,28 @@ class Notification(Base):
         default=NotificationStatus.PENDING,
         nullable=False,
     )
-    sent_at:       Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    failed_at:     Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    error_message: Mapped[Optional[str]]               = mapped_column(Text, nullable=True)
-    retry_count:   Mapped[int]                         = mapped_column(
-        SmallInteger, nullable=False, default=0
-    )
+    sent_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    failed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
 
     # ── Read state (notification center) ─────────────────────────────────────
-    is_read: Mapped[bool]                         = mapped_column(Boolean, nullable=False, default=False)
-    read_at: Mapped[Optional[datetime.datetime]]  = mapped_column(nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    read_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     triggered_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True  # None = system-triggered
+        ForeignKey("users.id"),
+        nullable=True,  # None = system-triggered
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        default=utcnow, nullable=False
+    )
 
     __table_args__ = (
         Index("idx_notification_client_record_status", "client_record_id", "status"),
-        Index("idx_notification_business_status",      "business_id", "status"),
-        Index("idx_notification_created_at",           "created_at"),
+        Index("idx_notification_business_status", "business_id", "status"),
+        Index("idx_notification_created_at", "created_at"),
     )
 
     def __repr__(self) -> str:

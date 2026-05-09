@@ -2,7 +2,9 @@
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.audit.constants import (
     ALLOWED_READ_ENTITY_TYPES,
     ENTITY_ANNUAL_REPORT,
@@ -13,7 +15,10 @@ from app.audit.constants import (
     INVALID_ENTITY_TYPE_ERROR,
 )
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.audit.schemas.entity_audit_log import EntityAuditLogResponse, EntityAuditTrailResponse
+from app.audit.schemas.entity_audit_log import (
+    EntityAuditLogResponse,
+    EntityAuditTrailResponse,
+)
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -45,7 +50,9 @@ class AuditTrailService:
     def _assert_entity_readable(self, entity_type: str, entity_id: int) -> None:
         self._validate_entity_type(entity_type)
         if not self._entity_exists(entity_type, entity_id):
-            raise AppError(ENTITY_NOT_FOUND_ERROR, "AUDIT.ENTITY_NOT_FOUND", status_code=404)
+            raise AppError(
+                ENTITY_NOT_FOUND_ERROR, "AUDIT.ENTITY_NOT_FOUND", status_code=404
+            )
 
     def get_entity_audit_trail(
         self,
@@ -66,4 +73,6 @@ class AuditTrailService:
             row = EntityAuditLogResponse.model_validate(entry)
             row.performed_by_name = user_map.get(entry.performed_by)
             items.append(row)
-        return EntityAuditTrailResponse(items=items, total=total, limit=limit, offset=offset)
+        return EntityAuditTrailResponse(
+            items=items, total=total, limit=limit, offset=offset
+        )

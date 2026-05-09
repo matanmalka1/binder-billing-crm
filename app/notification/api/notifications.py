@@ -35,8 +35,10 @@ advisor_router = APIRouter(
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
-    client_record_id: Optional[int] = None,      # PRIMARY filter — all notifications for a legal entity
-    business_id: Optional[int] = None,    # SECONDARY filter — narrow to one business
+    client_record_id: Optional[
+        int
+    ] = None,  # PRIMARY filter — all notifications for a legal entity
+    business_id: Optional[int] = None,  # SECONDARY filter — narrow to one business
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -53,7 +55,7 @@ def list_notifications(
         business_id=business_id,
     )
     return NotificationListResponse(
-        items=items,   # already NotificationResponse from service enrichment
+        items=items,  # already NotificationResponse from service enrichment
         total=total,
         page=page,
         page_size=page_size,
@@ -69,7 +71,9 @@ def get_unread_count(
 ):
     svc = NotificationService(db)
     return UnreadCountResponse(
-        unread_count=svc.count_unread(client_record_id=client_record_id, business_id=business_id)
+        unread_count=svc.count_unread(
+            client_record_id=client_record_id, business_id=business_id
+        )
     )
 
 
@@ -90,7 +94,9 @@ def mark_all_read(
 ):
     """Mark all unread notifications as read (optionally scoped to client or business)."""
     svc = NotificationService(db)
-    updated = svc.mark_all_read(client_record_id=client_record_id, business_id=business_id)
+    updated = svc.mark_all_read(
+        client_record_id=client_record_id, business_id=business_id
+    )
     return MarkReadResponse(updated=updated)
 
 

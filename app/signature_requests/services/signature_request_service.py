@@ -5,7 +5,9 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.signature_requests.services import (
     admin_actions,
     create_request,
@@ -53,13 +55,17 @@ class SignatureRequestService:
         return signer_actions.record_view(self.repo, **kwargs)
 
     def sign_request(self, **kwargs):
-        req, annual_report_id, signed_at = signer_actions.sign_request(self.repo, **kwargs)
+        req, annual_report_id, signed_at = signer_actions.sign_request(
+            self.repo, **kwargs
+        )
         if annual_report_id:
             self.repo.append_audit_event(
                 signature_request_id=req.id,
                 event_type="annual_report_signed",
                 actor_type="system",
-                notes=ANNUAL_REPORT_SIGNED_NOTE.format(annual_report_id=annual_report_id),
+                notes=ANNUAL_REPORT_SIGNED_NOTE.format(
+                    annual_report_id=annual_report_id
+                ),
             )
             self._auto_advance_annual_report(annual_report_id, signed_at)
         return req
@@ -70,8 +76,12 @@ class SignatureRequestService:
     def _auto_advance_annual_report(self, annual_report_id: int, now) -> None:
         try:
             from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-            from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
-            from app.annual_reports.services.annual_report_service import AnnualReportService
+            from app.annual_reports.repositories.detail_repository import (
+                AnnualReportDetailRepository,
+            )
+            from app.annual_reports.services.annual_report_service import (
+                AnnualReportService,
+            )
 
             svc = AnnualReportService(self.db)
             # Cheap early-exit guard — no lock here.

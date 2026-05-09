@@ -126,6 +126,7 @@ class VatInvoiceRepository:
     def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> float:
         return self._agg.sum_income_net_by_client_year(client_record_id, year)
 
-    def sum_expense_net_by_client_year_grouped(self, client_record_id: int, year: int) -> dict:
+    def sum_expense_net_by_client_year_grouped(
+        self, client_record_id: int, year: int
+    ) -> dict:
         return self._agg.sum_expense_net_by_client_year_grouped(client_record_id, year)
-

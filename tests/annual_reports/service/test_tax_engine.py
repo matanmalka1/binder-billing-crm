@@ -36,7 +36,9 @@ def test_calculate_tax_caps_pension_to_income_and_zero_income_is_zero_tax():
 
 
 def test_calculate_tax_handles_large_pension_deduction():
-    result = calculate_tax(taxable_income=50_000, tax_year=2024, pension_deduction=60_000, credit_points=0)
+    result = calculate_tax(
+        taxable_income=50_000, tax_year=2024, pension_deduction=60_000, credit_points=0
+    )
     # Deduction capped to taxable income
     assert result.pension_deduction == 50_000
     # Adjusted income zero -> no tax

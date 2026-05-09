@@ -44,7 +44,10 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(
         service.advisor_today_service,
         "build",
-        lambda today: {"deadline_items": [{"id": 1, "label": "מע״מ"}], "reminder_items": []},
+        lambda today: {
+            "deadline_items": [{"id": 1, "label": "מע״מ"}],
+            "reminder_items": [],
+        },
     )
     monkeypatch.setattr(
         service.extended_service,
@@ -93,7 +96,9 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
     )
     monkeypatch.setattr(service, "_build_quick_actions", lambda today: [])
     monkeypatch.setattr(service.advisor_today_service, "build", lambda today: {})
-    monkeypatch.setattr(service.extended_service, "get_attention_items", lambda user_role=None: [])
+    monkeypatch.setattr(
+        service.extended_service, "get_attention_items", lambda user_role=None: []
+    )
 
     overview = service.get_overview(reference_date=date(2026, 4, 30))
 

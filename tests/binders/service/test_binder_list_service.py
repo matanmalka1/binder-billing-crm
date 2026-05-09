@@ -67,7 +67,9 @@ def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     assert counters["ready_for_pickup"] == 0
     assert counters["returned"] == 0
 
-    none_items, none_total, none_counters = service.list_binders_enriched(query="does-not-match")
+    none_items, none_total, none_counters = service.list_binders_enriched(
+        query="does-not-match"
+    )
     assert none_total == 0
     assert none_items == []
     assert none_counters == {
@@ -123,7 +125,9 @@ def test_get_binder_with_client_name_returns_none_for_missing(test_db, test_user
 
 
 def test_build_binder_response_handles_null_period_start(test_db, test_user):
-    client = seed_client_identity(test_db, full_name="Null Period Client", id_number="BLSNULL")
+    client = seed_client_identity(
+        test_db, full_name="Null Period Client", id_number="BLSNULL"
+    )
 
     binder = Binder(
         client_record_id=client.id,

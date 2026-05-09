@@ -45,8 +45,12 @@ def _seed_client_business_and_binder(test_db, *, user_id: int):
     return business, binder, client_record.id
 
 
-def test_list_business_binders_returns_client_binders(client, test_db, test_user, advisor_headers):
-    business, binder, client_record_id = _seed_client_business_and_binder(test_db, user_id=test_user.id)
+def test_list_business_binders_returns_client_binders(
+    client, test_db, test_user, advisor_headers
+):
+    business, binder, client_record_id = _seed_client_business_and_binder(
+        test_db, user_id=test_user.id
+    )
 
     response = client.get(
         f"/api/v1/clients/{client_record_id}/binders?page=1&page_size=20",

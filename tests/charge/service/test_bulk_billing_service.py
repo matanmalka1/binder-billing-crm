@@ -57,7 +57,9 @@ def test_bulk_action_mark_paid_and_cancel_paths():
     service.billing = fake
 
     ok_paid, failed_paid = service.bulk_action([10], action="mark-paid", actor_id=7)
-    ok_cancel, failed_cancel = service.bulk_action([11], action="cancel", actor_id=8, cancellation_reason="dup")
+    ok_cancel, failed_cancel = service.bulk_action(
+        [11], action="cancel", actor_id=8, cancellation_reason="dup"
+    )
 
     assert ok_paid == [10]
     assert failed_paid == []

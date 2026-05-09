@@ -11,7 +11,9 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    crm_client = seed_client_identity(db, full_name="AR Status Additional", id_number="ARSTAT001")
+    crm_client = seed_client_identity(
+        db, full_name="AR Status Additional", id_number="ARSTAT001"
+    )
     business = Business(
         legal_entity_id=crm_client.legal_entity_id,
         business_name=crm_client.full_name,

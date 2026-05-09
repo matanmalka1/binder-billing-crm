@@ -55,11 +55,15 @@ def test_create_business_raises_not_found_when_client_missing(test_db):
 
 def test_create_business_maps_integrity_error_to_conflict(test_db):
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10)
+    )
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
         list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
-        create=lambda **_kwargs: (_ for _ in ()).throw(IntegrityError("stmt", "params", Exception("db"))),
+        create=lambda **_kwargs: (_ for _ in ()).throw(
+            IntegrityError("stmt", "params", Exception("db"))
+        ),
     )
 
     with pytest.raises(ConflictError) as exc:
@@ -72,7 +76,9 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
     assert exc.value.code == "BUSINESS.CONFLICT"
 
 
-def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(monkeypatch, test_db):
+def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(
+    monkeypatch, test_db
+):
     captured = {}
 
     def _create(**kwargs):
@@ -80,7 +86,9 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(mon
         return SimpleNamespace(id=15, **kwargs)
 
     service = BusinessService(test_db)
-    service.client_repo = SimpleNamespace(get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10))
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda _client_id: SimpleNamespace(legal_entity_id=10)
+    )
     service.business_repo = SimpleNamespace(
         all_non_deleted_are_closed_for_legal_entity=lambda _legal_entity_id: False,
         list_by_legal_entity=lambda _legal_entity_id, **_kwargs: [],
@@ -99,7 +107,9 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(mon
 
 
 def test_update_business_rejects_invalid_status_value(test_db):
-    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD001")
+    client = seed_client_identity(
+        test_db, full_name="Additional Client", id_number="BADD001"
+    )
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -115,7 +125,9 @@ def test_update_business_rejects_invalid_status_value(test_db):
 
 
 def test_update_business_rejects_wrong_client_id(test_db):
-    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD002")
+    client = seed_client_identity(
+        test_db, full_name="Additional Client", id_number="BADD002"
+    )
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -131,7 +143,9 @@ def test_update_business_rejects_wrong_client_id(test_db):
 
 
 def test_update_business_to_active_clears_closed_at(test_db):
-    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD003")
+    client = seed_client_identity(
+        test_db, full_name="Additional Client", id_number="BADD003"
+    )
     business = _create_business_row(
         test_db,
         status=BusinessStatus.CLOSED,
@@ -172,7 +186,9 @@ def test_restore_business_requires_advisor_role(test_db):
 def test_restore_business_not_deleted_raises_conflict(test_db):
     service = BusinessService(test_db)
     service._lifecycle.business_repo = SimpleNamespace(
-        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(deleted_at=None)
+        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(
+            deleted_at=None
+        )
     )
 
     with pytest.raises(ConflictError) as exc:
@@ -249,12 +265,17 @@ def test_list_businesses_for_client_delegates_to_repository(test_db):
     service = BusinessService(test_db)
     client = SimpleNamespace(id=2, legal_entity_id=20)
     expected_items = [SimpleNamespace(id=5)]
-    service.client_repo = SimpleNamespace(get_by_id=lambda client_id: client if client_id == 2 else None)
+    service.client_repo = SimpleNamespace(
+        get_by_id=lambda client_id: client if client_id == 2 else None
+    )
     service.business_repo = SimpleNamespace(
-        list_by_legal_entity=lambda legal_entity_id, page, page_size: expected_items
-        if (legal_entity_id, page, page_size) == (20, 3, 10)
-        else [],
+        list_by_legal_entity=lambda legal_entity_id, page, page_size: (
+            expected_items if (legal_entity_id, page, page_size) == (20, 3, 10) else []
+        ),
         count_by_legal_entity=lambda legal_entity_id: 1 if legal_entity_id == 20 else 0,
     )
 
-    assert service.list_businesses_for_client(2, page=3, page_size=10) == (expected_items, 1)
+    assert service.list_businesses_for_client(2, page=3, page_size=10) == (
+        expected_items,
+        1,
+    )

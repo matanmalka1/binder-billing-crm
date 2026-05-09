@@ -26,7 +26,6 @@ def vat_work_item_payload(item, due_date: date) -> dict[str, Any]:
         "period": item.period,
         "due_date": _date_value(due_date),
         "status": _enum_value(item.status),
-
     }
 
 

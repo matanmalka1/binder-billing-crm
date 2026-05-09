@@ -48,7 +48,9 @@ def test_update_correspondence(client, test_db, advisor_headers, test_user):
     assert data["occurred_at"].startswith("2026-01-10")
 
 
-def test_update_correspondence_invalid_type(client, test_db, advisor_headers, test_user):
+def test_update_correspondence_invalid_type(
+    client, test_db, advisor_headers, test_user
+):
     business = _create_business(test_db)
     entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 

@@ -60,13 +60,17 @@ def test_export_to_pdf_filters_periods_by_year_and_delegates(test_db, monkeypatc
     user = _user(test_db)
     _, client_record_id = _business(test_db)
     service = VatReportService(test_db)
-    item_2026 = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    item_2026 = create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2026-01",
         period_type=VatType.MONTHLY,
         created_by=user.id,
     )
-    item_2025 = create_linked_vat_work_item(test_db, repo=service.work_item_repo,
+    item_2025 = create_linked_vat_work_item(
+        test_db,
+        repo=service.work_item_repo,
         client_record_id=client_record_id,
         period="2025-12",
         period_type=VatType.MONTHLY,

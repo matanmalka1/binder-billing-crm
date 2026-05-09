@@ -60,8 +60,13 @@ class LocalStorageProvider(StorageProvider):
         within base_path (guards against path-traversal attacks).
         """
         resolved = os.path.realpath(os.path.join(self.base_path, key))
-        if not resolved.startswith(self.base_path + os.sep) and resolved != self.base_path:
-            raise ValueError(f"Invalid storage key — path escapes base directory: {key!r}")
+        if (
+            not resolved.startswith(self.base_path + os.sep)
+            and resolved != self.base_path
+        ):
+            raise ValueError(
+                f"Invalid storage key — path escapes base directory: {key!r}"
+            )
         return resolved
 
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
@@ -178,7 +183,11 @@ class S3StorageProvider(StorageProvider):
             Params={"Bucket": self._bucket, "Key": key},
             ExpiresIn=expires_in,
         )
-        logger.info("[S3Storage] Presigned URL generated for: %s (expires_in=%ds)", key, expires_in)
+        logger.info(
+            "[S3Storage] Presigned URL generated for: %s (expires_in=%ds)",
+            key,
+            expires_in,
+        )
         return url
 
 
@@ -197,7 +206,8 @@ def get_storage_provider() -> StorageProvider:
 
     # Validate required config for cloud storage
     missing = [
-        var for var, val in {
+        var
+        for var, val in {
             "R2_ACCESS_KEY_ID": config.R2_ACCESS_KEY_ID,
             "R2_SECRET_ACCESS_KEY": config.R2_SECRET_ACCESS_KEY,
             "R2_BUCKET_NAME": config.R2_BUCKET_NAME,

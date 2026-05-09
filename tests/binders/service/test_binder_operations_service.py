@@ -14,7 +14,14 @@ def _create_client(db, name: str, id_number: str) -> SeededClient:
     )
 
 
-def _create_binder(db, client_id: int, user_id: int, number: str, period_start: date, status: BinderStatus):
+def _create_binder(
+    db,
+    client_id: int,
+    user_id: int,
+    number: str,
+    period_start: date,
+    status: BinderStatus,
+):
     repo = BinderRepository(db)
     binder = repo.create(
         client_record_id=client_id,
@@ -32,13 +39,28 @@ def _create_binder(db, client_id: int, user_id: int, number: str, period_start: 
 def test_get_open_binders_filters_returned_and_orders(test_db, test_user):
     client = _create_client(test_db, "Client A", "C-001")
     newer = _create_binder(
-        test_db, client.id, test_user.id, "B-NEW", date(2024, 2, 1), BinderStatus.IN_OFFICE
+        test_db,
+        client.id,
+        test_user.id,
+        "B-NEW",
+        date(2024, 2, 1),
+        BinderStatus.IN_OFFICE,
     )
     older = _create_binder(
-        test_db, client.id, test_user.id, "B-OLD", date(2024, 1, 1), BinderStatus.IN_OFFICE
+        test_db,
+        client.id,
+        test_user.id,
+        "B-OLD",
+        date(2024, 1, 1),
+        BinderStatus.IN_OFFICE,
     )
     _create_binder(
-        test_db, client.id, test_user.id, "B-RET", date(2024, 1, 15), BinderStatus.RETURNED
+        test_db,
+        client.id,
+        test_user.id,
+        "B-RET",
+        date(2024, 1, 15),
+        BinderStatus.RETURNED,
     )
 
     service = BinderOperationsService(test_db)
@@ -52,14 +74,26 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
     client_a = _create_client(test_db, "Client A", "C-010")
     client_b = _create_client(test_db, "Client B", "C-011")
     target = _create_binder(
-        test_db, client_a.id, test_user.id, "B-CLI-A", date(2024, 1, 5), BinderStatus.IN_OFFICE
+        test_db,
+        client_a.id,
+        test_user.id,
+        "B-CLI-A",
+        date(2024, 1, 5),
+        BinderStatus.IN_OFFICE,
     )
     _create_binder(
-        test_db, client_b.id, test_user.id, "B-CLI-B", date(2024, 1, 6), BinderStatus.IN_OFFICE
+        test_db,
+        client_b.id,
+        test_user.id,
+        "B-CLI-B",
+        date(2024, 1, 6),
+        BinderStatus.IN_OFFICE,
     )
 
     service = BinderOperationsService(test_db)
-    items, total = service.get_client_binders(client_record_id=client_a.id, page=1, page_size=10)
+    items, total = service.get_client_binders(
+        client_record_id=client_a.id, page=1, page_size=10
+    )
 
     assert total == 1
     assert items[0].id == target.id

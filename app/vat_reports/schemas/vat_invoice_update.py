@@ -25,10 +25,16 @@ class VatInvoiceUpdateRequest(VatInvoiceValidatorMixin):
     business_activity_id: Optional[int] = None
     net_amount: Optional[ApiDecimal] = None
     vat_amount: Optional[ApiDecimal] = None
-    invoice_number: Optional[str] = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
-    invoice_date: Optional[date] = None         # Date — לא DateTime
-    counterparty_name: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
-    counterparty_id: Optional[str] = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
+    invoice_number: Optional[str] = Field(
+        default=None, max_length=MAX_INVOICE_NUMBER_LENGTH
+    )
+    invoice_date: Optional[date] = None  # Date — לא DateTime
+    counterparty_name: Optional[str] = Field(
+        default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH
+    )
+    counterparty_id: Optional[str] = Field(
+        default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH
+    )
     counterparty_id_type: Optional[CounterpartyIdType] = None
     expense_category: Optional[ExpenseCategory] = None
     rate_type: Optional[VatRateType] = None
@@ -45,5 +51,5 @@ class VatInvoiceUpdateRequest(VatInvoiceValidatorMixin):
     @classmethod
     def vat_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
         if v is not None and v < 0:
-            raise ValueError("הסכום של המע\"מ לא יכול להיות שלילי")
+            raise ValueError('הסכום של המע"מ לא יכול להיות שלילי')
         return v

@@ -12,7 +12,9 @@ def test_derive_client_type_raises_for_missing_or_unknown_entity_type():
         orchestrator._derive_client_type("unknown")  # type: ignore[arg-type]
 
 
-def test_generate_client_obligations_fails_before_writes_for_unknown_entity_type(monkeypatch):
+def test_generate_client_obligations_fails_before_writes_for_unknown_entity_type(
+    monkeypatch,
+):
     class Repo:
         def __init__(self, db):
             self.db = db

@@ -5,8 +5,15 @@ from app.common.enums import IdNumberType
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
-from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationSeverity,
+    NotificationTrigger,
+)
 from app.notification.repositories.notification_repository import NotificationRepository
 
 
@@ -54,9 +61,11 @@ def _business(test_db, suffix: str) -> Business:
 
 def _seed_notification(test_db, business_id: int, content: str):
     business = test_db.get(Business, business_id)
-    cr = test_db.query(ClientRecord).filter(
-        ClientRecord.legal_entity_id == business.legal_entity_id
-    ).first()
+    cr = (
+        test_db.query(ClientRecord)
+        .filter(ClientRecord.legal_entity_id == business.legal_entity_id)
+        .first()
+    )
     repo = NotificationRepository(test_db)
     return repo.create(
         client_record_id=cr.id,
@@ -108,7 +117,10 @@ def test_notifications_read_lifecycle(client, test_db, advisor_headers):
     assert unread_after_one.status_code == 200
     assert unread_after_one.json()["unread_count"] == 1
 
-    mark_all = client.post(f"/api/v1/notifications/mark-all-read?business_id={b1.id}", headers=advisor_headers)
+    mark_all = client.post(
+        f"/api/v1/notifications/mark-all-read?business_id={b1.id}",
+        headers=advisor_headers,
+    )
     assert mark_all.status_code == 200
     assert mark_all.json()["updated"] == 1
 
@@ -120,7 +132,9 @@ def test_notifications_read_lifecycle(client, test_db, advisor_headers):
     assert unread_after_all.json()["unread_count"] == 0
 
 
-def test_notifications_send_endpoint_advisor_only(client, test_db, advisor_headers, secretary_headers):
+def test_notifications_send_endpoint_advisor_only(
+    client, test_db, advisor_headers, secretary_headers
+):
     business = _business(test_db, "3")
 
     advisor_send = client.post(

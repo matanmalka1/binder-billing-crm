@@ -1,4 +1,3 @@
-
 from sqlalchemy import String, cast
 from sqlalchemy.dialects import postgresql
 

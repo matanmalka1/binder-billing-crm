@@ -43,9 +43,17 @@ def test_cannot_reopen_closed():
 def test_assessment_then_objection():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "individual", 1, "Advisor")
-    for status in ["collecting_docs", "docs_complete", "in_preparation", "pending_client", "submitted"]:
+    for status in [
+        "collecting_docs",
+        "docs_complete",
+        "in_preparation",
+        "pending_client",
+        "submitted",
+    ]:
         service.transition_status(report.id, status, 1, "A")
-    service.transition_status(report.id, "assessment_issued", 1, "A", assessment_amount=50000)
+    service.transition_status(
+        report.id, "assessment_issued", 1, "A", assessment_amount=50000
+    )
     service.transition_status(report.id, "objection_filed", 1, "A")
     service.transition_status(report.id, "closed", 1, "A")
     assert service.get_report(report.id).status == AnnualReportStatus.CLOSED
@@ -62,7 +70,9 @@ def test_backward_transition_allowed():
 def test_history_recorded():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "individual", 1, "Advisor")
-    service.transition_status(report.id, "collecting_docs", 1, "Advisor", note="Started collection")
+    service.transition_status(
+        report.id, "collecting_docs", 1, "Advisor", note="Started collection"
+    )
     history = service.get_status_history(report.id)
     assert len(history) == 2
     assert history[-1].to_status == AnnualReportStatus.COLLECTING_DOCS

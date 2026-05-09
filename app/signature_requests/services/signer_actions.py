@@ -4,8 +4,13 @@ from datetime import datetime
 from typing import Optional
 
 from app.core.exceptions import AppError
-from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.models.signature_request import (
+    SignatureRequest,
+    SignatureRequestStatus,
+)
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.signature_requests.services.messages import (
     DECLINED_WITHOUT_REASON_NOTE,
     DOCUMENT_SIGNED_BY_SIGNER_NOTE,
@@ -23,12 +28,16 @@ from app.utils.time_utils import utcnow
 
 def _expire_and_raise(repo: SignatureRequestRepository, req: SignatureRequest) -> None:
     """Transition to EXPIRED and raise. Called only when expiry is detected at signing time."""
-    repo.update(req.id, req=req, status=SignatureRequestStatus.EXPIRED, signing_token=None)
+    repo.update(
+        req.id, req=req, status=SignatureRequestStatus.EXPIRED, signing_token=None
+    )
     repo.append_audit_event(
         signature_request_id=req.id,
         event_type="expired",
         actor_type="system",
-        notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(expires_at=req.expires_at.date().isoformat()),
+        notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(
+            expires_at=req.expires_at.date().isoformat()
+        ),
     )
     raise AppError(SIGNATURE_REQUEST_EXPIRED_ERROR, "SIGNATURE_REQUEST.EXPIRED")
 

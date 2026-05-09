@@ -1,4 +1,5 @@
 """Layer 1 onboarding tests: LegalEntity + ClientRecord creation."""
+
 from datetime import date
 
 
@@ -35,7 +36,9 @@ _CREATE_PAYLOAD = {
 
 
 def _post_create(client, headers, payload=None):
-    return client.post("/api/v1/clients", headers=headers, json=payload or _CREATE_PAYLOAD)
+    return client.post(
+        "/api/v1/clients", headers=headers, json=payload or _CREATE_PAYLOAD
+    )
 
 
 def test_full_onboarding_creates_all_entities(client, test_db, advisor_headers):
@@ -65,13 +68,17 @@ def test_duplicate_id_number_raises_conflict(client, test_db, advisor_headers):
     assert resp1.status_code == 201
 
     import copy
+
     payload2 = copy.deepcopy(_CREATE_PAYLOAD)
     payload2["client"]["full_name"] = "Duplicate Client"
     payload2["business"]["business_name"] = "Duplicate Business"
 
     resp2 = _post_create(client, advisor_headers, payload2)
     assert resp2.status_code == 409
-    assert resp2.json()["detail"]["error"] in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}
+    assert resp2.json()["detail"]["error"] in {
+        "CLIENT.CONFLICT",
+        "CLIENT.DELETED_EXISTS",
+    }
 
 
 def test_obligations_created_with_client_record_id(client, test_db, advisor_headers):
@@ -81,9 +88,7 @@ def test_obligations_created_with_client_record_id(client, test_db, advisor_head
     cr_id = resp.json()["client_record_id"]
 
     vat_items = (
-        test_db.query(VatWorkItem)
-        .filter(VatWorkItem.client_record_id == cr_id)
-        .all()
+        test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == cr_id).all()
     )
     advance_payments = (
         test_db.query(AdvancePayment)

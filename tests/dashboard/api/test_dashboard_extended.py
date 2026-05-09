@@ -1,5 +1,3 @@
-
-
 def test_attention_endpoint(client, advisor_headers):
     """Test attention endpoint."""
     response = client.get("/api/v1/dashboard/attention", headers=advisor_headers)

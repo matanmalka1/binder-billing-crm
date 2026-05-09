@@ -5,6 +5,7 @@ WhatsApp: 360dialog API — real implementation when WHATSAPP_API_KEY is set;
           falls back to stub (returns False) so caller can fall back to email.
 Email:    SendGrid — real implementation, gated by NOTIFICATIONS_ENABLED flag.
 """
+
 from __future__ import annotations
 
 import html
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 # ─── Email via SendGrid ────────────────────────────────────────────────────────
+
 
 class EmailChannel:
     """
@@ -46,7 +48,9 @@ class EmailChannel:
         self._from_name = from_name
 
     # ------------------------------------------------------------------
-    def send(self, recipient: str, content: str, subject: Optional[str] = None) -> tuple[bool, Optional[str]]:
+    def send(
+        self, recipient: str, content: str, subject: Optional[str] = None
+    ) -> tuple[bool, Optional[str]]:
         """
         Send an email.
 
@@ -82,9 +86,7 @@ class EmailChannel:
             resolved_subject = subject or "הודעה ממערכת ניהול התיקים"
 
             payload = {
-                "personalizations": [
-                    {"to": [{"email": recipient}]}
-                ],
+                "personalizations": [{"to": [{"email": recipient}]}],
                 "from": {
                     "email": self._from_address,
                     "name": self._from_name or "CRM",
@@ -126,6 +128,7 @@ class EmailChannel:
 
 # ─── WhatsApp via 360dialog ───────────────────────────────────────────────────
 
+
 class WhatsAppChannel:
     """
     WhatsApp channel backed by 360dialog API.
@@ -151,7 +154,9 @@ class WhatsAppChannel:
         When not configured returns (False, "not configured") immediately.
         """
         if not self.enabled:
-            logger.info("[WHATSAPP_DISABLED] Would send WhatsApp to %s", recipient_phone)
+            logger.info(
+                "[WHATSAPP_DISABLED] Would send WhatsApp to %s", recipient_phone
+            )
             return (False, "not configured")
 
         try:
@@ -190,12 +195,12 @@ class WhatsAppChannel:
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _to_html(text: str) -> str:
     """Convert plain-text content to minimal HTML email body (XSS-safe)."""
     lines = text.splitlines()
     paragraphs = "".join(
-        f"<p>{html.escape(line)}</p>" if line.strip() else "<br>"
-        for line in lines
+        f"<p>{html.escape(line)}</p>" if line.strip() else "<br>" for line in lines
     )
     return f"""<!DOCTYPE html>
 <html dir="rtl" lang="he">

@@ -125,6 +125,7 @@ ANNUAL_OVERRIDES_TAX_YEAR_2025: tuple[DeadlineOverride, ...] = (
     ),
 )
 
+
 # lookup: period + column -> override_date
 def get_override(
     period: str,

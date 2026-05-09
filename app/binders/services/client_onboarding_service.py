@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from app.clients.models.client_record import ClientRecord
 from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -29,9 +31,13 @@ def create_initial_binder(
     The binder is created with period_start=None (no material received yet).
     """
     if actor_id is None:
-        raise ValueError(f"לא ניתן ליצור קלסר אוטומטי ללקוח {client_record.id}: actor_id חסר")
+        raise ValueError(
+            f"לא ניתן ליצור קלסר אוטומטי ללקוח {client_record.id}: actor_id חסר"
+        )
     if client_record.office_client_number is None:
-        raise ValueError(f"לא ניתן ליצור קלסר: מספר לקוח משרד חסר ללקוח {client_record.id}")
+        raise ValueError(
+            f"לא ניתן ליצור קלסר: מספר לקוח משרד חסר ללקוח {client_record.id}"
+        )
 
     binder_repo = BinderRepository(db)
     status_log_repo = BinderStatusLogRepository(db)

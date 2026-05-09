@@ -3,14 +3,21 @@ from __future__ import annotations
 from typing import Optional
 
 from app.core.exceptions import AppError
-from app.signature_requests.models.signature_request import SignatureRequest, SignatureRequestStatus
-from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+from app.signature_requests.models.signature_request import (
+    SignatureRequest,
+    SignatureRequestStatus,
+)
+from app.signature_requests.repositories.signature_request_repository import (
+    SignatureRequestRepository,
+)
 from app.signature_requests.services.messages import (
     CANCELED_BY_ADVISOR_NOTE,
     CANCEL_REQUEST_INVALID_STATUS,
     SIGNATURE_REQUEST_EXPIRED_NOTE,
 )
-from app.signature_requests.services.signature_request_validations import get_or_raise_for_update
+from app.signature_requests.services.signature_request_validations import (
+    get_or_raise_for_update,
+)
 from app.utils.time_utils import utcnow
 
 
@@ -24,7 +31,10 @@ def cancel_request(
 ) -> SignatureRequest:
     req = get_or_raise_for_update(repo, request_id)
 
-    cancelable = {SignatureRequestStatus.DRAFT, SignatureRequestStatus.PENDING_SIGNATURE}
+    cancelable = {
+        SignatureRequestStatus.DRAFT,
+        SignatureRequestStatus.PENDING_SIGNATURE,
+    }
     if req.status not in cancelable:
         raise AppError(
             CANCEL_REQUEST_INVALID_STATUS.format(status=req.status.value),
@@ -66,7 +76,9 @@ def expire_overdue_requests(repo: SignatureRequestRepository) -> int:
             signature_request_id=req.id,
             event_type="expired",
             actor_type="system",
-            notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(expires_at=req.expires_at.date().isoformat()),
+            notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(
+                expires_at=req.expires_at.date().isoformat()
+            ),
         )
         count += 1
     return count

@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.utils.time_utils import utcnow
- 
+
 
 class BinderIntake(Base):
     """
@@ -13,10 +13,16 @@ class BinderIntake(Base):
     Each event can include multiple items of different types
     and for different businesses (BinderIntakeMaterial).
     """
+
     __tablename__ = "binder_intakes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    binder_id = Column(Integer, ForeignKey("binders.id", ondelete="CASCADE"), nullable=False, index=True)
+    binder_id = Column(
+        Integer,
+        ForeignKey("binders.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     binder = relationship("Binder", back_populates="intakes")
 
@@ -30,6 +36,7 @@ class BinderIntake(Base):
     notes = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
+
     def __repr__(self):
         return (
             f"<BinderIntake(id={self.id}, binder_id={self.binder_id}, "

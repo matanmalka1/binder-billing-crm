@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.common.enums import ObligationType
-from app.tax_calendar.repositories.grouped_repository import TaxCalendarGroupedRepository
+from app.tax_calendar.repositories.grouped_repository import (
+    TaxCalendarGroupedRepository,
+)
 from app.tax_calendar.schemas.grouped import TaxCalendarGroupResponse
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
@@ -103,8 +105,7 @@ def _effective_due_dates(entry, rows: list) -> tuple[date, date]:
     if not rows:
         return entry.due_date, entry.due_date
     due_dates = [
-        _row_due_date(entry.obligation_type, row, entry.due_date)
-        for row in rows
+        _row_due_date(entry.obligation_type, row, entry.due_date) for row in rows
     ]
     return min(due_dates), max(due_dates)
 

@@ -77,13 +77,16 @@ def test_send_notification_delegates_to_send_service(test_db):
         send_notification=lambda **kwargs: captured.update(kwargs) or True,
     )
 
-    assert service.send_notification(
-        business_id=1,
-        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-        content="x",
-        severity=NotificationSeverity.CRITICAL,
-        preferred_channel="whatsapp",
-    ) is True
+    assert (
+        service.send_notification(
+            business_id=1,
+            trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+            content="x",
+            severity=NotificationSeverity.CRITICAL,
+            preferred_channel="whatsapp",
+        )
+        is True
+    )
 
     assert captured["business_id"] == 1
     assert captured["trigger"] == NotificationTrigger.MANUAL_PAYMENT_REMINDER

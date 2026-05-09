@@ -84,7 +84,11 @@ class ClientRepository(BaseRepository):
         legal_entity: LegalEntity,
         person: Optional[Person],
     ) -> ClientRecordView:
-        full_name = person.full_name if person and person.full_name else legal_entity.official_name
+        full_name = (
+            person.full_name
+            if person and person.full_name
+            else legal_entity.official_name
+        )
         return ClientRecordView(
             id=record.id,
             client_record_id=record.id,
@@ -178,16 +182,15 @@ class ClientRepository(BaseRepository):
         )
         record = ClientRecordRepository(self.db).create(
             legal_entity_id=legal_entity.id,
-            office_client_number=office_client_number or self.get_next_office_client_number(),
+            office_client_number=office_client_number
+            or self.get_next_office_client_number(),
             accountant_id=accountant_id,
             created_by=created_by,
         )
         return self.get_by_id(record.id)
 
     def get_by_id(self, client_id: int) -> Optional[ClientRecordView]:
-        return self._first_view(
-            self._base_query().filter(ClientRecord.id == client_id)
-        )
+        return self._first_view(self._base_query().filter(ClientRecord.id == client_id))
 
     def get_by_id_including_deleted(self, client_id: int) -> Optional[ClientRecordView]:
         return self._first_view(
@@ -222,7 +225,8 @@ class ClientRepository(BaseRepository):
         if search:
             term = f"%{search.strip()}%"
             query = query.filter(
-                LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term)
+                LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
             )
         if status:
             query = query.filter(ClientRecord.status == status)
@@ -245,7 +249,9 @@ class ClientRepository(BaseRepository):
             sort_col = case(order_map, value=LegalEntity.entity_type)
         else:
             sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        query = query.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
+        query = query.order_by(
+            desc(sort_col) if sort_order == "desc" else asc(sort_col)
+        )
         query = query.offset((page - 1) * page_size).limit(page_size)
         return self._list_views(query)
 
@@ -267,13 +273,20 @@ class ClientRepository(BaseRepository):
         q = self._base_query()
         if query:
             term = f"%{query.strip()}%"
-            q = q.filter(LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term))
+            q = q.filter(
+                LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
+            )
         if client_name:
             q = q.filter(LegalEntity.official_name.ilike(f"%{client_name.strip()}%"))
         if id_number:
             q = q.filter(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
         total = q.count()
-        items = q.order_by(LegalEntity.official_name.asc()).offset((page - 1) * page_size).limit(page_size)
+        items = (
+            q.order_by(LegalEntity.official_name.asc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
         return self._list_views(items), total
 
     def list_by_ids(self, client_ids: list[int]) -> list[ClientRecordView]:
@@ -289,11 +302,7 @@ class ClientRepository(BaseRepository):
         )
 
     def update(self, client_id: int, **fields) -> Optional[ClientRecordView]:
-        row = (
-            self._base_query()
-            .filter(ClientRecord.id == client_id)
-            .first()
-        )
+        row = self._base_query().filter(ClientRecord.id == client_id).first()
         if not row:
             return None
         record, legal_entity, person = row
@@ -313,7 +322,9 @@ class ClientRepository(BaseRepository):
             "advance_rate_updated_at",
         }
         record_fields = {"status", "accountant_id"}
-        owner_requested = "full_name" in fields or bool(person_fields.intersection(fields))
+        owner_requested = "full_name" in fields or bool(
+            person_fields.intersection(fields)
+        )
         if owner_requested and person is None:
             PersonRepository(self.db).ensure_owner(
                 legal_entity_id=legal_entity.id,
@@ -321,7 +332,9 @@ class ClientRepository(BaseRepository):
                 id_number=legal_entity.id_number,
                 id_number_type=legal_entity.id_number_type,
             )
-            person = PersonRepository(self.db).get_owner_for_legal_entity(legal_entity.id)
+            person = PersonRepository(self.db).get_owner_for_legal_entity(
+                legal_entity.id
+            )
 
         if "full_name" in fields:
             legal_entity.official_name = fields["full_name"]

@@ -21,13 +21,23 @@ class AnnualReportQueryService(AnnualReportBaseService):
             return None
         return self._to_responses([report])[0]
 
-    def get_client_reports(self, client_record_id: int, page: int = 1, page_size: int = 20) -> tuple[list[AnnualReportResponse], int]:
+    def get_client_reports(
+        self, client_record_id: int, page: int = 1, page_size: int = 20
+    ) -> tuple[list[AnnualReportResponse], int]:
         from app.core.exceptions import NotFoundError
         from .messages import ANNUAL_REPORT_CLIENT_NOT_FOUND
+
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if client_record is None:
-            raise NotFoundError(ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id), "ANNUAL_REPORT.CLIENT_NOT_FOUND")
-        reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
+            raise NotFoundError(
+                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(
+                    client_record_id=client_record_id
+                ),
+                "ANNUAL_REPORT.CLIENT_NOT_FOUND",
+            )
+        reports = self.repo.list_by_client_record(
+            client_record.id, page=page, page_size=page_size
+        )
         total = self.repo.count_by_client_record(client_record.id)
         return self._to_responses(reports), total
 
@@ -40,18 +50,26 @@ class AnnualReportQueryService(AnnualReportBaseService):
         order: str = "desc",
     ) -> tuple[list[AnnualReportResponse], int]:
         if tax_year is not None:
-            items = self.repo.list_by_tax_year(tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order)
+            items = self.repo.list_by_tax_year(
+                tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order
+            )
             total = self.repo.count_by_tax_year(tax_year)
         else:
-            items = self.repo.list_all(page=page, page_size=page_size, sort_by=sort_by, order=order)
+            items = self.repo.list_all(
+                page=page, page_size=page_size, sort_by=sort_by, order=order
+            )
             total = self.repo.count_all()
         return self._to_responses(items), total
 
     def get_season_summary(self, tax_year: int) -> dict:
         return self.repo.get_season_summary(tax_year)
 
-    def get_overdue(self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20) -> list[AnnualReportResponse]:
-        reports = self.repo.list_overdue(tax_year=tax_year, page=page, page_size=page_size)
+    def get_overdue(
+        self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20
+    ) -> list[AnnualReportResponse]:
+        reports = self.repo.list_overdue(
+            tax_year=tax_year, page=page, page_size=page_size
+        )
         return self._to_responses(reports)
 
     def get_status_history(self, report_id: int) -> list:
@@ -60,10 +78,18 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
     def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
         """Return report with schedules, history, financial summary, and detail fields. None if not found."""
-        from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
-        from app.annual_reports.repositories.credit_point_repository import AnnualReportCreditPointRepository
-        from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
-        from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
+        from app.annual_reports.repositories.income_repository import (
+            AnnualReportIncomeRepository,
+        )
+        from app.annual_reports.repositories.credit_point_repository import (
+            AnnualReportCreditPointRepository,
+        )
+        from app.annual_reports.repositories.expense_repository import (
+            AnnualReportExpenseRepository,
+        )
+        from app.annual_reports.repositories.detail_repository import (
+            AnnualReportDetailRepository,
+        )
 
         report = self.get_report(report_id)
         if report is None:
@@ -77,11 +103,17 @@ class AnnualReportQueryService(AnnualReportBaseService):
         total_expenses = expense_repo.total_expenses(report_id)
         recognized_expenses = expense_repo.total_recognized_expenses(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
-        credit_breakdown = AnnualReportCreditPointRepository(self.db).aggregate_breakdown(report_id)
+        credit_breakdown = AnnualReportCreditPointRepository(
+            self.db
+        ).aggregate_breakdown(report_id)
 
         response = AnnualReportDetailResponse(**report.model_dump())
-        response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
-        response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
+        response.schedules = [
+            ScheduleEntryResponse.model_validate(s) for s in schedules
+        ]
+        response.status_history = [
+            StatusHistoryResponse.model_validate(h) for h in history
+        ]
         response.total_income = total_income
         response.total_expenses = total_expenses
         response.taxable_income = total_income - recognized_expenses
@@ -93,24 +125,44 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.amendment_reason = detail.amendment_reason
         response.credit_points = credit_breakdown["credit_points"]
         response.pension_credit_points = credit_breakdown["pension_credit_points"]
-        response.life_insurance_credit_points = credit_breakdown["life_insurance_credit_points"]
+        response.life_insurance_credit_points = credit_breakdown[
+            "life_insurance_credit_points"
+        ]
         response.tuition_credit_points = credit_breakdown["tuition_credit_points"]
         if orm_report:
-            response.tax_refund_amount = float(orm_report.refund_due) if orm_report.refund_due is not None else None
-            response.tax_due_amount = float(orm_report.tax_due) if orm_report.tax_due is not None else None
+            response.tax_refund_amount = (
+                float(orm_report.refund_due)
+                if orm_report.refund_due is not None
+                else None
+            )
+            response.tax_due_amount = (
+                float(orm_report.tax_due) if orm_report.tax_due is not None else None
+            )
 
-        from app.annual_reports.services.financial_service import AnnualReportFinancialService
+        from app.annual_reports.services.financial_service import (
+            AnnualReportFinancialService,
+        )
 
         tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         response.profit = tax.net_profit
-        advances_paid = Decimal(str(self.advance_repo.sum_paid_by_client_year(orm_report.client_record_id, orm_report.tax_year)))
+        advances_paid = Decimal(
+            str(
+                self.advance_repo.sum_paid_by_client_year(
+                    orm_report.client_record_id, orm_report.tax_year
+                )
+            )
+        )
         response.final_balance = tax.tax_after_credits - advances_paid
 
         return response
 
-    def amend_report(self, report_id: int, reason: str, actor_id: int, actor_name: str) -> AnnualReportDetailResponse:
+    def amend_report(
+        self, report_id: int, reason: str, actor_id: int, actor_name: str
+    ) -> AnnualReportDetailResponse:
         """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
-        from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
+        from app.annual_reports.repositories.detail_repository import (
+            AnnualReportDetailRepository,
+        )
 
         report = self._get_or_raise(report_id)
         if report.status != AnnualReportStatus.SUBMITTED:
@@ -126,6 +178,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
             changed_by_name=actor_name,
             note=reason,
         )
-        AnnualReportDetailRepository(self.db).update_meta(report_id, amendment_reason=reason)
+        AnnualReportDetailRepository(self.db).update_meta(
+            report_id, amendment_reason=reason
+        )
 
         return self.get_detail_report(report_id)

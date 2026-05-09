@@ -16,9 +16,13 @@ from app.binders.services.messages import (
 )
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_material import BinderIntakeMaterial
-from app.binders.repositories.binder_intake_material_repository import BinderIntakeMaterialRepository
+from app.binders.repositories.binder_intake_material_repository import (
+    BinderIntakeMaterialRepository,
+)
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
@@ -63,13 +67,17 @@ class BinderService(BinderListService):
         """Mark binder as ready for pickup."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
+            raise NotFoundError(
+                BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
+            )
 
         binder_helpers.validate_ready_transition(binder)
 
         old_status = binder.status.value
         updated = self.binder_repo.update_status(
-            binder_id, BinderStatus.READY_FOR_PICKUP, binder=binder,
+            binder_id,
+            BinderStatus.READY_FOR_PICKUP,
+            binder=binder,
             ready_for_pickup_at=utcnow(),
         )
 
@@ -82,7 +90,9 @@ class BinderService(BinderListService):
         )
 
         if binder.client_record_id:
-            self.notification_service.notify_ready_for_pickup(updated, binder.client_record_id)
+            self.notification_service.notify_ready_for_pickup(
+                updated, binder.client_record_id
+            )
 
         return updated
 
@@ -96,14 +106,20 @@ class BinderService(BinderListService):
         """Return binder to client."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
+            raise NotFoundError(
+                BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
+            )
 
         binder_helpers.validate_return_transition(binder, pickup_person_name)
 
         old_status = binder.status.value
         effective_returned_at = returned_at or date.today()
 
-        extra = {} if binder.period_end is not None else {"period_end": effective_returned_at}
+        extra = (
+            {}
+            if binder.period_end is not None
+            else {"period_end": effective_returned_at}
+        )
         updated = self.binder_repo.update_status(
             binder_id,
             BinderStatus.RETURNED,
@@ -127,12 +143,16 @@ class BinderService(BinderListService):
         """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
         binder = self.binder_repo.get_by_id_for_update(binder_id)
         if not binder:
-            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
+            raise NotFoundError(
+                BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
+            )
 
         binder_helpers.validate_revert_ready_transition(binder)
 
         old_status = binder.status.value
-        updated = self.binder_repo.update_status(binder_id, BinderStatus.IN_OFFICE, binder=binder)
+        updated = self.binder_repo.update_status(
+            binder_id, BinderStatus.IN_OFFICE, binder=binder
+        )
 
         self.status_log_repo.append(
             binder_id=binder_id,
@@ -167,7 +187,9 @@ class BinderService(BinderListService):
         cutoff = (until_period_year, until_period_month)
         updated: list[Binder] = []
 
-        client_record_id = int(ClientRecordRepository(self.db).get_by_id(client_record_id).id)
+        client_record_id = int(
+            ClientRecordRepository(self.db).get_by_id(client_record_id).id
+        )
         for binder in self.binder_repo.list_by_client_record(client_record_id):
             if binder.status not in {
                 BinderStatus.IN_OFFICE,
@@ -208,6 +230,10 @@ class BinderService(BinderListService):
         material: Optional[BinderIntakeMaterial],
         cutoff: tuple[int, int],
     ) -> bool:
-        if not material or material.period_year is None or material.period_month_end is None:
+        if (
+            not material
+            or material.period_year is None
+            or material.period_month_end is None
+        ):
             return False
         return (material.period_year, material.period_month_end) <= cutoff

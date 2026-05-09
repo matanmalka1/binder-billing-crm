@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.annual_reports.models.annual_report_credit_point_reason import (
@@ -13,7 +12,9 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _client(db, suffix="1"):
-    return seed_client_identity(db, full_name=f"AR create extra {suffix}", id_number=f"ARCE{suffix}")
+    return seed_client_identity(
+        db, full_name=f"AR create extra {suffix}", id_number=f"ARCE{suffix}"
+    )
 
 
 def test_create_report_validation_errors(test_db):
@@ -58,7 +59,9 @@ def test_readiness_incomplete_required_schedule_issue_present(test_db):
     c = _client(test_db, "C")
     service = AnnualReportService(test_db)
     financial = AnnualReportFinancialService(test_db)
-    report = service.create_report(c.id, 2026, "corporation", 1, "A", has_rental_income=True)
+    report = service.create_report(
+        c.id, 2026, "corporation", 1, "A", has_rental_income=True
+    )
 
     # required schedule exists and incomplete -> explicit issue
     readiness = financial.get_readiness_check(report.id)
@@ -80,22 +83,30 @@ def test_tax_calculation_uses_detail_credit_components(monkeypatch, test_db):
         donation_amount=50.0,
         other_credits=20.0,
     )
-    test_db.add_all([
-        AnnualReportCreditPoint(
-            annual_report_id=report.id,
-            reason=CreditPointReason.RESIDENT,
-            points=2.0,
-        ),
-        AnnualReportCreditPoint(
-            annual_report_id=report.id,
-            reason=CreditPointReason.ACADEMIC_DEGREE,
-            points=1.0,
-        ),
-    ])
+    test_db.add_all(
+        [
+            AnnualReportCreditPoint(
+                annual_report_id=report.id,
+                reason=CreditPointReason.RESIDENT,
+                points=2.0,
+            ),
+            AnnualReportCreditPoint(
+                annual_report_id=report.id,
+                reason=CreditPointReason.ACADEMIC_DEGREE,
+                points=1.0,
+            ),
+        ]
+    )
     test_db.flush()
 
-    monkeypatch.setattr(financial.vat_repo, "sum_net_vat_by_client_record_year", lambda *args, **kwargs: 0.0)
-    monkeypatch.setattr(financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0)
+    monkeypatch.setattr(
+        financial.vat_repo,
+        "sum_net_vat_by_client_record_year",
+        lambda *args, **kwargs: 0.0,
+    )
+    monkeypatch.setattr(
+        financial.advance_repo, "sum_paid_by_client_year", lambda *args, **kwargs: 0.0
+    )
     out = financial.get_tax_calculation(report.id)
     assert out.total_credit_points == 3.0
 

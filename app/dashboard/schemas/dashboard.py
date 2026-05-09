@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field
 
-from app.dashboard.schemas.dashboard_extended import AttentionResponse, VatDashboardStats
+from app.dashboard.schemas.dashboard_extended import (
+    AttentionResponse,
+    VatDashboardStats,
+)
 
 
 class DashboardSummaryResponse(BaseModel):

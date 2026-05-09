@@ -5,7 +5,9 @@ def annual_report_status_changed_event(report, history) -> dict:
     form_str = report.form_type.value if report.form_type else ""
     from_status = history.from_status.value if history.from_status else None
     to_status = history.to_status.value
-    from_he = ANNUAL_REPORT_STATUS_HE.get(from_status, from_status) if from_status else None
+    from_he = (
+        ANNUAL_REPORT_STATUS_HE.get(from_status, from_status) if from_status else None
+    )
     to_he = ANNUAL_REPORT_STATUS_HE.get(to_status, to_status)
     transition = f"{from_he} ← {to_he}" if from_he else to_he
     return {

@@ -8,7 +8,9 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentOverviewRow,
     MonthBatchSummary,
 )
-from app.advance_payments.services.advance_payment_analytics_service import AdvancePaymentAnalyticsService
+from app.advance_payments.services.advance_payment_analytics_service import (
+    AdvancePaymentAnalyticsService,
+)
 from app.advance_payments.repositories.advance_payment_batch_repository import (
     AdvancePaymentBatchRepository,
 )
@@ -87,18 +89,22 @@ def list_advance_payment_batches(
     for r in rows:
         total_expected = float(r.total_expected)
         total_paid = float(r.total_paid)
-        collection_rate = round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
-        result.append(MonthBatchSummary(
-            year=year,
-            month=int(r.month),
-            due_date=r.due_date,
-            period_months_count=int(r.period_months_count or 1),
-            client_count=int(r.client_count),
-            missing_turnover_count=int(r.snapshot_missing_count or 0),
-            overdue_count=int(r.overdue_count or 0),
-            pending_count=int(r.pending_count or 0),
-            total_expected=total_expected,
-            total_paid=total_paid,
-            collection_rate=collection_rate,
-        ))
+        collection_rate = (
+            round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
+        )
+        result.append(
+            MonthBatchSummary(
+                year=year,
+                month=int(r.month),
+                due_date=r.due_date,
+                period_months_count=int(r.period_months_count or 1),
+                client_count=int(r.client_count),
+                missing_turnover_count=int(r.snapshot_missing_count or 0),
+                overdue_count=int(r.overdue_count or 0),
+                pending_count=int(r.pending_count or 0),
+                total_expected=total_expected,
+                total_paid=total_paid,
+                collection_rate=collection_rate,
+            )
+        )
     return result

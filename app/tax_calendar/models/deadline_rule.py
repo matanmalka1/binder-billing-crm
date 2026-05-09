@@ -30,10 +30,10 @@ class DeadlineRule(Base):
     rule_type = Column(pg_enum(DeadlineRuleType), nullable=False, index=True)
 
     due_day_of_month = Column(Integer, nullable=False)
-    offset_months    = Column(Integer, nullable=False, default=0, server_default="0")
+    offset_months = Column(Integer, nullable=False, default=0, server_default="0")
 
     effective_from = Column(Date, nullable=False)
-    effective_to   = Column(Date, nullable=True)
+    effective_to = Column(Date, nullable=True)
 
     description = Column(String(255), nullable=True)
 

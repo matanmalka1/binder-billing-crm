@@ -25,20 +25,28 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     for client in clients:
         if not businesses_by_client.get(client.id):
             continue
-        num = rng.randint(cfg.min_authority_contacts_per_client, cfg.max_authority_contacts_per_client)
+        num = rng.randint(
+            cfg.min_authority_contacts_per_client, cfg.max_authority_contacts_per_client
+        )
         for idx in range(num):
             created_at = now - timedelta(days=rng.randint(0, 300))
             updated_at = min(now, created_at + timedelta(days=rng.randint(0, 90)))
-            contact_profile = AUTHORITY_CONTACTS[(client.id + idx - 1) % len(AUTHORITY_CONTACTS)]
+            contact_profile = AUTHORITY_CONTACTS[
+                (client.id + idx - 1) % len(AUTHORITY_CONTACTS)
+            ]
             contact_type = authority_contact_type(idx)
             contact = AuthorityContact(
                 client_record_id=client.id,
                 contact_type=contact_type,
                 name=contact_profile["name"],
-                office=authority_office_name(contact_type, getattr(client, "city", None)),
+                office=authority_office_name(
+                    contact_type, getattr(client, "city", None)
+                ),
                 phone=office_phone(rng),
                 email=contact_profile["email"],
-                notes=rng.choice(["", "איש הקשר מטפל בתיק הפעיל", "מומלץ לתאם מראש לפני פנייה חוזרת"]),
+                notes=rng.choice(
+                    ["", "איש הקשר מטפל בתיק הפעיל", "מומלץ לתאם מראש לפני פנייה חוזרת"]
+                ),
                 created_at=created_at,
                 updated_at=updated_at,
             )
@@ -59,16 +67,22 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
         for _ in range(rng.randint(1, 5)):
             occurred_at = now - timedelta(days=rng.randint(0, 120))
             candidate_contacts = contacts_by_client.get(business.client_id, [])
-            contact = rng.choice(candidate_contacts) if candidate_contacts and rng.random() < 0.65 else None
-            db.add(Correspondence(
-                client_record_id=business.client_id,
-                business_id=business.id,
-                contact_id=contact.id if contact else None,
-                correspondence_type=rng.choice(list(CorrespondenceType)),
-                subject=rng.choice(CORRESPONDENCE_SUBJECTS),
-                notes=rng.choice(CORRESPONDENCE_NOTES),
-                occurred_at=occurred_at,
-                created_by=rng.choice(users).id,
-                created_at=occurred_at,
-            ))
+            contact = (
+                rng.choice(candidate_contacts)
+                if candidate_contacts and rng.random() < 0.65
+                else None
+            )
+            db.add(
+                Correspondence(
+                    client_record_id=business.client_id,
+                    business_id=business.id,
+                    contact_id=contact.id if contact else None,
+                    correspondence_type=rng.choice(list(CorrespondenceType)),
+                    subject=rng.choice(CORRESPONDENCE_SUBJECTS),
+                    notes=rng.choice(CORRESPONDENCE_NOTES),
+                    occurred_at=occurred_at,
+                    created_by=rng.choice(users).id,
+                    created_at=occurred_at,
+                )
+            )
     db.flush()

@@ -32,7 +32,9 @@ class ReminderCreateRequest(BaseModel):
                 raise ValueError("message נדרש עבור תזכורת מסמך חסר")
         elif t == ReminderType.CUSTOM:
             if not self.client_record_id and not self.business_id:
-                raise ValueError("client_record_id או business_id נדרש עבור תזכורת מותאמת אישית")
+                raise ValueError(
+                    "client_record_id או business_id נדרש עבור תזכורת מותאמת אישית"
+                )
             if not self.message:
                 raise ValueError("message נדרש עבור תזכורת מותאמת אישית")
         return self

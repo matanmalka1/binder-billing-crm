@@ -19,7 +19,7 @@ class CorrespondenceRepository:
         subject: str,
         occurred_at: datetime,
         created_by: int,
-        business_id: Optional[int] = None,       # OPTIONAL — UI grouping only
+        business_id: Optional[int] = None,  # OPTIONAL — UI grouping only
         contact_id: Optional[int] = None,
         notes: Optional[str] = None,
     ) -> Correspondence:
@@ -59,7 +59,9 @@ class CorrespondenceRepository:
         if business_id is not None:
             base = base.filter(Correspondence.business_id == business_id)
         if correspondence_type is not None:
-            base = base.filter(Correspondence.correspondence_type == correspondence_type)
+            base = base.filter(
+                Correspondence.correspondence_type == correspondence_type
+            )
         if contact_id is not None:
             base = base.filter(Correspondence.contact_id == contact_id)
         if from_date is not None:
@@ -122,7 +124,9 @@ class CorrespondenceRepository:
         if business_id is not None:
             base = base.filter(Correspondence.business_id == business_id)
         if correspondence_type is not None:
-            base = base.filter(Correspondence.correspondence_type == correspondence_type)
+            base = base.filter(
+                Correspondence.correspondence_type == correspondence_type
+            )
         if contact_id is not None:
             base = base.filter(Correspondence.contact_id == contact_id)
         if from_date is not None:
@@ -130,7 +134,11 @@ class CorrespondenceRepository:
         if to_date is not None:
             base = base.filter(Correspondence.occurred_at <= to_date)
         total = base.with_entities(func.count()).scalar() or 0
-        order = Correspondence.occurred_at.desc() if sort_dir == "desc" else Correspondence.occurred_at.asc()
+        order = (
+            Correspondence.occurred_at.desc()
+            if sort_dir == "desc"
+            else Correspondence.occurred_at.asc()
+        )
         offset = (page - 1) * page_size
         items = base.order_by(order).offset(offset).limit(page_size).all()
         return items, total

@@ -2,10 +2,18 @@
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.repositories.report_lifecycle_repository import AnnualReportLifecycleRepository
-from app.annual_reports.repositories.report_repository import AnnualReportReportRepository
-from app.annual_reports.repositories.schedule_repository import AnnualReportScheduleRepository
-from app.annual_reports.repositories.status_history_repository import AnnualReportStatusHistoryRepository
+from app.annual_reports.repositories.report_lifecycle_repository import (
+    AnnualReportLifecycleRepository,
+)
+from app.annual_reports.repositories.report_repository import (
+    AnnualReportReportRepository,
+)
+from app.annual_reports.repositories.schedule_repository import (
+    AnnualReportScheduleRepository,
+)
+from app.annual_reports.repositories.status_history_repository import (
+    AnnualReportStatusHistoryRepository,
+)
 
 
 class AnnualReportRepository(

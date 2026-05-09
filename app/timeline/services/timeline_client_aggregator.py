@@ -1,7 +1,10 @@
 from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
-from app.signature_requests.models.signature_request import SignatureAuditEvent, SignatureRequest
+from app.signature_requests.models.signature_request import (
+    SignatureAuditEvent,
+    SignatureRequest,
+)
 from app.timeline.services.timeline_client_builders import (
     client_created_event,
     document_uploaded_event,

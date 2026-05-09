@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.advance_payments.repositories.advance_payment_dashboard_repository import (
     AdvancePaymentDashboardRepository,
 )
-from app.clients.repositories.client_vat_stats_repository import ClientVatStatsRepository
+from app.clients.repositories.client_vat_stats_repository import (
+    ClientVatStatsRepository,
+)
 from app.common.enums import EntityType, VatType
 from app.dashboard.services.dashboard_periods import (
     bimonthly_advance_payment_period,
@@ -46,16 +48,16 @@ class TaxStatusStatsService:
 
     def _build_advance_stats(self, reference_date: date) -> dict:
         monthly_period, monthly_label = monthly_vat_period(reference_date)
-        bimonthly_period, bimonthly_label = bimonthly_advance_payment_period(reference_date)
+        bimonthly_period, bimonthly_label = bimonthly_advance_payment_period(
+            reference_date
+        )
         return {
             "monthly": self._build_advance_stat(monthly_period, monthly_label, 1),
             "bimonthly": self._build_advance_stat(bimonthly_period, bimonthly_label, 2),
         }
 
     def _build_advance_stat(self, period: str, label: str, months_count: int) -> dict:
-        completed, total = self.advance_repo.completion_for_period(
-            period, months_count
-        )
+        completed, total = self.advance_repo.completion_for_period(period, months_count)
         pending = max(total - completed, 0)
         percent = round((completed / total) * 100) if total else 0
         return {
@@ -71,14 +73,30 @@ class TaxStatusStatsService:
     def _build_segmentation(self) -> list[dict]:
         r = self.client_repo
         return [
-            {"label": "עוסק מורשה חודשי",
-             "count": r.count_active_by_entity_and_vat_type(EntityType.OSEK_MURSHE, VatType.MONTHLY)},
-            {"label": "עוסק מורשה דו-חודשי",
-             "count": r.count_active_by_entity_and_vat_type(EntityType.OSEK_MURSHE, VatType.BIMONTHLY)},
-            {"label": "חברה בע״מ חודשי",
-             "count": r.count_active_by_entity_and_vat_type(EntityType.COMPANY_LTD, VatType.MONTHLY)},
-            {"label": "חברה בע״מ דו-חודשי",
-             "count": r.count_active_by_entity_and_vat_type(EntityType.COMPANY_LTD, VatType.BIMONTHLY)},
+            {
+                "label": "עוסק מורשה חודשי",
+                "count": r.count_active_by_entity_and_vat_type(
+                    EntityType.OSEK_MURSHE, VatType.MONTHLY
+                ),
+            },
+            {
+                "label": "עוסק מורשה דו-חודשי",
+                "count": r.count_active_by_entity_and_vat_type(
+                    EntityType.OSEK_MURSHE, VatType.BIMONTHLY
+                ),
+            },
+            {
+                "label": "חברה בע״מ חודשי",
+                "count": r.count_active_by_entity_and_vat_type(
+                    EntityType.COMPANY_LTD, VatType.MONTHLY
+                ),
+            },
+            {
+                "label": "חברה בע״מ דו-חודשי",
+                "count": r.count_active_by_entity_and_vat_type(
+                    EntityType.COMPANY_LTD, VatType.BIMONTHLY
+                ),
+            },
             {"label": "עוסק פטור", "count": r.count_active_exempt()},
         ]
 

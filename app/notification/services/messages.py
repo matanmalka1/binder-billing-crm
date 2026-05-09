@@ -13,9 +13,7 @@ BINDER_RECEIVED_NOTIFICATION_CONTENT = (
 )
 
 BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT = (
-    "שלום {name},\n\n"
-    "תיק מספר {binder_number} מוכן לאיסוף מהמשרד.\n\n"
-    "בברכה"
+    "שלום {name},\n\nתיק מספר {binder_number} מוכן לאיסוף מהמשרד.\n\nבברכה"
 )
 
 PICKUP_REMINDER_SUBJECT = "תזכורת לאיסוף תיק"
@@ -27,7 +25,5 @@ PICKUP_REMINDER_NOTIFICATION_CONTENT = (
 
 ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT = "תזכורת לאישור דוח שנתי"
 ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT = (
-    "שלום {name},\n\n"
-    "הדוח השנתי לשנת {tax_year} מחכה לאישורך.\n\n"
-    "בברכה"
+    "שלום {name},\n\nהדוח השנתי לשנת {tax_year} מחכה לאישורך.\n\nבברכה"
 )

@@ -1,5 +1,3 @@
-
-
 def build_client_operational_signals(
     document_service,
     business_id: int,

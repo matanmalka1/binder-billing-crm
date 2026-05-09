@@ -18,7 +18,9 @@ router = APIRouter(
 )
 
 
-@router.post("/{report_id}/tax-calculation/save", response_model=TaxCalculationSaveResponse)
+@router.post(
+    "/{report_id}/tax-calculation/save", response_model=TaxCalculationSaveResponse
+)
 def save_tax_calculation(
     report_id: int,
     body: TaxCalculationSaveRequest,

@@ -21,7 +21,9 @@ class SignatureRequestResponseBuilder:
         self._enrich(response)
         return response
 
-    def build_list(self, items, total: int, *, page: int, page_size: int) -> SignatureRequestListResponse:
+    def build_list(
+        self, items, total: int, *, page: int, page_size: int
+    ) -> SignatureRequestListResponse:
         business_map = self._business_name_map(items)
         office_number_map = self._office_number_map(items)
         responses = []
@@ -36,12 +38,13 @@ class SignatureRequestResponseBuilder:
             total=total,
         )
 
-    def build_with_audit(self, request, audit_events) -> SignatureRequestWithAuditResponse:
+    def build_with_audit(
+        self, request, audit_events
+    ) -> SignatureRequestWithAuditResponse:
         response = SignatureRequestWithAuditResponse.model_validate(request)
         self._enrich(response)
         response.audit_trail = [
-            SignatureAuditEventResponse.model_validate(event)
-            for event in audit_events
+            SignatureAuditEventResponse.model_validate(event) for event in audit_events
         ]
         return response
 
@@ -68,11 +71,9 @@ class SignatureRequestResponseBuilder:
             response.business_name = business_map.get(response.business_id)
 
     def _business_name_map(self, items) -> dict[int, str]:
-        business_ids = sorted({
-            item.business_id
-            for item in items
-            if item.business_id is not None
-        })
+        business_ids = sorted(
+            {item.business_id for item in items if item.business_id is not None}
+        )
         return {
             business.id: business.business_name
             for business in self.business_repo.list_by_ids(business_ids)

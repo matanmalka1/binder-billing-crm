@@ -13,13 +13,25 @@ _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
 class BinderListService:
     """Read helpers for binder enrichment and listing."""
 
-    def _build_client_context_maps(self, client_record_ids: list[int]) -> tuple[dict[int, int | None], dict[int, str], dict[int, str | None]]:
-        client_records = self.client_record_repo.list_by_ids(client_record_ids) if client_record_ids else []
+    def _build_client_context_maps(
+        self, client_record_ids: list[int]
+    ) -> tuple[dict[int, int | None], dict[int, str], dict[int, str | None]]:
+        client_records = (
+            self.client_record_repo.list_by_ids(client_record_ids)
+            if client_record_ids
+            else []
+        )
         legal_entity_ids = list({record.legal_entity_id for record in client_records})
-        legal_entity_by_id = {
-            entity.id: entity
-            for entity in self.db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
-        } if legal_entity_ids else {}
+        legal_entity_by_id = (
+            {
+                entity.id: entity
+                for entity in self.db.query(LegalEntity)
+                .filter(LegalEntity.id.in_(legal_entity_ids))
+                .all()
+            }
+            if legal_entity_ids
+            else {}
+        )
         return (
             {record.id: record.office_client_number for record in client_records},
             {
@@ -71,16 +83,22 @@ class BinderListService:
                 1 for binder in binders if binder.status == BinderStatus.IN_OFFICE
             ),
             BinderStatus.CLOSED_IN_OFFICE.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.CLOSED_IN_OFFICE
+                1
+                for binder in binders
+                if binder.status == BinderStatus.CLOSED_IN_OFFICE
             ),
             BinderStatus.READY_FOR_PICKUP.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.READY_FOR_PICKUP
+                1
+                for binder in binders
+                if binder.status == BinderStatus.READY_FOR_PICKUP
             ),
             BinderStatus.RETURNED.value: sum(
                 1 for binder in binders if binder.status == BinderStatus.RETURNED
             ),
             BinderStatus.ARCHIVED_IN_OFFICE.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.ARCHIVED_IN_OFFICE
+                1
+                for binder in binders
+                if binder.status == BinderStatus.ARCHIVED_IN_OFFICE
             ),
         }
 
@@ -96,7 +114,9 @@ class BinderListService:
         ref_date = reference_date or date.today()
         response = BinderResponse.model_validate(binder)
         response.days_in_office = (
-            max(0, (ref_date - binder.period_start).days) if binder.period_start is not None else None
+            max(0, (ref_date - binder.period_start).days)
+            if binder.period_start is not None
+            else None
         )
         response.available_actions = get_binder_actions(binder)
         response.office_client_number = office_client_number
@@ -108,7 +128,9 @@ class BinderListService:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None
-        office_client_number_map, client_name_map, client_id_number_map = self._build_client_context_maps([binder.client_record_id])
+        office_client_number_map, client_name_map, client_id_number_map = (
+            self._build_client_context_maps([binder.client_record_id])
+        )
         return self.build_binder_response(
             binder,
             reference_date=date.today(),
@@ -135,7 +157,9 @@ class BinderListService:
         if sort_dir not in ("asc", "desc"):
             sort_dir = "desc"
         effective_sort_by = sort_by if sort_by in _ALLOWED_SORT_COLS else "period_start"
-        db_sort_by = "period_start" if effective_sort_by == "client_name" else effective_sort_by
+        db_sort_by = (
+            "period_start" if effective_sort_by == "client_name" else effective_sort_by
+        )
 
         ref_date = reference_date or date.today()
         binders = self.binder_repo.list_active(
@@ -146,7 +170,9 @@ class BinderListService:
         )
 
         client_record_ids = list({binder.client_record_id for binder in binders})
-        office_client_number_map, client_name_map, client_id_number_map = self._build_client_context_maps(client_record_ids)
+        office_client_number_map, client_name_map, client_id_number_map = (
+            self._build_client_context_maps(client_record_ids)
+        )
 
         filtered_binders: list[tuple[Binder, Optional[str]]] = []
         for binder in binders:
@@ -162,7 +188,9 @@ class BinderListService:
                 continue
             filtered_binders.append((binder, current_client_name))
 
-        counters = self._build_binder_counters([binder for binder, _client_name in filtered_binders])
+        counters = self._build_binder_counters(
+            [binder for binder, _client_name in filtered_binders]
+        )
 
         items: list[BinderResponse] = []
         for binder, current_client_name in filtered_binders:
@@ -175,7 +203,9 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
-                    office_client_number=office_client_number_map.get(binder.client_record_id),
+                    office_client_number=office_client_number_map.get(
+                        binder.client_record_id
+                    ),
                     client_name=current_client_name,
                     client_id_number=client_id_number_map.get(binder.client_record_id),
                 )
@@ -189,4 +219,4 @@ class BinderListService:
 
         total = len(items)
         offset = (page - 1) * page_size
-        return items[offset: offset + page_size], total, counters
+        return items[offset : offset + page_size], total, counters

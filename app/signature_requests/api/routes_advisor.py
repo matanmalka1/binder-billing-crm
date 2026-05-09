@@ -14,8 +14,12 @@ from app.signature_requests.schemas.signature_request import (
     SignatureRequestSentResponse,
     SignatureRequestWithAuditResponse,
 )
-from app.signature_requests.services.response_builder import SignatureRequestResponseBuilder
-from app.signature_requests.services.signature_request_service import SignatureRequestService
+from app.signature_requests.services.response_builder import (
+    SignatureRequestResponseBuilder,
+)
+from app.signature_requests.services.signature_request_service import (
+    SignatureRequestService,
+)
 from app.users.api.deps import CurrentUser, DBSession, require_role
 
 
@@ -26,7 +30,9 @@ advisor_router = APIRouter(
 )
 
 
-@advisor_router.post("", response_model=SignatureRequestResponse, status_code=status.HTTP_201_CREATED)
+@advisor_router.post(
+    "", response_model=SignatureRequestResponse, status_code=status.HTTP_201_CREATED
+)
 def create_signature_request(
     request: SignatureRequestCreateRequest,
     db: DBSession,
@@ -68,7 +74,10 @@ def list_pending_requests(
     )
 
 
-@advisor_router.get("/{request_id}/audit-trail", response_model=PaginatedResponse[SignatureAuditEventResponse])
+@advisor_router.get(
+    "/{request_id}/audit-trail",
+    response_model=PaginatedResponse[SignatureAuditEventResponse],
+)
 def get_signature_request_audit_trail(
     request_id: int,
     db: DBSession,
@@ -80,7 +89,10 @@ def get_signature_request_audit_trail(
     all_events = service.get_audit_trail(request_id)
     total = len(all_events)
     start = (page - 1) * page_size
-    items = [SignatureAuditEventResponse.model_validate(e) for e in all_events[start:start + page_size]]
+    items = [
+        SignatureAuditEventResponse.model_validate(e)
+        for e in all_events[start : start + page_size]
+    ]
     return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
@@ -89,7 +101,9 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
     req = service.get_request(request_id)
     if not req:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה"
+        )
 
     audit_events = service.get_audit_trail(request_id)
     return SignatureRequestResponseBuilder(db).build_with_audit(req, audit_events)

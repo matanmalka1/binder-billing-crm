@@ -5,7 +5,9 @@ from app.annual_reports.models.annual_report_enums import (
     AnnualReportForm,
     AnnualReportStatus,
 )
-from app.timeline.services.timeline_tax_builders import annual_report_status_changed_event
+from app.timeline.services.timeline_tax_builders import (
+    annual_report_status_changed_event,
+)
 
 
 def test_annual_report_status_changed_event_includes_form_and_status_hebrew():

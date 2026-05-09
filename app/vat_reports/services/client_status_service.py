@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository,
+)
 
 
 class VatWorkItemClientStatusService:

@@ -3,7 +3,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.services.operational_signals_builder import build_client_operational_signals
+from app.binders.services.operational_signals_builder import (
+    build_client_operational_signals,
+)
 
 
 class SignalsService:
@@ -21,6 +23,7 @@ class SignalsService:
         from app.permanent_documents.services.permanent_document_service import (
             PermanentDocumentService,
         )
+
         self.document_service = PermanentDocumentService(db)
 
     def compute_business_operational_signals(

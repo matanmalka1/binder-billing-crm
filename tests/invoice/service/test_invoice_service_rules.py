@@ -40,7 +40,10 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     )
     with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
-            draft.id, "icount", "INV-1", issued_at=datetime.now(UTC).replace(tzinfo=None)
+            draft.id,
+            "icount",
+            "INV-1",
+            issued_at=datetime.now(UTC).replace(tzinfo=None),
         )
     assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
@@ -58,7 +61,10 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     billing.mark_charge_paid(issued.id)
     with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
-            issued.id, "icount", "INV-3", issued_at=datetime.now(UTC).replace(tzinfo=None)
+            issued.id,
+            "icount",
+            "INV-3",
+            issued_at=datetime.now(UTC).replace(tzinfo=None),
         )
     assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 
@@ -73,7 +79,10 @@ def test_attach_invoice_succeeds_only_for_issued_charge(test_db):
     billing.cancel_charge(canceled_id)
     with pytest.raises(AppError) as exc_info:
         invoices.attach_invoice_to_charge(
-            canceled_id, "icount", "INV-4", issued_at=datetime.now(UTC).replace(tzinfo=None)
+            canceled_id,
+            "icount",
+            "INV-4",
+            issued_at=datetime.now(UTC).replace(tzinfo=None),
         )
     assert exc_info.value.code == "INVOICE.INVALID_STATUS"
 

@@ -47,7 +47,6 @@ CONSTANTS_2026: dict[str, FinancialConstant] = {
         source_ids=("tax_authority_vat_amounts_2026",),
         note_he="חשבונית ישראל חובה מעל סכום זה (שלב יישום 2026).",
     ),
-
     # נקודת זיכוי מס הכנסה
     "credit_point_value_ils": FinancialConstant(
         id="credit_point_value_ils",
@@ -59,7 +58,6 @@ CONSTANTS_2026: dict[str, FinancialConstant] = {
         source_ids=("tax_authority_credit_points_2026",),
         note_he="שווי נקודת זיכוי שנתית לשנת 2026.",
     ),
-
     # ביטוח לאומי — עצמאי
     "btl_average_wage_ils_monthly": FinancialConstant(
         id="btl_average_wage_ils_monthly",
@@ -140,13 +138,48 @@ CONSTANTS_2026: dict[str, FinancialConstant] = {
 # אימות: gov.il/BlobFolder/...monthly-deductions-booklet-2026.pdf
 
 INCOME_TAX_BRACKETS_2026: tuple[IncomeTaxBracket, ...] = (
-    IncomeTaxBracket(from_ils=0,       up_to_ils=84_120,  rate=0.10, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=84_121,  up_to_ils=120_720, rate=0.14, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=120_721, up_to_ils=228_000, rate=0.20, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=228_001, up_to_ils=301_200, rate=0.31, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=301_201, up_to_ils=560_280, rate=0.35, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=560_281, up_to_ils=721_560, rate=0.47, source_ids=("tax_authority_income_tax_brackets_2026",)),
-    IncomeTaxBracket(from_ils=721_561, up_to_ils=None,    rate=0.50, source_ids=("tax_authority_income_tax_brackets_2026",)),
+    IncomeTaxBracket(
+        from_ils=0,
+        up_to_ils=84_120,
+        rate=0.10,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=84_121,
+        up_to_ils=120_720,
+        rate=0.14,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=120_721,
+        up_to_ils=228_000,
+        rate=0.20,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=228_001,
+        up_to_ils=301_200,
+        rate=0.31,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=301_201,
+        up_to_ils=560_280,
+        rate=0.35,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=560_281,
+        up_to_ils=721_560,
+        rate=0.47,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
+    IncomeTaxBracket(
+        from_ils=721_561,
+        up_to_ils=None,
+        rate=0.50,
+        source_ids=("tax_authority_income_tax_brackets_2026",),
+    ),
 )
 
 # ── נקודת זיכוי — 2026 ───────────────────────────────────────────────────────

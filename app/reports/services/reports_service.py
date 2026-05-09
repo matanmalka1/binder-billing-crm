@@ -38,7 +38,10 @@ class AgingReportService:
         rows = all_rows[:AGING_CHARGE_FETCH_LIMIT]
 
         client_record_ids = [row.client_record_id for row in rows]
-        record_map = {record.id: record for record in self.client_record_repo.list_by_ids(client_record_ids)}
+        record_map = {
+            record.id: record
+            for record in self.client_record_repo.list_by_ids(client_record_ids)
+        }
         legal_map = {
             legal_id: self.legal_entity_repo.get_by_id(legal_id)
             for legal_id in {record.legal_entity_id for record in record_map.values()}
@@ -56,17 +59,19 @@ class AgingReportService:
             oldest_date = row.oldest_issued_at.date() if row.oldest_issued_at else None
             oldest_days = (as_of_date - oldest_date).days if oldest_date else None
 
-            items.append({
-                "client_record_id": record.id,
-                "client_name": legal_entity.official_name,
-                "total_outstanding": round(float(row.total), 2),
-                "current": round(float(row.current), 2),
-                "days_30": round(float(row.days_30), 2),
-                "days_60": round(float(row.days_60), 2),
-                "days_90_plus": round(float(row.days_90_plus), 2),
-                "oldest_invoice_date": oldest_date,
-                "oldest_invoice_days": oldest_days,
-            })
+            items.append(
+                {
+                    "client_record_id": record.id,
+                    "client_name": legal_entity.official_name,
+                    "total_outstanding": round(float(row.total), 2),
+                    "current": round(float(row.current), 2),
+                    "days_30": round(float(row.days_30), 2),
+                    "days_60": round(float(row.days_60), 2),
+                    "days_90_plus": round(float(row.days_90_plus), 2),
+                    "oldest_invoice_date": oldest_date,
+                    "oldest_invoice_days": oldest_days,
+                }
+            )
 
             total_outstanding += float(row.total)
 

@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
-from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+from app.authority_contact.repositories.authority_contact_repository import (
+    AuthorityContactRepository,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
@@ -26,9 +28,15 @@ class AuthorityContactService:
         notes: Optional[str] = None,
     ) -> AuthorityContact:
         """Add new authority contact for client."""
-        contact_type_enum = contact_type if isinstance(contact_type, ContactType) else ContactType(contact_type)
+        contact_type_enum = (
+            contact_type
+            if isinstance(contact_type, ContactType)
+            else ContactType(contact_type)
+        )
         if not ClientRecordRepository(self.db).get_by_id(client_record_id):
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
+            )
 
         return self.contact_repo.create(
             client_record_id=client_record_id,
@@ -48,11 +56,15 @@ class AuthorityContactService:
         """Update contact details."""
         if "contact_type" in fields:
             ct = fields["contact_type"]
-            fields["contact_type"] = ct if isinstance(ct, ContactType) else ContactType(ct)
+            fields["contact_type"] = (
+                ct if isinstance(ct, ContactType) else ContactType(ct)
+            )
 
         updated = self.contact_repo.update(contact_id, **fields)
         if not updated:
-            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
+            raise NotFoundError(
+                f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND"
+            )
         return updated
 
     def list_client_contacts(
@@ -63,25 +75,35 @@ class AuthorityContactService:
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
         """List contacts for client with pagination."""
-        contact_type_enum: Optional[ContactType] = ContactType(contact_type) if contact_type else None
+        contact_type_enum: Optional[ContactType] = (
+            ContactType(contact_type) if contact_type else None
+        )
         if not ClientRecordRepository(self.db).get_by_id(client_record_id):
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
+            )
 
         items = self.contact_repo.list_by_client_record(
             client_record_id, contact_type_enum, page=page, page_size=page_size
         )
-        total = self.contact_repo.count_by_client_record(client_record_id, contact_type_enum)
+        total = self.contact_repo.count_by_client_record(
+            client_record_id, contact_type_enum
+        )
         return items, total
 
     def delete_contact(self, contact_id: int, actor_id: int) -> None:
         """Soft-delete contact."""
         success = self.contact_repo.delete(contact_id, deleted_by=actor_id)
         if not success:
-            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
+            raise NotFoundError(
+                f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND"
+            )
 
     def get_contact(self, contact_id: int) -> AuthorityContact:
         """Get contact by ID."""
         contact = self.contact_repo.get_by_id(contact_id)
         if not contact:
-            raise NotFoundError(f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND")
+            raise NotFoundError(
+                f"איש קשר {contact_id} לא נמצא", "AUTHORITY_CONTACT.NOT_FOUND"
+            )
         return contact

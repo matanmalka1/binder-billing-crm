@@ -8,7 +8,10 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import AppError, NotFoundError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.services.client_service import ClientService
-from app.permanent_documents.services.constants import ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES
+from app.permanent_documents.services.constants import (
+    ALLOWED_MIME_TYPES,
+    MAX_FILE_SIZE_BYTES,
+)
 from app.infrastructure.storage import StorageProvider, get_storage_provider
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
@@ -17,10 +20,17 @@ from app.permanent_documents.models.permanent_document import (
     PermanentDocument,
 )
 from app.utils.time_utils import utcnow
-from app.businesses.services.business_guards import assert_business_belongs_to_legal_entity, get_business_or_raise
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+    get_business_or_raise,
+)
 from app.binders.services.signals_service import SignalsService
-from app.permanent_documents.repositories.permanent_document_repository import PermanentDocumentRepository
-from app.permanent_documents.repositories.permanent_document_query_repository import PermanentDocumentQueryRepository
+from app.permanent_documents.repositories.permanent_document_repository import (
+    PermanentDocumentRepository,
+)
+from app.permanent_documents.repositories.permanent_document_query_repository import (
+    PermanentDocumentQueryRepository,
+)
 from app.permanent_documents.services.messages import (
     BUSINESS_NOT_FOUND_ERROR,
     DOCUMENT_NOT_FOUND_ERROR,
@@ -47,7 +57,9 @@ class PermanentDocumentService:
         self.storage = storage or get_storage_provider()
 
     def _resolve_mime(self, mime_type: Optional[str], filename: str) -> str:
-        resolved = mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+        resolved = (
+            mime_type or mimetypes.guess_type(filename)[0] or "application/octet-stream"
+        )
         if resolved not in ALLOWED_MIME_TYPES:
             raise AppError(
                 INVALID_FILE_TYPE_ERROR,
@@ -59,7 +71,9 @@ class PermanentDocumentService:
     def _get_client_record_id(self, client_record_id: int) -> int:
         record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not record:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
+            )
         return record.id
 
     def _build_storage_key(
@@ -73,7 +87,11 @@ class PermanentDocumentService:
         business_id: Optional[int] = None,
     ) -> str:
         tax_year_str = str(tax_year) if tax_year else "permanent"
-        owner_segment = f"businesses/{business_id}" if business_id is not None else f"clients/{client_record_id}"
+        owner_segment = (
+            f"businesses/{business_id}"
+            if business_id is not None
+            else f"clients/{client_record_id}"
+        )
         return f"{owner_segment}/{document_type}/{tax_year_str}/v{version}_{filename}"
 
     def upload_document(
@@ -92,25 +110,35 @@ class PermanentDocumentService:
         ClientService(self.db).get_client_or_raise(client_record_id)
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
+            )
         if business_id is not None:
             try:
                 business = get_business_or_raise(self.db, business_id)
             except NotFoundError as exc:
-                raise NotFoundError(BUSINESS_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND") from exc
+                raise NotFoundError(
+                    BUSINESS_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.CLIENT_NOT_FOUND"
+                ) from exc
             assert_business_belongs_to_legal_entity(
                 business,
-                legal_entity_id if legal_entity_id is not None else client_record.legal_entity_id,
+                legal_entity_id
+                if legal_entity_id is not None
+                else client_record.legal_entity_id,
             )
 
-        scope = DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT
+        scope = (
+            DocumentScope.BUSINESS if business_id is not None else DocumentScope.CLIENT
+        )
         DocumentType(document_type)
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                FILE_TOO_LARGE_ERROR.format(max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)),
+                FILE_TOO_LARGE_ERROR.format(
+                    max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)
+                ),
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )
@@ -155,7 +183,9 @@ class PermanentDocumentService:
             self.storage.upload(storage_key, io.BytesIO(file_bytes), resolved_mime)
         except Exception as exc:
             self.db.rollback()
-            raise AppError(UPLOAD_FAILED_ERROR, "DOCUMENT.UPLOAD_FAILED", status_code=500) from exc
+            raise AppError(
+                UPLOAD_FAILED_ERROR, "DOCUMENT.UPLOAD_FAILED", status_code=500
+            ) from exc
 
         if existing:
             existing.superseded_by = document.id
@@ -174,7 +204,9 @@ class PermanentDocumentService:
     def get_download_url(self, document_id: int, expires_in: int = 3600) -> str:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(
+                DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND"
+            )
         return self.storage.get_presigned_url(doc.storage_key, expires_in=expires_in)
 
     def list_business_documents(
@@ -211,14 +243,18 @@ class PermanentDocumentService:
         self, business_id: int, required: Optional[list[str]] = None
     ) -> list[str]:
         business = get_business_or_raise(self.db, business_id)
-        client_record = ClientRecordRepository(self.db).get_by_legal_entity_id(business.legal_entity_id)
+        client_record = ClientRecordRepository(self.db).get_by_legal_entity_id(
+            business.legal_entity_id
+        )
         if not client_record:
             raise NotFoundError(
                 f"רשומת לקוח לעסק {business_id} לא נמצאה",
                 "PERMANENT_DOCUMENTS.CLIENT_RECORD_NOT_FOUND",
             )
         required_types = required if required is not None else _DEFAULT_REQUIRED_TYPES
-        return self.query_repo.missing_by_type(business_id, client_record.id, required_types)
+        return self.query_repo.missing_by_type(
+            business_id, client_record.id, required_types
+        )
 
     def get_operational_signals(self, business_id: int) -> dict:
         return SignalsService(self.db).compute_business_operational_signals(business_id)
@@ -227,13 +263,17 @@ class PermanentDocumentService:
         ClientService(self.db).get_client_or_raise(client_record_id)
         return {
             "client_record_id": client_record_id,
-            "missing_documents": self.query_repo.missing_by_client_type(client_record_id, _DEFAULT_REQUIRED_TYPES),
+            "missing_documents": self.query_repo.missing_by_client_type(
+                client_record_id, _DEFAULT_REQUIRED_TYPES
+            ),
         }
 
     def delete_document(self, document_id: int) -> None:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(
+                DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND"
+            )
         doc.is_deleted = True
         self.db.flush()
 
@@ -247,13 +287,17 @@ class PermanentDocumentService:
     ) -> PermanentDocument:
         doc = self.document_repo.get_by_id(document_id)
         if not doc:
-            raise NotFoundError(DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND")
+            raise NotFoundError(
+                DOCUMENT_NOT_FOUND_ERROR, "PERMANENT_DOCUMENTS.NOT_FOUND"
+            )
 
         file_bytes = file_data.read()
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE_BYTES:
             raise AppError(
-                FILE_TOO_LARGE_ERROR.format(max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)),
+                FILE_TOO_LARGE_ERROR.format(
+                    max_size_mb=MAX_FILE_SIZE_BYTES // (1024 * 1024)
+                ),
                 "DOCUMENT.FILE_TOO_LARGE",
                 status_code=422,
             )

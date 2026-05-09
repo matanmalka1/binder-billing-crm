@@ -1,4 +1,3 @@
-
 from tests.helpers.identity import SeededClient, seed_client_identity
 
 
@@ -16,7 +15,9 @@ def _receive_payload(payload: dict) -> dict:
     return payload["binder"] if "binder" in payload else payload
 
 
-def _receive_request(client_record_id: int, received_by: int, received_at: str = "2026-02-08") -> dict:
+def _receive_request(
+    client_record_id: int, received_by: int, received_at: str = "2026-02-08"
+) -> dict:
     return {
         "client_record_id": client_record_id,
         "received_at": received_at,
@@ -57,7 +58,9 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
 
     # Verify status log was created
-    from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+    from app.binders.repositories.binder_status_log_repository import (
+        BinderStatusLogRepository,
+    )
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)
@@ -94,7 +97,9 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     assert ready_data["status"] == "ready_for_pickup"
     ready_actions = ready_data.get("available_actions", [])
     assert any(action["key"] == "return" for action in ready_actions)
-    return_action = next(action for action in ready_actions if action["key"] == "return")
+    return_action = next(
+        action for action in ready_actions if action["key"] == "return"
+    )
     assert return_action["id"] == f"binder-{binder_id}-return"
     assert return_action["confirm"] is not None
     assert return_action["confirm"]["title"] == "אישור החזרת קלסר"
@@ -109,7 +114,9 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     returned_data = return_response.json()
     assert returned_data["status"] == "returned"
 
-    from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+    from app.binders.repositories.binder_status_log_repository import (
+        BinderStatusLogRepository,
+    )
 
     log_repo = BinderStatusLogRepository(test_db)
     logs = log_repo.list_by_binder(binder_id)

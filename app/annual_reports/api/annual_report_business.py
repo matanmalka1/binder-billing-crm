@@ -12,7 +12,9 @@ clients_router = APIRouter(
 )
 
 
-@clients_router.get("/{client_record_id}/annual-reports", response_model=AnnualReportListResponse)
+@clients_router.get(
+    "/{client_record_id}/annual-reports", response_model=AnnualReportListResponse
+)
 def list_client_reports(
     client_record_id: int,
     db: DBSession,
@@ -22,5 +24,9 @@ def list_client_reports(
 ):
     """All annual reports for a client, sorted newest year first."""
     service = AnnualReportService(db)
-    items, total = service.get_client_reports(client_record_id, page=page, page_size=page_size)
-    return AnnualReportListResponse(items=items, page=page, page_size=page_size, total=total)
+    items, total = service.get_client_reports(
+        client_record_id, page=page, page_size=page_size
+    )
+    return AnnualReportListResponse(
+        items=items, page=page, page_size=page_size, total=total
+    )

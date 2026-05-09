@@ -10,6 +10,7 @@ from app.reports.constants import (
     AGING_REPORT_HEADERS,
 )
 
+
 def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, object]:
     """
     Build a PDF file for the aging report.
@@ -20,18 +21,30 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
         from reportlab.lib.pagesizes import A4, landscape
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.lib.units import cm
-        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from reportlab.platypus import (
+            Paragraph,
+            SimpleDocTemplate,
+            Spacer,
+            Table,
+            TableStyle,
+        )
     except ImportError:
-        raise ImportError("הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab")
+        raise ImportError(
+            "הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab"
+        )
 
-    filename = f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = (
+        f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    )
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))
     elements = []
     styles = getSampleStyleSheet()
 
-    title = Paragraph(f"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>", styles["Title"])
+    title = Paragraph(
+        f"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>", styles["Title"]
+    )
     elements.append(title)
     elements.append(Spacer(1, 0.5 * cm))
 
@@ -68,7 +81,12 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
     table.setStyle(
         TableStyle(
             [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor(f"#{AGING_EXPORT_HEADER_COLOR}")),
+                (
+                    "BACKGROUND",
+                    (0, 0),
+                    (-1, 0),
+                    colors.HexColor(f"#{AGING_EXPORT_HEADER_COLOR}"),
+                ),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
                 ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),

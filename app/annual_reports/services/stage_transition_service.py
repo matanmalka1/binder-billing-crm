@@ -15,7 +15,10 @@ class AnnualReportStageTransitionService(AnnualReportBaseService):
     ) -> AnnualReportResponse:
         target_status = STAGE_TO_STATUS.get(to_stage)
         if not target_status:
-            raise AppError(INVALID_STAGE_ERROR.format(stage=to_stage), "ANNUAL_REPORT.INVALID_STAGE")
+            raise AppError(
+                INVALID_STAGE_ERROR.format(stage=to_stage),
+                "ANNUAL_REPORT.INVALID_STAGE",
+            )
         return self.transition_status(
             report_id=report_id,
             new_status=target_status,

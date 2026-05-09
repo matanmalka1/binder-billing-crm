@@ -35,7 +35,9 @@ def test_create_and_get_by_id_filters_deleted(test_db):
 def test_get_active_and_deleted_by_id_number(test_db):
     repo = ClientRepository(test_db)
     active = _create_client(test_db, full_name="Active", id_number="200000001")
-    deleted = _create_client(test_db, full_name="Deleted", id_number="200000002", deleted=True)
+    deleted = _create_client(
+        test_db, full_name="Deleted", id_number="200000002", deleted=True
+    )
 
     active_rows = repo.get_active_by_id_number("200000001")
     deleted_rows = repo.get_deleted_by_id_number("200000002")
@@ -56,7 +58,9 @@ def test_get_active_and_deleted_by_id_number(test_db):
 
 
 def test_restore_clears_deleted_fields(test_db):
-    client = _create_client(test_db, full_name="Restore Me", id_number="300000001", deleted=True)
+    client = _create_client(
+        test_db, full_name="Restore Me", id_number="300000001", deleted=True
+    )
     repo = ClientRepository(test_db)
 
     restored = repo.restore(client.id, restored_by=7)
@@ -72,7 +76,9 @@ def test_restore_clears_deleted_fields(test_db):
 def test_list_count_search_and_list_by_ids(test_db):
     _create_client(test_db, full_name="Alice One", id_number="400000001")
     bob = _create_client(test_db, full_name="Bob Two", id_number="400000002")
-    deleted = _create_client(test_db, full_name="Deleted Three", id_number="499999999", deleted=True)
+    deleted = _create_client(
+        test_db, full_name="Deleted Three", id_number="499999999", deleted=True
+    )
 
     repo = ClientRepository(test_db)
 
@@ -89,7 +95,9 @@ def test_list_count_search_and_list_by_ids(test_db):
     by_ids = repo.list_by_ids([bob.id, deleted.id])
     assert [c.id for c in by_ids] == [bob.id]
 
-    search_items, search_total = repo.search(client_name="Bob", id_number="400000002", page=1, page_size=10)
+    search_items, search_total = repo.search(
+        client_name="Bob", id_number="400000002", page=1, page_size=10
+    )
     assert search_total == 1
     assert [c.id for c in search_items] == [bob.id]
 

@@ -22,10 +22,7 @@ def _build_response(
     page_size: int,
     total: int,
 ) -> BinderListResponseExtended:
-    enriched = [
-        BinderDetailResponse(**service.enrich_binder(b))
-        for b in items
-    ]
+    enriched = [BinderDetailResponse(**service.enrich_binder(b)) for b in items]
     return BinderListResponseExtended(
         items=enriched,
         page=page,

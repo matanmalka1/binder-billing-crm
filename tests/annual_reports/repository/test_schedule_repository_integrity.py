@@ -2,13 +2,17 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
-from app.annual_reports.repositories.schedule_repository import AnnualReportScheduleRepository
+from app.annual_reports.repositories.schedule_repository import (
+    AnnualReportScheduleRepository,
+)
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    crm_client = seed_client_identity(db, full_name="AR Schedule Integrity", id_number="ARSCHED001")
+    crm_client = seed_client_identity(
+        db, full_name="AR Schedule Integrity", id_number="ARSCHED001"
+    )
 
     return AnnualReportService(db).create_report(
         client_record_id=crm_client.id,

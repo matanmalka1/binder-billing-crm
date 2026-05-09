@@ -34,11 +34,15 @@ class DashboardService:
             "total_clients": self.client_record_repo.count(),
             "active_clients": self.client_record_repo.count(status=ClientStatus.ACTIVE),
             "active_binders": self.binder_repo.count_active(),
-            "binders_in_office": self.binder_repo.count_by_status(BinderStatus.IN_OFFICE),
+            "binders_in_office": self.binder_repo.count_by_status(
+                BinderStatus.IN_OFFICE
+            ),
             "binders_ready_for_pickup": self.binder_repo.count_by_status(
                 BinderStatus.READY_FOR_PICKUP
             ),
-            "open_reminders": self.reminder_repo.count_by_status(ReminderStatus.PENDING),
+            "open_reminders": self.reminder_repo.count_by_status(
+                ReminderStatus.PENDING
+            ),
             "vat_stats": self.vat_stats_service.build(today),
             "attention": {"items": attention_items, "total": len(attention_items)},
         }

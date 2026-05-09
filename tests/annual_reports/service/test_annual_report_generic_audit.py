@@ -21,7 +21,9 @@ _seq = count(1)
 
 def _create_report(db, user):
     idx = next(_seq)
-    client = seed_client_identity(db, full_name=f"Audit Report {idx}", id_number=f"ARG{idx:06d}")
+    client = seed_client_identity(
+        db, full_name=f"Audit Report {idx}", id_number=f"ARG{idx:06d}"
+    )
     return AnnualReportService(db).create_report(
         client_record_id=client.id,
         tax_year=2026,
@@ -53,8 +55,14 @@ def test_detail_update_writes_generic_audit(test_db, test_user):
     )
 
     entry = _entry(test_db, report.id, ACTION_ANNUAL_REPORT_DETAIL_UPDATED)
-    assert json.loads(entry.old_value) == {"donation_amount": None, "internal_notes": None}
-    assert json.loads(entry.new_value) == {"donation_amount": 250, "internal_notes": "בדיקה"}
+    assert json.loads(entry.old_value) == {
+        "donation_amount": None,
+        "internal_notes": None,
+    }
+    assert json.loads(entry.new_value) == {
+        "donation_amount": 250,
+        "internal_notes": "בדיקה",
+    }
 
 
 def test_detail_update_skips_audit_when_values_do_not_change(test_db, test_user):
@@ -116,7 +124,9 @@ def test_annex_add_update_delete_write_generic_audit(test_db, test_user):
 
     added = json.loads(_entry(test_db, report.id, ACTION_ANNEX_LINE_ADDED).new_value)
     updated = _entry(test_db, report.id, ACTION_ANNEX_LINE_UPDATED)
-    deleted = json.loads(_entry(test_db, report.id, ACTION_ANNEX_LINE_DELETED).old_value)
+    deleted = json.loads(
+        _entry(test_db, report.id, ACTION_ANNEX_LINE_DELETED).old_value
+    )
     assert added == {
         "schedule": "schedule_b",
         "line_id": line.id,

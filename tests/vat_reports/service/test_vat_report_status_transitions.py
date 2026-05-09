@@ -12,15 +12,23 @@ from tests.vat_reports.service.test_vat_report_test_utils import make_item
 class TestMarkReadyForReview:
     def test_happy_path(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id_for_update.return_value = make_item(status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
-        work_item_repo.update_status.return_value = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW)
+        work_item_repo.get_by_id_for_update.return_value = make_item(
+            status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
+        )
+        work_item_repo.update_status.return_value = make_item(
+            status=VatWorkItemStatus.READY_FOR_REVIEW
+        )
 
-        result = data_entry.mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
+        result = data_entry.mark_ready_for_review(
+            work_item_repo, item_id=1, performed_by=1
+        )
         assert result.status == VatWorkItemStatus.READY_FOR_REVIEW
 
     def test_wrong_status_raises(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id_for_update.return_value = make_item(status=VatWorkItemStatus.MATERIAL_RECEIVED)
+        work_item_repo.get_by_id_for_update.return_value = make_item(
+            status=VatWorkItemStatus.MATERIAL_RECEIVED
+        )
 
         with pytest.raises(AppError) as exc_info:
             data_entry.mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
@@ -30,8 +38,12 @@ class TestMarkReadyForReview:
 class TestSendBackForCorrection:
     def test_happy_path(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id_for_update.return_value = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW)
-        work_item_repo.update_status.return_value = make_item(status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+        work_item_repo.get_by_id_for_update.return_value = make_item(
+            status=VatWorkItemStatus.READY_FOR_REVIEW
+        )
+        work_item_repo.update_status.return_value = make_item(
+            status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
+        )
 
         result = data_entry.send_back_for_correction(
             work_item_repo,
@@ -57,7 +69,9 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=500.0)
         work_item_repo.get_by_id_for_update.return_value = item
-        work_item_repo.mark_filed.return_value = make_item(status=VatWorkItemStatus.FILED)
+        work_item_repo.mark_filed.return_value = make_item(
+            status=VatWorkItemStatus.FILED
+        )
 
         result = filing.file_vat_return(
             work_item_repo,
@@ -84,7 +98,9 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=300.0)
         work_item_repo.get_by_id_for_update.return_value = item
-        work_item_repo.mark_filed.return_value = make_item(status=VatWorkItemStatus.FILED)
+        work_item_repo.mark_filed.return_value = make_item(
+            status=VatWorkItemStatus.FILED
+        )
 
         filing.file_vat_return(
             work_item_repo,
@@ -111,7 +127,9 @@ class TestFileVatReturn:
 
     def test_override_without_justification_raises(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id_for_update.return_value = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW)
+        work_item_repo.get_by_id_for_update.return_value = make_item(
+            status=VatWorkItemStatus.READY_FOR_REVIEW
+        )
 
         with pytest.raises(AppError) as exc_info:
             filing.file_vat_return(
@@ -126,7 +144,9 @@ class TestFileVatReturn:
 
     def test_wrong_status_raises(self):
         work_item_repo = MagicMock()
-        work_item_repo.get_by_id_for_update.return_value = make_item(status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
+        work_item_repo.get_by_id_for_update.return_value = make_item(
+            status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
+        )
 
         with pytest.raises(AppError) as exc_info:
             filing.file_vat_return(
@@ -143,6 +163,9 @@ class TestFileVatReturn:
 
         with pytest.raises(NotFoundError) as exc_info:
             filing.file_vat_return(
-                work_item_repo, item_id=999, filed_by=2, submission_method=SubmissionMethod.ONLINE
+                work_item_repo,
+                item_id=999,
+                filed_by=2,
+                submission_method=SubmissionMethod.ONLINE,
             )
         assert exc_info.value.code == "VAT.NOT_FOUND"

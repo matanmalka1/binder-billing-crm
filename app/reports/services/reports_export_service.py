@@ -31,7 +31,9 @@ class ReportsExportService:
         try:
             if export_format == "excel":
                 result = self.export_service.export_aging_report_to_excel(report)
-                media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                media_type = (
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
             else:
                 result = self.export_service.export_aging_report_to_pdf(report)
                 media_type = "application/pdf"

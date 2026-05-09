@@ -23,7 +23,9 @@ def _service(monkeypatch, report, last=None):
     monkeypatch.setattr(
         "app.annual_reports.services.annual_report_client_reminder_service.NotificationService",
         lambda db: SimpleNamespace(
-            notify_annual_report_client_reminder=lambda **kwargs: sent.update(kwargs) or True,
+            notify_annual_report_client_reminder=lambda **kwargs: (
+                sent.update(kwargs) or True
+            ),
         ),
     )
     return AnnualReportClientReminderService(SimpleNamespace()), sent

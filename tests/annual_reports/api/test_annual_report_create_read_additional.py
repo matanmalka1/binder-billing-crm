@@ -1,10 +1,11 @@
-
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db) -> int:
-    crm_client = seed_client_identity(db, full_name="AR CreateRead Additional", id_number="ARCRA001")
+    crm_client = seed_client_identity(
+        db, full_name="AR CreateRead Additional", id_number="ARCRA001"
+    )
 
     report = AnnualReportService(db).create_report(
         client_record_id=crm_client.id,
@@ -30,8 +31,12 @@ def test_get_report_not_found_and_delete_paths(client, test_db, advisor_headers)
     assert body["client_name"] == "AR CreateRead Additional"
     assert body["available_transitions"] == ["collecting_docs"]
 
-    del_ok = client.delete(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)
+    del_ok = client.delete(
+        f"/api/v1/annual-reports/{report_id}", headers=advisor_headers
+    )
     assert del_ok.status_code == 204
 
-    del_missing = client.delete("/api/v1/annual-reports/999999", headers=advisor_headers)
+    del_missing = client.delete(
+        "/api/v1/annual-reports/999999", headers=advisor_headers
+    )
     assert del_missing.status_code == 404

@@ -7,7 +7,9 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.common.enums import VatType
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories import vat_work_item_grouped_repository as grouped_repo
+from app.vat_reports.repositories import (
+    vat_work_item_grouped_repository as grouped_repo,
+)
 from app.vat_reports.services.vat_report_enrichment import _build_client_maps
 from app.vat_reports.api.serializers import serialize_enriched_work_item
 from app.users.models.user import UserRole
@@ -61,7 +63,9 @@ def get_group_items_enriched(
         status=status,
     )
     client_record_id_list = list({item.client_record_id for item in items})
-    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
+    user_ids = list(
+        {uid for item in items for uid in [item.assigned_to, item.filed_by] if uid}
+    )
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(db, client_record_id_list)
     user_map = {u.id: u.full_name for u in users}
@@ -84,7 +88,9 @@ def get_group_items_enriched(
 def _resolve_client_ids(db, client_name: Optional[str]) -> Optional[list[int]]:
     if not client_name:
         return None
-    records, _ = ClientRecordRepository(db).search(query=client_name, page=1, page_size=500)
+    records, _ = ClientRecordRepository(db).search(
+        query=client_name, page=1, page_size=500
+    )
     return [r.id for r in records]
 
 

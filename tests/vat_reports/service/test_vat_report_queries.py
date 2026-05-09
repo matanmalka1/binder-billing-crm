@@ -7,7 +7,10 @@ from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services import vat_report_queries
-from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot, get_vat_deadline_fields
+from app.vat_reports.services.vat_report_queries import (
+    deadline_fields_from_snapshot,
+    get_vat_deadline_fields,
+)
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 _ONLINE_DELTA = 4  # VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
@@ -25,7 +28,9 @@ def _snapshot_item(effective, original=None, period="2026-08"):
 class TestDeadlineFieldsFromSnapshot:
     def test_statutory_filer_submission_equals_effective(self):
         effective = date(2026, 9, 24)
-        result = deadline_fields_from_snapshot(_snapshot_item(effective), submission_method=None)
+        result = deadline_fields_from_snapshot(
+            _snapshot_item(effective), submission_method=None
+        )
         assert result["submission_deadline"] == effective
         assert result["statutory_deadline"] == effective
         assert result["extended_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
@@ -44,7 +49,7 @@ class TestDeadlineFieldsFromSnapshot:
         # due_date_original = registry-shifted statutory (snapshot at creation)
         # due_date_effective = advisor-extended effective date
         # statutory_deadline must display the original registry date, not the override.
-        original = date(2026, 9, 24)   # registry-shifted statutory
+        original = date(2026, 9, 24)  # registry-shifted statutory
         effective = date(2026, 10, 1)  # manual advisor override
         result = deadline_fields_from_snapshot(
             _snapshot_item(effective, original=original), submission_method=None
@@ -59,9 +64,13 @@ class TestDeadlineFieldsFromSnapshot:
 
             @property
             def period(self):
-                raise AssertionError("deadline_fields_from_snapshot must not access item.period")
+                raise AssertionError(
+                    "deadline_fields_from_snapshot must not access item.period"
+                )
 
-        result = deadline_fields_from_snapshot(_NoPeriodItem(), submission_method=SubmissionMethod.ONLINE)
+        result = deadline_fields_from_snapshot(
+            _NoPeriodItem(), submission_method=SubmissionMethod.ONLINE
+        )
         assert result["submission_deadline"] == date(2026, 9, 28)
 
 
@@ -72,7 +81,9 @@ class TestGetVatDeadlineFields:
         item.due_date_effective = effective
         item.due_date_original = effective
         result = get_vat_deadline_fields(item, SubmissionMethod.ONLINE)
-        assert result["submission_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
+        assert result["submission_deadline"] == effective + timedelta(
+            days=_ONLINE_DELTA
+        )
         assert result["statutory_deadline"] == effective
 
     def test_routes_to_compute_fallback_when_no_effective(self):
@@ -101,7 +112,9 @@ def test_list_client_work_items_forwards_repository_call():
     expected = [make_item(id=1), make_item(id=2)]
     work_item_repo.list_by_client_record.return_value = expected
 
-    result = vat_report_queries.list_client_work_items(work_item_repo, client_record_id=11)
+    result = vat_report_queries.list_client_work_items(
+        work_item_repo, client_record_id=11
+    )
 
     work_item_repo.list_by_client_record.assert_called_once_with(11)
     assert result == expected
@@ -220,4 +233,3 @@ def test_get_audit_trail_forwards_call():
 
     assert result == ["a1", "a2"]
     work_item_repo.get_audit_trail.assert_called_once_with(12, 50, 0)
-

@@ -5,8 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.utils.time_utils import utcnow
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.advance_payments.services.advance_payment_calculator import (
     calculate_expected_amount,
     derive_annual_income_from_vat,
@@ -21,9 +26,15 @@ from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.common.enums import AdvancePaymentFrequency, ObligationType
-from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
-from app.advance_payments.repositories.turnover_lookup_repository import TurnoverLookupRepository
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.vat_reports.repositories.vat_client_summary_repository import (
+    VatClientSummaryRepository,
+)
+from app.advance_payments.repositories.turnover_lookup_repository import (
+    TurnoverLookupRepository,
+)
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 
 
 class AdvancePaymentService:
@@ -34,7 +45,10 @@ class AdvancePaymentService:
     def _get_record_or_raise(self, client_record_id: int):
         record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if record is None:
-            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND")
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה",
+                "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND",
+            )
         return record
 
     def _assert_client_allows_create(self, client_record_id: int) -> None:
@@ -52,12 +66,21 @@ class AdvancePaymentService:
             return 2
         if freq == AdvancePaymentFrequency.MONTHLY:
             return 1
-        raise NotFoundError("תדירות מקדמות לא מוגדרת ללקוח", "ADVANCE_PAYMENT.FREQUENCY_NOT_SET")
+        raise NotFoundError(
+            "תדירות מקדמות לא מוגדרת ללקוח", "ADVANCE_PAYMENT.FREQUENCY_NOT_SET"
+        )
 
-    def _validate_period_months_count(self, period: str, period_months_count: int) -> None:
+    def _validate_period_months_count(
+        self, period: str, period_months_count: int
+    ) -> None:
         if period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:
-            raise ConflictError("תדירות מקדמה לא נתמכת", "ADVANCE_PAYMENT.INVALID_PERIOD")
-        if period_months_count == 2 and parse_period_month(period) not in BIMONTHLY_START_MONTHS:
+            raise ConflictError(
+                "תדירות מקדמה לא נתמכת", "ADVANCE_PAYMENT.INVALID_PERIOD"
+            )
+        if (
+            period_months_count == 2
+            and parse_period_month(period) not in BIMONTHLY_START_MONTHS
+        ):
             raise ConflictError(
                 "מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי",
                 "ADVANCE_PAYMENT.INVALID_PERIOD",
@@ -96,7 +119,9 @@ class AdvancePaymentService:
     ) -> AdvancePayment:
         self._assert_client_allows_create(client_record_id)
         if period_months_count is None:
-            period_months_count = self.default_period_months_count_for_client(client_record_id)
+            period_months_count = self.default_period_months_count_for_client(
+                client_record_id
+            )
         self._validate_period_months_count(period, period_months_count)
         if self.repo.exists_for_period(client_record_id, period):
             raise ConflictError(
@@ -126,12 +151,19 @@ class AdvancePaymentService:
     # ─── Update ───────────────────────────────────────────────────────────────
 
     _ALLOWED_UPDATE_FIELDS = {
-        "paid_amount", "expected_amount", "status",
-        "paid_at", "payment_method", "notes",
-        "reported_turnover", "turnover_source_vat_work_item_id",
+        "paid_amount",
+        "expected_amount",
+        "status",
+        "paid_at",
+        "payment_method",
+        "notes",
+        "reported_turnover",
+        "turnover_source_vat_work_item_id",
     }
 
-    def update_payment_for_client(self, client_record_id: int, payment_id: int, **fields) -> AdvancePayment:
+    def update_payment_for_client(
+        self, client_record_id: int, payment_id: int, **fields
+    ) -> AdvancePayment:
         self._get_record_or_raise(client_record_id)
         payment = self.repo.get_by_id_for_client_record(payment_id, client_record_id)
         if not payment:
@@ -152,10 +184,15 @@ class AdvancePaymentService:
                 filtered["status"] = AdvancePaymentStatus.PARTIAL
 
         new_status = filtered.get("status")
-        becoming_settled = new_status in (AdvancePaymentStatus.PAID, AdvancePaymentStatus.PARTIAL)
+        becoming_settled = new_status in (
+            AdvancePaymentStatus.PAID,
+            AdvancePaymentStatus.PARTIAL,
+        )
         already_has_snapshot = payment.reported_turnover is not None
         if becoming_settled and not already_has_snapshot:
-            turnover, vat_item_id = TurnoverLookupRepository(self.db).get_turnover_for_period(
+            turnover, vat_item_id = TurnoverLookupRepository(
+                self.db
+            ).get_turnover_for_period(
                 client_record_id, payment.period, payment.period_months_count
             )
             if turnover is not None:
@@ -166,7 +203,9 @@ class AdvancePaymentService:
 
     # ─── Delete ───────────────────────────────────────────────────────────────
 
-    def delete_payment_for_client(self, client_record_id: int, payment_id: int, actor_id: int) -> None:
+    def delete_payment_for_client(
+        self, client_record_id: int, payment_id: int, actor_id: int
+    ) -> None:
         self._get_record_or_raise(client_record_id)
         payment = self.repo.get_by_id_for_client_record(payment_id, client_record_id)
         if not payment:
@@ -179,11 +218,16 @@ class AdvancePaymentService:
     # ─── Suggest ─────────────────────────────────────────────────────────────
 
     def suggest_expected_amount_for_client(
-        self, client_record_id: int, year: int, period_months_count: Optional[int] = None
+        self,
+        client_record_id: int,
+        year: int,
+        period_months_count: Optional[int] = None,
     ) -> Optional[Decimal]:
         record = self._get_record_or_raise(client_record_id)
         if period_months_count is None:
-            period_months_count = self.default_period_months_count_for_client(client_record_id)
+            period_months_count = self.default_period_months_count_for_client(
+                client_record_id
+            )
         legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
         if legal_entity is None or legal_entity.advance_rate is None:
             return None
@@ -192,7 +236,9 @@ class AdvancePaymentService:
         )
         if prior_year_vat is None:
             return None
-        annual_income = derive_annual_income_from_vat(prior_year_vat, ADVANCE_PAYMENT_VAT_RATE)
+        annual_income = derive_annual_income_from_vat(
+            prior_year_vat, ADVANCE_PAYMENT_VAT_RATE
+        )
         return calculate_expected_amount(
             annual_income, Decimal(str(legal_entity.advance_rate)), period_months_count
         )

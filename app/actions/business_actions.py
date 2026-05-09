@@ -20,7 +20,9 @@ def get_business_actions(
 ) -> list[ActionContract]:
     """Return executable actions for a business (role-aware)."""
     status = _value(business.status)
-    client_id = client_id if client_id is not None else getattr(business, "client_id", None)
+    client_id = (
+        client_id if client_id is not None else getattr(business, "client_id", None)
+    )
     if client_id is None:
         raise ValueError("Business actions require client_id for endpoint construction")
     endpoint = f"/clients/{client_id}/businesses/{business.id}"

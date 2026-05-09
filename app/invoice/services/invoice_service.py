@@ -28,12 +28,12 @@ class InvoiceService:
     ) -> Invoice:
         """
         Attach external invoice reference to a charge.
-        
+
         Rules:
         - Charge must exist and be issued
         - Each charge can have at most one invoice
         - Invoice metadata is immutable once stored
-        
+
         Raises:
             AppError: If charge not found, not issued, or already has invoice
         """

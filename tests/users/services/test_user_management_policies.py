@@ -2,7 +2,10 @@ import pytest
 
 from app.core.exceptions import AppError, ForbiddenError
 from app.users.models.user import UserRole
-from app.users.services.user_management_policies import ensure_advisor, validate_password
+from app.users.services.user_management_policies import (
+    ensure_advisor,
+    validate_password,
+)
 
 
 def test_ensure_advisor_rejects_non_advisor_roles():

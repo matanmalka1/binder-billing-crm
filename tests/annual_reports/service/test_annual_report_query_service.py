@@ -10,10 +10,14 @@ _client_seq = count(1)
 
 def _client(db):
     idx = next(_client_seq)
-    return seed_client_identity(db, full_name=f"Annual Query Client {idx}", id_number=f"AQS{idx:03d}")
+    return seed_client_identity(
+        db, full_name=f"Annual Query Client {idx}", id_number=f"AQS{idx:03d}"
+    )
 
 
-def _create_report(service: AnnualReportService, client_id: int, tax_year: int, created_by: int):
+def _create_report(
+    service: AnnualReportService, client_id: int, tax_year: int, created_by: int
+):
     return service.create_report(
         client_record_id=client_id,
         tax_year=tax_year,
@@ -37,7 +41,9 @@ def test_query_service_list_detail_and_client_reports(test_db, test_user):
     service.repo.update(report_a_2025.id, status=AnnualReportStatus.SUBMITTED)
     service.repo.update(report_b_2024.id, status=AnnualReportStatus.IN_PREPARATION)
 
-    client_reports, total_client_reports = service.get_client_reports(client_a.id, page=1, page_size=20)
+    client_reports, total_client_reports = service.get_client_reports(
+        client_a.id, page=1, page_size=20
+    )
     assert total_client_reports == 2
     assert [r.id for r in client_reports] == [report_a_2026.id, report_a_2025.id]
 
@@ -45,9 +51,15 @@ def test_query_service_list_detail_and_client_reports(test_db, test_user):
     assert total_2025 == 1
     assert [r.id for r in reports_2025] == [report_a_2025.id]
 
-    all_reports, total_all = service.list_reports(page=1, page_size=20, sort_by="tax_year", order="desc")
+    all_reports, total_all = service.list_reports(
+        page=1, page_size=20, sort_by="tax_year", order="desc"
+    )
     assert total_all == 3
-    assert [r.id for r in all_reports] == [report_a_2026.id, report_a_2025.id, report_b_2024.id]
+    assert [r.id for r in all_reports] == [
+        report_a_2026.id,
+        report_a_2025.id,
+        report_b_2024.id,
+    ]
 
     detail = service.get_detail_report(report_a_2026.id)
     assert detail is not None

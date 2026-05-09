@@ -31,11 +31,7 @@ from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _ensure_client_identity_graph(session, client) -> None:
-    existing = (
-        session.query(ClientRecord)
-        .filter(ClientRecord.id == client.id)
-        .first()
-    )
+    existing = session.query(ClientRecord).filter(ClientRecord.id == client.id).first()
     if existing:
         return
     seeded = seed_client_identity(
@@ -74,10 +70,10 @@ def test_db():
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
-        echo=False
+        echo=False,
     )
     Base.metadata.create_all(bind=engine)
-    
+
     TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     db = TestSessionLocal()
@@ -85,7 +81,7 @@ def test_db():
     for rule in db.query(DeadlineRule).all():
         rule.effective_from = date(1900, 1, 1)
     db.flush()
-    
+
     try:
         yield db
     finally:
@@ -96,6 +92,7 @@ def test_db():
 @pytest.fixture(scope="function")
 def create_client_with_business(test_db):
     """Create a test client with an explicit default business."""
+
     def _create(
         *,
         full_name: str = "Seeded Test Client",
@@ -128,12 +125,13 @@ def create_client_with_business(test_db):
 @pytest.fixture(scope="function")
 def client(test_db):
     """FastAPI test client with test database."""
+
     def override_get_db():
         try:
             yield test_db
         finally:
             pass
-    
+
     main_module.app.dependency_overrides[get_db] = override_get_db
     original_expire = background_jobs_module.expire_overdue_requests
     background_jobs_module.expire_overdue_requests = lambda repo: 0

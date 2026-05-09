@@ -2,7 +2,9 @@
 
 from fastapi import APIRouter
 
-from app.authority_contact.api.authority_contact import router as authority_contact_router
+from app.authority_contact.api.authority_contact import (
+    router as authority_contact_router,
+)
 
 router = APIRouter()
 router.include_router(authority_contact_router)

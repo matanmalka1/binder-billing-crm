@@ -8,16 +8,16 @@ from pydantic import BaseModel
 
 
 class TaskType(str, PyEnum):
-    VAT_FILING      = "vat_filing"
-    ANNUAL_REPORT   = "annual_report"
+    VAT_FILING = "vat_filing"
+    ANNUAL_REPORT = "annual_report"
     ADVANCE_PAYMENT = "advance_payment"
-    UNPAID_CHARGE   = "unpaid_charge"
+    UNPAID_CHARGE = "unpaid_charge"
 
 
 class TaskUrgency(str, PyEnum):
-    OVERDUE    = "overdue"
+    OVERDUE = "overdue"
     APPROACHING = "approaching"  # <= 7 days
-    UPCOMING   = "upcoming"      # 8-14 days
+    UPCOMING = "upcoming"  # 8-14 days
 
 
 class DeadlineTask(BaseModel):

@@ -1,4 +1,4 @@
-# utils/id_validation.py 
+# utils/id_validation.py
 def validate_israeli_id_checksum(id_number: str) -> bool:
     if len(id_number) != 9 or not id_number.isdigit():
         return False

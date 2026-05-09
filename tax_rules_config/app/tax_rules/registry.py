@@ -11,9 +11,24 @@ from .exceptions import (
     ANNUAL_OVERRIDES_TAX_YEAR_2025,
     get_override,
 )
-from .financials.constants_2024 import CONSTANTS_2024, NI_BRACKETS_2024, INCOME_TAX_BRACKETS_2024, CREDIT_POINT_2024
-from .financials.constants_2025 import CONSTANTS_2025, NI_BRACKETS_2025, INCOME_TAX_BRACKETS_2025, CREDIT_POINT_2025
-from .financials.constants_2026 import CONSTANTS_2026, NI_BRACKETS_2026, INCOME_TAX_BRACKETS_2026, CREDIT_POINT_2026
+from .financials.constants_2024 import (
+    CONSTANTS_2024,
+    NI_BRACKETS_2024,
+    INCOME_TAX_BRACKETS_2024,
+    CREDIT_POINT_2024,
+)
+from .financials.constants_2025 import (
+    CONSTANTS_2025,
+    NI_BRACKETS_2025,
+    INCOME_TAX_BRACKETS_2025,
+    CREDIT_POINT_2025,
+)
+from .financials.constants_2026 import (
+    CONSTANTS_2026,
+    NI_BRACKETS_2026,
+    INCOME_TAX_BRACKETS_2026,
+    CREDIT_POINT_2026,
+)
 from .policy import resolve_obligation_rules, resolve_annual_report_rule
 from .types import (
     ClientTaxProfile,
@@ -77,10 +92,13 @@ _ANNUAL_OVERRIDES: dict[int, tuple[DeadlineOverride, ...]] = {
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+
 def get_periodic_calendar(year: int) -> dict[str, dict[str, str]]:
     """לוח מועדים תקופתי (מע״מ, מקדמות, ניכויים) לשנה נתונה."""
     if year not in _PERIODIC_CALENDARS:
-        raise KeyError(f"אין לוח מועדים תקופתי לשנת {year}. יש להוסיף calendars/calendar_{year}.py")
+        raise KeyError(
+            f"אין לוח מועדים תקופתי לשנת {year}. יש להוסיף calendars/calendar_{year}.py"
+        )
     return _PERIODIC_CALENDARS[year]
 
 

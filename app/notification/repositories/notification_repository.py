@@ -63,7 +63,9 @@ class NotificationRepository:
         self.db.flush()
         return notification
 
-    def mark_failed(self, notification_id: int, error_message: str) -> Optional[Notification]:
+    def mark_failed(
+        self, notification_id: int, error_message: str
+    ) -> Optional[Notification]:
         notification = self.get_by_id(notification_id)
         if not notification:
             return None
@@ -74,7 +76,11 @@ class NotificationRepository:
         return notification
 
     def get_by_id(self, notification_id: int) -> Optional[Notification]:
-        return self.db.query(Notification).filter(Notification.id == notification_id).first()
+        return (
+            self.db.query(Notification)
+            .filter(Notification.id == notification_id)
+            .first()
+        )
 
     def list_by_client_record(
         self,
@@ -93,7 +99,11 @@ class NotificationRepository:
         )
 
     def count_by_client_record(self, client_record_id: int) -> int:
-        return self.db.query(Notification).filter(Notification.client_record_id == client_record_id).count()
+        return (
+            self.db.query(Notification)
+            .filter(Notification.client_record_id == client_record_id)
+            .count()
+        )
 
     # ── List by business (scoped view) ────────────────────────────────────────
 
@@ -114,7 +124,11 @@ class NotificationRepository:
         )
 
     def count_by_business(self, business_id: int) -> int:
-        return self.db.query(Notification).filter(Notification.business_id == business_id).count()
+        return (
+            self.db.query(Notification)
+            .filter(Notification.business_id == business_id)
+            .count()
+        )
 
     # ── Paginated list (supports both filters) ────────────────────────────────
 
@@ -160,7 +174,9 @@ class NotificationRepository:
         now = utcnow()
         count = (
             self.db.query(Notification)
-            .filter(Notification.id.in_(notification_ids), Notification.is_read == False)  # noqa: E712
+            .filter(
+                Notification.id.in_(notification_ids), Notification.is_read == False  # noqa: E712
+            )
             .update({"is_read": True, "read_at": now}, synchronize_session=False)
         )
         self.db.flush()
@@ -194,10 +210,14 @@ class NotificationRepository:
             q = q.filter(Notification.business_id == business_id)
         return q.count()
 
-    def exists_for_binder_trigger(self, binder_id: int, trigger: NotificationTrigger) -> bool:
+    def exists_for_binder_trigger(
+        self, binder_id: int, trigger: NotificationTrigger
+    ) -> bool:
         return (
             self.db.query(Notification)
-            .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)
+            .filter(
+                Notification.binder_id == binder_id, Notification.trigger == trigger
+            )
             .first()
         ) is not None
 
@@ -206,7 +226,9 @@ class NotificationRepository:
     ) -> Optional[Notification]:
         return (
             self.db.query(Notification)
-            .filter(Notification.binder_id == binder_id, Notification.trigger == trigger)
+            .filter(
+                Notification.binder_id == binder_id, Notification.trigger == trigger
+            )
             .order_by(Notification.created_at.desc())
             .first()
         )

@@ -1,4 +1,3 @@
-
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
@@ -39,7 +38,9 @@ def test_annual_report_overdue_endpoint(client, test_db, advisor_headers, test_u
     resp = client.get("/api/v1/annual-reports/overdue", headers=advisor_headers)
 
     assert resp.status_code == 200
-    overdue_ids = {item.get("business_id", item.get("client_record_id")) for item in resp.json()}
+    overdue_ids = {
+        item.get("business_id", item.get("client_record_id")) for item in resp.json()
+    }
     assert old_client.id in overdue_ids
     assert new_client.id not in overdue_ids
 
@@ -61,7 +62,9 @@ def test_annual_report_amend_endpoint(client, test_db, advisor_headers, test_use
     assert body["amendment_reason"] == "Correction requested"
 
 
-def test_annual_report_schedule_complete_and_season_summary(client, test_db, advisor_headers, test_user):
+def test_annual_report_schedule_complete_and_season_summary(
+    client, test_db, advisor_headers, test_user
+):
     c1 = _client(test_db, "D")
     c2 = _client(test_db, "E")
 

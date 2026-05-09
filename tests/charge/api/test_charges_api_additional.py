@@ -1,4 +1,3 @@
-
 from app.businesses.models.business import BusinessStatus
 from tests.helpers.identity import seed_client_with_business
 
@@ -19,7 +18,12 @@ def test_get_charge_as_advisor_and_delete_paths(client, advisor_headers, test_db
     create = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 100.0, "charge_type": "consultation_fee"},
+        json={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "amount": 100.0,
+            "charge_type": "consultation_fee",
+        },
     )
     assert create.status_code == 201
     charge_id = create.json()["id"]
@@ -40,17 +44,29 @@ def test_get_charge_as_advisor_and_delete_paths(client, advisor_headers, test_db
     assert delete_missing.status_code == 404
 
 
-def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_headers, test_db):
+def test_bulk_action_endpoint_and_invalid_period_validation(
+    client, advisor_headers, test_db
+):
     business = _business(test_db)
     first = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 40.0, "charge_type": "consultation_fee"},
+        json={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "amount": 40.0,
+            "charge_type": "consultation_fee",
+        },
     )
     second = client.post(
         "/api/v1/charges",
         headers=advisor_headers,
-        json={"client_record_id": business.client_id, "business_id": business.id, "amount": 60.0, "charge_type": "consultation_fee"},
+        json={
+            "client_record_id": business.client_id,
+            "business_id": business.id,
+            "amount": 60.0,
+            "charge_type": "consultation_fee",
+        },
     )
     assert first.status_code == 201
     assert second.status_code == 201
@@ -58,7 +74,10 @@ def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_head
     bulk = client.post(
         "/api/v1/charges/bulk-action",
         headers={**advisor_headers, "X-Idempotency-Key": "bulk-charge-test-1"},
-        json={"charge_ids": [first.json()["id"], second.json()["id"]], "action": "issue"},
+        json={
+            "charge_ids": [first.json()["id"], second.json()["id"]],
+            "action": "issue",
+        },
     )
     assert bulk.status_code == 200
     payload = bulk.json()

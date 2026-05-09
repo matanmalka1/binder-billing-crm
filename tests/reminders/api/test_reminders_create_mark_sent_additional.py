@@ -30,8 +30,9 @@ def _business(db, crm_client: SeededClient, user_id: int):
     return business
 
 
-
-def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_headers, test_user):
+def test_mark_sent_endpoint_updates_pending_reminder(
+    client, test_db, advisor_headers, test_user
+):
     crm_client = _client(test_db)
     business = _business(test_db, crm_client, test_user.id)
     reminder = ReminderRepository(test_db).create(
@@ -44,11 +45,9 @@ def test_mark_sent_endpoint_updates_pending_reminder(client, test_db, advisor_he
         message="send me",
     )
 
-    resp = client.post(f"/api/v1/reminders/{reminder.id}/mark-sent", headers=advisor_headers)
+    resp = client.post(
+        f"/api/v1/reminders/{reminder.id}/mark-sent", headers=advisor_headers
+    )
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "sent"
-
-
-
-

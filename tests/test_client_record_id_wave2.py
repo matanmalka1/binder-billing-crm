@@ -9,7 +9,10 @@ from app.database import Base
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import PersonLegalEntityLink, PersonLegalEntityRole
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
 from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -86,6 +89,7 @@ def _make_user(db):
 
 def _make_business(db, client_id: int):
     from app.businesses.models.business import Business, BusinessStatus
+
     record = db.get(ClientRecord, client_id)
 
     business = Business(
@@ -107,21 +111,22 @@ class TestO1Reminder:
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
-        db.add(Reminder(
-            client_record_id=record.id,
-            reminder_type=ReminderType.CUSTOM,
-            status=ReminderStatus.PENDING,
-            target_date=date(2024, 1, 20),
-            days_before=2,
-            send_on=date(2024, 1, 18),
-            message="test",
-        ))
+        db.add(
+            Reminder(
+                client_record_id=record.id,
+                reminder_type=ReminderType.CUSTOM,
+                status=ReminderStatus.PENDING,
+                target_date=date(2024, 1, 20),
+                days_before=2,
+                send_on=date(2024, 1, 18),
+                message="test",
+            )
+        )
         db.flush()
 
         items = ReminderRepository(db).list_by_client_record(record.id)
         assert len(items) == 1
         assert items[0].client_record_id == record.id
-
 
 
 class TestO2Charge:
@@ -131,12 +136,14 @@ class TestO2Charge:
 
         client = _make_client(db, "C204")
         record = _make_client_record(db, client.id)
-        db.add(Charge(
-            client_record_id=record.id,
-            charge_type="other",
-            status=ChargeStatus.DRAFT,
-            amount=100,
-        ))
+        db.add(
+            Charge(
+                client_record_id=record.id,
+                charge_type="other",
+                status=ChargeStatus.DRAFT,
+                amount=100,
+            )
+        )
         db.flush()
 
         items = ChargeRepository(db).list_charges_by_client_record(record.id)
@@ -144,25 +151,32 @@ class TestO2Charge:
         assert items[0].client_record_id == record.id
 
 
-
 class TestO3Notification:
     def test_repo_list_by_client_record(self, db):
         from app.notification.models.notification import (
-            Notification, NotificationChannel, NotificationSeverity, NotificationStatus, NotificationTrigger,
+            Notification,
+            NotificationChannel,
+            NotificationSeverity,
+            NotificationStatus,
+            NotificationTrigger,
         )
-        from app.notification.repositories.notification_repository import NotificationRepository
+        from app.notification.repositories.notification_repository import (
+            NotificationRepository,
+        )
 
         client = _make_client(db, "C207")
         record = _make_client_record(db, client.id)
-        db.add(Notification(
-            client_record_id=record.id,
-            trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-            channel=NotificationChannel.EMAIL,
-            severity=NotificationSeverity.INFO,
-            recipient="x@test.com",
-            content_snapshot="body",
-            status=NotificationStatus.PENDING,
-        ))
+        db.add(
+            Notification(
+                client_record_id=record.id,
+                trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                channel=NotificationChannel.EMAIL,
+                severity=NotificationSeverity.INFO,
+                recipient="x@test.com",
+                content_snapshot="body",
+                status=NotificationStatus.PENDING,
+            )
+        )
         db.flush()
 
         items = NotificationRepository(db).list_by_client_record(record.id)
@@ -170,7 +184,9 @@ class TestO3Notification:
         assert items[0].client_record_id == record.id
 
     def test_service_resolves_client_record_id_from_client_id(self, db, monkeypatch):
-        from app.notification.services.notification_send_service import NotificationSendService
+        from app.notification.services.notification_send_service import (
+            NotificationSendService,
+        )
 
         client = _make_client(db, "C208")
         record = _make_client_record(db, client.id)
@@ -186,45 +202,59 @@ class TestO3Notification:
 
 class TestO4Correspondence:
     def test_repo_list_by_client_record(self, db):
-        from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
-        from app.correspondence.repositories.correspondence_repository import CorrespondenceRepository
+        from app.correspondence.models.correspondence import (
+            Correspondence,
+            CorrespondenceType,
+        )
+        from app.correspondence.repositories.correspondence_repository import (
+            CorrespondenceRepository,
+        )
 
         client = _make_client(db, "C210")
         record = _make_client_record(db, client.id)
         user = _make_user(db)
-        db.add(Correspondence(
-            client_record_id=record.id,
-            correspondence_type=CorrespondenceType.EMAIL,
-            subject="subject",
-            occurred_at=datetime.utcnow(),
-            created_by=user.id,
-        ))
+        db.add(
+            Correspondence(
+                client_record_id=record.id,
+                correspondence_type=CorrespondenceType.EMAIL,
+                subject="subject",
+                occurred_at=datetime.utcnow(),
+                created_by=user.id,
+            )
+        )
         db.flush()
 
-        items, total = CorrespondenceRepository(db).list_by_client_record_paginated(record.id, page=1, page_size=20)
+        items, total = CorrespondenceRepository(db).list_by_client_record_paginated(
+            record.id, page=1, page_size=20
+        )
         assert total == 1
         assert items[0].client_record_id == record.id
-
 
 
 class TestO5SignatureRequest:
     def test_repo_list_by_client_record(self, db):
         from app.signature_requests.models.signature_request import (
-            SignatureRequest, SignatureRequestStatus, SignatureRequestType,
+            SignatureRequest,
+            SignatureRequestStatus,
+            SignatureRequestType,
         )
-        from app.signature_requests.repositories.signature_request_repository import SignatureRequestRepository
+        from app.signature_requests.repositories.signature_request_repository import (
+            SignatureRequestRepository,
+        )
 
         client = _make_client(db, "C213")
         record = _make_client_record(db, client.id)
         user = _make_user(db)
-        db.add(SignatureRequest(
-            client_record_id=record.id,
-            created_by=user.id,
-            request_type=SignatureRequestType.CUSTOM,
-            title="Sign",
-            signer_name="Signer",
-            status=SignatureRequestStatus.DRAFT,
-        ))
+        db.add(
+            SignatureRequest(
+                client_record_id=record.id,
+                created_by=user.id,
+                request_type=SignatureRequestType.CUSTOM,
+                title="Sign",
+                signer_name="Signer",
+                status=SignatureRequestStatus.DRAFT,
+            )
+        )
         db.flush()
 
         items = SignatureRequestRepository(db).list_by_client_record(record.id)
@@ -232,19 +262,25 @@ class TestO5SignatureRequest:
         assert items[0].client_record_id == record.id
 
 
-
 class TestO6AuthorityContact:
     def test_repo_list_by_client_record(self, db):
-        from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
-        from app.authority_contact.repositories.authority_contact_repository import AuthorityContactRepository
+        from app.authority_contact.models.authority_contact import (
+            AuthorityContact,
+            ContactType,
+        )
+        from app.authority_contact.repositories.authority_contact_repository import (
+            AuthorityContactRepository,
+        )
 
         client = _make_client(db, "C216")
         record = _make_client_record(db, client.id)
-        db.add(AuthorityContact(
-            client_record_id=record.id,
-            contact_type=ContactType.OTHER,
-            name="Officer",
-        ))
+        db.add(
+            AuthorityContact(
+                client_record_id=record.id,
+                contact_type=ContactType.OTHER,
+                name="Officer",
+            )
+        )
         db.flush()
 
         items = AuthorityContactRepository(db).list_by_client_record(record.id)
@@ -252,23 +288,26 @@ class TestO6AuthorityContact:
         assert items[0].client_record_id == record.id
 
 
-
 class TestO7BinderHandover:
     def test_repo_list_by_client_record(self, db):
         from app.binders.models.binder_handover import BinderHandover
-        from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
+        from app.binders.repositories.binder_handover_repository import (
+            BinderHandoverRepository,
+        )
 
         client = _make_client(db, "C219")
         record = _make_client_record(db, client.id)
         user = _make_user(db)
-        db.add(BinderHandover(
-            client_record_id=record.id,
-            received_by_name="Receiver",
-            handed_over_at=date.today(),
-            until_period_year=2024,
-            until_period_month=6,
-            created_by=user.id,
-        ))
+        db.add(
+            BinderHandover(
+                client_record_id=record.id,
+                received_by_name="Receiver",
+                handed_over_at=date.today(),
+                until_period_year=2024,
+                until_period_month=6,
+                created_by=user.id,
+            )
+        )
         db.flush()
 
         items = BinderHandoverRepository(db).list_by_client_record(record.id)
@@ -282,12 +321,14 @@ class TestO7BinderHandover:
         client = _make_client(db, "C220")
         record = _make_client_record(db, client.id)
         user = _make_user(db)
-        db.add(Binder(
-            client_record_id=record.id,
-            binder_number="20/1",
-            status=BinderStatus.READY_FOR_PICKUP,
-            created_by=user.id,
-        ))
+        db.add(
+            Binder(
+                client_record_id=record.id,
+                binder_number="20/1",
+                status=BinderStatus.READY_FOR_PICKUP,
+                created_by=user.id,
+            )
+        )
         db.flush()
 
         handover = BinderHandoverService(db).create_handover(

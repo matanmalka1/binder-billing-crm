@@ -9,8 +9,18 @@ from sqlalchemy.orm import Session
 from app.common.enums import DeadlineRuleType as DRT, ObligationType
 from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
-from app.tax_calendar.services.tax_calendar_entry_service import _resolve_rule, annual_due_date, periodic_due_date
-_PERIODIC_RULES = {(ObligationType.VAT, 1): DRT.VAT_MONTHLY, (ObligationType.VAT, 2): DRT.VAT_BIMONTHLY, (ObligationType.ADVANCE_PAYMENT, 1): DRT.ADVANCE_MONTHLY, (ObligationType.ADVANCE_PAYMENT, 2): DRT.ADVANCE_BIMONTHLY}
+from app.tax_calendar.services.tax_calendar_entry_service import (
+    _resolve_rule,
+    annual_due_date,
+    periodic_due_date,
+)
+
+_PERIODIC_RULES = {
+    (ObligationType.VAT, 1): DRT.VAT_MONTHLY,
+    (ObligationType.VAT, 2): DRT.VAT_BIMONTHLY,
+    (ObligationType.ADVANCE_PAYMENT, 1): DRT.ADVANCE_MONTHLY,
+    (ObligationType.ADVANCE_PAYMENT, 2): DRT.ADVANCE_BIMONTHLY,
+}
 _PERIOD_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
@@ -18,7 +28,9 @@ class TaxCalendarMaterializationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def ensure_periodic_entry(self, obligation_type, period: str, period_months_count: int) -> TaxCalendarEntry:
+    def ensure_periodic_entry(
+        self, obligation_type, period: str, period_months_count: int
+    ) -> TaxCalendarEntry:
         obligation_type = self._obligation(obligation_type)
         year, month = self._parse_period(period)
         rule_type = self._periodic_rule_type(obligation_type, period_months_count)
@@ -27,10 +39,17 @@ class TaxCalendarMaterializationService:
             return existing
         rule = self._resolve_required_rule(rule_type, date(year, 1, 1))
         entry = TaxCalendarEntry(
-            obligation_type=obligation_type, period=period, period_months_count=period_months_count,
-            tax_year=year, due_date=periodic_due_date(rule, year, month), deadline_rule_id=rule.id,
+            obligation_type=obligation_type,
+            period=period,
+            period_months_count=period_months_count,
+            tax_year=year,
+            due_date=periodic_due_date(rule, year, month),
+            deadline_rule_id=rule.id,
         )
-        return self._insert_or_refetch(entry, lambda: self._find_periodic(obligation_type, period, period_months_count))
+        return self._insert_or_refetch(
+            entry,
+            lambda: self._find_periodic(obligation_type, period, period_months_count),
+        )
 
     def ensure_annual_entry(self, tax_year: int) -> TaxCalendarEntry:
         tax_year = self._parse_tax_year(tax_year)
@@ -39,13 +58,21 @@ class TaxCalendarMaterializationService:
             return existing
         rule = self._resolve_required_rule(DRT.ANNUAL_REPORT, date(tax_year + 1, 1, 1))
         entry = TaxCalendarEntry(
-            obligation_type=ObligationType.ANNUAL_REPORT, period=None, period_months_count=None,
-            tax_year=tax_year, due_date=annual_due_date(rule, tax_year), deadline_rule_id=rule.id,
+            obligation_type=ObligationType.ANNUAL_REPORT,
+            period=None,
+            period_months_count=None,
+            tax_year=tax_year,
+            due_date=annual_due_date(rule, tax_year),
+            deadline_rule_id=rule.id,
         )
         return self._insert_or_refetch(entry, lambda: self._find_annual(tax_year))
 
     def link_vat_work_item(self, item):
-        period_type = item.period_type.value if hasattr(item.period_type, "value") else item.period_type
+        period_type = (
+            item.period_type.value
+            if hasattr(item.period_type, "value")
+            else item.period_type
+        )
         months = 2 if period_type == "bimonthly" else 1
         entry = self.ensure_periodic_entry(ObligationType.VAT, item.period, months)
         self._assign_entry(item, entry)
@@ -57,7 +84,9 @@ class TaxCalendarMaterializationService:
         return item
 
     def link_advance_payment(self, payment):
-        entry = self.ensure_periodic_entry(ObligationType.ADVANCE_PAYMENT, payment.period, payment.period_months_count)
+        entry = self.ensure_periodic_entry(
+            ObligationType.ADVANCE_PAYMENT, payment.period, payment.period_months_count
+        )
         self._assign_entry(payment, entry)
         if payment.due_date_original is None:
             payment.due_date_original = entry.due_date
@@ -108,7 +137,9 @@ class TaxCalendarMaterializationService:
     def _find_annual(self, tax_year: int):
         return (
             self.db.query(TaxCalendarEntry)
-            .filter(TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT.value)
+            .filter(
+                TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT.value
+            )
             .filter(TaxCalendarEntry.tax_year == tax_year)
             .one_or_none()
         )
@@ -118,7 +149,9 @@ class TaxCalendarMaterializationService:
         obligation_type = TaxCalendarMaterializationService._obligation(obligation_type)
         rule_type = _PERIODIC_RULES.get((obligation_type, months))
         if rule_type is None:
-            raise AppError("תקופת החובה אינה נתמכת", "TAX_CALENDAR.INVALID_PERIOD_FREQUENCY")
+            raise AppError(
+                "תקופת החובה אינה נתמכת", "TAX_CALENDAR.INVALID_PERIOD_FREQUENCY"
+            )
         return rule_type
 
     @staticmethod
@@ -126,7 +159,9 @@ class TaxCalendarMaterializationService:
         try:
             return value if isinstance(value, ObligationType) else ObligationType(value)
         except ValueError:
-            raise AppError("סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE")
+            raise AppError(
+                "סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE"
+            )
 
     @staticmethod
     def _parse_period(period: str) -> tuple[int, int]:
@@ -151,4 +186,6 @@ class TaxCalendarMaterializationService:
             entity.tax_calendar_entry_id = entry.id
             return
         if int(current) != int(entry.id):
-            raise ConflictError("רשומת יומן המס אינה תואמת לחובה", "TAX_CALENDAR.LINK_CONFLICT")
+            raise ConflictError(
+                "רשומת יומן המס אינה תואמת לחובה", "TAX_CALENDAR.LINK_CONFLICT"
+            )

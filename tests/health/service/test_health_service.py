@@ -11,4 +11,3 @@ def test_health_service_check_handles_repo_exception(monkeypatch, test_db):
     service.health_repo = _BrokenRepo()
     result = service.check()
     assert result == {"status": "unhealthy", "database": "disconnected"}
-

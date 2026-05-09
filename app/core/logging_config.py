@@ -8,6 +8,7 @@ Provides consistent log format with:
 - Request ID (when available)
 - Stack traces for errors
 """
+
 import logging
 import sys
 from contextvars import ContextVar

@@ -19,22 +19,20 @@ from app.utils.time_utils import utcnow
 class EntityAuditLog(Base):
     __tablename__ = "entity_audit_logs"
 
-    id           = Column(Integer, primary_key=True, autoincrement=True)
-    entity_type  = Column(String, nullable=False, index=True)
-    entity_id    = Column(Integer, nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    entity_type = Column(String, nullable=False, index=True)
+    entity_id = Column(Integer, nullable=False, index=True)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Use ACTION_* constants from app/audit/constants.py
-    action    = Column(String, nullable=False)
-    old_value = Column(Text, nullable=True)   # JSON snapshot before mutation
-    new_value = Column(Text, nullable=True)   # JSON snapshot after mutation
-    note      = Column(Text, nullable=True)
+    action = Column(String, nullable=False)
+    old_value = Column(Text, nullable=True)  # JSON snapshot before mutation
+    new_value = Column(Text, nullable=True)  # JSON snapshot after mutation
+    note = Column(Text, nullable=True)
 
     performed_at = Column(DateTime, nullable=False, default=utcnow)
 
-    __table_args__ = (
-        Index("idx_entity_audit_type_id", "entity_type", "entity_id"),
-    )
+    __table_args__ = (Index("idx_entity_audit_type_id", "entity_type", "entity_id"),)
 
     def __repr__(self) -> str:
         return (

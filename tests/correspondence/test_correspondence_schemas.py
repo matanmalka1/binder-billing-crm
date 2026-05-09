@@ -45,7 +45,9 @@ def test_list_response_build_calculates_total_pages():
         created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
     )
 
-    resp = CorrespondenceListResponse.build(items=[item], page=1, page_size=20, total=41)
+    resp = CorrespondenceListResponse.build(
+        items=[item], page=1, page_size=20, total=41
+    )
     assert resp.total_pages == 3
 
     empty = CorrespondenceListResponse.build(items=[], page=1, page_size=0, total=0)

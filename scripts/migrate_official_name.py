@@ -26,7 +26,8 @@ from app.database import SessionLocal  # noqa: E402
 def run() -> None:
     db = SessionLocal()
     try:
-        results = db.execute(text("""
+        results = db.execute(
+            text("""
             UPDATE legal_entities le
             SET official_name = c.full_name
             FROM clients c
@@ -34,15 +35,18 @@ def run() -> None:
               AND le.id_number_type::text = c.id_number_type::text
               AND le.official_name IS NULL
               AND c.deleted_at IS NULL
-        """))
+        """)
+        )
         db.commit()
         print(f"Updated {results.rowcount} legal_entity rows")
 
-        missing = db.execute(text(
-            "SELECT id, id_number FROM legal_entities WHERE official_name IS NULL"
-        )).fetchall()
+        missing = db.execute(
+            text("SELECT id, id_number FROM legal_entities WHERE official_name IS NULL")
+        ).fetchall()
         if missing:
-            print(f"WARNING: {len(missing)} legal_entities still have no official_name:")
+            print(
+                f"WARNING: {len(missing)} legal_entities still have no official_name:"
+            )
             for row in missing:
                 print(f"  id={row.id}, id_number={row.id_number}")
         else:

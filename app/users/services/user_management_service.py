@@ -91,12 +91,17 @@ class UserManagementService:
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
-                raise ConflictError(USER_EMAIL_EXISTS.format(email=fields["email"]), "USER.CONFLICT")
+                raise ConflictError(
+                    USER_EMAIL_EXISTS.format(email=fields["email"]), "USER.CONFLICT"
+                )
 
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))
-            raise AppError(USER_IMMUTABLE_FIELDS.format(disallowed=disallowed), "USER.INVALID_UPDATE")
+            raise AppError(
+                USER_IMMUTABLE_FIELDS.format(disallowed=disallowed),
+                "USER.INVALID_UPDATE",
+            )
 
         if not fields:
             raise AppError(USER_NO_FIELDS_PROVIDED, "USER.NO_FIELDS_PROVIDED")

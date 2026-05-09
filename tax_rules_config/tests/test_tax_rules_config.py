@@ -2,6 +2,7 @@
 בדיקות קריטיות לתקינות הקונפיג.
 מטרה: לוודא שלא נוצרות חובות שגויות ושכל ה-lookups עובדים.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -22,6 +23,7 @@ from app.tax_rules.types import ObligationKind
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _profile(**kwargs):
     base = {
@@ -46,29 +48,42 @@ def _obligation_kinds(profile) -> set:
 
 # ── Validations ────────────────────────────────────────────────────────────────
 
+
 class TestValidations:
     def test_osek_patur_no_periodic_vat(self):
-        errors = validate(_profile(entity_type="osek_patur", vat_reporting_frequency="monthly"))
+        errors = validate(
+            _profile(entity_type="osek_patur", vat_reporting_frequency="monthly")
+        )
         assert any("עוסק פטור" in e for e in errors)
 
     def test_osek_patur_exempt_vat_ok(self):
-        errors = validate(_profile(
-            entity_type="osek_patur",
-            vat_reporting_frequency="exempt",
-            btl_status="self_employed",
-        ))
+        errors = validate(
+            _profile(
+                entity_type="osek_patur",
+                vat_reporting_frequency="exempt",
+                btl_status="self_employed",
+            )
+        )
         assert not errors
 
     def test_company_no_self_employed_ni(self):
-        errors = validate(_profile(entity_type="company_ltd", btl_status="self_employed"))
+        errors = validate(
+            _profile(entity_type="company_ltd", btl_status="self_employed")
+        )
         assert any("חברה" in e for e in errors)
 
     def test_advance_without_rate(self):
-        errors = validate(_profile(income_tax_advance_frequency="monthly", income_tax_advance_rate=None))
+        errors = validate(
+            _profile(
+                income_tax_advance_frequency="monthly", income_tax_advance_rate=None
+            )
+        )
         assert any("income_tax_advance_rate" in e for e in errors)
 
     def test_employee_no_vat(self):
-        errors = validate(_profile(entity_type="employee", vat_reporting_frequency="monthly"))
+        errors = validate(
+            _profile(entity_type="employee", vat_reporting_frequency="monthly")
+        )
         assert any("שכיר" in e for e in errors)
 
     def test_btl_self_employed_no_advance_amount(self):
@@ -82,27 +97,34 @@ class TestValidations:
 
 # ── Obligation resolution ──────────────────────────────────────────────────────
 
+
 class TestObligationResolution:
     def test_osek_patur_gets_annual_vat_declaration(self):
-        kinds = _obligation_kinds(_profile(
-            entity_type="osek_patur",
-            vat_reporting_frequency="exempt",
-        ))
+        kinds = _obligation_kinds(
+            _profile(
+                entity_type="osek_patur",
+                vat_reporting_frequency="exempt",
+            )
+        )
         assert ObligationKind.VAT_EXEMPT_ANNUAL_DECLARATION in kinds
 
     def test_osek_patur_no_periodic_vat_obligation(self):
-        kinds = _obligation_kinds(_profile(
-            entity_type="osek_patur",
-            vat_reporting_frequency="exempt",
-        ))
+        kinds = _obligation_kinds(
+            _profile(
+                entity_type="osek_patur",
+                vat_reporting_frequency="exempt",
+            )
+        )
         assert ObligationKind.VAT_PERIODIC_REPORT not in kinds
 
     def test_osek_patur_can_have_income_tax_advances(self):
-        kinds = _obligation_kinds(_profile(
-            entity_type="osek_patur",
-            vat_reporting_frequency="exempt",
-            income_tax_advance_frequency="monthly",
-        ))
+        kinds = _obligation_kinds(
+            _profile(
+                entity_type="osek_patur",
+                vat_reporting_frequency="exempt",
+                income_tax_advance_frequency="monthly",
+            )
+        )
         assert ObligationKind.INCOME_TAX_ADVANCE in kinds
 
     def test_pcn874_only_when_flagged(self):
@@ -124,13 +146,16 @@ class TestObligationResolution:
         assert ObligationKind.WITHHOLDING_MONTHLY_102 in with_file
 
     def test_company_not_self_employed_ni(self):
-        rules = get_obligations(_profile(
-            entity_type="company_ltd",
-            btl_status="not_self_employed",
-            vat_reporting_frequency="monthly",
-        ))
+        rules = get_obligations(
+            _profile(
+                entity_type="company_ltd",
+                btl_status="not_self_employed",
+                vat_reporting_frequency="monthly",
+            )
+        )
         ni_self = [
-            r for r in rules
+            r
+            for r in rules
             if r.kind == ObligationKind.NATIONAL_INSURANCE_SELF_EMPLOYED_ADVANCE
             and r.not_applicable_reason_he
         ]
@@ -138,6 +163,7 @@ class TestObligationResolution:
 
 
 # ── Financials ─────────────────────────────────────────────────────────────────
+
 
 class TestFinancials:
     def test_vat_rate_2026(self):
@@ -165,17 +191,22 @@ class TestFinancials:
 
 # ── Calendar & overrides ───────────────────────────────────────────────────────
 
+
 class TestCalendar:
     def test_all_12_periods_present(self):
         cal = get_periodic_calendar(2026)
         assert len(cal) == 12
 
     def test_feb_2026_override_applied(self):
-        date = get_effective_periodic_date(2026, "2026-02", "effective_vat_periodic_and_income_tax_advances")
+        date = get_effective_periodic_date(
+            2026, "2026-02", "effective_vat_periodic_and_income_tax_advances"
+        )
         assert date == "2026-03-26"
 
     def test_jan_2026_no_override(self):
-        date = get_effective_periodic_date(2026, "2026-01", "effective_vat_periodic_and_income_tax_advances")
+        date = get_effective_periodic_date(
+            2026, "2026-01", "effective_vat_periodic_and_income_tax_advances"
+        )
         assert date == "2026-02-16"
 
     def test_missing_year_raises(self):
@@ -187,6 +218,7 @@ class TestCalendar:
 
 
 # ── VAT deduction ──────────────────────────────────────────────────────────────
+
 
 class TestVatDeduction:
     def test_entertainment_zero(self):
@@ -203,6 +235,7 @@ class TestVatDeduction:
 
 
 # ── Annual report rules ────────────────────────────────────────────────────────
+
 
 class TestAnnualReports:
     def test_individual_2025_extended_deadline(self):

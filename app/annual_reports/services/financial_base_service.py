@@ -3,13 +3,25 @@
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.annual_reports.repositories.credit_point_repository import AnnualReportCreditPointRepository
-from app.annual_reports.repositories.detail_repository import AnnualReportDetailRepository
-from app.annual_reports.repositories.expense_repository import AnnualReportExpenseRepository
-from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
+from app.annual_reports.repositories.credit_point_repository import (
+    AnnualReportCreditPointRepository,
+)
+from app.annual_reports.repositories.detail_repository import (
+    AnnualReportDetailRepository,
+)
+from app.annual_reports.repositories.expense_repository import (
+    AnnualReportExpenseRepository,
+)
+from app.annual_reports.repositories.income_repository import (
+    AnnualReportIncomeRepository,
+)
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.annual_reports.services.labels import SCHEDULE_LABELS
 from app.annual_reports.services.messages import ANNUAL_REPORT_DETAILED_NOT_FOUND
@@ -32,7 +44,10 @@ class FinancialBaseService:
     def _get_report_or_raise(self, report_id: int):
         report = self.report_repo.get_by_id(report_id)
         if not report:
-            raise NotFoundError(ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id), "ANNUAL_REPORT.NOT_FOUND")
+            raise NotFoundError(
+                ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id),
+                "ANNUAL_REPORT.NOT_FOUND",
+            )
         return report
 
 

@@ -78,7 +78,9 @@ def vat_client(db, vat_type: VatType):
         vat_reporting_frequency=vat_type,
         status=ClientStatus.ACTIVE,
     )
-    seed_business(db, legal_entity_id=client.legal_entity_id, business_name=f"VAT Biz {idx}")
+    seed_business(
+        db, legal_entity_id=client.legal_entity_id, business_name=f"VAT Biz {idx}"
+    )
     db.flush()
     return client
 

@@ -1,6 +1,8 @@
 from datetime import date
 
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.businesses.models.business import Business
 from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
@@ -27,7 +29,9 @@ def _create_business(test_db) -> Business:
 def test_delete_advance_payment_success(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
-    payment = create_linked_advance_payment(test_db, repo=repo,
+    payment = create_linked_advance_payment(
+        test_db,
+        repo=repo,
         client_record_id=business.client_record_id,
         period="2026-04",
         period_months_count=1,

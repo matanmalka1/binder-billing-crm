@@ -12,7 +12,9 @@ class ClientRecord(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
+    legal_entity_id = Column(
+        Integer, ForeignKey("legal_entities.id"), nullable=False, index=True
+    )
 
     office_client_number = Column(Integer, nullable=True)
     accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)

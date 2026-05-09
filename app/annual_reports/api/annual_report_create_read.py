@@ -3,7 +3,10 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from app.core.exceptions import NotFoundError
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.schemas.annual_report_requests import AmendRequest, AnnualReportCreateRequest
+from app.annual_reports.schemas.annual_report_requests import (
+    AmendRequest,
+    AnnualReportCreateRequest,
+)
 from app.annual_reports.schemas.annual_report_responses import (
     AnnualReportDetailResponse,
     AnnualReportListResponse,
@@ -19,8 +22,12 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=AnnualReportDetailResponse, status_code=status.HTTP_201_CREATED)
-def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: CurrentUser):
+@router.post(
+    "", response_model=AnnualReportDetailResponse, status_code=status.HTTP_201_CREATED
+)
+def create_annual_report(
+    body: AnnualReportCreateRequest, db: DBSession, user: CurrentUser
+):
     """Create a new annual income tax report for a client legal entity."""
     service = AnnualReportService(db)
     orm_report = service.create_report(
@@ -32,7 +39,9 @@ def create_annual_report(body: AnnualReportCreateRequest, db: DBSession, user: C
         deadline_type=body.deadline_type,
         assigned_to=body.assigned_to,
         notes=body.notes,
-        submission_method=body.submission_method.value if body.submission_method else None,
+        submission_method=body.submission_method.value
+        if body.submission_method
+        else None,
         extension_reason=body.extension_reason.value if body.extension_reason else None,
         has_rental_income=body.has_rental_income,
         has_capital_gains=body.has_capital_gains,
@@ -49,7 +58,10 @@ def list_annual_reports(
     tax_year: int | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
-    sort_by: str = Query("tax_year", pattern="^(tax_year|status|filing_deadline|created_at|client_record_id)$"),
+    sort_by: str = Query(
+        "tax_year",
+        pattern="^(tax_year|status|filing_deadline|created_at|client_record_id)$",
+    ),
     order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
     """List annual reports (optionally filter by tax_year)."""
@@ -100,7 +112,9 @@ def get_annual_report(report_id: int, db: DBSession, user: CurrentUser):
 def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete an annual report (ADVISOR only)."""
     service = AnnualReportService(db)
-    deleted = service.delete_report(report_id, actor_id=user.id, actor_name=user.full_name)
+    deleted = service.delete_report(
+        report_id, actor_id=user.id, actor_name=user.full_name
+    )
     if not deleted:
         raise NotFoundError("הדוח לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -111,7 +125,9 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
     response_model=AnnualReportDetailResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
-def amend_annual_report(report_id: int, body: AmendRequest, db: DBSession, user: CurrentUser):
+def amend_annual_report(
+    report_id: int, body: AmendRequest, db: DBSession, user: CurrentUser
+):
     """Transition a SUBMITTED report to AMENDED and record the amendment reason (ADVISOR only)."""
     service = AnnualReportService(db)
     return service.amend_report(

@@ -7,8 +7,10 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 # ── Detail (ניכויים ואישורים) ─────────────────────────────────────────────────
 
+
 class ReportDetailResponse(BaseModel):
     """AnnualReportDetail — ניכויים, אישור לקוח, הערות."""
+
     report_id: int
     pension_contribution: Optional[ApiDecimal] = None
     donation_amount: Optional[ApiDecimal] = None

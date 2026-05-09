@@ -38,7 +38,7 @@ def list_annex_lines(
     all_lines = svc.get_annex_lines(report_id, schedule)
     total = len(all_lines)
     start = (page - 1) * page_size
-    items = all_lines[start:start + page_size]
+    items = all_lines[start : start + page_size]
     return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
 
 
@@ -55,7 +55,9 @@ def add_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    return svc.add_annex_line(report_id, schedule, body.data, body.notes, actor_id=user.id)
+    return svc.add_annex_line(
+        report_id, schedule, body.data, body.notes, actor_id=user.id
+    )
 
 
 @router.patch(
@@ -71,7 +73,9 @@ def update_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    return svc.update_annex_line(report_id, line_id, body.data, body.notes, actor_id=user.id)
+    return svc.update_annex_line(
+        report_id, line_id, body.data, body.notes, actor_id=user.id
+    )
 
 
 @router.delete(

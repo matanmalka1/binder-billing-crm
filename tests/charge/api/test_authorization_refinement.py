@@ -4,7 +4,9 @@ from app.businesses.models.business import Business, BusinessStatus
 from tests.helpers.identity import seed_client_identity
 
 
-def test_secretary_cannot_see_charge_amounts(client, secretary_headers, advisor_headers, test_db):
+def test_secretary_cannot_see_charge_amounts(
+    client, secretary_headers, advisor_headers, test_db
+):
     """Test secretary cannot see charge amounts."""
     test_client = seed_client_identity(
         full_name="Auth Test",

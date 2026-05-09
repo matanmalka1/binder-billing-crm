@@ -12,11 +12,11 @@ from app.permanent_documents.models.permanent_document import (
 
 class PermanentDocumentResponse(BaseModel):
     id: int
-    client_record_id: int                         
+    client_record_id: int
     client_name: Optional[str] = None
-    business_id: Optional[int] = None       # nullable — CLIENT scope
-    scope: DocumentScope                   
-    document_type: DocumentType            
+    business_id: Optional[int] = None  # nullable — CLIENT scope
+    scope: DocumentScope
+    document_type: DocumentType
     storage_key: str
     original_filename: Optional[str] = None
     file_size_bytes: Optional[int] = None
@@ -24,7 +24,7 @@ class PermanentDocumentResponse(BaseModel):
     tax_year: Optional[int] = None
     is_present: bool
     is_deleted: bool
-    status: DocumentStatus                 
+    status: DocumentStatus
     version: int
     superseded_by: Optional[int] = None
     annual_report_id: Optional[int] = None
@@ -32,8 +32,8 @@ class PermanentDocumentResponse(BaseModel):
     uploaded_at: ApiDateTime
     approved_by: Optional[int] = None
     approved_at: Optional[ApiDateTime] = None
-    rejected_by: Optional[int] = None      
-    rejected_at: Optional[ApiDateTime] = None  
+    rejected_by: Optional[int] = None
+    rejected_at: Optional[ApiDateTime] = None
 
     model_config = {"from_attributes": True}
 
@@ -48,7 +48,7 @@ class DocumentVersionsResponse(BaseModel):
 
 class OperationalSignalsResponse(BaseModel):
     client_record_id: int
-    missing_documents: list[DocumentType]   
+    missing_documents: list[DocumentType]
 
 
 class DocumentDownloadUrlResponse(BaseModel):

@@ -11,7 +11,11 @@ from app.clients.create_policy import (
     normalize_vat_reporting_frequency,
 )
 from app.clients.models.client_record import ClientRecord
-from app.clients.schemas.client import ActiveClientSummary, ClientConflictInfo, DeletedClientSummary
+from app.clients.schemas.client import (
+    ActiveClientSummary,
+    ClientConflictInfo,
+    DeletedClientSummary,
+)
 from app.clients.services.client_service import ClientService
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.exceptions import ConflictError
@@ -37,7 +41,7 @@ class CreateClientService:
         full_name: str,
         id_number: str,
         business_name: Optional[str] = None,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL, # type: ignore
+        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
         entity_type: Optional[EntityType] = None,
         phone: Optional[str] = None,
         email: Optional[str] = None,
@@ -61,11 +65,13 @@ class CreateClientService:
         The caller/session owner is responsible for commit. If any creation step
         raises, the request-level DB dependency rolls back all records.
         """
-        normalized_business_name = (business_name or '').strip() or full_name.strip()
+        normalized_business_name = (business_name or "").strip() or full_name.strip()
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
 
-        normalized_vat_frequency = normalize_vat_reporting_frequency(entity_type, vat_reporting_frequency)
+        normalized_vat_frequency = normalize_vat_reporting_frequency(
+            entity_type, vat_reporting_frequency
+        )
         normalized_vat_ceiling = normalize_vat_exempt_ceiling(entity_type)
 
         try:
@@ -91,7 +97,9 @@ class CreateClientService:
         except ConflictError as exc:
             if exc.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
                 raise
-            raise ClientCreationConflictError(self._client_conflict_detail(id_number, exc)) from exc
+            raise ClientCreationConflictError(
+                self._client_conflict_detail(id_number, exc)
+            ) from exc
         business = self.business_service.create_business_for_client_record(
             client_record_id=client_record.id,
             opened_at=business_opened_at,

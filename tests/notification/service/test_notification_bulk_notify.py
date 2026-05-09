@@ -1,4 +1,8 @@
-from app.notification.models.notification import NotificationChannel, NotificationSeverity, NotificationTrigger
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationSeverity,
+    NotificationTrigger,
+)
 from app.notification.services.notification_service import NotificationService
 
 
@@ -13,7 +17,9 @@ def test_bulk_notify_counts_sent_and_failed(monkeypatch, test_db):
             "_SendSvc",
             (),
             {
-                "bulk_notify": staticmethod(lambda **kwargs: captured.update(kwargs) or {"sent": 2, "failed": 1}),
+                "bulk_notify": staticmethod(
+                    lambda **kwargs: captured.update(kwargs) or {"sent": 2, "failed": 1}
+                ),
             },
         )(),
     )

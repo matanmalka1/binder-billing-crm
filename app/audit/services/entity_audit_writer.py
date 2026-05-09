@@ -47,8 +47,12 @@ class EntityAuditWriter:
         )
 
     def record_create(
-        self, entity_type: str, entity_id: int, actor_id: Optional[int],
-        new_value: Any = None, note: Optional[str] = None,
+        self,
+        entity_type: str,
+        entity_id: int,
+        actor_id: Optional[int],
+        new_value: Any = None,
+        note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
             entity_type=entity_type,
@@ -60,8 +64,13 @@ class EntityAuditWriter:
         )
 
     def record_update(
-        self, entity_type: str, entity_id: int, actor_id: Optional[int],
-        old_value: Any = None, new_value: Any = None, note: Optional[str] = None,
+        self,
+        entity_type: str,
+        entity_id: int,
+        actor_id: Optional[int],
+        old_value: Any = None,
+        new_value: Any = None,
+        note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
             entity_type=entity_type,
@@ -74,8 +83,12 @@ class EntityAuditWriter:
         )
 
     def record_delete(
-        self, entity_type: str, entity_id: int, actor_id: Optional[int],
-        old_value: Any = None, note: Optional[str] = None,
+        self,
+        entity_type: str,
+        entity_id: int,
+        actor_id: Optional[int],
+        old_value: Any = None,
+        note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
             entity_type=entity_type,
@@ -87,8 +100,12 @@ class EntityAuditWriter:
         )
 
     def record_restore(
-        self, entity_type: str, entity_id: int, actor_id: Optional[int],
-        new_value: Any = None, note: Optional[str] = None,
+        self,
+        entity_type: str,
+        entity_id: int,
+        actor_id: Optional[int],
+        new_value: Any = None,
+        note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
             entity_type=entity_type,
@@ -100,8 +117,13 @@ class EntityAuditWriter:
         )
 
     def record_status_change(
-        self, entity_type: str, entity_id: int, actor_id: Optional[int],
-        old_status: Any, new_status: Any, note: Optional[str] = None,
+        self,
+        entity_type: str,
+        entity_id: int,
+        actor_id: Optional[int],
+        old_status: Any,
+        new_status: Any,
+        note: Optional[str] = None,
     ) -> Optional[EntityAuditLog]:
         return self.append(
             entity_type=entity_type,

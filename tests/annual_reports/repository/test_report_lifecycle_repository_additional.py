@@ -2,7 +2,9 @@ from datetime import timedelta
 from itertools import count
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
-from app.annual_reports.repositories.report_lifecycle_repository import AnnualReportLifecycleRepository
+from app.annual_reports.repositories.report_lifecycle_repository import (
+    AnnualReportLifecycleRepository,
+)
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_identity
@@ -35,7 +37,9 @@ def test_lifecycle_soft_delete_true_and_false(test_db):
     report = _report(test_db)
     assert repo.soft_delete(report.id, deleted_by=5) is True
 
-    refreshed = AnnualReportService(test_db).repo.get_by_client_record_year(report.client_record_id, 2026)
+    refreshed = AnnualReportService(test_db).repo.get_by_client_record_year(
+        report.client_record_id, 2026
+    )
     assert refreshed is None
 
 

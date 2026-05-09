@@ -13,9 +13,9 @@ from app.notification.models.notification import (
 
 class NotificationResponse(BaseModel):
     id: int
-    client_record_id: int                          # PRIMARY anchor — always present
-    business_id: Optional[int] = None      # OPTIONAL context
-    business_name: Optional[str] = None    # enriched by service layer
+    client_record_id: int  # PRIMARY anchor — always present
+    business_id: Optional[int] = None  # OPTIONAL context
+    business_name: Optional[str] = None  # enriched by service layer
     binder_id: Optional[int] = None
     trigger: NotificationTrigger
     channel: NotificationChannel
@@ -49,6 +49,7 @@ class UnreadCountResponse(BaseModel):
 
 class SendNotificationRequest(BaseModel):
     """Manual send by advisor — scoped to a business."""
+
     business_id: int
     channel: NotificationChannel
     message: str = Field(min_length=1, max_length=1000)

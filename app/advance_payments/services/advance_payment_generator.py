@@ -5,8 +5,13 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import AdvancePayment
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
-from app.advance_payments.services.constants import build_due_date, get_period_start_months
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
+from app.advance_payments.services.constants import (
+    build_due_date,
+    get_period_start_months,
+)
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.core.exceptions import ConflictError
 

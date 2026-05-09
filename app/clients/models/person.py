@@ -1,4 +1,12 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from app.database import Base
 from app.utils.time_utils import utcnow
 from app.common.enums import IdNumberType

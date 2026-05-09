@@ -53,7 +53,9 @@ def recalculate_totals(
     """Recompute output / input VAT totals from stored invoices (single query)."""
     output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
     output_net, input_net = invoice_repo.sum_net_both_types(item_id)
-    work_item_repo.update_vat_totals(item_id, output_vat, input_vat, output_net, input_net)
+    work_item_repo.update_vat_totals(
+        item_id, output_vat, input_vat, output_net, input_net
+    )
     return output_vat, input_vat
 
 
@@ -100,7 +102,9 @@ def resolve_invoice_derived_fields(
     deduction_rate = Decimal("1.0000")
     if invoice_type == InvoiceType.EXPENSE and expense_category:
         deduction_rate = Decimal(str(get_vat_deduction_rate(expense_category.value)))
-    threshold = Decimal(str(get_financial(year, "exceptional_invoice_threshold_ils").value))
+    threshold = Decimal(
+        str(get_financial(year, "exceptional_invoice_threshold_ils").value)
+    )
     is_exceptional = Decimal(str(net_amount)) > threshold
     return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
 
@@ -116,14 +120,14 @@ def check_osek_patur_ceiling(
     Returns True if the post-add turnover crosses the 80% warning threshold (non-blocking).
     Only enforced for OSEK_PATUR clients (EntityType.OSEK_PATUR).
     """
-    is_osek_patur = (
-        getattr(client, "entity_type", None) == EntityType.OSEK_PATUR
-    )
+    is_osek_patur = getattr(client, "entity_type", None) == EntityType.OSEK_PATUR
     if not is_osek_patur:
         return False
     year = int(period[:4])
     ceiling = Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))
-    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_record_id, year)))
+    current_total = Decimal(
+        str(invoice_repo.sum_income_net_by_client_year(client_record_id, year))
+    )
     new_total = current_total + Decimal(str(new_net_amount))
     if new_total > ceiling:
         raise AppError(

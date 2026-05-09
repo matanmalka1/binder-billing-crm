@@ -87,7 +87,9 @@ def update_invoice(
         item_id=item_id,
         invoice_id=invoice_id,
         performed_by=current_user.id,
-        net_amount=float(request.net_amount) if request.net_amount is not None else None,
+        net_amount=float(request.net_amount)
+        if request.net_amount is not None
+        else None,
         invoice_number=request.invoice_number,
         invoice_date=request.invoice_date,
         counterparty_name=request.counterparty_name,

@@ -4,6 +4,7 @@ Environment validation for production safety.
 Validates required environment variables on startup.
 Application refuses to boot if validation fails.
 """
+
 import os
 import sys
 

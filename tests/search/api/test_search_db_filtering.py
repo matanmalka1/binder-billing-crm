@@ -17,7 +17,9 @@ def _make_binder(db, client_record_id: int, binder_number: str, user_id: int) ->
     return b
 
 
-def test_search_clients_db_pagination(client, test_db, advisor_headers, create_client_with_business):
+def test_search_clients_db_pagination(
+    client, test_db, advisor_headers, create_client_with_business
+):
     """Page 2 should return correct offset results."""
     for i in range(5):
         create_client_with_business(
@@ -49,7 +51,9 @@ def test_search_clients_db_pagination(client, test_db, advisor_headers, create_c
     assert ids_page1.isdisjoint(ids_page2)
 
 
-def test_search_binder_number_filter(client, test_db, advisor_headers, test_user, create_client_with_business):
+def test_search_binder_number_filter(
+    client, test_db, advisor_headers, test_user, create_client_with_business
+):
     """DB-level binder_number filter returns only matching binders."""
     c, _business = create_client_with_business(
         full_name="Binder Filter Client",

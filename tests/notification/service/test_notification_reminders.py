@@ -13,7 +13,10 @@ def test_notify_pickup_reminder_delegates_client_notification(test_db):
     )
     binder = SimpleNamespace(id=12, binder_number="B-12")
 
-    assert service.notify_pickup_reminder(binder, client_record_id=3, triggered_by=4) is True
+    assert (
+        service.notify_pickup_reminder(binder, client_record_id=3, triggered_by=4)
+        is True
+    )
 
     assert captured["trigger"] == NotificationTrigger.PICKUP_REMINDER
     assert captured["binder_id"] == 12
@@ -30,12 +33,15 @@ def test_notify_annual_report_client_reminder_delegates_client_notification(test
         send_client_notification=lambda **kwargs: captured.update(kwargs) or True,
     )
 
-    assert service.notify_annual_report_client_reminder(
-        client_record_id=8,
-        annual_report_id=20,
-        tax_year=2025,
-        triggered_by=6,
-    ) is True
+    assert (
+        service.notify_annual_report_client_reminder(
+            client_record_id=8,
+            annual_report_id=20,
+            tax_year=2025,
+            triggered_by=6,
+        )
+        is True
+    )
 
     assert captured["trigger"] == NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
     assert captured["annual_report_id"] == 20

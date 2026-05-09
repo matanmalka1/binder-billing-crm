@@ -36,7 +36,9 @@ def _contact(db, client_id: int, name: str) -> AuthorityContact:
     return contact
 
 
-def test_update_entry_forbidden_when_contact_belongs_to_other_client(test_db, test_user):
+def test_update_entry_forbidden_when_contact_belongs_to_other_client(
+    test_db, test_user
+):
     b1 = _business(test_db, "700000001")
     b2 = _business(test_db, "700000002")
     foreign_contact = _contact(test_db, b2.client_id, "Foreign Contact")
@@ -57,7 +59,9 @@ def test_update_entry_forbidden_when_contact_belongs_to_other_client(test_db, te
     assert exc_info.value.code == "CORRESPONDENCE.FORBIDDEN_CONTACT"
 
 
-def test_update_entry_raises_not_found_when_repo_update_returns_none(test_db, test_user, monkeypatch):
+def test_update_entry_raises_not_found_when_repo_update_returns_none(
+    test_db, test_user, monkeypatch
+):
     b1 = _business(test_db, "700000003")
     service = CorrespondenceService(test_db)
     entry = service.add_entry(

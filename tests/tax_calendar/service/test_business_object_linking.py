@@ -2,13 +2,19 @@ from datetime import date
 
 import pytest
 
-from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
+from app.advance_payments.services.advance_payment_generator import (
+    generate_annual_schedule,
+)
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.common.enums import DeadlineRuleType, ObligationType, VatType
 from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
-from app.tax_calendar.services.link_diagnostics import find_active_null_tax_calendar_links
-from app.tax_calendar.services.materialization_service import TaxCalendarMaterializationService
+from app.tax_calendar.services.link_diagnostics import (
+    find_active_null_tax_calendar_links,
+)
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.tax_calendar.services.grouped_service import list_groups
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -72,8 +78,11 @@ def test_vat_work_item_monthly_links_matching_tax_calendar_entry(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
 
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
     assert item.tax_calendar_entry_id == entry.id
@@ -94,8 +103,11 @@ def test_vat_work_item_bimonthly_links_matching_tax_calendar_entry(test_db):
     client = vat_client(test_db, VatType.BIMONTHLY)
 
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
     assert item.tax_calendar_entry_id == entry.id
@@ -108,8 +120,11 @@ def test_vat_work_item_creates_missing_tax_calendar_entry(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
 
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
     entry = test_db.get(TaxCalendarEntry, item.tax_calendar_entry_id)
@@ -132,8 +147,11 @@ def test_vat_work_item_due_date_original_is_immutable_after_set(test_db):
     )
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
     item.due_date_original = date(2026, 2, 20)
@@ -146,8 +164,11 @@ def test_vat_work_item_due_date_original_is_immutable_after_set(test_db):
 def test_vat_work_item_effective_due_date_requires_reason_when_changed(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
     item.due_date_original = date(2026, 2, 15)
     item.due_date_effective = date(2026, 2, 20)
@@ -159,8 +180,11 @@ def test_vat_work_item_effective_due_date_requires_reason_when_changed(test_db):
 def test_vat_work_item_effective_due_date_can_change_with_reason(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
     # due_date_original is already set from TaxCalendarEntry; only change effective.
     item.due_date_effective = date(2026, 2, 20)
@@ -174,8 +198,11 @@ def test_vat_work_item_effective_due_date_can_change_with_reason(test_db):
 def test_vat_work_item_effective_due_date_equal_original_needs_no_reason(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
     # Setting effective to the same value as original requires no override reason.
     item.due_date_effective = item.due_date_original
@@ -190,8 +217,11 @@ def test_vat_exempt_keeps_existing_rejection_before_calendar_linking(test_db):
 
     with pytest.raises(AppError) as exc:
         create_work_item(
-            VatWorkItemRepository(test_db), test_db,
-            client_record_id=client.id, period="2026-01", created_by=1,
+            VatWorkItemRepository(test_db),
+            test_db,
+            client_record_id=client.id,
+            period="2026-01",
+            created_by=1,
         )
 
     assert exc.value.code == "VAT.CLIENT_EXEMPT"
@@ -259,8 +289,11 @@ def test_mismatched_existing_tax_calendar_fk_raises_conflict(test_db):
 def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
     item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=client.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=client.id,
+        period="2026-01",
+        created_by=1,
     )
 
     groups = list_groups(
@@ -271,7 +304,11 @@ def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
         include_empty=False,
     )
 
-    assert any(group.tax_calendar_entry_id == item.tax_calendar_entry_id and group.linked_count == 1 for group in groups)
+    assert any(
+        group.tax_calendar_entry_id == item.tax_calendar_entry_id
+        and group.linked_count == 1
+        for group in groups
+    )
 
 
 def test_null_link_diagnostics_reports_active_rows(test_db):
@@ -292,8 +329,11 @@ def test_bootstrap_entries_allow_business_objects_to_link(test_db):
         advance.id, 2026, test_db, reference_date=date(2025, 12, 31)
     )
     vat_item = create_work_item(
-        VatWorkItemRepository(test_db), test_db,
-        client_record_id=vat.id, period="2026-01", created_by=1,
+        VatWorkItemRepository(test_db),
+        test_db,
+        client_record_id=vat.id,
+        period="2026-01",
+        created_by=1,
     )
     report = AnnualReportService(test_db).create_report(
         annual.id, 2026, "corporation", 1, "Advisor"

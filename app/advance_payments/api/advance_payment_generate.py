@@ -6,12 +6,15 @@ from app.advance_payments.schemas.advance_payment import (
     GenerateScheduleRequest,
     GenerateScheduleResponse,
 )
-from app.advance_payments.services.advance_payment_generator import generate_annual_schedule
+from app.advance_payments.services.advance_payment_generator import (
+    generate_annual_schedule,
+)
 
 router = APIRouter(
     prefix="/clients/{client_record_id}/advance-payments",
     tags=["advance-payments"],
 )
+
 
 @router.post(
     "/generate",
