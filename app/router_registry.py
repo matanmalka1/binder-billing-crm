@@ -22,7 +22,7 @@ from app.timeline.api.routers import router as timeline_router
 from app.users.api.routers import router as users_router
 from app.notes.api.routers import router as notes_router
 from app.vat_reports.api.routers import router as vat_reports_router
-from app.tasks.api.routes import router as tasks_router
+from app.work_queue.api.routes import router as work_queue_router
 
 
 def register_routers(app: FastAPI) -> None:
@@ -49,4 +49,4 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(vat_reports_router, prefix="/api/v1")
     app.include_router(notes_router, prefix="/api/v1")
     app.include_router(audit_router, prefix="/api/v1")
-    app.include_router(tasks_router, prefix="/api/v1")
+    app.include_router(work_queue_router, prefix="/api/v1")
