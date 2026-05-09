@@ -2,10 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.clients.create_policy import (
-    derive_id_number_type,
-    preview_vat_reporting_frequency,
-)
+from app.clients.create_policy import preview_vat_reporting_frequency
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.clients.enums import ClientStatus
@@ -30,7 +27,6 @@ from app.clients.services.create_client_service import (
 )
 from app.clients.services.client_service import ClientService
 from app.clients.services.impact_preview_service import compute_creation_impact
-from app.businesses.services.client_business_service import ClientBusinessService
 
 router = APIRouter(
     prefix="/clients",
@@ -76,54 +72,16 @@ def create_client(
     """Create a reporting entity and its first business in one request."""
     service = CreateClientService(db)
     try:
-        client_record, business = service.create_client(
-            full_name=request.client.full_name,
-            id_number=request.client.id_number,
-            id_number_type=derive_id_number_type(request.client.entity_type),
-            entity_type=request.client.entity_type,
-            phone=request.client.phone,
-            email=str(request.client.email) if request.client.email else None,
-            address_street=request.client.address_street,
-            address_building_number=request.client.address_building_number,
-            address_apartment=request.client.address_apartment,
-            address_city=request.client.address_city,
-            address_zip_code=request.client.address_zip_code,
-            vat_reporting_frequency=request.client.vat_reporting_frequency,
-            advance_payment_frequency=request.client.advance_payment_frequency,
-            vat_exempt_ceiling=None,
-            advance_rate=request.client.advance_rate,
-            accountant_id=request.client.accountant_id,
-            business_name=request.business.business_name,
-            business_opened_at=request.business.opened_at,
-            business_notes=request.business.notes,
+        return service.create_from_request(
+            request,
             actor_id=user.id,
+            actor_role=user.role,
         )
     except ClientCreationConflictError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=exc.detail,
         ) from exc
-
-    impact = compute_creation_impact(
-        entity_type=request.client.entity_type,
-        vat_reporting_frequency=preview_vat_reporting_frequency(
-            request.client.entity_type,
-            request.client.vat_reporting_frequency,
-        ),
-        advance_payment_frequency=request.client.advance_payment_frequency,
-    )
-    full = service.client_service.get_full_client(client_record.id)
-    business_response = ClientBusinessService(db).to_response(
-        business,
-        user.role,
-        client_id=client_record.id,
-    )
-    return CreateClientRecordResponse(
-        client_record_id=client_record.id,
-        client=full,
-        business=business_response,
-        impact=impact,
-    )
 
 
 # ─── Read ─────────────────────────────────────────────────────────────────────

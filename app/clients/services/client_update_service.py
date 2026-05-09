@@ -17,7 +17,7 @@ from app.clients.enums import ClientStatus
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.repositories.person_repository import PersonRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_record_read_repository import get_full_record
+from app.clients.repositories.client_record_repository import get_full_record
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.reminders.services.client_status_service import ReminderClientStatusService
 from app.users.models.user import UserRole

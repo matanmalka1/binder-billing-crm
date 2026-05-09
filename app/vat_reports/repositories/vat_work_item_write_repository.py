@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.enums import SubmissionMethod
+from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -16,20 +17,15 @@ from app.vat_reports.repositories.vat_work_item_query_repository import (
 )
 
 
-class VatWorkItemWriteRepository:
+class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
+    model = VatWorkItem
+
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
         self._query = VatWorkItemQueryRepository(db)
         self._audit = VatAuditLogRepository(db)
 
     # ── Read delegation ───────────────────────────────────────────────────────
-
-    def get_by_id(self, item_id: int) -> Optional[VatWorkItem]:
-        return self._query.get_by_id(item_id)
-
-    def get_by_id_for_update(self, item_id: int) -> Optional[VatWorkItem]:
-        """Fetch with a row-level lock for status transitions."""
-        return self._query.get_by_id_for_update(item_id)
 
     def get_by_client_record_period(
         self, client_record_id: int, period: str
@@ -96,7 +92,7 @@ class VatWorkItemWriteRepository:
             raise TypeError(
                 "client_record_id, period, period_type, and created_by are required"
             )
-        item = VatWorkItem(
+        return self.build_and_add(
             client_record_id=client_record_id,
             period=period,
             period_type=period_type,
@@ -108,9 +104,6 @@ class VatWorkItemWriteRepository:
             due_date_original=due_date_original,
             due_date_effective=due_date_effective,
         )
-        self.db.add(item)
-        self.db.flush()
-        return item
 
     def update_status(
         self,

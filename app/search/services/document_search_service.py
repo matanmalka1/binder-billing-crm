@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_record_read_repository import get_full_records_bulk
+from app.clients.repositories.client_record_repository import get_full_records_bulk
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
 )

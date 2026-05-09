@@ -1,3 +1,5 @@
+from pydantic import BaseModel
+
 from app.clients.schemas.client_conflicts import (
     ActiveClientSummary,
     ClientConflictInfo,
@@ -10,14 +12,17 @@ from app.clients.schemas.client_requests import (
     ClientUpdateRequest,
     CreateClientRequest,
 )
-from app.clients.schemas.client_responses import (
-    ClientImportError,
-    ClientImportResponse,
-    ClientListResponse,
-    ClientListStats,
-    ClientResponse,
-    CreateClientResponse,
-)
+
+
+class ClientImportError(BaseModel):
+    row: int
+    error: str
+
+
+class ClientImportResponse(BaseModel):
+    created: int
+    total_rows: int
+    errors: list[ClientImportError]
 
 __all__ = [
     "ActiveClientSummary",
@@ -27,11 +32,7 @@ __all__ = [
     "ClientImpactPreviewRequest",
     "ClientImportError",
     "ClientImportResponse",
-    "ClientListResponse",
-    "ClientListStats",
-    "ClientResponse",
     "ClientUpdateRequest",
     "CreateClientRequest",
-    "CreateClientResponse",
     "DeletedClientSummary",
 ]

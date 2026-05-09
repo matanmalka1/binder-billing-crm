@@ -5,12 +5,15 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_audit_log import VatAuditLog
 
 
-class VatAuditLogRepository:
+class VatAuditLogRepository(BaseRepository[VatAuditLog]):
+    model = VatAuditLog
+
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
 
     def append(
         self,
@@ -22,7 +25,7 @@ class VatAuditLogRepository:
         note: Optional[str] = None,
         invoice_id: Optional[int] = None,
     ) -> VatAuditLog:
-        entry = VatAuditLog(
+        return self.build_and_add(
             work_item_id=work_item_id,
             performed_by=performed_by,
             action=action,
@@ -31,16 +34,13 @@ class VatAuditLogRepository:
             note=note,
             invoice_id=invoice_id,
         )
-        self.db.add(entry)
-        self.db.flush()
-        return entry
 
     def count_audit_trail(self, work_item_id: int) -> int:
         return self.db.scalar(
             select(func.count(VatAuditLog.id)).where(
                 VatAuditLog.work_item_id == work_item_id
             )
-        )
+        ) or 0
 
     def get_audit_trail(
         self, work_item_id: int, limit: int, offset: int

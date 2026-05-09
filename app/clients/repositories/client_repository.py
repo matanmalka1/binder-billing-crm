@@ -4,18 +4,15 @@ from dataclasses import dataclass
 from typing import Optional
 
 from app.clients.enums import ClientStatus
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import (
-    PersonLegalEntityLink,
-    PersonLegalEntityRole,
+from app.clients.repositories.client_record_repository import (
+    ClientRecordRepository,
+    get_full_record,
+    get_full_record_including_deleted,
+    get_full_records_bulk,
 )
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.clients.repositories.person_repository import PersonRepository
-from app.common.enums import EntityType, IdNumberType, VatType
-from app.common.repositories.base_repository import BaseRepository
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 
 
 @dataclass
@@ -27,106 +24,43 @@ class ClientRecordView:
     id_number_type: Optional[IdNumberType]
     entity_type: Optional[EntityType]
     status: ClientStatus
-    phone: Optional[str]
-    email: Optional[str]
-    address_street: Optional[str]
-    address_building_number: Optional[str]
-    address_apartment: Optional[str]
-    address_city: Optional[str]
-    address_zip_code: Optional[str]
-    office_client_number: Optional[int]
-    notes: Optional[str]
-    vat_reporting_frequency: Optional[VatType]
-    vat_exempt_ceiling: Optional[object]
-    advance_rate: Optional[object]
-    advance_rate_updated_at: Optional[object]
-    accountant_id: Optional[int]
-    created_at: Optional[object]
-    updated_at: Optional[object]
-    deleted_at: Optional[object]
-    deleted_by: Optional[int]
-    restored_at: Optional[object]
-    restored_by: Optional[int]
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address_street: Optional[str] = None
+    address_building_number: Optional[str] = None
+    address_apartment: Optional[str] = None
+    address_city: Optional[str] = None
+    address_zip_code: Optional[str] = None
+    office_client_number: Optional[int] = None
+    notes: Optional[str] = None
+    vat_reporting_frequency: Optional[VatType] = None
+    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
+    vat_exempt_ceiling: Optional[object] = None
+    advance_rate: Optional[object] = None
+    advance_rate_updated_at: Optional[object] = None
+    annual_revenue: Optional[object] = None
+    accountant_id: Optional[int] = None
+    created_at: Optional[object] = None
+    updated_at: Optional[object] = None
+    created_by: Optional[int] = None
+    deleted_at: Optional[object] = None
+    deleted_by: Optional[int] = None
+    restored_at: Optional[object] = None
+    restored_by: Optional[int] = None
 
 
-class ClientRepository(BaseRepository):
-    """ClientRecord-centered read/write repository over LegalEntity + Person."""
+def _to_view(data: dict | None) -> Optional[ClientRecordView]:
+    if not data:
+        return None
+    return ClientRecordView(client_record_id=data["id"], **data)
 
-    _SORTABLE_FIELDS = {
-        "full_name": LegalEntity.official_name,
-        "official_name": LegalEntity.official_name,
-        "created_at": ClientRecord.created_at,
-        "status": ClientRecord.status,
-    }
 
-    _ENTITY_TYPE_ORDER = ["osek_patur", "osek_murshe", "company_ltd", "employee"]
+class ClientRepository:
+    """Compatibility facade over ClientRecordRepository."""
 
-    def _base_query(self, *, include_deleted: bool = False):
-        from sqlalchemy import select
-
-        stmt = (
-            select(ClientRecord, LegalEntity, Person)
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .outerjoin(
-                PersonLegalEntityLink,
-                (
-                    (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
-                    & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER)
-                ),
-            )
-            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
-        )
-        if not include_deleted:
-            stmt = stmt.where(ClientRecord.deleted_at.is_(None))
-        return stmt
-
-    def _to_view(
-        self,
-        record: ClientRecord,
-        legal_entity: LegalEntity,
-        person: Optional[Person],
-    ) -> ClientRecordView:
-        full_name = (
-            person.full_name
-            if person and person.full_name
-            else legal_entity.official_name
-        )
-        return ClientRecordView(
-            id=record.id,
-            client_record_id=record.id,
-            full_name=full_name,
-            id_number=legal_entity.id_number,
-            id_number_type=legal_entity.id_number_type,
-            entity_type=legal_entity.entity_type,
-            status=record.status,
-            phone=person.phone if person else None,
-            email=person.email if person else None,
-            address_street=person.address_street if person else None,
-            address_building_number=person.address_building_number if person else None,
-            address_apartment=person.address_apartment if person else None,
-            address_city=person.address_city if person else None,
-            address_zip_code=person.address_zip_code if person else None,
-            office_client_number=record.office_client_number,
-            notes=record.notes,
-            vat_reporting_frequency=legal_entity.vat_reporting_frequency,
-            vat_exempt_ceiling=legal_entity.vat_exempt_ceiling,
-            advance_rate=legal_entity.advance_rate,
-            advance_rate_updated_at=legal_entity.advance_rate_updated_at,
-            accountant_id=record.accountant_id,
-            created_at=record.created_at,
-            updated_at=record.updated_at,
-            deleted_at=record.deleted_at,
-            deleted_by=record.deleted_by,
-            restored_at=record.restored_at,
-            restored_by=record.restored_by,
-        )
-
-    def _first_view(self, stmt) -> Optional[ClientRecordView]:
-        row = self.db.execute(stmt).first()
-        return self._to_view(*row) if row else None
-
-    def _list_views(self, stmt) -> list[ClientRecordView]:
-        return [self._to_view(*row) for row in self.db.execute(stmt).all()]
+    def __init__(self, db):
+        self.db = db
+        self.records = ClientRecordRepository(db)
 
     def create(
         self,
@@ -142,6 +76,7 @@ class ClientRepository(BaseRepository):
         address_city: Optional[str] = None,
         address_zip_code: Optional[str] = None,
         vat_reporting_frequency: Optional[VatType] = None,
+        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
         advance_rate_updated_at=None,
@@ -149,15 +84,16 @@ class ClientRepository(BaseRepository):
         office_client_number: Optional[int] = None,
         created_by: Optional[int] = None,
     ) -> ClientRecordView:
-        legal_entity_repo = LegalEntityRepository(self.db)
-        legal_entity = legal_entity_repo.get_by_id_number(id_number_type, id_number)
-        if not legal_entity:
-            legal_entity = legal_entity_repo.create(
+        legal_entities = LegalEntityRepository(self.db)
+        legal_entity = legal_entities.get_by_id_number(id_number_type, id_number)
+        if legal_entity is None:
+            legal_entity = legal_entities.create(
                 id_number=id_number,
                 id_number_type=id_number_type,
                 official_name=full_name,
                 entity_type=entity_type,
                 vat_reporting_frequency=vat_reporting_frequency,
+                advance_payment_frequency=advance_payment_frequency,
                 vat_exempt_ceiling=vat_exempt_ceiling,
                 advance_rate=advance_rate,
             )
@@ -165,6 +101,7 @@ class ClientRepository(BaseRepository):
             legal_entity.official_name = full_name
             legal_entity.entity_type = entity_type
             legal_entity.vat_reporting_frequency = vat_reporting_frequency
+            legal_entity.advance_payment_frequency = advance_payment_frequency
             legal_entity.vat_exempt_ceiling = vat_exempt_ceiling
             legal_entity.advance_rate = advance_rate
         if advance_rate_updated_at is not None:
@@ -182,57 +119,41 @@ class ClientRepository(BaseRepository):
             address_city=address_city,
             address_zip_code=address_zip_code,
         )
-        record = ClientRecordRepository(self.db).create(
+        record = self.records.create(
             legal_entity_id=legal_entity.id,
             office_client_number=office_client_number
-            or self.get_next_office_client_number(),
+            or self.records.get_next_office_client_number(),
             accountant_id=accountant_id,
             created_by=created_by,
         )
         return self.get_by_id(record.id)
 
     def get_by_id(self, entity_id: int) -> Optional[ClientRecordView]:
-        return self._first_view(self._base_query().where(ClientRecord.id == entity_id))
+        return _to_view(get_full_record(self.db, entity_id))
 
     def get_by_id_including_deleted(self, client_id: int) -> Optional[ClientRecordView]:
-        return self._first_view(
-            self._base_query(include_deleted=True).where(ClientRecord.id == client_id)
-        )
+        return _to_view(get_full_record_including_deleted(self.db, client_id))
 
     def get_active_by_id_number(self, id_number: str) -> list[ClientRecordView]:
-        return self._list_views(
-            self._base_query()
-            .where(LegalEntity.id_number == id_number)
-            .order_by(ClientRecord.id.asc())
-        )
+        return [
+            view
+            for record in self.records.get_active_by_id_number(id_number)
+            if (view := self.get_by_id(record.id)) is not None
+        ]
 
     def get_deleted_by_id_number(self, id_number: str) -> list[ClientRecordView]:
-        return self._list_views(
-            self._base_query(include_deleted=True)
-            .where(
-                LegalEntity.id_number == id_number,
-                ClientRecord.deleted_at.isnot(None),
-            )
-            .order_by(ClientRecord.deleted_at.desc())
-        )
+        return [
+            view
+            for record in self.records.get_deleted_by_id_number(id_number)
+            if (view := self.get_by_id_including_deleted(record.id)) is not None
+        ]
 
     def restore(self, client_id: int, restored_by: int) -> Optional[ClientRecordView]:
-        record = ClientRecordRepository(self.db).restore(client_id, restored_by)
+        record = self.records.restore(client_id, restored_by)
         return self.get_by_id_including_deleted(record.id) if record else None
 
     def soft_delete(self, client_id: int, deleted_by: int) -> bool:
-        return ClientRecordRepository(self.db).soft_delete(client_id, deleted_by)
-
-    def _apply_list_filters(self, stmt, search=None, status=None):
-        if search:
-            term = f"%{search.strip()}%"
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(term)
-                | LegalEntity.id_number.ilike(term)
-            )
-        if status:
-            stmt = stmt.where(ClientRecord.status == status)
-        return stmt
+        return self.records.soft_delete(client_id, deleted_by)
 
     def list(
         self,
@@ -243,27 +164,22 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> list[ClientRecordView]:
-        from sqlalchemy import asc, case, desc
-
-        stmt = self._apply_list_filters(self._base_query(), search, status)
-        if sort_by == "entity_type":
-            order_map = {v: i for i, v in enumerate(self._ENTITY_TYPE_ORDER)}
-            sort_col = case(order_map, value=LegalEntity.entity_type)
-        else:
-            sort_col = self._SORTABLE_FIELDS.get(sort_by, LegalEntity.official_name)
-        stmt = stmt.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
-        stmt = stmt.offset((page - 1) * page_size).limit(page_size)
-        return self._list_views(stmt)
+        records = self.records.list(
+            search=search,
+            status=status,
+            sort_by="official_name" if sort_by == "full_name" else sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
+        return self._views_for_records(records)
 
     def count(
         self,
         search: Optional[str] = None,
         status: Optional[ClientStatus] = None,
     ) -> int:
-        from sqlalchemy import func, select
-
-        subq = self._apply_list_filters(self._base_query(), search, status).subquery()
-        return self.db.execute(select(func.count()).select_from(subq)).scalar_one()
+        return self.records.count(search=search, status=status)
 
     def search(
         self,
@@ -273,49 +189,29 @@ class ClientRepository(BaseRepository):
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ClientRecordView], int]:
-        from sqlalchemy import func, select
-
-        stmt = self._base_query()
-        if query:
-            term = f"%{query.strip()}%"
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(term)
-                | LegalEntity.id_number.ilike(term)
-            )
-        if client_name:
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(f"%{client_name.strip()}%")
-            )
-        if id_number:
-            stmt = stmt.where(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
-        subq = stmt.subquery()
-        total = self.db.execute(select(func.count()).select_from(subq)).scalar_one()
-        items = (
-            stmt.order_by(LegalEntity.official_name.asc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+        records, total = self.records.search(
+            query=query,
+            client_name=client_name,
+            id_number=id_number,
+            page=page,
+            page_size=page_size,
         )
-        return self._list_views(items), total
+        return self._views_for_records(records), total
 
     def list_by_ids(self, client_ids: list[int]) -> list[ClientRecordView]:
-        if not client_ids:
-            return []
-        return self._list_views(
-            self._base_query().where(ClientRecord.id.in_(client_ids))
-        )
+        return self._views_for_records(self.records.list_by_ids(client_ids))
 
     def list_all(self) -> list[ClientRecordView]:
-        return self._list_views(
-            self._base_query().order_by(LegalEntity.official_name.asc())
-        )
+        return self._views_for_records(self.records.list_all())
 
     def update(self, client_id: int, **fields) -> Optional[ClientRecordView]:
-        row = self.db.execute(
-            self._base_query().where(ClientRecord.id == client_id)
-        ).first()
-        if not row:
+        record = self.records.get_by_id(client_id)
+        if not record:
             return None
-        record, legal_entity, person = row
+        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+        if not legal_entity:
+            return None
+        person = PersonRepository(self.db).get_owner_for_legal_entity(legal_entity.id)
         person_fields = {
             "phone",
             "email",
@@ -328,27 +224,15 @@ class ClientRepository(BaseRepository):
         legal_entity_fields = {
             "entity_type",
             "vat_reporting_frequency",
+            "advance_payment_frequency",
             "advance_rate",
             "advance_rate_updated_at",
+            "annual_revenue",
         }
         record_fields = {"status", "accountant_id"}
-        owner_requested = "full_name" in fields or bool(
-            person_fields.intersection(fields)
-        )
-        if owner_requested and person is None:
-            PersonRepository(self.db).ensure_owner(
-                legal_entity_id=legal_entity.id,
-                full_name=fields.get("full_name", legal_entity.official_name),
-                id_number=legal_entity.id_number,
-                id_number_type=legal_entity.id_number_type,
-            )
-            person = PersonRepository(self.db).get_owner_for_legal_entity(
-                legal_entity.id
-            )
-
         if "full_name" in fields:
             legal_entity.official_name = fields["full_name"]
-            if person:
+            if person is not None:
                 person.full_name = fields["full_name"]
         for key, value in fields.items():
             if key in person_fields and person is not None:
@@ -361,15 +245,15 @@ class ClientRepository(BaseRepository):
         return self.get_by_id(client_id)
 
     def count_by_status(self) -> dict[ClientStatus, int]:
-        from sqlalchemy import func, select
-
-        stmt = (
-            select(ClientRecord.status, func.count(ClientRecord.id))
-            .where(ClientRecord.deleted_at.is_(None))
-            .group_by(ClientRecord.status)
-        )
-        rows = self.db.execute(stmt).all()
-        return {status: count for status, count in rows}
+        return self.records.count_by_status()
 
     def get_next_office_client_number(self) -> int:
-        return ClientRecordRepository(self.db).get_next_office_client_number()
+        return self.records.get_next_office_client_number()
+
+    def _views_for_records(self, records) -> list[ClientRecordView]:
+        full_map = get_full_records_bulk(self.db, [record.id for record in records])
+        return [
+            view
+            for record in records
+            if (view := _to_view(full_map.get(record.id))) is not None
+        ]

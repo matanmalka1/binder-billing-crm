@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundError
@@ -18,6 +21,33 @@ class BaseService:
 
     def __init__(self, db: Session):
         self.db = db
+
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
+        """
+        Service-layer transaction boundary for write workflows.
+
+        Repositories flush only. Services call this helper, commit(), or rollback().
+        """
+        try:
+            yield
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def commit(self) -> None:
+        self.db.commit()
+
+    def rollback(self) -> None:
+        self.db.rollback()
+
+    def flush(self) -> None:
+        self.db.flush()
+
+    def refresh(self, entity):
+        self.db.refresh(entity)
+        return entity
 
     def _get_or_raise(self, repo, entity_id: int, error_code: str):
         """

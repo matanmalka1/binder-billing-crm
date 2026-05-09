@@ -17,16 +17,11 @@ from app.vat_reports.repositories.vat_work_item_filters import (
 )
 
 
-class VatWorkItemQueryRepository:
-    def __init__(self, db: Session):
-        self.db = db
+class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
+    model = VatWorkItem
 
-    def get_by_id(self, item_id: int) -> Optional[VatWorkItem]:
-        return self.db.scalars(
-            select(VatWorkItem).where(
-                VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None)
-            )
-        ).first()
+    def __init__(self, db: Session):
+        super().__init__(db)
 
     def _query(self, status: Optional[VatWorkItemStatus] = None):
         stmt = scope_to_active_clients_stmt(
@@ -48,14 +43,6 @@ class VatWorkItemQueryRepository:
             client_record_ids=client_record_ids,
             period_type=period_type,
         )
-
-    def get_by_id_for_update(self, item_id: int) -> Optional[VatWorkItem]:
-        """Fetch with a row-level lock for status transitions."""
-        return self.db.scalars(
-            select(VatWorkItem)
-            .where(VatWorkItem.id == item_id, VatWorkItem.deleted_at.is_(None))
-            .with_for_update()
-        ).first()
 
     def get_by_client_record_period(
         self, client_record_id: int, period: str
@@ -98,7 +85,7 @@ class VatWorkItemQueryRepository:
         period_type: Optional[VatType] = None,
     ) -> list[VatWorkItem]:
         stmt = self._filtered_query(status, period, client_record_ids, period_type)
-        stmt = BaseRepository.apply_pagination(
+        stmt = self.apply_pagination(
             stmt.order_by(VatWorkItem.period.desc()), page, page_size
         )
         return list(self.db.scalars(stmt).all())
@@ -123,7 +110,7 @@ class VatWorkItemQueryRepository:
         period_type: Optional[VatType] = None,
     ) -> list[VatWorkItem]:
         stmt = self._filtered_query(None, period, client_record_ids, period_type)
-        stmt = BaseRepository.apply_pagination(
+        stmt = self.apply_pagination(
             stmt.order_by(VatWorkItem.period.desc()), page, page_size
         )
         return list(self.db.scalars(stmt).all())

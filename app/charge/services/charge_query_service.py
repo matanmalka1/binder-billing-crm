@@ -13,7 +13,7 @@ from app.charge.schemas.charge import (
     ChargeResponseSecretary,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_record_read_repository import (
+from app.clients.repositories.client_record_repository import (
     get_full_record,
     get_full_records_bulk,
 )

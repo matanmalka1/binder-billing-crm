@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
 from app.common.enums import EntityType
-from app.clients.repositories.client_record_read_repository import (
+from app.clients.repositories.client_record_repository import (
     get_full_record,
     get_full_record_including_deleted,
     get_full_records_bulk,
@@ -16,7 +16,6 @@ from app.clients.repositories.client_repository import (
     ClientRecordView,
     ClientRepository,
 )
-from app.clients.schemas.client import ClientListStats
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordListStats,
@@ -53,9 +52,9 @@ class ClientQueryService:
         total = self.client_repo.count(search=search, status=status)
         return items, total
 
-    def get_client_stats(self) -> ClientListStats:
+    def get_client_stats(self) -> ClientRecordListStats:
         counts = self.client_repo.count_by_status()
-        return ClientListStats(
+        return ClientRecordListStats(
             active=counts.get(ClientStatus.ACTIVE, 0),
             frozen=counts.get(ClientStatus.FROZEN, 0),
             closed=counts.get(ClientStatus.CLOSED, 0),

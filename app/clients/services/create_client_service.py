@@ -4,21 +4,26 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.businesses.models.business import Business
+from app.businesses.services.client_business_service import ClientBusinessService
 from app.businesses.services.business_service import BusinessService
 from app.clients.constants import UNSUPPORTED_EMPLOYEE_CREATE_ERROR
 from app.clients.create_policy import (
-    normalize_vat_exempt_ceiling,
-    normalize_vat_reporting_frequency,
+    derive_id_number_type,
+    preview_vat_reporting_frequency,
 )
 from app.clients.models.client_record import ClientRecord
 from app.clients.schemas.client import (
     ActiveClientSummary,
     ClientConflictInfo,
+    CreateClientRequest,
     DeletedClientSummary,
 )
+from app.clients.schemas.client_record_response import CreateClientRecordResponse
+from app.clients.services.impact_preview_service import compute_creation_impact
 from app.clients.services.client_service import ClientService
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.exceptions import ConflictError
+from app.users.models.user import UserRole
 
 
 class ClientCreationConflictError(Exception):
@@ -69,11 +74,6 @@ class CreateClientService:
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
 
-        normalized_vat_frequency = normalize_vat_reporting_frequency(
-            entity_type, vat_reporting_frequency
-        )
-        normalized_vat_ceiling = normalize_vat_exempt_ceiling(entity_type)
-
         try:
             client_record = self.client_service.create_client(
                 full_name=full_name,
@@ -87,9 +87,9 @@ class CreateClientService:
                 address_apartment=address_apartment,
                 address_city=address_city,
                 address_zip_code=address_zip_code,
-                vat_reporting_frequency=normalized_vat_frequency,
+                vat_reporting_frequency=vat_reporting_frequency,
                 advance_payment_frequency=advance_payment_frequency,
-                vat_exempt_ceiling=normalized_vat_ceiling,
+                vat_exempt_ceiling=vat_exempt_ceiling,
                 advance_rate=advance_rate,
                 accountant_id=accountant_id,
                 actor_id=actor_id,
@@ -108,6 +108,54 @@ class CreateClientService:
             actor_id=actor_id,
         )
         return client_record, business
+
+    def create_from_request(
+        self,
+        request: CreateClientRequest,
+        *,
+        actor_id: int,
+        actor_role: UserRole,
+    ) -> CreateClientRecordResponse:
+        client_record, business = self.create_client(
+            full_name=request.client.full_name,
+            id_number=request.client.id_number,
+            id_number_type=derive_id_number_type(request.client.entity_type),
+            entity_type=request.client.entity_type,
+            phone=request.client.phone,
+            email=str(request.client.email) if request.client.email else None,
+            address_street=request.client.address_street,
+            address_building_number=request.client.address_building_number,
+            address_apartment=request.client.address_apartment,
+            address_city=request.client.address_city,
+            address_zip_code=request.client.address_zip_code,
+            vat_reporting_frequency=request.client.vat_reporting_frequency,
+            advance_payment_frequency=request.client.advance_payment_frequency,
+            vat_exempt_ceiling=request.client.vat_exempt_ceiling,
+            advance_rate=request.client.advance_rate,
+            accountant_id=request.client.accountant_id,
+            business_name=request.business.business_name,
+            business_opened_at=request.business.opened_at,
+            business_notes=request.business.notes,
+            actor_id=actor_id,
+        )
+        impact = compute_creation_impact(
+            entity_type=request.client.entity_type,
+            vat_reporting_frequency=preview_vat_reporting_frequency(
+                request.client.entity_type,
+                request.client.vat_reporting_frequency,
+            ),
+            advance_payment_frequency=request.client.advance_payment_frequency,
+        )
+        return CreateClientRecordResponse(
+            client_record_id=client_record.id,
+            client=self.client_service.get_full_client(client_record.id),
+            business=ClientBusinessService(self.db).to_response(
+                business,
+                actor_role,
+                client_id=client_record.id,
+            ),
+            impact=impact,
+        )
 
     def _client_conflict_detail(self, id_number: str, error: ConflictError) -> dict:
         conflict_info = self.client_service.get_conflict_info(id_number)

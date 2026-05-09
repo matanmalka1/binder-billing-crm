@@ -11,6 +11,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -24,9 +25,11 @@ from app.vat_reports.repositories.vat_invoice_aggregation_repository import (
 )
 
 
-class VatInvoiceRepository:
+class VatInvoiceRepository(BaseRepository[VatInvoice]):
+    model = VatInvoice
+
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db)
         self._agg = VatInvoiceAggregationRepository(db)
 
     # ── CRUD ─────────────────────────────────────────────────────────────────
@@ -50,7 +53,7 @@ class VatInvoiceRepository:
         is_exceptional: bool = False,
         business_activity_id: Optional[int] = None,
     ) -> VatInvoice:
-        invoice = VatInvoice(
+        return self.build_and_add(
             work_item_id=work_item_id,
             created_by=created_by,
             invoice_type=invoice_type,
@@ -68,14 +71,6 @@ class VatInvoiceRepository:
             is_exceptional=is_exceptional,
             business_activity_id=business_activity_id,
         )
-        self.db.add(invoice)
-        self.db.flush()
-        return invoice
-
-    def get_by_id(self, invoice_id: int) -> Optional[VatInvoice]:
-        return self.db.scalars(
-            select(VatInvoice).where(VatInvoice.id == invoice_id)
-        ).first()
 
     def get_by_number(
         self, work_item_id: int, invoice_type: InvoiceType, invoice_number: str
@@ -98,8 +93,8 @@ class VatInvoiceRepository:
             stmt = stmt.where(VatInvoice.invoice_type == invoice_type)
         return self.db.scalars(stmt.order_by(VatInvoice.invoice_date.asc())).all()
 
-    def update(self, invoice_id: int, **fields) -> Optional[VatInvoice]:
-        invoice = self.get_by_id(invoice_id)
+    def update(self, entity_id: int, **fields) -> Optional[VatInvoice]:
+        invoice = self.get_by_id(entity_id)
         if not invoice:
             return None
         for key, value in fields.items():
@@ -107,14 +102,6 @@ class VatInvoiceRepository:
                 setattr(invoice, key, value)
         self.db.flush()
         return invoice
-
-    def delete(self, invoice_id: int) -> bool:
-        invoice = self.get_by_id(invoice_id)
-        if not invoice:
-            return False
-        self.db.delete(invoice)
-        self.db.flush()
-        return True
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────
 
