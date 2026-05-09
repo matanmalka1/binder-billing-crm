@@ -11,10 +11,15 @@ from app.clients.repositories.active_client_scope import scope_to_active_clients
 from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.vat_reports.repositories import vat_work_item_extra_queries as extra_queries
 from app.vat_reports.repositories.vat_work_item_filters import (
     apply_vat_work_item_filters,
 )
+
+_FILED_STATUSES = {
+    VatWorkItemStatus.FILED,
+    VatWorkItemStatus.CANCELED,
+    VatWorkItemStatus.ARCHIVED,
+}
 
 
 class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
@@ -71,9 +76,19 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
     def list_by_business_activity(
         self, business_activity_id: int, limit: int = 200
     ) -> list[VatWorkItem]:
-        return extra_queries.list_by_business_activity(
-            self.db, business_activity_id, limit
-        )
+        from app.vat_reports.models.vat_invoice import VatInvoice
+
+        return self.db.scalars(
+            select(VatWorkItem)
+            .join(VatInvoice, VatInvoice.work_item_id == VatWorkItem.id)
+            .where(
+                VatInvoice.business_activity_id == business_activity_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .distinct()
+            .order_by(VatWorkItem.period.desc())
+            .limit(limit)
+        ).all()
 
     def list_by_status(
         self,
@@ -140,16 +155,39 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
     def sum_net_vat_by_client_record_year(
         self, client_record_id: int, tax_year: int
     ) -> Optional[float]:
-        return extra_queries.sum_net_vat_by_client_record_year(
-            self.db, client_record_id, tax_year
-        )
+        row = self.db.execute(
+            select(func.sum(VatWorkItem.net_vat).label("total_vat")).where(
+                VatWorkItem.client_record_id == client_record_id,
+                func.substr(VatWorkItem.period, 1, 4) == str(tax_year),
+                VatWorkItem.deleted_at.is_(None),
+            )
+        ).one_or_none()
+        return float(row[0]) if row and row[0] is not None else None
 
     def list_not_filed_for_period(
         self, period: str, limit: int = 3
     ) -> list[VatWorkItem]:
-        return extra_queries.list_not_filed_for_period(self.db, period, limit)
+        return self.db.scalars(
+            scope_to_active_clients_stmt(select(VatWorkItem), VatWorkItem)
+            .where(
+                VatWorkItem.period == period,
+                VatWorkItem.status != VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .order_by(VatWorkItem.created_at.asc())
+            .limit(limit)
+        ).all()
 
     def list_open_up_to_period(
         self, up_to_period: str, limit: int = 50
     ) -> list[VatWorkItem]:
-        return extra_queries.list_open_up_to_period(self.db, up_to_period, limit)
+        return self.db.scalars(
+            scope_to_active_clients_stmt(select(VatWorkItem), VatWorkItem)
+            .where(
+                VatWorkItem.period <= up_to_period,
+                VatWorkItem.status.notin_(list(_FILED_STATUSES)),
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .order_by(VatWorkItem.period.asc())
+            .limit(limit)
+        ).all()

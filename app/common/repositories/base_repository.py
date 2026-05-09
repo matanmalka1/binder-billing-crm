@@ -235,11 +235,3 @@ class BaseRepository(Generic[ModelType]):
             **additional_fields,
         )
 
-    def _locked_first(self, query):
-        return query.with_for_update().first()
-
-    @staticmethod
-    def _paginate(query, page: int, page_size: int):
-        """Apply offset/limit pagination to a SQLAlchemy query (legacy query API)."""
-        offset = (page - 1) * page_size
-        return query.offset(offset).limit(page_size).all()

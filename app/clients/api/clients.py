@@ -12,8 +12,6 @@ from app.clients.schemas.client import (
     CreateClientRequest,
     ClientImpactPreviewRequest,
     ClientUpdateRequest,
-    ActiveClientSummary,
-    DeletedClientSummary,
 )
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
@@ -137,16 +135,7 @@ def get_conflict_info(
 ):
     """מחזיר מידע על קונפליקטים לת.ז. נתונה."""
     service = ClientService(db)
-    info = service.get_conflict_info(id_number)
-    return ClientConflictInfo(
-        id_number=id_number,
-        active_clients=[
-            ActiveClientSummary.model_validate(c) for c in info["active_clients"]
-        ],
-        deleted_clients=[
-            DeletedClientSummary.model_validate(c) for c in info["deleted_clients"]
-        ],
-    )
+    return service.get_conflict_info(id_number)
 
 
 # ─── Update ───────────────────────────────────────────────────────────────────

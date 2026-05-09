@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import AppError, NotFoundError
+from app.signature_requests.models.signature_request import (
+    SignatureRequest,
+    SignatureRequestStatus,
+)
 from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,
 )
@@ -12,15 +19,16 @@ from app.signature_requests.services import (
     admin_actions,
     create_request,
     send_request,
-    signature_request_queries,
     signer_actions,
 )
 from app.signature_requests.services.messages import (
     AUTO_ADVANCE_ANNUAL_REPORT_ERROR,
     ANNUAL_REPORT_SIGNED_NOTE,
     AUTO_SUBMITTED_AFTER_SIGNATURE_NOTE,
+    INVALID_FILTER_STATUS,
     SYSTEM_USER_NAME,
 )
+from app.signature_requests.services.signature_request_validations import get_or_raise
 
 _log = logging.getLogger(__name__)
 
@@ -29,10 +37,7 @@ _SYSTEM_USER_NAME = SYSTEM_USER_NAME
 
 
 class SignatureRequestService:
-    """
-    Orchestrates digital signature request lifecycle.
-    Thin façade delegating to smaller feature modules.
-    """
+    """Orchestrates digital signature request lifecycle."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -55,17 +60,13 @@ class SignatureRequestService:
         return signer_actions.record_view(self.repo, **kwargs)
 
     def sign_request(self, **kwargs):
-        req, annual_report_id, signed_at = signer_actions.sign_request(
-            self.repo, **kwargs
-        )
+        req, annual_report_id, signed_at = signer_actions.sign_request(self.repo, **kwargs)
         if annual_report_id:
             self.repo.append_audit_event(
                 signature_request_id=req.id,
                 event_type="annual_report_signed",
                 actor_type="system",
-                notes=ANNUAL_REPORT_SIGNED_NOTE.format(
-                    annual_report_id=annual_report_id
-                ),
+                notes=ANNUAL_REPORT_SIGNED_NOTE.format(annual_report_id=annual_report_id),
             )
             self._auto_advance_annual_report(annual_report_id, signed_at)
         return req
@@ -84,15 +85,9 @@ class SignatureRequestService:
             )
 
             svc = AnnualReportService(self.db)
-            # Cheap early-exit guard — no lock here.
-            # transition_status() acquires the row-level lock internally via
-            # _get_or_raise_for_update(). The sig_request lock was already released
-            # by the commit in sign_request(), so there is no cross-lock deadlock.
-            # Lock ordering invariant: annual_report is always locked after sig_request commits.
             report = svc.repo.get_by_id(annual_report_id)
             if report is None or report.status != AnnualReportStatus.PENDING_CLIENT:
                 return
-
             svc.transition_status(
                 report_id=annual_report_id,
                 new_status=AnnualReportStatus.SUBMITTED.value,
@@ -100,7 +95,6 @@ class SignatureRequestService:
                 changed_by_name=_SYSTEM_USER_NAME,
                 note=AUTO_SUBMITTED_AFTER_SIGNATURE_NOTE,
             )
-
             detail_repo = AnnualReportDetailRepository(self.db)
             detail_repo.update_meta(annual_report_id, client_approved_at=now)
         except Exception:
@@ -116,18 +110,53 @@ class SignatureRequestService:
 
     # ── Queries ───────────────────────────────────────────────────────────────
 
-    def get_request(self, request_id: int):
-        return signature_request_queries.get_request(self.repo, request_id)
+    def get_request(self, request_id: int) -> Optional[SignatureRequest]:
+        return self.repo.get_by_id(request_id)
 
-    def get_by_token(self, token: str):
-        return signature_request_queries.get_by_token(self.repo, token)
+    def get_by_token(self, token: str) -> Optional[SignatureRequest]:
+        return self.repo.get_by_token(token)
 
-    def list_client_requests(self, **kwargs):
-        """Primary query path — all requests for a legal entity."""
-        return signature_request_queries.list_client_requests(self.repo, **kwargs)
+    def list_client_requests(
+        self,
+        *,
+        client_record_id: int,
+        status: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[SignatureRequest], int]:
+        status_enum = self._parse_status(status)
+        record = ClientRecordRepository(self.db).get_by_id(client_record_id)
+        if not record:
+            raise NotFoundError(
+                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
+            )
+        items = self.repo.list_by_client_record(
+            client_record_id, status=status_enum, page=page, page_size=page_size
+        )
+        total = self.repo.count_by_client_record(client_record_id, status=status_enum)
+        return items, total
 
-    def list_pending_requests(self, **kwargs):
-        return signature_request_queries.list_pending_requests(self.repo, **kwargs)
+    def list_pending_requests(
+        self, *, page: int = 1, page_size: int = 20
+    ) -> tuple[list[SignatureRequest], int]:
+        items = self.repo.list_pending(page=page, page_size=page_size)
+        total = self.repo.count_pending()
+        return items, total
 
-    def get_audit_trail(self, request_id: int):
-        return signature_request_queries.get_audit_trail(self.repo, request_id)
+    def get_audit_trail(self, request_id: int) -> list:
+        get_or_raise(self.repo, request_id)
+        return self.repo.list_audit_events(request_id)
+
+    @staticmethod
+    def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
+        if not status:
+            return None
+        valid_statuses = {e.value for e in SignatureRequestStatus}
+        if status not in valid_statuses:
+            raise AppError(
+                INVALID_FILTER_STATUS.format(
+                    status=status, valid_statuses=sorted(valid_statuses)
+                ),
+                "SIGNATURE_REQUEST.INVALID_STATUS",
+            )
+        return SignatureRequestStatus(status)

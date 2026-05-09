@@ -16,6 +16,11 @@ from app.clients.repositories.client_repository import (
     ClientRecordView,
     ClientRepository,
 )
+from app.clients.schemas.client_conflicts import (
+    ActiveClientSummary,
+    ClientConflictInfo,
+    DeletedClientSummary,
+)
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordListStats,
@@ -64,17 +69,14 @@ class ClientQueryService:
         """Return all active clients."""
         return self.client_repo.list_all()
 
-    def get_conflict_info(self, id_number: str) -> dict:
-        """
-        מחזיר מידע מלא על קונפליקטים לת.ז. נתונה.
-        משמש את ה-router לבניית תגובת 409 מפורטת.
-        """
+    def get_conflict_info(self, id_number: str) -> ClientConflictInfo:
         active = self.client_repo.get_active_by_id_number(id_number)
         deleted = self.client_repo.get_deleted_by_id_number(id_number)
-        return {
-            "active_clients": active,
-            "deleted_clients": deleted,
-        }
+        return ClientConflictInfo(
+            id_number=id_number,
+            active_clients=[ActiveClientSummary.model_validate(c) for c in active],
+            deleted_clients=[DeletedClientSummary.model_validate(c) for c in deleted],
+        )
 
     def get_full_client(
         self, client_record_id: int, tax_year: Optional[int] = None

@@ -13,10 +13,7 @@ from app.clients.create_policy import (
 )
 from app.clients.models.client_record import ClientRecord
 from app.clients.schemas.client import (
-    ActiveClientSummary,
-    ClientConflictInfo,
     CreateClientRequest,
-    DeletedClientSummary,
 )
 from app.clients.schemas.client_record_response import CreateClientRecordResponse
 from app.clients.services.impact_preview_service import compute_creation_impact
@@ -158,18 +155,7 @@ class CreateClientService:
         )
 
     def _client_conflict_detail(self, id_number: str, error: ConflictError) -> dict:
-        conflict_info = self.client_service.get_conflict_info(id_number)
-        conflict = ClientConflictInfo(
-            id_number=id_number,
-            active_clients=[
-                ActiveClientSummary.model_validate(c)
-                for c in conflict_info["active_clients"]
-            ],
-            deleted_clients=[
-                DeletedClientSummary.model_validate(c)
-                for c in conflict_info["deleted_clients"]
-            ],
-        )
+        conflict = self.client_service.get_conflict_info(id_number)
         return {
             "error": error.code,
             "detail": str(error),

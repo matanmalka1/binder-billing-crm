@@ -211,12 +211,12 @@ def test_list_clients_and_conflict_info(test_db):
     assert [c.id for c in items] == [one.id]
 
     info_active = service.get_conflict_info("670000009")
-    assert len(info_active["active_clients"]) == 1
-    assert len(info_active["deleted_clients"]) == 0
+    assert len(info_active.active_clients) == 1
+    assert len(info_active.deleted_clients) == 0
 
     info_deleted = service.get_conflict_info("670000017")
-    assert len(info_deleted["active_clients"]) == 0
-    assert len(info_deleted["deleted_clients"]) == 1
+    assert len(info_deleted.active_clients) == 0
+    assert len(info_deleted.deleted_clients) == 1
 
 
 def test_create_client_does_not_reuse_deleted_office_client_number(test_db):
