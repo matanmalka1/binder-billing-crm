@@ -39,21 +39,30 @@ class TestDeadlineFieldsFromSnapshot:
         assert result["statutory_deadline"] == effective
         assert result["extended_deadline"] == date(2026, 9, 28)
 
-    def test_uses_due_date_original_as_statutory_when_set(self):
-        original = date(2026, 9, 15)
-        effective = date(2026, 9, 24)
+    def test_overridden_item_statutory_shows_original_registry_date(self):
+        # Models an explicitly overridden item:
+        # due_date_original = registry-shifted statutory (snapshot at creation)
+        # due_date_effective = advisor-extended effective date
+        # statutory_deadline must display the original registry date, not the override.
+        original = date(2026, 9, 24)   # registry-shifted statutory
+        effective = date(2026, 10, 1)  # manual advisor override
         result = deadline_fields_from_snapshot(
             _snapshot_item(effective, original=original), submission_method=None
         )
         assert result["statutory_deadline"] == original
         assert result["extended_deadline"] == original + timedelta(days=_ONLINE_DELTA)
 
-    def test_linked_item_does_not_call_period_based_path(self):
-        effective = date(2026, 9, 24)
-        item = _snapshot_item(effective)
-        # deadline_fields_from_snapshot must not read item.period for computation
-        result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
-        assert result["submission_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
+    def test_snapshot_path_does_not_access_period(self):
+        class _NoPeriodItem:
+            due_date_effective = date(2026, 9, 24)
+            due_date_original = date(2026, 9, 24)
+
+            @property
+            def period(self):
+                raise AssertionError("deadline_fields_from_snapshot must not access item.period")
+
+        result = deadline_fields_from_snapshot(_NoPeriodItem(), submission_method=SubmissionMethod.ONLINE)
+        assert result["submission_deadline"] == date(2026, 9, 28)
 
 
 def test_get_work_item_not_found_raises_not_found_error():
