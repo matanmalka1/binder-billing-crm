@@ -6,9 +6,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.audit.models.entity_audit_log import EntityAuditLog
+from app.common.repositories.base_repository import BaseRepository
 
 
-class EntityAuditLogRepository:
+class EntityAuditLogRepository(BaseRepository[EntityAuditLog]):
     def __init__(self, db: Session):
         self.db = db
 

@@ -4,11 +4,12 @@ from typing import Literal, Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.correspondence.models.correspondence import Correspondence, CorrespondenceType
 from app.utils.time_utils import utcnow_aware
 
 
-class CorrespondenceRepository:
+class CorrespondenceRepository(BaseRepository[Correspondence]):
     def __init__(self, db: Session):
         self.db = db
 

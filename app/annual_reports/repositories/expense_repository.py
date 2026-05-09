@@ -11,9 +11,10 @@ from app.annual_reports.models.annual_report_expense_line import (
     ExpenseCategoryType,
 )
 from app.annual_reports.services.constants import default_recognition_rate
+from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportExpenseRepository:
+class AnnualReportExpenseRepository(BaseRepository[AnnualReportExpenseLine]):
     def __init__(self, db: Session):
         self.db = db
 

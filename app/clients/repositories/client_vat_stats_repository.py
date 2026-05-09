@@ -5,9 +5,10 @@ from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType, VatType
+from app.common.repositories.base_repository import BaseRepository
 
 
-class ClientVatStatsRepository:
+class ClientVatStatsRepository(BaseRepository[ClientRecord]):
     def __init__(self, db: Session):
         self.db = db
 

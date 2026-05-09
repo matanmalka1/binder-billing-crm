@@ -3,9 +3,10 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -15,8 +16,8 @@ from app.vat_reports.repositories.vat_work_item_filters import (
 from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
-def _base_query(db: Session):
-    return scope_to_active_clients(db.query(VatWorkItem), VatWorkItem).filter(
+def _base_stmt():
+    return scope_to_active_clients_stmt(select(VatWorkItem), VatWorkItem).where(
         VatWorkItem.deleted_at.is_(None)
     )
 
@@ -30,22 +31,17 @@ def list_due_date_groups(
     year: Optional[int] = None,
 ) -> list[dict]:
     """One summary dict per operational due date."""
-    q = apply_vat_work_item_filters(
-        _base_query(db),
+    stmt = apply_vat_work_item_filters(
+        _base_stmt(),
         period_type=period_type,
         client_record_ids=client_record_ids,
     )
     if year is not None:
-        q = q.filter(VatWorkItem.period.startswith(f"{year}-"))
+        stmt = stmt.where(VatWorkItem.period.startswith(f"{year}-"))
     if status is not None:
-        q = q.filter(VatWorkItem.status == status)
+        stmt = stmt.where(VatWorkItem.status == status)
 
-    rows = q.with_entities(
-        VatWorkItem.period,
-        VatWorkItem.period_type,
-        VatWorkItem.status,
-        VatWorkItem.due_date_effective,
-    ).all()
+    rows = db.scalars(stmt).all()
 
     groups: dict[str, dict] = {}
     for row in rows:
@@ -94,12 +90,12 @@ def list_by_due_date_paginated(
     client_record_ids: Optional[list[int]] = None,
     status: Optional[VatWorkItemStatus] = None,
 ) -> tuple[list[VatWorkItem], int]:
-    q = apply_vat_work_item_filters(
-        _base_query(db),
+    stmt = apply_vat_work_item_filters(
+        _base_stmt(),
         client_record_ids=client_record_ids,
     )
     if status is not None:
-        q = q.filter(VatWorkItem.status == status)
+        stmt = stmt.where(VatWorkItem.status == status)
     # Group membership is tested against the statutory/effective calendar date, not the online
     # submission deadline. Intentionally does NOT use get_vat_deadline_fields: that helper may
     # add the online extension (+4 days) and would cause online-filer items to miss their group.
@@ -107,7 +103,7 @@ def list_by_due_date_paginated(
     # Legacy unlinked rows (due_date_effective None): recompute from period+15 as fallback.
     matching = [
         item
-        for item in q.all()
+        for item in db.scalars(stmt).all()
         if (
             item.due_date_effective
             if item.due_date_effective is not None

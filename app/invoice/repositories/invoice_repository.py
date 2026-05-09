@@ -4,10 +4,11 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.invoice.models.invoice import Invoice
 
 
-class InvoiceRepository:
+class InvoiceRepository(BaseRepository[Invoice]):
     """Data access layer for Invoice entities."""
 
     def __init__(self, db: Session):

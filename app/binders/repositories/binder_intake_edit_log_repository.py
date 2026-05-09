@@ -4,10 +4,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_intake_edit_log import BinderIntakeEditLog
+from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
 
 
-class BinderIntakeEditLogRepository:
+class BinderIntakeEditLogRepository(BaseRepository[BinderIntakeEditLog]):
     """Data access layer for BinderIntakeEditLog records."""
 
     def __init__(self, db: Session):

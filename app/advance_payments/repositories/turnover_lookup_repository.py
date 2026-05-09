@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -13,7 +14,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 _FINAL_STATUSES = [VatWorkItemStatus.FILED]
 
 
-class TurnoverLookupRepository:
+class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
     """Read total_output_net from vat_work_items for advance payment period."""
 
     def __init__(self, db: Session):

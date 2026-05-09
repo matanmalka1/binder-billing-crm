@@ -12,9 +12,9 @@ def apply_vat_work_item_filters(
     period_type: Optional[VatType] = None,
 ):
     if period:
-        query = query.filter(VatWorkItem.period == period)
+        query = query.where(VatWorkItem.period == period)
     if client_record_ids is not None:
-        query = query.filter(VatWorkItem.client_record_id.in_(client_record_ids))
+        query = query.where(VatWorkItem.client_record_id.in_(client_record_ids))
     if period_type is not None:
-        query = query.filter(VatWorkItem.period_type == period_type)
+        query = query.where(VatWorkItem.period_type == period_type)
     return query

@@ -10,9 +10,10 @@ from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.models.annual_report_schedule_entry import (
     AnnualReportScheduleEntry,
 )
+from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnexDataRepository:
+class AnnexDataRepository(BaseRepository[AnnualReportAnnexData]):
     def __init__(self, db: Session):
         self.db = db
 

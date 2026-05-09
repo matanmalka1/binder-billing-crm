@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
@@ -13,7 +14,7 @@ from app.notification.models.notification import (
 from app.utils.time_utils import utcnow
 
 
-class NotificationRepository:
+class NotificationRepository(BaseRepository[Notification]):
     """Data access layer for Notification entities."""
 
     def __init__(self, db: Session):

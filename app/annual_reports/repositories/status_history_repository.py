@@ -7,9 +7,10 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_status_history import (
     AnnualReportStatusHistory,
 )
+from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportStatusHistoryRepository:
+class AnnualReportStatusHistoryRepository(BaseRepository[AnnualReportStatusHistory]):
     def __init__(self, db: Session):
         self.db = db
 

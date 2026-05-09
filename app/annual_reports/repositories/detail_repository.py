@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
+from app.common.repositories.base_repository import BaseRepository
 
 _META_COLUMNS = frozenset(
     {
@@ -17,7 +18,7 @@ _META_COLUMNS = frozenset(
 )
 
 
-class AnnualReportDetailRepository:
+class AnnualReportDetailRepository(BaseRepository[AnnualReportDetail]):
     def __init__(self, db: Session):
         self.db = db
 

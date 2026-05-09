@@ -2,11 +2,12 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.enums import VatType
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
-class VatWorkItemStatsRepository:
+class VatWorkItemStatsRepository(BaseRepository[VatWorkItem]):
     def __init__(self, db: Session):
         self.db = db
 

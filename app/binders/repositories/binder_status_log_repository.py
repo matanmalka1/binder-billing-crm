@@ -4,9 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_status_log import BinderStatusLog
+from app.common.repositories.base_repository import BaseRepository
 
 
-class BinderStatusLogRepository:
+class BinderStatusLogRepository(BaseRepository[BinderStatusLog]):
     """Data access layer for BinderStatusLog entities."""
 
     def __init__(self, db: Session):

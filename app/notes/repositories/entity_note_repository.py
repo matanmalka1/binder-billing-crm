@@ -3,11 +3,12 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.notes.models.entity_note import EntityNote
 from app.utils.time_utils import utcnow_aware
 
 
-class EntityNoteRepository:
+class EntityNoteRepository(BaseRepository[EntityNote]):
     def __init__(self, db: Session):
         self.db = db
 

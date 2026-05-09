@@ -8,6 +8,7 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
     AnnualReportCreditPoint,
     CreditPointReason,
 )
+from app.common.repositories.base_repository import BaseRepository
 
 
 _ZERO = Decimal("0")
@@ -27,7 +28,7 @@ _TUITION_REASONS = frozenset(
 )
 
 
-class AnnualReportCreditPointRepository:
+class AnnualReportCreditPointRepository(BaseRepository[AnnualReportCreditPoint]):
     def __init__(self, db: Session):
         self.db = db
 

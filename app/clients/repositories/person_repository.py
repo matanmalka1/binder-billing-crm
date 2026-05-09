@@ -9,9 +9,10 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityRole,
 )
 from app.common.enums import IdNumberType
+from app.common.repositories.base_repository import BaseRepository
 
 
-class PersonRepository:
+class PersonRepository(BaseRepository[Person]):
     def __init__(self, db: Session):
         self.db = db
 

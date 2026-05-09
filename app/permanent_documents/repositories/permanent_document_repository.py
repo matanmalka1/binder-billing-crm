@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.permanent_documents.models.permanent_document import (
     DocumentScope,
     DocumentStatus,
@@ -10,7 +11,7 @@ from app.permanent_documents.models.permanent_document import (
 )
 
 
-class PermanentDocumentRepository:
+class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
     """Data access layer for PermanentDocument entities."""
 
     def __init__(self, db: Session):

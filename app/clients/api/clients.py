@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
@@ -38,6 +38,8 @@ router = APIRouter(
 
 @router.post(
     "/preview-impact",
+    # תיאור מפורט ל-OpenAPI
+    summary="Preview creation impact",
     response_model=ClientCreationImpactResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
@@ -60,6 +62,8 @@ def preview_creation_impact(
     "",
     response_model=CreateClientRecordResponse,
     status_code=status.HTTP_201_CREATED,
+    # תיעוד שגיאת Conflict ב-Swagger
+    responses={status.HTTP_409_CONFLICT: {"model": ClientConflictInfo}},
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def create_client(
@@ -81,15 +85,13 @@ def create_client(
             detail=exc.detail,
         ) from exc
 
-
 # ─── Read ─────────────────────────────────────────────────────────────────────
-
 
 @router.get("", response_model=ClientRecordListResponse)
 def list_clients(
     db: DBSession,
     search: Optional[str] = Query(None),
-    status: Optional[ClientStatus] = Query(None),
+    status_filter: Optional[ClientStatus] = Query(None, alias="status"),
     entity_type: Optional[EntityType] = Query(None),
     accountant_id: Optional[int] = Query(None, ge=1),
     tax_year: Optional[int] = Query(None, ge=2000, le=2100),
@@ -105,7 +107,7 @@ def list_clients(
     service = ClientService(db)
     result = service.list_full_clients(
         search=search,
-        status=status,
+        status=status_filter,
         entity_type=entity_type,
         accountant_id=accountant_id,
         tax_year=tax_year,
@@ -115,7 +117,6 @@ def list_clients(
         page_size=page_size,
     )
     return result
-
 
 @router.get("/{client_id}", response_model=ClientRecordResponse)
 def get_client(
@@ -127,7 +128,6 @@ def get_client(
     service = ClientService(db)
     return service.get_full_client(client_id, tax_year=tax_year)
 
-
 @router.get("/conflict/{id_number}", response_model=ClientConflictInfo)
 def get_conflict_info(
     id_number: str,
@@ -137,9 +137,7 @@ def get_conflict_info(
     service = ClientService(db)
     return service.get_conflict_info(id_number)
 
-
 # ─── Update ───────────────────────────────────────────────────────────────────
-
 
 @router.patch("/{client_id}", response_model=ClientRecordResponse)
 def update_client(
@@ -158,9 +156,7 @@ def update_client(
     )
     return service.get_full_client(client_id)
 
-
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
-
 
 @router.delete(
     "/{client_id}",
@@ -172,7 +168,6 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
     service = ClientService(db)
     service.delete_client(client_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
 
 @router.post(
     "/{client_id}/restore",

@@ -10,9 +10,10 @@ from app.annual_reports.models.annual_report_income_line import (
     AnnualReportIncomeLine,
     IncomeSourceType,
 )
+from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportIncomeRepository:
+class AnnualReportIncomeRepository(BaseRepository[AnnualReportIncomeLine]):
     def __init__(self, db: Session):
         self.db = db
 

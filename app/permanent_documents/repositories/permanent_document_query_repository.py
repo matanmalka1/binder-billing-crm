@@ -3,10 +3,11 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.permanent_documents.models.permanent_document import PermanentDocument
 
 
-class PermanentDocumentQueryRepository:
+class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
     """Read-only query repository for advanced document lookups."""
 
     def __init__(self, db: Session):

@@ -3,12 +3,13 @@
 from sqlalchemy import case, func, Integer, cast, select
 from sqlalchemy.orm import Session
 
+from app.common.repositories.base_repository import BaseRepository
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.models.vat_invoice import VatInvoice
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
-class VatClientSummaryRepository:
+class VatClientSummaryRepository(BaseRepository[VatWorkItem]):
     def __init__(self, db: Session):
         self.db = db
 

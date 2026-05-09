@@ -5,9 +5,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_handover import BinderHandover, BinderHandoverBinder
+from app.common.repositories.base_repository import BaseRepository
 
 
-class BinderHandoverRepository:
+class BinderHandoverRepository(BaseRepository[BinderHandover]):
     """Data access layer for BinderHandover entities."""
 
     def __init__(self, db: Session):

@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
+from app.common.repositories.base_repository import BaseRepository
 
 
-class LegalEntityRepository:
+class LegalEntityRepository(BaseRepository[LegalEntity]):
     def __init__(self, db: Session):
         self.db = db
 

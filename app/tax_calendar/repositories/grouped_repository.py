@@ -6,6 +6,7 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import ObligationType
+from app.common.repositories.base_repository import BaseRepository
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
@@ -38,7 +39,7 @@ def _entry_sort_clauses():
     )
 
 
-class TaxCalendarGroupedRepository:
+class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
     def __init__(self, db: Session):
         self.db = db
 

@@ -4,9 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
+from app.common.repositories.base_repository import BaseRepository
 
 
-class BinderIntakeMaterialRepository:
+class BinderIntakeMaterialRepository(BaseRepository[BinderIntakeMaterial]):
     """Data access layer for BinderIntakeMaterial entities."""
 
     def __init__(self, db: Session):
