@@ -98,7 +98,11 @@ def list_by_due_date_paginated(
     )
     if status is not None:
         q = q.filter(VatWorkItem.status == status)
-    # TODO: move VAT submission_deadline to persisted/read-model field to avoid Python-side filtering.
+    # Group membership is tested against the statutory/effective calendar date, not the online
+    # submission deadline. Intentionally does NOT use get_vat_deadline_fields: that helper may
+    # add the online extension (+4 days) and would cause online-filer items to miss their group.
+    # Linked rows (due_date_effective set): match directly against the persisted statutory date.
+    # Legacy unlinked rows (due_date_effective None): recompute from period+15 as fallback.
     matching = [
         item
         for item in q.all()

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 import io
 
@@ -152,7 +152,6 @@ def test_client_summary_service_uses_snapshot_deadline(test_db, vat_client, test
         f"expected registry-shifted date {jan_entry.due_date!r} from snapshot"
     )
     assert jan_row.statutory_deadline is not None
-    from datetime import date
     assert jan_row.statutory_deadline != date(2026, 2, 15), (
         "statutory_deadline must not be the hardcoded period+15 legacy value"
     )
@@ -170,7 +169,6 @@ def test_export_service_uses_snapshot_deadline(test_db, vat_client, test_user):
     assert jan_row.statutory_deadline == jan_entry.due_date, (
         f"expected registry-shifted date {jan_entry.due_date!r} from snapshot"
     )
-    from datetime import date
     assert jan_row.statutory_deadline != date(2026, 2, 15), (
         "statutory_deadline must not be the hardcoded period+15 legacy value"
     )

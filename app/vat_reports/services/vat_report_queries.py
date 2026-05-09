@@ -85,7 +85,7 @@ def compute_deadline_fields(item, submission_method: Optional[SubmissionMethod] 
 
 def get_vat_deadline_fields(item, submission_method: Optional[SubmissionMethod] = None) -> dict:
     """Unified public entry point: snapshot path when due_date_effective is set, legacy fallback otherwise."""
-    if item.due_date_effective is not None:
+    if getattr(item, "due_date_effective", None) is not None:
         return deadline_fields_from_snapshot(item, submission_method)
     return compute_deadline_fields(item, submission_method)
 
