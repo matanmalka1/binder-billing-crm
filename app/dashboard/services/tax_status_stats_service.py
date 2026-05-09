@@ -8,7 +8,7 @@ from app.advance_payments.repositories.advance_payment_dashboard_repository impo
 from app.clients.repositories.client_vat_stats_repository import (
     ClientVatStatsRepository,
 )
-from app.common.enums import EntityType, VatType
+from app.common.enums import VatType
 from app.dashboard.services.dashboard_periods import (
     bimonthly_advance_payment_period,
     bimonthly_vat_period,
@@ -43,7 +43,6 @@ class TaxStatusStatsService:
                 reference_date,
             ),
             "advance_payments": self._build_advance_stats(reference_date),
-            "segmentation": self._build_segmentation(),
         }
 
     def _build_advance_stats(self, reference_date: date) -> dict:
@@ -69,36 +68,6 @@ class TaxStatusStatsService:
             "pending": pending,
             "completion_percent": percent,
         }
-
-    def _build_segmentation(self) -> list[dict]:
-        r = self.client_repo
-        return [
-            {
-                "label": "עוסק מורשה חודשי",
-                "count": r.count_active_by_entity_and_vat_type(
-                    EntityType.OSEK_MURSHE, VatType.MONTHLY
-                ),
-            },
-            {
-                "label": "עוסק מורשה דו-חודשי",
-                "count": r.count_active_by_entity_and_vat_type(
-                    EntityType.OSEK_MURSHE, VatType.BIMONTHLY
-                ),
-            },
-            {
-                "label": "חברה בע״מ חודשי",
-                "count": r.count_active_by_entity_and_vat_type(
-                    EntityType.COMPANY_LTD, VatType.MONTHLY
-                ),
-            },
-            {
-                "label": "חברה בע״מ דו-חודשי",
-                "count": r.count_active_by_entity_and_vat_type(
-                    EntityType.COMPANY_LTD, VatType.BIMONTHLY
-                ),
-            },
-            {"label": "עוסק פטור", "count": r.count_active_exempt()},
-        ]
 
     def _build_stat(
         self, vat_type: VatType, period: str, label: str, reference_date: date

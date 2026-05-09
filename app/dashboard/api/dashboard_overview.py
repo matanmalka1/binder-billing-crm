@@ -8,7 +8,7 @@ from app.dashboard.services.dashboard_overview_service import DashboardOverviewS
 router = APIRouter(
     prefix="/dashboard",
     tags=["dashboard-overview"],
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
 

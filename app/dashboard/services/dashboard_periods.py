@@ -53,13 +53,3 @@ def bimonthly_advance_payment_period(reference_date: date) -> tuple[str, str]:
     return period_key(start_year, start_month), label
 
 
-def vat_deadline_for_period(period: str, deadline_day: int) -> date:
-    """Filing deadline for a VAT period string (YYYY-MM).
-
-    The statutory deadline is deadline_day of the month following the period month.
-    Works for both monthly and bimonthly periods (bimonthly period key = end month).
-    """
-    year, month = (int(x) for x in period.split("-", 1))
-    if month == 12:
-        return date(year + 1, 1, deadline_day)
-    return date(year, month + 1, deadline_day)

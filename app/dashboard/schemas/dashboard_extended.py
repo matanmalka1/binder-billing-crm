@@ -83,11 +83,6 @@ class VatDashboardPeriodStat(BaseModel):
     completion_percent: int = 0
 
 
-class VatSegmentStat(BaseModel):
-    label: str
-    count: int
-
-
 class AdvancePaymentDashboardStats(BaseModel):
     monthly: VatDashboardPeriodStat
     bimonthly: VatDashboardPeriodStat
@@ -97,7 +92,6 @@ class VatDashboardStats(BaseModel):
     monthly: VatDashboardPeriodStat
     bimonthly: VatDashboardPeriodStat
     advance_payments: AdvancePaymentDashboardStats
-    segmentation: list[VatSegmentStat] = Field(default_factory=list)
 
 
 class AttentionEmptyCheck(BaseModel):
@@ -106,14 +100,12 @@ class AttentionEmptyCheck(BaseModel):
 
 
 class DashboardOverviewResponse(BaseModel):
-    """Dashboard overview for management."""
+    """Dashboard overview — advisor gets full data, secretary gets operational subset."""
 
     total_clients: int
-    active_clients: int
-    active_binders: int
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0
-    open_reminders: int = 0
+    manual_reminders_due_now: int = 0
     open_charges_count: int = 0
     open_charges_amount_ils: Optional[str] = None
     vat_stats: VatDashboardStats

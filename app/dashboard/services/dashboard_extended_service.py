@@ -67,10 +67,8 @@ class DashboardExtendedService:
                 legal_entity_ids = list(
                     {r.legal_entity_id for r in charge_client_records}
                 )
-                legal_entities = [
-                    self.legal_entity_repo.get_by_id(eid) for eid in legal_entity_ids
-                ]
-                legal_entity_map = {e.id: e.official_name for e in legal_entities if e}
+                legal_entities = self.legal_entity_repo.list_by_ids(legal_entity_ids)
+                legal_entity_map = {e.id: e.official_name for e in legal_entities}
                 client_record_map = {r.id: r for r in charge_client_records}
                 total_amount = Decimal("0")
                 for charge in unpaid_charges:

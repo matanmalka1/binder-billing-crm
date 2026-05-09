@@ -1,6 +1,6 @@
 """Read-only list/count queries for ReminderRepository."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -42,6 +42,18 @@ class ReminderRepositoryRead(BaseRepository):
         if created_before is not None:
             query = query.filter(Reminder.created_at <= created_before)
         return query.count()
+
+    def count_due_now(self, reference_date: date) -> int:
+        """Count PENDING manual reminders whose send_on date is on or before reference_date."""
+        return (
+            self._active_client_query()
+            .filter(
+                Reminder.status == ReminderStatus.PENDING,
+                Reminder.send_on <= reference_date,
+                Reminder.deleted_at.is_(None),
+            )
+            .count()
+        )
 
     def count_by_business(self, business_id: int) -> int:
         return (

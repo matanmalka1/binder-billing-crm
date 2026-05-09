@@ -18,7 +18,7 @@ def _make_notification_repo(last=None):
 
 def _make_business_repo(name="Client"):
     return SimpleNamespace(
-        db=SimpleNamespace(),
+        db=None,
         list_by_legal_entity=lambda le_id, page=1, page_size=1: [
             SimpleNamespace(full_name=name)
         ],
@@ -30,7 +30,8 @@ def _make_business_repo(name="Client"):
 
 def test_build_vat_actions_overdue():
     today = date(2026, 4, 28)
-    period = "2026-03"  # deadline was 2026-03-15, clearly overdue
+    deadline = date(2026, 3, 15)  # 44 days before today
+    period = "2026-03"
     item = SimpleNamespace(id=1, client_record_id=10, period=period)
     from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
@@ -38,17 +39,17 @@ def test_build_vat_actions_overdue():
     vat_repo = SimpleNamespace(list_open_up_to_period=lambda up_to, limit=50: [item])
     business_repo = _make_business_repo()
 
-    with mock.patch(
-        "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-    ) as MockCR:
-        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(
-            legal_entity_id=cr_id * 100
-        )
-        with mock.patch(
-            "app.dashboard.services._quick_actions_helpers.get_full_record"
-        ) as mock_fr:
-            mock_fr.return_value = {"full_name": "Client A"}
-            actions = helpers.build_vat_actions(vat_repo, business_repo, today)
+    with (
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers.get_vat_deadline_fields",
+            return_value={"statutory_deadline": deadline},
+        ),
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers._batch_client_names",
+            return_value={10: "Client A"},
+        ),
+    ):
+        actions = helpers.build_vat_actions(vat_repo, business_repo, today)
 
     assert len(actions) == 1
     assert actions[0]["urgency"] == "overdue"
@@ -58,30 +59,27 @@ def test_build_vat_actions_overdue():
 
 
 def test_build_vat_actions_upcoming():
-    today = date(2026, 4, 10)  # day 10, so >= 8, current period
+    today = date(2026, 4, 10)
+    deadline = date(2026, 4, 15)  # 5 days from today
     period = "2026-04"
-    item = SimpleNamespace(
-        id=2,
-        client_record_id=11,
-        period=period,
-    )
+    item = SimpleNamespace(id=2, client_record_id=11, period=period)
     from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
     item.status = VatWorkItemStatus.PENDING_MATERIALS
     vat_repo = SimpleNamespace(list_open_up_to_period=lambda up_to, limit=50: [item])
     business_repo = _make_business_repo()
 
-    with mock.patch(
-        "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-    ) as MockCR:
-        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(
-            legal_entity_id=cr_id * 100
-        )
-        with mock.patch(
-            "app.dashboard.services._quick_actions_helpers.get_full_record"
-        ) as mock_fr:
-            mock_fr.return_value = {"full_name": "Client B"}
-            actions = helpers.build_vat_actions(vat_repo, business_repo, today)
+    with (
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers.get_vat_deadline_fields",
+            return_value={"statutory_deadline": deadline},
+        ),
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers._batch_client_names",
+            return_value={11: "Client B"},
+        ),
+    ):
+        actions = helpers.build_vat_actions(vat_repo, business_repo, today)
 
     assert len(actions) == 1
     assert actions[0]["urgency"] == "upcoming"
@@ -90,23 +88,24 @@ def test_build_vat_actions_upcoming():
 
 
 def test_build_vat_actions_too_early_not_shown():
-    today = date(2026, 4, 5)  # day 5, before threshold of 8
+    today = date(2026, 4, 5)
+    deadline = date(2026, 5, 20)  # 45 days away — outside the upcoming window
     period = "2026-04"
     item = SimpleNamespace(id=3, client_record_id=12, period=period)
     vat_repo = SimpleNamespace(list_open_up_to_period=lambda up_to, limit=50: [item])
     business_repo = _make_business_repo()
 
-    with mock.patch(
-        "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-    ) as MockCR:
-        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(
-            legal_entity_id=cr_id * 100
-        )
-        with mock.patch(
-            "app.dashboard.services._quick_actions_helpers.get_full_record"
-        ) as mock_fr:
-            mock_fr.return_value = {"full_name": "Client C"}
-            actions = helpers.build_vat_actions(vat_repo, business_repo, today)
+    with (
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers.get_vat_deadline_fields",
+            return_value={"statutory_deadline": deadline},
+        ),
+        mock.patch(
+            "app.dashboard.services._quick_actions_helpers._batch_client_names",
+            return_value={12: "Client C"},
+        ),
+    ):
+        actions = helpers.build_vat_actions(vat_repo, business_repo, today)
 
     assert actions == []
 
@@ -130,11 +129,9 @@ def test_build_binder_actions_shows_overdue_pickup():
     notification_repo = _make_notification_repo(last=None)
 
     with mock.patch(
-        "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-    ) as MockCR:
-        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(
-            legal_entity_id=cr_id * 100
-        )
+        "app.dashboard.services._quick_actions_helpers._batch_client_names",
+        return_value={10: "Client"},
+    ):
         actions = helpers.build_binder_actions(
             binder_repo, business_repo, notification_repo
         )
@@ -162,11 +159,9 @@ def test_build_binder_actions_skips_recent_reminder():
     notification_repo = _make_notification_repo(last=recent_notification)
 
     with mock.patch(
-        "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-    ) as MockCR:
-        MockCR.return_value.get_by_id = lambda cr_id: SimpleNamespace(
-            legal_entity_id=cr_id * 100
-        )
+        "app.dashboard.services._quick_actions_helpers._batch_client_names",
+        return_value={11: "Client"},
+    ):
         actions = helpers.build_binder_actions(
             binder_repo, business_repo, notification_repo
         )
@@ -194,14 +189,9 @@ def test_build_annual_report_actions_overdue_navigate():
     business_repo = _make_business_repo()
     notification_repo = _make_notification_repo()
 
-    with (
-        mock.patch(
-            "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-        ),
-        mock.patch(
-            "app.dashboard.services._quick_actions_helpers.get_full_record",
-            return_value={"full_name": "Test Client"},
-        ),
+    with mock.patch(
+        "app.dashboard.services._quick_actions_helpers._batch_client_names",
+        return_value={10: "Test Client"},
     ):
         actions = helpers.build_annual_report_actions(
             annual_repo, business_repo, notification_repo, today
@@ -231,14 +221,9 @@ def test_build_annual_report_actions_pending_client_reminder():
     business_repo = _make_business_repo("Client X")
     notification_repo = _make_notification_repo(last=None)
 
-    with (
-        mock.patch(
-            "app.dashboard.services._quick_actions_helpers.ClientRecordRepository"
-        ),
-        mock.patch(
-            "app.dashboard.services._quick_actions_helpers.get_full_record",
-            return_value={"full_name": "Client X"},
-        ),
+    with mock.patch(
+        "app.dashboard.services._quick_actions_helpers._batch_client_names",
+        return_value={11: "Client X"},
     ):
         actions = helpers.build_annual_report_actions(
             annual_repo, business_repo, notification_repo, today

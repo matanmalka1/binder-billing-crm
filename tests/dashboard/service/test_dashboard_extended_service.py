@@ -56,7 +56,7 @@ def test_get_attention_items_advisor_appends_unpaid_charge_item(test_db):
         list_by_ids=lambda ids: [client_record]
     )
     service.legal_entity_repo = SimpleNamespace(
-        get_by_id=lambda legal_entity_id: legal_entity
+        list_by_ids=lambda ids: [legal_entity]
     )
 
     items = service.get_attention_items(
@@ -97,7 +97,7 @@ def test_get_attention_items_advisor_includes_client_level_charge(test_db):
         list_by_ids=lambda ids: [client_record]
     )
     service.legal_entity_repo = SimpleNamespace(
-        get_by_id=lambda legal_entity_id: legal_entity
+        list_by_ids=lambda ids: [legal_entity]
     )
 
     items = service.get_attention_items(

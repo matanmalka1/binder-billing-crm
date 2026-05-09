@@ -19,7 +19,7 @@ from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.dashboard.services.dashboard_periods import vat_deadline_for_period
+from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 
 _MONTH_HE = {
     1: "ינואר",
@@ -108,8 +108,8 @@ def _batch_client_names(db, client_record_ids: list[int]) -> dict[int, Optional[
     legal_entity_repo = LegalEntityRepository(db)
     records = client_record_repo.list_by_ids(unique_ids)
     legal_entity_ids = list({r.legal_entity_id for r in records if r.legal_entity_id})
-    entities = [legal_entity_repo.get_by_id(eid) for eid in legal_entity_ids]
-    entity_name_map = {e.id: e.official_name for e in entities if e}
+    entities = legal_entity_repo.list_by_ids(legal_entity_ids)
+    entity_name_map = {e.id: e.official_name for e in entities}
     return {r.id: entity_name_map.get(r.legal_entity_id) for r in records}
 
 
@@ -128,7 +128,9 @@ def build_vat_actions(
 
     result: list[dict] = []
     for item in items:
-        deadline = vat_deadline_for_period(item.period, _VAT_DEADLINE_DAY)
+        deadline = get_vat_deadline_fields(item, None).get("statutory_deadline")
+        if deadline is None:
+            continue
         days_diff = (deadline - today).days
 
         if days_diff < 0:
