@@ -1,4 +1,5 @@
 from datetime import date
+from unittest.mock import patch
 
 import pytest
 
@@ -69,18 +70,20 @@ def _count_entries(db, *, obligation_type: ObligationType, period_months_count: 
 
 
 def test_periodic_due_date_uses_offset_and_day(test_db):
+    # Use a future year not in the registry so the DeadlineRule fallback applies.
     rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
-    assert periodic_due_date(rule, 2026, 4) == date(2026, 5, 15)
+    assert periodic_due_date(rule, 2030, 4) == date(2030, 5, 15)
 
 
 def test_periodic_due_date_wraps_year(test_db):
     rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
-    assert periodic_due_date(rule, 2026, 12) == date(2027, 1, 15)
+    assert periodic_due_date(rule, 2030, 12) == date(2031, 1, 15)
 
 
 def test_periodic_due_date_clamps_to_last_day(test_db):
+    # Use a future year not in the registry so the clamping logic is exercised.
     rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=31, offset_months=1)
-    assert periodic_due_date(rule, 2026, 1) == date(2026, 2, 28)
+    assert periodic_due_date(rule, 2030, 1) == date(2030, 2, 28)
 
 
 def test_annual_due_date_offsets_into_next_year(test_db):
@@ -188,15 +191,15 @@ def test_full_year_returns_expected_counts(test_db):
 
 
 def test_monthly_and_bimonthly_share_due_date_remain_separate(test_db):
-    """VAT-monthly Apr (filing 15.05) and VAT-bimonthly Mar-Apr (filing 15.05)
-    both fall on 2026-05-15 but live as distinct rows by months_count."""
+    """VAT-monthly Apr (filing 18.05) and VAT-bimonthly Mar-Apr (filing 18.05)
+    both fall on 2026-05-18 (registry holiday shift) but live as distinct rows by months_count."""
     _seed_all_rules(test_db)
     generate_for_year(test_db, 2026)
     test_db.commit()
 
     same_due = test_db.query(TaxCalendarEntry).filter(
         TaxCalendarEntry.obligation_type == ObligationType.VAT.value,
-        TaxCalendarEntry.due_date == date(2026, 5, 15),
+        TaxCalendarEntry.due_date == date(2026, 5, 18),
     ).all()
     months_counts = sorted(e.period_months_count for e in same_due)
     assert months_counts == [1, 2]
@@ -303,3 +306,57 @@ def test_periodic_and_annual_can_coexist_for_same_tax_year(test_db):
     annual = _count_entries(test_db, obligation_type=ObligationType.ANNUAL_REPORT, tax_year=2026)
     assert periodic == 18  # 12 monthly + 6 bimonthly
     assert annual == 1
+
+
+# ── registry integration: 2026 holiday-shifted dates ────────────────────────
+
+
+def test_registry_shifts_april_2026_monthly_to_18th(test_db):
+    """VAT/advance monthly Apr 2026 must use registry date 2026-05-18, not 2026-05-15."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
+    assert periodic_due_date(rule, 2026, 4) == date(2026, 5, 18)
+
+
+def test_registry_shifts_march_april_2026_bimonthly_to_18th(test_db):
+    """VAT bimonthly Mar-Apr 2026: calendar key 2026-04 → 2026-05-18."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_BIMONTHLY, due_day_of_month=15, offset_months=2)
+    assert periodic_due_date(rule, 2026, 3) == date(2026, 5, 18)
+
+
+def test_registry_shifts_advance_april_2026_to_18th(test_db):
+    """Advance payment monthly Apr 2026 must match VAT: 2026-05-18."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.ADVANCE_MONTHLY, due_day_of_month=15, offset_months=1)
+    assert periodic_due_date(rule, 2026, 4) == date(2026, 5, 18)
+
+
+def test_registry_unshifted_months_stay_on_15th(test_db):
+    """Months with no holiday shift (e.g. May 2026) keep the statutory 15th."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
+    assert periodic_due_date(rule, 2026, 5) == date(2026, 6, 15)
+
+
+def test_registry_future_year_falls_back_to_deadline_rule(test_db):
+    """Year with no registry data (2030) falls back to DeadlineRule computation."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
+    assert periodic_due_date(rule, 2030, 4) == date(2030, 5, 15)
+
+
+def test_registry_not_applied_to_annual_report_rule(test_db):
+    """ANNUAL_REPORT rule type is excluded from registry lookup; uses rule-based date."""
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=31, offset_months=4)
+    # annual_due_date bypasses registry entirely by design
+    assert annual_due_date(rule, 2026) == date(2027, 5, 31)
+
+
+def test_registry_failure_falls_back_and_logs_warning(test_db, caplog):
+    """When the registry call raises, periodic_due_date falls back to DeadlineRule and logs a warning."""
+    import logging
+    import app.tax_calendar.services.tax_calendar_entry_service as svc
+
+    rule = _seed_rule(test_db, rule_type=DeadlineRuleType.VAT_MONTHLY, due_day_of_month=15, offset_months=1)
+    with patch.object(svc, "_registry_periodic", side_effect=RuntimeError("registry down")), \
+         caplog.at_level(logging.WARNING, logger=svc.__name__):
+        result = periodic_due_date(rule, 2026, 5)
+
+    assert result == date(2026, 6, 15)
+    assert any("registry down" in r.message or "registry" in r.message.lower() for r in caplog.records)

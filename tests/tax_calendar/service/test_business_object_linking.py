@@ -162,7 +162,7 @@ def test_vat_work_item_effective_due_date_can_change_with_reason(test_db):
         VatWorkItemRepository(test_db), test_db,
         client_record_id=client.id, period="2026-01", created_by=1,
     )
-    item.due_date_original = date(2026, 2, 15)
+    # due_date_original is already set from TaxCalendarEntry; only change effective.
     item.due_date_effective = date(2026, 2, 20)
     item.due_date_override_reason = "דחייה רשמית"
 
@@ -177,8 +177,8 @@ def test_vat_work_item_effective_due_date_equal_original_needs_no_reason(test_db
         VatWorkItemRepository(test_db), test_db,
         client_record_id=client.id, period="2026-01", created_by=1,
     )
-    item.due_date_original = date(2026, 2, 15)
-    item.due_date_effective = date(2026, 2, 15)
+    # Setting effective to the same value as original requires no override reason.
+    item.due_date_effective = item.due_date_original
 
     test_db.flush()
 

@@ -46,9 +46,9 @@ def test_create_payment_success_sets_defaults(test_db):
     assert payment.status.value == "pending"
     assert payment.expected_amount == Decimal("250.50")
     assert payment.paid_amount == Decimal("100.00")
-    assert payment.due_date == date(2026, 3, 15)
-    assert payment.due_date_original == date(2026, 3, 15)
-    assert payment.due_date_effective == date(2026, 3, 15)
+    assert payment.due_date == date(2026, 3, 26)
+    assert payment.due_date_original == date(2026, 3, 26)
+    assert payment.due_date_effective == date(2026, 3, 26)
     assert payment.due_date_override_reason is None
     assert payment.notes == "first advance"
 
@@ -64,7 +64,7 @@ def test_due_date_original_cannot_change_after_first_set(test_db):
     )
     test_db.commit()
 
-    payment.due_date_original = date(2026, 2, 16)
+    payment.due_date_original = date(2026, 2, 20)
     with pytest.raises(ValueError):
         test_db.commit()
     test_db.rollback()
@@ -85,7 +85,7 @@ def test_due_date_effective_can_change_with_override_reason(test_db):
     payment.due_date_override_reason = "אישור דחייה"
     test_db.commit()
 
-    assert payment.due_date_original == date(2026, 2, 15)
+    assert payment.due_date_original == date(2026, 2, 16)
     assert payment.due_date_effective == date(2026, 2, 20)
 
 

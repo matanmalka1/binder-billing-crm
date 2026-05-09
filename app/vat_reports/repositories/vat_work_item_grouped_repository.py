@@ -42,11 +42,17 @@ def list_due_date_groups(
         VatWorkItem.period,
         VatWorkItem.period_type,
         VatWorkItem.status,
+        VatWorkItem.due_date_effective,
     ).all()
 
     groups: dict[str, dict] = {}
     for row in rows:
-        deadline = compute_deadline_fields(row)["submission_deadline"]
+        # Prefer persisted effective date (registry-shifted statutory).
+        # Fall back to legacy period-based computation only for pre-linking rows.
+        if row.due_date_effective is not None:
+            deadline = row.due_date_effective
+        else:
+            deadline = compute_deadline_fields(row)["submission_deadline"]
         if deadline is None:
             continue
         due_date = deadline.isoformat()
@@ -96,7 +102,11 @@ def list_by_due_date_paginated(
     matching = [
         item
         for item in q.all()
-        if compute_deadline_fields(item)["submission_deadline"] == due_date
+        if (
+            item.due_date_effective
+            if item.due_date_effective is not None
+            else compute_deadline_fields(item)["submission_deadline"]
+        ) == due_date
     ]
     total = len(matching)
     start = (page - 1) * page_size

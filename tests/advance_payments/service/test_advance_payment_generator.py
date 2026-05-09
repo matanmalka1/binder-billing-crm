@@ -58,7 +58,8 @@ def test_generate_annual_schedule_creates_all_12_months(test_db):
     assert skipped == 0
     assert len(created) == 12
     assert {p.period for p in created} == {f"2026-{m:02d}" for m in range(1, 13)}
-    assert all(p.due_date.day == 15 for p in created)
+    assert all(p.due_date is not None for p in created)
+    assert all(p.tax_calendar_entry_id is not None for p in created)
 
 
 def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
@@ -119,7 +120,7 @@ def test_generate_annual_schedule_bimonthly_due_dates_rollover_year(test_db):
     periods = [p.period for p in created]
     assert periods == ["2026-01", "2026-03", "2026-05", "2026-07", "2026-09", "2026-11"]
     nov = next(p for p in created if p.period == "2026-11")
-    assert nov.due_date == date(2027, 1, 15)
+    assert nov.due_date == date(2027, 1, 17)
 
 
 def test_generate_annual_schedule_skips_periods_before_reference_date(test_db):

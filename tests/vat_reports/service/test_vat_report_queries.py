@@ -1,11 +1,59 @@
+from datetime import date, timedelta
 from unittest.mock import MagicMock
 
 import pytest
 
+from app.common.enums import SubmissionMethod
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.services import vat_report_queries
+from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
+
+_ONLINE_DELTA = 4  # VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
+
+
+def _snapshot_item(effective, original=None, period="2026-08"):
+    item = MagicMock()
+    item.due_date_effective = effective
+    item.due_date_original = original
+    item.period = period
+    item.period_type = MagicMock(value="monthly")
+    return item
+
+
+class TestDeadlineFieldsFromSnapshot:
+    def test_statutory_filer_submission_equals_effective(self):
+        effective = date(2026, 9, 24)
+        result = deadline_fields_from_snapshot(_snapshot_item(effective), submission_method=None)
+        assert result["submission_deadline"] == effective
+        assert result["statutory_deadline"] == effective
+        assert result["extended_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
+
+    def test_online_filer_adds_extension_exactly_once(self):
+        effective = date(2026, 9, 24)
+        result = deadline_fields_from_snapshot(
+            _snapshot_item(effective), submission_method=SubmissionMethod.ONLINE
+        )
+        assert result["submission_deadline"] == date(2026, 9, 28)
+        assert result["statutory_deadline"] == effective
+        assert result["extended_deadline"] == date(2026, 9, 28)
+
+    def test_uses_due_date_original_as_statutory_when_set(self):
+        original = date(2026, 9, 15)
+        effective = date(2026, 9, 24)
+        result = deadline_fields_from_snapshot(
+            _snapshot_item(effective, original=original), submission_method=None
+        )
+        assert result["statutory_deadline"] == original
+        assert result["extended_deadline"] == original + timedelta(days=_ONLINE_DELTA)
+
+    def test_linked_item_does_not_call_period_based_path(self):
+        effective = date(2026, 9, 24)
+        item = _snapshot_item(effective)
+        # deadline_fields_from_snapshot must not read item.period for computation
+        result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
+        assert result["submission_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
 
 
 def test_get_work_item_not_found_raises_not_found_error():
