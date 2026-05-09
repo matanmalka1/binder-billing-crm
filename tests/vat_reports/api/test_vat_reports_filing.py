@@ -124,4 +124,4 @@ class TestFiling:
         assert data["client_name"] == vat_client.full_name
         assert data["client_record_id"] == vat_client.id
         assert data["filed_by_name"] == test_user.full_name
-        assert data["submission_deadline"] == "2026-09-28"
+        assert data["submission_deadline"] == "2026-09-24"

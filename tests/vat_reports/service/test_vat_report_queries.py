@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date
 from unittest.mock import MagicMock
 
 import pytest
@@ -13,8 +13,6 @@ from app.vat_reports.services.vat_report_queries import (
 )
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
-_ONLINE_DELTA = 4  # VAT_ONLINE_EXTENDED_DEADLINE_DAY - VAT_STATUTORY_DEADLINE_DAY
-
 
 def _snapshot_item(effective, original=None, period="2026-08"):
     item = MagicMock()
@@ -26,36 +24,39 @@ def _snapshot_item(effective, original=None, period="2026-08"):
 
 
 class TestDeadlineFieldsFromSnapshot:
-    def test_statutory_filer_submission_equals_effective(self):
+    def test_submission_equals_effective_regardless_of_method(self):
+        # due_date_effective already incorporates any calendar extension;
+        # snapshot path must NOT add online-extension days on top.
         effective = date(2026, 9, 24)
-        result = deadline_fields_from_snapshot(
-            _snapshot_item(effective), submission_method=None
-        )
-        assert result["submission_deadline"] == effective
-        assert result["statutory_deadline"] == effective
-        assert result["extended_deadline"] == effective + timedelta(days=_ONLINE_DELTA)
+        for method in (None, SubmissionMethod.ONLINE, SubmissionMethod.MANUAL):
+            result = deadline_fields_from_snapshot(
+                _snapshot_item(effective), submission_method=method
+            )
+            assert result["submission_deadline"] == effective, f"failed for method={method}"
+            assert result["extended_deadline"] == effective, f"extended mismatch for method={method}"
+            assert result["statutory_deadline"] == effective
 
-    def test_online_filer_adds_extension_exactly_once(self):
+    def test_regression_2026_08_exception_no_double_extension(self):
+        # 2026-08: calendar exception already sets effective=2026-09-24.
+        # Snapshot path must return 2026-09-24, not 2026-09-28.
         effective = date(2026, 9, 24)
         result = deadline_fields_from_snapshot(
-            _snapshot_item(effective), submission_method=SubmissionMethod.ONLINE
+            _snapshot_item(effective, period="2026-08"),
+            submission_method=SubmissionMethod.ONLINE,
         )
-        assert result["submission_deadline"] == date(2026, 9, 28)
-        assert result["statutory_deadline"] == effective
-        assert result["extended_deadline"] == date(2026, 9, 28)
+        assert result["submission_deadline"] == date(2026, 9, 24)
 
     def test_overridden_item_statutory_shows_original_registry_date(self):
-        # Models an explicitly overridden item:
-        # due_date_original = registry-shifted statutory (snapshot at creation)
-        # due_date_effective = advisor-extended effective date
-        # statutory_deadline must display the original registry date, not the override.
-        original = date(2026, 9, 24)  # registry-shifted statutory
-        effective = date(2026, 10, 1)  # manual advisor override
+        # due_date_original = registry statutory; due_date_effective = override.
+        # statutory_deadline must reflect the original, not the override.
+        original = date(2026, 9, 24)
+        effective = date(2026, 10, 1)
         result = deadline_fields_from_snapshot(
             _snapshot_item(effective, original=original), submission_method=None
         )
         assert result["statutory_deadline"] == original
-        assert result["extended_deadline"] == original + timedelta(days=_ONLINE_DELTA)
+        assert result["submission_deadline"] == effective
+        assert result["extended_deadline"] == effective
 
     def test_snapshot_path_does_not_access_period(self):
         class _NoPeriodItem:
@@ -71,7 +72,7 @@ class TestDeadlineFieldsFromSnapshot:
         result = deadline_fields_from_snapshot(
             _NoPeriodItem(), submission_method=SubmissionMethod.ONLINE
         )
-        assert result["submission_deadline"] == date(2026, 9, 28)
+        assert result["submission_deadline"] == date(2026, 9, 24)
 
 
 class TestGetVatDeadlineFields:
@@ -81,9 +82,8 @@ class TestGetVatDeadlineFields:
         item.due_date_effective = effective
         item.due_date_original = effective
         result = get_vat_deadline_fields(item, SubmissionMethod.ONLINE)
-        assert result["submission_deadline"] == effective + timedelta(
-            days=_ONLINE_DELTA
-        )
+        # Snapshot path: no extra extension — effective IS the deadline.
+        assert result["submission_deadline"] == effective
         assert result["statutory_deadline"] == effective
 
     def test_routes_to_compute_fallback_when_no_effective(self):

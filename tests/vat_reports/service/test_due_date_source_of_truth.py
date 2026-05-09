@@ -17,6 +17,8 @@ from tests.tax_calendar.service.linking_helpers import make_entry, vat_client
 
 
 def test_snapshot_statutory_filer_uses_due_date_effective():
+    # due_date_effective already incorporates any calendar extension;
+    # snapshot path must NOT add extra days — extended == effective.
     item = MagicMock()
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
@@ -27,12 +29,13 @@ def test_snapshot_statutory_filer_uses_due_date_effective():
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
-    assert result["extended_deadline"] == date(2026, 2, 20)
+    assert result["extended_deadline"] == date(2026, 2, 16)
     assert isinstance(result["days_until_deadline"], int)
     assert isinstance(result["is_overdue"], bool)
 
 
-def test_snapshot_online_filer_adds_extension_days():
+def test_snapshot_online_filer_uses_effective_no_extra_extension():
+    # Snapshot path: submission_method is irrelevant — effective IS the deadline.
     item = MagicMock()
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
@@ -41,13 +44,14 @@ def test_snapshot_online_filer_adds_extension_days():
         item, submission_method=SubmissionMethod.ONLINE
     )
 
-    assert result["submission_deadline"] == date(2026, 2, 20)
+    assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
-    assert result["extended_deadline"] == date(2026, 2, 20)
+    assert result["extended_deadline"] == date(2026, 2, 16)
 
 
-def test_snapshot_standard_month_matches_legacy_constants():
-    """Non-holiday month: snapshot 15th == legacy hardcoded 15th; extended 19th == 15+4."""
+def test_snapshot_standard_month_submission_equals_effective():
+    # For a standard month where effective == original (no holiday shift),
+    # submission and extended both equal effective — no +4 added by snapshot path.
     item = MagicMock()
     item.due_date_original = date(2026, 3, 15)
     item.due_date_effective = date(2026, 3, 15)
@@ -56,9 +60,9 @@ def test_snapshot_standard_month_matches_legacy_constants():
         item, submission_method=SubmissionMethod.ONLINE
     )
 
-    assert result["submission_deadline"] == date(2026, 3, 19)
+    assert result["submission_deadline"] == date(2026, 3, 15)
     assert result["statutory_deadline"] == date(2026, 3, 15)
-    assert result["extended_deadline"] == date(2026, 3, 19)
+    assert result["extended_deadline"] == date(2026, 3, 15)
 
 
 def test_snapshot_falls_back_to_effective_when_original_is_none():
@@ -117,7 +121,8 @@ def test_serializer_prefers_snapshot_over_computed_deadline(test_db):
         f"expected 2026-02-16 from snapshot, got {result.submission_deadline} (hardcoded 15th would be wrong)"
     )
     assert result.statutory_deadline == date(2026, 2, 16)
-    assert result.extended_deadline == date(2026, 2, 20)
+    # extended_deadline == effective: snapshot path does not add +4
+    assert result.extended_deadline == date(2026, 2, 16)
 
 
 def test_serializer_routing_uses_snapshot_when_effective_set():
