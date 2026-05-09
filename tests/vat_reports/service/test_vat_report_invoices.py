@@ -10,7 +10,7 @@ from app.vat_reports.models.vat_enums import (
     InvoiceType,
     VatWorkItemStatus,
 )
-from app.vat_reports.services import data_entry
+from app.vat_reports.services.data_entry_invoices import add_invoice
 from tests.vat_reports.service.test_vat_report_test_utils import make_item, make_invoice
 
 
@@ -25,7 +25,7 @@ class TestAddInvoice:
         invoice_repo.sum_vat_both_types.return_value = (170.0, 0.0)
         invoice_repo.sum_net_both_types.return_value = (1000.0, 0.0)
 
-        return data_entry.add_invoice(
+        return add_invoice(
             work_item_repo,
             invoice_repo,
             item_id=1,
@@ -53,7 +53,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,
@@ -73,7 +73,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,
@@ -93,7 +93,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,
@@ -113,7 +113,7 @@ class TestAddInvoice:
         work_item_repo.get_by_id.return_value = make_item()
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,
@@ -136,7 +136,7 @@ class TestAddInvoice:
         invoice_repo.get_by_number.return_value = make_invoice()
 
         with pytest.raises(ConflictError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,
@@ -158,7 +158,7 @@ class TestAddInvoice:
         )
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.add_invoice(
+            add_invoice(
                 work_item_repo,
                 invoice_repo,
                 item_id=1,

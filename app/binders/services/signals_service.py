@@ -3,10 +3,6 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.binders.services.operational_signals_builder import (
-    build_client_operational_signals,
-)
-
 
 class SignalsService:
     """
@@ -33,7 +29,8 @@ class SignalsService:
     ) -> dict:
         if reference_date is None:
             reference_date = date.today()
-        return build_client_operational_signals(
-            self.document_service,
-            business_id=business_id,
-        )
+        missing_docs = self.document_service.get_missing_document_types(business_id)
+        return {
+            "business_id": business_id,
+            "missing_documents": list(missing_docs),
+        }

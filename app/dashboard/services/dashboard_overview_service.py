@@ -18,7 +18,6 @@ from app.dashboard.services.dashboard_extended_service import DashboardExtendedS
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
-from app.dashboard.services.dashboard_empty_state import build_attention_empty_checks
 from app.utils.time_utils import israel_today
 
 
@@ -59,13 +58,11 @@ class DashboardOverviewService:
             if is_advisor
             else {"deadline_items": [], "reminder_items": []}
         )
-        attention_empty_checks = (
-            build_attention_empty_checks(
-                open_charges=attention_data["open_charges_count"]
-            )
-            if is_advisor
-            else []
-        )
+        attention_empty_checks = []
+        if is_advisor and attention_data["open_charges_count"] == 0:
+            attention_empty_checks = [
+                {"key": "open_charges", "label": "אין חיובים פתוחים"}
+            ]
 
         has_clients = self.client_record_repo.count() > 0
         return {

@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.dashboard.services.dashboard_periods import (
+from app.common.period_utils import (
     bimonthly_advance_payment_period,
     bimonthly_vat_period,
     monthly_vat_period,

@@ -113,7 +113,6 @@ app/<domain>/
 
 ## Non-Negotiable Rules
 
-- Max **150 lines** per Python file — split if exceeded
 - No raw SQL — ORM only
 - Strict layering: `API → Service → Repository → ORM`
 - No cross-domain imports at Repository or Model level

@@ -6,13 +6,22 @@ from sqlalchemy.exc import IntegrityError
 
 from app.audit.constants import ENTITY_BUSINESS
 from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.businesses.models.business import Business
+from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
-from app.businesses.services.business_update_service import BusinessUpdateService
+from app.businesses.services.business_guards import (
+    assert_business_belongs_to_legal_entity,
+)
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
+
+
+def _serialize(d: dict) -> dict:
+    return {
+        k: v.value if hasattr(v, "value") else str(v) if v is not None else None
+        for k, v in d.items()
+    }
 
 
 class BusinessService:
@@ -23,7 +32,6 @@ class BusinessService:
         self.client_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
         self._lifecycle = BusinessLifecycleService(db)
-        self._update = BusinessUpdateService(db)
         self._audit = EntityAuditWriter(db)
 
     def create_business(
@@ -138,14 +146,52 @@ class BusinessService:
         record = self.client_repo.get_by_id(client_id)
         if not record:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
-        return self._update.update_business(
+
+        business = self.business_repo.get_by_id(business_id)
+        if not business:
+            raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")
+        if business.legal_entity_id is not None:
+            assert_business_belongs_to_legal_entity(business, record.legal_entity_id)
+
+        if "status" in fields and fields["status"] is not None:
+            try:
+                fields["status"] = BusinessStatus(fields["status"])
+            except ValueError:
+                raise AppError(
+                    f"סטטוס לא חוקי: {fields['status']}",
+                    "BUSINESS.INVALID_STATUS",
+                    status_code=400,
+                )
+
+        new_status = fields.get("status")
+        if new_status in (BusinessStatus.FROZEN, BusinessStatus.CLOSED):
+            if user_role != UserRole.ADVISOR:
+                raise ForbiddenError(
+                    "רק יועצים יכולים להקפיא או לסגור עסקים", "BUSINESS.FORBIDDEN"
+                )
+        if new_status == BusinessStatus.CLOSED:
+            fields.setdefault("closed_at", date.today())
+        if new_status == BusinessStatus.ACTIVE:
+            fields["closed_at"] = None
+
+        fields.pop("entity_type", None)
+
+        old_snapshot = {
+            k: getattr(business, k, None) for k in fields if hasattr(business, k)
+        }
+        updated = self.business_repo.update(business_id, **fields)
+        new_snapshot = {
+            k: getattr(updated, k, None) for k in fields if hasattr(updated, k)
+        }
+
+        self._audit.record_update(
+            ENTITY_BUSINESS,
             business_id,
-            client_id=client_id,
-            user_role=user_role,
-            actor_id=actor_id,
-            legal_entity_id=record.legal_entity_id,
-            **fields,
+            actor_id,
+            old_value=_serialize(old_snapshot),
+            new_value=_serialize(new_snapshot),
         )
+        return updated
 
     def delete_business(self, business_id: int, actor_id: int) -> None:
         self._lifecycle.delete_business(business_id, actor_id)

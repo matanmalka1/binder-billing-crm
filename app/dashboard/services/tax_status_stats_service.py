@@ -9,7 +9,7 @@ from app.clients.repositories.client_vat_stats_repository import (
     ClientVatStatsRepository,
 )
 from app.common.enums import VatType
-from app.dashboard.services.dashboard_periods import (
+from app.common.period_utils import (
     bimonthly_advance_payment_period,
     bimonthly_vat_period,
     monthly_vat_period,

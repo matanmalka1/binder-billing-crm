@@ -5,7 +5,11 @@ import pytest
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.services import data_entry, filing
+from app.vat_reports.services import filing
+from app.vat_reports.services.data_entry_status import (
+    mark_ready_for_review,
+    send_back_for_correction,
+)
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 
@@ -19,9 +23,7 @@ class TestMarkReadyForReview:
             status=VatWorkItemStatus.READY_FOR_REVIEW
         )
 
-        result = data_entry.mark_ready_for_review(
-            work_item_repo, item_id=1, performed_by=1
-        )
+        result = mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
         assert result.status == VatWorkItemStatus.READY_FOR_REVIEW
 
     def test_wrong_status_raises(self):
@@ -31,7 +33,7 @@ class TestMarkReadyForReview:
         )
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
+            mark_ready_for_review(work_item_repo, item_id=1, performed_by=1)
         assert exc_info.value.code == "VAT.INVALID_TRANSITION"
 
 
@@ -45,7 +47,7 @@ class TestSendBackForCorrection:
             status=VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
         )
 
-        result = data_entry.send_back_for_correction(
+        result = send_back_for_correction(
             work_item_repo,
             item_id=1,
             performed_by=1,
@@ -58,7 +60,7 @@ class TestSendBackForCorrection:
         work_item_repo = MagicMock()
 
         with pytest.raises(AppError) as exc_info:
-            data_entry.send_back_for_correction(
+            send_back_for_correction(
                 work_item_repo, item_id=1, performed_by=1, correction_note="   "
             )
         assert exc_info.value.code == "VAT.JUSTIFICATION_REQUIRED"

@@ -3,8 +3,8 @@ from datetime import date
 import pytest
 
 from app.businesses.models.business import Business, BusinessStatus
+from app.businesses.services.business_service import BusinessService
 from app.businesses.services.client_business_service import ClientBusinessService
-from app.businesses.services.business_update_service import BusinessUpdateService
 from app.businesses.services.status_card_service import StatusCardService
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
@@ -45,7 +45,7 @@ def test_update_business_resolves_legal_entity_from_client_record(test_db):
     client_record = _seed_client_record(test_db, "UPD")
     business = _seed_business(test_db, client_record.legal_entity_id)
 
-    updated = BusinessUpdateService(test_db).update_business(
+    updated = BusinessService(test_db).update_business(
         business_id=business.id,
         client_id=client_record.id,
         user_role=UserRole.ADVISOR,

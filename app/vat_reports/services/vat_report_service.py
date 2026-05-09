@@ -9,8 +9,14 @@ from sqlalchemy.orm import Session
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
+from app.vat_reports.services.data_entry_invoice_update import update_invoice
+from app.vat_reports.services.data_entry_invoices import add_invoice
+from app.vat_reports.services.data_entry_status import (
+    mark_ready_for_review,
+    send_back_for_correction,
+)
 from app.vat_reports.services import (
-    data_entry,
     filing,
     intake,
     period_options,
@@ -52,23 +58,19 @@ class VatReportService:
     # ── Data entry ───────────────────────────────────────────────────────────
 
     def add_invoice(self, **kwargs):
-        return data_entry.add_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
+        return add_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
 
     def delete_invoice(self, **kwargs):
-        return data_entry.delete_invoice(
-            self.work_item_repo, self.invoice_repo, **kwargs
-        )
+        return delete_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
 
     def update_invoice(self, **kwargs):
-        return data_entry.update_invoice(
-            self.work_item_repo, self.invoice_repo, **kwargs
-        )
+        return update_invoice(self.work_item_repo, self.invoice_repo, **kwargs)
 
     def mark_ready_for_review(self, **kwargs):
-        return data_entry.mark_ready_for_review(self.work_item_repo, **kwargs)
+        return mark_ready_for_review(self.work_item_repo, **kwargs)
 
     def send_back_for_correction(self, **kwargs):
-        return data_entry.send_back_for_correction(self.work_item_repo, **kwargs)
+        return send_back_for_correction(self.work_item_repo, **kwargs)
 
     # ── Filing ───────────────────────────────────────────────────────────────
 
