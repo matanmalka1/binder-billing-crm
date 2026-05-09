@@ -11,7 +11,6 @@ from app.binders.models.binder import BinderStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.notification.repositories.notification_repository import NotificationRepository
-from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.users.models.user import UserRole
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
@@ -29,7 +28,6 @@ class DashboardOverviewService:
         self.binder_repo = BinderRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.reminder_repo = ReminderRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
         self.notification_repo = NotificationRepository(db)
@@ -49,14 +47,13 @@ class DashboardOverviewService:
         attention_data = self.extended_service.get_attention_data(
             user_role=user_role, reference_date=reference_date
         )
-        manual_reminders_due_now = self.reminder_repo.count_due_now(reference_date)
 
         is_advisor = user_role == UserRole.ADVISOR
         quick_actions = self._build_quick_actions(reference_date) if is_advisor else []
         advisor_today = (
             self.advisor_today_service.build(reference_date)
             if is_advisor
-            else {"deadline_items": [], "reminder_items": []}
+            else {"deadline_items": []}
         )
         attention_empty_checks = []
         if is_advisor and attention_data["open_charges_count"] == 0:
@@ -73,7 +70,6 @@ class DashboardOverviewService:
             "binders_ready_for_pickup": self.binder_repo.count_by_status(
                 BinderStatus.READY_FOR_PICKUP
             ),
-            "manual_reminders_due_now": manual_reminders_due_now,
             "open_charges_count": attention_data["open_charges_count"],
             "open_charges_amount_ils": attention_data["open_charges_amount_ils"],
             "vat_stats": vat_stats,

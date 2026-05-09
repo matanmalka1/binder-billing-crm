@@ -41,7 +41,6 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
   - `is_empty`
   - `binders_in_office`
   - `binders_ready_for_pickup`
-  - `manual_reminders_due_now`
   - `vat_stats` (`monthly`, `bimonthly`, `advance_payments`)
   - `quick_actions`
   - `attention`
@@ -64,8 +63,7 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 - Dashboard stat card links deep-link to their matching filtered list views:
   - binders in office: `/binders?status=in_office`
   - monthly/bimonthly VAT: `/tax/vat?period=YYYY-MM&period_type=...`
-  - ready reminders: `/reminders?status=pending&due=ready`
-- Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`, `reminders`).
+- Dashboard domain does not define its own repository package; services compose repositories from other domains (`clients`, `binders`, `charge`, `annual_reports`, `vat_reports`).
 - Advisor-only attention includes unpaid issued charges.
 - The attention payload uses typed items whose `item_type` is currently `unpaid_charge` or `unpaid_charges`.
 - Tax-submission widget derives progress buckets from annual-report statuses and active client count.
@@ -90,7 +88,6 @@ Dashboard aggregates across:
 - `clients` (counts, names, client actions)
 - `charge` (issued/unpaid charge attention items)
 - `annual_reports` (tax-submission widget metrics and financial sums)
-- `reminders` (open reminder counters)
 - `vat_reports` (VAT due counters and quick actions)
 - `actions` (`app/actions/action_contracts.py` for quick actions)
 

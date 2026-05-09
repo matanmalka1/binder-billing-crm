@@ -20,7 +20,6 @@ from app.clients.repositories.client_record_repository import (
     get_full_record,
 )
 from app.core.exceptions import ForbiddenError, NotFoundError
-from app.reminders.services.client_status_service import ReminderClientStatusService
 from app.users.models.user import UserRole
 from app.vat_reports.services.client_status_service import (
     VatWorkItemClientStatusService,
@@ -85,9 +84,6 @@ class ClientUpdateService:
             return
         self.record_repo.update_status(record.id, new_status)
         if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
-            ReminderClientStatusService(self.db).cancel_pending_by_client_record(
-                record.id
-            )
             VatWorkItemClientStatusService(self.db).cancel_open_by_client_record(
                 record.id
             )

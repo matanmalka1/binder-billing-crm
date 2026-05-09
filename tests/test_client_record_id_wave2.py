@@ -104,31 +104,6 @@ def _make_business(db, client_id: int):
     return business
 
 
-class TestO1Reminder:
-    def test_repo_list_by_client_record(self, db):
-        from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
-        from app.reminders.repositories.reminder_repository import ReminderRepository
-
-        client = _make_client(db)
-        record = _make_client_record(db, client.id)
-        db.add(
-            Reminder(
-                client_record_id=record.id,
-                reminder_type=ReminderType.CUSTOM,
-                status=ReminderStatus.PENDING,
-                target_date=date(2024, 1, 20),
-                days_before=2,
-                send_on=date(2024, 1, 18),
-                message="test",
-            )
-        )
-        db.flush()
-
-        items = ReminderRepository(db).list_by_client_record(record.id)
-        assert len(items) == 1
-        assert items[0].client_record_id == record.id
-
-
 class TestO2Charge:
     def test_repo_list_by_client_record(self, db):
         from app.charge.models.charge import Charge, ChargeStatus

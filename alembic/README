@@ -10,7 +10,7 @@
   2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `9ecbb3d5f408_initial.py`.
+- Current head is `0003_scheduler_reminders.py`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
@@ -83,7 +83,27 @@ Notes:
 
 ## Migration chain
 
-`9ecbb3d5f408_initial` is the current head.
+`0003_scheduler_reminders` is the current head.
+
+### 0003_scheduler_reminders
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Replaces legacy manual reminder columns with scheduler-trigger fields.
+- Covers:
+  `fire_at`, scheduler status, action type, source metadata, payload,
+  execution metadata, and timestamps.
+- Notes:
+  Drops the old reminders table because the database is empty and no historical
+  reminder data needs preservation. Removes old `pending/sent/canceled`
+  semantics and introduces `scheduled/fired/canceled/failed`.
+
+### 0002_require_tax_calendar_links
+
+- What it does:
+  Requires `tax_calendar_entry_id` on active VAT, advance payment, and annual
+  report obligation rows.
 
 ### 9ecbb3d5f408_initial
 

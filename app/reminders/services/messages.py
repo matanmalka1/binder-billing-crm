@@ -1,5 +1,0 @@
-NEGATIVE_DAYS = "המספר המייצג כמה ימים לפני חייב להיות מספר לא שלילי"
-BINDER_NOT_FOUND = "תיק {binder_id} לא נמצא"
-IDLE_BINDER_REMINDER_DEFAULT = "תזכורת: תיק לא טופל {days_idle} ימים"
-DOCUMENT_MISSING_MESSAGE_REQUIRED = "נדרש טקסט עבור תזכורת מסמך חסר"
-CUSTOM_REMINDER_MESSAGE_REQUIRED = "נדרש טקסט עבור תזכורות מותאמות אישית"

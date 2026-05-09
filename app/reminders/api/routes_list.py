@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.reminders.schemas.reminders import ReminderListResponse, ReminderResponse
 from app.reminders.services.reminder_service import ReminderService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 list_router = APIRouter()
 
@@ -24,44 +23,14 @@ def list_reminders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status_filter: Optional[str] = Query(None, alias="status"),
-    business_id: Optional[int] = Query(None),
-    client_record_id: Optional[int] = Query(None),
-    created_before: Optional[datetime] = Query(
-        None, description="סינון תזכורות שנוצרו לפני תאריך זה (ISO 8601)"
-    ),
 ):
-    service = ReminderService(db)
-    if business_id is not None:
-        items, total, context_map = service.get_reminders_by_business(
-            business_id=business_id, page=page, page_size=page_size
-        )
-    elif client_record_id is not None:
-        items, total, context_map = service.get_reminders_by_client(
-            client_record_id=client_record_id, page=page, page_size=page_size
-        )
-    else:
-        items, total, context_map = service.get_reminders(
-            status=status_filter,
-            created_before=created_before,
-            page=page,
-            page_size=page_size,
-        )
-
-    def _to_response(r) -> ReminderResponse:
-        resp = ReminderResponse.model_validate(r)
-        ctx = context_map.get(r.id)
-        if ctx:
-            resp.client_record_id = ctx["client_record_id"]
-            resp.client_name = ctx["client_name"]
-            resp.client_id_number = ctx["client_id_number"]
-            resp.office_client_number = ctx["office_client_number"]
-            resp.business_id = ctx["business_id"]
-            resp.business_name = ctx["business_name"]
-            resp.display_label = ctx["display_label"]
-        return resp
-
+    items, total = ReminderService(db).get_reminders(
+        status=status_filter,
+        page=page,
+        page_size=page_size,
+    )
     return ReminderListResponse(
-        items=[_to_response(r) for r in items],
+        items=[ReminderResponse.model_validate(item) for item in items],
         page=page,
         page_size=page_size,
         total=total,

@@ -8,7 +8,6 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     service = DashboardOverviewService(test_db)
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 6)
     monkeypatch.setattr(service.binder_repo, "count_by_status", lambda _status: 2)
-    monkeypatch.setattr(service.reminder_repo, "count_due_now", lambda _d: 3)
     monkeypatch.setattr(
         service.vat_stats_service,
         "build",
@@ -41,7 +40,6 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
         "build",
         lambda today: {
             "deadline_items": [{"id": 1, "label": "מע״מ"}],
-            "reminder_items": [],
         },
     )
     monkeypatch.setattr(
@@ -60,7 +58,6 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     )
 
     assert overview["is_empty"] is False
-    assert overview["manual_reminders_due_now"] == 3
     assert overview["open_charges_count"] == 1
     assert overview["open_charges_amount_ils"] == "₪300"
     assert overview["vat_stats"]["monthly"]["period_label"] == "פברואר 2026"
@@ -78,7 +75,6 @@ def test_get_overview_empty_checks_when_no_open_charges(test_db, monkeypatch):
     service = DashboardOverviewService(test_db)
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 6)
     monkeypatch.setattr(service.binder_repo, "count_by_status", lambda _status: 0)
-    monkeypatch.setattr(service.reminder_repo, "count_due_now", lambda _d: 0)
     monkeypatch.setattr(
         service.vat_stats_service,
         "build",
@@ -105,7 +101,6 @@ def test_get_overview_empty_checks_when_no_open_charges(test_db, monkeypatch):
     )
 
     assert overview["is_empty"] is False
-    assert overview["manual_reminders_due_now"] == 0
     assert overview["open_charges_count"] == 0
     assert overview["attention_empty_checks"] == [
         {"key": "open_charges", "label": "אין חיובים פתוחים"},
@@ -116,7 +111,6 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
     service = DashboardOverviewService(test_db)
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 0)
     monkeypatch.setattr(service.binder_repo, "count_by_status", lambda _status: 0)
-    monkeypatch.setattr(service.reminder_repo, "count_due_now", lambda _d: 0)
     monkeypatch.setattr(
         service.vat_stats_service,
         "build",

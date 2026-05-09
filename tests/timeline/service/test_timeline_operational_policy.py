@@ -16,7 +16,11 @@ from app.notification.models.notification import (
     NotificationChannel,
     NotificationTrigger,
 )
-from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.reminders.models.reminder import (
+    Reminder,
+    ReminderActionType,
+    ReminderStatus,
+)
 from app.timeline.services.timeline_service import TimelineService
 from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_tax_calendar_entry_for_annual
@@ -42,19 +46,29 @@ def _event_types(events):
     return [event["event_type"] for event in events]
 
 
-def test_timeline_excludes_noisy_client_reminder_and_notification_events(test_db):
+def test_timeline_excludes_scheduler_reminder_with_source_reference(test_db):
     service = TimelineService(test_db)
     business = _business(test_db)
     reminder = Reminder(
-        client_record_id=business.client_id,
-        business_id=business.id,
-        reminder_type=ReminderType.CUSTOM,
-        status=ReminderStatus.PENDING,
-        target_date=date(2026, 1, 10),
-        days_before=0,
-        send_on=date(2026, 1, 10),
-        message="Reminder",
+        fire_at=datetime(2026, 1, 10, tzinfo=UTC),
+        action_type=ReminderActionType.SEND_NOTIFICATION,
+        status=ReminderStatus.SCHEDULED,
+        source_domain="client_record",
+        source_id=business.client_id,
     )
+    test_db.add(reminder)
+    test_db.commit()
+
+    events, _ = service.get_client_timeline(business.client_id, page=1, page_size=50)
+
+    assert "client_created" in _event_types(events)
+    assert "reminder_created" not in _event_types(events)
+    assert all(event.get("metadata", {}).get("source_domain") is None for event in events)
+
+
+def test_timeline_excludes_noisy_notification_events(test_db):
+    service = TimelineService(test_db)
+    business = _business(test_db)
     notification = Notification(
         client_record_id=business.client_id,
         business_id=business.id,
@@ -63,14 +77,13 @@ def test_timeline_excludes_noisy_client_reminder_and_notification_events(test_db
         recipient="client@example.com",
         content_snapshot="Ready",
     )
-    test_db.add_all([reminder, notification])
+    test_db.add(notification)
     test_db.commit()
 
     events, _ = service.get_client_timeline(business.client_id, page=1, page_size=50)
 
     assert "client_created" in _event_types(events)
     assert "client_info_updated" not in _event_types(events)
-    assert "reminder_created" not in _event_types(events)
     assert "notification_sent" not in _event_types(events)
 
 

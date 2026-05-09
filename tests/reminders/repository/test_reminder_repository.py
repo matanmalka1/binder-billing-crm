@@ -1,125 +1,32 @@
-from datetime import date, timedelta
-from itertools import count
+from datetime import timedelta
 
-from app.businesses.models.business import BusinessStatus
-from app.reminders.models.reminder import ReminderStatus, ReminderType
+from app.reminders.models.reminder import ReminderActionType, ReminderStatus
 from app.reminders.repositories.reminder_repository import ReminderRepository
 from app.utils.time_utils import utcnow
-from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
 
 
-_seq = count(1)
-
-
-def _client(db) -> SeededClient:
-    idx = next(_seq)
-    return seed_client_identity(
-        db,
-        full_name=f"Reminder Repo Client {idx}",
-        id_number=f"RMR{idx:03d}",
-    )
-
-
-def _business(db, crm_client: SeededClient):
-    business = seed_business(
-        db,
-        legal_entity_id=crm_client.legal_entity_id,
-        business_name=f"Reminder Repo Biz {crm_client.id}",
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
-    )
-    db.commit()
-    db.refresh(business)
-    business.client_id = crm_client.id
-    return business
-
-
-def _create_reminder(
-    repo: ReminderRepository,
-    business_id: int,
-    *,
-    client_record_id: int,
-    send_on: date,
-    message: str,
-):
-    return repo.create(
-        client_record_id=client_record_id,
-        business_id=business_id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=send_on + timedelta(days=5),
-        days_before=5,
-        send_on=send_on,
-        message=message,
-    )
-
-
-def test_pending_status_and_business_queries(test_db):
+def test_create_list_and_due_queries(test_db):
     repo = ReminderRepository(test_db)
-    today = date.today()
     now = utcnow()
-    client_a = _client(test_db)
-    client_b = _client(test_db)
-    business_a = _business(test_db, client_a)
-    business_b = _business(test_db, client_b)
-
-    _due_earliest = _create_reminder(
-        repo,
-        business_b.id,
-        client_record_id=client_b.id,
-        send_on=today - timedelta(days=2),
-        message="due earliest",
+    due = repo.create(
+        fire_at=now - timedelta(minutes=1),
+        action_type=ReminderActionType.SEND_NOTIFICATION,
+        source_domain="charge",
+        source_id=7,
+        payload={"x": 1},
     )
-    due_old = _create_reminder(
-        repo,
-        business_a.id,
-        client_record_id=client_a.id,
-        send_on=today - timedelta(days=1),
-        message="due old",
-    )
-    due_today = _create_reminder(
-        repo,
-        business_a.id,
-        client_record_id=client_a.id,
-        send_on=today,
-        message="due today",
-    )
-    future = _create_reminder(
-        repo,
-        business_a.id,
-        client_record_id=client_a.id,
-        send_on=today + timedelta(days=3),
-        message="future",
-    )
-    sent = _create_reminder(
-        repo,
-        business_a.id,
-        client_record_id=client_a.id,
-        send_on=today - timedelta(days=3),
-        message="sent",
+    future = repo.create(
+        fire_at=now + timedelta(days=1),
+        action_type=ReminderActionType.CREATE_TASK,
     )
 
-    repo.update_status(sent.id, ReminderStatus.SENT, sent_at=now)
-
-    due_old.created_at = now - timedelta(minutes=4)
-    due_today.created_at = now - timedelta(minutes=3)
-    future.created_at = now - timedelta(minutes=2)
-    sent.created_at = now - timedelta(minutes=1)
-    test_db.commit()
-
-    sent_list = repo.list_by_status(status=ReminderStatus.SENT, page=1, page_size=20)
-    assert [item.id for item in sent_list] == [sent.id]
-    assert repo.count_by_status(ReminderStatus.SENT) == 1
-
-    assert repo.count_by_business(business_a.id) == 4
-    by_business = repo.list_by_business(business_a.id, page=1, page_size=20)
-    assert [item.id for item in by_business] == [
-        sent.id,
-        future.id,
-        due_today.id,
-        due_old.id,
-    ]
+    scheduled = repo.list_by_status(ReminderStatus.SCHEDULED)
+    assert [item.id for item in scheduled] == [due.id, future.id]
+    assert repo.count_by_status(ReminderStatus.SCHEDULED) == 2
+    assert [item.id for item in repo.list_due_scheduled(now)] == [due.id]
 
 
 def test_update_status_returns_none_for_missing_reminder(test_db):
     repo = ReminderRepository(test_db)
+
     assert repo.update_status(999999, ReminderStatus.CANCELED) is None

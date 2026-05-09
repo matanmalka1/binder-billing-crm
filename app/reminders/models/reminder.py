@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
-from typing import Optional
+from typing import Any, Optional
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, Text
+from sqlalchemy import DateTime, Index, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -12,85 +12,55 @@ from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
-class ReminderType(str, PyEnum):
-    BINDER_IDLE = "binder_idle"
-    DOCUMENT_MISSING = "document_missing"
-    CUSTOM = "custom"
+class ReminderActionType(str, PyEnum):
+    CREATE_TASK = "CREATE_TASK"
+    SEND_NOTIFICATION = "SEND_NOTIFICATION"
+    CREATE_TASK_AND_NOTIFY = "CREATE_TASK_AND_NOTIFY"
 
 
 class ReminderStatus(str, PyEnum):
-    PENDING = "pending"
-    SENT = "sent"
+    SCHEDULED = "scheduled"
+    FIRED = "fired"
     CANCELED = "canceled"
+    FAILED = "failed"
 
 
 class Reminder(Base):
     __tablename__ = "reminders"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    client_record_id: Mapped[int] = mapped_column(
-        ForeignKey("client_records.id"), nullable=False, index=True
-    )
-    business_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("businesses.id"), nullable=True, index=True
-    )
-
-    reminder_type: Mapped[ReminderType] = mapped_column(
-        pg_enum(ReminderType), nullable=False
-    )
+    fire_at: Mapped[datetime.datetime] = mapped_column(DateTime, index=True)
     status: Mapped[ReminderStatus] = mapped_column(
-        pg_enum(ReminderStatus), default=ReminderStatus.PENDING, nullable=False
+        pg_enum(ReminderStatus), default=ReminderStatus.SCHEDULED, index=True
     )
-
-    target_date: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    days_before: Mapped[int] = mapped_column(Integer, nullable=False)
-    send_on: Mapped[datetime.date] = mapped_column(Date, nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-
-    binder_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("binders.id"), nullable=True, index=True
+    action_type: Mapped[ReminderActionType] = mapped_column(
+        pg_enum(ReminderActionType), nullable=False
     )
-
+    source_domain: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_task_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    notification_template_key: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True
+    )
+    payload: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    created_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    fired_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime, nullable=True
+    )
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=utcnow, nullable=False
     )
-    sent_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime, nullable=True
-    )
-    canceled_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime, nullable=True
-    )
-    canceled_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
-    created_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
-    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime, nullable=True
-    )
-    deleted_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
     __table_args__ = (
-        Index("idx_reminder_client_record_type", "client_record_id", "reminder_type"),
-        Index("idx_reminder_business_type", "business_id", "reminder_type"),
-        Index(
-            "uq_reminder_active",
-            "client_record_id",
-            "reminder_type",
-            "target_date",
-            unique=True,
-            postgresql_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
-            sqlite_where=(status != ReminderStatus.CANCELED) & deleted_at.is_(None),
-        ),
+        Index("idx_reminders_status_fire_at", "status", "fire_at"),
     )
 
     def __repr__(self) -> str:
-        scope = (
-            f"business_id={self.business_id}"
-            if self.business_id
-            else f"client_record_id={self.client_record_id}"
+        return (
+            f"<Reminder(id={self.id}, action='{self.action_type}', "
+            f"status='{self.status}', fire_at='{self.fire_at}')>"
         )
-        return f"<Reminder(id={self.id}, {scope}, type='{self.reminder_type}', send_on='{self.send_on}')>"

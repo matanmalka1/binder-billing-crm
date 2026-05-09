@@ -1,157 +1,137 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
 
-from app.businesses.models.business import BusinessStatus
-from app.reminders.models.reminder import ReminderStatus, ReminderType
-from app.reminders.repositories.reminder_repository import ReminderRepository
-from app.reminders.services.reminder_service import ReminderService
 from app.core.exceptions import AppError, NotFoundError
-from tests.helpers.identity import SeededClient, seed_business, seed_client_identity
+from app.reminders.models.reminder import ReminderActionType, ReminderStatus
+from app.reminders.schemas.reminders import ReminderCreateRequest
+from app.reminders.services.reminder_executor_service import ReminderExecutorService
+from app.reminders.services.reminder_service import ReminderService
+from app.utils.time_utils import utcnow
 
 
-def _client(db) -> SeededClient:
-    return seed_client_identity(
-        db,
-        full_name="Reminder Service Client",
-        id_number="333333333",
+def test_create_scheduled_reminder_from_request(test_db):
+    now = utcnow()
+    reminder = ReminderService(test_db).create_from_request(
+        ReminderCreateRequest(
+            fire_at=now,
+            action_type=ReminderActionType.SEND_NOTIFICATION,
+            source_domain="charge",
+            source_id=12,
+            notification_template_key="charge_due",
+            payload={"charge_id": 12},
+        ),
+        created_by_user_id=5,
     )
 
-
-def _business(db, crm_client: SeededClient):
-    business = seed_business(
-        db,
-        legal_entity_id=crm_client.legal_entity_id,
-        business_name=f"Reminder Service Biz {crm_client.id}",
-        status=BusinessStatus.ACTIVE,
-        opened_at=date.today(),
-    )
-    db.commit()
-    db.refresh(business)
-    business.client_id = crm_client.id
-    return business
+    assert reminder.status == ReminderStatus.SCHEDULED
+    assert reminder.created_by_user_id == 5
+    assert reminder.payload == {"charge_id": 12}
 
 
-def _reminder(
-    repo: ReminderRepository,
-    business_id: int,
-    *,
-    client_record_id: int,
-    status: ReminderStatus = ReminderStatus.PENDING,
-):
-    reminder = repo.create(
-        client_record_id=client_record_id,
-        business_id=business_id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=date.today(),
-        days_before=0,
-        send_on=date.today(),
-        message="Service Ping",
-    )
-    if status != ReminderStatus.PENDING:
-        repo.update_status(reminder.id, status)
-    return reminder
-
-
-def test_custom_negative_days_raises_app_error(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
+def test_cancel_only_scheduled_reminders(test_db):
     service = ReminderService(test_db)
+    reminder = service.create_from_request(
+        ReminderCreateRequest(
+            fire_at=utcnow(),
+            action_type=ReminderActionType.CREATE_TASK,
+        ),
+        created_by_user_id=1,
+    )
 
-    with pytest.raises(AppError) as exc_info:
-        service.create_custom_reminder(
-            business_id=business.id,
-            target_date=date.today(),
-            days_before=-1,
-            message="Bad",
-            created_by=None,
-        )
-
-    assert exc_info.value.code == "REMINDER.NEGATIVE_DAYS"
+    canceled = service.cancel_reminder(reminder.id)
+    assert canceled.status == ReminderStatus.CANCELED
+    with pytest.raises(AppError):
+        service.cancel_reminder(reminder.id)
 
 
-def test_custom_missing_message_raises_app_error(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
+def test_cancel_failed_reminder_rejected(test_db):
     service = ReminderService(test_db)
-
-    with pytest.raises(AppError) as exc_info:
-        service.create_custom_reminder(
-            business_id=business.id,
-            target_date=date.today(),
-            days_before=1,
-            message="   ",
-            created_by=None,
-        )
-
-    assert exc_info.value.code == "REMINDER.MESSAGE_REQUIRED"
-
-
-def test_mark_sent_enforces_pending_status(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
-    repo = ReminderRepository(test_db)
-    reminder = _reminder(
-        repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT
+    reminder = service.create_from_request(
+        ReminderCreateRequest(
+            fire_at=utcnow(),
+            action_type=ReminderActionType.CREATE_TASK,
+        ),
+        created_by_user_id=1,
     )
+    service.reminder_repo.update_status(reminder.id, ReminderStatus.FAILED)
 
-    with pytest.raises(AppError) as exc_info:
-        ReminderService(test_db).mark_sent(reminder.id, actor_id=1)
-
-    assert exc_info.value.code == "REMINDER.INVALID_STATUS"
+    with pytest.raises(AppError):
+        service.cancel_reminder(reminder.id)
 
 
-def test_get_reminders_without_status_defaults_to_pending(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
-    repo = ReminderRepository(test_db)
-    today = date.today()
-    repo.create(
-        client_record_id=crm_client.id,
-        business_id=business.id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=today,
-        days_before=0,
-        send_on=today,
-        message="Today Pending",
+def test_cancel_fired_reminder_rejected(test_db):
+    service = ReminderService(test_db)
+    reminder = service.create_from_request(
+        ReminderCreateRequest(
+            fire_at=utcnow(),
+            action_type=ReminderActionType.SEND_NOTIFICATION,
+        ),
+        created_by_user_id=1,
     )
-    repo.create(
-        client_record_id=crm_client.id,
-        business_id=business.id,
-        reminder_type=ReminderType.CUSTOM,
-        target_date=today + timedelta(days=2),
-        days_before=0,
-        send_on=today + timedelta(days=2),
-        message="Future Pending",
-    )
+    service.reminder_repo.update_status(reminder.id, ReminderStatus.FIRED)
 
-    items, total, _ = ReminderService(test_db).get_reminders(page=1, page_size=10)
-
-    messages = {item.message for item in items}
-    assert "Today Pending" in messages
-    assert "Future Pending" in messages
-    assert all(item.status == ReminderStatus.PENDING for item in items)
+    with pytest.raises(AppError):
+        service.cancel_reminder(reminder.id)
 
 
 def test_cancel_missing_reminder_raises_not_found(test_db):
     with pytest.raises(NotFoundError):
-        ReminderService(test_db).cancel_reminder(999, actor_id=1)
+        ReminderService(test_db).cancel_reminder(999999)
 
 
-def test_mark_sent_missing_reminder_raises_not_found(test_db):
-    with pytest.raises(NotFoundError):
-        ReminderService(test_db).mark_sent(999999, actor_id=1)
+def test_fire_due_ignores_future_and_terminal_reminders(test_db):
+    now = utcnow()
+    repo = ReminderService(test_db).reminder_repo
+    due = repo.create(
+        fire_at=now - timedelta(minutes=1),
+        action_type=ReminderActionType.CREATE_TASK,
+    )
+    repo.create(
+        fire_at=now + timedelta(days=1),
+        action_type=ReminderActionType.CREATE_TASK,
+    )
+    canceled = repo.create(
+        fire_at=now - timedelta(days=1),
+        action_type=ReminderActionType.SEND_NOTIFICATION,
+    )
+    repo.update_status(canceled.id, ReminderStatus.CANCELED)
+
+    result = ReminderExecutorService(test_db).fire_due(now=now)
+
+    assert result.processed == 1
+    assert result.fired == 0
+    assert result.failed == 1
+    assert repo.get_by_id(due.id).status == ReminderStatus.FAILED
 
 
-def test_cancel_enforces_pending_status(test_db):
-    crm_client = _client(test_db)
-    business = _business(test_db, crm_client)
-    repo = ReminderRepository(test_db)
-    reminder = _reminder(
-        repo, business.id, client_record_id=crm_client.id, status=ReminderStatus.SENT
+def test_fire_due_is_idempotent_for_failed_reminders(test_db):
+    now = utcnow()
+    repo = ReminderService(test_db).reminder_repo
+    reminder = repo.create(
+        fire_at=now - timedelta(minutes=1),
+        action_type=ReminderActionType.CREATE_TASK_AND_NOTIFY,
     )
 
-    with pytest.raises(AppError) as exc_info:
-        ReminderService(test_db).cancel_reminder(reminder.id, actor_id=1)
+    first = ReminderExecutorService(test_db).fire_due(now=now)
+    second = ReminderExecutorService(test_db).fire_due(now=now)
 
-    assert exc_info.value.code == "REMINDER.INVALID_STATUS"
+    assert first.processed == 1
+    assert second.processed == 0
+    assert "עדיין לא ממומש" in repo.get_by_id(reminder.id).failure_reason
+
+
+def test_send_notification_failure_reason_is_not_delivery_failure(test_db):
+    now = utcnow()
+    repo = ReminderService(test_db).reminder_repo
+    reminder = repo.create(
+        fire_at=now - timedelta(minutes=1),
+        action_type=ReminderActionType.SEND_NOTIFICATION,
+    )
+
+    ReminderExecutorService(test_db).fire_due(now=now)
+
+    reason = repo.get_by_id(reminder.id).failure_reason
+    assert "עדיין לא ממומש" in reason
+    assert "delivery" not in reason.lower()
+    assert "שליחה נכשלה" not in reason

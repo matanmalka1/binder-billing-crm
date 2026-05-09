@@ -70,7 +70,6 @@ class AdvisorTodayItem(BaseModel):
 
 class AdvisorTodayResponse(BaseModel):
     deadline_items: list[AdvisorTodayItem] = Field(default_factory=list)
-    reminder_items: list[AdvisorTodayItem] = Field(default_factory=list)
 
 
 class VatDashboardPeriodStat(BaseModel):
@@ -105,7 +104,6 @@ class DashboardOverviewResponse(BaseModel):
     is_empty: bool
     binders_in_office: int = 0
     binders_ready_for_pickup: int = 0
-    manual_reminders_due_now: int = 0
     open_charges_count: int = 0
     open_charges_amount_ils: Optional[str] = None
     vat_stats: VatDashboardStats

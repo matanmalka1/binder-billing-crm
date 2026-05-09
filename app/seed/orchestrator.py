@@ -19,7 +19,6 @@ from .builders.demo import vat as vat_builder
 from .builders.demo import reports as reports_builder
 from .builders.demo import documents as documents_builder
 from .builders.demo import contacts as contacts_builder
-from .builders.demo import reminders as reminders_builder
 from .builders.demo import signature_requests as sig_builder
 from .builders.demo import notifications as notifications_builder
 from .validator import SeedIntegrityValidator
@@ -205,10 +204,6 @@ class SeedOrchestrator:
             )
             vat_builder.create_vat_audit_logs(
                 db, self.rng, vat_work_items, seeded_users
-            )
-
-            reminders_builder.create_reminders(
-                db, self.rng, all_businesses, all_binders, seeded_charges, []
             )
 
             sig_requests = sig_builder.create_signature_requests(

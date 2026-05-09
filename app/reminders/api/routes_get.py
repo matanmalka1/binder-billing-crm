@@ -9,7 +9,7 @@ from app.reminders.services.reminder_service import ReminderService
 get_router = APIRouter()
 
 
-@get_router.get("/{reminder_id}", response_model=ReminderResponse)
+@get_router.get("/{reminder_id:int}", response_model=ReminderResponse)
 def get_reminder(
     reminder_id: int,
     db: DBSession,

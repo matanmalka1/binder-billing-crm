@@ -10,7 +10,11 @@ from app.notification.models.notification import (
     NotificationChannel,
     NotificationTrigger,
 )
-from app.reminders.models.reminder import Reminder, ReminderStatus, ReminderType
+from app.reminders.models.reminder import (
+    Reminder,
+    ReminderActionType,
+    ReminderStatus,
+)
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestStatus,
@@ -84,14 +88,11 @@ def test_timeline_orders_events_newest_first(
         test_db.add(sig)
 
         reminder = Reminder(
-            client_record_id=business.client_id,
-            business_id=business.id,
-            reminder_type=ReminderType.CUSTOM,
-            status=ReminderStatus.PENDING,
-            target_date=date.today(),
-            days_before=0,
-            send_on=date.today(),
-            message="Reminder",
+            fire_at=datetime.now(UTC) - timedelta(days=7),
+            action_type=ReminderActionType.SEND_NOTIFICATION,
+            status=ReminderStatus.SCHEDULED,
+            source_domain="client_record",
+            source_id=business.client_id,
             created_at=datetime.now(UTC) - timedelta(days=7),
         )
         test_db.add(reminder)
@@ -126,6 +127,8 @@ def test_timeline_orders_events_newest_first(
         data = resp.json()
         assert data["total"] >= 5
         events = data["events"]
+        event_types = [event["event_type"] for event in events]
+        assert "reminder_created" not in event_types
         timestamps = [datetime.fromisoformat(e["timestamp"]) for e in events]
         assert timestamps == sorted(timestamps, reverse=True)
     finally:
