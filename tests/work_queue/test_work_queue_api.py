@@ -1,12 +1,14 @@
 from datetime import date, timedelta
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.clients.models.client_record import ClientRecord
 from tests.helpers.task_helpers import create_business
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def test_work_queue_api_returns_advance_payment_payload(client, test_db, advisor_headers):
     biz = create_business(test_db)
+    test_db.get(ClientRecord, biz.client_id).office_client_number = 1
     due_date = date.today() - timedelta(days=1)
     payment = create_linked_advance_payment(
         test_db,
@@ -28,7 +30,11 @@ def test_work_queue_api_returns_advance_payment_payload(client, test_db, advisor
     assert response.status_code == 200
     item = next(i for i in response.json() if i["source_type"] == "advance_payment")
     assert "item_type" not in item
+    assert item["client_name"].startswith("Task Test Client")
+    assert item["client_office_number"] == 1
     assert item["payload"]["period"] == "2026-02"
+    assert item["payload"]["period_label"] == "פברואר 2026"
+    assert item["payload"]["frequency"] == "monthly"
     assert item["payload"]["remaining_amount"] == "750.00"
 
 

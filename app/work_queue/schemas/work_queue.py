@@ -29,5 +29,6 @@ class WorkQueueItem(BaseModel):
     urgency: WorkQueueUrgency
     client_record_id: Optional[int] = None
     client_name: Optional[str] = None
+    client_office_number: Optional[int] = None
     business_id: Optional[int] = None
     payload: Optional[dict[str, Any]] = None

@@ -2,6 +2,21 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
+_MONTH_HE = {
+    1: "ינואר",
+    2: "פברואר",
+    3: "מרץ",
+    4: "אפריל",
+    5: "מאי",
+    6: "יוני",
+    7: "יולי",
+    8: "אוגוסט",
+    9: "ספטמבר",
+    10: "אוקטובר",
+    11: "נובמבר",
+    12: "דצמבר",
+}
+
 
 def _date_value(value: date | datetime | None) -> str | None:
     if value is None:
@@ -19,6 +34,26 @@ def _money(value: Any) -> str | None:
 
 def _enum_value(value: Any) -> Any:
     return value.value if hasattr(value, "value") else value
+
+
+def _period_label(period: str, months_count: int) -> str:
+    try:
+        year_text, month_text = period.split("-")
+        year = int(year_text)
+        start_month = int(month_text)
+    except (ValueError, TypeError):
+        return period
+
+    if start_month not in _MONTH_HE:
+        return period
+
+    if months_count == 1:
+        return f"{_MONTH_HE[start_month]} {year}"
+
+    end_month = start_month + months_count - 1
+    if end_month not in _MONTH_HE:
+        return period
+    return f"{_MONTH_HE[start_month]}–{_MONTH_HE[end_month]} {year}"
 
 
 def vat_work_item_payload(item, due_date: date) -> dict[str, Any]:
@@ -43,9 +78,12 @@ def advance_payment_payload(payment) -> dict[str, Any]:
     remaining = None
     if expected is not None:
         remaining = max(Decimal(str(expected)) - Decimal(str(paid or 0)), Decimal("0"))
+    months_count = int(payment.period_months_count or 1)
     return {
         "period": payment.period,
-        "period_months_count": payment.period_months_count,
+        "period_label": _period_label(payment.period, months_count),
+        "period_months_count": months_count,
+        "frequency": "bimonthly" if months_count == 2 else "monthly",
         "due_date": _date_value(payment.due_date),
         "status": _enum_value(payment.status),
         "expected_amount": _money(expected),

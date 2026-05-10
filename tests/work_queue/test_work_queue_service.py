@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.clients.models.client_record import ClientRecord
 from app.reminders.models.reminder import Reminder, ReminderActionType, ReminderStatus
 from app.utils.time_utils import utcnow
 from app.work_queue.schemas.work_queue import (
@@ -74,6 +75,8 @@ def test_work_queue_excludes_reminders(test_db):
 
 def test_work_queue_advance_payment_includes_source_payload(test_db):
     biz = create_business(test_db)
+    client_record = test_db.get(ClientRecord, biz.client_id)
+    client_record.office_client_number = 1
     due_date = date.today() - timedelta(days=1)
     payment = create_linked_advance_payment(
         test_db,
@@ -89,9 +92,13 @@ def test_work_queue_advance_payment_includes_source_payload(test_db):
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
 
+    assert item.client_name.startswith("Task Test Client")
+    assert item.client_office_number == 1
     assert item.payload == {
         "period": "2026-02",
+        "period_label": "פברואר 2026",
         "period_months_count": 1,
+        "frequency": "monthly",
         "due_date": due_date.isoformat(),
         "status": "partial",
         "expected_amount": "1000.00",
@@ -101,6 +108,69 @@ def test_work_queue_advance_payment_includes_source_payload(test_db):
         "paid_at": None,
         "annual_report_id": None,
     }
+
+
+def test_work_queue_advance_payment_payload_formats_bimonthly_period(test_db):
+    biz = create_business(test_db)
+    due_date = date.today() + timedelta(days=3)
+    create_linked_advance_payment(
+        test_db,
+        client_record_id=biz.client_id,
+        period="2026-03",
+        period_months_count=2,
+        due_date=due_date,
+        expected_amount=1000,
+        paid_amount=0,
+    )
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
+    item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
+
+    assert item.payload["period_label"] == "מרץ–אפריל 2026"
+    assert item.payload["frequency"] == "bimonthly"
+
+
+def test_work_queue_advance_payment_batch_loads_all_client_identities(test_db):
+    first = create_business(test_db)
+    second = create_business(test_db)
+    test_db.get(ClientRecord, first.client_id).office_client_number = 1
+    test_db.get(ClientRecord, second.client_id).office_client_number = 3
+    due_date = date.today() + timedelta(days=3)
+    create_linked_advance_payment(
+        test_db,
+        client_record_id=first.client_id,
+        period="2026-04",
+        period_months_count=1,
+        due_date=due_date,
+        expected_amount=1000,
+        paid_amount=0,
+    )
+    create_linked_advance_payment(
+        test_db,
+        client_record_id=second.client_id,
+        period="2026-03",
+        period_months_count=2,
+        due_date=due_date,
+        expected_amount=1000,
+        paid_amount=0,
+    )
+    test_db.commit()
+
+    items = [
+        item
+        for item in WorkQueueService(test_db).list_items()
+        if item.source_type == WorkQueueSourceType.ADVANCE_PAYMENT
+    ]
+
+    identities = {
+        item.client_record_id: (item.client_name, item.client_office_number)
+        for item in items
+    }
+    assert identities[first.client_id][0].startswith("Task Test Client")
+    assert identities[first.client_id][1] == 1
+    assert identities[second.client_id][0].startswith("Task Test Client")
+    assert identities[second.client_id][1] == 3
 
 
 def test_work_queue_excludes_requested_source_types(test_db, monkeypatch):

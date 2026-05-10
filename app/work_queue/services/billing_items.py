@@ -37,6 +37,9 @@ def advance_payment_items(
     )
     if client_record_id is not None:
         stmt = stmt.where(AdvancePayment.client_record_id == client_record_id)
+    payments = list(ctx.db.scalars(stmt))
+    for payment in payments:
+        ctx.register_client_id(payment.client_record_id)
     return [
         ctx.item(
             WorkQueueSourceType.ADVANCE_PAYMENT,
@@ -46,7 +49,7 @@ def advance_payment_items(
             payment.client_record_id,
             payload=advance_payment_payload(payment),
         )
-        for payment in ctx.db.scalars(stmt)
+        for payment in payments
     ]
 
 
