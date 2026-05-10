@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+import app.model_registry  # noqa: F401 — ensures all ORM models are loaded before mappers configure
+
 from app.advance_payments.api.routers import router as advance_payments_router
 from app.audit.api.routes import router as audit_router
 from app.annual_reports.api.routers import router as annual_reports_router

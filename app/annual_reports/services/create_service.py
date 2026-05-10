@@ -13,7 +13,7 @@ from app.annual_reports.models.annual_report_enums import (
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
-from app.users.services.user_lookup import get_user_or_raise
+from app.users.services.user_management_service import get_user_or_raise
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )

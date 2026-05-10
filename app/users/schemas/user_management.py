@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr, Field, model_validator
 from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.users.models.user import UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
-from app.users.services.user_management_policies import MIN_PASSWORD_LENGTH
+from app.users.services.user_management_service import MIN_PASSWORD_LENGTH
 
 
 class UserCreateRequest(BaseModel):

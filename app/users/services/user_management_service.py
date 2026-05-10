@@ -1,23 +1,43 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.core.exceptions import AppError, ConflictError, ForbiddenError
-from app.users.services.messages import (
-    USER_CANNOT_DEACTIVATE_SELF,
-    USER_EMAIL_EXISTS,
-    USER_IMMUTABLE_FIELDS,
-    USER_NO_FIELDS_PROVIDED,
-)
+from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User, UserRole
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 from app.users.services.auth_service import AuthService
-from app.users.services.user_management_policies import (
-    IMMUTABLE_UPDATE_FIELDS,
-    ensure_advisor,
-    validate_password,
-)
-from app.users.services.user_lookup import get_user_or_raise
+
+MIN_PASSWORD_LENGTH = 8
+
+IMMUTABLE_UPDATE_FIELDS = {
+    "id",
+    "token_version",
+    "created_at",
+    "last_login_at",
+    "is_active",
+}
+
+_USER_EMAIL_EXISTS = "כבר קיים משתמש עם המייל {email}"
+_USER_IMMUTABLE_FIELDS = "לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}"
+_USER_NO_FIELDS_PROVIDED = "חובה לספק לפחות שדה אחד הניתן לשינוי"
+_USER_CANNOT_DEACTIVATE_SELF = "אינך יכול להשבית את החשבון שלך"
+
+
+def get_user_or_raise(repo: UserRepository, user_id: int) -> User:
+    user = repo.get_by_id(user_id)
+    if not user:
+        raise NotFoundError(f"משתמש {user_id} לא נמצא", "USER.NOT_FOUND")
+    return user
+
+
+def _ensure_advisor(actor_role: UserRole) -> None:
+    if actor_role != UserRole.ADVISOR:
+        raise ForbiddenError("רק יועצים יכולים לנהל משתמשים", "USER.FORBIDDEN")
+
+
+def _validate_password(password: str) -> None:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise AppError("הסיסמה חייבת להכיל לפחות 8 תווים", "USER.INVALID_PASSWORD")
 
 
 class UserManagementService:
@@ -37,11 +57,11 @@ class UserManagementService:
         password: str,
         phone: Optional[str] = None,
     ) -> User:
-        ensure_advisor(actor_role)
-        validate_password(password)
+        _ensure_advisor(actor_role)
+        _validate_password(password)
 
         if self.user_repo.get_by_email(email):
-            raise ConflictError(USER_EMAIL_EXISTS.format(email=email), "USER.CONFLICT")
+            raise ConflictError(_USER_EMAIL_EXISTS.format(email=email), "USER.CONFLICT")
 
         user = self.user_repo.create(
             full_name=full_name,
@@ -66,7 +86,7 @@ class UserManagementService:
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ):
-        ensure_advisor(actor_role)
+        _ensure_advisor(actor_role)
         items = self.user_repo.list(
             page=page,
             page_size=page_size,
@@ -77,7 +97,7 @@ class UserManagementService:
         return items, total
 
     def get_user(self, actor_role: UserRole, user_id: int) -> User:
-        ensure_advisor(actor_role)
+        _ensure_advisor(actor_role)
         return get_user_or_raise(self.user_repo, user_id)
 
     def update_user(
@@ -87,24 +107,24 @@ class UserManagementService:
         user_id: int,
         **fields,
     ) -> User:
-        ensure_advisor(actor_role)
+        _ensure_advisor(actor_role)
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
                 raise ConflictError(
-                    USER_EMAIL_EXISTS.format(email=fields["email"]), "USER.CONFLICT"
+                    _USER_EMAIL_EXISTS.format(email=fields["email"]), "USER.CONFLICT"
                 )
 
         immutable_attempt = IMMUTABLE_UPDATE_FIELDS.intersection(fields.keys())
         if immutable_attempt:
             disallowed = ", ".join(sorted(immutable_attempt))
             raise AppError(
-                USER_IMMUTABLE_FIELDS.format(disallowed=disallowed),
+                _USER_IMMUTABLE_FIELDS.format(disallowed=disallowed),
                 "USER.INVALID_UPDATE",
             )
 
         if not fields:
-            raise AppError(USER_NO_FIELDS_PROVIDED, "USER.NO_FIELDS_PROVIDED")
+            raise AppError(_USER_NO_FIELDS_PROVIDED, "USER.NO_FIELDS_PROVIDED")
 
         get_user_or_raise(self.user_repo, user_id)
         user = self.user_repo.update(user_id, **fields)
@@ -121,7 +141,7 @@ class UserManagementService:
     def activate_user(
         self, actor_user_id: int, actor_role: UserRole, user_id: int
     ) -> User:
-        ensure_advisor(actor_role)
+        _ensure_advisor(actor_role)
         get_user_or_raise(self.user_repo, user_id)
         user = self.user_repo.activate(user_id)
         self.audit_log_service.log(
@@ -138,9 +158,9 @@ class UserManagementService:
         actor_role: UserRole,
         target_user_id: int,
     ) -> User:
-        ensure_advisor(actor_role)
+        _ensure_advisor(actor_role)
         if actor_user_id == target_user_id:
-            raise ForbiddenError(USER_CANNOT_DEACTIVATE_SELF, "USER.FORBIDDEN")
+            raise ForbiddenError(_USER_CANNOT_DEACTIVATE_SELF, "USER.FORBIDDEN")
 
         get_user_or_raise(self.user_repo, target_user_id)
         user = self.user_repo.deactivate_and_bump_token(target_user_id)
@@ -160,8 +180,8 @@ class UserManagementService:
         target_user_id: int,
         new_password: str,
     ) -> User:
-        ensure_advisor(actor_role)
-        validate_password(new_password)
+        _ensure_advisor(actor_role)
+        _validate_password(new_password)
 
         get_user_or_raise(self.user_repo, target_user_id)
         password_hash = AuthService.hash_password(new_password)
