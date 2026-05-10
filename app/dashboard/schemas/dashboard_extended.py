@@ -28,31 +28,22 @@ class DashboardQuickAction(BaseModel):
     due_date: Optional[date] = None
 
 
-class BaseAttentionItem(BaseModel):
-    item_type: str
-    binder_id: Optional[int] = None
-    client_id: Optional[int] = None
-    business_id: Optional[int] = None
+class AttentionBoardItem(BaseModel):
+    id: str
+    source_type: str
+    source_id: int
+    title: str
     client_name: Optional[str] = None
-    description: str
-
-
-class UnpaidChargeAttentionItem(BaseAttentionItem):
-    item_type: Literal["unpaid_charge"]
-    charge_id: int
-    business_name: str
-    charge_subject: str
-    charge_date: Optional[date] = None
-    charge_amount: str
-    charge_invoice_number: str
-    charge_period: Optional[str] = None
-
-
-AttentionItem = UnpaidChargeAttentionItem
+    due_date: Optional[date] = None
+    days_delta: int = 0
+    reason: Optional[str] = None
+    amount: Optional[str] = None
+    urgency: str
+    href: str
 
 
 class AttentionResponse(BaseModel):
-    items: list[AttentionItem] = Field(default_factory=list)
+    items: list[AttentionBoardItem] = Field(default_factory=list)
     total: int = 0
 
 
@@ -89,11 +80,6 @@ class VatDashboardStats(BaseModel):
     advance_payments: AdvancePaymentDashboardStats
 
 
-class AttentionEmptyCheck(BaseModel):
-    key: str
-    label: str
-
-
 class RecentActivityItem(BaseModel):
     id: int
     date: str
@@ -114,5 +100,4 @@ class DashboardOverviewResponse(BaseModel):
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
     advisor_today: AdvisorTodayResponse = Field(default_factory=AdvisorTodayResponse)
-    attention_empty_checks: list[AttentionEmptyCheck] = Field(default_factory=list)
     recent_activity: list[RecentActivityItem] = Field(default_factory=list)

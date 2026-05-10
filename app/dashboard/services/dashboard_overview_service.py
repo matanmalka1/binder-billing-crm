@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -7,16 +8,27 @@ from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,
 )
 from app.binders.repositories.binder_repository import BinderRepository
+from app.charge.models.charge import ChargeStatus
+from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.users.models.user import UserRole
-from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
+from app.dashboard.services.dashboard_attention_service import DashboardAttentionService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.recent_activity_service import RecentActivityService
 from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
 from app.utils.time_utils import israel_today
+
+
+def _format_ils(amount: Decimal) -> str:
+    try:
+        normalized = amount.quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        normalized = Decimal("0.00")
+    formatted = f"{normalized:,.2f}".rstrip("0").rstrip(".")
+    return f"₪{formatted}"
 
 
 class DashboardOverviewService:
@@ -29,7 +41,8 @@ class DashboardOverviewService:
         self.business_repo = BusinessRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
         self.notification_repo = NotificationRepository(db)
-        self.extended_service = DashboardExtendedService(db)
+        self.charge_repo = ChargeRepository(db)
+        self.attention_service = DashboardAttentionService(db)
         self.advisor_today_service = AdvisorTodayService(db)
         self.recent_activity_service = RecentActivityService(db)
         self.vat_stats_service = TaxStatusStatsService(db)
@@ -43,40 +56,48 @@ class DashboardOverviewService:
             reference_date = israel_today()
 
         vat_stats = self.vat_stats_service.build(reference_date)
-        attention_data = self.extended_service.get_attention_data(
-            user_role=user_role, reference_date=reference_date
-        )
 
         is_advisor = user_role == UserRole.ADVISOR
+
+        attention_items = self.attention_service.build(
+            user_role=user_role, reference_date=reference_date
+        ) if is_advisor else []
+
+        open_charges_count, open_charges_amount_ils = self._open_charges_stats(is_advisor)
+
         quick_actions = self._build_quick_actions(reference_date) if is_advisor else []
         advisor_today = (
             self.advisor_today_service.build(reference_date)
             if is_advisor
             else {"deadline_items": []}
         )
-        attention_empty_checks = []
-        if is_advisor and attention_data["open_charges_count"] == 0:
-            attention_empty_checks = [
-                {"key": "open_charges", "label": "אין חיובים פתוחים"}
-            ]
 
         has_clients = self.client_record_repo.count() > 0
         return {
             "is_empty": not has_clients,
-            "open_charges_count": attention_data["open_charges_count"],
-            "open_charges_amount_ils": attention_data["open_charges_amount_ils"],
+            "open_charges_count": open_charges_count,
+            "open_charges_amount_ils": open_charges_amount_ils,
             "vat_stats": vat_stats,
             "quick_actions": quick_actions,
             "attention": {
-                "items": attention_data["items"],
-                "total": len(attention_data["items"]),
+                "items": attention_items,
+                "total": len(attention_items),
             },
             "advisor_today": advisor_today,
-            "attention_empty_checks": attention_empty_checks,
             "recent_activity": self.recent_activity_service.build()
             if is_advisor
             else [],
         }
+
+    def _open_charges_stats(self, is_advisor: bool) -> tuple[int, Optional[str]]:
+        if not is_advisor:
+            return 0, None
+        count = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
+        if count == 0:
+            return 0, None
+        total = self.charge_repo.sum_open_charges_amount()
+        amount_ils = _format_ils(total) if total is not None else None
+        return count, amount_ils
 
     def _build_quick_actions(self, today) -> list[dict]:
         return build_quick_actions(

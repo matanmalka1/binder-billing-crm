@@ -13,11 +13,13 @@ class WorkQueueSourceType(str, PyEnum):
     ADVANCE_PAYMENT = "advance_payment"
     UNPAID_CHARGE = "unpaid_charge"
     TASK = "task"
+    STALE_BINDER = "stale_binder"
 
 
 class WorkQueueUrgency(str, PyEnum):
     OVERDUE = "overdue"
     APPROACHING = "approaching"
+    IMPORTANT = "important"
     UPCOMING = "upcoming"
 
 

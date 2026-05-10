@@ -168,6 +168,17 @@ class ChargeRepository(BaseRepository[Charge]):
             charge_type=charge_type,
         )
 
+    def sum_open_charges_amount(self) -> Optional[Decimal]:
+        """Sum all issued (open) charges for active clients. Returns None if no open charges."""
+        stmt = scope_to_active_clients_stmt(
+            select(func.sum(Charge.amount)), Charge
+        ).where(
+            Charge.deleted_at.is_(None),
+            Charge.status == ChargeStatus.ISSUED.value,
+        )
+        result = self.db.scalar(stmt)
+        return Decimal(str(result)) if result is not None else None
+
     def update_status(
         self,
         charge_id: int,

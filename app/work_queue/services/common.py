@@ -15,7 +15,8 @@ from app.work_queue.schemas.work_queue import (
 )
 
 APPROACHING_DAYS = 7
-UPCOMING_WINDOW_DAYS = 14
+IMPORTANT_DAYS = 21
+UPCOMING_WINDOW_DAYS = 21
 
 
 class ClientWorkQueueProfile(NamedTuple):
@@ -29,6 +30,8 @@ def urgency(due_date: date, today: date) -> WorkQueueUrgency:
         return WorkQueueUrgency.OVERDUE
     if days <= APPROACHING_DAYS:
         return WorkQueueUrgency.APPROACHING
+    if days <= IMPORTANT_DAYS:
+        return WorkQueueUrgency.IMPORTANT
     return WorkQueueUrgency.UPCOMING
 
 
