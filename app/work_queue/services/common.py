@@ -66,12 +66,18 @@ class WorkQueueContext:
 
     def register_client_id(self, client_record_id: int) -> None:
         """Collect a client id for lazy batch name resolution."""
-        if self._client_profiles is None:
-            self._pending_ids.add(client_record_id)
+        self._pending_ids.add(client_record_id)
 
     def _resolve_profiles(self) -> Dict[int, ClientWorkQueueProfile]:
-        if self._client_profiles is None:
-            self._client_profiles = load_client_profiles(self.db, self._pending_ids)
+        missing = self._pending_ids - set(self._client_profiles or {})
+        if missing:
+            new_profiles = load_client_profiles(self.db, missing)
+            if self._client_profiles is None:
+                self._client_profiles = new_profiles
+            else:
+                self._client_profiles.update(new_profiles)
+        elif self._client_profiles is None:
+            self._client_profiles = {}
         return self._client_profiles
 
     def item(
