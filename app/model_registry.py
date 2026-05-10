@@ -20,6 +20,7 @@ import app.annual_reports.models.annual_report_detail  # noqa: F401
 import app.annual_reports.models.annual_report_annex_data  # noqa: F401
 import app.annual_reports.models.annual_report_schedule_entry  # noqa: F401
 import app.annual_reports.models.annual_report_status_history  # noqa: F401
+import app.annual_reports.models.annual_report_credit_point_reason  # noqa: F401
 import app.charge.models.charge  # noqa: F401
 import app.advance_payments.models.advance_payment  # noqa: F401
 import app.clients.models.person_legal_entity_link  # noqa: F401
@@ -28,6 +29,7 @@ import app.clients.models.person  # noqa: F401
 import app.clients.models.client_record  # noqa: F401
 import app.businesses.models.business  # noqa: F401
 import app.users.models.user  # noqa: F401
+import app.users.models.user_audit_log  # noqa: F401
 import app.notification.models.notification  # noqa: F401
 import app.reminders.models.reminder  # noqa: F401
 import app.correspondence.models.correspondence  # noqa: F401
