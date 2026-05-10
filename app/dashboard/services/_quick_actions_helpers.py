@@ -15,79 +15,16 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.common.period_utils import monthly_vat_period
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 
-_MONTH_HE = {
-    1: "ינואר",
-    2: "פברואר",
-    3: "מרץ",
-    4: "אפריל",
-    5: "מאי",
-    6: "יוני",
-    7: "יולי",
-    8: "אוגוסט",
-    9: "ספטמבר",
-    10: "אוקטובר",
-    11: "נובמבר",
-    12: "דצמבר",
-}
-_ANNUAL_STATUS_LABEL_HE = {
-    AnnualReportStatus.NOT_STARTED: "טרם החל",
-    AnnualReportStatus.COLLECTING_DOCS: "איסוף מסמכים",
-    AnnualReportStatus.DOCS_COMPLETE: "מסמכים מלאים",
-    AnnualReportStatus.IN_PREPARATION: "בהכנה",
-    AnnualReportStatus.PENDING_CLIENT: "ממתין לאישור לקוח",
-    AnnualReportStatus.AMENDED: "בתיקון",
-    AnnualReportStatus.ASSESSMENT_ISSUED: "שומה הוצאה",
-    AnnualReportStatus.OBJECTION_FILED: "השגה הוגשה",
-}
-_VAT_STATUS_LABEL_HE = {
-    VatWorkItemStatus.PENDING_MATERIALS: "ממתין לחומרים",
-    VatWorkItemStatus.MATERIAL_RECEIVED: "חומרים התקבלו",
-    VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS: "בהזנת נתונים",
-    VatWorkItemStatus.READY_FOR_REVIEW: "מוכן לבדיקה",
-    VatWorkItemStatus.FILED: "הוגש",
-    VatWorkItemStatus.CANCELED: "בוטל",
-    VatWorkItemStatus.ARCHIVED: "בארכיון",
-}
-
-CATEGORY_ORDER = {"vat": 0, "annual_reports": 1, "binders": 2}
+CATEGORY_ORDER = {"annual_reports": 1, "binders": 2}
 
 _BINDER_PICKUP_OVERDUE_DAYS = 30
 _BINDER_REMINDER_COOLDOWN_DAYS = 5
 _ANNUAL_PENDING_CLIENT_DAYS = 3
 _ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 _UPCOMING_WINDOW_DAYS = 14
-try:
-    from tax_rules.registry import get_vat_statutory_deadline_day as _get_stat_day
-
-    _VAT_DEADLINE_DAY: int = _get_stat_day(_dt.date.today().year)
-except Exception:
-    _VAT_DEADLINE_DAY = 15
-
-
-def _period_label(period: str) -> str:
-    try:
-        year, month = period.split("-")
-        return f"{_MONTH_HE.get(int(month), month)} {year}"
-    except Exception:
-        return period
-
-
-def _vat_due_label(period: str, urgency: str, days: int) -> str:
-    status = f"באיחור {days} ימים" if urgency == "overdue" else f"עוד {days} ימים"
-    return f"דוח מע״מ · {_period_label(period)} · {status}"
-
-
-def _vat_status_label(status) -> str:
-    if status is None:
-        return "סטטוס עבודה לא ידוע"
-    return _VAT_STATUS_LABEL_HE.get(status, str(getattr(status, "value", status)))
 
 
 def _enrich(
@@ -112,53 +49,6 @@ def _batch_client_names(db, client_record_ids: list[int]) -> dict[int, Optional[
     entities = legal_entity_repo.list_by_ids(legal_entity_ids)
     entity_name_map = {e.id: e.official_name for e in entities}
     return {r.id: entity_name_map.get(r.legal_entity_id) for r in records}
-
-
-def build_vat_actions(
-    vat_repo: VatWorkItemRepository,
-    business_repo: BusinessRepository,
-    today: date,
-) -> list[dict]:
-    current_period, _label = monthly_vat_period(today)
-    items = vat_repo.list_open_up_to_period(current_period)
-    if not items:
-        return []
-
-    client_record_ids = [
-        item.client_record_id for item in items if item.client_record_id
-    ]
-    client_name_map = _batch_client_names(business_repo.db, client_record_ids)
-
-    result: list[dict] = []
-    for item in items:
-        deadline = get_vat_deadline_fields(item, None).get("statutory_deadline")
-        if deadline is None:
-            continue
-        days_diff = (deadline - today).days
-
-        if days_diff < 0:
-            urgency = "overdue"
-            due_label = _vat_due_label(item.period, urgency, abs(days_diff))
-        elif days_diff <= _UPCOMING_WINDOW_DAYS:
-            urgency = "upcoming"
-            due_label = _vat_due_label(item.period, urgency, days_diff)
-        else:
-            continue
-
-        client_name = client_name_map.get(item.client_record_id)
-        action = build_action(
-            key="vat_navigate",
-            label='פתח דוח מע"מ',
-            method="get",
-            endpoint=f"/clients/{item.client_record_id}/vat",
-            action_id=f"vat-{item.id}-navigate",
-        )
-        action["client_name"] = client_name
-        action["description"] = _vat_status_label(getattr(item, "status", None))
-        _enrich(action, "vat", urgency, deadline, due_label)
-        result.append(action)
-
-    return result
 
 
 def build_annual_report_actions(
@@ -230,20 +120,6 @@ def build_annual_report_actions(
                 _enrich(action, "annual_reports", urgency, deadline, due_label)
                 result.append(action)
                 continue
-
-        status_label = _ANNUAL_STATUS_LABEL_HE.get(report.status, str(report.status))
-        action = build_action(
-            key="annual_report_navigate",
-            label="פתח דוח שנתי",
-            method="get",
-            endpoint=f"/tax/reports/{report.id}",
-            action_id=f"annual-{report.id}-navigate",
-        )
-        action["client_name"] = client_name
-        _enrich(
-            action, "annual_reports", urgency, deadline, f"{status_label} · {due_label}"
-        )
-        result.append(action)
 
     return result
 

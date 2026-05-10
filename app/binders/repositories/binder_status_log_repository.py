@@ -40,3 +40,10 @@ class BinderStatusLogRepository(BaseRepository[BinderStatusLog]):
             .where(BinderStatusLog.binder_id == binder_id)
             .order_by(BinderStatusLog.changed_at.asc())
         ).all()
+
+    def list_recent(self, limit: int = 20) -> list[BinderStatusLog]:
+        return self.db.scalars(
+            select(BinderStatusLog)
+            .order_by(BinderStatusLog.changed_at.desc(), BinderStatusLog.id.desc())
+            .limit(limit)
+        ).all()

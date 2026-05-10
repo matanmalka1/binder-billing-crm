@@ -96,9 +96,11 @@ class AttentionEmptyCheck(BaseModel):
 
 class RecentActivityItem(BaseModel):
     id: int
+    date: str
     time: str
     label: str
     client_name: str
+    href: str
     activity_type: str
 
 
@@ -106,8 +108,6 @@ class DashboardOverviewResponse(BaseModel):
     """Dashboard overview — advisor gets full data, secretary gets operational subset."""
 
     is_empty: bool
-    binders_in_office: int = 0
-    binders_ready_for_pickup: int = 0
     open_charges_count: int = 0
     open_charges_amount_ils: Optional[str] = None
     vat_stats: VatDashboardStats

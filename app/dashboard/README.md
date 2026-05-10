@@ -39,8 +39,8 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 - Roles: `ADVISOR`, `SECRETARY`
 - Returns management-level overview:
   - `is_empty`
-  - `binders_in_office`
-  - `binders_ready_for_pickup`
+  - `open_charges_count`
+  - `open_charges_amount_ils`
   - `vat_stats` (`monthly`, `bimonthly`, `advance_payments`)
   - `quick_actions`
   - `attention`

@@ -7,12 +7,10 @@ from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,
 )
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.models.binder import BinderStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.users.models.user import UserRole
-from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
@@ -29,7 +27,6 @@ class DashboardOverviewService:
         self.binder_repo = BinderRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
         self.business_repo = BusinessRepository(db)
-        self.vat_repo = VatWorkItemRepository(db)
         self.annual_report_repo = AnnualReportRepository(db)
         self.notification_repo = NotificationRepository(db)
         self.extended_service = DashboardExtendedService(db)
@@ -66,12 +63,6 @@ class DashboardOverviewService:
         has_clients = self.client_record_repo.count() > 0
         return {
             "is_empty": not has_clients,
-            "binders_in_office": self.binder_repo.count_by_status(
-                BinderStatus.IN_OFFICE
-            ),
-            "binders_ready_for_pickup": self.binder_repo.count_by_status(
-                BinderStatus.READY_FOR_PICKUP
-            ),
             "open_charges_count": attention_data["open_charges_count"],
             "open_charges_amount_ils": attention_data["open_charges_amount_ils"],
             "vat_stats": vat_stats,
@@ -91,7 +82,6 @@ class DashboardOverviewService:
         return build_quick_actions(
             binder_repo=self.binder_repo,
             business_repo=self.business_repo,
-            vat_repo=self.vat_repo,
             annual_report_repo=self.annual_report_repo,
             notification_repo=self.notification_repo,
             today=today,
