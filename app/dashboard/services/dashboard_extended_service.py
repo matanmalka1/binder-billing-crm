@@ -16,7 +16,7 @@ from app.dashboard.services.dashboard_extended_builders import (
     _format_ils_amount,
 )
 
-_UNPAID_CHARGES_FETCH_LIMIT = 500
+_OPEN_CHARGES_FETCH_LIMIT = 500
 
 
 class DashboardExtendedService:
@@ -43,21 +43,21 @@ class DashboardExtendedService:
         open_charges_amount_ils: Optional[str] = None
 
         if user_role == UserRole.ADVISOR:
-            unpaid_charges = self.charge_repo.list_charges(
+            open_charges = self.charge_repo.list_charges(
                 status=ChargeStatus.ISSUED.value,
                 page=1,
-                page_size=_UNPAID_CHARGES_FETCH_LIMIT,
+                page_size=_OPEN_CHARGES_FETCH_LIMIT,
             )
-            if unpaid_charges:
+            if open_charges:
                 charge_business_ids = list(
-                    {c.business_id for c in unpaid_charges if c.business_id is not None}
+                    {c.business_id for c in open_charges if c.business_id is not None}
                 )
                 charge_businesses = self.business_repo.list_by_ids(charge_business_ids)
                 charge_business_map = {b.id: b for b in charge_businesses}
                 charge_client_record_ids = list(
                     {
                         c.client_record_id
-                        for c in unpaid_charges
+                        for c in open_charges
                         if c.client_record_id is not None
                     }
                 )
@@ -71,7 +71,7 @@ class DashboardExtendedService:
                 legal_entity_map = {e.id: e.official_name for e in legal_entities}
                 client_record_map = {r.id: r for r in charge_client_records}
                 total_amount = Decimal("0")
-                for charge in unpaid_charges:
+                for charge in open_charges:
                     business = charge_business_map.get(charge.business_id)
                     if charge.business_id is not None and not business:
                         continue

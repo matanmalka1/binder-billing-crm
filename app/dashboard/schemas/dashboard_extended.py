@@ -48,11 +48,7 @@ class UnpaidChargeAttentionItem(BaseAttentionItem):
     charge_period: Optional[str] = None
 
 
-class UnpaidChargesAttentionItem(BaseAttentionItem):
-    item_type: Literal["unpaid_charges"]
-
-
-AttentionItem = UnpaidChargeAttentionItem | UnpaidChargesAttentionItem
+AttentionItem = UnpaidChargeAttentionItem
 
 
 class AttentionResponse(BaseModel):
