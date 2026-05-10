@@ -115,8 +115,9 @@ app/<domain>/
 
 - No raw SQL — ORM only
 - Strict layering: `API → Service → Repository → ORM`
-- No cross-domain imports at Repository or Model level
-- No business logic in API routers — **routers must not contain branching business logic; all if/elif/else dispatch belongs in the service layer**
+- Repositories should not import models from other business domains by default.
+- Cross-domain writes/orchestration belong in services.
+- Cross-domain read queries are allowed only in explicit read-model domains such as dashboard, reports, search, timeline, or dedicated query services.- No business logic in API routers — **routers must not contain branching business logic; all if/elif/else dispatch belongs in the service layer**
 - Background jobs must be idempotent
 - Auth: `require_role()` at endpoint level; fine-grained checks in Service layer
 - Every list endpoint must support standardized pagination, filtering, and sorting
