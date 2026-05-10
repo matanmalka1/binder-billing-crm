@@ -16,6 +16,7 @@ from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRep
 from app.dashboard.services.dashboard_extended_service import DashboardExtendedService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
+from app.dashboard.services.recent_activity_service import RecentActivityService
 from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
 from app.utils.time_utils import israel_today
 
@@ -33,6 +34,7 @@ class DashboardOverviewService:
         self.notification_repo = NotificationRepository(db)
         self.extended_service = DashboardExtendedService(db)
         self.advisor_today_service = AdvisorTodayService(db)
+        self.recent_activity_service = RecentActivityService(db)
         self.vat_stats_service = TaxStatusStatsService(db)
 
     def get_overview(
@@ -80,6 +82,9 @@ class DashboardOverviewService:
             },
             "advisor_today": advisor_today,
             "attention_empty_checks": attention_empty_checks,
+            "recent_activity": self.recent_activity_service.build()
+            if is_advisor
+            else [],
         }
 
     def _build_quick_actions(self, today) -> list[dict]:

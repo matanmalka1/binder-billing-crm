@@ -61,3 +61,10 @@ class EntityAuditLogRepository(BaseRepository[EntityAuditLog]):
                 EntityAuditLog.entity_id == entity_id,
             )
         )
+
+    def list_recent(self, limit: int = 5) -> list[EntityAuditLog]:
+        return self.db.scalars(
+            select(EntityAuditLog)
+            .order_by(EntityAuditLog.performed_at.desc(), EntityAuditLog.id.desc())
+            .limit(limit)
+        ).all()

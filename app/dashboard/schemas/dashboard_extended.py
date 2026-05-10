@@ -94,6 +94,14 @@ class AttentionEmptyCheck(BaseModel):
     label: str
 
 
+class RecentActivityItem(BaseModel):
+    id: int
+    time: str
+    label: str
+    client_name: str
+    activity_type: str
+
+
 class DashboardOverviewResponse(BaseModel):
     """Dashboard overview — advisor gets full data, secretary gets operational subset."""
 
@@ -107,3 +115,4 @@ class DashboardOverviewResponse(BaseModel):
     attention: AttentionResponse = Field(default_factory=AttentionResponse)
     advisor_today: AdvisorTodayResponse = Field(default_factory=AdvisorTodayResponse)
     attention_empty_checks: list[AttentionEmptyCheck] = Field(default_factory=list)
+    recent_activity: list[RecentActivityItem] = Field(default_factory=list)
