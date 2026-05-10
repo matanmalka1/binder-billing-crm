@@ -2,10 +2,19 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.tasks.models.task import TaskPriority, TaskStatus
+from app.users.models.user import UserRole
+
+_ALLOWED_ROLES = {role.value for role in UserRole}
+
+
+def _validate_role(v: Optional[str]) -> Optional[str]:
+    if v is not None and v not in _ALLOWED_ROLES:
+        raise ValueError(f"assigned_role must be one of: {', '.join(sorted(_ALLOWED_ROLES))}")
+    return v
 
 
 class TaskCreateRequest(BaseModel):
@@ -20,6 +29,11 @@ class TaskCreateRequest(BaseModel):
     action_key: Optional[str] = Field(None, max_length=100)
     action_payload: Optional[dict[str, Any]] = None
 
+    @field_validator("assigned_role")
+    @classmethod
+    def validate_assigned_role(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_role(v)
+
 
 class TaskUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=500)
@@ -30,6 +44,11 @@ class TaskUpdateRequest(BaseModel):
     assigned_role: Optional[str] = Field(None, max_length=50)
     action_key: Optional[str] = Field(None, max_length=100)
     action_payload: Optional[dict[str, Any]] = None
+
+    @field_validator("assigned_role")
+    @classmethod
+    def validate_assigned_role(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_role(v)
 
 
 class TaskResponse(BaseModel):

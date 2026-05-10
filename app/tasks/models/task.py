@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import datetime
 from enum import Enum as PyEnum
-from typing import Any, Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, JSON, String, Text
-from sqlalchemy.dialects.postgresql import ENUM as pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -31,10 +29,18 @@ class Task(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
-    status = Column(pg_enum(TaskStatus), nullable=False, default=TaskStatus.OPEN)
-    priority = Column(pg_enum(TaskPriority), nullable=False, default=TaskPriority.NORMAL)
+    # pg_enum uses values_callable so DB stores lowercase values ("open", "in_progress", ...)
+    # matching the taskstatus / taskpriority PostgreSQL enum types created in migration 0004_tasks.
+    status = Column(pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN)
+    priority = Column(pg_enum(TaskPriority, name="taskpriority"), nullable=False, default=TaskPriority.NORMAL)
+    # due_date is DateTime (with time) so callers can schedule tasks at a specific time of day.
+    # The work queue projects it to .date() for day-level urgency comparison.
     due_date = Column(DateTime, nullable=True)
     assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Stores UserRole.value ("advisor" / "secretary"). Validated against UserRole at the API
+    # layer (TaskCreateRequest / TaskUpdateRequest). Kept as String in DB to decouple the
+    # column from UserRole's PostgreSQL enum lifecycle — adding a role stays a schema-only
+    # change, not a DB enum ALTER.
     assigned_role = Column(String(50), nullable=True)
     source_domain = Column(String(100), nullable=True)
     source_id = Column(Integer, nullable=True)
