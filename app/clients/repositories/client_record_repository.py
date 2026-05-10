@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional
+import sqlalchemy as sa
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional, TypedDict
 
 from sqlalchemy import asc, case, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
-from app.common.enums import EntityType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
@@ -18,9 +21,41 @@ from app.core.exceptions import NotFoundError
 from app.utils.time_utils import utcnow
 
 
-def _full_record_query(db: Session):
+class ClientRecordData(TypedDict):
+    id: int
+    full_name: Optional[str]
+    id_number: str
+    id_number_type: Optional[IdNumberType]
+    entity_type: Optional[EntityType]
+    status: ClientStatus
+    office_client_number: Optional[int]
+    accountant_id: Optional[int]
+    notes: Optional[str]
+    vat_reporting_frequency: Optional[VatType]
+    advance_payment_frequency: Optional[AdvancePaymentFrequency]
+    vat_exempt_ceiling: Optional[Decimal]
+    advance_rate: Optional[Decimal]
+    advance_rate_updated_at: Optional[date]
+    annual_revenue: Optional[Decimal]
+    phone: Optional[str]
+    email: Optional[str]
+    address_street: Optional[str]
+    address_building_number: Optional[str]
+    address_apartment: Optional[str]
+    address_city: Optional[str]
+    address_zip_code: Optional[str]
+    created_at: datetime
+    updated_at: Optional[datetime]
+    created_by: Optional[int]
+    deleted_at: Optional[datetime]
+    deleted_by: Optional[int]
+    restored_at: Optional[datetime]
+    restored_by: Optional[int]
+
+
+def _full_record_query():
     return (
-        db.query(ClientRecord, LegalEntity, Person)
+        select(ClientRecord, LegalEntity, Person)
         .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
         .outerjoin(
             PersonLegalEntityLink,
@@ -31,7 +66,7 @@ def _full_record_query(db: Session):
     )
 
 
-def _full_record_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> dict:
+def _full_record_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> ClientRecordData:
     full_name = person.full_name if person and person.full_name else le.official_name
     return {
         "id": cr.id,
@@ -66,92 +101,33 @@ def _full_record_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) 
     }
 
 
-def get_full_record(db: Session, client_record_id: int) -> dict | None:
-    row = (
-        _full_record_query(db)
-        .filter(ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None))
-        .first()
-    )
+def get_full_record(db: Session, client_record_id: int) -> ClientRecordData | None:
+    row = db.execute(
+        _full_record_query().where(
+            ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
+        )
+    ).first()
     return _full_record_dict(*row) if row else None
 
 
 def get_full_record_including_deleted(
     db: Session, client_record_id: int
-) -> dict | None:
-    row = _full_record_query(db).filter(ClientRecord.id == client_record_id).first()
+) -> ClientRecordData | None:
+    row = db.execute(
+        _full_record_query().where(ClientRecord.id == client_record_id)
+    ).first()
     return _full_record_dict(*row) if row else None
 
 
-_PERSON_FIELDS = frozenset(
-    {
-        "phone",
-        "email",
-        "address_street",
-        "address_building_number",
-        "address_apartment",
-        "address_city",
-        "address_zip_code",
-    }
-)
-_LEGAL_ENTITY_FIELDS = frozenset(
-    {
-        "entity_type",
-        "vat_reporting_frequency",
-        "advance_payment_frequency",
-        "advance_rate",
-        "advance_rate_updated_at",
-        "annual_revenue",
-    }
-)
-_RECORD_FIELDS = frozenset({"status", "accountant_id"})
-
-
-def apply_graph_update(db: Session, client_id: int, **fields) -> dict:
-    """Apply **fields to the Person / LegalEntity / ClientRecord graph and flush.
-
-    Returns the refreshed full-record dict, or raises NotFoundError.
-    """
-    from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-    from app.clients.repositories.person_repository import PersonRepository
-    from app.core.exceptions import NotFoundError
-
-    repo = ClientRecordRepository(db)
-    record = repo.get_by_id(client_id)
-    legal_entity = (
-        LegalEntityRepository(db).get_by_id(record.legal_entity_id) if record else None
-    )
-    if not record or not legal_entity:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-    person = PersonRepository(db).get_owner_for_legal_entity(legal_entity.id)
-    if "full_name" in fields:
-        legal_entity.official_name = fields["full_name"]
-        if person is not None:
-            person.full_name = fields["full_name"]
-    for key, value in fields.items():
-        if key in _PERSON_FIELDS and person is not None:
-            setattr(person, key, value)
-        elif key in _LEGAL_ENTITY_FIELDS:
-            setattr(legal_entity, key, value)
-        elif key in _RECORD_FIELDS:
-            setattr(record, key, value)
-    db.flush()
-    updated = get_full_record(db, client_id)
-    if not updated:
-        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
-    return updated
-
-
-def get_full_records_bulk(db: Session, client_record_ids: list[int]) -> dict[int, dict]:
+def get_full_records_bulk(db: Session, client_record_ids: list[int]) -> dict[int, ClientRecordData]:
     if not client_record_ids:
         return {}
-    rows = (
-        _full_record_query(db)
-        .filter(
+    rows = db.execute(
+        _full_record_query().where(
             ClientRecord.id.in_(client_record_ids),
             ClientRecord.deleted_at.is_(None),
         )
-        .all()
-    )
+    ).all()
     return {cr.id: _full_record_dict(cr, le, person) for cr, le, person in rows}
 
 
@@ -436,6 +412,10 @@ class ClientRecordRepository:
         return {status: count for status, count in rows}
 
     def get_next_office_client_number(self) -> int:
+        if self.db.get_bind().dialect.name == "postgresql":
+            return self.db.execute(
+                sa.text("SELECT nextval('client_office_number_seq')")
+            ).scalar()
         current_max = self.db.scalar(
             select(func.max(ClientRecord.office_client_number))
         )

@@ -16,7 +16,6 @@ from app.binders.services.client_status_service import BinderClientStatusService
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import (
     ClientRecordRepository,
-    apply_graph_update,
     get_full_record,
 )
 from app.core.exceptions import ForbiddenError, NotFoundError
@@ -26,6 +25,64 @@ from app.vat_reports.services.client_status_service import (
 )
 
 _log = logging.getLogger(__name__)
+
+_PERSON_FIELDS = frozenset(
+    {
+        "phone",
+        "email",
+        "address_street",
+        "address_building_number",
+        "address_apartment",
+        "address_city",
+        "address_zip_code",
+    }
+)
+_LEGAL_ENTITY_FIELDS = frozenset(
+    {
+        "entity_type",
+        "vat_reporting_frequency",
+        "advance_payment_frequency",
+        "advance_rate",
+        "advance_rate_updated_at",
+        "annual_revenue",
+    }
+)
+_RECORD_FIELDS = frozenset({"status", "accountant_id"})
+
+
+def apply_graph_update(db, client_id: int, **fields) -> dict:
+    """Apply **fields to the Person / LegalEntity / ClientRecord graph and flush.
+
+    Returns the refreshed full-record dict, or raises NotFoundError.
+    """
+    from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+    from app.clients.repositories.person_repository import PersonRepository
+    from app.core.exceptions import NotFoundError
+
+    repo = ClientRecordRepository(db)
+    record = repo.get_by_id(client_id)
+    legal_entity = (
+        LegalEntityRepository(db).get_by_id(record.legal_entity_id) if record else None
+    )
+    if not record or not legal_entity:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    person = PersonRepository(db).get_owner_for_legal_entity(legal_entity.id)
+    if "full_name" in fields:
+        legal_entity.official_name = fields["full_name"]
+        if person is not None:
+            person.full_name = fields["full_name"]
+    for key, value in fields.items():
+        if key in _PERSON_FIELDS and person is not None:
+            setattr(person, key, value)
+        elif key in _LEGAL_ENTITY_FIELDS:
+            setattr(legal_entity, key, value)
+        elif key in _RECORD_FIELDS:
+            setattr(record, key, value)
+    db.flush()
+    updated = get_full_record(db, client_id)
+    if not updated:
+        raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
+    return updated
 
 
 class ClientUpdateService:

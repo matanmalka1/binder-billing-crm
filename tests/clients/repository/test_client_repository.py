@@ -1,8 +1,6 @@
 from app.common.enums import EntityType, IdNumberType
-from app.clients.repositories.client_record_repository import (
-    ClientRecordRepository,
-    apply_graph_update,
-)
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.services.client_update_service import apply_graph_update
 from app.clients.services.client_creation_service import ClientCreationService
 
 

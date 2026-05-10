@@ -100,6 +100,11 @@ class SeedOrchestrator:
             # CreateClientService → automatically triggers ClientOnboardingOrchestrator
             # which creates: initial binder, TaxCalendar entries, VAT items (eligible only),
             # advance payments, annual report shell.
+            if engine.dialect.name == "postgresql":
+                db.execute(
+                    text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1")
+                )
+
             client_pairs = clients_builder.create_clients(
                 db, self.rng, self.cfg, seeded_users
             )
@@ -235,6 +240,9 @@ class SeedOrchestrator:
         if engine.dialect.name == "postgresql":
             names = ", ".join(f'"{t}"' for t in tables)
             db.execute(text(f"TRUNCATE {names} RESTART IDENTITY CASCADE"))
+            db.execute(
+                text("ALTER SEQUENCE IF EXISTS client_office_number_seq RESTART WITH 1")
+            )
         else:
             for table in reversed(Base.metadata.sorted_tables):
                 if table.name in skip:

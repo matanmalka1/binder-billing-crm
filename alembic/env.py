@@ -48,6 +48,7 @@ import app.correspondence.models.correspondence  # noqa
 import app.audit.models.entity_audit_log  # noqa
 import app.authority_contact.models.authority_contact  # noqa
 import app.notes.models.entity_note  # noqa
+import app.tasks.models.task  # noqa
 
 alembic_config = context.config
 
