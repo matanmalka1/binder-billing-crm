@@ -62,7 +62,7 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(
         paid_amount=Decimal("100.00"),
         annual_report_id=report.id,
     )
-    repo.update(
+    repo.update_payment(
         payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00")
     )
 
