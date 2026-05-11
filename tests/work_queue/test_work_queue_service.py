@@ -181,9 +181,10 @@ def test_work_queue_advance_payment_batch_loads_all_client_identities(test_db):
 
 def test_work_queue_excludes_requested_source_types(test_db, monkeypatch):
     service = WorkQueueService(test_db)
-    excluded_builder = lambda *args: (_ for _ in ()).throw(
-        AssertionError("excluded builder called")
-    )
+
+    def excluded_builder(*args):
+        raise AssertionError("excluded builder called")
+
     monkeypatch.setattr(
         "app.work_queue.services.work_queue_service.vat_filing_items",
         excluded_builder,

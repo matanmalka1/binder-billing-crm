@@ -1,1 +1,1 @@
-from app.tasks.api.routes import router
+from app.tasks.api.routes import router as router
