@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import calendar
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
@@ -40,6 +41,28 @@ except Exception:
 
 _REGISTRY_COLUMN = "effective_vat_periodic_and_income_tax_advances"
 
+
+def registry_periodic_calendar_available(year: int) -> bool:
+    """True when the tax_rules registry has an official periodic calendar for year."""
+    if not _REGISTRY_AVAILABLE:
+        return False
+    try:
+        from tax_rules.registry import get_periodic_calendar as _get_periodic_calendar
+
+        _get_periodic_calendar(year)
+        return True
+    except KeyError:
+        return False
+
+
+def missing_registry_years(start_year: int, end_year: int) -> list[int]:
+    """Years in [start_year, end_year] that lack official periodic registry data."""
+    return [
+        y
+        for y in range(start_year, end_year + 1)
+        if not registry_periodic_calendar_available(y)
+    ]
+
 # Only VAT and advance-payment periodic rules map to this registry column.
 _REGISTRY_RULE_TYPES: frozenset[DeadlineRuleType] = frozenset(
     {
@@ -53,6 +76,18 @@ _REGISTRY_RULE_TYPES: frozenset[DeadlineRuleType] = frozenset(
 
 class MissingDeadlineRuleError(LookupError):
     """No active DeadlineRule covers the requested rule_type/year."""
+
+
+@dataclass(frozen=True)
+class YearGenerationResult:
+    created: int
+    skipped: int
+
+
+@dataclass(frozen=True)
+class YearRangeResult:
+    entries_created: int
+    entries_skipped: int
 
 
 _PERIODIC_PLAN: list[tuple[ObligationType, DeadlineRuleType, list[int], int]] = [
@@ -71,13 +106,6 @@ _PERIODIC_PLAN: list[tuple[ObligationType, DeadlineRuleType, list[int], int]] = 
         2,
     ),
 ]
-
-_RULE_KEY: dict[DeadlineRuleType, str] = {
-    DeadlineRuleType.VAT_MONTHLY: "vat_monthly",
-    DeadlineRuleType.VAT_BIMONTHLY: "vat_bimonthly",
-    DeadlineRuleType.ADVANCE_MONTHLY: "advance_monthly",
-    DeadlineRuleType.ADVANCE_BIMONTHLY: "advance_bimonthly",
-}
 
 
 def _shift_month(year: int, month: int, offset_months: int) -> tuple[int, int]:
@@ -213,9 +241,10 @@ def _generate_periodic(
     tax_year,
     period_starts,
     period_months_count,
-) -> int:
+) -> tuple[int, int]:
     rule = _resolve_rule(db, rule_type=rule_type, on_date=date(tax_year, 1, 1))
     created = 0
+    skipped = 0
     for start_month in period_starts:
         period = f"{tax_year}-{start_month:02d}"
         due = periodic_due_date(rule, tax_year, start_month)
@@ -230,17 +259,17 @@ def _generate_periodic(
         )
         if was_created:
             created += 1
-    return created
+        else:
+            skipped += 1
+    return created, skipped
 
 
-def generate_for_year(db: Session, tax_year: int) -> dict[str, int]:
-    """Generate every regulatory calendar entry for a tax year.
-
-    Returns counts of newly-created rows per category. Idempotent.
-    """
-    counts: dict[str, int] = {}
+def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
+    """Generate every regulatory calendar entry for a tax year. Idempotent."""
+    total_created = 0
+    total_skipped = 0
     for obligation, rule_type, period_starts, months_count in _PERIODIC_PLAN:
-        counts[_RULE_KEY[rule_type]] = _generate_periodic(
+        c, s = _generate_periodic(
             db,
             obligation_type=obligation,
             rule_type=rule_type,
@@ -248,6 +277,8 @@ def generate_for_year(db: Session, tax_year: int) -> dict[str, int]:
             period_starts=period_starts,
             period_months_count=months_count,
         )
+        total_created += c
+        total_skipped += s
 
     annual_rule = _resolve_rule(
         db,
@@ -263,8 +294,11 @@ def generate_for_year(db: Session, tax_year: int) -> dict[str, int]:
         deadline_rule_id=annual_rule.id,
         due_date=annual_due_date(annual_rule, tax_year),
     )
-    counts["annual_report"] = 1 if annual_created else 0
-    return counts
+    if annual_created:
+        total_created += 1
+    else:
+        total_skipped += 1
+    return YearGenerationResult(created=total_created, skipped=total_skipped)
 
 
 def generate_for_year_range(
@@ -272,8 +306,14 @@ def generate_for_year_range(
     *,
     start_year: int,
     end_year: int,
-) -> dict[int, dict[str, int]]:
+) -> YearRangeResult:
     """Generate for [start_year, end_year] inclusive. Idempotent."""
     if end_year < start_year:
         raise ValueError(f"end_year ({end_year}) must be >= start_year ({start_year}).")
-    return {y: generate_for_year(db, y) for y in range(start_year, end_year + 1)}
+    total_created = 0
+    total_skipped = 0
+    for y in range(start_year, end_year + 1):
+        yr = generate_for_year(db, y)
+        total_created += yr.created
+        total_skipped += yr.skipped
+    return YearRangeResult(entries_created=total_created, entries_skipped=total_skipped)

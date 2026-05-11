@@ -18,15 +18,17 @@ from tests.helpers.identity import seed_business, seed_client_identity
 seq = count(1)
 
 
-def make_entry(
-    db,
-    *,
-    obligation_type: ObligationType,
-    rule_type: DeadlineRuleType,
-    period: str | None,
-    months: int | None,
-    tax_year: int,
-) -> TaxCalendarEntry:
+def _get_or_create_rule(db, rule_type: DeadlineRuleType) -> DeadlineRule:
+    existing = (
+        db.query(DeadlineRule)
+        .filter(
+            DeadlineRule.rule_type == rule_type.value,
+            DeadlineRule.effective_to.is_(None),
+        )
+        .first()
+    )
+    if existing is not None:
+        return existing
     rule = DeadlineRule(
         rule_type=rule_type,
         due_day_of_month=15,
@@ -36,6 +38,19 @@ def make_entry(
     )
     db.add(rule)
     db.flush()
+    return rule
+
+
+def make_entry(
+    db,
+    *,
+    obligation_type: ObligationType,
+    rule_type: DeadlineRuleType,
+    period: str | None,
+    months: int | None,
+    tax_year: int,
+) -> TaxCalendarEntry:
+    rule = _get_or_create_rule(db, rule_type)
     entry = TaxCalendarEntry(
         obligation_type=obligation_type,
         period=period,

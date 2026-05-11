@@ -293,13 +293,8 @@ def test_full_year_returns_expected_counts(test_db):
     _seed_all_rules(test_db)
     counts = generate_for_year(test_db, 2026)
     test_db.commit()
-    assert counts == {
-        "vat_monthly": 12,
-        "vat_bimonthly": 6,
-        "advance_monthly": 12,
-        "advance_bimonthly": 6,
-        "annual_report": 1,
-    }
+    assert counts.created == 37
+    assert counts.skipped == 0
 
 
 # ── monthly + bimonthly coexist on shared due_date ───────────────────────────
@@ -336,14 +331,10 @@ def test_rerunning_generation_does_not_duplicate_rows(test_db):
     counts_second = generate_for_year(test_db, 2026)
     test_db.commit()
 
-    assert counts_first["vat_monthly"] == 12
-    assert counts_second == {
-        "vat_monthly": 0,
-        "vat_bimonthly": 0,
-        "advance_monthly": 0,
-        "advance_bimonthly": 0,
-        "annual_report": 0,
-    }
+    assert counts_first.created == 37
+    assert counts_first.skipped == 0
+    assert counts_second.created == 0
+    assert counts_second.skipped == 37
     total = test_db.query(TaxCalendarEntry).count()
     assert total == 12 + 6 + 12 + 6 + 1
 
@@ -352,9 +343,8 @@ def test_year_range_generates_each_year_once(test_db):
     _seed_all_rules(test_db)
     result = generate_for_year_range(test_db, start_year=2026, end_year=2027)
     test_db.commit()
-    assert set(result.keys()) == {2026, 2027}
-    for y in (2026, 2027):
-        assert result[y]["vat_monthly"] == 12
+    assert result.entries_created == 74
+    assert result.entries_skipped == 0
     total = test_db.query(TaxCalendarEntry).count()
     assert total == (12 + 6 + 12 + 6 + 1) * 2
 

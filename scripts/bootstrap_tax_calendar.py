@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -42,7 +43,11 @@ def main() -> None:
     finally:
         db.close()
 
-    print(result)
+    print(json.dumps(result, indent=2, default=str, ensure_ascii=False))
+    if result["warnings"]:
+        print("\nWARNINGS:")
+        for w in result["warnings"]:
+            print(f"  - {w}")
 
 
 if __name__ == "__main__":

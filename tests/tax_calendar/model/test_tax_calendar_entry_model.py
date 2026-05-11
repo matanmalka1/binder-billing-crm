@@ -11,6 +11,16 @@ from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 def _make_rule(
     test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15
 ) -> DeadlineRule:
+    existing = (
+        test_db.query(DeadlineRule)
+        .filter(
+            DeadlineRule.rule_type == rule_type.value,
+            DeadlineRule.effective_to.is_(None),
+        )
+        .first()
+    )
+    if existing is not None:
+        return existing
     rule = DeadlineRule(
         rule_type=rule_type,
         due_day_of_month=due_day_of_month,

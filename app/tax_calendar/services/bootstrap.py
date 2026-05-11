@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType
 from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.services.tax_calendar_entry_service import generate_for_year_range
 
 DEFAULT_EFFECTIVE_FROM = date(2023, 1, 1)
+EXPECTED_ENTRIES_PER_YEAR = 37  # 12 vat_monthly + 6 vat_bimonthly + 12 advance_monthly + 6 advance_bimonthly + 1 annual_report
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,13 @@ DEFAULT_DEADLINE_RULES: tuple[DefaultDeadlineRule, ...] = (
 )
 
 
+@dataclass(frozen=True)
+class SeedRulesResult:
+    created: int
+    skipped: int
+    by_rule_type: dict[str, str] = field(default_factory=dict)
+
+
 def _has_open_ended_rule(db: Session, rule_type: DeadlineRuleType) -> bool:
     return (
         db.query(DeadlineRule.id)
@@ -40,12 +49,16 @@ def _has_open_ended_rule(db: Session, rule_type: DeadlineRuleType) -> bool:
     )
 
 
-def seed_default_deadline_rules(db: Session) -> dict[str, int]:
-    """Create missing open-ended default rules. Returns created counts by key."""
-    created: dict[str, int] = {}
+def seed_default_deadline_rules(db: Session) -> SeedRulesResult:
+    """Create missing open-ended default rules. Idempotent."""
+    created = 0
+    skipped = 0
+    by_rule_type: dict[str, str] = {}
     for default in DEFAULT_DEADLINE_RULES:
+        key = default.rule_type.value
         if _has_open_ended_rule(db, default.rule_type):
-            created[default.rule_type.value] = 0
+            skipped += 1
+            by_rule_type[key] = "skipped"
             continue
         db.add(
             DeadlineRule(
@@ -57,9 +70,10 @@ def seed_default_deadline_rules(db: Session) -> dict[str, int]:
                 description="Default local/dev tax calendar bootstrap rule",
             )
         )
-        created[default.rule_type.value] = 1
+        created += 1
+        by_rule_type[key] = "created"
     db.flush()
-    return created
+    return SeedRulesResult(created=created, skipped=skipped, by_rule_type=by_rule_type)
 
 
 def default_year_range(today: date | None = None) -> tuple[int, int]:
@@ -78,15 +92,37 @@ def bootstrap_tax_calendar(
     default_start, default_end = default_year_range(today)
     resolved_start = start_year if start_year is not None else default_start
     resolved_end = end_year if end_year is not None else default_end
-    rules_created = seed_default_deadline_rules(db)
-    entries_created = generate_for_year_range(
+
+    rules_result = seed_default_deadline_rules(db)
+    entries_result = generate_for_year_range(
         db,
         start_year=resolved_start,
         end_year=resolved_end,
     )
+
+    num_years = resolved_end - resolved_start + 1
+    total_in_range = (
+        db.query(TaxCalendarEntry)
+        .filter(TaxCalendarEntry.tax_year.between(resolved_start, resolved_end))
+        .count()
+    )
+
+    warnings: list[str] = []
+    expected = EXPECTED_ENTRIES_PER_YEAR * num_years
+    if total_in_range != expected:
+        warnings.append(
+            f"Expected {expected} entries for {resolved_start}–{resolved_end} "
+            f"({EXPECTED_ENTRIES_PER_YEAR}/year), found {total_in_range}."
+        )
+
     return {
         "start_year": resolved_start,
         "end_year": resolved_end,
-        "rules_created": rules_created,
-        "entries_created": entries_created,
+        "rules_created": rules_result.created,
+        "rules_skipped": rules_result.skipped,
+        "rules_by_type": rules_result.by_rule_type,
+        "entries_created": entries_result.entries_created,
+        "entries_skipped": entries_result.entries_skipped,
+        "total_entries_for_range": total_in_range,
+        "warnings": warnings,
     }
