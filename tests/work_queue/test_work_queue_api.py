@@ -6,7 +6,9 @@ from tests.helpers.task_helpers import create_business
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
-def test_work_queue_api_returns_advance_payment_payload(client, test_db, advisor_headers):
+def test_work_queue_api_returns_advance_payment_payload(
+    client, test_db, advisor_headers
+):
     biz = create_business(test_db)
     test_db.get(ClientRecord, biz.client_id).office_client_number = 1
     due_date = date.today() - timedelta(days=1)

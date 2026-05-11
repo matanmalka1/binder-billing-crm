@@ -1,4 +1,5 @@
 """Integration tests for DashboardAttentionService."""
+
 from datetime import date, timedelta
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
@@ -60,8 +61,19 @@ def test_item_shape(test_db):
     items = DashboardAttentionService(test_db).build(user_role=UserRole.ADVISOR)
     item = next(i for i in items if i["source_type"] == "unpaid_charge")
 
-    required_keys = {"id", "source_type", "source_id", "title", "client_name",
-                     "due_date", "days_delta", "reason", "amount", "urgency", "href"}
+    required_keys = {
+        "id",
+        "source_type",
+        "source_id",
+        "title",
+        "client_name",
+        "due_date",
+        "days_delta",
+        "reason",
+        "amount",
+        "urgency",
+        "href",
+    }
     assert required_keys.issubset(item.keys())
     assert item["days_delta"] < 0  # overdue
 

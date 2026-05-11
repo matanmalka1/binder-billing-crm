@@ -15,6 +15,7 @@ def _create(db, title="Test Task", **kwargs) -> int:
 
 # ── Lifecycle transitions ─────────────────────────────────────────────────────
 
+
 def test_create_task_defaults(test_db):
     task_id = _create(test_db)
     task = TaskRepository(test_db).get_by_id(task_id)
@@ -65,6 +66,7 @@ def test_completed_by_user_id_set(test_db):
 
 # ── Terminal state rejections ─────────────────────────────────────────────────
 
+
 def test_cannot_start_done_task(test_db):
     task_id = _create(test_db)
     TaskService(test_db).complete(task_id, completed_by_user_id=None)
@@ -109,12 +111,14 @@ def test_cannot_update_canceled_task(test_db):
 
 # ── Not found ─────────────────────────────────────────────────────────────────
 
+
 def test_get_nonexistent_task_raises(test_db):
     with pytest.raises(NotFoundError):
         TaskService(test_db).get(99999)
 
 
 # ── Filters ───────────────────────────────────────────────────────────────────
+
 
 def test_list_filter_by_status(test_db):
     _create(test_db, title="Open task")

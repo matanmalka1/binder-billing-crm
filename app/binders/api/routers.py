@@ -5,7 +5,9 @@ from fastapi import APIRouter
 from app.binders.api.binders_history import router as binders_history_router
 from app.binders.api.binders_list_get import router as binders_list_get_router
 from app.binders.api.binders_operations import router as binders_operations_router
-from app.binders.api.binders_receive_return import router as binders_receive_return_router
+from app.binders.api.binders_receive_return import (
+    router as binders_receive_return_router,
+)
 from app.binders.api.binders_reminders import router as binders_reminders_router
 from app.binders.api.client_binders_router import router as client_binders_router
 

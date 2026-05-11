@@ -102,7 +102,9 @@ class SeedOrchestrator:
             # advance payments, annual report shell.
             if engine.dialect.name == "postgresql":
                 db.execute(
-                    text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1")
+                    text(
+                        "CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1"
+                    )
                 )
 
             client_pairs = clients_builder.create_clients(

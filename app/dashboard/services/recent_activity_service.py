@@ -14,11 +14,15 @@ from app.audit.constants import (
 )
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.annual_reports.repositories.annual_report_repository import AnnualReportRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.binders.models.binder import BinderStatus
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import BinderStatusLogRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import get_full_records_bulk
 
@@ -80,14 +84,17 @@ class RecentActivityService:
             if row.id in client_names
         ]
         items.extend(
-            (row.changed_at, self._serialize_binder(row, client_names[f"binder:{row.id}"]))
+            (
+                row.changed_at,
+                self._serialize_binder(row, client_names[f"binder:{row.id}"]),
+            )
             for row in binder_rows
             if f"binder:{row.id}" in client_names
         )
 
-        return [item for _, item in sorted(items, key=lambda pair: pair[0], reverse=True)][
-            :_ACTIVITY_LIMIT
-        ]
+        return [
+            item for _, item in sorted(items, key=lambda pair: pair[0], reverse=True)
+        ][:_ACTIVITY_LIMIT]
 
     def _serialize(self, row: EntityAuditLog, client_name: str) -> dict:
         return {

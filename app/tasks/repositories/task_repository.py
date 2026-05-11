@@ -71,8 +71,14 @@ class TaskRepository(BaseRepository[Task]):
         page_size: int = 20,
     ) -> tuple[list[Task], int]:
         filter_args = (
-            status, priority, assigned_to_user_id, assigned_role,
-            source_domain, source_id, due_before, due_after,
+            status,
+            priority,
+            assigned_to_user_id,
+            assigned_role,
+            source_domain,
+            source_id,
+            due_before,
+            due_after,
         )
 
         base = _apply_filters(

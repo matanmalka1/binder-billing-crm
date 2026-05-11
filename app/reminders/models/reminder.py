@@ -55,9 +55,7 @@ class Reminder(Base):
         DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )
 
-    __table_args__ = (
-        Index("idx_reminders_status_fire_at", "status", "fire_at"),
-    )
+    __table_args__ = (Index("idx_reminders_status_fire_at", "status", "fire_at"),)
 
     def __repr__(self) -> str:
         return (

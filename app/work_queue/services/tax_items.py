@@ -12,7 +12,10 @@ from app.vat_reports.repositories.vat_compliance_repository import (
 )
 from app.work_queue.schemas.work_queue import WorkQueueItem, WorkQueueSourceType
 from app.work_queue.services.common import UPCOMING_WINDOW_DAYS, WorkQueueContext
-from app.work_queue.services.payloads import annual_report_payload, vat_work_item_payload
+from app.work_queue.services.payloads import (
+    annual_report_payload,
+    vat_work_item_payload,
+)
 
 # Day-19 is the digital filing extension granted by the tax authority.
 # Used only when VatWorkItem.due_date_effective is absent (legacy rows).
@@ -51,7 +54,10 @@ def vat_filing_items(
     """
     items = []
     for vat_item in VatComplianceRepository(ctx.db).get_overdue_unfiled(ctx.today):
-        if client_record_id is not None and vat_item.client_record_id != client_record_id:
+        if (
+            client_record_id is not None
+            and vat_item.client_record_id != client_record_id
+        ):
             continue
         due_date = _vat_due_date(vat_item, vat_item.period)
         items.append(

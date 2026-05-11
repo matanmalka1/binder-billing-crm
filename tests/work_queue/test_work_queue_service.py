@@ -52,7 +52,9 @@ def test_unpaid_charge_before_threshold_excluded(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
 
-    assert [i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE] == []
+    assert [
+        i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE
+    ] == []
 
 
 def test_work_queue_excludes_reminders(test_db):
@@ -90,7 +92,9 @@ def test_work_queue_advance_payment_includes_source_payload(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
+    item = next(
+        i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT
+    )
 
     assert item.client_name.startswith("Task Test Client")
     assert item.client_office_number == 1
@@ -125,7 +129,9 @@ def test_work_queue_advance_payment_payload_formats_bimonthly_period(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
+    item = next(
+        i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT
+    )
 
     assert item.payload["period_label"] == "מרץ–אפריל 2026"
     assert item.payload["frequency"] == "bimonthly"
@@ -214,6 +220,7 @@ def test_work_queue_item_can_be_unscoped_to_client():
 
 # ── Pagination ────────────────────────────────────────────────────────────────
 
+
 def test_work_queue_pagination_limit(test_db):
     biz = create_business(test_db)
     for days_ago in [31, 32, 33]:
@@ -262,6 +269,7 @@ def test_work_queue_pagination_offset_beyond_end(test_db):
 
 
 # ── business_id filter semantics ──────────────────────────────────────────────
+
 
 def test_business_id_filter_hides_client_level_sources(test_db):
     """When business_id is set, VAT/annual/advance sources must not appear."""
@@ -317,6 +325,7 @@ def test_business_id_filter_returns_unpaid_charge_for_that_business(test_db):
 
 # ── Charge urgency is always OVERDUE ─────────────────────────────────────────
 
+
 def test_unpaid_charge_urgency_always_overdue(test_db):
     """Charges only appear after threshold — urgency is always OVERDUE by design."""
     biz = create_business(test_db)
@@ -333,6 +342,8 @@ def test_unpaid_charge_urgency_always_overdue(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    charge_items = [i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE]
+    charge_items = [
+        i for i in items if i.source_type == WorkQueueSourceType.UNPAID_CHARGE
+    ]
 
     assert all(i.urgency == WorkQueueUrgency.OVERDUE for i in charge_items)

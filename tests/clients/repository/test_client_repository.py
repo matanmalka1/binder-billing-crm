@@ -117,7 +117,9 @@ def test_soft_delete_returns_false_for_missing_client(test_db):
 def test_update_ignores_unknown_fields(test_db):
     client = _create_client(test_db, full_name="Old Name", id_number="500000001")
 
-    updated = apply_graph_update(test_db, client.id, full_name="New Name", does_not_exist="x")
+    updated = apply_graph_update(
+        test_db, client.id, full_name="New Name", does_not_exist="x"
+    )
 
     assert updated is not None
     assert updated["full_name"] == "New Name"

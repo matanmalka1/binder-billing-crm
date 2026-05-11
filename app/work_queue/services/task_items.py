@@ -17,7 +17,9 @@ def task_items(ctx: WorkQueueContext) -> List[WorkQueueItem]:
     items: List[WorkQueueItem] = []
     for task in tasks:
         due = task.due_date.date() if task.due_date is not None else None
-        item_urgency = urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
+        item_urgency = (
+            urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
+        )
         items.append(
             WorkQueueItem(
                 source_type=WorkQueueSourceType.TASK,

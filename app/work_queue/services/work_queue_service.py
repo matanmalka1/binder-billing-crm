@@ -55,5 +55,7 @@ class WorkQueueService:
                 items.extend(stale_binder_items(self.ctx))
 
         # Sort: dated items first by due_date, null due_date items last
-        items.sort(key=lambda item: item.due_date if item.due_date is not None else _FAR_FUTURE)
+        items.sort(
+            key=lambda item: item.due_date if item.due_date is not None else _FAR_FUTURE
+        )
         return items[offset : offset + limit]

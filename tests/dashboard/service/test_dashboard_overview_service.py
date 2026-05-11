@@ -28,15 +28,18 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 6)
     monkeypatch.setattr(service.vat_stats_service, "build", lambda _d: _VAT_STUB)
     monkeypatch.setattr(
-        service, "_build_quick_actions",
+        service,
+        "_build_quick_actions",
         lambda today: [{"key": "ready", "period": today.strftime("%Y-%m")}],
     )
     monkeypatch.setattr(
-        service.advisor_today_service, "build",
+        service.advisor_today_service,
+        "build",
         lambda today: {"deadline_items": [{"id": 1, "label": "מע״מ"}]},
     )
     monkeypatch.setattr(
-        service.attention_service, "build",
+        service.attention_service,
+        "build",
         lambda user_role=None, reference_date=None: [{"source_type": "unpaid_charge"}],
     )
     monkeypatch.setattr(service.charge_repo, "count_charges", lambda **kwargs: 1)
@@ -65,7 +68,8 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
     monkeypatch.setattr(service, "_build_quick_actions", lambda today: [])
     monkeypatch.setattr(service.advisor_today_service, "build", lambda today: {})
     monkeypatch.setattr(
-        service.attention_service, "build",
+        service.attention_service,
+        "build",
         lambda user_role=None, reference_date=None: [],
     )
     monkeypatch.setattr(service.charge_repo, "count_charges", lambda **kwargs: 0)
@@ -75,7 +79,9 @@ def test_get_overview_marks_empty_system(test_db, monkeypatch):
     assert overview["is_empty"] is True
 
 
-def test_get_overview_secretary_gets_no_attention_or_quick_actions(test_db, monkeypatch):
+def test_get_overview_secretary_gets_no_attention_or_quick_actions(
+    test_db, monkeypatch
+):
     service = DashboardOverviewService(test_db)
     monkeypatch.setattr(service.client_record_repo, "count", lambda **kwargs: 3)
     monkeypatch.setattr(service.vat_stats_service, "build", lambda _d: _VAT_STUB)

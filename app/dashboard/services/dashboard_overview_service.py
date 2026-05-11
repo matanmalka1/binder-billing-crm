@@ -59,11 +59,17 @@ class DashboardOverviewService:
 
         is_advisor = user_role == UserRole.ADVISOR
 
-        attention_items = self.attention_service.build(
-            user_role=user_role, reference_date=reference_date
-        ) if is_advisor else []
+        attention_items = (
+            self.attention_service.build(
+                user_role=user_role, reference_date=reference_date
+            )
+            if is_advisor
+            else []
+        )
 
-        open_charges_count, open_charges_amount_ils = self._open_charges_stats(is_advisor)
+        open_charges_count, open_charges_amount_ils = self._open_charges_stats(
+            is_advisor
+        )
 
         quick_actions = self._build_quick_actions(reference_date) if is_advisor else []
         advisor_today = (

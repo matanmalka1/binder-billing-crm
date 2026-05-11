@@ -108,7 +108,7 @@ def build_annual_report_actions(
                     key="annual_report_client_reminder",
                     label="שלח תזכורת לאישור",
                     method="post",
-                    endpoint=f"/api/v1/annual-reports/{report.id}/client-reminder",
+                    endpoint=f"/annual-reports/{report.id}/client-reminder",
                     action_id=f"annual-{report.id}-reminder",
                     confirm=build_confirm(
                         title="שליחת תזכורת ללקוח",
@@ -161,7 +161,7 @@ def build_binder_actions(
             key="binder_pickup_reminder",
             label="שלח תזכורת איסוף",
             method="post",
-            endpoint=f"/api/v1/binders/{binder.id}/pickup-reminder",
+            endpoint=f"/binders/{binder.id}/pickup-reminder",
             action_id=f"binder-{binder.id}-pickup-reminder",
             confirm=build_confirm(
                 title="שליחת תזכורת איסוף",

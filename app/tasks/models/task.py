@@ -31,8 +31,14 @@ class Task(Base):
     description = Column(Text, nullable=True)
     # pg_enum uses values_callable so DB stores lowercase values ("open", "in_progress", ...)
     # matching the taskstatus / taskpriority PostgreSQL enum types created in migration 0004_tasks.
-    status = Column(pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN)
-    priority = Column(pg_enum(TaskPriority, name="taskpriority"), nullable=False, default=TaskPriority.NORMAL)
+    status = Column(
+        pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN
+    )
+    priority = Column(
+        pg_enum(TaskPriority, name="taskpriority"),
+        nullable=False,
+        default=TaskPriority.NORMAL,
+    )
     # due_date is DateTime (with time) so callers can schedule tasks at a specific time of day.
     # The work queue projects it to .date() for day-level urgency comparison.
     due_date = Column(DateTime, nullable=True)

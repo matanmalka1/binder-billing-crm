@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from app.binders.repositories.binder_repository import BinderRepository
-from app.work_queue.schemas.work_queue import WorkQueueItem, WorkQueueSourceType, WorkQueueUrgency
+from app.work_queue.schemas.work_queue import (
+    WorkQueueItem,
+    WorkQueueSourceType,
+    WorkQueueUrgency,
+)
 from app.work_queue.services.common import WorkQueueContext
 
 _STALE_PICKUP_THRESHOLD_DAYS = 30

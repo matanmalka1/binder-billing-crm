@@ -63,15 +63,19 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
         Returns full VatWorkItem rows so callers can read due_date_effective
         without issuing per-row queries.
         """
-        stmt = scope_to_active_clients_stmt(
-            select(VatWorkItem),
-            VatWorkItem,
-        ).where(
-            VatWorkItem.status != VatWorkItemStatus.FILED,
-            VatWorkItem.deleted_at.is_(None),
-            func.substr(VatWorkItem.period, 1, 7)
-            < reference_date.strftime("%Y-%m"),
-        ).order_by(VatWorkItem.period.asc())
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(VatWorkItem),
+                VatWorkItem,
+            )
+            .where(
+                VatWorkItem.status != VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+                func.substr(VatWorkItem.period, 1, 7)
+                < reference_date.strftime("%Y-%m"),
+            )
+            .order_by(VatWorkItem.period.asc())
+        )
         return list(self.db.scalars(stmt))
 
     def get_stale_pending(self, year: int) -> list:

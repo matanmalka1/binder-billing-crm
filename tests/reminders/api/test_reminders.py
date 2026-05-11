@@ -37,9 +37,7 @@ def test_create_list_and_get_scheduler_reminder(client, advisor_headers):
     assert get_resp.json()["id"] == created["id"]
 
 
-def test_cancel_reminder_marks_scheduled_as_canceled(
-    client, test_db, advisor_headers
-):
+def test_cancel_reminder_marks_scheduled_as_canceled(client, test_db, advisor_headers):
     reminder = ReminderRepository(test_db).create(
         fire_at=utcnow(),
         action_type=ReminderActionType.CREATE_TASK,

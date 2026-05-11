@@ -75,9 +75,7 @@ class ReminderRepository(BaseRepository):
             select(func.count(Reminder.id)).where(Reminder.status == status)
         )
 
-    def list_due_scheduled(
-        self, now: datetime, limit: int = 100
-    ) -> list[Reminder]:
+    def list_due_scheduled(self, now: datetime, limit: int = 100) -> list[Reminder]:
         stmt = (
             select(Reminder)
             .where(

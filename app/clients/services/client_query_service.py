@@ -40,7 +40,9 @@ class ClientQueryService:
     def list_all_clients(self) -> list[ClientRecordResponse]:
         records = self.record_repo.list_all()
         full_map = get_full_records_bulk(self.db, [r.id for r in records])
-        return [ClientRecordResponse(**full_map[r.id]) for r in records if r.id in full_map]
+        return [
+            ClientRecordResponse(**full_map[r.id]) for r in records if r.id in full_map
+        ]
 
     def get_conflict_info(self, id_number: str) -> ClientConflictInfo:
         active_records = self.record_repo.get_active_by_id_number(id_number)

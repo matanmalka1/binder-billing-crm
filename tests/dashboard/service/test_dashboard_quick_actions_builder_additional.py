@@ -53,6 +53,7 @@ def test_build_binder_actions_shows_overdue_pickup():
 
     assert len(actions) == 1
     assert actions[0]["key"] == "binder_pickup_reminder"
+    assert actions[0]["endpoint"] == "/binders/1/pickup-reminder"
     assert actions[0]["category"] == "binders"
     assert actions[0]["urgency"] == "overdue"
 
@@ -145,6 +146,7 @@ def test_build_annual_report_actions_pending_client_reminder():
     assert len(actions) == 1
     assert actions[0]["key"] == "annual_report_client_reminder"
     assert actions[0]["method"] == "post"
+    assert actions[0]["endpoint"] == "/annual-reports/2/client-reminder"
 
 
 # ── Builder ───────────────────────────────────────────────────────────────────

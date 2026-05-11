@@ -22,7 +22,9 @@ class TaskService(BaseService):
         super().__init__(db)
         self.repo = TaskRepository(db)
 
-    def create(self, data: TaskCreateRequest, created_by_user_id: Optional[int]) -> Task:
+    def create(
+        self, data: TaskCreateRequest, created_by_user_id: Optional[int]
+    ) -> Task:
         with self.transaction():
             return self.repo.create(
                 title=data.title,

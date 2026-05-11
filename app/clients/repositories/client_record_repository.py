@@ -66,7 +66,9 @@ def _full_record_query():
     )
 
 
-def _full_record_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> ClientRecordData:
+def _full_record_dict(
+    cr: ClientRecord, le: LegalEntity, person: Person | None
+) -> ClientRecordData:
     full_name = person.full_name if person and person.full_name else le.official_name
     return {
         "id": cr.id,
@@ -119,7 +121,9 @@ def get_full_record_including_deleted(
     return _full_record_dict(*row) if row else None
 
 
-def get_full_records_bulk(db: Session, client_record_ids: list[int]) -> dict[int, ClientRecordData]:
+def get_full_records_bulk(
+    db: Session, client_record_ids: list[int]
+) -> dict[int, ClientRecordData]:
     if not client_record_ids:
         return {}
     rows = db.execute(

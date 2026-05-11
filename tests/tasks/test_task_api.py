@@ -1,5 +1,5 @@
-
 # ── Create ────────────────────────────────────────────────────────────────────
+
 
 def test_create_task_returns_201(client, advisor_headers):
     resp = client.post(
@@ -42,6 +42,7 @@ def test_create_task_requires_title(client, advisor_headers):
 
 # ── List ──────────────────────────────────────────────────────────────────────
 
+
 def test_list_tasks_empty(client, advisor_headers):
     resp = client.get("/api/v1/tasks", headers=advisor_headers)
     assert resp.status_code == 200
@@ -62,6 +63,7 @@ def test_list_tasks_with_status_filter(client, advisor_headers):
 
 # ── Get ───────────────────────────────────────────────────────────────────────
 
+
 def test_get_task(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Get Me"}
@@ -78,6 +80,7 @@ def test_get_nonexistent_task(client, advisor_headers):
 
 # ── Update ────────────────────────────────────────────────────────────────────
 
+
 def test_update_task_title(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Old Title"}
@@ -93,13 +96,12 @@ def test_update_task_title(client, advisor_headers):
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
+
 def test_start_task(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Start Me"}
     ).json()
-    resp = client.post(
-        f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers
-    )
+    resp = client.post(f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers)
     assert resp.status_code == 200
     assert resp.json()["status"] == "in_progress"
 
@@ -121,9 +123,7 @@ def test_cancel_task(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Cancel Me"}
     ).json()
-    resp = client.post(
-        f"/api/v1/tasks/{created['id']}/cancel", headers=advisor_headers
-    )
+    resp = client.post(f"/api/v1/tasks/{created['id']}/cancel", headers=advisor_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "canceled"
@@ -135,9 +135,7 @@ def test_start_done_task_rejected(client, advisor_headers):
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Done"}
     ).json()
     client.post(f"/api/v1/tasks/{created['id']}/complete", headers=advisor_headers)
-    resp = client.post(
-        f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers
-    )
+    resp = client.post(f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers)
     assert resp.status_code == 409
 
 
@@ -148,9 +146,12 @@ def test_secretary_can_access_tasks(client, secretary_headers):
 
 # ── Pagination total > page_size ──────────────────────────────────────────────
 
+
 def test_list_pagination_total_reflects_all_items(client, advisor_headers):
     for i in range(5):
-        client.post("/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"})
+        client.post(
+            "/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"}
+        )
 
     resp = client.get("/api/v1/tasks?page=1&page_size=3", headers=advisor_headers)
     assert resp.status_code == 200
@@ -163,7 +164,9 @@ def test_list_pagination_total_reflects_all_items(client, advisor_headers):
 
 def test_list_pagination_page2(client, advisor_headers):
     for i in range(5):
-        client.post("/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"})
+        client.post(
+            "/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"}
+        )
 
     p1 = client.get("/api/v1/tasks?page=1&page_size=3", headers=advisor_headers).json()
     p2 = client.get("/api/v1/tasks?page=2&page_size=3", headers=advisor_headers).json()
@@ -176,6 +179,7 @@ def test_list_pagination_page2(client, advisor_headers):
 
 
 # ── assigned_role validation ──────────────────────────────────────────────────
+
 
 def test_create_task_valid_assigned_role_advisor(client, advisor_headers):
     resp = client.post(

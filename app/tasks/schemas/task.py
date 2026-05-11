@@ -13,7 +13,9 @@ _ALLOWED_ROLES = {role.value for role in UserRole}
 
 def _validate_role(v: Optional[str]) -> Optional[str]:
     if v is not None and v not in _ALLOWED_ROLES:
-        raise ValueError(f"assigned_role must be one of: {', '.join(sorted(_ALLOWED_ROLES))}")
+        raise ValueError(
+            f"assigned_role must be one of: {', '.join(sorted(_ALLOWED_ROLES))}"
+        )
     return v
 
 
