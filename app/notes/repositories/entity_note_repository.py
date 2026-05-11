@@ -61,15 +61,16 @@ class EntityNoteRepository(BaseRepository[EntityNote]):
             )
         ).first()
 
-    def update(self, note_id: int, note: str) -> Optional[EntityNote]:
+    def update(self, note_id: int, **fields) -> Optional[EntityNote]:
         obj = self.get_by_id(note_id)
         if not obj:
             return None
-        obj.note = note
+        if "note" in fields:
+            obj.note = fields["note"]
         self.db.flush()
         return obj
 
-    def soft_delete(self, note_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, note_id: int, deleted_by: int | None = None) -> bool:
         obj = self.get_by_id(note_id)
         if not obj:
             return False

@@ -42,7 +42,11 @@ class UserRepository(BaseRepository[User]):
         return list(self.db.scalars(stmt).all())
 
     def count(
-        self, is_active: Optional[bool] = None, search: Optional[str] = None
+        self,
+        is_active: Optional[bool] = None,
+        search: Optional[str] = None,
+        *,
+        include_deleted: bool = False,
     ) -> int:
         """Count users."""
         stmt = self._apply_list_filters(

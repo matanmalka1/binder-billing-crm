@@ -125,7 +125,7 @@ class VatImportService:
 
         income_lines_created = 0
         if income_total > 0:
-            self.income_repo.add(
+            self.income_repo.add_line(
                 report_id,
                 IncomeSourceType.BUSINESS,
                 income_total,
@@ -146,7 +146,7 @@ class VatImportService:
         for cat, total in merged.items():
             if total <= 0:
                 continue
-            self.expense_repo.add(
+            self.expense_repo.add_line(
                 report_id,
                 cat,
                 total,

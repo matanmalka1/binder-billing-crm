@@ -72,16 +72,18 @@ class BaseRepository(Generic[ModelType]):
         stmt = select(self.model)
         return stmt if include_deleted else _apply_not_deleted(stmt, self.model)
 
-    def get(self, entity_id: int, *, include_deleted: bool = False) -> ModelType | None:
+    def get(
+        self, entity_id: int, /, *, include_deleted: bool = False
+    ) -> ModelType | None:
         stmt = self.select_base(include_deleted=include_deleted).where(
             self.model.id == entity_id
         )
         return self.db.scalars(stmt).first()
 
-    def get_by_id(self, entity_id: int) -> ModelType | None:
+    def get_by_id(self, entity_id: int, /) -> ModelType | None:
         return self.get(entity_id)
 
-    def get_by_id_for_update(self, entity_id: int) -> ModelType | None:
+    def get_by_id_for_update(self, entity_id: int, /) -> ModelType | None:
         stmt = self.select_base().where(self.model.id == entity_id).with_for_update()
         return self.db.scalars(stmt).first()
 
@@ -153,10 +155,10 @@ class BaseRepository(Generic[ModelType]):
         """Named update_entity to avoid collision with domain-specific update() methods."""
         return self._update_entity(entity, touch_updated_at=touch_updated_at, **fields)
 
-    def update(self, entity_id: int, **fields) -> ModelType | None:
+    def update(self, entity_id: int, /, **fields) -> ModelType | None:
         return self.update_entity(self.get(entity_id), **fields)
 
-    def soft_delete(self, entity_id: int, deleted_by: int | None = None) -> bool:
+    def soft_delete(self, entity_id: int, /, deleted_by: int | None = None) -> bool:
         if not _has_column(self.model, "deleted_at"):
             return self.hard_delete(entity_id)
         entity = self.get_by_id(entity_id)
@@ -169,13 +171,14 @@ class BaseRepository(Generic[ModelType]):
         return True
 
     def _soft_delete_entity(
-        self, entity_id: int, deleted_by: int | None = None
+        self, entity_id: int, /, deleted_by: int | None = None
     ) -> bool:
         return BaseRepository.soft_delete(self, entity_id, deleted_by)
 
     def delete(
         self,
         entity_id: int,
+        /,
         deleted_by: int | None = None,
         *,
         hard: bool = False,
@@ -184,7 +187,7 @@ class BaseRepository(Generic[ModelType]):
             return self.soft_delete(entity_id, deleted_by)
         return self.hard_delete(entity_id)
 
-    def hard_delete(self, entity_id: int) -> bool:
+    def hard_delete(self, entity_id: int, /) -> bool:
         entity = self.get(entity_id, include_deleted=True)
         if not entity:
             return False

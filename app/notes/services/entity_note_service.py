@@ -65,7 +65,7 @@ class EntityNoteService:
         obj = self._get_or_raise(note_id, entity_type, entity_id)
         if obj.created_by != actor_id:
             raise ForbiddenError("אין הרשאה לעדכן הערה זו", "NOTE.FORBIDDEN")
-        updated = self.repo.update(note_id, note)
+        updated = self.repo.update(note_id, note=note)
         if not updated:
             raise NotFoundError(f"הערה {note_id} לא נמצאה", _NOT_FOUND)
         return updated

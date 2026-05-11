@@ -10,10 +10,9 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.annual_reports.services.constants import VALID_TRANSITIONS
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
-from app.common.services.base_service import BaseService
 
 
-class AnnualReportBaseService(BaseService):
+class AnnualReportBaseService:
     """Shared helpers for annual report service mixins."""
 
     repo: Any  # set by concrete service

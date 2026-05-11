@@ -88,7 +88,7 @@ class FinancialCrudMixin:
                 INVALID_INCOME_SOURCE_ERROR.format(source_type=source_type),
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
-        line = self.income_repo.add(
+        line = self.income_repo.add_line(
             report_id, IncomeSourceType(source_type), amount, description
         )
         EntityAuditWriter(self.db).append(
@@ -177,7 +177,7 @@ class FinancialCrudMixin:
                 INVALID_EXPENSE_CATEGORY_ERROR.format(category=category),
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
-        line = self.expense_repo.add(
+        line = self.expense_repo.add_line(
             report_id,
             ExpenseCategoryType(category),
             amount,

@@ -154,7 +154,7 @@ class ClientOnboardingOrchestrator:
                     payment.period_months_count != period_months_count
                     or payment.due_date != plan.due_date
                 ):
-                    self.advance_repo.update(
+                    self.advance_repo.update_payment(
                         payment,
                         period_months_count=period_months_count,
                         due_date=plan.due_date,

@@ -273,5 +273,5 @@ class ChargeRepository(BaseRepository[Charge]):
         )
         return self.db.execute(stmt).all()
 
-    def soft_delete(self, charge_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, charge_id: int, deleted_by: int | None = None) -> bool:
         return self._soft_delete_entity(charge_id, deleted_by)

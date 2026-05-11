@@ -305,7 +305,7 @@ class BinderRepository(BaseRepository[Binder]):
         )
         return self.db.scalars(stmt).all()
 
-    def soft_delete(self, binder_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, binder_id: int, deleted_by: int | None = None) -> bool:
         """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
         binder = self.db.scalars(select(Binder).where(Binder.id == binder_id)).first()
         if not binder:

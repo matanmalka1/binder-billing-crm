@@ -37,7 +37,7 @@ def _seed_payments(db, client_record_id: int):
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100"),
     )
-    repo.update(jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID)
+    repo.update_payment(jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID)
 
     mar = create_linked_advance_payment(
         db,
@@ -48,7 +48,7 @@ def _seed_payments(db, client_record_id: int):
         due_date=date(2020, 4, 15),  # past due date → timing_status=overdue
         expected_amount=Decimal("50"),
     )
-    repo.update(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.PENDING)
+    repo.update_payment(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.PENDING)
 
 
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):

@@ -185,7 +185,7 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
         entity = report or self.get_by_id(report_id)
         return self._update_entity(entity, touch_updated_at=True, **fields)
 
-    def soft_delete(self, report_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, report_id: int, deleted_by: int | None = None) -> bool:
         return self._soft_delete_entity(report_id, deleted_by)
 
     def cancel_open_by_client_record(self, client_record_id: int) -> int:

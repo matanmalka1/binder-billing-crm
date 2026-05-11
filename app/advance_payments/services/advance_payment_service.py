@@ -199,7 +199,7 @@ class AdvancePaymentService:
                 filtered["reported_turnover"] = turnover
                 filtered["turnover_source_vat_work_item_id"] = vat_item_id
 
-        return self.repo.update(payment, **filtered)
+        return self.repo.update_payment(payment, **filtered)
 
     # ─── Delete ───────────────────────────────────────────────────────────────
 

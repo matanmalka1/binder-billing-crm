@@ -6,8 +6,11 @@ from app.users.models.user import User, UserRole
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 from app.users.services.auth_service import AuthService
-
-MIN_PASSWORD_LENGTH = 8
+from app.users.services.user_management_policies import (
+    MIN_PASSWORD_LENGTH,
+    ensure_advisor,
+    validate_password,
+)
 
 IMMUTABLE_UPDATE_FIELDS = {
     "id",
@@ -30,16 +33,6 @@ def get_user_or_raise(repo: UserRepository, user_id: int) -> User:
     return user
 
 
-def _ensure_advisor(actor_role: UserRole) -> None:
-    if actor_role != UserRole.ADVISOR:
-        raise ForbiddenError("רק יועצים יכולים לנהל משתמשים", "USER.FORBIDDEN")
-
-
-def _validate_password(password: str) -> None:
-    if len(password) < MIN_PASSWORD_LENGTH:
-        raise AppError("הסיסמה חייבת להכיל לפחות 8 תווים", "USER.INVALID_PASSWORD")
-
-
 class UserManagementService:
     """User lifecycle management and authorization enforcement."""
 
@@ -57,8 +50,8 @@ class UserManagementService:
         password: str,
         phone: Optional[str] = None,
     ) -> User:
-        _ensure_advisor(actor_role)
-        _validate_password(password)
+        ensure_advisor(actor_role)
+        validate_password(password)
 
         if self.user_repo.get_by_email(email):
             raise ConflictError(_USER_EMAIL_EXISTS.format(email=email), "USER.CONFLICT")
@@ -86,7 +79,7 @@ class UserManagementService:
         is_active: Optional[bool] = None,
         search: Optional[str] = None,
     ):
-        _ensure_advisor(actor_role)
+        ensure_advisor(actor_role)
         items = self.user_repo.list(
             page=page,
             page_size=page_size,
@@ -97,7 +90,7 @@ class UserManagementService:
         return items, total
 
     def get_user(self, actor_role: UserRole, user_id: int) -> User:
-        _ensure_advisor(actor_role)
+        ensure_advisor(actor_role)
         return get_user_or_raise(self.user_repo, user_id)
 
     def update_user(
@@ -107,7 +100,7 @@ class UserManagementService:
         user_id: int,
         **fields,
     ) -> User:
-        _ensure_advisor(actor_role)
+        ensure_advisor(actor_role)
         if "email" in fields:
             existing = self.user_repo.get_by_email(fields["email"])
             if existing and existing.id != user_id:
@@ -141,7 +134,7 @@ class UserManagementService:
     def activate_user(
         self, actor_user_id: int, actor_role: UserRole, user_id: int
     ) -> User:
-        _ensure_advisor(actor_role)
+        ensure_advisor(actor_role)
         get_user_or_raise(self.user_repo, user_id)
         user = self.user_repo.activate(user_id)
         self.audit_log_service.log(
@@ -158,7 +151,7 @@ class UserManagementService:
         actor_role: UserRole,
         target_user_id: int,
     ) -> User:
-        _ensure_advisor(actor_role)
+        ensure_advisor(actor_role)
         if actor_user_id == target_user_id:
             raise ForbiddenError(_USER_CANNOT_DEACTIVATE_SELF, "USER.FORBIDDEN")
 
@@ -180,8 +173,8 @@ class UserManagementService:
         target_user_id: int,
         new_password: str,
     ) -> User:
-        _ensure_advisor(actor_role)
-        _validate_password(new_password)
+        ensure_advisor(actor_role)
+        validate_password(new_password)
 
         get_user_or_raise(self.user_repo, target_user_id)
         password_hash = AuthService.hash_password(new_password)

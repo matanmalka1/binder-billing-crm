@@ -44,7 +44,7 @@ class BusinessRepository(BaseRepository[Business]):
         business = self.get_by_id(business_id)
         return self._update_entity(business, **fields)
 
-    def soft_delete(self, business_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, business_id: int, deleted_by: int | None = None) -> bool:
         business = self.get_by_id(business_id)
         if not business:
             return False
@@ -146,6 +146,8 @@ class BusinessRepository(BaseRepository[Business]):
         status: Optional[str] = None,
         entity_type: Optional[str] = None,
         search: Optional[str] = None,
+        *,
+        include_deleted: bool = False,
     ) -> int:
         base = self._build_base_stmt(status, search)
         return self.db.scalar(select(func.count()).select_from(base.subquery()))

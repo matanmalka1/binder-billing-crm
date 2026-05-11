@@ -18,7 +18,7 @@ class AnnualReportExpenseRepository(BaseRepository[AnnualReportExpenseLine]):
     def __init__(self, db: Session):
         self.db = db
 
-    def add(
+    def add_line(
         self,
         annual_report_id: int,
         category: ExpenseCategoryType,
@@ -68,7 +68,13 @@ class AnnualReportExpenseRepository(BaseRepository[AnnualReportExpenseLine]):
         self.db.flush()
         return line
 
-    def delete(self, line_id: int) -> bool:
+    def delete(
+        self,
+        line_id: int,
+        deleted_by: int | None = None,
+        *,
+        hard: bool = False,
+    ) -> bool:
         # Intentional hard-delete: expense lines are user-entered data with no
         # audit trail requirement. Soft-delete would require schema migration (Sprint 10+).
         line = self.get_by_id(line_id)

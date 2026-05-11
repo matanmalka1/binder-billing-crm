@@ -81,7 +81,7 @@ def test_list_by_client_record_year_filters_and_orders(test_db):
         due_date=date(2025, 3, 15),
         expected_amount=Decimal("200.00"),
     )
-    repo.update(february, status=AdvancePaymentStatus.PAID)
+    repo.update_payment(february, status=AdvancePaymentStatus.PAID)
 
     items, total = repo.list_by_client_record_year(
         client_record_id=business.client_record_id, year=2025, status=None
@@ -167,7 +167,7 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
         period_months_count=1,
         due_date=date(2025, 2, 12),
     )
-    repo.update(payment_b, status=AdvancePaymentStatus.PAID)
+    repo.update_payment(payment_b, status=AdvancePaymentStatus.PAID)
 
     create_linked_advance_payment(
         test_db,

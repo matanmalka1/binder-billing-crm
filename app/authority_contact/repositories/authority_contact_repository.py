@@ -82,7 +82,13 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
         contact = self.get_by_id(contact_id)
         return self._update_entity(contact, touch_updated_at=True, **fields)
 
-    def delete(self, contact_id: int, deleted_by: int) -> bool:
+    def delete(
+        self,
+        contact_id: int,
+        deleted_by: int | None = None,
+        *,
+        hard: bool = False,
+    ) -> bool:
         """Soft-delete contact, preserving the record for audit."""
         contact = self.get_by_id(contact_id)
         if not contact:

@@ -68,6 +68,8 @@ class UserAuditLogRepository(BaseRepository):
         email: Optional[str] = None,
         from_ts: Optional[datetime] = None,
         to_ts: Optional[datetime] = None,
+        *,
+        include_deleted: bool = False,
     ) -> int:
         stmt = self._build_query(
             action=action,

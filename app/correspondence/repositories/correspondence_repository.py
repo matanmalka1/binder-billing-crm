@@ -170,7 +170,7 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         self.db.flush()
         return entry
 
-    def soft_delete(self, entry_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, entry_id: int, deleted_by: int | None = None) -> bool:
         entry = self.get_by_id(entry_id)
         if not entry:
             return False

@@ -118,10 +118,10 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             )
         ).first()
 
-    def update(self, payment: AdvancePayment, **fields) -> AdvancePayment:
+    def update_payment(self, payment: AdvancePayment, **fields) -> AdvancePayment:
         return self._update_entity(payment, touch_updated_at=True, **fields)
 
-    def soft_delete(self, payment_id: int, deleted_by: int) -> bool:
+    def soft_delete(self, payment_id: int, deleted_by: int | None = None) -> bool:
         return self._soft_delete_entity(payment_id, deleted_by)
 
     # ── Aggregation (delegated) ───────────────────────────────────────────────
