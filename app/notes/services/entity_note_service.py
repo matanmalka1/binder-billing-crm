@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.notes.models.entity_note import EntityNote
 from app.notes.repositories.entity_note_repository import EntityNoteRepository
+from app.users.repositories.user_repository import UserRepository
 
 _NOT_FOUND = "NOTE.NOT_FOUND"
 
@@ -13,6 +14,23 @@ class EntityNoteService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = EntityNoteRepository(db)
+        self.user_repo = UserRepository(db)
+
+    def _attach_created_by_names(self, notes: list[EntityNote]) -> list[EntityNote]:
+        user_ids = sorted({note.created_by for note in notes if note.created_by is not None})
+        users_by_id = {
+            user.id: user.full_name for user in self.user_repo.list_by_ids(user_ids)
+        }
+        for note in notes:
+            note.created_by_name = (
+                users_by_id.get(note.created_by)
+                if note.created_by is not None
+                else None
+            )
+        return notes
+
+    def _attach_created_by_name(self, note: EntityNote) -> EntityNote:
+        return self._attach_created_by_names([note])[0]
 
     def _get_or_raise(
         self, note_id: int, entity_type: str, entity_id: int
@@ -33,12 +51,13 @@ class EntityNoteService:
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[EntityNote], int]:
-        return self.repo.list_for_entity(
+        items, total = self.repo.list_for_entity(
             entity_type=entity_type,
             entity_id=entity_id,
             page=page,
             page_size=page_size,
         )
+        return self._attach_created_by_names(items), total
 
     def add_note(
         self,
@@ -47,12 +66,13 @@ class EntityNoteService:
         note: str,
         created_by: Optional[int] = None,
     ) -> EntityNote:
-        return self.repo.create(
+        note_obj = self.repo.create(
             entity_type=entity_type,
             entity_id=entity_id,
             note=note,
             created_by=created_by,
         )
+        return self._attach_created_by_name(note_obj)
 
     def update_note(
         self,
@@ -68,7 +88,7 @@ class EntityNoteService:
         updated = self.repo.update(note_id, note=note)
         if not updated:
             raise NotFoundError(f"הערה {note_id} לא נמצאה", _NOT_FOUND)
-        return updated
+        return self._attach_created_by_name(updated)
 
     def delete_note(
         self,

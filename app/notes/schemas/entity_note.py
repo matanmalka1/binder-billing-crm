@@ -9,6 +9,7 @@ class EntityNoteResponse(BaseModel):
     entity_id: int
     note: str
     created_by: Optional[int] = None
+    created_by_name: Optional[str] = None
     created_at: ApiDateTime
     updated_at: Optional[ApiDateTime] = None
 
