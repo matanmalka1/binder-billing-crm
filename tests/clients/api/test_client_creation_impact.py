@@ -37,6 +37,10 @@ def test_preview_impact_matches_actual_future_generation(test_db):
     )
     counts = {item.label: item.count for item in preview.items}
 
+    assert 'מועדי מע"מ' not in counts
+    assert "מועדי מקדמות" not in counts
+    assert "מועד הגשת דוח שנתי" not in counts
+
     client_record = ClientCreationService(test_db).create_client(
         full_name="Preview Match Client",
         id_number="123456780",

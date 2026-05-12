@@ -47,6 +47,8 @@ For full schema reset on PostgreSQL:
 DB_URL=$(grep '^DATABASE_URL=' .env.development | cut -d= -f2- | sed 's/^postgresql+psycopg2:/postgresql:/')
 psql "$DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 APP_ENV=development ENV_FILE=.env.development alembic upgrade head
+APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --users-only --reset
+
 APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
 ```
 

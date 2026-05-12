@@ -42,16 +42,11 @@ def compute_creation_impact(
         )
     else:
         advance_count = 0
-    annual_deadline_count = n
-
     items = [
         CreationImpactItem(label="קלסר פעיל", count=1),
-        CreationImpactItem(label='מועדי מע"מ', count=vat_count),
-        CreationImpactItem(label='תיקי מע"מ', count=vat_count),
-        CreationImpactItem(label="מועדי מקדמות", count=advance_count),
+        CreationImpactItem(label='דוחות מע"מ', count=vat_count),
         CreationImpactItem(label="רשומות מקדמות", count=advance_count),
-        CreationImpactItem(label="מועד הגשת דוח שנתי", count=annual_deadline_count),
-        CreationImpactItem(label="תיק דוח שנתי", count=n),
+        CreationImpactItem(label="דוח שנתי", count=n),
     ]
     items = [i for i in items if i.count > 0]
 
