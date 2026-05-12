@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from app.annual_reports.integrations.tax_rules_registry import get_supported_tax_years
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from tax_rules import get_ni_brackets
 
@@ -35,9 +36,7 @@ def calculate_national_insurance(
     try:
         brackets = get_ni_brackets(tax_year)
     except KeyError:
-        from tax_rules.registry import get_supported_years
-
-        brackets = get_ni_brackets(max(get_supported_years()))
+        brackets = get_ni_brackets(max(get_supported_tax_years()))
 
     income = max(float(income), 0.0)
     prev = 0.0

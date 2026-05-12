@@ -16,3 +16,9 @@ def get_credit_point_annual_value(tax_year: int) -> float:
     from tax_rules.registry import get_credit_point_config
 
     return float(get_credit_point_config(tax_year).annual_value_ils)
+
+
+def get_supported_tax_years() -> list[int]:
+    from tax_rules.registry import get_supported_years
+
+    return list(get_supported_years())
