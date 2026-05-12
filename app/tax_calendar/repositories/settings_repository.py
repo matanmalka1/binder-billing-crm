@@ -12,9 +12,8 @@ class TaxCalendarSettingsRepository:
         self.db = db
 
     def list_rules(self) -> list[DeadlineRule]:
-        stmt = (
-            select(DeadlineRule)
-            .order_by(DeadlineRule.rule_type.asc(), DeadlineRule.effective_from.asc())
+        stmt = select(DeadlineRule).order_by(
+            DeadlineRule.rule_type.asc(), DeadlineRule.effective_from.asc()
         )
         return list(self.db.scalars(stmt).all())
 

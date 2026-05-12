@@ -5,7 +5,9 @@ from app.tax_calendar.services.bootstrap import (
     bootstrap_tax_calendar,
     seed_default_deadline_rules,
 )
-from app.tax_calendar.services.tax_calendar_entry_service import registry_periodic_calendar_available
+from app.tax_calendar.services.tax_calendar_entry_service import (
+    registry_periodic_calendar_available,
+)
 
 RULES_PATH = "/api/v1/settings/tax-calendar/rules"
 ENTRIES_PATH = "/api/v1/settings/tax-calendar/entries"
@@ -16,6 +18,7 @@ _EXPECTED_RULE_KEYS = {d.rule_type.value for d in DEFAULT_DEADLINE_RULES}
 
 
 # --- /rules ---
+
 
 def test_list_rules_returns_seeded_rules(client, advisor_headers, test_db):
     seed_default_deadline_rules(test_db)
@@ -33,7 +36,11 @@ def test_list_rules_response_shape(client, advisor_headers, test_db):
     response = client.get(RULES_PATH, headers=advisor_headers)
     rule = response.json()[0]
     assert set(rule.keys()) >= {
-        "id", "rule_type", "due_day_of_month", "offset_months", "effective_from",
+        "id",
+        "rule_type",
+        "due_day_of_month",
+        "offset_months",
+        "effective_from",
     }
     assert rule["rule_type"] in _EXPECTED_RULE_KEYS
 
@@ -49,6 +56,7 @@ def test_list_rules_secretary_returns_403(client, secretary_headers, test_db):
 
 
 # --- /entries ---
+
 
 def test_list_entries_year_filter(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)
@@ -90,6 +98,7 @@ def test_list_entries_invalid_year_range_returns_400(client, advisor_headers, te
 
 
 # --- /summary ---
+
 
 def test_summary_correct_totals(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)

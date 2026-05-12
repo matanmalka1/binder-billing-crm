@@ -13,7 +13,16 @@ INV-11: Only one open-ended rule (effective_to IS NULL) per rule_type is allowed
 Enforced at DB level via uq_deadline_rule_open_ended partial unique index.
 """
 
-from sqlalchemy import CheckConstraint, Column, Date, DateTime, Index, Integer, String, text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    text,
+)
 
 from app.common.enums import DeadlineRuleType
 from app.database import Base

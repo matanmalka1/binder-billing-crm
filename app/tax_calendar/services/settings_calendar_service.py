@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 from app.common.enums import ObligationType
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
-from app.tax_calendar.repositories.settings_repository import TaxCalendarSettingsRepository
+from app.tax_calendar.repositories.settings_repository import (
+    TaxCalendarSettingsRepository,
+)
 from app.tax_calendar.services.tax_calendar_entry_service import missing_registry_years
 
 # (obligation_type, period_months_count) → expected count per year
@@ -41,7 +43,9 @@ def get_summary(
     end_year: int | None,
 ) -> dict:
     repo = TaxCalendarSettingsRepository(db)
-    rows = repo.count_by_year_obligation_months(start_year=start_year, end_year=end_year)
+    rows = repo.count_by_year_obligation_months(
+        start_year=start_year, end_year=end_year
+    )
 
     # Build per-year breakdown keyed by "{obligation_type}_{months_count or 'annual'}"
     per_year: dict[int, dict[str, int]] = {}
@@ -83,7 +87,9 @@ def get_summary(
                     f"tax calendar registry data is missing."
                 )
 
-    total_entries = sum(c for year_data in per_year.values() for c in year_data.values())
+    total_entries = sum(
+        c for year_data in per_year.values() for c in year_data.values()
+    )
 
     return {
         "start_year": start_year,

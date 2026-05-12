@@ -71,7 +71,9 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100.00"),
     )
-    repo.update_payment(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
+    repo.update_payment(
+        jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID
+    )
 
     feb = create_linked_advance_payment(
         test_db,
@@ -82,7 +84,9 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
         due_date=date(2026, 3, 15),
         expected_amount=Decimal("200.00"),
     )
-    repo.update_payment(feb, paid_amount=Decimal("150.00"), status=AdvancePaymentStatus.PARTIAL)
+    repo.update_payment(
+        feb, paid_amount=Decimal("150.00"), status=AdvancePaymentStatus.PARTIAL
+    )
 
     assert repo.exists_for_period(business.client_record_id, "2026-01") is True
     assert repo.exists_for_period(business.client_record_id, "2026-03") is False
@@ -103,7 +107,9 @@ def test_advance_payment_analytics_annual_kpis(test_db):
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100.00"),
     )
-    repo.update_payment(jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID)
+    repo.update_payment(
+        jan, paid_amount=Decimal("100.00"), status=AdvancePaymentStatus.PAID
+    )
 
     feb = create_linked_advance_payment(
         test_db,
@@ -114,7 +120,9 @@ def test_advance_payment_analytics_annual_kpis(test_db):
         due_date=date(2020, 3, 15),  # past due date → timing_status=overdue
         expected_amount=Decimal("200.00"),
     )
-    repo.update_payment(feb, paid_amount=Decimal("0.00"), status=AdvancePaymentStatus.PENDING)
+    repo.update_payment(
+        feb, paid_amount=Decimal("0.00"), status=AdvancePaymentStatus.PENDING
+    )
 
     kpis = analytics.get_annual_kpis_for_client(business.client_record_id, 2026)
     assert kpis["total_expected"] == 300.0

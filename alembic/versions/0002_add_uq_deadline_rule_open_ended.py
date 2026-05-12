@@ -20,10 +20,12 @@ def upgrade() -> None:
     conn = op.get_bind()
     if conn.dialect.name != "postgresql":
         return
-    op.execute(sa.text(
-        "CREATE UNIQUE INDEX uq_deadline_rule_open_ended "
-        "ON deadline_rules (rule_type) WHERE effective_to IS NULL"
-    ))
+    op.execute(
+        sa.text(
+            "CREATE UNIQUE INDEX uq_deadline_rule_open_ended "
+            "ON deadline_rules (rule_type) WHERE effective_to IS NULL"
+        )
+    )
 
 
 def downgrade() -> None:

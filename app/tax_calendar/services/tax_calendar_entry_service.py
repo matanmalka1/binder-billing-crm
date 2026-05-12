@@ -63,6 +63,7 @@ def missing_registry_years(start_year: int, end_year: int) -> list[int]:
         if not registry_periodic_calendar_available(y)
     ]
 
+
 # Only VAT and advance-payment periodic rules map to this registry column.
 _REGISTRY_RULE_TYPES: frozenset[DeadlineRuleType] = frozenset(
     {

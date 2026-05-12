@@ -12,7 +12,9 @@ from app.tax_calendar.services.settings_calendar_service import (
     list_entries,
     list_rules,
 )
-from app.tax_calendar.services.tax_calendar_entry_service import registry_periodic_calendar_available
+from app.tax_calendar.services.tax_calendar_entry_service import (
+    registry_periodic_calendar_available,
+)
 
 
 def test_list_rules_count(test_db):

@@ -59,7 +59,9 @@ def test_list_overview_returns_rows_sorted_and_total(test_db):
         due_date=date(2026, 3, 15),
         expected_amount=Decimal("200"),
     )
-    repo.update_payment(paid, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("200"))
+    repo.update_payment(
+        paid, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("200")
+    )
 
     service = AdvancePaymentService(test_db)
     rows, total = service.list_overview(
@@ -87,7 +89,9 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100"),
     )
-    repo.update_payment(partial, paid_amount=Decimal("50"), status=AdvancePaymentStatus.PARTIAL)
+    repo.update_payment(
+        partial, paid_amount=Decimal("50"), status=AdvancePaymentStatus.PARTIAL
+    )
 
     paid = create_linked_advance_payment(
         test_db,
@@ -98,7 +102,9 @@ def test_get_overview_kpis_collection_rate_rounds(test_db):
         due_date=date(2026, 3, 15),
         expected_amount=Decimal("200"),
     )
-    repo.update_payment(paid, paid_amount=Decimal("200"), status=AdvancePaymentStatus.PAID)
+    repo.update_payment(
+        paid, paid_amount=Decimal("200"), status=AdvancePaymentStatus.PAID
+    )
 
     service = AdvancePaymentService(test_db)
     kpis = service.get_overview_kpis(
