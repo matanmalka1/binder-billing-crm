@@ -35,3 +35,20 @@ class TaxCalendarSummaryResponse(BaseModel):
     total_entries: int
     per_year: dict[int, dict[str, int]]
     warnings: list[str]
+
+
+class TaxCalendarBootstrapRequest(BaseModel):
+    start_year: int
+    end_year: int
+
+
+class TaxCalendarBootstrapResponse(BaseModel):
+    start_year: int
+    end_year: int
+    rules_created: int
+    rules_skipped: int
+    rules_by_type: dict[str, str]
+    entries_created: int
+    entries_skipped: int
+    total_entries_for_range: int
+    warnings: list[str]

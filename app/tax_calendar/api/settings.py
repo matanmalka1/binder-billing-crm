@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
 from app.tax_calendar.schemas.settings import (
+    TaxCalendarBootstrapRequest,
+    TaxCalendarBootstrapResponse,
     DeadlineRuleResponse,
     TaxCalendarEntryResponse,
     TaxCalendarSummaryResponse,
@@ -16,7 +18,7 @@ def _check_year_range(start_year: int | None, end_year: int | None) -> None:
     if start_year is not None and end_year is not None and start_year > end_year:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"start_year ({start_year}) must be <= end_year ({end_year}).",
+            detail="שנת ההתחלה חייבת להיות קטנה או שווה לשנת הסיום.",
         )
 
 
@@ -58,4 +60,20 @@ def get_tax_calendar_summary(
     _check_year_range(start_year, end_year)
     return settings_calendar_service.get_summary(
         db, start_year=start_year, end_year=end_year
+    )
+
+
+@router.post(
+    "/bootstrap",
+    response_model=TaxCalendarBootstrapResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def bootstrap_tax_calendar_settings(
+    request: TaxCalendarBootstrapRequest,
+    db: DBSession,
+    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
+) -> TaxCalendarBootstrapResponse:
+    _check_year_range(request.start_year, request.end_year)
+    return settings_calendar_service.bootstrap_calendar(
+        db, start_year=request.start_year, end_year=request.end_year
     )

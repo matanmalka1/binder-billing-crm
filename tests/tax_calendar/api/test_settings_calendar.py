@@ -12,6 +12,7 @@ from app.tax_calendar.integrations.tax_rules_registry import (
 RULES_PATH = "/api/v1/settings/tax-calendar/rules"
 ENTRIES_PATH = "/api/v1/settings/tax-calendar/entries"
 SUMMARY_PATH = "/api/v1/settings/tax-calendar/summary"
+BOOTSTRAP_PATH = "/api/v1/settings/tax-calendar/bootstrap"
 
 _EXPECTED_RULE_COUNT = len(DEFAULT_DEADLINE_RULES)
 _EXPECTED_RULE_KEYS = {d.rule_type.value for d in DEFAULT_DEADLINE_RULES}
@@ -164,5 +165,52 @@ def test_summary_secretary_returns_403(client, secretary_headers, test_db):
 def test_summary_invalid_year_range_returns_400(client, advisor_headers, test_db):
     response = client.get(
         f"{SUMMARY_PATH}?start_year=2027&end_year=2026", headers=advisor_headers
+    )
+    assert response.status_code == 400
+
+
+# --- /bootstrap ---
+
+
+def test_bootstrap_creates_entries(client, advisor_headers, test_db):
+    response = client.post(
+        BOOTSTRAP_PATH,
+        json={"start_year": 2026, "end_year": 2026},
+        headers={**advisor_headers, "X-Idempotency-Key": "tax-calendar-bootstrap-1"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["start_year"] == 2026
+    assert data["end_year"] == 2026
+    assert data["entries_created"] == 37
+    assert data["total_entries_for_range"] == 37
+
+
+def test_bootstrap_requires_idempotency_key(client, advisor_headers, test_db):
+    response = client.post(
+        BOOTSTRAP_PATH,
+        json={"start_year": 2026, "end_year": 2026},
+        headers=advisor_headers,
+    )
+    assert response.status_code == 422
+
+
+def test_bootstrap_secretary_returns_403(client, secretary_headers, test_db):
+    response = client.post(
+        BOOTSTRAP_PATH,
+        json={"start_year": 2026, "end_year": 2026},
+        headers={
+            **secretary_headers,
+            "X-Idempotency-Key": "tax-calendar-bootstrap-secretary",
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_bootstrap_invalid_year_range_returns_400(client, advisor_headers, test_db):
+    response = client.post(
+        BOOTSTRAP_PATH,
+        json={"start_year": 2027, "end_year": 2026},
+        headers={**advisor_headers, "X-Idempotency-Key": "tax-calendar-bootstrap-2"},
     )
     assert response.status_code == 400

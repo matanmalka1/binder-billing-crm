@@ -8,6 +8,7 @@ from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.repositories.settings_repository import (
     TaxCalendarSettingsRepository,
 )
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from app.tax_calendar.integrations.tax_rules_registry import missing_registry_years
 
 # (obligation_type, period_months_count) → expected count per year
@@ -98,6 +99,15 @@ def get_summary(
         "per_year": per_year,
         "warnings": warnings,
     }
+
+
+def bootstrap_calendar(
+    db: Session,
+    *,
+    start_year: int,
+    end_year: int,
+) -> dict[str, object]:
+    return bootstrap_tax_calendar(db, start_year=start_year, end_year=end_year)
 
 
 def _summary_label(obligation: ObligationType, months: int | None) -> str:
