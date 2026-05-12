@@ -1,5 +1,6 @@
 from tests.tax_calendar.api.grouped_helpers import (
     PATH,
+    add_vat_item,
     advance_entry,
     annual_entry,
     headers,
@@ -67,6 +68,22 @@ def test_year_range_filter_works(client, auth_token, test_db):
 
     assert response.status_code == 200
     assert [row["tax_year"] for row in response.json()] == [2026]
+
+
+def test_client_record_id_filter_limits_group_counts(client, auth_token, test_db, test_user):
+    entry = vat_entry(test_db)
+    first_item = add_vat_item(test_db, entry, test_user.id)
+    add_vat_item(test_db, entry, test_user.id)
+    test_db.commit()
+
+    response = client.get(
+        f"{PATH}?client_record_id={first_item.client_record_id}",
+        headers=headers(auth_token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()[0]["tax_calendar_entry_id"] == entry.id
+    assert response.json()[0]["linked_count"] == 1
 
 
 def test_unauthenticated_request_is_rejected(client, test_db):

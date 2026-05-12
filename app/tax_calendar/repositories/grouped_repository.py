@@ -69,32 +69,56 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
             )
         return self.db.scalars(stmt.order_by(*_entry_sort_clauses())).all()
 
-    def list_vat_for_entries(self, entry_ids: list[int]) -> list[VatWorkItem]:
+    def list_vat_for_entries(
+        self,
+        entry_ids: list[int],
+        *,
+        client_record_id: int | None = None,
+    ) -> list[VatWorkItem]:
         if not entry_ids:
             return []
-        return self.db.scalars(
+        stmt = (
             select(VatWorkItem)
             .where(VatWorkItem.tax_calendar_entry_id.in_(entry_ids))
             .where(VatWorkItem.deleted_at.is_(None))
-        ).all()
+        )
+        if client_record_id is not None:
+            stmt = stmt.where(VatWorkItem.client_record_id == client_record_id)
+        return self.db.scalars(stmt).all()
 
-    def list_advance_for_entries(self, entry_ids: list[int]) -> list[AdvancePayment]:
+    def list_advance_for_entries(
+        self,
+        entry_ids: list[int],
+        *,
+        client_record_id: int | None = None,
+    ) -> list[AdvancePayment]:
         if not entry_ids:
             return []
-        return self.db.scalars(
+        stmt = (
             select(AdvancePayment)
             .where(AdvancePayment.tax_calendar_entry_id.in_(entry_ids))
             .where(AdvancePayment.deleted_at.is_(None))
-        ).all()
+        )
+        if client_record_id is not None:
+            stmt = stmt.where(AdvancePayment.client_record_id == client_record_id)
+        return self.db.scalars(stmt).all()
 
-    def list_annual_for_entries(self, entry_ids: list[int]) -> list[AnnualReport]:
+    def list_annual_for_entries(
+        self,
+        entry_ids: list[int],
+        *,
+        client_record_id: int | None = None,
+    ) -> list[AnnualReport]:
         if not entry_ids:
             return []
-        return self.db.scalars(
+        stmt = (
             select(AnnualReport)
             .where(AnnualReport.tax_calendar_entry_id.in_(entry_ids))
             .where(AnnualReport.deleted_at.is_(None))
-        ).all()
+        )
+        if client_record_id is not None:
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        return self.db.scalars(stmt).all()
 
     def get_entry(self, entry_id: int) -> TaxCalendarEntry | None:
         return self.db.get(TaxCalendarEntry, entry_id)

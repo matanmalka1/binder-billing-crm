@@ -44,6 +44,7 @@ def list_groups(
     end_year: int | None,
     obligation_type: ObligationType | None,
     include_empty: bool,
+    client_record_id: int | None = None,
 ) -> list[TaxCalendarGroupResponse]:
     repo = TaxCalendarGroupedRepository(db)
     entries = repo.list_entries(
@@ -52,7 +53,7 @@ def list_groups(
         obligation_type=obligation_type,
     )
     entry_ids = [entry.id for entry in entries]
-    rows_by_entry = _linked_rows_by_entry(repo, entry_ids)
+    rows_by_entry = _linked_rows_by_entry(repo, entry_ids, client_record_id)
     today = date.today()
 
     groups: list[TaxCalendarGroupResponse] = []
@@ -90,13 +91,17 @@ def list_groups(
     return groups
 
 
-def _linked_rows_by_entry(repo: TaxCalendarGroupedRepository, entry_ids: list[int]):
+def _linked_rows_by_entry(
+    repo: TaxCalendarGroupedRepository,
+    entry_ids: list[int],
+    client_record_id: int | None,
+):
     rows = defaultdict(list)
-    for row in repo.list_vat_for_entries(entry_ids):
+    for row in repo.list_vat_for_entries(entry_ids, client_record_id=client_record_id):
         rows[_entry_id(row)].append(row)
-    for row in repo.list_advance_for_entries(entry_ids):
+    for row in repo.list_advance_for_entries(entry_ids, client_record_id=client_record_id):
         rows[_entry_id(row)].append(row)
-    for row in repo.list_annual_for_entries(entry_ids):
+    for row in repo.list_annual_for_entries(entry_ids, client_record_id=client_record_id):
         rows[_entry_id(row)].append(row)
     return rows
 

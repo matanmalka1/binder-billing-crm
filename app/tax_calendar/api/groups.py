@@ -24,6 +24,7 @@ def list_tax_calendar_groups(
     end_year: int | None = Query(None),
     obligation_type: ObligationType | None = Query(None),
     include_empty: bool = Query(False),
+    client_record_id: int | None = Query(None),
 ):
     return list_groups(
         db,
@@ -31,6 +32,7 @@ def list_tax_calendar_groups(
         end_year=end_year,
         obligation_type=obligation_type,
         include_empty=include_empty,
+        client_record_id=client_record_id,
     )
 
 
