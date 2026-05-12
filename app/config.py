@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 from typing import Literal
 from decimal import Decimal
+import datetime as _dt
 
+from app.common.integrations.tax_rules_financials import get_vat_rate_percent
 from app.core.exceptions import AppError
 
 try:
@@ -57,13 +59,10 @@ class Config:
         )
 
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
-    try:
-        from tax_rules.registry import get_financial as _get_fin
-        import datetime as _dt
-
-        _vat_pct = _get_fin(_dt.date.today().year, "vat_rate_percent").value
+    _vat_pct = get_vat_rate_percent(_dt.date.today().year)
+    if _vat_pct is not None:
         ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(str(_vat_pct)) / Decimal("100")
-    except Exception:
+    else:
         ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(
             os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18")
         )

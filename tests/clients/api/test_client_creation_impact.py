@@ -4,7 +4,7 @@ from decimal import Decimal
 from tax_rules import get_financial
 
 from app.advance_payments.models.advance_payment import AdvancePayment
-from app.annual_reports.models.annual_report_model import AnnualReport
+from app.annual_reports.models import AnnualReport
 from app.binders.models.binder import Binder
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.impact_preview_service import compute_creation_impact
@@ -77,6 +77,6 @@ def test_preview_impact_matches_actual_future_generation(test_db):
     )
 
     assert binders_count == 1
-    assert vat_work_items_count == counts.get('תיקי מע"מ', 0)
+    assert vat_work_items_count == counts.get('דוחות מע"מ', 0)
     assert advance_payments_count == counts.get("רשומות מקדמות", 0)
-    assert reports_count == counts.get("תיק דוח שנתי", 0)
+    assert reports_count == counts.get("דוח שנתי", 0)

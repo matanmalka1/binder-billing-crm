@@ -2,13 +2,7 @@
 
 from datetime import date
 
-try:
-    from tax_rules.registry import get_advance_payment_due_day as _get_adv
-    import datetime as _dt
-
-    ADVANCE_PAYMENT_DUE_DAY: int = _get_adv(_dt.date.today().year)
-except Exception:
-    ADVANCE_PAYMENT_DUE_DAY = 15
+ADVANCE_PAYMENT_DUE_DAY = 15
 
 HEBREW_MONTHS = (
     "ינואר",
@@ -34,13 +28,18 @@ def parse_period_month(period: str) -> int:
     return int(period.split("-")[1])
 
 
-def build_due_date(year: int, start_month: int, period_months_count: int) -> date:
+def build_due_date(
+    year: int,
+    start_month: int,
+    period_months_count: int,
+    due_day: int = ADVANCE_PAYMENT_DUE_DAY,
+) -> date:
     due_month = start_month + period_months_count
     due_year = year
     if due_month > 12:
         due_month -= 12
         due_year += 1
-    return date(due_year, due_month, ADVANCE_PAYMENT_DUE_DAY)
+    return date(due_year, due_month, due_day)
 
 
 def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:

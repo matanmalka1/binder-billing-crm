@@ -62,7 +62,7 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
 }
 
 # Warn when annual turnover exceeds this fraction of the osek patur ceiling (non-blocking)
-# Ceiling itself is read from tax_rules registry per year
+# Ceiling itself is read from the tax rules package per year
 OSEK_PATUR_CEILING_WARNING_RATE: Decimal = Decimal("0.80")
 
 __all__ = [
