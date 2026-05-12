@@ -17,7 +17,9 @@ class EntityNoteService:
         self.user_repo = UserRepository(db)
 
     def _attach_created_by_names(self, notes: list[EntityNote]) -> list[EntityNote]:
-        user_ids = sorted({note.created_by for note in notes if note.created_by is not None})
+        user_ids = sorted(
+            {note.created_by for note in notes if note.created_by is not None}
+        )
         users_by_id = {
             user.id: user.full_name for user in self.user_repo.list_by_ids(user_ids)
         }
