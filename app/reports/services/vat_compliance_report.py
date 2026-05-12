@@ -4,30 +4,24 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-try:
-    from tax_rules.registry import get_effective_periodic_date as _get_periodic_date
-    from app.vat_reports.services.constants import (
-        VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY,
-    )
-
-    _CALENDAR_COLUMN = "effective_vat_periodic_and_income_tax_advances"
-    _CALENDAR_AVAILABLE = True
-except Exception:
-    _CALENDAR_AVAILABLE = False
-    _VAT_FALLBACK_DAY = 15
+from app.vat_reports.integrations.tax_rules_registry import (
+    get_effective_periodic_vat_due_date,
+)
+from app.vat_reports.services.constants import (
+    VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY,
+)
 
 
 def _vat_deadline(period_year: int, period_month: int) -> date:
     filing_year = period_year if period_month < 12 else period_year + 1
     filing_month = (period_month % 12) + 1
     calendar_period = f"{period_year}-{period_month:02d}"
-    if _CALENDAR_AVAILABLE:
-        try:
-            raw = _get_periodic_date(filing_year, calendar_period, _CALENDAR_COLUMN)
-            if raw:
-                return date.fromisoformat(raw)
-        except KeyError:
-            pass
+    # TODO: verify whether registry calendar_year should be period_year for December periods.
+    registry_deadline = get_effective_periodic_vat_due_date(
+        filing_year, calendar_period
+    )
+    if registry_deadline:
+        return registry_deadline
     return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
 
 

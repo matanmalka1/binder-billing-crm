@@ -8,6 +8,9 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.integrations.tax_rules_registry import (
+    get_effective_periodic_vat_due_date,
+)
 from app.vat_reports.services.constants import (
     VAT_ONLINE_EXTENDED_DEADLINE_DAY,
     VAT_STATUTORY_DEADLINE_DAY,
@@ -15,13 +18,6 @@ from app.vat_reports.services.constants import (
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 logger = logging.getLogger(__name__)
-
-try:
-    from tax_rules.registry import get_effective_periodic_date as _registry_periodic
-except Exception:
-    _registry_periodic = None
-
-_REGISTRY_COLUMN = "effective_vat_periodic_and_income_tax_advances"
 
 
 def deadline_fields_from_snapshot(
@@ -66,19 +62,10 @@ def compute_deadline_fields(
         deadline_year = year + 1 if due_month_raw > 12 else year
         deadline_month = due_month_raw - 12 if due_month_raw > 12 else due_month_raw
         registry_deadline = None
-        if _registry_periodic is not None:
-            cal_year = year + (end_month - 1) // 12
-            cal_month = (end_month - 1) % 12 + 1
-            period_key = f"{cal_year}-{cal_month:02d}"
-            try:
-                raw = _registry_periodic(cal_year, period_key, _REGISTRY_COLUMN)
-                registry_deadline = date.fromisoformat(raw) if raw else None
-            except Exception as exc:
-                logger.warning(
-                    "Failed to load VAT deadline from tax rules for period '%s': %s",
-                    item.period,
-                    exc,
-                )
+        cal_year = year + (end_month - 1) // 12
+        cal_month = (end_month - 1) % 12 + 1
+        period_key = f"{cal_year}-{cal_month:02d}"
+        registry_deadline = get_effective_periodic_vat_due_date(cal_year, period_key)
         statutory_deadline = registry_deadline or date(
             deadline_year,
             deadline_month,
