@@ -116,6 +116,8 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_input_vat=Decimal("0"),
         net_vat=Decimal("150.50"),
         tax_calendar_entry_id=jan_entry.id,
+        due_date_original=jan_entry.due_date,
+        due_date_effective=jan_entry.due_date,
     )
     february = VatWorkItem(
         client_record_id=business.client_record_id,
@@ -126,6 +128,8 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_input_vat=Decimal("0"),
         net_vat=Decimal("149.50"),
         tax_calendar_entry_id=feb_entry.id,
+        due_date_original=feb_entry.due_date,
+        due_date_effective=feb_entry.due_date,
     )
     previous_year = VatWorkItem(
         client_record_id=business.client_record_id,
@@ -136,6 +140,8 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         total_input_vat=Decimal("0"),
         net_vat=Decimal("999.00"),
         tax_calendar_entry_id=prev_entry.id,
+        due_date_original=prev_entry.due_date,
+        due_date_effective=prev_entry.due_date,
     )
     test_db.add_all([january, february, previous_year])
     test_db.commit()

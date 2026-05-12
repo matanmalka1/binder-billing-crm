@@ -199,6 +199,8 @@ class TestW2VatWorkItem:
             created_by=user.id,
             status=VatWorkItemStatus.MATERIAL_RECEIVED,
             tax_calendar_entry_id=entry.id,
+            due_date_original=entry.due_date,
+            due_date_effective=entry.due_date,
         )
         db.add(item)
         db.flush()

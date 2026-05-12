@@ -47,6 +47,7 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem.period_type,
                 VatWorkItem.period,
                 VatWorkItem.filed_at,
+                VatWorkItem.due_date_effective,
             ),
             VatWorkItem,
         ).where(

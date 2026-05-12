@@ -1,36 +1,13 @@
 """VAT Compliance Report: per-client period coverage and stale pending flags."""
 
-from datetime import date
-
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.vat_reports.integrations.tax_rules_registry import (
-    get_effective_periodic_vat_due_date,
-)
-from app.vat_reports.services.constants import (
-    VAT_STATUTORY_DEADLINE_DAY as _VAT_FALLBACK_DAY,
-)
-
-
-def _vat_deadline(period_year: int, period_month: int) -> date:
-    filing_year = period_year if period_month < 12 else period_year + 1
-    filing_month = (period_month % 12) + 1
-    calendar_period = f"{period_year}-{period_month:02d}"
-    registry_deadline = get_effective_periodic_vat_due_date(
-        period_year, calendar_period
-    )
-    if registry_deadline:
-        return registry_deadline
-    return date(filing_year, filing_month, _VAT_FALLBACK_DAY)
-
-
-from sqlalchemy import select  # noqa: E402
-
-from app.clients.models.legal_entity import LegalEntity  # noqa: E402
-from app.clients.repositories.client_record_repository import ClientRecordRepository  # noqa: E402
-from app.reports.constants import VAT_STALE_PENDING_DAYS  # noqa: E402
-from app.utils.time_utils import utcnow  # noqa: E402
-from app.vat_reports.repositories.vat_compliance_repository import (  # noqa: E402
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.reports.constants import VAT_STALE_PENDING_DAYS
+from app.utils.time_utils import utcnow
+from app.vat_reports.repositories.vat_compliance_repository import (
     VatComplianceRepository,
 )
 
@@ -50,9 +27,7 @@ class VatComplianceReportService:
         on_time_map: dict[tuple[int, str], int] = {}
         late_map: dict[tuple[int, str], int] = {}
         for fi in filed_items:
-            period_year = int(fi.period[:4])
-            period_month = int(fi.period[5:7])
-            deadline = _vat_deadline(period_year, period_month)
+            deadline = fi.due_date_effective
             filed_date = (
                 fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
             )

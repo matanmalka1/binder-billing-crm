@@ -97,6 +97,8 @@ def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
         total_input_vat=Decimal("0"),
         net_vat=Decimal("18000"),
         tax_calendar_entry_id=entry.id,
+        due_date_original=entry.due_date,
+        due_date_effective=entry.due_date,
     )
     test_db.add(vat_item)
     test_db.commit()

@@ -1,5 +1,6 @@
 """Write operations and audit delegation for VatWorkItem entities."""
 
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import select
@@ -72,17 +73,26 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
 
     def create(
         self,
-        client_record_id: Optional[int] = None,
-        period: Optional[str] = None,
+        *,
+        client_record_id: int,
+        period: str,
         period_type=None,
-        created_by: Optional[int] = None,
+        created_by: int,
         status: VatWorkItemStatus = VatWorkItemStatus.MATERIAL_RECEIVED,
         pending_materials_note: Optional[str] = None,
         assigned_to: Optional[int] = None,
-        tax_calendar_entry_id: Optional[int] = None,
-        due_date_original=None,
-        due_date_effective=None,
+        tax_calendar_entry_id: int,
+        due_date_original: date,
+        due_date_effective: date,
     ) -> VatWorkItem:
+        if (
+            tax_calendar_entry_id is None
+            or due_date_original is None
+            or due_date_effective is None
+        ):
+            raise TypeError(
+                "tax_calendar_entry_id, due_date_original, and due_date_effective are required"
+            )
         if (
             client_record_id is None
             or period is None

@@ -90,15 +90,13 @@ class TestGetVatDeadlineFields:
         assert result["submission_deadline"] == effective
         assert result["statutory_deadline"] == effective
 
-    def test_routes_to_compute_fallback_when_no_effective(self):
-        """Legacy unlinked row (due_date_effective=None) must use period-based computation."""
+    def test_missing_effective_due_date_raises(self):
         item = MagicMock()
+        item.id = 123
         item.due_date_effective = None
-        item.period = "2030-06"
-        item.period_type = None
-        result = get_vat_deadline_fields(item, SubmissionMethod.MANUAL)
-        assert result["statutory_deadline"] == date(2030, 7, 15)
-        assert result["submission_deadline"] == date(2030, 7, 15)
+
+        with pytest.raises(ValueError, match="missing due_date_effective"):
+            get_vat_deadline_fields(item, SubmissionMethod.MANUAL)
 
 
 def test_get_work_item_not_found_raises_not_found_error():

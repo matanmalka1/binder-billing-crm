@@ -1,5 +1,4 @@
-import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -8,16 +7,7 @@ from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from app.vat_reports.integrations.tax_rules_registry import (
-    get_effective_periodic_vat_due_date,
-)
-from app.vat_reports.services.constants import (
-    VAT_ONLINE_EXTENDED_DEADLINE_DAY,
-    VAT_STATUTORY_DEADLINE_DAY,
-)
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
-
-logger = logging.getLogger(__name__)
 
 
 def deadline_fields_from_snapshot(
@@ -44,76 +34,15 @@ def deadline_fields_from_snapshot(
     }
 
 
-def compute_deadline_fields(
-    item, submission_method: Optional[SubmissionMethod] = None
-) -> dict:
-    """Legacy fallback: reconstruct deadline from period string + hardcoded day constants.
-
-    Only reached when tax_calendar_entry_id is None (pre-linking legacy rows).
-    New rows always have a TaxCalendarEntry and use deadline_fields_from_snapshot instead.
-    """
-    try:
-        year, month = int(item.period[:4]), int(item.period[5:7])
-        months_in_period = (
-            2 if getattr(item, "period_type", None) == VatType.BIMONTHLY else 1
-        )
-        end_month = month + months_in_period - 1
-        due_month_raw = end_month + 1
-        deadline_year = year + 1 if due_month_raw > 12 else year
-        deadline_month = due_month_raw - 12 if due_month_raw > 12 else due_month_raw
-        registry_deadline = None
-        cal_year = year + (end_month - 1) // 12
-        cal_month = (end_month - 1) % 12 + 1
-        period_key = f"{cal_year}-{cal_month:02d}"
-        registry_deadline = get_effective_periodic_vat_due_date(cal_year, period_key)
-        statutory_deadline = registry_deadline or date(
-            deadline_year,
-            deadline_month,
-            VAT_STATUTORY_DEADLINE_DAY,
-        )
-        extended_deadline = (
-            statutory_deadline
-            if registry_deadline
-            else date(
-                deadline_year,
-                deadline_month,
-                VAT_ONLINE_EXTENDED_DEADLINE_DAY,
-            )
-        )
-        submission_deadline = (
-            extended_deadline
-            if submission_method == SubmissionMethod.ONLINE
-            else statutory_deadline
-        )
-        today = datetime.now(timezone.utc).date()
-        days = (submission_deadline - today).days
-        return {
-            "submission_deadline": submission_deadline,
-            "statutory_deadline": statutory_deadline,
-            "extended_deadline": extended_deadline,
-            "days_until_deadline": days,
-            "is_overdue": days < 0,
-        }
-    except (ValueError, TypeError) as exc:
-        logger.warning(
-            "Failed to compute deadline for period '%s': %s", item.period, exc
-        )
-        return {
-            "submission_deadline": None,
-            "statutory_deadline": None,
-            "extended_deadline": None,
-            "days_until_deadline": None,
-            "is_overdue": None,
-        }
-
-
 def get_vat_deadline_fields(
     item, submission_method: Optional[SubmissionMethod] = None
 ) -> dict:
-    """Unified public entry point: snapshot path when due_date_effective is set, legacy fallback otherwise."""
-    if getattr(item, "due_date_effective", None) is not None:
-        return deadline_fields_from_snapshot(item, submission_method)
-    return compute_deadline_fields(item, submission_method)
+    """Return deadline fields from the stored TaxCalendarEntry snapshot."""
+    if getattr(item, "due_date_effective", None) is None:
+        raise ValueError(
+            f"VatWorkItem {getattr(item, 'id', None)} is missing due_date_effective"
+        )
+    return deadline_fields_from_snapshot(item, submission_method)
 
 
 def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
@@ -141,11 +70,6 @@ def _resolve_client_ids_by_name(
         page=1,
         page_size=500,
     )
-    if total >= 500:
-        logger.warning(
-            "Client name search '%s' returned max results, may be truncated",
-            client_name,
-        )
     return [record.id for record in client_records]
 
 

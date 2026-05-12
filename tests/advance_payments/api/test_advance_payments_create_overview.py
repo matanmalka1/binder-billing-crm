@@ -67,6 +67,8 @@ def _vat_work_item(
         total_input_vat=Decimal("0"),
         net_vat=output_vat,
         tax_calendar_entry_id=entry.id,
+        due_date_original=entry.due_date,
+        due_date_effective=entry.due_date,
     )
     db.add(item)
     db.commit()

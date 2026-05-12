@@ -68,6 +68,14 @@ def upgrade() -> None:
         ["rule_type"],
         unique=False,
     )
+    op.create_index(
+        "uq_deadline_rule_open_ended",
+        "deadline_rules",
+        ["rule_type"],
+        unique=True,
+        postgresql_where=sa.text("effective_to IS NULL"),
+        sqlite_where=sa.text("effective_to IS NULL"),
+    )
     op.create_table(
         "legal_entities",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -333,6 +341,11 @@ def upgrade() -> None:
         postgresql_where=sa.text("deleted_at IS NULL"),
         sqlite_where=sa.text("deleted_at IS NULL"),
     )
+    conn = op.get_bind()
+    if conn.dialect.name == "postgresql":
+        conn.execute(
+            sa.text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1")
+        )
     op.create_table(
         "entity_audit_logs",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -944,8 +957,8 @@ def upgrade() -> None:
         sa.Column("is_amendment", sa.Boolean(), nullable=False),
         sa.Column("amends_item_id", sa.Integer(), nullable=True),
         sa.Column("tax_calendar_entry_id", sa.Integer(), nullable=False),
-        sa.Column("due_date_original", sa.Date(), nullable=True),
-        sa.Column("due_date_effective", sa.Date(), nullable=True),
+        sa.Column("due_date_original", sa.Date(), nullable=False),
+        sa.Column("due_date_effective", sa.Date(), nullable=False),
         sa.Column("due_date_override_reason", sa.String(length=500), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
@@ -2606,6 +2619,9 @@ def downgrade() -> None:
     )
     op.drop_index(op.f("ix_client_records_accountant_id"), table_name="client_records")
     op.drop_table("client_records")
+    conn = op.get_bind()
+    if conn.dialect.name == "postgresql":
+        conn.execute(sa.text("DROP SEQUENCE IF EXISTS client_office_number_seq"))
     op.drop_index(op.f("ix_businesses_legal_entity_id"), table_name="businesses")
     op.drop_index("ix_business_status", table_name="businesses")
     op.drop_index(
@@ -2626,6 +2642,7 @@ def downgrade() -> None:
     op.drop_table("persons")
     op.drop_index("ix_legal_entities_official_name", table_name="legal_entities")
     op.drop_table("legal_entities")
+    op.drop_index("uq_deadline_rule_open_ended", table_name="deadline_rules")
     op.drop_index(op.f("ix_deadline_rules_rule_type"), table_name="deadline_rules")
     op.drop_index("idx_deadline_rule_type_effective", table_name="deadline_rules")
     op.drop_table("deadline_rules")
