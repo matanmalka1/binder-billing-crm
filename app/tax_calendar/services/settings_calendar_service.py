@@ -8,7 +8,7 @@ from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.repositories.settings_repository import (
     TaxCalendarSettingsRepository,
 )
-from app.tax_calendar.services.tax_calendar_entry_service import missing_registry_years
+from app.tax_calendar.integrations.tax_rules_registry import missing_registry_years
 
 # (obligation_type, period_months_count) → expected count per year
 # None for period_months_count = annual (no period)

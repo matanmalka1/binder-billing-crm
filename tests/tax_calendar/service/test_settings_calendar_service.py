@@ -12,7 +12,7 @@ from app.tax_calendar.services.settings_calendar_service import (
     list_entries,
     list_rules,
 )
-from app.tax_calendar.services.tax_calendar_entry_service import (
+from app.tax_calendar.integrations.tax_rules_registry import (
     registry_periodic_calendar_available,
 )
 

@@ -498,7 +498,7 @@ def test_registry_not_applied_to_annual_report_rule(test_db):
 def test_registry_failure_falls_back_and_logs_warning(test_db, caplog):
     """When the registry call raises, periodic_due_date falls back to DeadlineRule and logs a warning."""
     import logging
-    import app.tax_calendar.services.tax_calendar_entry_service as svc
+    import app.tax_calendar.integrations.tax_rules_registry as registry
 
     rule = _seed_rule(
         test_db,
@@ -508,9 +508,9 @@ def test_registry_failure_falls_back_and_logs_warning(test_db, caplog):
     )
     with (
         patch.object(
-            svc, "_registry_periodic", side_effect=RuntimeError("registry down")
+            registry, "_registry_periodic", side_effect=RuntimeError("registry down")
         ),
-        caplog.at_level(logging.WARNING, logger=svc.__name__),
+        caplog.at_level(logging.WARNING, logger=registry.__name__),
     ):
         result = periodic_due_date(rule, 2026, 5)
 

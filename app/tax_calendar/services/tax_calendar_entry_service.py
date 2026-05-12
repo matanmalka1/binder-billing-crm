@@ -20,59 +20,15 @@ Due-date computation (priority order):
 from __future__ import annotations
 
 import calendar
-import logging
 from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType, ObligationType
+from app.tax_calendar.integrations.tax_rules_registry import get_registry_due_date
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
-
-_log = logging.getLogger(__name__)
-
-try:
-    from tax_rules.registry import get_effective_periodic_date as _registry_periodic
-
-    _REGISTRY_AVAILABLE = True
-except Exception:
-    _REGISTRY_AVAILABLE = False
-
-_REGISTRY_COLUMN = "effective_vat_periodic_and_income_tax_advances"
-
-
-def registry_periodic_calendar_available(year: int) -> bool:
-    """True when the tax_rules registry has an official periodic calendar for year."""
-    if not _REGISTRY_AVAILABLE:
-        return False
-    try:
-        from tax_rules.registry import get_periodic_calendar as _get_periodic_calendar
-
-        _get_periodic_calendar(year)
-        return True
-    except KeyError:
-        return False
-
-
-def missing_registry_years(start_year: int, end_year: int) -> list[int]:
-    """Years in [start_year, end_year] that lack official periodic registry data."""
-    return [
-        y
-        for y in range(start_year, end_year + 1)
-        if not registry_periodic_calendar_available(y)
-    ]
-
-
-# Only VAT and advance-payment periodic rules map to this registry column.
-_REGISTRY_RULE_TYPES: frozenset[DeadlineRuleType] = frozenset(
-    {
-        DeadlineRuleType.VAT_MONTHLY,
-        DeadlineRuleType.VAT_BIMONTHLY,
-        DeadlineRuleType.ADVANCE_MONTHLY,
-        DeadlineRuleType.ADVANCE_BIMONTHLY,
-    }
-)
 
 
 class MissingDeadlineRuleError(LookupError):
@@ -118,43 +74,6 @@ def _clamp_day(year: int, month: int, day: int) -> int:
     return min(day, calendar.monthrange(year, month)[1])
 
 
-def _registry_due_date(
-    rule_type: DeadlineRuleType,
-    period_year: int,
-    period_month: int,
-    offset_months: int,
-) -> date | None:
-    """Return official effective date from tax_rules_config or None.
-
-    Only called for rule types in _REGISTRY_RULE_TYPES.
-    Calendar key = last month covered by the reporting period:
-      monthly (offset=1):   same as period month.
-      bimonthly (offset=2): period_month + 1.
-    General: shift(period, max(offset - 1, 0)).
-    Returns None when no registry data exists for the year (future/past years).
-    Logs a warning — does not silently swallow — when the registry call fails.
-    """
-    if not _REGISTRY_AVAILABLE or rule_type not in _REGISTRY_RULE_TYPES:
-        return None
-    cal_year, cal_month = _shift_month(
-        period_year, period_month, max(offset_months - 1, 0)
-    )
-    period_key = f"{cal_year}-{cal_month:02d}"
-    try:
-        raw = _registry_periodic(cal_year, period_key, _REGISTRY_COLUMN)
-        return date.fromisoformat(raw) if raw else None
-    except Exception as exc:
-        _log.warning(
-            "tax_rules registry lookup failed — falling back to DeadlineRule. "
-            "rule_type=%s period_key=%s column=%s error=%r",
-            rule_type.value,
-            period_key,
-            _REGISTRY_COLUMN,
-            exc,
-        )
-        return None
-
-
 def periodic_due_date(rule: DeadlineRule, period_year: int, period_month: int) -> date:
     due_year, due_month = _shift_month(period_year, period_month, rule.offset_months)
     base = date(
@@ -162,7 +81,7 @@ def periodic_due_date(rule: DeadlineRule, period_year: int, period_month: int) -
     )
     rule_type = DeadlineRuleType(rule.rule_type)
     return (
-        _registry_due_date(rule_type, period_year, period_month, rule.offset_months)
+        get_registry_due_date(rule_type, period_year, period_month, rule.offset_months)
         or base
     )
 
