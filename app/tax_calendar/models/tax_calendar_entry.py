@@ -205,7 +205,7 @@ def _validate_consistency(entry: "TaxCalendarEntry", db_session=None) -> None:
 
 
 @event.listens_for(TaxCalendarEntry, "before_insert")
-def _before_insert(_mapper, connection, target):
+def _before_insert(_mapper, _connection, target):
     from sqlalchemy.orm import Session
 
     session = Session.object_session(target)
@@ -213,7 +213,7 @@ def _before_insert(_mapper, connection, target):
 
 
 @event.listens_for(TaxCalendarEntry, "before_update")
-def _before_update(_mapper, connection, target):
+def _before_update(_mapper, _connection, target):
     from sqlalchemy.orm import Session
 
     session = Session.object_session(target)

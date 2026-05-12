@@ -2,8 +2,6 @@
 
 from datetime import date
 
-ADVANCE_PAYMENT_DUE_DAY = 15
-
 HEBREW_MONTHS = (
     "ינואר",
     "פברואר",
@@ -26,20 +24,6 @@ def parse_period_year(period: str) -> int:
 
 def parse_period_month(period: str) -> int:
     return int(period.split("-")[1])
-
-
-def build_due_date(
-    year: int,
-    start_month: int,
-    period_months_count: int,
-    due_day: int = ADVANCE_PAYMENT_DUE_DAY,
-) -> date:
-    due_month = start_month + period_months_count
-    due_year = year
-    if due_month > 12:
-        due_month -= 12
-        due_year += 1
-    return date(due_year, due_month, due_day)
 
 
 def _shift_month(year: int, month: int, offset: int) -> tuple[int, int]:
