@@ -9,6 +9,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app.annual_reports.domain.expense_rules import default_recognition_rate
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
@@ -147,10 +148,13 @@ class VatImportService:
             if total <= 0:
                 continue
             self.expense_repo.add_line(
-                report_id,
-                cat,
-                total,
-                VAT_IMPORTED_EXPENSE_DESCRIPTION.format(category=cat.value),
+                annual_report_id=report_id,
+                category=cat,
+                amount=total,
+                recognition_rate=default_recognition_rate(cat),
+                description=VAT_IMPORTED_EXPENSE_DESCRIPTION.format(
+                    category=cat.value
+                ),
             )
             expense_lines_created += 1
             expense_total += total

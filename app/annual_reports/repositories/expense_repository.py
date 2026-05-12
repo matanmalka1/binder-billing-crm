@@ -10,7 +10,6 @@ from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
     ExpenseCategoryType,
 )
-from app.annual_reports.services.constants import default_recognition_rate
 from app.annual_reports.repositories.financial_line_mixin import FinancialLineMixin
 from app.common.repositories.base_repository import BaseRepository
 
@@ -24,21 +23,16 @@ class AnnualReportExpenseRepository(FinancialLineMixin, BaseRepository[AnnualRep
         annual_report_id: int,
         category: ExpenseCategoryType,
         amount: Decimal,
+        recognition_rate: Decimal,
         description: Optional[str] = None,
-        recognition_rate: Optional[Decimal] = None,
         external_document_reference: Optional[str] = None,
         supporting_document_id: Optional[int] = None,
     ) -> AnnualReportExpenseLine:
-        rate = (
-            recognition_rate
-            if recognition_rate is not None
-            else default_recognition_rate(category)
-        )
         line = AnnualReportExpenseLine(
             annual_report_id=annual_report_id,
             category=category,
             amount=amount,
-            recognition_rate=rate,
+            recognition_rate=recognition_rate,
             external_document_reference=external_document_reference,
             supporting_document_id=supporting_document_id,
             description=description,

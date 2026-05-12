@@ -36,7 +36,8 @@ from app.annual_reports.models.annual_report_schedule_entry import (
 from app.annual_reports.models.annual_report_status_history import (
     AnnualReportStatusHistory,
 )
-from app.annual_reports.services.constants import default_recognition_rate, VALID_TRANSITIONS
+from app.annual_reports.domain.expense_rules import default_recognition_rate
+from app.annual_reports.services.constants import VALID_TRANSITIONS
 from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.common.enums import EntityType
 from app.tax_calendar.services.materialization_service import (

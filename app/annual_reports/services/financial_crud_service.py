@@ -15,6 +15,7 @@ from app.audit.constants import ENTITY_ANNUAL_REPORT
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.annual_reports.domain.expense_rules import default_recognition_rate
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.schemas.annual_report_financials import (
@@ -177,14 +178,20 @@ class FinancialCrudMixin:
                 INVALID_EXPENSE_CATEGORY_ERROR.format(category=category),
                 "ANNUAL_REPORT.INVALID_TYPE",
             )
+        expense_category = ExpenseCategoryType(category)
+        rate = (
+            recognition_rate
+            if recognition_rate is not None
+            else default_recognition_rate(expense_category)
+        )
         line = self.expense_repo.add_line(
-            report_id,
-            ExpenseCategoryType(category),
-            amount,
-            description,
-            recognition_rate,
-            external_document_reference,
-            supporting_document_id,
+            annual_report_id=report_id,
+            category=expense_category,
+            amount=amount,
+            recognition_rate=rate,
+            description=description,
+            external_document_reference=external_document_reference,
+            supporting_document_id=supporting_document_id,
         )
         EntityAuditWriter(self.db).append(
             entity_type=ENTITY_ANNUAL_REPORT,

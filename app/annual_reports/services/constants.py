@@ -1,12 +1,9 @@
-from decimal import Decimal
-
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportSchedule,
     AnnualReportStatus,
     ClientAnnualFilingType,
     PrimaryAnnualReportForm,
 )
-from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 
 # Which main annual-return form each filing profile uses inside this domain.
 #
@@ -80,19 +77,6 @@ STAGE_TO_STATUS: dict[str, str] = {
     "transmitted": "submitted",
 }
 
-# ── Statutory partial recognition rates — Income Tax Regulations ──────────────
-# Vehicle (Reg. 28): 75% deductible; Telephone/communication (Reg. 22): 80%
-STATUTORY_RECOGNITION_RATES: dict[ExpenseCategoryType, Decimal] = {
-    ExpenseCategoryType.VEHICLE: Decimal("0.75"),
-    ExpenseCategoryType.COMMUNICATION: Decimal("0.80"),
-}
-DEFAULT_RECOGNITION_RATE = Decimal("1.00")
-
-
-def default_recognition_rate(category: ExpenseCategoryType) -> Decimal:
-    return STATUTORY_RECOGNITION_RATES.get(category, DEFAULT_RECOGNITION_RATE)
-
-
 # ── Stuck-report defaults ──────────────────────────────────────────────────────
 STUCK_REPORT_STALE_DAYS = 7
 STUCK_REPORT_LIMIT = 3
@@ -106,13 +90,10 @@ SCHEDULE_FLAGS = [
 ]
 
 __all__ = [
-    "DEFAULT_RECOGNITION_RATE",
-    "default_recognition_rate",
     "FORM_MAP",
     "ANNUAL_DEADLINE_REMINDER_DAYS_BEFORE",
     "SCHEDULE_FLAGS",
     "STAGE_TO_STATUS",
-    "STATUTORY_RECOGNITION_RATES",
     "STUCK_REPORT_STALE_DAYS",
     "STUCK_REPORT_LIMIT",
     "VALID_TRANSITIONS",

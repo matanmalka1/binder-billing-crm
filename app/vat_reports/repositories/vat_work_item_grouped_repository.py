@@ -13,7 +13,6 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_work_item_filters import (
     apply_vat_work_item_filters,
 )
-from app.vat_reports.services.vat_report_queries import compute_deadline_fields
 
 
 def _base_stmt():
@@ -45,14 +44,10 @@ def list_due_date_groups(
 
     groups: dict[str, dict] = {}
     for row in rows:
-        # Prefer persisted effective date (registry-shifted statutory).
-        # Fall back to legacy period-based computation only for pre-linking rows.
-        if row.due_date_effective is not None:
-            deadline = row.due_date_effective
-        else:
-            deadline = compute_deadline_fields(row)["submission_deadline"]
-        if deadline is None:
+        if row.due_date_effective is None:
             continue
+
+        deadline = row.due_date_effective
         due_date = deadline.isoformat()
         if due_date not in groups:
             groups[due_date] = {
@@ -96,21 +91,9 @@ def list_by_due_date_paginated(
     )
     if status is not None:
         stmt = stmt.where(VatWorkItem.status == status)
-    # Group membership is tested against the statutory/effective calendar date, not the online
-    # submission deadline. Intentionally does NOT use get_vat_deadline_fields: that helper may
-    # add the online extension (+4 days) and would cause online-filer items to miss their group.
-    # Linked rows (due_date_effective set): match directly against the persisted statutory date.
-    # Legacy unlinked rows (due_date_effective None): recompute from period+15 as fallback.
-    matching = [
-        item
-        for item in db.scalars(stmt).all()
-        if (
-            item.due_date_effective
-            if item.due_date_effective is not None
-            else compute_deadline_fields(item)["submission_deadline"]
-        )
-        == due_date
-    ]
+
+    stmt = stmt.where(VatWorkItem.due_date_effective == due_date)
+    matching = db.scalars(stmt).all()
     total = len(matching)
     start = (page - 1) * page_size
     items = sorted(matching, key=lambda item: item.client_record_id)[
