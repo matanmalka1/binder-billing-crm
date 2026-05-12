@@ -12,15 +12,6 @@ from app.common.repositories.base_repository import BaseRepository
 
 
 _ZERO = Decimal("0")
-try:
-    from tax_rules.registry import get_credit_point_config as _get_cp
-    import datetime as _dt
-
-    _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal(
-        str(_get_cp(_dt.date.today().year).default_resident_points)
-    )
-except Exception:
-    _DEFAULT_RESIDENT_CREDIT_POINTS = Decimal("2.25")
 _TUITION_REASONS = frozenset(
     {
         CreditPointReason.ACADEMIC_DEGREE,
@@ -56,15 +47,17 @@ class AnnualReportCreditPointRepository(BaseRepository[AnnualReportCreditPoint])
         self.db.flush()
         return row
 
-    def aggregate_breakdown(self, report_id: int) -> dict[str, Decimal]:
+    def aggregate_breakdown(
+        self, report_id: int, default_resident_points: Decimal
+    ) -> dict[str, Decimal]:
         rows = self.list_by_report_id(report_id)
         if not rows:
             return {
-                "credit_points": _DEFAULT_RESIDENT_CREDIT_POINTS,
+                "credit_points": default_resident_points,
                 "pension_credit_points": _ZERO,
                 "life_insurance_credit_points": _ZERO,
                 "tuition_credit_points": _ZERO,
-                "total_credit_points": _DEFAULT_RESIDENT_CREDIT_POINTS,
+                "total_credit_points": default_resident_points,
             }
 
         base = _ZERO
@@ -88,14 +81,16 @@ class AnnualReportCreditPointRepository(BaseRepository[AnnualReportCreditPoint])
             "total_credit_points": total,
         }
 
-    def total_points_by_report_id(self, report_id: int) -> Decimal:
+    def total_points_by_report_id(
+        self, report_id: int, default_resident_points: Decimal
+    ) -> Decimal:
         total = self.db.scalar(
             select(func.coalesce(func.sum(AnnualReportCreditPoint.points), 0)).where(
                 AnnualReportCreditPoint.annual_report_id == report_id
             )
         )
         if total in (None, 0):
-            return _DEFAULT_RESIDENT_CREDIT_POINTS
+            return default_resident_points
         return Decimal(str(total))
 
 

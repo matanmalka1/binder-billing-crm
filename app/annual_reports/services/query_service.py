@@ -2,6 +2,9 @@ from decimal import Decimal
 from typing import Optional
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.integrations.tax_rules_registry import (
+    get_default_resident_credit_points,
+)
 from app.annual_reports.schemas.annual_report_responses import (
     AnnualReportDetailResponse,
     AnnualReportResponse,
@@ -103,9 +106,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
         total_expenses = expense_repo.total_expenses(report_id)
         recognized_expenses = expense_repo.total_recognized_expenses(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
+        orm_report = self.repo.get_by_id(report_id)
+        default_credit_points = get_default_resident_credit_points(
+            (orm_report.tax_year if orm_report else report.tax_year)
+        )
         credit_breakdown = AnnualReportCreditPointRepository(
             self.db
-        ).aggregate_breakdown(report_id)
+        ).aggregate_breakdown(
+            report_id,
+            default_resident_points=default_credit_points,
+        )
 
         response = AnnualReportDetailResponse(**report.model_dump())
         response.schedules = [
@@ -118,7 +128,6 @@ class AnnualReportQueryService(AnnualReportBaseService):
         response.total_expenses = total_expenses
         response.taxable_income = total_income - recognized_expenses
 
-        orm_report = self.repo.get_by_id(report_id)
         if detail:
             response.client_approved_at = detail.client_approved_at
             response.internal_notes = detail.internal_notes

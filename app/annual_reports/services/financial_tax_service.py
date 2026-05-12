@@ -4,6 +4,9 @@ from decimal import Decimal
 from typing import Optional
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
+from app.annual_reports.integrations.tax_rules_registry import (
+    get_default_resident_credit_points,
+)
 from app.annual_reports.schemas.annual_report_financials import (
     BracketBreakdownItem,
     NationalInsuranceResponse,
@@ -36,8 +39,12 @@ class FinancialTaxMixin:
         report = self._get_report_or_raise(report_id)
         summary = self.get_financial_summary(report_id)
         detail = self.detail_repo.get_by_report_id(report_id)
+        default_credit_points = get_default_resident_credit_points(report.tax_year)
         credit_points = float(
-            self.credit_point_repo.total_points_by_report_id(report_id)
+            self.credit_point_repo.total_points_by_report_id(
+                report_id,
+                default_resident_points=default_credit_points,
+            )
         )
         pension_deduction = (
             float(detail.pension_contribution)

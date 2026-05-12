@@ -1,0 +1,18 @@
+"""Adapter for tax_rules registry access used by annual reports."""
+
+from decimal import Decimal
+
+
+def get_default_resident_credit_points(tax_year: int) -> Decimal:
+    try:
+        from tax_rules.registry import get_credit_point_config
+
+        return Decimal(str(get_credit_point_config(tax_year).default_resident_points))
+    except Exception:
+        return Decimal("2.25")
+
+
+def get_credit_point_annual_value(tax_year: int) -> float:
+    from tax_rules.registry import get_credit_point_config
+
+    return float(get_credit_point_config(tax_year).annual_value_ils)
