@@ -16,9 +16,8 @@ def _vat_deadline(period_year: int, period_month: int) -> date:
     filing_year = period_year if period_month < 12 else period_year + 1
     filing_month = (period_month % 12) + 1
     calendar_period = f"{period_year}-{period_month:02d}"
-    # TODO: verify whether registry calendar_year should be period_year for December periods.
     registry_deadline = get_effective_periodic_vat_due_date(
-        filing_year, calendar_period
+        period_year, calendar_period
     )
     if registry_deadline:
         return registry_deadline
