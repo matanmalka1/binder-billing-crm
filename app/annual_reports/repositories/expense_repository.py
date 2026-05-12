@@ -11,10 +11,11 @@ from app.annual_reports.models.annual_report_expense_line import (
     ExpenseCategoryType,
 )
 from app.annual_reports.services.constants import default_recognition_rate
+from app.annual_reports.repositories.financial_line_mixin import FinancialLineMixin
 from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportExpenseRepository(BaseRepository[AnnualReportExpenseLine]):
+class AnnualReportExpenseRepository(FinancialLineMixin, BaseRepository[AnnualReportExpenseLine]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -59,30 +60,18 @@ class AnnualReportExpenseRepository(BaseRepository[AnnualReportExpenseLine]):
         ).first()
 
     def update(self, line_id: int, **fields) -> Optional[AnnualReportExpenseLine]:
-        line = self.get_by_id(line_id)
-        if not line:
-            return None
-        for k, v in fields.items():
-            if hasattr(line, k):
-                setattr(line, k, v)
-        self.db.flush()
-        return line
+        return self._update_line(self.get_by_id, line_id, **fields)
 
     def delete(
         self,
         line_id: int,
-        deleted_by: int | None = None,
+        deleted_by: int | None = None,  # pylint: disable=unused-argument
         *,
-        hard: bool = False,
+        hard: bool = False,  # pylint: disable=unused-argument
     ) -> bool:
         # Intentional hard-delete: expense lines are user-entered data with no
         # audit trail requirement. Soft-delete would require schema migration (Sprint 10+).
-        line = self.get_by_id(line_id)
-        if not line:
-            return False
-        self.db.delete(line)
-        self.db.flush()
-        return True
+        return self._delete_line(self.get_by_id, line_id)
 
     def total_expenses(self, annual_report_id: int) -> Decimal:
         """Sum of gross (unrecognized) expense amounts."""

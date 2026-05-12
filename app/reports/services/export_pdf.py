@@ -28,10 +28,10 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
             Table,
             TableStyle,
         )
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
             "הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab"
-        )
+        ) from exc
 
     filename = (
         f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"

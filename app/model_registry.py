@@ -1,6 +1,7 @@
 # Eagerly import all ORM models so SQLAlchemy can resolve string-based
 # relationship() references (e.g. "PermanentDocument", "BinderIntake") before
 # configure_mappers() fires. Import order: depended-on models first.
+# pylint: disable=unused-import
 import app.permanent_documents.models.permanent_document  # noqa: F401
 import app.binders.models.binder_intake  # noqa: F401
 import app.binders.models.binder_intake_material  # noqa: F401

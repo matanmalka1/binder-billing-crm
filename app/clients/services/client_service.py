@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 
 from app.clients.models.client_record import ClientRecord
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordResponse,
@@ -14,7 +13,6 @@ from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_lifecycle_service import ClientLifecycleService
 from app.clients.services.client_update_service import ClientUpdateService
 from app.clients.services.messages import CLIENT_NOT_FOUND
-from app.common.enums import IdNumberType
 from app.core.exceptions import NotFoundError
 
 
@@ -32,45 +30,8 @@ class ClientService:
         self._lifecycle = ClientLifecycleService(db)
         self._update = ClientUpdateService(db)
 
-    def create_client(
-        self,
-        full_name: str,
-        id_number: str,
-        id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
-        entity_type: Optional[EntityType] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        address_street: Optional[str] = None,
-        address_building_number: Optional[str] = None,
-        address_apartment: Optional[str] = None,
-        address_city: Optional[str] = None,
-        address_zip_code: Optional[str] = None,
-        vat_reporting_frequency: Optional[VatType] = None,
-        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
-        vat_exempt_ceiling=None,
-        advance_rate=None,
-        accountant_id: Optional[int] = None,
-        actor_id: Optional[int] = None,
-    ) -> ClientRecord:
-        return self._creation.create_client(
-            full_name=full_name,
-            id_number=id_number,
-            id_number_type=id_number_type,
-            entity_type=entity_type,
-            phone=phone,
-            email=email,
-            address_street=address_street,
-            address_building_number=address_building_number,
-            address_apartment=address_apartment,
-            address_city=address_city,
-            address_zip_code=address_zip_code,
-            vat_reporting_frequency=vat_reporting_frequency,
-            advance_payment_frequency=advance_payment_frequency,
-            vat_exempt_ceiling=vat_exempt_ceiling,
-            advance_rate=advance_rate,
-            accountant_id=accountant_id,
-            actor_id=actor_id,
-        )
+    def create_client(self, **kwargs) -> ClientRecord:
+        return self._creation.create_client(**kwargs)
 
     def get_client_or_raise(self, client_id: int) -> ClientRecord:
         client = self.record_repo.get_by_id(client_id)

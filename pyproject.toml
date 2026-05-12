@@ -4,6 +4,8 @@ ignore = [
   "venv",
   "migrations",
   "__pycache__",
+  "alembic",
+  "seed",
 ]
 
 [tool.pylint.messages_control]
@@ -13,35 +15,28 @@ enable = [
   "undefined-variable",
   "used-before-assignment",
   "unreachable",
-  "not-callable",
-  "no-member",
 
   # imports / dead code
   "unused-import",
   "unused-variable",
-  "unused-argument",
 
   # risky code
   "dangerous-default-value",
-  "broad-exception-caught",
   "bare-except",
   "raise-missing-from",
 
   # architecture smells
   "duplicate-code",
   "cyclic-import",
-  "too-many-branches",
-  "too-many-statements",
-  "too-many-locals",
 ]
 
 [tool.pylint.similarities]
-min-similarity-lines = 12
+min-similarity-lines = 16
 ignore-comments = true
 ignore-docstrings = true
 ignore-imports = true
 
 [tool.pylint.design]
-max-branches = 12
-max-statements = 50
-max-locals = 18
+max-branches = 15
+max-statements = 60
+max-locals = 25

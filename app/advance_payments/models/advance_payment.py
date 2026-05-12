@@ -150,4 +150,4 @@ class AdvancePayment(Base):
         )
 
 
-from app.advance_payments.models import due_date_snapshot_events  # noqa: E402,F401
+from app.advance_payments.models import due_date_snapshot_events  # noqa: E402,F401  # pylint: disable=unused-import

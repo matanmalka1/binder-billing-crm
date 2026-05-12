@@ -3,7 +3,7 @@
 from decimal import Decimal
 
 from app.config import config
-from app.common.period_utils import (  # noqa: F401 – re-exported for existing callers
+from app.common.period_utils import (  # noqa: F401 – re-exported for existing callers  # pylint: disable=unused-import
     ADVANCE_PAYMENT_DUE_DAY,
     build_due_date,
     parse_period_month,

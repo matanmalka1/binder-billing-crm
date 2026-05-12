@@ -36,7 +36,7 @@ from app.annual_reports.models.annual_report_schedule_entry import (
 from app.annual_reports.models.annual_report_status_history import (
     AnnualReportStatusHistory,
 )
-from app.annual_reports.services.constants import default_recognition_rate
+from app.annual_reports.services.constants import default_recognition_rate, VALID_TRANSITIONS
 from app.annual_reports.services.deadlines import extended_deadline, standard_deadline
 from app.common.enums import EntityType
 from app.tax_calendar.services.materialization_service import (
@@ -46,47 +46,6 @@ from app.users.models.user import UserRole
 
 from ...data.realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
 
-
-VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
-    AnnualReportStatus.NOT_STARTED: {AnnualReportStatus.COLLECTING_DOCS},
-    AnnualReportStatus.COLLECTING_DOCS: {
-        AnnualReportStatus.DOCS_COMPLETE,
-        AnnualReportStatus.NOT_STARTED,
-    },
-    AnnualReportStatus.DOCS_COMPLETE: {
-        AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.COLLECTING_DOCS,
-    },
-    AnnualReportStatus.IN_PREPARATION: {
-        AnnualReportStatus.PENDING_CLIENT,
-        AnnualReportStatus.DOCS_COMPLETE,
-    },
-    AnnualReportStatus.PENDING_CLIENT: {
-        AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.SUBMITTED,
-    },
-    AnnualReportStatus.SUBMITTED: {
-        AnnualReportStatus.ACCEPTED,
-        AnnualReportStatus.ASSESSMENT_ISSUED,
-    },
-    AnnualReportStatus.AMENDED: {
-        AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.SUBMITTED,
-    },
-    AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
-    AnnualReportStatus.ASSESSMENT_ISSUED: {
-        AnnualReportStatus.OBJECTION_FILED,
-        AnnualReportStatus.CLOSED,
-        AnnualReportStatus.PENDING_CLIENT,
-        AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.DOCS_COMPLETE,
-    },
-    AnnualReportStatus.OBJECTION_FILED: {
-        AnnualReportStatus.CLOSED,
-        AnnualReportStatus.DOCS_COMPLETE,
-    },
-    AnnualReportStatus.CLOSED: set(),
-}
 
 SEEDABLE_STATUSES = [
     AnnualReportStatus.NOT_STARTED,

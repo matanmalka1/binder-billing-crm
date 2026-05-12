@@ -1,4 +1,6 @@
 {
+  "pythonPath": ".venv/bin/python",
+  "include": ["app"],
   "extraPaths": ["tax_rules_config/app"],
   "reportArgumentType": "none",
   "reportAttributeAccessIssue": "none",

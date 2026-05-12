@@ -139,4 +139,4 @@ class VatWorkItem(Base):
         )
 
 
-from app.vat_reports.models import due_date_snapshot_events  # noqa: E402,F401
+from app.vat_reports.models import due_date_snapshot_events  # noqa: E402,F401  # pylint: disable=unused-import

@@ -10,10 +10,11 @@ from app.annual_reports.models.annual_report_income_line import (
     AnnualReportIncomeLine,
     IncomeSourceType,
 )
+from app.annual_reports.repositories.financial_line_mixin import FinancialLineMixin
 from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportIncomeRepository(BaseRepository[AnnualReportIncomeLine]):
+class AnnualReportIncomeRepository(FinancialLineMixin, BaseRepository[AnnualReportIncomeLine]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -47,30 +48,18 @@ class AnnualReportIncomeRepository(BaseRepository[AnnualReportIncomeLine]):
         ).first()
 
     def update(self, line_id: int, **fields) -> Optional[AnnualReportIncomeLine]:
-        line = self.get_by_id(line_id)
-        if not line:
-            return None
-        for k, v in fields.items():
-            if hasattr(line, k):
-                setattr(line, k, v)
-        self.db.flush()
-        return line
+        return self._update_line(self.get_by_id, line_id, **fields)
 
     def delete(
         self,
         line_id: int,
-        deleted_by: int | None = None,
+        deleted_by: int | None = None,  # pylint: disable=unused-argument
         *,
-        hard: bool = False,
+        hard: bool = False,  # pylint: disable=unused-argument
     ) -> bool:
         # Intentional hard-delete: income lines are user-entered data with no
         # audit trail requirement. Soft-delete would require schema migration (Sprint 10+).
-        line = self.get_by_id(line_id)
-        if not line:
-            return False
-        self.db.delete(line)
-        self.db.flush()
-        return True
+        return self._delete_line(self.get_by_id, line_id)
 
     def total_income(self, annual_report_id: int) -> Decimal:
         result = self.db.scalar(
