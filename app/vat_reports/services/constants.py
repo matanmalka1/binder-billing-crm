@@ -61,23 +61,6 @@ CATEGORY_LABELS_SERVER: dict[str, str] = {
     "municipal_tax": "ארנונה",
 }
 
-# VAT submission deadlines — sourced from tax_rules registry (single source of truth).
-# 15 = statutory deadline by law; 19 = digital filing extension granted by tax authority.
-# Work items use the statutory deadline as the conservative target.
-try:
-    from tax_rules.registry import (
-        get_vat_statutory_deadline_day as _get_stat,
-        get_vat_online_extended_deadline_day as _get_ext,
-    )
-    import datetime as _dt
-
-    _cur_year = _dt.date.today().year
-    VAT_STATUTORY_DEADLINE_DAY: int = _get_stat(_cur_year)
-    VAT_ONLINE_EXTENDED_DEADLINE_DAY: int = _get_ext(_cur_year)
-except Exception:
-    VAT_STATUTORY_DEADLINE_DAY = 15
-    VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19
-
 # Warn when annual turnover exceeds this fraction of the osek patur ceiling (non-blocking)
 # Ceiling itself is read from tax_rules registry per year
 OSEK_PATUR_CEILING_WARNING_RATE: Decimal = Decimal("0.80")
@@ -93,7 +76,5 @@ __all__ = [
     "ACTION_STATUS_CHANGED",
     "CATEGORY_LABELS_SERVER",
     "OSEK_PATUR_CEILING_WARNING_RATE",
-    "VAT_ONLINE_EXTENDED_DEADLINE_DAY",
-    "VAT_STATUTORY_DEADLINE_DAY",
     "VALID_TRANSITIONS",
 ]
