@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.audit.constants import ENTITY_CLIENT
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_record_repository import (
+from app.clients.repositories.client_record_read_repository import (
     get_full_record,
     get_full_record_including_deleted,
 )

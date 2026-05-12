@@ -14,10 +14,10 @@ from app.annual_reports.services.client_status_service import (
 )
 from app.binders.services.client_status_service import BinderClientStatusService
 from app.clients.enums import ClientStatus
-from app.clients.repositories.client_record_repository import (
-    ClientRecordRepository,
+from app.clients.repositories.client_record_read_repository import (
     get_full_record,
 )
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 from app.vat_reports.services.client_status_service import (

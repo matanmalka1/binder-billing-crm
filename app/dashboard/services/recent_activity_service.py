@@ -24,7 +24,7 @@ from app.binders.repositories.binder_status_log_repository import (
     BinderStatusLogRepository,
 )
 from app.charge.repositories.charge_repository import ChargeRepository
-from app.clients.repositories.client_record_repository import get_full_records_bulk
+from app.clients.repositories.client_record_read_repository import get_full_records_bulk
 
 _ACTIVITY_LIMIT = 5
 _ACTIVITY_FETCH_LIMIT = 20

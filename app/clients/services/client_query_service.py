@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
 from app.common.enums import EntityType
-from app.clients.repositories.client_record_repository import (
-    ClientRecordRepository,
+from app.clients.repositories.client_record_read_repository import (
     get_full_record,
     get_full_record_including_deleted,
     get_full_records_bulk,
 )
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.schemas.client_conflicts import (
     ActiveClientSummary,
     ClientConflictInfo,
