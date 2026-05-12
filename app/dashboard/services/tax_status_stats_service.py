@@ -8,16 +8,18 @@ from app.advance_payments.repositories.advance_payment_dashboard_repository impo
 from app.clients.repositories.client_vat_stats_repository import (
     ClientVatStatsRepository,
 )
-from app.common.enums import VatType
+from app.common.enums import ObligationType, VatType
 from app.common.period_utils import (
     bimonthly_advance_payment_period,
     bimonthly_vat_period,
     monthly_vat_period,
 )
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.vat_reports.repositories.vat_work_item_stats_repository import (
     VatWorkItemStatsRepository,
 )
-from app.vat_reports.services.constants import VAT_STATUTORY_DEADLINE_DAY
 
 
 class TaxStatusStatsService:
@@ -25,6 +27,7 @@ class TaxStatusStatsService:
         self.client_repo = ClientVatStatsRepository(db)
         self.vat_repo = VatWorkItemStatsRepository(db)
         self.advance_repo = AdvancePaymentDashboardRepository(db)
+        self.materializer = TaxCalendarMaterializationService(db)
 
     def build(self, reference_date: date) -> dict:
         monthly_period, monthly_label = monthly_vat_period(reference_date)
@@ -106,9 +109,10 @@ class TaxStatusStatsService:
         return "ממתינה להגשה"
 
     def _due_date(self, period: str, vat_type: VatType) -> date:
-        year, month = (int(part) for part in period.split("-", 1))
-        offset = 2 if vat_type == VatType.BIMONTHLY else 1
-        month_index = month - 1 + offset
-        due_year = year + month_index // 12
-        due_month = month_index % 12 + 1
-        return date(due_year, due_month, VAT_STATUTORY_DEADLINE_DAY)
+        months_count = 2 if vat_type == VatType.BIMONTHLY else 1
+        entry = self.materializer.ensure_periodic_entry(
+            ObligationType.VAT,
+            period,
+            months_count,
+        )
+        return entry.due_date

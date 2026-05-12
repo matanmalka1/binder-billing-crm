@@ -17,10 +17,6 @@ from app.work_queue.services.payloads import (
     vat_work_item_payload,
 )
 
-# Day-19 is the digital filing extension granted by the tax authority.
-# Used only when VatWorkItem.due_date_effective is absent (legacy rows).
-_VAT_ONLINE_EXTENDED_DEADLINE_DAY = 19
-
 _DONE_ANNUAL_STATUSES = {
     annual_report_models.AnnualReportStatus.CLOSED,
     annual_report_models.AnnualReportStatus.CANCELED,
@@ -28,21 +24,15 @@ _DONE_ANNUAL_STATUSES = {
 }
 
 
-def _vat_due_date(item, period: str) -> date:
-    """Return the effective due date for a VAT work item.
-
-    Prefer the stored due_date_effective (linked from the tax calendar).
-    Fall back to day-19 of the period month only for legacy rows that
-    pre-date the tax_calendar link.
-    """
-    if item.due_date_effective is not None:
-        return (
-            item.due_date_effective.date()
-            if hasattr(item.due_date_effective, "date")
-            else item.due_date_effective
-        )
-    # Fallback: infer from period string "YYYY-MM"
-    return date(int(period[:4]), int(period[5:7]), _VAT_ONLINE_EXTENDED_DEADLINE_DAY)
+def _vat_due_date(item) -> date:
+    due_date_effective = item.due_date_effective
+    if due_date_effective is None:
+        raise ValueError(f"VatWorkItem {item.id} is missing due_date_effective")
+    return (
+        due_date_effective.date()
+        if hasattr(due_date_effective, "date")
+        else due_date_effective
+    )
 
 
 def vat_filing_items(
@@ -59,7 +49,7 @@ def vat_filing_items(
             and vat_item.client_record_id != client_record_id
         ):
             continue
-        due_date = _vat_due_date(vat_item, vat_item.period)
+        due_date = _vat_due_date(vat_item)
         items.append(
             ctx.item(
                 WorkQueueSourceType.VAT_FILING,
