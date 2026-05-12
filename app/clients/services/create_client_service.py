@@ -136,6 +136,7 @@ class CreateClientService:
             actor_id=actor_id,
         )
         impact = compute_creation_impact(
+            self.db,
             entity_type=request.client.entity_type,
             vat_reporting_frequency=preview_vat_reporting_frequency(
                 request.client.entity_type,

@@ -52,6 +52,14 @@ class TaxCalendarMaterializationService:
             lambda: self._find_periodic(obligation_type, period, period_months_count),
         )
 
+    def get_periodic_entry(
+        self, obligation_type, period: str, period_months_count: int
+    ) -> TaxCalendarEntry | None:
+        obligation_type = self._obligation(obligation_type)
+        self._parse_period(period)
+        self._periodic_rule_type(obligation_type, period_months_count)
+        return self._find_periodic(obligation_type, period, period_months_count)
+
     def ensure_annual_entry(self, tax_year: int) -> TaxCalendarEntry:
         tax_year = self._parse_tax_year(tax_year)
         existing = self._find_annual(tax_year)

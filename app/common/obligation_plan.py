@@ -5,89 +5,69 @@ from typing import Optional
 from app.annual_reports.services.deadlines import standard_deadline
 from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
-from app.common.due_date_rules import periodic_due_date
 
 
 @dataclass(frozen=True, slots=True)
-class PeriodicDeadlinePlan:
-    due_date: date
+class PeriodicObligationPlan:
     period: str
+    period_months_count: int
 
 
-def vat_deadline_plan(
+def vat_obligation_plan(
     vat_type: Optional[VatType],
     year: int,
-    reference_date: date,
-) -> list[PeriodicDeadlinePlan]:
+) -> list[PeriodicObligationPlan]:
     if vat_type in (VatType.EXEMPT, None):
         return []
 
-    due_dates: list[PeriodicDeadlinePlan] = []
+    plans: list[PeriodicObligationPlan] = []
     if vat_type == VatType.MONTHLY:
         for month in range(1, 13):
-            filing_month = month + 1 if month < 12 else 1
-            filing_year = year if month < 12 else year + 1
             period = f"{year}-{month:02d}"
-            due_dates.append(
-                PeriodicDeadlinePlan(
-                    due_date=periodic_due_date(filing_year, filing_month, period),
+            plans.append(
+                PeriodicObligationPlan(
                     period=period,
+                    period_months_count=1,
                 )
             )
     elif vat_type == VatType.BIMONTHLY:
         for period_start in range(1, 12, 2):
-            period_end = period_start + 1
-            filing_month = period_start + 2 if period_start + 2 <= 12 else 1
-            filing_year = year if filing_month != 1 else year + 1
             period = f"{year}-{period_start:02d}"
-            calendar_period = f"{year}-{period_end:02d}"
-            due_dates.append(
-                PeriodicDeadlinePlan(
-                    due_date=periodic_due_date(
-                        filing_year, filing_month, calendar_period
-                    ),
+            plans.append(
+                PeriodicObligationPlan(
                     period=period,
+                    period_months_count=2,
                 )
             )
-    return [item for item in due_dates if item.due_date >= reference_date]
+    return plans
 
 
-def advance_payment_deadline_plan(
+def advance_payment_obligation_plan(
     *,
     frequency: AdvancePaymentFrequency,
     year: int,
-    reference_date: date,
-    entity_type: Optional[EntityType] = None,
-) -> list[PeriodicDeadlinePlan]:
+    entity_type: EntityType | None = None,
+) -> list[PeriodicObligationPlan]:
     if entity_type == EntityType.EMPLOYEE:
         return []
 
     if frequency == AdvancePaymentFrequency.BIMONTHLY:
         period_starts = [1, 3, 5, 7, 9, 11]
-        step = 2
+        period_months_count = 2
     else:
         period_starts = list(range(1, 13))
-        step = 1
+        period_months_count = 1
 
-    due_dates = []
+    plans = []
     for month in period_starts:
         period = f"{year}-{month:02d}"
-        calendar_period = period
-        if frequency == AdvancePaymentFrequency.BIMONTHLY:
-            period_end = month + 1
-            calendar_period = f"{year}-{period_end:02d}"
-        filing_month = month + step
-        filing_year = year
-        if filing_month > 12:
-            filing_month -= 12
-            filing_year += 1
-        due_dates.append(
-            PeriodicDeadlinePlan(
-                due_date=periodic_due_date(filing_year, filing_month, calendar_period),
+        plans.append(
+            PeriodicObligationPlan(
                 period=period,
+                period_months_count=period_months_count,
             )
         )
-    return [item for item in due_dates if item.due_date >= reference_date]
+    return plans
 
 
 def annual_report_due_date(entity_type: Optional[EntityType], year: int) -> date:

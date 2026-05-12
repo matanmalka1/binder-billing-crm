@@ -8,7 +8,6 @@ from random import Random
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
 from app.common.enums import ObligationType, VatType
-from app.common.due_date_rules import periodic_due_date
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
@@ -59,6 +58,7 @@ def _group_by_client(businesses) -> dict[int, list]:
 
 
 def _choose_periods(
+    db,
     rng: Random,
     count: int,
     reference_date: date,
@@ -70,7 +70,7 @@ def _choose_periods(
         candidate = (today - timedelta(days=30 * i)).strftime("%Y-%m")
         if vat_type == VatType.BIMONTHLY and int(candidate.split("-")[1]) % 2 == 0:
             continue
-        if _vat_due_date(candidate) >= reference_date:
+        if _vat_due_date(db, candidate, vat_type) >= reference_date:
             continue
         if candidate not in periods:
             periods.append(candidate)
@@ -79,11 +79,14 @@ def _choose_periods(
     return periods[:count]
 
 
-def _vat_due_date(period: str) -> date:
-    year, month = [int(p) for p in period.split("-")]
-    filing_month = month + 1 if month < 12 else 1
-    filing_year = year if month < 12 else year + 1
-    return periodic_due_date(filing_year, filing_month, period)
+def _vat_due_date(db, period: str, vat_type: VatType) -> date:
+    period_months_count = _VAT_PERIOD_MONTHS_COUNT[vat_type]
+    entry = TaxCalendarMaterializationService(db).ensure_periodic_entry(
+        ObligationType.VAT,
+        period,
+        period_months_count,
+    )
+    return entry.due_date
 
 
 def _status_for_period(
@@ -150,7 +153,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
         )
         cr = getattr(business, "client", None)
         period_type = getattr(cr, "vat_reporting_frequency", VatType.MONTHLY)
-        periods = _choose_periods(rng, num_items, cfg.reference_date, period_type)
+        periods = _choose_periods(db, rng, num_items, cfg.reference_date, period_type)
 
         for period in periods:
             existing_item = (

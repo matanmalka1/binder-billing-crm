@@ -1,17 +1,29 @@
 from datetime import date
 from typing import Optional
 
+from sqlalchemy.orm import Session
+
 from app.actions.obligation_orchestrator import _years_to_generate
 from app.clients.create_policy import normalize_vat_exempt_ceiling
-from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
+from app.common.enums import (
+    AdvancePaymentFrequency,
+    EntityType,
+    ObligationType,
+    VatType,
+)
 from app.common.obligation_plan import (
-    advance_payment_deadline_plan,
-    vat_deadline_plan,
+    advance_payment_obligation_plan,
+    vat_obligation_plan,
+)
+from app.core.exceptions import AppError
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
 )
 
 
 def compute_creation_impact(
+    db: Session,
     entity_type: Optional[EntityType],
     vat_reporting_frequency: Optional[VatType],
     advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
@@ -24,22 +36,43 @@ def compute_creation_impact(
     years = _years_to_generate(today)
     n = len(years)
     is_exempt = vat_reporting_frequency in (VatType.EXEMPT, None)
+    tax_calendar = TaxCalendarMaterializationService(db)
 
-    vat_count = sum(
-        len(vat_deadline_plan(vat_reporting_frequency, year, today)) for year in years
-    )
-    if advance_payment_frequency is not None:
-        advance_count = sum(
-            len(
-                advance_payment_deadline_plan(
-                    frequency=advance_payment_frequency,
-                    year=year,
-                    reference_date=today,
-                    entity_type=entity_type,
-                )
+    vat_count = 0
+    for year in years:
+        for plan in vat_obligation_plan(vat_reporting_frequency, year):
+            entry = tax_calendar.get_periodic_entry(
+                ObligationType.VAT,
+                plan.period,
+                plan.period_months_count,
             )
-            for year in years
-        )
+            if entry is None:
+                raise AppError(
+                    f"Tax calendar is not bootstrapped for period {plan.period}",
+                    "TAX_CALENDAR.NOT_BOOTSTRAPPED",
+                )
+            if entry.due_date >= today:
+                vat_count += 1
+    if advance_payment_frequency is not None:
+        advance_count = 0
+        for year in years:
+            for plan in advance_payment_obligation_plan(
+                frequency=advance_payment_frequency,
+                year=year,
+                entity_type=entity_type,
+            ):
+                entry = tax_calendar.get_periodic_entry(
+                    ObligationType.ADVANCE_PAYMENT,
+                    plan.period,
+                    plan.period_months_count,
+                )
+                if entry is None:
+                    raise AppError(
+                        f"Tax calendar is not bootstrapped for period {plan.period}",
+                        "TAX_CALENDAR.NOT_BOOTSTRAPPED",
+                    )
+                if entry.due_date >= today:
+                    advance_count += 1
     else:
         advance_count = 0
     items = [

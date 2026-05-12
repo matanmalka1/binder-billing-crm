@@ -13,8 +13,15 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.client_onboarding_service import create_initial_binder
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
-from app.common.obligation_plan import advance_payment_deadline_plan, vat_deadline_plan
+from app.common.enums import ObligationType
+from app.common.obligation_plan import (
+    advance_payment_obligation_plan,
+    vat_obligation_plan,
+)
 from app.core.exceptions import ConflictError, NotFoundError
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.intake import create_work_item
 
@@ -34,6 +41,7 @@ class ClientOnboardingOrchestrator:
         self.vat_repo = VatWorkItemRepository(db)
         self.advance_repo = AdvancePaymentRepository(db)
         self.advance_service = AdvancePaymentService(db)
+        self.tax_calendar = TaxCalendarMaterializationService(db)
 
     def run(
         self,
@@ -94,8 +102,15 @@ class ClientOnboardingOrchestrator:
         years = _years_to_generate(reference_date)
         created = 0
         for year in years:
-            plans = vat_deadline_plan(vat_type, year, reference_date)
+            plans = vat_obligation_plan(vat_type, year)
             for plan in plans:
+                entry = self.tax_calendar.ensure_periodic_entry(
+                    ObligationType.VAT,
+                    plan.period,
+                    plan.period_months_count,
+                )
+                if entry.due_date < reference_date:
+                    continue
                 item = self.vat_repo.get_by_client_record_period(
                     client_record_id, plan.period
                 )
@@ -125,38 +140,42 @@ class ClientOnboardingOrchestrator:
         if frequency is None:
             return 0
         from app.actions.obligation_orchestrator import _years_to_generate
-        from app.common.enums import AdvancePaymentFrequency as APF
 
-        period_months_count = 2 if frequency == APF.BIMONTHLY else 1
         years = _years_to_generate(reference_date)
         created = 0
         for year in years:
-            plans = advance_payment_deadline_plan(
+            plans = advance_payment_obligation_plan(
                 frequency=frequency,
                 year=year,
-                reference_date=reference_date,
                 entity_type=entity_type,
             )
             for plan in plans:
+                entry = self.tax_calendar.ensure_periodic_entry(
+                    ObligationType.ADVANCE_PAYMENT,
+                    plan.period,
+                    plan.period_months_count,
+                )
+                if entry.due_date < reference_date:
+                    continue
                 payment = self.advance_repo.get_by_period(client_record_id, plan.period)
                 if payment is None:
                     try:
                         self.advance_service.create_payment_for_client(
                             client_record_id=client_record_id,
                             period=plan.period,
-                            period_months_count=period_months_count,
-                            due_date=plan.due_date,
+                            period_months_count=plan.period_months_count,
+                            due_date=entry.due_date,
                         )
                         created += 1
                     except ConflictError:
                         pass
                 elif (
-                    payment.period_months_count != period_months_count
-                    or payment.due_date != plan.due_date
+                    payment.period_months_count != plan.period_months_count
+                    or payment.due_date != entry.due_date
                 ):
                     self.advance_repo.update_payment(
                         payment,
-                        period_months_count=period_months_count,
-                        due_date=plan.due_date,
+                        period_months_count=plan.period_months_count,
+                        due_date=entry.due_date,
                     )
         return created

@@ -9,6 +9,7 @@ from app.binders.models.binder import Binder
 from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.impact_preview_service import compute_creation_impact
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
@@ -28,8 +29,10 @@ def test_preview_impact_returns_backend_vat_exempt_ceiling(client, advisor_heade
 
 def test_preview_impact_matches_actual_future_generation(test_db):
     reference_date = date(2026, 4, 30)
+    bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)
 
     preview = compute_creation_impact(
+        test_db,
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
         advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,

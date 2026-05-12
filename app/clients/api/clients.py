@@ -45,10 +45,11 @@ router = APIRouter(
 )
 def preview_creation_impact(
     request: ClientImpactPreviewRequest,
-    _db: DBSession,
+    db: DBSession,
 ):
-    """מחזיר תצוגה מקדימה של הישויות שייווצרו אוטומטית עם פתיחת הלקוח. לא כותב לבסיס הנתונים."""
+    """מחזיר תצוגה מקדימה של הישויות שייווצרו אוטומטית עם פתיחת הלקוח."""
     return compute_creation_impact(
+        db,
         entity_type=request.client.entity_type,
         vat_reporting_frequency=preview_vat_reporting_frequency(
             request.client.entity_type,
