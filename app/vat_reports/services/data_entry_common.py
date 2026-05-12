@@ -8,9 +8,12 @@ from app.core.exceptions import AppError
 from app.common.enums import EntityType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
+from app.vat_reports.integrations.tax_rules_financials import (
+    get_financial_value,
+    get_vat_deduction_rate_for_category,
+)
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from tax_rules import get_financial, get_vat_deduction_rate
 from app.vat_reports.services.constants import (
     OSEK_PATUR_CEILING_WARNING_RATE,
     VALID_TRANSITIONS,
@@ -101,9 +104,11 @@ def resolve_invoice_derived_fields(
 
     deduction_rate = Decimal("1.0000")
     if invoice_type == InvoiceType.EXPENSE and expense_category:
-        deduction_rate = Decimal(str(get_vat_deduction_rate(expense_category.value)))
+        deduction_rate = Decimal(
+            str(get_vat_deduction_rate_for_category(year, expense_category.value))
+        )
     threshold = Decimal(
-        str(get_financial(year, "exceptional_invoice_threshold_ils").value)
+        str(get_financial_value(year, "exceptional_invoice_threshold_ils").value)
     )
     is_exceptional = Decimal(str(net_amount)) > threshold
     return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
@@ -124,7 +129,7 @@ def check_osek_patur_ceiling(
     if not is_osek_patur:
         return False
     year = int(period[:4])
-    ceiling = Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))
+    ceiling = Decimal(str(get_financial_value(year, "osek_patur_ceiling_ils").value))
     current_total = Decimal(
         str(invoice_repo.sum_income_net_by_client_year(client_record_id, year))
     )

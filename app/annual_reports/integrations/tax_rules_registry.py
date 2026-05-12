@@ -18,6 +18,18 @@ def get_credit_point_annual_value(tax_year: int) -> float:
     return float(get_credit_point_config(tax_year).annual_value_ils)
 
 
+def get_income_tax_brackets_for_year(tax_year: int):
+    from tax_rules import get_income_tax_brackets
+
+    return get_income_tax_brackets(tax_year)
+
+
+def get_ni_brackets_for_year(tax_year: int):
+    from tax_rules import get_ni_brackets
+
+    return get_ni_brackets(tax_year)
+
+
 def get_supported_tax_years() -> list[int]:
     from tax_rules.registry import get_supported_years
 

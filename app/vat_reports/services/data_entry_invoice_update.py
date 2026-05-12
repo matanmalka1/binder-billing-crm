@@ -11,9 +11,12 @@ from app.vat_reports.models.vat_enums import (
     ExpenseCategory,
     VatRateType,
 )
+from app.vat_reports.integrations.tax_rules_financials import (
+    get_financial_value,
+    get_vat_deduction_rate_for_category,
+)
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
-from tax_rules import get_financial, get_vat_deduction_rate
 from app.vat_reports.services.constants import ACTION_INVOICE_UPDATED
 from app.vat_reports.services.data_entry_common import (
     audit_invoice_snapshot,
@@ -106,10 +109,12 @@ def update_invoice(
             int(item.period[:4]),
         )
     if expense_category is not None:
-        update_fields["deduction_rate"] = get_vat_deduction_rate(expense_category.value)
+        update_fields["deduction_rate"] = get_vat_deduction_rate_for_category(
+            int(item.period[:4]), expense_category.value
+        )
     _threshold = Decimal(
         str(
-            get_financial(
+            get_financial_value(
                 int(item.period[:4]), "exceptional_invoice_threshold_ils"
             ).value
         )

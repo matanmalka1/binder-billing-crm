@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDecimal
-from tax_rules import get_financial
+from app.vat_reports.integrations.tax_rules_financials import get_financial_value
 
 
 def derive_id_number_type(entity_type: EntityType) -> IdNumberType:
@@ -29,7 +29,7 @@ def normalize_vat_exempt_ceiling(
 ) -> Optional[ApiDecimal]:
     if entity_type == EntityType.OSEK_PATUR:
         year = date.today().year
-        return Decimal(str(get_financial(year, "osek_patur_ceiling_ils").value))
+        return Decimal(str(get_financial_value(year, "osek_patur_ceiling_ils").value))
     return None
 
 

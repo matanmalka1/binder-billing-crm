@@ -5,11 +5,11 @@ from dataclasses import dataclass
 from app.annual_reports.integrations.tax_rules_registry import (
     get_credit_point_annual_value,
     get_default_resident_credit_points,
+    get_income_tax_brackets_for_year,
     get_supported_tax_years,
 )
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from app.core.exceptions import AppError
-from tax_rules import get_income_tax_brackets
 from tax_rules.statutory import (
     DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE,
     DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS,
@@ -61,7 +61,7 @@ def calculate_tax(
     other_credits = float(other_credits)
 
     try:
-        year_brackets = get_income_tax_brackets(tax_year)
+        year_brackets = get_income_tax_brackets_for_year(tax_year)
         credit_point_value = get_credit_point_annual_value(tax_year)
     except KeyError as exc:
         raise AppError(
