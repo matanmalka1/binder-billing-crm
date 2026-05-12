@@ -136,7 +136,7 @@ def bulk_charge_action(
     request: BulkChargeActionRequest,
     db: DBSession,
     user: CurrentUser,
-    x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
+    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
 ):
     """Apply action to multiple charges in bulk (ADVISOR only)."""
     service = BulkBillingService(db)

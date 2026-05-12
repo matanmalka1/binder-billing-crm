@@ -30,18 +30,18 @@ def _ensure_original_immutable(target: VatWorkItem) -> None:
 
 
 @event.listens_for(VatWorkItem.due_date_original, "set", active_history=True)
-def _load_original_history(target, value, oldvalue, initiator):
+def _load_original_history(target, value, _oldvalue, _initiator):
     return value
 
 
 @event.listens_for(VatWorkItem, "before_insert")
-def _before_insert(mapper, connection, target: VatWorkItem) -> None:
+def _before_insert(_mapper, _connection, target: VatWorkItem) -> None:
     _default_due_date_snapshots(target)
     _require_override_reason(target)
 
 
 @event.listens_for(VatWorkItem, "before_update")
-def _before_update(mapper, connection, target: VatWorkItem) -> None:
+def _before_update(_mapper, _connection, target: VatWorkItem) -> None:
     _ensure_original_immutable(target)
     _default_due_date_snapshots(target)
     _require_override_reason(target)

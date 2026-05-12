@@ -94,7 +94,7 @@ class ExpenseLineResponse(BaseModel):
             )
         return instance
 
-    def model_post_init(self, __context) -> None:
+    def model_post_init(self, __context: object) -> None:
         object.__setattr__(
             self,
             "recognized_amount",

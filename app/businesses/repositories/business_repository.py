@@ -106,8 +106,8 @@ class BusinessRepository(BaseRepository[Business]):
     def has_conflicting_sole_trader(
         self,
         client_record_id: int,
-        new_type,
-        exclude_business_id: int | None = None,
+        _new_type,
+        _exclude_business_id: int | None = None,
     ) -> bool:
         return False
 

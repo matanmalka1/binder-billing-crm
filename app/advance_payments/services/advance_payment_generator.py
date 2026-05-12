@@ -8,12 +8,13 @@ from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
-from app.advance_payments.services.constants import (
-    build_due_date,
-    get_period_start_months,
-)
+from app.advance_payments.services.constants import get_period_start_months
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+from app.common.enums import ObligationType
 from app.core.exceptions import ConflictError
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 
 
 def generate_annual_schedule(
@@ -27,7 +28,7 @@ def generate_annual_schedule(
     יוצר רשומות מקדמה ללקוח ולשנה נתונים.
     - period_months_count=1: 12 רשומות חודשיות (YYYY-MM)
     - period_months_count=2: 6 רשומות דו-חודשיות (YYYY-MM של חודש ראשון)
-    תאריך יעד: ה-15 לחודש שאחרי התקופה.
+    תאריך יעד: מתוך רשומת יומן המס לתקופה.
     מדלג על תקופות שכבר קיימות (אידמפוטנטי).
     מדלג על תקופות שתאריך היעד שלהן לפני reference_date (ברירת מחדל: היום).
     מחזיר (created_records, skipped_count).
@@ -46,6 +47,7 @@ def generate_annual_schedule(
             "ADVANCE_PAYMENT.FREQUENCY_MISMATCH",
         )
     repo = AdvancePaymentRepository(db)
+    tax_calendar = TaxCalendarMaterializationService(db)
     suggested: Optional[Decimal] = service.suggest_expected_amount_for_client(
         client_record_id, year, period_months_count
     )
@@ -57,8 +59,12 @@ def generate_annual_schedule(
 
     for month in start_months:
         period = f"{year}-{month:02d}"
-        due_date = build_due_date(year, month, period_months_count)
-        if due_date < reference_date:
+        entry = tax_calendar.ensure_periodic_entry(
+            ObligationType.ADVANCE_PAYMENT,
+            period,
+            period_months_count,
+        )
+        if entry.due_date < reference_date:
             skipped += 1
             continue
         if repo.exists_for_period(client_record_id, period):
@@ -69,7 +75,7 @@ def generate_annual_schedule(
             client_record_id=client_record_id,
             period=period,
             period_months_count=period_months_count,
-            due_date=due_date,
+            due_date=entry.due_date,
             expected_amount=suggested,
         )
         created.append(payment)
