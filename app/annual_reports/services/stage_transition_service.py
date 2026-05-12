@@ -5,7 +5,7 @@ from .base import AnnualReportBaseService
 from .messages import INVALID_STAGE_ERROR
 
 
-class AnnualReportStageTransitionService(AnnualReportBaseService):
+class AnnualReportStageTransitionService(AnnualReportBaseService):  # pylint: disable=no-member
     def transition_stage(
         self,
         report_id: int,

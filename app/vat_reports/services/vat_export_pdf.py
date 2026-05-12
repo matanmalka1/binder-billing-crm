@@ -44,10 +44,10 @@ def export_vat_to_pdf(
         )
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
             "הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab"
-        )
+        ) from exc
 
     font_name = "Assistant"
     font_name_bold = "Assistant-Bold"

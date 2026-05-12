@@ -191,13 +191,13 @@ class PermanentDocumentService:
             existing.superseded_by = document.id
         try:
             self.db.commit()
-        except IntegrityError:
+        except IntegrityError as exc:
             self.db.rollback()
             raise AppError(
                 VERSION_CONFLICT_ERROR,
                 "DOCUMENT.VERSION_CONFLICT",
                 status_code=409,
-            )
+            ) from exc
         self.db.refresh(document)
         return document
 

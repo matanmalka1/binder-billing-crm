@@ -105,11 +105,11 @@ class TaxCalendarMaterializationService:
     def _resolve_required_rule(self, rule_type, on_date: date):
         try:
             return _resolve_rule(self.db, rule_type=rule_type, on_date=on_date)
-        except LookupError:
+        except LookupError as exc:
             raise AppError(
                 "לא מוגדר כלל מועד מתאים ליומן המס",
                 "TAX_CALENDAR.DEADLINE_RULE_MISSING",
-            )
+            ) from exc
 
     def _insert_or_refetch(self, entity, refetch):
         savepoint = self.db.begin_nested()
@@ -157,10 +157,10 @@ class TaxCalendarMaterializationService:
     def _obligation(value):
         try:
             return value if isinstance(value, ObligationType) else ObligationType(value)
-        except ValueError:
+        except ValueError as exc:
             raise AppError(
                 "סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE"
-            )
+            ) from exc
 
     @staticmethod
     def _parse_period(period: str) -> tuple[int, int]:
@@ -172,8 +172,8 @@ class TaxCalendarMaterializationService:
     def _parse_tax_year(tax_year) -> int:
         try:
             year = int(tax_year)
-        except (TypeError, ValueError):
-            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
+        except (TypeError, ValueError) as exc:
+            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR") from exc
         if year < 1900 or year > 2200:
             raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
         return year

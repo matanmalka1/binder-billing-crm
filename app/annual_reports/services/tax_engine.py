@@ -59,14 +59,14 @@ def calculate_tax(
     try:
         year_brackets = get_income_tax_brackets(tax_year)
         credit_point_value = get_credit_point_config(tax_year).annual_value_ils
-    except KeyError:
+    except KeyError as exc:
         raise AppError(
             UNSUPPORTED_TAX_YEAR_ERROR.format(
                 tax_year=tax_year, supported_years=list(_get_supported_years())
             ),
             "TAX_ENGINE.INVALID_INPUT",
             status_code=400,
-        )
+        ) from exc
 
     deduction = min(max(pension_deduction, 0.0), max(taxable_income, 0.0))
     adjusted_income = taxable_income - deduction

@@ -1,0 +1,47 @@
+[tool.pylint.main]
+ignore = [
+  ".venv",
+  "venv",
+  "migrations",
+  "__pycache__",
+]
+
+[tool.pylint.messages_control]
+disable = ["all"]
+enable = [
+  # real bugs
+  "undefined-variable",
+  "used-before-assignment",
+  "unreachable",
+  "not-callable",
+  "no-member",
+
+  # imports / dead code
+  "unused-import",
+  "unused-variable",
+  "unused-argument",
+
+  # risky code
+  "dangerous-default-value",
+  "broad-exception-caught",
+  "bare-except",
+  "raise-missing-from",
+
+  # architecture smells
+  "duplicate-code",
+  "cyclic-import",
+  "too-many-branches",
+  "too-many-statements",
+  "too-many-locals",
+]
+
+[tool.pylint.similarities]
+min-similarity-lines = 12
+ignore-comments = true
+ignore-docstrings = true
+ignore-imports = true
+
+[tool.pylint.design]
+max-branches = 12
+max-statements = 50
+max-locals = 18

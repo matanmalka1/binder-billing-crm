@@ -94,11 +94,11 @@ class BusinessService:
                 notes=notes,
                 created_by=actor_id,
             )
-        except IntegrityError:
+        except IntegrityError as exc:
             raise ConflictError(
                 f"שגיאת כפילות ביצירת עסק ללקוח {client_record_id}",
                 "BUSINESS.CONFLICT",
-            )
+            ) from exc
 
         self._audit.record_create(
             ENTITY_BUSINESS,
@@ -156,12 +156,12 @@ class BusinessService:
         if "status" in fields and fields["status"] is not None:
             try:
                 fields["status"] = BusinessStatus(fields["status"])
-            except ValueError:
+            except ValueError as exc:
                 raise AppError(
                     f"סטטוס לא חוקי: {fields['status']}",
                     "BUSINESS.INVALID_STATUS",
                     status_code=400,
-                )
+                ) from exc
 
         new_status = fields.get("status")
         if new_status in (BusinessStatus.FROZEN, BusinessStatus.CLOSED):

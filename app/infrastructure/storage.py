@@ -123,11 +123,11 @@ class S3StorageProvider(StorageProvider):
         try:
             import boto3
             from botocore.config import Config
-        except ImportError:
+        except ImportError as exc:
             raise RuntimeError(
                 "הספרייה boto3 נדרשת עבור S3StorageProvider. "
                 "יש להתקין באמצעות: pip install boto3"
-            )
+            ) from exc
 
         self._bucket = bucket_name
         self._endpoint_url = endpoint_url

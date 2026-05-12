@@ -40,7 +40,7 @@ def export_clients(db: DBSession):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
-        )
+        ) from exc
 
     return FileResponse(
         path=result["filepath"],
@@ -59,7 +59,7 @@ def download_client_template(db: DBSession):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
-        )
+        ) from exc
 
     return FileResponse(
         path=result["filepath"],

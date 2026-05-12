@@ -7,7 +7,6 @@ from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 from app.users.services.auth_service import AuthService
 from app.users.services.user_management_policies import (
-    MIN_PASSWORD_LENGTH,
     ensure_advisor,
     validate_password,
 )

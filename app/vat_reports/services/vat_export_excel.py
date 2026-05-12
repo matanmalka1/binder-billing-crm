@@ -20,10 +20,10 @@ def export_vat_to_excel(
     try:
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
-    except ImportError:
+    except ImportError as exc:
         raise ImportError(
             "הספרייה openpyxl נדרשת. יש להתקין באמצעות: pip install openpyxl"
-        )
+        ) from exc
 
     wb = openpyxl.Workbook()
     ws = wb.active

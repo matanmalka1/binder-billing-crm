@@ -39,11 +39,11 @@ def get_current_user(
     try:
         user_id = int(payload["sub"])
         token_version = int(payload["tv"])
-    except (ValueError, KeyError):
+    except (ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="פורמט הטוקן אינו תקין",
-        )
+        ) from exc
 
     user_repo = UserRepository(db)
     user = user_repo.get_by_id(user_id)

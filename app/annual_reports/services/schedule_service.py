@@ -29,11 +29,11 @@ class AnnualReportScheduleService(AnnualReportBaseService):
     def _parse_schedule(self, schedule: str) -> AnnualReportSchedule:
         try:
             return AnnualReportSchedule(schedule)
-        except ValueError:
+        except ValueError as exc:
             raise AppError(
                 INVALID_SCHEDULE_ERROR.format(schedule=schedule),
                 "ANNUAL_REPORT.INVALID_TYPE",
-            )
+            ) from exc
 
     def get_schedules(self, report_id: int):
         self._get_or_raise(report_id)
