@@ -5,7 +5,7 @@ from openpyxl import Workbook, load_workbook
 
 from app.clients.models.client_record import ClientRecord
 from app.clients.services.client_creation_service import ClientCreationService
-from app.common.enums import EntityType
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.services.client_excel_service import ClientExcelService
 from app.clients.services.client_query_service import ClientQueryService
 from app.common.enums import IdNumberType
@@ -50,6 +50,27 @@ def test_client_excel_import_collects_required_field_errors(test_db):
     assert created == 0
     assert len(errors) == 3
     assert {err["row"] for err in errors} == {2, 3, 4}
+
+
+def test_client_excel_import_uses_tax_defaults_for_legacy_template(test_db):
+    service = ClientExcelService(test_db)
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["full_name", "business_name", "id_number", "phone", "email"])
+    ws.append(["Imported Name", "Imported Business", "123456789", "", ""])
+    calls = []
+
+    class _ClientSvc:
+        def create_client(self, **kwargs):
+            calls.append(kwargs)
+
+    created, errors = service.import_clients_from_excel(wb, _ClientSvc(), actor_id=1)
+
+    assert created == 1
+    assert errors == []
+    assert calls[0]["entity_type"] == EntityType.OSEK_MURSHE
+    assert calls[0]["vat_reporting_frequency"] == VatType.BIMONTHLY
+    assert calls[0]["advance_payment_frequency"] == AdvancePaymentFrequency.BIMONTHLY
 
 
 def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
@@ -111,6 +132,8 @@ def test_client_excel_export_and_template_generate_files(test_db):
     assert template_ws.cell(row=2, column=1).value == "יוסי כהן"
     assert template_ws.cell(row=1, column=2).value == "Business Name"
     assert template_ws.cell(row=2, column=2).value == "יוסי כהן ייעוץ"
+    assert template_ws.cell(row=1, column=6).value == "Entity Type (optional)"
+    assert template_ws.cell(row=2, column=6).value == "osek_murshe"
 
 
 def test_client_excel_create_workbook_importerror(monkeypatch, test_db):

@@ -8,11 +8,16 @@ from sqlalchemy.orm import Session
 from app.clients.constants import (
     CLIENT_EXCEL_FREEZE_PANES,
     CLIENT_EXCEL_SHEET_TITLE,
+    CLIENT_IMPORT_DEFAULT_ADVANCE_PAYMENT_FREQUENCY,
+    CLIENT_IMPORT_DEFAULT_ENTITY_TYPE,
+    CLIENT_IMPORT_DEFAULT_VAT_REPORTING_FREQUENCY,
     CLIENT_EXPORT_COLUMNS,
     MAX_CLIENT_IMPORT_UPLOAD_SIZE,
     CLIENT_TEMPLATE_COLUMNS,
     CLIENT_TEMPLATE_SAMPLE_ROW,
 )
+from app.clients.create_policy import derive_id_number_type
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 if TYPE_CHECKING:
@@ -115,10 +120,29 @@ class ClientExcelService:
 
             savepoint = self.db.begin_nested()
             try:
+                entity_type = self._enum_value(
+                    values["entity_type"],
+                    EntityType,
+                    default=CLIENT_IMPORT_DEFAULT_ENTITY_TYPE,
+                )
+                vat_reporting_frequency = self._enum_value(
+                    values["vat_reporting_frequency"],
+                    VatType,
+                    default=CLIENT_IMPORT_DEFAULT_VAT_REPORTING_FREQUENCY,
+                )
+                advance_payment_frequency = self._enum_value(
+                    values["advance_payment_frequency"],
+                    AdvancePaymentFrequency,
+                    default=CLIENT_IMPORT_DEFAULT_ADVANCE_PAYMENT_FREQUENCY,
+                )
                 create_client_service.create_client(
                     full_name=full_name,
                     business_name=business_name,
                     id_number=id_number,
+                    id_number_type=derive_id_number_type(entity_type),
+                    entity_type=entity_type,
+                    vat_reporting_frequency=vat_reporting_frequency,
+                    advance_payment_frequency=advance_payment_frequency,
                     phone=values["phone"] or None,
                     email=values["email"] or None,
                     actor_id=actor_id,
@@ -175,3 +199,11 @@ class ClientExcelService:
             raw_value = row[index] if len(row) > index else None
             values[field_name] = str(raw_value).strip() if raw_value is not None else ""
         return values
+
+    def _enum_value(self, raw_value: str, enum_type, *, default):
+        if not raw_value:
+            return default
+        try:
+            return enum_type(raw_value)
+        except ValueError as exc:
+            raise ValueError(f"ערך לא תקין: {raw_value}") from exc

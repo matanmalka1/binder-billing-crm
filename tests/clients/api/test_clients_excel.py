@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from starlette.datastructures import UploadFile
 
 from app.clients.api import clients_excel as clients_excel_api
+from app.clients.models.client_record import ClientRecord
 
 IDEMPOTENCY_HEADER = {"X-Idempotency-Key": "clients-import-test-key"}
 
@@ -141,6 +142,45 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkey
     assert body["total_rows"] == 3
     assert len(body["errors"]) == 1
     assert {err["row"] for err in body["errors"]} == {4}
+
+
+def test_import_clients_excel_creates_client_from_legacy_template(
+    client, test_db, advisor_headers
+):
+    payload = _workbook_bytes(
+        [
+            [
+                "Full Name",
+                "Business Name",
+                "ID Number",
+                "Phone (optional)",
+                "Email (optional)",
+            ],
+            [
+                "יוסי כהן",
+                "יוסי כהן ייעוץ",
+                "123456789",
+                "0501234567",
+                "yossi@example.com",
+            ],
+        ]
+    )
+
+    response = client.post(
+        "/api/v1/clients/import",
+        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
+        files={
+            "file": (
+                "clients.xlsx",
+                payload,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["created"] == 1
+    assert test_db.query(ClientRecord).count() == 1
 
 
 def test_import_clients_excel_rejects_large_content_length(client, advisor_headers):

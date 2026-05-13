@@ -1,4 +1,4 @@
-from app.common.enums import EntityType
+from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.annual_reports.models.annual_report_enums import ClientTypeForReport
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -21,6 +21,9 @@ CLIENT_TEMPLATE_COLUMNS = [
     ("id_number", "ID Number"),
     ("phone", "Phone (optional)"),
     ("email", "Email (optional)"),
+    ("entity_type", "Entity Type (optional)"),
+    ("vat_reporting_frequency", "VAT Frequency (optional)"),
+    ("advance_payment_frequency", "Advance Payment Frequency (optional)"),
 ]
 
 CLIENT_TEMPLATE_SAMPLE_ROW = [
@@ -29,9 +32,15 @@ CLIENT_TEMPLATE_SAMPLE_ROW = [
     "123456789",
     "0501234567",
     "yossi@example.com",
+    "osek_murshe",
+    "bimonthly",
+    "bimonthly",
 ]
 CLIENT_EXCEL_SHEET_TITLE = "Clients"
 CLIENT_EXCEL_FREEZE_PANES = "A2"
+CLIENT_IMPORT_DEFAULT_ENTITY_TYPE = EntityType.OSEK_MURSHE
+CLIENT_IMPORT_DEFAULT_VAT_REPORTING_FREQUENCY = VatType.BIMONTHLY
+CLIENT_IMPORT_DEFAULT_ADVANCE_PAYMENT_FREQUENCY = AdvancePaymentFrequency.BIMONTHLY
 
 CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH = 10
 CLIENT_OBLIGATION_TRIGGER_FIELDS = frozenset(
