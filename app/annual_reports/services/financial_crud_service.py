@@ -23,9 +23,6 @@ from app.annual_reports.schemas.annual_report_financials import (
     FinancialSummaryResponse,
     IncomeLineResponse,
 )
-from app.annual_reports.services.financial_summary_builder import (
-    build_financial_summary,
-)
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.annual_reports.services.messages import (
     CLIENT_CLOSED_CREATE_WORK_ERROR,
@@ -259,7 +256,28 @@ class FinancialCrudMixin:
         )
 
     def get_financial_summary(self, report_id: int) -> FinancialSummaryResponse:
-        return build_financial_summary(self, report_id)
+        return self._build_financial_summary(report_id)
+
+    def _build_financial_summary(self, report_id: int) -> FinancialSummaryResponse:
+        self._get_report_or_raise(report_id)
+        income_lines = self.income_repo.list_by_report(report_id)
+        expense_lines = self.expense_repo.list_by_report(report_id)
+        total_income = self.income_repo.total_income(report_id)
+        gross_expenses = self.expense_repo.total_expenses(report_id)
+        recognized_expenses = self.expense_repo.total_recognized_expenses(report_id)
+        return FinancialSummaryResponse(
+            annual_report_id=report_id,
+            total_income=float(total_income),
+            gross_expenses=float(gross_expenses),
+            recognized_expenses=float(recognized_expenses),
+            taxable_income=float(total_income - recognized_expenses),
+            income_lines=[
+                IncomeLineResponse.model_validate(line) for line in income_lines
+            ],
+            expense_lines=[
+                ExpenseLineResponse.model_validate(line) for line in expense_lines
+            ],
+        )
 
 
 __all__ = ["FinancialCrudMixin"]

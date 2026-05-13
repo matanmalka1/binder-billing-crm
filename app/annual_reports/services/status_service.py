@@ -1,7 +1,10 @@
 from typing import Optional
 from datetime import datetime
 
-from app.audit.constants import ENTITY_ANNUAL_REPORT
+from app.audit.constants import (
+    ACTION_ANNUAL_REPORT_DEADLINE_UPDATED,
+    ENTITY_ANNUAL_REPORT,
+)
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.core.exceptions import AppError, NotFoundError
 from app.annual_reports.models.annual_report_enums import (
@@ -13,18 +16,40 @@ from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.utils.time_utils import utcnow
 from .constants import VALID_TRANSITIONS
-from .deadlines import standard_deadline
+from .deadlines import extended_deadline, standard_deadline
 from .base import AnnualReportBaseService
 from .messages import (
+    CUSTOM_DEADLINE_LABEL,
+    DEADLINE_UPDATED_NOTE,
     INVALID_ANNUAL_REPORT_STATUS,
+    INVALID_DEADLINE_TYPE_ERROR,
     INVALID_STATUS_TRANSITION,
     REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON,
     REPORT_NOT_READY_FOR_SUBMISSION,
     STATUS_CHANGE_CANCEL_SIGNATURE_REASON,
     ANNUAL_REPORT_NOT_FOUND,
 )
-from .status_deadline_update import update_report_deadline
 from .status_signature_helper import AnnualReportSignatureHelper
+
+
+def _deadline_note(deadline_type, filing_deadline, custom_deadline_note):
+    note = DEADLINE_UPDATED_NOTE.format(
+        deadline_type=deadline_type.value,
+        filing_deadline=filing_deadline.strftime("%d/%m/%Y")
+        if filing_deadline
+        else CUSTOM_DEADLINE_LABEL,
+    )
+    return note + (f" — {custom_deadline_note}" if custom_deadline_note else "")
+
+
+def _deadline_snapshot(report):
+    return {
+        "deadline_type": report.deadline_type.value
+        if hasattr(report.deadline_type, "value")
+        else report.deadline_type,
+        "filing_deadline": report.filing_deadline,
+        "custom_deadline_note": report.custom_deadline_note,
+    }
 
 
 class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseService):
@@ -163,7 +188,57 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
         changed_by_name: str,
         custom_deadline_note: Optional[str] = None,
     ) -> AnnualReportResponse:
-        updated = update_report_deadline(
-            self, report_id, deadline_type, changed_by, custom_deadline_note
+        updated = self._update_deadline(
+            report_id, deadline_type, changed_by, custom_deadline_note
         )
         return self._to_responses([updated])[0]
+
+    def _update_deadline(
+        self,
+        report_id: int,
+        deadline_type: str,
+        changed_by: int,
+        custom_deadline_note=None,
+    ):
+        report = self._get_or_raise_for_update(report_id)
+        old_value = _deadline_snapshot(report)
+        valid_deadline_types = {e.value for e in FilingDeadlineType}
+        if deadline_type not in valid_deadline_types:
+            raise AppError(
+                INVALID_DEADLINE_TYPE_ERROR.format(deadline_type=deadline_type),
+                "ANNUAL_REPORT.INVALID_TYPE",
+            )
+        dt = FilingDeadlineType(deadline_type)
+        if dt == FilingDeadlineType.STANDARD:
+            filing_deadline = standard_deadline(
+                report.tax_year,
+                client_type=report.client_type,
+                submission_method=report.submission_method,
+            )
+        elif dt == FilingDeadlineType.EXTENDED:
+            filing_deadline = extended_deadline(report.tax_year)
+        else:
+            filing_deadline = None
+        updated = self.repo.update(
+            report_id,
+            report=report,
+            deadline_type=dt,
+            filing_deadline=filing_deadline,
+            custom_deadline_note=custom_deadline_note,
+        )
+        self.repo.append_status_history(
+            annual_report_id=report_id,
+            from_status=updated.status,
+            to_status=updated.status,
+            changed_by=changed_by,
+            note=_deadline_note(dt, filing_deadline, custom_deadline_note),
+        )
+        EntityAuditWriter(self.db).append(
+            entity_type=ENTITY_ANNUAL_REPORT,
+            entity_id=report_id,
+            actor_id=changed_by,
+            action=ACTION_ANNUAL_REPORT_DEADLINE_UPDATED,
+            old_value=old_value,
+            new_value=_deadline_snapshot(updated),
+        )
+        return updated
