@@ -6,7 +6,7 @@ from tax_rules import get_financial
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models import AnnualReport
 from app.binders.models.binder import Binder
-from app.clients.services.client_creation_service import ClientCreationService
+from app.clients.services.create_client_service import create_client_identity_only
 from app.clients.services.impact_preview_service import compute_creation_impact
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
@@ -44,7 +44,8 @@ def test_preview_impact_matches_actual_future_generation(test_db):
     assert "מועדי מקדמות" not in counts
     assert "מועד הגשת דוח שנתי" not in counts
 
-    client_record = ClientCreationService(test_db).create_client(
+    client_record = create_client_identity_only(
+        test_db,
         full_name="Preview Match Client",
         id_number="123456780",
         id_number_type=IdNumberType.INDIVIDUAL,

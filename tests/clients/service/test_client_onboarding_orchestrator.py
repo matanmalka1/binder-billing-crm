@@ -4,10 +4,10 @@ from sqlalchemy import text
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.clients.services.client_creation_service import ClientCreationService
 from app.clients.services.client_onboarding_orchestrator import (
     ClientOnboardingOrchestrator,
 )
+from app.clients.services.create_client_service import create_client_identity_only
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -15,7 +15,8 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_vat_client(test_db, id_number: str):
-    return ClientCreationService(test_db).create_client(
+    return create_client_identity_only(
+        test_db,
         full_name="VAT Onboarding Client",
         id_number=id_number,
         id_number_type=IdNumberType.INDIVIDUAL,
@@ -134,7 +135,8 @@ def test_onboarding_exempt_client_creates_no_vat_items(test_db):
 
 def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):
     """VAT bimonthly, advance monthly → 12 independent advance payments (not 6)."""
-    client_record = ClientCreationService(test_db).create_client(
+    client_record = create_client_identity_only(
+        test_db,
         full_name="VAT Bimonthly Advance Monthly Client",
         id_number="123456790",
         id_number_type=IdNumberType.INDIVIDUAL,

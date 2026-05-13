@@ -6,7 +6,7 @@ import pytest
 
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.clients.services.client_service import ClientService
+from app.clients.services.client_update_service import ClientUpdateService
 from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.exceptions import ForbiddenError
 from app.users.models.user import User, UserRole
@@ -67,7 +67,7 @@ def _setup(db) -> tuple:
 
 def test_secretary_cannot_change_entity_type(test_db):
     cr, advisor, secretary = _setup(test_db)
-    service = ClientService(test_db)
+    service = ClientUpdateService(test_db)
 
     with pytest.raises(ForbiddenError):
         service.update_client(
@@ -81,7 +81,7 @@ def test_secretary_cannot_change_entity_type(test_db):
 def test_advisor_can_change_entity_type(test_db):
     cr, advisor, secretary = _setup(test_db)
 
-    service = ClientService(test_db)
+    service = ClientUpdateService(test_db)
     service.update_client(
         cr.id,
         actor_id=advisor.id,
@@ -97,7 +97,7 @@ def test_advisor_can_change_entity_type(test_db):
 def test_entity_type_change_logs_audit_entry(test_db):
     cr, advisor, secretary = _setup(test_db)
 
-    service = ClientService(test_db)
+    service = ClientUpdateService(test_db)
     service.update_client(
         cr.id,
         actor_id=advisor.id,

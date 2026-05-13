@@ -7,7 +7,7 @@ from app.binders.schemas.binder_extended import (
     BinderListResponseExtended,
 )
 from app.binders.services.binder_operations_service import BinderOperationsService
-from app.clients.services.client_service import ClientService
+from app.clients.services.client_service import get_client_or_raise
 
 router = APIRouter(
     prefix="/clients",
@@ -24,7 +24,7 @@ def list_client_binders(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List all binders for a specific client."""
-    ClientService(db).get_client_or_raise(client_record_id)
+    get_client_or_raise(db, client_record_id)
 
     service = BinderOperationsService(db)
     items, total = service.get_client_binders(

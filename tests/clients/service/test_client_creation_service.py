@@ -7,15 +7,14 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
-from app.clients.services.client_creation_service import ClientCreationService
+from app.clients.services.create_client_service import create_client_identity_only
 from app.common.enums import EntityType, IdNumberType
 
 
 def test_create_client_rejects_employee_entity_type(test_db):
-    service = ClientCreationService(test_db)
-
     with pytest.raises(ValueError, match="שכיר"):
-        service.create_client(
+        create_client_identity_only(
+            test_db,
             full_name="Client Identity",
             id_number="123456780",
             id_number_type=IdNumberType.INDIVIDUAL,
@@ -29,9 +28,8 @@ def test_create_client_rejects_employee_entity_type(test_db):
 
 
 def test_create_client_creates_identity_graph(test_db):
-    service = ClientCreationService(test_db)
-
-    client_record = service.create_client(
+    client_record = create_client_identity_only(
+        test_db,
         full_name="Client Identity",
         id_number="123456780",
         id_number_type=IdNumberType.INDIVIDUAL,

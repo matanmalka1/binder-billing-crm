@@ -1,12 +1,12 @@
 from app.common.enums import EntityType, IdNumberType
+from app.clients.repositories.client_graph_writer import apply_graph_update
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.services.client_update_service import apply_graph_update
-from app.clients.services.client_creation_service import ClientCreationService
+from app.clients.services.create_client_service import create_client_identity_only
 
 
 def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False):
-    svc = ClientCreationService(db)
-    record = svc.create_client(
+    record = create_client_identity_only(
+        db,
         full_name=full_name,
         id_number=id_number,
         id_number_type=IdNumberType.CORPORATION,
@@ -21,8 +21,8 @@ def _create_client(db, *, full_name: str, id_number: str, deleted: bool = False)
 
 def test_create_and_get_by_id_filters_deleted(test_db):
     repo = ClientRecordRepository(test_db)
-    svc = ClientCreationService(test_db)
-    created = svc.create_client(
+    created = create_client_identity_only(
+        test_db,
         full_name="Repo Client",
         id_number="100000001",
         id_number_type=IdNumberType.CORPORATION,

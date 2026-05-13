@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError, NotFoundError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.services.client_service import ClientService
+from app.clients.services.client_service import get_client_or_raise
 from app.permanent_documents.services.constants import (
     ALLOWED_MIME_TYPES,
     MAX_FILE_SIZE_BYTES,
@@ -107,7 +107,7 @@ class PermanentDocumentService:
         mime_type: Optional[str] = None,
         legal_entity_id: Optional[int] = None,
     ) -> PermanentDocument:
-        ClientService(self.db).get_client_or_raise(client_record_id)
+        get_client_or_raise(self.db, client_record_id)
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             raise NotFoundError(
@@ -230,7 +230,7 @@ class PermanentDocumentService:
         document_type: Optional[str] = None,
         status: Optional[DocumentStatus] = None,
     ) -> list[PermanentDocument]:
-        ClientService(self.db).get_client_or_raise(client_record_id)
+        get_client_or_raise(self.db, client_record_id)
         client_record_id = self._get_client_record_id(client_record_id)
         return self.document_repo.list_by_client_record(
             client_record_id,
@@ -260,7 +260,7 @@ class PermanentDocumentService:
         return SignalsService(self.db).compute_business_operational_signals(business_id)
 
     def get_client_operational_signals(self, client_record_id: int) -> dict:
-        ClientService(self.db).get_client_or_raise(client_record_id)
+        get_client_or_raise(self.db, client_record_id)
         return {
             "client_record_id": client_record_id,
             "missing_documents": self.query_repo.missing_by_client_type(

@@ -23,7 +23,9 @@ from app.clients.services.create_client_service import (
     ClientCreationConflictError,
     CreateClientService,
 )
-from app.clients.services.client_service import ClientService
+from app.clients.services.client_lifecycle_service import ClientLifecycleService
+from app.clients.services.client_query_service import ClientQueryService
+from app.clients.services.client_update_service import ClientUpdateService
 from app.clients.services.impact_preview_service import compute_creation_impact
 
 router = APIRouter(
@@ -107,7 +109,7 @@ def list_clients(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """List clients with optional search, status filter, and sorting."""
-    service = ClientService(db)
+    service = ClientQueryService(db)
     result = service.list_full_clients(
         search=search,
         status=status_filter,
@@ -129,7 +131,7 @@ def get_client(
     tax_year: Optional[int] = Query(None, ge=2000, le=2100),
 ):
     """Get client by ID (client_id = ClientRecord.id)."""
-    service = ClientService(db)
+    service = ClientQueryService(db)
     return service.get_full_client(client_id, tax_year=tax_year)
 
 
@@ -139,7 +141,7 @@ def get_conflict_info(
     db: DBSession,
 ):
     """מחזיר מידע על קונפליקטים לת.ז. נתונה."""
-    service = ClientService(db)
+    service = ClientQueryService(db)
     return service.get_conflict_info(id_number)
 
 
@@ -154,14 +156,13 @@ def update_client(
     user: CurrentUser,
 ):
     """Update client identity fields by ClientRecord.id."""
-    service = ClientService(db)
-    service.update_client(
+    ClientUpdateService(db).update_client(
         client_id,
         actor_id=user.id,
         actor_role=user.role,
         **request.model_dump(exclude_unset=True),
     )
-    return service.get_full_client(client_id)
+    return ClientQueryService(db).get_full_client(client_id)
 
 
 # ─── Delete / Restore ─────────────────────────────────────────────────────────
@@ -174,8 +175,7 @@ def update_client(
 )
 def delete_client(client_id: int, db: DBSession, user: CurrentUser):
     """Soft-delete a client (ADVISOR only)."""
-    service = ClientService(db)
-    service.delete_client(client_id, actor_id=user.id)
+    ClientLifecycleService(db).delete_client(client_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -186,6 +186,5 @@ def delete_client(client_id: int, db: DBSession, user: CurrentUser):
 )
 def restore_client(client_id: int, db: DBSession, user: CurrentUser):
     """Restore a soft-deleted client (ADVISOR only)."""
-    service = ClientService(db)
-    service.restore_client(client_id, actor_id=user.id)
-    return service.get_full_client_including_deleted(client_id)
+    ClientLifecycleService(db).restore_client(client_id, actor_id=user.id)
+    return ClientQueryService(db).get_full_client_including_deleted(client_id)

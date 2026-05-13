@@ -17,8 +17,8 @@ from app.clients.services.client_excel_service import (
     ClientExcelImportError,
     ClientExcelService,
 )
+from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.create_client_service import CreateClientService
-from app.clients.services.client_service import ClientService
 
 MAX_UPLOAD_SIZE = MAX_CLIENT_IMPORT_UPLOAD_SIZE
 
@@ -32,10 +32,9 @@ router = APIRouter(
 @router.get("/export")
 def export_clients(db: DBSession):
     """Return all clients as an Excel workbook."""
-    client_service = ClientService(db)
     excel_service = ClientExcelService(db)
     try:
-        result = excel_service.export_clients(client_service.list_all_clients())
+        result = excel_service.export_clients(ClientQueryService(db).list_all_clients())
     except ImportError as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

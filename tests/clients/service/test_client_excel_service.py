@@ -4,10 +4,10 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 
 from app.clients.models.client_record import ClientRecord
-from app.clients.services.client_creation_service import ClientCreationService
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.services.client_excel_service import ClientExcelService
 from app.clients.services.client_query_service import ClientQueryService
+from app.clients.services.create_client_service import create_client_identity_only
 from app.common.enums import IdNumberType
 
 
@@ -80,11 +80,10 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
     ws.append(["full_name", "business_name", "id_number", "phone", "email"])
     ws.append(["Half Created", "Half Created Business", "ROLLBACK-1", "", ""])
 
-    creation_svc = ClientCreationService(test_db)
-
     class _ClientSvc:
         def create_client(self, **kwargs):
-            creation_svc.create_client(
+            create_client_identity_only(
+                test_db,
                 full_name=kwargs["full_name"],
                 id_number=kwargs["id_number"],
                 id_number_type=IdNumberType.INDIVIDUAL,
@@ -101,8 +100,8 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
 def test_client_excel_export_and_template_generate_files(test_db):
     service = ClientExcelService(test_db)
 
-    creation_svc = ClientCreationService(test_db)
-    client_record = creation_svc.create_client(
+    client_record = create_client_identity_only(
+        test_db,
         full_name="Excel Name",
         id_number="750000001",
         id_number_type=IdNumberType.CORPORATION,

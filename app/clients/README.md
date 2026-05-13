@@ -23,7 +23,7 @@ Comments:
 - Models: `app/clients/models/legal_entity.py`, `app/clients/models/client_record.py`, `app/clients/models/person.py`, `app/clients/models/person_legal_entity_link.py`
 - Schemas: `app/clients/schemas/client.py`, `app/clients/schemas/client_record_response.py`, `app/clients/schemas/impact.py`
 - Repositories: `app/clients/repositories/client_record_repository.py`, `app/clients/repositories/client_record_read_repository.py`, `app/clients/repositories/legal_entity_repository.py`, `app/clients/repositories/person_repository.py`, `app/clients/repositories/client_repository.py`
-- Services: `app/clients/services/client_service.py`, `app/clients/services/create_client_service.py`, `app/clients/services/client_creation_service.py`, `app/clients/services/client_query_service.py`, `app/clients/services/client_enrichment_service.py`, `app/clients/services/client_update_service.py`, `app/clients/services/client_lifecycle_service.py`, `app/clients/services/impact_preview_service.py`
+- Services: `app/clients/services/client_service.py`, `app/clients/services/create_client_service.py`, `app/clients/services/client_query_service.py`, `app/clients/services/client_enrichment_service.py`, `app/clients/services/client_update_service.py`, `app/clients/services/client_lifecycle_service.py`, `app/clients/services/impact_preview_service.py`
 - Guards: `app/clients/guards/client_record_guards.py`
 - API: `app/clients/api/clients.py`, `app/clients/api/clients_excel.py`
 - Enums: `app/clients/enums.py` (`ClientStatus`); entity/VAT/ID-type enums live in `app/common/enums.py`
