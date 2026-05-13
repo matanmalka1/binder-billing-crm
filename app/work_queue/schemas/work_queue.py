@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum as PyEnum
-from typing import Any, Optional
+from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class WorkQueueSourceType(str, PyEnum):
-    VAT_FILING = "vat_filing"
+    VAT_WORK_ITEM = "vat_work_item"
     ANNUAL_REPORT = "annual_report"
     ADVANCE_PAYMENT = "advance_payment"
-    UNPAID_CHARGE = "unpaid_charge"
+    CHARGE = "charge"
+    BINDER = "binder"
     TASK = "task"
-    STALE_BINDER = "stale_binder"
 
 
 class WorkQueueUrgency(str, PyEnum):
@@ -23,14 +23,62 @@ class WorkQueueUrgency(str, PyEnum):
     UPCOMING = "upcoming"
 
 
-class WorkQueueItem(BaseModel):
-    source_type: WorkQueueSourceType
+class WorkQueueSourceSummary(BaseModel):
+    source_type: str
     source_id: int
     label: str
+    route: Optional[str] = None
+
+
+class LinkedTaskSummary(BaseModel):
+    id: int
+    title: str
+    status: str
+    due_date: Optional[date] = None
+    priority: Optional[str] = None
+    assigned_user_id: Optional[int] = None
+    assigned_role: Optional[str] = None
+
+
+class WorkQueueWarning(BaseModel):
+    key: str
+    label: str
+    severity: Literal["info", "warning", "danger"] = "warning"
+
+
+class WorkQueueAction(BaseModel):
+    key: str
+    label: str
+    type: Literal["link", "mutation"]
+    route: Optional[str] = None
+    endpoint: Optional[str] = None
+    method: Optional[Literal["get", "post", "patch", "put", "delete"]] = None
+    payload_schema: Literal["none", "simple", "requires_input"] = "none"
+    confirm: bool = False
+    confirm_title: Optional[str] = None
+    confirm_message: Optional[str] = None
+    variant: Literal["primary", "secondary", "danger"] = "secondary"
+    disabled: bool = False
+    disabled_reason: Optional[str] = None
+
+
+class WorkQueueItem(BaseModel):
+    id: str
+    source_type: WorkQueueSourceType
+    source_id: int
+    title: str
+    description: Optional[str] = None
+    type_label: Optional[str] = None
+    status_label: Optional[str] = None
     due_date: Optional[date] = None
     urgency: WorkQueueUrgency
     client_record_id: Optional[int] = None
     client_name: Optional[str] = None
-    client_office_number: Optional[int] = None
+    office_client_number: Optional[int] = None
     business_id: Optional[int] = None
-    payload: Optional[dict[str, Any]] = None
+    source_summary: Optional[WorkQueueSourceSummary] = None
+    linked_tasks: list[LinkedTaskSummary] = Field(default_factory=list)
+    linked_tasks_count: int = 0
+    warnings: list[WorkQueueWarning] = Field(default_factory=list)
+    available_actions: list[WorkQueueAction] = Field(default_factory=list)
+    metadata: Optional[dict] = None

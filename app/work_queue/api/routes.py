@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
 from app.work_queue.schemas.work_queue import WorkQueueItem, WorkQueueSourceType
 from app.work_queue.services.work_queue_service import WorkQueueService
@@ -22,7 +22,6 @@ _LIMIT_DEFAULT = 50
 )
 def list_work_queue(
     db: DBSession,
-    _user: CurrentUser,
     client_record_id: Optional[int] = Query(None),
     business_id: Optional[int] = Query(None),
     exclude_source_types: Optional[List[WorkQueueSourceType]] = Query(None),

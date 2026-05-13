@@ -111,10 +111,10 @@ def test_approaching_task_urgency(test_db):
     assert match.urgency == WorkQueueUrgency.APPROACHING
 
 
-# ── Payload ───────────────────────────────────────────────────────────────────
+# ── Metadata ──────────────────────────────────────────────────────────────────
 
 
-def test_task_work_queue_item_payload(test_db):
+def test_task_work_queue_item_metadata(test_db):
     task = Task(
         title="Payload Task",
         status=TaskStatus.OPEN,
@@ -139,16 +139,16 @@ def test_task_work_queue_item_payload(test_db):
         if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
-    assert match.label == "Payload Task"
-    assert match.payload["status"] == "open"
-    assert match.payload["priority"] == "high"
-    assert match.payload["description"] == "Some details"
-    assert match.payload["assigned_to_user_id"] == 5
-    assert match.payload["assigned_role"] == "advisor"
-    assert match.payload["action_key"] == "review"
-    assert match.payload["action_payload"] == {"key": "val"}
-    assert match.payload["source_domain"] == "charge"
-    assert match.payload["source_id"] == 42
+    assert match.title == "Payload Task"
+    assert match.metadata["status"] == "open"
+    assert match.metadata["priority"] == "high"
+    assert match.metadata["description"] == "Some details"
+    assert match.metadata["assigned_to_user_id"] == 5
+    assert match.metadata["assigned_role"] == "advisor"
+    assert match.metadata["action_key"] == "review"
+    assert match.metadata["action_payload"] == {"key": "val"}
+    assert match.metadata["source_domain"] == "charge"
+    assert match.metadata["source_id"] == 42
 
 
 # ── Exclusion filter ──────────────────────────────────────────────────────────

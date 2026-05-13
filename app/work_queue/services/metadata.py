@@ -56,7 +56,7 @@ def _period_label(period: str, months_count: int) -> str:
     return f"{_MONTH_HE[start_month]}–{_MONTH_HE[end_month]} {year}"
 
 
-def vat_work_item_payload(item, due_date: date) -> dict[str, Any]:
+def vat_work_item_metadata(item, due_date: date) -> dict[str, Any]:
     return {
         "period": item.period,
         "due_date": _date_value(due_date),
@@ -64,7 +64,7 @@ def vat_work_item_payload(item, due_date: date) -> dict[str, Any]:
     }
 
 
-def annual_report_payload(report) -> dict[str, Any]:
+def annual_report_metadata(report) -> dict[str, Any]:
     return {
         "tax_year": report.tax_year,
         "filing_deadline": _date_value(report.filing_deadline),
@@ -72,7 +72,7 @@ def annual_report_payload(report) -> dict[str, Any]:
     }
 
 
-def advance_payment_payload(payment) -> dict[str, Any]:
+def advance_payment_metadata(payment) -> dict[str, Any]:
     expected = payment.expected_amount
     paid = payment.paid_amount
     remaining = None
@@ -95,7 +95,7 @@ def advance_payment_payload(payment) -> dict[str, Any]:
     }
 
 
-def unpaid_charge_payload(charge, due_date: date) -> dict[str, Any]:
+def charge_metadata(charge, due_date: date) -> dict[str, Any]:
     return {
         "business_id": charge.business_id,
         "charge_type": _enum_value(charge.charge_type),

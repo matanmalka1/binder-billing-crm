@@ -36,7 +36,7 @@ def test_unpaid_charge_appears_as_overdue(test_db):
     test_db.commit()
 
     items = DashboardAttentionService(test_db).build(user_role=UserRole.ADVISOR)
-    charge_items = [i for i in items if i["source_type"] == "unpaid_charge"]
+    charge_items = [i for i in items if i["source_type"] == "charge"]
 
     assert len(charge_items) == 1
     assert charge_items[0]["urgency"] == WorkQueueUrgency.OVERDUE
@@ -59,7 +59,7 @@ def test_item_shape(test_db):
     test_db.commit()
 
     items = DashboardAttentionService(test_db).build(user_role=UserRole.ADVISOR)
-    item = next(i for i in items if i["source_type"] == "unpaid_charge")
+    item = next(i for i in items if i["source_type"] == "charge")
 
     required_keys = {
         "id",

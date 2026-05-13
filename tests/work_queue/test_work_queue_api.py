@@ -6,7 +6,7 @@ from tests.helpers.task_helpers import create_business
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
-def test_work_queue_api_returns_advance_payment_payload(
+def test_work_queue_api_returns_clean_advance_payment_contract(
     client, test_db, advisor_headers
 ):
     biz = create_business(test_db)
@@ -24,7 +24,7 @@ def test_work_queue_api_returns_advance_payment_payload(
     test_db.commit()
 
     response = client.get(
-        "/api/v1/work-queue?exclude_source_types=vat_filing"
+        "/api/v1/work-queue?exclude_source_types=vat_work_item"
         "&exclude_source_types=annual_report",
         headers=advisor_headers,
     )
@@ -32,12 +32,15 @@ def test_work_queue_api_returns_advance_payment_payload(
     assert response.status_code == 200
     item = next(i for i in response.json() if i["source_type"] == "advance_payment")
     assert "item_type" not in item
+    assert "label" not in item
+    assert "payload" not in item
+    assert "client_office_number" not in item
     assert item["client_name"].startswith("Task Test Client")
-    assert item["client_office_number"] == 1
-    assert item["payload"]["period"] == "2026-02"
-    assert item["payload"]["period_label"] == "פברואר 2026"
-    assert item["payload"]["frequency"] == "monthly"
-    assert item["payload"]["remaining_amount"] == "750.00"
+    assert item["office_client_number"] == 1
+    assert item["metadata"]["period"] == "2026-02"
+    assert item["metadata"]["period_label"] == "פברואר 2026"
+    assert item["metadata"]["frequency"] == "monthly"
+    assert item["metadata"]["remaining_amount"] == "750.00"
 
 
 def test_tasks_route_exists(client, advisor_headers):

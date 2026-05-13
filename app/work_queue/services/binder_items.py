@@ -11,7 +11,7 @@ from app.work_queue.services.common import WorkQueueContext
 _STALE_PICKUP_THRESHOLD_DAYS = 30
 
 
-def stale_binder_items(ctx: WorkQueueContext) -> list[WorkQueueItem]:
+def binder_items(ctx: WorkQueueContext) -> list[WorkQueueItem]:
     """Return work-queue items for binders that have been ready for pickup too long."""
     binders = BinderRepository(ctx.db).list_overdue_pickup(
         overdue_days=_STALE_PICKUP_THRESHOLD_DAYS
@@ -25,12 +25,15 @@ def stale_binder_items(ctx: WorkQueueContext) -> list[WorkQueueItem]:
         days_waiting = (ctx.today - ready_date).days
         items.append(
             ctx.item(
-                WorkQueueSourceType.STALE_BINDER,
+                WorkQueueSourceType.BINDER,
                 binder.id,
                 f"קלסר {binder.binder_number} — ממתין לאיסוף {days_waiting} ימים",
                 ready_date,
                 binder.client_record_id,
                 item_urgency=WorkQueueUrgency.OVERDUE,
+                status_label=binder.status.value
+                if hasattr(binder.status, "value")
+                else str(binder.status),
             )
         )
     return items

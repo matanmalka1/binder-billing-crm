@@ -12,12 +12,13 @@ from app.vat_reports.repositories.vat_compliance_repository import (
 )
 from app.work_queue.schemas.work_queue import WorkQueueItem, WorkQueueSourceType
 from app.work_queue.services.common import UPCOMING_WINDOW_DAYS, WorkQueueContext
-from app.work_queue.services.payloads import (
-    annual_report_payload,
-    vat_work_item_payload,
+from app.work_queue.services.metadata import (
+    annual_report_metadata,
+    vat_work_item_metadata,
 )
 
 _DONE_ANNUAL_STATUSES = {
+    annual_report_models.AnnualReportStatus.SUBMITTED,
     annual_report_models.AnnualReportStatus.CLOSED,
     annual_report_models.AnnualReportStatus.CANCELED,
     annual_report_models.AnnualReportStatus.ACCEPTED,
@@ -35,7 +36,7 @@ def _vat_due_date(item) -> date:
     )
 
 
-def vat_filing_items(
+def vat_work_item_items(
     ctx: WorkQueueContext, client_record_id: Optional[int]
 ) -> list[WorkQueueItem]:
     """Return work-queue items for unfiled VAT periods.
@@ -52,12 +53,15 @@ def vat_filing_items(
         due_date = _vat_due_date(vat_item)
         items.append(
             ctx.item(
-                WorkQueueSourceType.VAT_FILING,
+                WorkQueueSourceType.VAT_WORK_ITEM,
                 vat_item.id,
                 f'מע"מ לא הוגש: {vat_item.period}',
                 due_date,
                 vat_item.client_record_id,
-                payload=vat_work_item_payload(vat_item, due_date),
+                status_label=vat_item.status.value
+                if hasattr(vat_item.status, "value")
+                else str(vat_item.status),
+                metadata=vat_work_item_metadata(vat_item, due_date),
             )
         )
     return items
@@ -91,5 +95,8 @@ def _annual_report_item(ctx: WorkQueueContext, report) -> WorkQueueItem:
         f"דוח שנתי {report.tax_year}",
         due_date,
         report.client_record_id,
-        payload=annual_report_payload(report),
+        status_label=report.status.value
+        if hasattr(report.status, "value")
+        else str(report.status),
+        metadata=annual_report_metadata(report),
     )

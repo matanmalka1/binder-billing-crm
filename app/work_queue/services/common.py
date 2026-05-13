@@ -10,6 +10,7 @@ from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.work_queue.schemas.work_queue import (
     WorkQueueItem,
+    WorkQueueSourceSummary,
     WorkQueueSourceType,
     WorkQueueUrgency,
 )
@@ -17,6 +18,65 @@ from app.work_queue.schemas.work_queue import (
 APPROACHING_DAYS = 7
 IMPORTANT_DAYS = 21
 UPCOMING_WINDOW_DAYS = 21
+
+SOURCE_TYPE_LABELS = {
+    WorkQueueSourceType.VAT_WORK_ITEM: 'דוח מע"מ',
+    WorkQueueSourceType.ANNUAL_REPORT: "דוח שנתי",
+    WorkQueueSourceType.ADVANCE_PAYMENT: "מקדמה",
+    WorkQueueSourceType.CHARGE: "חיוב לא שולם",
+    WorkQueueSourceType.BINDER: "קלסר",
+    WorkQueueSourceType.TASK: "משימה",
+}
+
+STATUS_LABELS = {
+    WorkQueueSourceType.VAT_WORK_ITEM: {
+        "pending_materials": "ממתין לחומרים",
+        "material_received": "חומרים התקבלו",
+        "data_entry_in_progress": "בהקלדה",
+        "ready_for_review": "מוכן לבדיקה",
+        "filed": "הוגש",
+        "canceled": "בוטל",
+        "archived": "בארכיון",
+    },
+    WorkQueueSourceType.ANNUAL_REPORT: {
+        "not_started": "טרם התחיל",
+        "collecting_docs": "איסוף מסמכים",
+        "docs_complete": "מסמכים הושלמו",
+        "in_preparation": "בהכנה",
+        "pending_client": "ממתין ללקוח",
+        "submitted": "הוגש",
+        "amended": "מתוקן",
+        "accepted": "התקבל",
+        "assessment_issued": "שומה הוצאה",
+        "objection_filed": "השגה הוגשה",
+        "closed": "סגור",
+        "canceled": "בוטל",
+    },
+    WorkQueueSourceType.ADVANCE_PAYMENT: {
+        "pending": "ממתינה",
+        "partial": "שולמה חלקית",
+        "paid": "שולמה",
+    },
+    WorkQueueSourceType.CHARGE: {
+        "draft": "טיוטה",
+        "issued": "הונפק",
+        "paid": "שולם",
+        "canceled": "בוטל",
+    },
+    WorkQueueSourceType.BINDER: {
+        "in_office": "במשרד",
+        "closed_in_office": "סגור במשרד",
+        "archived_in_office": "בארכיון במשרד",
+        "ready_for_pickup": "מוכן לאיסוף",
+        "returned": "הוחזר",
+    },
+    WorkQueueSourceType.TASK: {
+        "open": "פתוחה",
+        "in_progress": "בטיפול",
+        "done": "הושלמה",
+        "canceled": "בוטלה",
+    },
+}
 
 
 class ClientWorkQueueProfile(NamedTuple):
@@ -33,6 +93,41 @@ def urgency(due_date: date, today: date) -> WorkQueueUrgency:
     if days <= IMPORTANT_DAYS:
         return WorkQueueUrgency.IMPORTANT
     return WorkQueueUrgency.UPCOMING
+
+
+def normalize_source_domain(value: str | None) -> WorkQueueSourceType | None:
+    if not value:
+        return None
+    try:
+        return WorkQueueSourceType(value)
+    except ValueError:
+        return None
+
+
+def source_key(source_type: WorkQueueSourceType, source_id: int) -> tuple[str, int]:
+    return (source_type.value, source_id)
+
+
+def source_route(source_type: WorkQueueSourceType, source_id: int) -> str | None:
+    if source_type == WorkQueueSourceType.VAT_WORK_ITEM:
+        return f"/tax/vat/{source_id}"
+    if source_type == WorkQueueSourceType.ANNUAL_REPORT:
+        return f"/tax/reports/{source_id}"
+    if source_type == WorkQueueSourceType.ADVANCE_PAYMENT:
+        return "/tax/advance-payments"
+    if source_type == WorkQueueSourceType.CHARGE:
+        return "/charges"
+    if source_type == WorkQueueSourceType.BINDER:
+        return "/binders"
+    return None
+
+
+def display_status_label(
+    source_type: WorkQueueSourceType, status: str | None
+) -> str | None:
+    if status is None:
+        return None
+    return STATUS_LABELS.get(source_type, {}).get(status, status)
 
 
 def load_client_profiles(
@@ -84,13 +179,15 @@ class WorkQueueContext:
         self,
         source_type: WorkQueueSourceType,
         source_id: int,
-        label: str,
+        title: str,
         due_date: date,
         client_record_id: Optional[int],
         *,
         business_id: Optional[int] = None,
         item_urgency: Optional[WorkQueueUrgency] = None,
-        payload: Optional[dict] = None,
+        status_label: Optional[str] = None,
+        description: Optional[str] = None,
+        metadata: Optional[dict] = None,
     ) -> WorkQueueItem:
         if client_record_id is not None:
             self.register_client_id(client_record_id)
@@ -100,16 +197,26 @@ class WorkQueueContext:
             else None
         )
         return WorkQueueItem(
+            id=f"{source_type.value}:{source_id}",
             source_type=source_type,
             source_id=source_id,
-            label=label,
+            title=title,
+            description=description,
+            type_label=SOURCE_TYPE_LABELS.get(source_type, source_type.value),
+            status_label=display_status_label(source_type, status_label),
             due_date=due_date,
             urgency=item_urgency or urgency(due_date, self.today),
             client_record_id=client_record_id,
             client_name=client_profile.name if client_profile else None,
-            client_office_number=(
+            office_client_number=(
                 client_profile.office_number if client_profile else None
             ),
             business_id=business_id,
-            payload=payload,
+            source_summary=WorkQueueSourceSummary(
+                source_type=source_type.value,
+                source_id=source_id,
+                label=title,
+                route=source_route(source_type, source_id),
+            ),
+            metadata=metadata,
         )

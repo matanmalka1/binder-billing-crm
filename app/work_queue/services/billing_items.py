@@ -18,9 +18,9 @@ from app.work_queue.schemas.work_queue import (
     WorkQueueUrgency,
 )
 from app.work_queue.services.common import UPCOMING_WINDOW_DAYS, WorkQueueContext
-from app.work_queue.services.payloads import (
-    advance_payment_payload,
-    unpaid_charge_payload,
+from app.work_queue.services.metadata import (
+    advance_payment_metadata,
+    charge_metadata,
 )
 
 
@@ -47,13 +47,16 @@ def advance_payment_items(
             f"מקדמה: {payment.period}",
             payment.due_date,
             payment.client_record_id,
-            payload=advance_payment_payload(payment),
+            status_label=payment.status.value
+            if hasattr(payment.status, "value")
+            else str(payment.status),
+            metadata=advance_payment_metadata(payment),
         )
         for payment in payments
     ]
 
 
-def unpaid_charge_items(
+def charge_items(
     ctx: WorkQueueContext,
     client_record_id: Optional[int],
     business_id: Optional[int],
@@ -77,7 +80,7 @@ def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
         days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS
     )
     return ctx.item(
-        WorkQueueSourceType.UNPAID_CHARGE,
+        WorkQueueSourceType.CHARGE,
         charge.id,
         "חיוב לא שולם",
         due_date,
@@ -85,5 +88,8 @@ def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
         business_id=charge.business_id,
         # Always OVERDUE: items only appear after the unpaid threshold has passed.
         item_urgency=WorkQueueUrgency.OVERDUE,
-        payload=unpaid_charge_payload(charge, due_date),
+        status_label=charge.status.value
+        if hasattr(charge.status, "value")
+        else str(charge.status),
+        metadata=charge_metadata(charge, due_date),
     )

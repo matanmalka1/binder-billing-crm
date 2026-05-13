@@ -40,7 +40,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     monkeypatch.setattr(
         service.attention_service,
         "build",
-        lambda user_role=None, reference_date=None: [{"source_type": "unpaid_charge"}],
+        lambda user_role=None, reference_date=None: [{"source_type": "charge"}],
     )
     monkeypatch.setattr(service.charge_repo, "count_charges", lambda **kwargs: 1)
     monkeypatch.setattr(service.charge_repo, "sum_open_charges_amount", lambda: None)
@@ -55,7 +55,7 @@ def test_get_overview_composes_quick_actions_and_attention(test_db, monkeypatch)
     assert overview["vat_stats"]["monthly"]["period_label"] == "פברואר 2026"
     assert overview["quick_actions"] == [{"key": "ready", "period": "2026-03"}]
     assert overview["attention"] == {
-        "items": [{"source_type": "unpaid_charge"}],
+        "items": [{"source_type": "charge"}],
         "total": 1,
     }
     assert overview["advisor_today"]["deadline_items"] == [{"id": 1, "label": "מע״מ"}]

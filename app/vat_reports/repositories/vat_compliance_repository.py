@@ -70,7 +70,13 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem,
             )
             .where(
-                VatWorkItem.status != VatWorkItemStatus.FILED,
+                VatWorkItem.status.notin_(
+                    [
+                        VatWorkItemStatus.FILED,
+                        VatWorkItemStatus.CANCELED,
+                        VatWorkItemStatus.ARCHIVED,
+                    ]
+                ),
                 VatWorkItem.deleted_at.is_(None),
                 func.substr(VatWorkItem.period, 1, 7)
                 < reference_date.strftime("%Y-%m"),

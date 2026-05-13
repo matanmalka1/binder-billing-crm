@@ -40,15 +40,15 @@ def _sort_key(item: WorkQueueItem) -> tuple:
 
 def _href(item: WorkQueueItem) -> str:
     st = item.source_type
-    if st == WorkQueueSourceType.VAT_FILING:
+    if st == WorkQueueSourceType.VAT_WORK_ITEM:
         return f"/tax/vat/{item.source_id}"
     if st == WorkQueueSourceType.ANNUAL_REPORT:
         return f"/tax/reports/{item.source_id}"
     if st == WorkQueueSourceType.ADVANCE_PAYMENT:
         return "/tax/advance-payments"
-    if st == WorkQueueSourceType.UNPAID_CHARGE:
+    if st == WorkQueueSourceType.CHARGE:
         return "/charges"
-    if st == WorkQueueSourceType.STALE_BINDER:
+    if st == WorkQueueSourceType.BINDER:
         return "/binders"
     if st == WorkQueueSourceType.TASK:
         return "/tasks"
@@ -57,22 +57,22 @@ def _href(item: WorkQueueItem) -> str:
 
 def _reason(item: WorkQueueItem) -> Optional[str]:
     st = item.source_type
-    payload = item.payload or {}
-    if st == WorkQueueSourceType.VAT_FILING:
+    metadata = item.metadata or {}
+    if st == WorkQueueSourceType.VAT_WORK_ITEM:
         return "דוח מע״מ לא הוגש"
     if st == WorkQueueSourceType.ANNUAL_REPORT:
         return "דוח שנתי ממתין להגשה"
     if st == WorkQueueSourceType.ADVANCE_PAYMENT:
-        remaining = payload.get("remaining_amount")
+        remaining = metadata.get("remaining_amount")
         if remaining:
             return f"יתרה לתשלום: ₪{remaining}"
         return "מקדמה ממתינה לתשלום"
-    if st == WorkQueueSourceType.UNPAID_CHARGE:
+    if st == WorkQueueSourceType.CHARGE:
         return "חיוב שלא שולם"
-    if st == WorkQueueSourceType.STALE_BINDER:
+    if st == WorkQueueSourceType.BINDER:
         return None  # label already contains the waiting duration
     if st == WorkQueueSourceType.TASK:
-        return payload.get("description") or "משימה פתוחה"
+        return metadata.get("description") or "משימה פתוחה"
     return None
 
 
@@ -86,8 +86,8 @@ def _format_ils(value: str) -> Optional[str]:
 
 
 def _amount(item: WorkQueueItem) -> Optional[str]:
-    if item.source_type == WorkQueueSourceType.UNPAID_CHARGE:
-        raw = (item.payload or {}).get("amount")
+    if item.source_type == WorkQueueSourceType.CHARGE:
+        raw = (item.metadata or {}).get("amount")
         if raw:
             return _format_ils(raw)
     return None
@@ -99,7 +99,7 @@ def _to_attention_item(item: WorkQueueItem, today: date) -> dict:
         "id": f"{item.source_type}:{item.source_id}",
         "source_type": item.source_type,
         "source_id": item.source_id,
-        "title": item.label,
+        "title": item.title,
         "client_name": item.client_name,
         "due_date": item.due_date,
         "days_delta": days_delta,

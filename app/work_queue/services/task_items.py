@@ -4,11 +4,66 @@ from typing import List
 
 from app.tasks.repositories.task_repository import TaskRepository
 from app.work_queue.schemas.work_queue import (
+    LinkedTaskSummary,
     WorkQueueItem,
     WorkQueueSourceType,
     WorkQueueUrgency,
 )
-from app.work_queue.services.common import WorkQueueContext, urgency
+from app.work_queue.services.actions import task_actions
+from app.work_queue.services.common import (
+    SOURCE_TYPE_LABELS,
+    WorkQueueContext,
+    display_status_label,
+    urgency,
+)
+
+
+def task_summary(task) -> LinkedTaskSummary:
+    due = task.due_date.date() if task.due_date is not None else None
+    return LinkedTaskSummary(
+        id=task.id,
+        title=task.title,
+        status=task.status.value,
+        due_date=due,
+        priority=task.priority.value if hasattr(task.priority, "value") else task.priority,
+        assigned_user_id=task.assigned_to_user_id,
+        assigned_role=task.assigned_role,
+    )
+
+
+def task_item(ctx: WorkQueueContext, task) -> WorkQueueItem:
+    due = task.due_date.date() if task.due_date is not None else None
+    item_urgency = (
+        urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
+    )
+    return WorkQueueItem(
+        id=f"{WorkQueueSourceType.TASK.value}:{task.id}",
+        source_type=WorkQueueSourceType.TASK,
+        source_id=task.id,
+        title=task.title,
+        description=task.description,
+        type_label=SOURCE_TYPE_LABELS[WorkQueueSourceType.TASK],
+        status_label=display_status_label(WorkQueueSourceType.TASK, task.status.value),
+        due_date=due,
+        urgency=item_urgency,
+        client_record_id=None,
+        client_name=None,
+        business_id=None,
+        linked_tasks=[],
+        linked_tasks_count=0,
+        available_actions=task_actions(task.id, task.status.value),
+        metadata={
+            "status": task.status.value,
+            "priority": task.priority.value,
+            "description": task.description,
+            "assigned_to_user_id": task.assigned_to_user_id,
+            "assigned_role": task.assigned_role,
+            "action_key": task.action_key,
+            "action_payload": task.action_payload,
+            "source_domain": task.source_domain,
+            "source_id": task.source_id,
+        },
+    )
 
 
 def task_items(ctx: WorkQueueContext) -> List[WorkQueueItem]:
@@ -16,31 +71,8 @@ def task_items(ctx: WorkQueueContext) -> List[WorkQueueItem]:
     tasks = repo.list_open_for_work_queue()
     items: List[WorkQueueItem] = []
     for task in tasks:
-        due = task.due_date.date() if task.due_date is not None else None
-        item_urgency = (
-            urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
-        )
-        items.append(
-            WorkQueueItem(
-                source_type=WorkQueueSourceType.TASK,
-                source_id=task.id,
-                label=task.title,
-                due_date=due,
-                urgency=item_urgency,
-                client_record_id=None,
-                client_name=None,
-                business_id=None,
-                payload={
-                    "status": task.status.value,
-                    "priority": task.priority.value,
-                    "description": task.description,
-                    "assigned_to_user_id": task.assigned_to_user_id,
-                    "assigned_role": task.assigned_role,
-                    "action_key": task.action_key,
-                    "action_payload": task.action_payload,
-                    "source_domain": task.source_domain,
-                    "source_id": task.source_id,
-                },
-            )
-        )
+        items.append(task_item(ctx, task))
     return items
+
+
+__all__ = ["task_item", "task_items", "task_summary"]
