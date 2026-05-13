@@ -70,7 +70,9 @@ def test_year_range_filter_works(client, auth_token, test_db):
     assert [row["tax_year"] for row in response.json()] == [2026]
 
 
-def test_client_record_id_filter_limits_group_counts(client, auth_token, test_db, test_user):
+def test_client_record_id_filter_limits_group_counts(
+    client, auth_token, test_db, test_user
+):
     entry = vat_entry(test_db)
     first_item = add_vat_item(test_db, entry, test_user.id)
     add_vat_item(test_db, entry, test_user.id)

@@ -14,7 +14,9 @@ from app.annual_reports.repositories.financial_line_mixin import FinancialLineMi
 from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportIncomeRepository(FinancialLineMixin, BaseRepository[AnnualReportIncomeLine]):
+class AnnualReportIncomeRepository(
+    FinancialLineMixin, BaseRepository[AnnualReportIncomeLine]
+):
     def __init__(self, db: Session):
         self.db = db
 

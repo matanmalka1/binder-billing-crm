@@ -152,9 +152,7 @@ class VatImportService:
                 category=cat,
                 amount=total,
                 recognition_rate=default_recognition_rate(cat),
-                description=VAT_IMPORTED_EXPENSE_DESCRIPTION.format(
-                    category=cat.value
-                ),
+                description=VAT_IMPORTED_EXPENSE_DESCRIPTION.format(category=cat.value),
             )
             expense_lines_created += 1
             expense_total += total

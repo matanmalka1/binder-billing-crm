@@ -181,7 +181,9 @@ class TaxCalendarMaterializationService:
         try:
             year = int(tax_year)
         except (TypeError, ValueError) as exc:
-            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR") from exc
+            raise AppError(
+                "שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR"
+            ) from exc
         if year < 1900 or year > 2200:
             raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
         return year

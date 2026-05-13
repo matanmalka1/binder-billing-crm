@@ -99,9 +99,13 @@ def _linked_rows_by_entry(
     rows = defaultdict(list)
     for row in repo.list_vat_for_entries(entry_ids, client_record_id=client_record_id):
         rows[_entry_id(row)].append(row)
-    for row in repo.list_advance_for_entries(entry_ids, client_record_id=client_record_id):
+    for row in repo.list_advance_for_entries(
+        entry_ids, client_record_id=client_record_id
+    ):
         rows[_entry_id(row)].append(row)
-    for row in repo.list_annual_for_entries(entry_ids, client_record_id=client_record_id):
+    for row in repo.list_annual_for_entries(
+        entry_ids, client_record_id=client_record_id
+    ):
         rows[_entry_id(row)].append(row)
     return rows
 

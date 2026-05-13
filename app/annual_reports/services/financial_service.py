@@ -40,7 +40,9 @@ from app.annual_reports.repositories.detail_repository import (
 from app.annual_reports.repositories.expense_repository import (
     AnnualReportExpenseRepository,
 )
-from app.annual_reports.repositories.income_repository import AnnualReportIncomeRepository
+from app.annual_reports.repositories.income_repository import (
+    AnnualReportIncomeRepository,
+)
 from app.annual_reports.schemas.annual_report_financials import (
     BracketBreakdownItem,
     ExpenseLineResponse,

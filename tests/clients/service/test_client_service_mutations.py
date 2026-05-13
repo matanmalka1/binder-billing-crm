@@ -281,9 +281,7 @@ def test_restore_raises_not_found_when_repo_restore_returns_none(test_db, monkey
     service = ClientLifecycleService(test_db)
     service.delete_client(created.id, actor_id=1)
 
-    monkeypatch.setattr(
-        service.record_repo, "restore", lambda *_args, **_kwargs: None
-    )
+    monkeypatch.setattr(service.record_repo, "restore", lambda *_args, **_kwargs: None)
 
     with pytest.raises(NotFoundError) as exc:
         service.restore_client(created.id, actor_id=2)
