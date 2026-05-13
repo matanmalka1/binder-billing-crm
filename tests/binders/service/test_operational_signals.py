@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.services.signals_service import SignalsService
+from app.businesses.services.signals_service import SignalsService
 from tests.helpers.identity import seed_client_identity, seed_business
 
 

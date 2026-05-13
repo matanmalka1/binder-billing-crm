@@ -24,7 +24,7 @@ from app.businesses.services.business_guards import (
     assert_business_belongs_to_legal_entity,
     get_business_or_raise,
 )
-from app.binders.services.signals_service import SignalsService
+from app.businesses.services.signals_service import SignalsService
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
 )

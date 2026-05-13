@@ -61,6 +61,6 @@ def test_list_client_binders_returns_only_requested_client_binders(test_db):
     test_db.add_all([b1, b2, b3])
     test_db.commit()
 
-    result = binder_repo.list_by_client(client_a.id)
+    result = binder_repo.list_by_client_record(client_a.id)
 
     assert {binder.id for binder in result} == {b1.id, b2.id}

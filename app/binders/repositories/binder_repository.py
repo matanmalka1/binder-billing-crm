@@ -173,20 +173,6 @@ class BinderRepository(BaseRepository[Binder]):
         ).where(Binder.status == status, Binder.deleted_at.is_(None))
         return self.db.scalar(stmt)
 
-    def list_by_client(self, client_record_id: int) -> list[Binder]:
-        """Return all non-deleted binders for a client (all statuses)."""
-        return self.db.scalars(
-            select(Binder)
-            .where(
-                Binder.client_record_id == client_record_id,
-                Binder.deleted_at.is_(None),
-            )
-            .order_by(
-                nullslast(Binder.period_start.asc()),
-                Binder.id.asc(),
-            )
-        ).all()
-
     def list_by_client_record(self, client_record_id: int) -> list[Binder]:
         """Return all non-deleted binders for a client_record (all statuses)."""
         return self.db.scalars(
@@ -234,15 +220,6 @@ class BinderRepository(BaseRepository[Binder]):
             Binder.deleted_at.is_(None),
         )
         return self.db.scalar(stmt)
-
-    def get_active_by_client(self, client_record_id: int) -> Optional[Binder]:
-        """Return the single open (IN_OFFICE) non-deleted binder for a client."""
-        stmt = self._active_client_stmt().where(
-            Binder.client_record_id == client_record_id,
-            Binder.status == BinderStatus.IN_OFFICE,
-            Binder.deleted_at.is_(None),
-        )
-        return self.db.scalars(stmt).first()
 
     def count_all_by_client(self, client_record_id: int) -> int:
         """Count ALL binders for a client (including soft-deleted) for monotonic label seq."""

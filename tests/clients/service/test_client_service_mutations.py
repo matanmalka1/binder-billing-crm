@@ -55,7 +55,7 @@ def test_create_client_assigns_next_office_client_number_and_creates_initial_bin
     assert first.office_client_number == 1
     assert created.office_client_number == 2
 
-    binder = BinderRepository(test_db).get_active_by_client(created.id)
+    binder = BinderRepository(test_db).get_active_by_client_record(created.id)
     assert binder is not None
     assert binder.binder_number == "2/1"
 
@@ -159,7 +159,7 @@ def test_create_client_always_creates_initial_binder(test_db):
     )
 
     assert BinderRepository(test_db).count_by_client(created.id) == 1
-    binder = BinderRepository(test_db).get_active_by_client(created.id)
+    binder = BinderRepository(test_db).get_active_by_client_record(created.id)
     assert binder is not None
     assert binder.binder_number == f"{created.office_client_number}/1"
 

@@ -32,7 +32,7 @@ from app.notification.services.notification_service import NotificationService
 _log = logging.getLogger(__name__)
 
 
-class BinderService(BinderListService):
+class BinderService:
     """Binder lifecycle management business logic."""
 
     def __init__(self, db: Session):
@@ -43,6 +43,7 @@ class BinderService(BinderListService):
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.notification_service = NotificationService(db)
         self.intake_service = BinderIntakeService(db)
+        self.list_service = BinderListService(db)
 
     def receive_binder(
         self,
@@ -167,6 +168,18 @@ class BinderService(BinderListService):
     def get_binder(self, binder_id: int) -> Optional[Binder]:
         """Compatibility helper for callers that still fetch raw binder entities."""
         return self.binder_repo.get_by_id(binder_id)
+
+    def build_binder_response(self, *args, **kwargs):
+        """Compatibility helper for callers that still enrich through BinderService."""
+        return self.list_service.build_binder_response(*args, **kwargs)
+
+    def get_binder_with_client_name(self, *args, **kwargs):
+        """Compatibility helper for callers that still enrich through BinderService."""
+        return self.list_service.get_binder_with_client_name(*args, **kwargs)
+
+    def list_binders_enriched(self, *args, **kwargs):
+        """Compatibility helper for callers that still list through BinderService."""
+        return self.list_service.list_binders_enriched(*args, **kwargs)
 
     def mark_ready_bulk(
         self,

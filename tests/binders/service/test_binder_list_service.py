@@ -1,9 +1,7 @@
 from datetime import date, timedelta
 
 from app.binders.models.binder import Binder, BinderStatus
-from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_list_service import BinderListService
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from tests.helpers.identity import seed_client_identity
 
 
@@ -42,10 +40,7 @@ def _seed_binders(db, user_id: int):
 
 def test_list_binders_enriched_filters_and_invalid_sort_dir(test_db, test_user):
     c1, c2, _b1, _b2 = _seed_binders(test_db, test_user.id)
-    service = BinderListService()
-    service.db = test_db
-    service.binder_repo = BinderRepository(test_db)
-    service.client_record_repo = ClientRecordRepository(test_db)
+    service = BinderListService(test_db)
 
     items, total, counters = service.list_binders_enriched(
         sort_by="client_name",
@@ -95,10 +90,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
     test_db.add(returned)
     test_db.commit()
 
-    service = BinderListService()
-    service.db = test_db
-    service.binder_repo = BinderRepository(test_db)
-    service.client_record_repo = ClientRecordRepository(test_db)
+    service = BinderListService(test_db)
 
     items, total, counters = service.list_binders_enriched()
 
@@ -116,10 +108,7 @@ def test_list_binders_enriched_returns_counters_for_all_statuses(test_db, test_u
 
 def test_get_binder_with_client_name_returns_none_for_missing(test_db, test_user):
     _seed_binders(test_db, test_user.id)
-    service = BinderListService()
-    service.db = test_db
-    service.binder_repo = BinderRepository(test_db)
-    service.client_record_repo = ClientRecordRepository(test_db)
+    service = BinderListService(test_db)
 
     assert service.get_binder_with_client_name(999999) is None
 
@@ -140,10 +129,7 @@ def test_build_binder_response_handles_null_period_start(test_db, test_user):
     test_db.commit()
     test_db.refresh(binder)
 
-    service = BinderListService()
-    service.db = test_db
-    service.binder_repo = BinderRepository(test_db)
-    service.client_record_repo = ClientRecordRepository(test_db)
+    service = BinderListService(test_db)
 
     response = service.build_binder_response(binder, client_name=client.full_name)
 

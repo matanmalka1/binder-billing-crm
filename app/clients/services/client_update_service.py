@@ -12,7 +12,7 @@ from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.annual_reports.services.client_status_service import (
     AnnualReportClientStatusService,
 )
-from app.binders.services.client_status_service import BinderClientStatusService
+from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
@@ -147,9 +147,7 @@ class ClientUpdateService:
             AnnualReportClientStatusService(self.db).cancel_open_by_client_record(
                 record.id
             )
-            BinderClientStatusService(self.db).archive_in_office_by_client_record(
-                record.id
-            )
+            BinderRepository(self.db).archive_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(
         self, client_id: int, old_entity_type, new_entity_type, actor_id

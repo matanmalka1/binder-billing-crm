@@ -2,18 +2,27 @@ from datetime import date
 from typing import Optional
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.actions.action_contracts import get_binder_actions
 from app.binders.models.binder import Binder, BinderStatus
+from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.schemas.binder import BinderResponse
 from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
 _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
+_UNSET = object()
 
 
 class BinderListService:
     """Read helpers for binder enrichment and listing."""
+
+    def __init__(self, db: Session):
+        self.db = db
+        self.binder_repo = BinderRepository(db)
+        self.client_record_repo = ClientRecordRepository(db)
 
     def _build_client_context_maps(
         self, client_record_ids: list[int]
@@ -109,10 +118,27 @@ class BinderListService:
         binder: Binder,
         *,
         reference_date: Optional[date] = None,
-        office_client_number: Optional[int] = None,
-        client_name: Optional[str] = None,
-        client_id_number: Optional[str] = None,
+        office_client_number: Optional[int] | object = _UNSET,
+        client_name: Optional[str] | object = _UNSET,
+        client_id_number: Optional[str] | object = _UNSET,
     ) -> BinderResponse:
+        if (
+            office_client_number is _UNSET
+            or client_name is _UNSET
+            or client_id_number is _UNSET
+        ):
+            office_client_number_map, client_name_map, client_id_number_map = (
+                self._build_client_context_maps([binder.client_record_id])
+            )
+            if office_client_number is _UNSET:
+                office_client_number = office_client_number_map.get(
+                    binder.client_record_id
+                )
+            if client_name is _UNSET:
+                client_name = client_name_map.get(binder.client_record_id)
+            if client_id_number is _UNSET:
+                client_id_number = client_id_number_map.get(binder.client_record_id)
+
         ref_date = reference_date or date.today()
         response = BinderResponse.model_validate(binder)
         response.days_in_office = (

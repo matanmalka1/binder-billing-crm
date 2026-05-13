@@ -1,12 +1,11 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
-from app.clients.models.legal_entity import LegalEntity
+from app.binders.services.binder_list_service import BinderListService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 
@@ -17,6 +16,7 @@ class BinderOperationsService:
     def __init__(self, db: Session):
         self.db = db
         self.repo = BinderRepository(db)
+        self.list_service = BinderListService(db)
 
     def get_open_binders(
         self,
@@ -74,44 +74,7 @@ class BinderOperationsService:
           id, client_record_id, office_client_number, client_name, client_id_number, binder_number, period_start, period_end,
           status, returned_at, pickup_person_name, days_in_office.
         """
-        ref_date = reference_date or date.today()
-
-        client_record = ClientRecordRepository(self.db).get_by_id(
-            binder.client_record_id
+        response = self.list_service.build_binder_response(
+            binder, reference_date=reference_date
         )
-        legal_entity = (
-            self.db.scalars(
-                select(LegalEntity).where(
-                    LegalEntity.id == client_record.legal_entity_id
-                )
-            ).first()
-            if client_record
-            else None
-        )
-        office_client_number = (
-            client_record.office_client_number if client_record else None
-        )
-        client_name = legal_entity.official_name if legal_entity else None
-        client_id_number = legal_entity.id_number if legal_entity else None
-
-        # days_in_office is only defined once the binder has a derived period_start.
-        days_in_office = (
-            max(0, (ref_date - binder.period_start).days)
-            if binder.period_start is not None
-            else None
-        )
-
-        return {
-            "id": binder.id,
-            "client_record_id": binder.client_record_id,
-            "office_client_number": office_client_number,
-            "client_name": client_name,
-            "client_id_number": client_id_number,
-            "binder_number": binder.binder_number,
-            "period_start": binder.period_start,
-            "period_end": binder.period_end,
-            "status": binder.status,
-            "returned_at": binder.returned_at,
-            "pickup_person_name": binder.pickup_person_name,
-            "days_in_office": days_in_office,
-        }
+        return response.model_dump()
