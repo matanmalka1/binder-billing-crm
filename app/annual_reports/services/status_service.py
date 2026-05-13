@@ -6,29 +6,34 @@ from app.audit.constants import (
     ENTITY_ANNUAL_REPORT,
 )
 from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.core.exceptions import AppError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     FilingDeadlineType,
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
+from app.annual_reports.schemas.annual_report_responses import (
+    AnnualReportDetailResponse,
+    AnnualReportResponse,
+)
 from app.utils.time_utils import utcnow
-from .constants import VALID_TRANSITIONS
+from .constants import STAGE_TO_STATUS, VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
-from .base import AnnualReportBaseService
 from .messages import (
     CUSTOM_DEADLINE_LABEL,
     DEADLINE_UPDATED_NOTE,
     INVALID_ANNUAL_REPORT_STATUS,
     INVALID_DEADLINE_TYPE_ERROR,
+    INVALID_STAGE_ERROR,
     INVALID_STATUS_TRANSITION,
     REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON,
+    REPORT_AMEND_ONLY_SUBMITTED_ERROR,
     REPORT_NOT_READY_FOR_SUBMISSION,
     STATUS_CHANGE_CANCEL_SIGNATURE_REASON,
     ANNUAL_REPORT_NOT_FOUND,
 )
+from . import financial_service
 from .status_signature_helper import AnnualReportSignatureHelper
 
 
@@ -52,7 +57,7 @@ def _deadline_snapshot(report):
     }
 
 
-class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseService):
+class AnnualReportStatusService(AnnualReportSignatureHelper):
     def _get_or_raise_for_update(self, report_id: int) -> AnnualReport:
         """Fetch annual report with a row-level lock for status transitions."""
         report = self.repo.get_by_id_for_update(report_id)
@@ -65,11 +70,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
 
     def _assert_filing_readiness(self, report_id: int) -> None:
         """Raise AppError listing all blocking issues before SUBMITTED transition."""
-        from app.annual_reports.services.financial_service import (
-            AnnualReportFinancialService,
-        )
-
-        svc = AnnualReportFinancialService(self.db)
+        svc = financial_service.AnnualReportFinancialService(self.db)
         result = svc.get_readiness_check(report_id)
         if not result.is_ready:
             issues_str = "; ".join(result.issues)
@@ -242,3 +243,51 @@ class AnnualReportStatusService(AnnualReportSignatureHelper, AnnualReportBaseSer
             new_value=_deadline_snapshot(updated),
         )
         return updated
+
+    def transition_stage(
+        self,
+        report_id: int,
+        to_stage: str,
+        changed_by: int,
+        changed_by_name: str,
+    ) -> AnnualReportResponse:
+        target_status = STAGE_TO_STATUS.get(to_stage)
+        if not target_status:
+            raise AppError(
+                INVALID_STAGE_ERROR.format(stage=to_stage),
+                "ANNUAL_REPORT.INVALID_STAGE",
+            )
+        return self.transition_status(
+            report_id=report_id,
+            new_status=target_status,
+            changed_by=changed_by,
+            changed_by_name=changed_by_name,
+        )
+
+    def amend_report(
+        self, report_id: int, reason: str, actor_id: int, actor_name: str
+    ) -> AnnualReportDetailResponse:
+        """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
+        from app.annual_reports.repositories.detail_repository import (
+            AnnualReportDetailRepository,
+        )
+
+        report = self._get_or_raise_for_update(report_id)
+        if report.status != AnnualReportStatus.SUBMITTED:
+            raise ConflictError(
+                REPORT_AMEND_ONLY_SUBMITTED_ERROR.format(status=report.status.value),
+                "ANNUAL_REPORT.INVALID_STATUS_FOR_AMEND",
+            )
+
+        self.transition_status(
+            report_id=report_id,
+            new_status=AnnualReportStatus.AMENDED.value,
+            changed_by=actor_id,
+            changed_by_name=actor_name,
+            note=reason,
+        )
+        AnnualReportDetailRepository(self.db).update_meta(
+            report_id, amendment_reason=reason
+        )
+
+        return self.get_detail_report(report_id)

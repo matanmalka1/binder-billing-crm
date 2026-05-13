@@ -11,13 +11,13 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,
 )
+from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
 from app.core.exceptions import AppError, NotFoundError
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_service import NotificationService
 
 _REMINDER_COOLDOWN_DAYS = 2
-_ANNUAL_REPORT_NOT_FOUND = "דוח שנתי {report_id} לא נמצא"
 
 
 class AnnualReportClientReminderService:
@@ -30,7 +30,7 @@ class AnnualReportClientReminderService:
         report = self.report_repo.get_by_id(report_id)
         if not report:
             raise NotFoundError(
-                _ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
                 "ANNUAL_REPORT.NOT_FOUND",
             )
 

@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.services.charge_readiness_service import ChargeReadinessService
+from app.annual_reports.services.annual_report_charge_service import (
+    AnnualReportChargeService,
+)
 
 
 router = APIRouter(
@@ -23,7 +25,7 @@ def list_report_charges(
     page_size: int = Query(20, ge=1, le=100),
 ):
     """רשימת חיובים המקושרים לדוח שנתי זה (מידע בלבד)."""
-    svc = ChargeReadinessService(db)
+    svc = AnnualReportChargeService(db)
     charges, total = svc.list_charges(report_id, page=page, page_size=page_size)
     return {"items": charges, "page": page, "page_size": page_size, "total": total}
 

@@ -1,9 +1,10 @@
 """Signature request helpers for annual report status transitions."""
 
+from app.annual_reports.services.base import AnnualReportBaseService
 from app.annual_reports.services.messages import ANNUAL_REPORT_APPROVAL_TITLE
 
 
-class AnnualReportSignatureHelper:
+class AnnualReportSignatureHelper(AnnualReportBaseService):
     """Mixin: manage signature requests during status transitions."""
 
     def _cancel_pending_signature_requests(
@@ -16,7 +17,7 @@ class AnnualReportSignatureHelper:
             SignatureRequestRepository,
         )
 
-        sig_repo = SignatureRequestRepository(self.db)  # type: ignore[attr-defined]
+        sig_repo = SignatureRequestRepository(self.db)
         pending = sig_repo.list_pending_by_annual_report(report_id)
         if not pending:
             return
@@ -40,10 +41,10 @@ class AnnualReportSignatureHelper:
             ClientRecordRepository,
         )
 
-        record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)  # type: ignore[attr-defined]
+        record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)
         if not record:
             return
-        businesses = self.business_repo.list_by_legal_entity(record.legal_entity_id)  # type: ignore[attr-defined]
+        businesses = self.business_repo.list_by_legal_entity(record.legal_entity_id)
         business = businesses[0] if businesses else None
         if not business:
             return

@@ -2,9 +2,17 @@ from app.annual_reports.schemas.annual_report_responses import (
     DefaultTaxYearResponse,
     SeasonSummaryResponse,
 )
-from app.annual_reports.services.season_years import get_filing_season_year
 from app.utils.time_utils import israel_today
 from .base import AnnualReportBaseService
+
+
+def get_active_annual_report_tax_year(today=None) -> int:
+    filing_date = today or israel_today()
+    return filing_date.year - 1
+
+
+def get_filing_season_year(tax_year: int) -> int:
+    return tax_year + 1
 
 
 class AnnualReportSeasonService(AnnualReportBaseService):
@@ -47,4 +55,8 @@ class AnnualReportSeasonService(AnnualReportBaseService):
         )
 
 
-__all__ = ["AnnualReportSeasonService"]
+__all__ = [
+    "AnnualReportSeasonService",
+    "get_active_annual_report_tax_year",
+    "get_filing_season_year",
+]

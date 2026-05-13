@@ -1,7 +1,6 @@
 from decimal import Decimal
 from typing import Optional
 
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.integrations.tax_rules_registry import (
     get_default_resident_credit_points,
 )
@@ -11,10 +10,9 @@ from app.annual_reports.schemas.annual_report_responses import (
     ScheduleEntryResponse,
     StatusHistoryResponse,
 )
-from app.core.exceptions import ConflictError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from .base import AnnualReportBaseService
-from .messages import REPORT_AMEND_ONLY_SUBMITTED_ERROR
 
 
 class AnnualReportQueryService(AnnualReportBaseService):
@@ -81,14 +79,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
     def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
         """Return report with schedules, history, financial summary, and detail fields. None if not found."""
-        from app.annual_reports.repositories.income_repository import (
-            AnnualReportIncomeRepository,
-        )
         from app.annual_reports.repositories.credit_point_repository import (
             AnnualReportCreditPointRepository,
-        )
-        from app.annual_reports.repositories.expense_repository import (
-            AnnualReportExpenseRepository,
         )
         from app.annual_reports.repositories.detail_repository import (
             AnnualReportDetailRepository,
@@ -100,11 +92,8 @@ class AnnualReportQueryService(AnnualReportBaseService):
 
         schedules = self.repo.get_schedules(report_id)
         history = self.repo.get_status_history(report_id)
-        income_repo = AnnualReportIncomeRepository(self.db)
-        expense_repo = AnnualReportExpenseRepository(self.db)
-        total_income = income_repo.total_income(report_id)
-        total_expenses = expense_repo.total_expenses(report_id)
-        recognized_expenses = expense_repo.total_recognized_expenses(report_id)
+        financial_service = AnnualReportFinancialService(self.db)
+        financial_summary = financial_service.get_financial_summary(report_id)
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
         orm_report = self.repo.get_by_id(report_id)
         default_credit_points = get_default_resident_credit_points(
@@ -124,9 +113,9 @@ class AnnualReportQueryService(AnnualReportBaseService):
         response.status_history = [
             StatusHistoryResponse.model_validate(h) for h in history
         ]
-        response.total_income = total_income
-        response.total_expenses = total_expenses
-        response.taxable_income = total_income - recognized_expenses
+        response.total_income = financial_summary.total_income
+        response.total_expenses = financial_summary.gross_expenses
+        response.taxable_income = financial_summary.taxable_income
 
         if detail:
             response.client_approved_at = detail.client_approved_at
@@ -148,15 +137,11 @@ class AnnualReportQueryService(AnnualReportBaseService):
                 float(orm_report.tax_due) if orm_report.tax_due is not None else None
             )
 
-        from app.annual_reports.services.financial_service import (
-            AnnualReportFinancialService,
-        )
-
-        tax = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
+        tax = financial_service.get_tax_calculation(report_id)
         response.profit = tax.net_profit
         advances_paid = Decimal(
             str(
-                self.advance_repo.sum_paid_by_client_year(
+                financial_service.advance_repo.sum_paid_by_client_year(
                     orm_report.client_record_id, orm_report.tax_year
                 )
             )
@@ -164,31 +149,3 @@ class AnnualReportQueryService(AnnualReportBaseService):
         response.final_balance = tax.tax_after_credits - advances_paid
 
         return response
-
-    def amend_report(
-        self, report_id: int, reason: str, actor_id: int, actor_name: str
-    ) -> AnnualReportDetailResponse:
-        """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
-        from app.annual_reports.repositories.detail_repository import (
-            AnnualReportDetailRepository,
-        )
-
-        report = self._get_or_raise(report_id)
-        if report.status != AnnualReportStatus.SUBMITTED:
-            raise ConflictError(
-                REPORT_AMEND_ONLY_SUBMITTED_ERROR.format(status=report.status.value),
-                "ANNUAL_REPORT.INVALID_STATUS_FOR_AMEND",
-            )
-
-        self.transition_status(
-            report_id=report_id,
-            new_status=AnnualReportStatus.AMENDED.value,
-            changed_by=actor_id,
-            changed_by_name=actor_name,
-            note=reason,
-        )
-        AnnualReportDetailRepository(self.db).update_meta(
-            report_id, amendment_reason=reason
-        )
-
-        return self.get_detail_report(report_id)

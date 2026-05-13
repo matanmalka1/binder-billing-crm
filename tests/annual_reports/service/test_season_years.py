@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.annual_reports.services.season_years import (
+from app.annual_reports.services.season_service import (
     get_active_annual_report_tax_year,
     get_filing_season_year,
 )

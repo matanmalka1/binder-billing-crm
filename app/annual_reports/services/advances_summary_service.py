@@ -14,7 +14,7 @@ from app.annual_reports.repositories.annual_report_repository import (
 )
 from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-from app.annual_reports.services.messages import ANNUAL_REPORT_DETAILED_NOT_FOUND
+from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
 
@@ -28,7 +28,7 @@ class AnnualReportAdvancesSummaryService:
         report = self.report_repo.get_by_id(report_id)
         if not report:
             raise NotFoundError(
-                ANNUAL_REPORT_DETAILED_NOT_FOUND.format(report_id=report_id),
+                ANNUAL_REPORT_NOT_FOUND.format(report_id=report_id),
                 "ANNUAL_REPORT.NOT_FOUND",
             )
 

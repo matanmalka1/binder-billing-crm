@@ -4,7 +4,6 @@ INCOMPLETE_REQUIRED_SCHEDULE_ISSUE = "נספח נדרש לא הושלם: {label}
 MISSING_REPORT_INCOME_ISSUE = "לא הוזנו נתוני הכנסה לדוח"
 CLIENT_NOT_APPROVED_REPORT_ISSUE = "הדוח לא אושר על ידי הלקוח"
 ANNUAL_REPORT_NOT_FOUND = "דוח שנתי {report_id} לא נמצא"
-ANNUAL_REPORT_DETAILED_NOT_FOUND = "הדוח השנתי {report_id} לא נמצא"
 ANNUAL_REPORT_CLIENT_NOT_FOUND = "לקוח {client_record_id} לא נמצא"
 INVALID_CLIENT_TYPE_ERROR = "סוג לקוח לא חוקי: '{client_type}'"
 INVALID_DEADLINE_TYPE_ERROR = "סוג מועד אחרון לא חוקי: '{deadline_type}'"

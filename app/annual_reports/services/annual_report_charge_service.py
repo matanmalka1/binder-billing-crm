@@ -15,7 +15,7 @@ from app.core.exceptions import NotFoundError
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
 
 
-class ChargeReadinessService:
+class AnnualReportChargeService:
     def __init__(self, db: Session):
         self.db = db
         self.charge_repo = ChargeAnnualReportRepository(db)
