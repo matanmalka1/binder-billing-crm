@@ -14,12 +14,17 @@ from app.common.enums import VatType
 from ...data.demo_catalog import BUSINESS_NOTES
 from ...data.realistic_seed_text import MATERIAL_DESCRIPTIONS
 from ...data.random_utils import full_name
+from ..shared.client_refs import (
+    attach_seed_client_context,
+    get_seed_client_record,
+    get_seed_client_record_id,
+)
 
 
 def _group_businesses_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for b in businesses:
-        grouped.setdefault(int(b.client_id), []).append(b)
+        grouped.setdefault(get_seed_client_record_id(b), []).append(b)
     return grouped
 
 
@@ -29,11 +34,12 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
     businesses_by_client: dict[int, list] = {}
     client_office_number: dict[int, int] = {}
     for business in businesses:
-        businesses_by_client.setdefault(business.client_id, []).append(business)
-        if business.client_id not in client_office_number:
-            cr = getattr(business, "client", None)
-            client_office_number[business.client_id] = (
-                getattr(cr, "office_client_number", None) or business.client_id
+        client_record_id = get_seed_client_record_id(business)
+        businesses_by_client.setdefault(client_record_id, []).append(business)
+        if client_record_id not in client_office_number:
+            cr = get_seed_client_record(business)
+            client_office_number[client_record_id] = (
+                getattr(cr, "office_client_number", None) or client_record_id
             )
 
     for client_id, client_businesses in businesses_by_client.items():
@@ -73,7 +79,10 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 ),
                 notes=rng.choice(BUSINESS_NOTES),
             )
-            binder.client_id = client_id  # type: ignore[attr-defined]
+            if client_businesses:
+                cr = get_seed_client_record(client_businesses[0])
+                if cr is not None:
+                    attach_seed_client_context(binder, cr)
             db.add(binder)
             binders.append(binder)
     db.flush()
@@ -194,7 +203,9 @@ def create_binder_intake_materials(
 
     reports_by_client: dict[int, list] = {}
     for report in reports:
-        reports_by_client.setdefault(report.client_id, []).append(report)
+        reports_by_client.setdefault(
+            get_seed_client_record_id(report), []
+        ).append(report)
 
     intake_by_binder = {intake.binder_id: intake for intake in intakes}
 
@@ -202,7 +213,8 @@ def create_binder_intake_materials(
         intake = intake_by_binder.get(binder.id)
         if intake is None:
             continue
-        candidate_businesses = businesses_by_client.get(binder.client_id, [])
+        binder_client_record_id = get_seed_client_record_id(binder)
+        candidate_businesses = businesses_by_client.get(binder_client_record_id, [])
         for _ in range(rng.randint(1, 4)):
             business = (
                 rng.choice(candidate_businesses) if candidate_businesses else None
@@ -210,7 +222,9 @@ def create_binder_intake_materials(
             report = None
             material_type = rng.choice(list(MaterialType))
             if business and rng.random() < 0.45:
-                client_reports = reports_by_client.get(business.client_id, [])
+                client_reports = reports_by_client.get(
+                    get_seed_client_record_id(business), []
+                )
                 if client_reports:
                     report = rng.choice(client_reports)
             period_year = (
@@ -253,7 +267,9 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
     for binder in binders:
         if binder.status != BinderStatus.RETURNED:
             continue
-        returned_by_client.setdefault(binder.client_id, []).append(binder)
+        returned_by_client.setdefault(
+            get_seed_client_record_id(binder), []
+        ).append(binder)
 
     for client_id, client_binders in returned_by_client.items():
         ordered = sorted(
@@ -288,7 +304,6 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
                 )
                 + timedelta(hours=rng.randint(9, 18)),
             )
-            handover.client_id = client_id  # type: ignore[attr-defined]
             db.add(handover)
             db.flush()
             handovers.append(handover)

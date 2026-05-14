@@ -9,12 +9,13 @@ from app.invoice.models.invoice import Invoice
 
 from ...data.demo_catalog import INVOICE_BASE_URL
 from ...data.realistic_seed_text import CHARGE_TYPE_DETAILS
+from ..shared.client_refs import get_seed_client_record_id
 
 
 def _group_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for b in businesses:
-        grouped.setdefault(int(b.client_id), []).append(b)
+        grouped.setdefault(get_seed_client_record_id(b), []).append(b)
     return grouped
 
 
@@ -88,7 +89,7 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 )
 
             charge = Charge(
-                client_record_id=business.client_id,
+                client_record_id=get_seed_client_record_id(business),
                 business_id=business.id,
                 amount=amount,
                 charge_type=charge_type,
@@ -115,7 +116,6 @@ def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]
                 canceled_by=canceled_by,
                 cancellation_reason=cancellation_reason,
             )
-            charge.client_id = business.client_id  # type: ignore[attr-defined]
             db.add(charge)
             charges.append(charge)
     db.flush()

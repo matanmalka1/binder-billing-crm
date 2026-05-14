@@ -21,6 +21,7 @@ from ..data.demo_catalog import (
     mobile_phone,
 )
 from ..data.random_utils import full_name, generate_valid_israeli_id
+from .shared.client_refs import attach_seed_client_context
 
 
 def create_clients(
@@ -128,8 +129,7 @@ def create_clients(
         )
         # Attach in-memory helpers used by demo builders for grouping.
         # These attributes do NOT exist on the ORM model — they are seed-only handles.
-        primary_business.client_id = client_record.id  # type: ignore[attr-defined]
-        primary_business.client = client_record  # type: ignore[attr-defined]
+        attach_seed_client_context(primary_business, client_record)
         # Convenience attributes accessed by downstream builders (signature_requests, notifications)
         client_record.entity_type = entity_type  # type: ignore[attr-defined]
         client_record.full_name = full_name_value  # type: ignore[attr-defined]
@@ -204,8 +204,7 @@ def create_extra_businesses(
                 notes=rng.choice(BUSINESS_NOTES),
                 actor_id=actor_id,
             )
-            biz.client_id = client_record.id  # type: ignore[attr-defined]
-            biz.client = client_record  # type: ignore[attr-defined]
+            attach_seed_client_context(biz, client_record)
             extra.append(biz)
             db.flush()
 

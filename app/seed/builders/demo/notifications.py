@@ -13,6 +13,7 @@ from app.notification.models.notification import (
 )
 
 from ...data.demo_catalog import demo_email
+from ..shared.client_refs import get_seed_client_record_id
 
 
 def create_notifications(
@@ -21,16 +22,20 @@ def create_notifications(
     clients_by_id = {c.id: c for c in clients}
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(business.client_id, []).append(business)
+        businesses_by_client.setdefault(
+            get_seed_client_record_id(business), []
+        ).append(business)
 
     for binder in binders:
         if rng.random() > 0.65:
             continue
-        candidate_businesses = businesses_by_client.get(binder.client_id, [])
+        binder_client_record_id = get_seed_client_record_id(binder)
+        candidate_businesses = businesses_by_client.get(binder_client_record_id, [])
         if not candidate_businesses:
             continue
         business = rng.choice(candidate_businesses)
-        client = clients_by_id.get(business.client_id)
+        business_client_record_id = get_seed_client_record_id(business)
+        client = clients_by_id.get(business_client_record_id)
         if not client:
             continue
 
@@ -86,7 +91,7 @@ def create_notifications(
             triggered_by = rng.choice(users).id
 
         notification = Notification(
-            client_record_id=business.client_id,
+            client_record_id=business_client_record_id,
             business_id=business.id,
             binder_id=binder.id,
             trigger=trigger,
@@ -103,7 +108,6 @@ def create_notifications(
             triggered_by=triggered_by,
             created_at=created_at,
         )
-        notification.client_id = business.client_id  # type: ignore[attr-defined]
         db.add(notification)
 
     db.flush()

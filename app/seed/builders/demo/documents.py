@@ -11,6 +11,7 @@ from app.permanent_documents.models.permanent_document import (
 )
 
 from ...data.realistic_seed_text import DOCUMENT_TYPE_DETAILS
+from ..shared.client_refs import attach_seed_client_context, get_seed_client_record_id
 
 
 def _doc_timestamps(rng: Random, now: datetime):
@@ -41,7 +42,9 @@ def create_documents(db, rng: Random, clients, businesses, users):
     now = datetime.now(UTC)
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(business.client_id, []).append(business)
+        businesses_by_client.setdefault(
+            get_seed_client_record_id(business), []
+        ).append(business)
 
     for client in clients:
         doc_types = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]
@@ -82,7 +85,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_by=rejected_by,
                 rejected_at=rejected_at,
             )
-            doc.client_id = client.id  # type: ignore[attr-defined]
+            attach_seed_client_context(doc, client)
             db.add(doc)
             documents.append(doc)
 
@@ -130,7 +133,7 @@ def create_documents(db, rng: Random, clients, businesses, users):
                 rejected_by=rejected_by,
                 rejected_at=rejected_at,
             )
-            doc.client_id = client.id  # type: ignore[attr-defined]
+            attach_seed_client_context(doc, client)
             db.add(doc)
             documents.append(doc)
 

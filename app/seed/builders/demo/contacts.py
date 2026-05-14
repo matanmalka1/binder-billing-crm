@@ -13,6 +13,7 @@ from ...data.demo_catalog import (
     CORRESPONDENCE_SUBJECTS,
     office_phone,
 )
+from ..shared.client_refs import attach_seed_client_context, get_seed_client_record_id
 
 
 def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
@@ -20,7 +21,9 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     now = datetime.now(UTC)
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(business.client_id, []).append(business)
+        businesses_by_client.setdefault(
+            get_seed_client_record_id(business), []
+        ).append(business)
 
     for client in clients:
         if not businesses_by_client.get(client.id):
@@ -50,7 +53,7 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
                 created_at=created_at,
                 updated_at=updated_at,
             )
-            contact.client_id = client.id  # type: ignore[attr-defined]
+            attach_seed_client_context(contact, client)
             db.add(contact)
             contacts.append(contact)
     db.flush()
@@ -61,12 +64,15 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
     now = datetime.now(UTC)
     contacts_by_client: dict[int, list] = {}
     for contact in authority_contacts:
-        contacts_by_client.setdefault(contact.client_id, []).append(contact)
+        contacts_by_client.setdefault(
+            get_seed_client_record_id(contact), []
+        ).append(contact)
 
     for business in businesses:
+        business_client_record_id = get_seed_client_record_id(business)
         for _ in range(rng.randint(1, 5)):
             occurred_at = now - timedelta(days=rng.randint(0, 120))
-            candidate_contacts = contacts_by_client.get(business.client_id, [])
+            candidate_contacts = contacts_by_client.get(business_client_record_id, [])
             contact = (
                 rng.choice(candidate_contacts)
                 if candidate_contacts and rng.random() < 0.65
@@ -74,7 +80,7 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
             )
             db.add(
                 Correspondence(
-                    client_record_id=business.client_id,
+                    client_record_id=business_client_record_id,
                     business_id=business.id,
                     contact_id=contact.id if contact else None,
                     correspondence_type=rng.choice(list(CorrespondenceType)),

@@ -14,12 +14,13 @@ from app.signature_requests.models.signature_request import (
 )
 
 from ...data.realistic_seed_text import SIGNATURE_COPY
+from ..shared.client_refs import get_seed_client_record_id
 
 
 def _group_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for b in businesses:
-        grouped.setdefault(int(b.client_id), []).append(b)
+        grouped.setdefault(get_seed_client_record_id(b), []).append(b)
     return grouped
 
 
@@ -34,12 +35,10 @@ def _pick_for_client(rng: Random, rows_by_client: dict[int, list], client_id: in
     return rng.choice(rows) if rows else None
 
 
-def _group_by_attr(rows, attr_name: str) -> dict[int, list]:
+def _group_by_client_record(rows) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for row in rows:
-        key = getattr(row, attr_name, None)
-        if key is None:
-            continue
+        key = get_seed_client_record_id(row)
         grouped.setdefault(key, []).append(row)
     return grouped
 
@@ -114,8 +113,8 @@ def create_signature_requests(
 ):
     requests: list[SignatureRequest] = []
     clients_by_id = {client.id: client for client in clients}
-    reports_by_client = _group_by_attr(annual_reports, "client_id")
-    documents_by_client = _group_by_attr(documents, "client_id")
+    reports_by_client = _group_by_client_record(annual_reports)
+    documents_by_client = _group_by_client_record(documents)
     existing_count = int(
         db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one()
     )
@@ -125,7 +124,8 @@ def create_signature_requests(
     status_idx = 0
 
     for client_businesses in _group_by_client(businesses).values():
-        client = clients_by_id.get(client_businesses[0].client_id)
+        client_record_id = get_seed_client_record_id(client_businesses[0])
+        client = clients_by_id.get(client_record_id)
         if not client:
             continue
         for business in _pick_businesses(
@@ -161,7 +161,7 @@ def create_signature_requests(
                 signing_token = None
 
             req = SignatureRequest(
-                client_record_id=business.client_id,
+                client_record_id=get_seed_client_record_id(business),
                 business_id=business.id,
                 created_by=rng.choice(users).id,
                 annual_report_id=report.id if report else None,
@@ -196,7 +196,6 @@ def create_signature_requests(
                 if status == SignatureRequestStatus.SIGNED
                 else None,
             )
-            req.client_id = business.client_id  # type: ignore[attr-defined]
             db.add(req)
             requests.append(req)
     db.flush()

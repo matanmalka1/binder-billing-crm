@@ -30,6 +30,11 @@ from ...data.realistic_seed_text import (
     VAT_COUNTERPARTY_DETAILS,
     VAT_INCOME_COUNTERPARTIES,
 )
+from ..shared.client_refs import (
+    attach_seed_client_context,
+    get_seed_client_record,
+    get_seed_client_record_id,
+)
 
 DEDUCTION_RATES: dict[ExpenseCategory, Decimal] = {
     ExpenseCategory.TRAVEL: Decimal("0.6667"),
@@ -53,7 +58,7 @@ _VAT_PERIOD_MONTHS_COUNT = {VatType.MONTHLY: 1, VatType.BIMONTHLY: 2}
 def _group_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for b in businesses:
-        grouped.setdefault(int(b.client_id), []).append(b)
+        grouped.setdefault(get_seed_client_record_id(b), []).append(b)
     return grouped
 
 
@@ -142,7 +147,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
         eligible_businesses = [
             b
             for b in client_businesses
-            if getattr(getattr(b, "client", None), "vat_reporting_frequency", None)
+            if getattr(get_seed_client_record(b), "vat_reporting_frequency", None)
             in (VatType.MONTHLY, VatType.BIMONTHLY)
         ]
         if not eligible_businesses:
@@ -151,15 +156,16 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
         num_items = rng.randint(
             cfg.min_vat_work_items_per_client, cfg.max_vat_work_items_per_client
         )
-        cr = getattr(business, "client", None)
+        cr = get_seed_client_record(business)
         period_type = getattr(cr, "vat_reporting_frequency", VatType.MONTHLY)
+        business_client_record_id = get_seed_client_record_id(business)
         periods = _choose_periods(db, rng, num_items, cfg.reference_date, period_type)
 
         for period in periods:
             existing_item = (
                 db.query(VatWorkItem)
                 .filter(
-                    VatWorkItem.client_record_id == business.client_id,
+                    VatWorkItem.client_record_id == business_client_record_id,
                     VatWorkItem.period == period,
                     VatWorkItem.deleted_at.is_(None),
                 )
@@ -199,7 +205,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 db
             ).ensure_periodic_entry(ObligationType.VAT, period, period_months_count)
             work_item = VatWorkItem(
-                client_record_id=business.client_id,
+                client_record_id=business_client_record_id,
                 created_by=created_by,
                 assigned_to=rng.choice(advisors)
                 if advisors and rng.random() < 0.7
@@ -216,7 +222,8 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 due_date_original=tax_calendar_entry.due_date,
                 due_date_effective=tax_calendar_entry.due_date,
             )
-            work_item.client_id = business.client_id  # type: ignore[attr-defined]
+            if cr is not None:
+                attach_seed_client_context(work_item, cr)
             if status == VatWorkItemStatus.FILED:
                 work_item.submission_method = rng.choice(list(SubmissionMethod))
                 filed_at_candidate = max(
@@ -240,7 +247,7 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
     filed_by_client: dict[int, list[VatWorkItem]] = defaultdict(list)
     for work_item in work_items:
         if work_item.status == VatWorkItemStatus.FILED:
-            filed_by_client[work_item.client_id].append(work_item)
+            filed_by_client[get_seed_client_record_id(work_item)].append(work_item)
 
     for filed_items in filed_by_client.values():
         filed_items.sort(key=lambda item: item.period)

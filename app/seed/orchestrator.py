@@ -13,6 +13,7 @@ from .config import SeedConfig
 from .tax_calendar_range import tax_calendar_year_range_for_seed
 from .builders import users as users_builder
 from .builders import clients as clients_builder
+from .builders.shared.client_refs import attach_seed_client_context
 from .builders.demo import binders as binders_builder
 from .builders.demo import charges as charges_builder
 from .builders.demo import vat as vat_builder
@@ -279,10 +280,11 @@ class SeedOrchestrator:
             .scalars()
             .all()
         )
-        # Re-attach in-memory client_id helper
+        clients_by_id = {cr.id: cr for cr in client_records}
         for b in binders:
-            if not hasattr(b, "client_id") or b.client_id is None:
-                b.client_id = b.client_record_id  # type: ignore[attr-defined]
+            client_record = clients_by_id.get(b.client_record_id)
+            if client_record is not None:
+                attach_seed_client_context(b, client_record)
         return list(binders)
 
     def _load_all_reports(self, db, client_records):
@@ -299,9 +301,11 @@ class SeedOrchestrator:
             .scalars()
             .all()
         )
+        clients_by_id = {cr.id: cr for cr in client_records}
         for r in reports:
-            if not hasattr(r, "client_id") or r.client_id is None:
-                r.client_id = r.client_record_id  # type: ignore[attr-defined]
+            client_record = clients_by_id.get(r.client_record_id)
+            if client_record is not None:
+                attach_seed_client_context(r, client_record)
         return list(reports)
 
     def _print_counts(self, db) -> None:

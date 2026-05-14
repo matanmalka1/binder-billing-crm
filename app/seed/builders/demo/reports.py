@@ -46,6 +46,11 @@ from app.tax_calendar.services.materialization_service import (
 from app.users.models.user import UserRole
 
 from ...data.realistic_seed_text import EXPENSE_DESCRIPTIONS, INCOME_DESCRIPTIONS
+from ..shared.client_refs import (
+    attach_seed_client_context,
+    get_seed_client_record,
+    get_seed_client_record_id,
+)
 
 
 SEEDABLE_STATUSES = [
@@ -71,7 +76,7 @@ SECURITIES = ["מניית בנק לאומי", "מדד S&P 500", 'קרן סל ת"
 def _group_by_client(businesses) -> dict[int, list]:
     grouped: dict[int, list] = {}
     for b in businesses:
-        grouped.setdefault(int(b.client_id), []).append(b)
+        grouped.setdefault(get_seed_client_record_id(b), []).append(b)
     return grouped
 
 
@@ -254,8 +259,9 @@ def create_annual_reports(
         )
         for year in years:
             business = rng.choice(client_businesses)
-            cr = getattr(business, "client", None)
+            cr = get_seed_client_record(business)
             entity_type = getattr(cr, "entity_type", None)
+            business_client_record_id = get_seed_client_record_id(business)
 
             if entity_type == EntityType.COMPANY_LTD:
                 client_type_for_report = ClientTypeForReport.CORPORATION
@@ -271,7 +277,7 @@ def create_annual_reports(
             existing = (
                 db.query(AnnualReport)
                 .filter(
-                    AnnualReport.client_record_id == business.client_id,
+                    AnnualReport.client_record_id == business_client_record_id,
                     AnnualReport.tax_year == year,
                     AnnualReport.deleted_at.is_(None),
                 )
@@ -338,7 +344,7 @@ def create_annual_reports(
                 db
             ).ensure_annual_entry(year)
             report = AnnualReport(
-                client_record_id=business.client_id,
+                client_record_id=business_client_record_id,
                 tax_year=year,
                 tax_calendar_entry_id=tax_calendar_entry.id,
                 client_type=client_type_for_report,
@@ -362,7 +368,8 @@ def create_annual_reports(
                 created_by=rng.choice(advisors) if advisors else fallback_user_id,
                 assigned_to=rng.choice(advisors) if advisors else None,
             )
-            report.client_id = business.client_id  # type: ignore[attr-defined]
+            if cr is not None:
+                attach_seed_client_context(report, cr)
             db.add(report)
             reports.append(report)
 
@@ -496,7 +503,9 @@ def create_annual_report_expense_lines(
     documents_by_client: dict[int, list] = {}
     if seeded_documents:
         for doc in seeded_documents:
-            documents_by_client.setdefault(doc.client_id, []).append(doc)
+            documents_by_client.setdefault(
+                get_seed_client_record_id(doc), []
+            ).append(doc)
 
     for report in reports:
         category_candidates = list(base_categories)
@@ -522,7 +531,7 @@ def create_annual_report_expense_lines(
         for category in rng.sample(
             unique_categories, k=min(len(unique_categories), rng.randint(1, 4))
         ):
-            client_docs = documents_by_client.get(report.client_id, [])
+            client_docs = documents_by_client.get(get_seed_client_record_id(report), [])
             linked_doc = (
                 rng.choice(client_docs) if client_docs and rng.random() < 0.7 else None
             )
