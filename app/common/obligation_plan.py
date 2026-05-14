@@ -1,9 +1,6 @@
 from dataclasses import dataclass
-from datetime import date
 from typing import Optional
 
-from app.annual_reports.services.deadlines import standard_deadline
-from app.clients.constants import ENTITY_TYPE_TO_REPORT_CLIENT_TYPE
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 
 
@@ -69,7 +66,3 @@ def advance_payment_obligation_plan(
         )
     return plans
 
-
-def annual_report_due_date(entity_type: Optional[EntityType], year: int) -> date:
-    client_type = ENTITY_TYPE_TO_REPORT_CLIENT_TYPE.get(entity_type)
-    return standard_deadline(year, client_type=client_type).date()
