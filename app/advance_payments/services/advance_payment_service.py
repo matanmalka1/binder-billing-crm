@@ -178,7 +178,7 @@ class AdvancePaymentService:
             expected = filtered.get("expected_amount", payment.expected_amount)
             if paid is None or paid == 0:
                 filtered["status"] = AdvancePaymentStatus.PENDING
-            elif expected is not None and paid >= expected:
+            elif expected is None or paid >= expected:
                 filtered["status"] = AdvancePaymentStatus.PAID
             else:
                 filtered["status"] = AdvancePaymentStatus.PARTIAL

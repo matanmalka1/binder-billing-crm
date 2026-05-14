@@ -22,6 +22,7 @@ class VatClientSummaryRepository(BaseRepository[VatWorkItem]):
             select(func.sum(VatWorkItem.total_output_vat)).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.like(f"{year}-%"),
+                VatWorkItem.status == VatWorkItemStatus.FILED,
                 VatWorkItem.deleted_at.is_(None),
             )
         )
