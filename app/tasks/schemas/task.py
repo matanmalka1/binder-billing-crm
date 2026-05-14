@@ -1,56 +1,37 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.core.api_types import ApiDateTime, PaginatedResponse
 from app.tasks.models.task import TaskPriority, TaskStatus
 from app.users.models.user import UserRole
-
-_ALLOWED_ROLES = {role.value for role in UserRole}
-
-
-def _validate_role(v: Optional[str]) -> Optional[str]:
-    if v is not None and v not in _ALLOWED_ROLES:
-        raise ValueError(
-            f"assigned_role must be one of: {', '.join(sorted(_ALLOWED_ROLES))}"
-        )
-    return v
 
 
 class TaskCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
     priority: TaskPriority = TaskPriority.NORMAL
-    due_date: Optional[ApiDateTime] = None
+    due_date: Optional[date] = None
     assigned_to_user_id: Optional[int] = Field(None, gt=0)
-    assigned_role: Optional[str] = Field(None, max_length=50)
+    assigned_role: Optional[UserRole] = None
     source_domain: Optional[str] = Field(None, max_length=100)
     source_id: Optional[int] = Field(None, gt=0)
     action_key: Optional[str] = Field(None, max_length=100)
     action_payload: Optional[dict[str, Any]] = None
-
-    @field_validator("assigned_role")
-    @classmethod
-    def validate_assigned_role(cls, v: Optional[str]) -> Optional[str]:
-        return _validate_role(v)
 
 
 class TaskUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=500)
     description: Optional[str] = None
     priority: Optional[TaskPriority] = None
-    due_date: Optional[ApiDateTime] = None
+    due_date: Optional[date] = None
     assigned_to_user_id: Optional[int] = Field(None, gt=0)
-    assigned_role: Optional[str] = Field(None, max_length=50)
+    assigned_role: Optional[UserRole] = None
     action_key: Optional[str] = Field(None, max_length=100)
     action_payload: Optional[dict[str, Any]] = None
-
-    @field_validator("assigned_role")
-    @classmethod
-    def validate_assigned_role(cls, v: Optional[str]) -> Optional[str]:
-        return _validate_role(v)
 
 
 class TaskResponse(BaseModel):
@@ -59,9 +40,9 @@ class TaskResponse(BaseModel):
     description: Optional[str] = None
     status: TaskStatus
     priority: TaskPriority
-    due_date: Optional[ApiDateTime] = None
+    due_date: Optional[date] = None
     assigned_to_user_id: Optional[int] = None
-    assigned_role: Optional[str] = None
+    assigned_role: Optional[UserRole] = None
     source_domain: Optional[str] = None
     source_id: Optional[int] = None
     action_key: Optional[str] = None
@@ -69,6 +50,7 @@ class TaskResponse(BaseModel):
     created_by_user_id: Optional[int] = None
     completed_by_user_id: Optional[int] = None
     completed_at: Optional[ApiDateTime] = None
+    canceled_by_user_id: Optional[int] = None
     canceled_at: Optional[ApiDateTime] = None
     created_at: ApiDateTime
     updated_at: ApiDateTime

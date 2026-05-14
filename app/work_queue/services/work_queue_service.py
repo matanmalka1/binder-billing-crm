@@ -13,6 +13,7 @@ from app.work_queue.schemas.work_queue import (
     LinkedTaskSummary,
     WorkQueueItem,
     WorkQueueLinkedFilter,
+    WorkQueueListResponse,
     WorkQueueScope,
     WorkQueueSourceSummary,
     WorkQueueSourceType,
@@ -162,6 +163,7 @@ def build_work_queue_summary(items: list[WorkQueueItem]) -> WorkQueueSummary:
 class WorkQueueService:
     def __init__(self, db: Session):
         self.ctx = WorkQueueContext(db, israel_today())
+        self.task_repo = TaskRepository(self.ctx.db)
 
     def list_items(
         self,
@@ -194,6 +196,41 @@ class WorkQueueService:
         )
         items.sort(key=self._sort_key)
         return items[offset : offset + limit]
+
+    def list_items_with_total(
+        self,
+        client_record_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+        exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        include_task_history: bool = False,
+        search: Optional[str] = None,
+        source_type: Optional[WorkQueueSourceType] = None,
+        urgency: Optional[WorkQueueUrgency] = None,
+        task_status: Optional[TaskStatus] = None,
+        linked: Optional[WorkQueueLinkedFilter] = None,
+        scope: Optional[WorkQueueScope] = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> WorkQueueListResponse:
+        all_items = self._filtered_items(
+            client_record_id=client_record_id,
+            business_id=business_id,
+            exclude_source_types=exclude_source_types,
+            include_task_history=include_task_history,
+            filters=WorkQueueFilters(
+                search=search,
+                source_type=source_type,
+                urgency=urgency,
+                task_status=task_status,
+                linked=linked,
+                scope=scope,
+            ),
+        )
+        all_items.sort(key=self._sort_key)
+        return WorkQueueListResponse(
+            items=all_items[offset : offset + limit],
+            total=len(all_items),
+        )
 
     def summary(
         self,
@@ -251,7 +288,6 @@ class WorkQueueService:
         exclude_source_types: Optional[List[WorkQueueSourceType]],
         include_task_history: bool,
     ) -> list[WorkQueueItem]:
-        self.ctx.include_task_history = include_task_history
         excluded = set(exclude_source_types or [])
         system_items: List[WorkQueueItem] = []
 
@@ -323,7 +359,7 @@ class WorkQueueService:
         system_by_key = {
             source_key(item.source_type, item.source_id): item for item in system_items
         }
-        tasks = TaskRepository(self.ctx.db).list_for_work_queue(
+        tasks = self.task_repo.list_for_work_queue(
             include_history=include_task_history
         )
         linked_keys = {

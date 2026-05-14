@@ -37,7 +37,7 @@ def test_work_queue_api_returns_clean_advance_payment_contract(
     )
 
     assert response.status_code == 200
-    item = next(i for i in response.json() if i["source_type"] == "advance_payment")
+    item = next(i for i in response.json()["items"] if i["source_type"] == "advance_payment")
     assert "item_type" not in item
     assert "label" not in item
     assert "payload" not in item
@@ -85,8 +85,8 @@ def test_work_queue_api_pagination(client, test_db, advisor_headers):
 
     assert r1.status_code == 200
     assert r2.status_code == 200
-    assert len(r1.json()) == 2
-    assert len(r2.json()) == 1
+    assert len(r1.json()["items"]) == 2
+    assert len(r2.json()["items"]) == 1
 
 
 def test_work_queue_api_limit_max_enforced(client, advisor_headers):

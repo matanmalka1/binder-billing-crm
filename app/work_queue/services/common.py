@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.source_types import normalize_source_domain as normalize_source_domain
+from app.common.source_types import source_route as source_route
 from app.work_queue.schemas.work_queue import (
     WorkQueueItem,
     WorkQueueSourceSummary,
@@ -94,31 +96,8 @@ def urgency(due_date: date, today: date) -> WorkQueueUrgency:
     return WorkQueueUrgency.UPCOMING
 
 
-def normalize_source_domain(value: str | None) -> WorkQueueSourceType | None:
-    if not value:
-        return None
-    try:
-        return WorkQueueSourceType(value)
-    except ValueError:
-        return None
-
-
 def source_key(source_type: WorkQueueSourceType, source_id: int) -> tuple[str, int]:
     return (source_type.value, source_id)
-
-
-def source_route(source_type: WorkQueueSourceType, source_id: int) -> str | None:
-    if source_type == WorkQueueSourceType.VAT_WORK_ITEM:
-        return f"/tax/vat/{source_id}"
-    if source_type == WorkQueueSourceType.ANNUAL_REPORT:
-        return f"/tax/reports/{source_id}"
-    if source_type == WorkQueueSourceType.ADVANCE_PAYMENT:
-        return None
-    if source_type == WorkQueueSourceType.CHARGE:
-        return f"/charges?charge_id={source_id}"
-    if source_type == WorkQueueSourceType.BINDER:
-        return f"/binders?binder_id={source_id}"
-    return None
 
 
 def display_status_label(
@@ -152,12 +131,9 @@ def load_client_profiles(
 
 
 class WorkQueueContext:
-    def __init__(
-        self, db: Session, today: date, *, include_task_history: bool = False
-    ):
+    def __init__(self, db: Session, today: date):
         self.db = db
         self.today = today
-        self.include_task_history = include_task_history
         self._client_profiles: Optional[Dict[int, ClientWorkQueueProfile]] = None
         self._pending_ids: set[int] = set()
 

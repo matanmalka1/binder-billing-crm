@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
@@ -32,8 +32,8 @@ def list_tasks(
     assigned_role: Optional[str] = Query(None),
     source_domain: Optional[str] = Query(None),
     source_id: Optional[int] = Query(None),
-    due_before: Optional[datetime] = Query(None),
-    due_after: Optional[datetime] = Query(None),
+    due_before: Optional[date] = Query(None),
+    due_after: Optional[date] = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -82,8 +82,8 @@ def complete_task(db: DBSession, user: CurrentUser, task_id: int):
 
 
 @router.post("/{task_id}/cancel", response_model=TaskResponse)
-def cancel_task(db: DBSession, task_id: int):
-    return TaskService(db).cancel(task_id)
+def cancel_task(db: DBSession, user: CurrentUser, task_id: int):
+    return TaskService(db).cancel(task_id, canceled_by_user_id=user.id)
 
 
 @router.delete("/{task_id}", status_code=204)

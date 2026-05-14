@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, JSON, String, Text
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text
 
 from app.database import Base
+from app.users.models.user import UserRole
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
@@ -38,15 +39,11 @@ class Task(Base):
         nullable=False,
         default=TaskPriority.NORMAL,
     )
-    # due_date is DateTime (with time) so callers can schedule tasks at a specific time of day.
-    # The work queue projects it to .date() for day-level urgency comparison.
-    due_date = Column(DateTime, nullable=True)
+    due_date = Column(Date, nullable=True)
     assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # Stores UserRole.value ("advisor" / "secretary"). Validated against UserRole at the API
-    # layer (TaskCreateRequest / TaskUpdateRequest). Kept as String in DB to decouple the
-    # column from UserRole's PostgreSQL enum lifecycle — adding a role stays a schema-only
-    # change, not a DB enum ALTER.
-    assigned_role = Column(String(50), nullable=True)
+    assigned_role = Column(
+        pg_enum(UserRole, name="userrole", create_type=False), nullable=True
+    )
     source_domain = Column(String(100), nullable=True)
     source_id = Column(Integer, nullable=True)
     action_key = Column(String(100), nullable=True)
@@ -54,6 +51,7 @@ class Task(Base):
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     completed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     completed_at = Column(DateTime, nullable=True)
+    canceled_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     canceled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)

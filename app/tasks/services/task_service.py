@@ -10,8 +10,8 @@ from app.tasks.models.task import Task, TaskPriority, TaskStatus
 from app.tasks.repositories.task_repository import TaskRepository
 from app.tasks.schemas.task import TaskCreateRequest, TaskUpdateRequest
 from app.utils.time_utils import utcnow
-from app.work_queue.services.common import normalize_source_domain
-from app.work_queue.services.source_lookup import load_source_states
+from app.common.source_types import normalize_source_domain
+from app.tasks.services.source_validator import source_exists
 
 _TERMINAL = {TaskStatus.DONE, TaskStatus.CANCELED}
 
@@ -44,12 +44,6 @@ class TaskService(BaseService):
                 action_payload=data.action_payload,
             )
 
-    def get(self, task_id: int) -> Task:
-        task = self.repo.get_by_id(task_id)
-        if not task or task.deleted_at is not None:
-            raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
-        return task
-
     def list(
         self,
         status: Optional[TaskStatus] = None,
@@ -77,7 +71,7 @@ class TaskService(BaseService):
         )
 
     def update(self, task_id: int, data: TaskUpdateRequest) -> Task:
-        task = self._get_active(task_id)
+        task = self.get(task_id)
         if task.status in _TERMINAL:
             raise ConflictError("לא ניתן לערוך משימה שהושלמה או בוטלה", _CONFLICT)
         updates = data.model_dump(exclude_unset=True)
@@ -88,7 +82,7 @@ class TaskService(BaseService):
         return task
 
     def complete(self, task_id: int, completed_by_user_id: Optional[int]) -> Task:
-        task = self._get_active(task_id)
+        task = self.get(task_id)
         if task.status == TaskStatus.CANCELED:
             raise ConflictError("לא ניתן להשלים משימה שבוטלה", _CONFLICT)
         if task.status == TaskStatus.DONE:
@@ -100,8 +94,8 @@ class TaskService(BaseService):
             task.updated_at = utcnow()
         return task
 
-    def cancel(self, task_id: int) -> Task:
-        task = self._get_active(task_id)
+    def cancel(self, task_id: int, canceled_by_user_id: Optional[int] = None) -> Task:
+        task = self.get(task_id)
         if task.status == TaskStatus.DONE:
             raise ConflictError("לא ניתן לבטל משימה שהושלמה", _CONFLICT)
         if task.status == TaskStatus.CANCELED:
@@ -109,16 +103,17 @@ class TaskService(BaseService):
         with self.transaction():
             task.status = TaskStatus.CANCELED
             task.canceled_at = utcnow()
+            task.canceled_by_user_id = canceled_by_user_id
             task.updated_at = utcnow()
         return task
 
     def delete(self, task_id: int) -> None:
-        task = self._get_active(task_id)
+        task = self.get(task_id)
         with self.transaction():
             task.deleted_at = utcnow()
             task.updated_at = utcnow()
 
-    def _get_active(self, task_id: int) -> Task:
+    def get(self, task_id: int) -> Task:
         task = self.repo.get_by_id(task_id)
         if not task or task.deleted_at is not None:
             raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
@@ -137,8 +132,5 @@ class TaskService(BaseService):
         source_type = normalize_source_domain(source_domain)
         if source_type is None:
             raise AppError("סוג המקור של המשימה אינו נתמך", _INVALID_SOURCE)
-        state = load_source_states(self.db, [(source_type, source_id)]).get(
-            (source_type.value, source_id)
-        )
-        if state is None or state.is_missing or state.is_deleted:
+        if not source_exists(self.db, source_type, source_id):
             raise NotFoundError("הפריט המקושר למשימה לא נמצא", _NOT_FOUND)

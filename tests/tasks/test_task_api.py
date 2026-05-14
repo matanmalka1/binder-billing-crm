@@ -54,7 +54,7 @@ def test_create_standalone_task_appears_in_work_queue_api(
 
     resp = client.get("/api/v1/work-queue", headers=advisor_headers)
     assert resp.status_code == 200
-    items = resp.json()
+    items = resp.json()["items"]
     match = next(
         (
             item
@@ -73,11 +73,11 @@ def test_create_task_persists_due_date(client, advisor_headers):
     resp = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
-        json={"title": "Due task", "due_date": "2026-06-15T00:00:00Z"},
+        json={"title": "Due task", "due_date": "2026-06-15"},
     )
     assert resp.status_code == 201
     data = resp.json()
-    assert data["due_date"].startswith("2026-06-15T00:00:00")
+    assert data["due_date"] == "2026-06-15"
 
 
 def test_update_task_persists_due_date(client, advisor_headers):
@@ -90,17 +90,17 @@ def test_update_task_persists_due_date(client, advisor_headers):
     resp = client.patch(
         f"/api/v1/tasks/{created['id']}",
         headers=advisor_headers,
-        json={"due_date": "2026-07-20T00:00:00Z"},
+        json={"due_date": "2026-07-20"},
     )
     assert resp.status_code == 200
-    assert resp.json()["due_date"].startswith("2026-07-20T00:00:00")
+    assert resp.json()["due_date"] == "2026-07-20"
 
 
 def test_work_queue_task_row_exposes_due_date_after_create(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
-        json={"title": "Queue due task", "due_date": "2026-08-10T00:00:00Z"},
+        json={"title": "Queue due task", "due_date": "2026-08-10"},
     )
     assert created.status_code == 201
     task_id = created.json()["id"]
@@ -109,7 +109,7 @@ def test_work_queue_task_row_exposes_due_date_after_create(client, advisor_heade
     assert resp.status_code == 200
     item = next(
         row
-        for row in resp.json()
+        for row in resp.json()["items"]
         if row["source_type"] == "task" and row["source_id"] == task_id
     )
     assert item["due_date"] == "2026-08-10"
@@ -133,7 +133,7 @@ def test_completed_standalone_task_appears_in_work_queue_history_api(
     assert active_resp.status_code == 200
     assert not any(
         row["source_type"] == "task" and row["source_id"] == created["id"]
-        for row in active_resp.json()
+        for row in active_resp.json()["items"]
     )
 
     history_resp = client.get(
@@ -143,7 +143,7 @@ def test_completed_standalone_task_appears_in_work_queue_history_api(
     assert history_resp.status_code == 200
     assert any(
         row["source_type"] == "task" and row["source_id"] == created["id"]
-        for row in history_resp.json()
+        for row in history_resp.json()["items"]
     )
 
 

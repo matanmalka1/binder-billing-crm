@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
-from app.tasks.repositories.task_repository import TaskRepository
 from app.work_queue.schemas.work_queue import (
     LinkedTaskSummary,
     WorkQueueItem,
@@ -19,7 +16,7 @@ from app.work_queue.services.common import (
 
 
 def task_summary(task) -> LinkedTaskSummary:
-    due = task.due_date.date() if task.due_date is not None else None
+    due = task.due_date
     return LinkedTaskSummary(
         id=task.id,
         title=task.title,
@@ -32,7 +29,7 @@ def task_summary(task) -> LinkedTaskSummary:
 
 
 def task_item(ctx: WorkQueueContext, task) -> WorkQueueItem:
-    due = task.due_date.date() if task.due_date is not None else None
+    due = task.due_date
     item_urgency = (
         urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
     )
@@ -66,13 +63,4 @@ def task_item(ctx: WorkQueueContext, task) -> WorkQueueItem:
     )
 
 
-def task_items(ctx: WorkQueueContext) -> List[WorkQueueItem]:
-    repo = TaskRepository(ctx.db)
-    tasks = repo.list_for_work_queue(include_history=ctx.include_task_history)
-    items: List[WorkQueueItem] = []
-    for task in tasks:
-        items.append(task_item(ctx, task))
-    return items
-
-
-__all__ = ["task_item", "task_items", "task_summary"]
+__all__ = ["task_item", "task_summary"]

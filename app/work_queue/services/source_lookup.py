@@ -11,10 +11,9 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder, BinderStatus
 from app.charge.models.charge import Charge, ChargeStatus
+from app.common.source_types import WorkQueueSourceType, source_route
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.work_queue.schemas.work_queue import WorkQueueSourceType
-from app.work_queue.services.common import source_route
 
 
 @dataclass(frozen=True)
@@ -39,6 +38,7 @@ def _state(
     *,
     is_deleted: bool,
     is_final: bool,
+    route: str | None = None,
 ) -> SourceState:
     status_value = status.value if hasattr(status, "value") else status
     return SourceState(
@@ -49,15 +49,16 @@ def _state(
         status=status_value,
         is_deleted=is_deleted,
         is_final=is_final,
-        route=source_route(source_type, source_id),
+        route=route,
     )
 
 
 def load_source_states(
     db: Session, keys: Iterable[tuple[WorkQueueSourceType, int]]
 ) -> dict[tuple[str, int], SourceState]:
+    key_list = list(keys)
     grouped: dict[WorkQueueSourceType, set[int]] = {}
-    for source_type, source_id in keys:
+    for source_type, source_id in key_list:
         grouped.setdefault(source_type, set()).add(source_id)
 
     states: dict[tuple[str, int], SourceState] = {}
@@ -73,12 +74,8 @@ def load_source_states(
                 row.client_record_id,
                 row.status,
                 is_deleted=row.deleted_at is not None,
-                is_final=row.status
-                in {
-                    VatWorkItemStatus.FILED,
-                    VatWorkItemStatus.CANCELED,
-                    VatWorkItemStatus.ARCHIVED,
-                },
+                is_final=row.status in {VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED, VatWorkItemStatus.ARCHIVED},
+                route=source_route(WorkQueueSourceType.VAT_WORK_ITEM, row.id),
             )
 
     ids = grouped.get(WorkQueueSourceType.ANNUAL_REPORT, set())
@@ -92,13 +89,8 @@ def load_source_states(
                 row.client_record_id,
                 row.status,
                 is_deleted=row.deleted_at is not None,
-                is_final=row.status
-                in {
-                    AnnualReportStatus.SUBMITTED,
-                    AnnualReportStatus.ACCEPTED,
-                    AnnualReportStatus.CLOSED,
-                    AnnualReportStatus.CANCELED,
-                },
+                is_final=row.status in {AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED, AnnualReportStatus.CLOSED, AnnualReportStatus.CANCELED},
+                route=source_route(WorkQueueSourceType.ANNUAL_REPORT, row.id),
             )
 
     ids = grouped.get(WorkQueueSourceType.ADVANCE_PAYMENT, set())
@@ -113,6 +105,7 @@ def load_source_states(
                 row.status,
                 is_deleted=row.deleted_at is not None,
                 is_final=row.status == AdvancePaymentStatus.PAID,
+                route=source_route(WorkQueueSourceType.ADVANCE_PAYMENT, row.id),
             )
 
     ids = grouped.get(WorkQueueSourceType.CHARGE, set())
@@ -127,6 +120,7 @@ def load_source_states(
                 row.status,
                 is_deleted=row.deleted_at is not None,
                 is_final=row.status in {ChargeStatus.PAID, ChargeStatus.CANCELED},
+                route=source_route(WorkQueueSourceType.CHARGE, row.id),
             )
 
     ids = grouped.get(WorkQueueSourceType.BINDER, set())
@@ -141,9 +135,10 @@ def load_source_states(
                 row.status,
                 is_deleted=row.deleted_at is not None,
                 is_final=row.status == BinderStatus.RETURNED,
+                route=source_route(WorkQueueSourceType.BINDER, row.id),
             )
 
-    for source_type, source_id in keys:
+    for source_type, source_id in key_list:
         states.setdefault(
             (source_type.value, source_id),
             SourceState(

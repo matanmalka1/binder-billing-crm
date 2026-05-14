@@ -17,21 +17,6 @@ _MONTH_HE = {
     12: "דצמבר",
 }
 
-# Stable metadata keys consumed by the Work Queue frontend:
-# period, period_label, tax_year, due_date, status, remaining_amount, priority.
-# Keep this object compact; it is display/grouping context, not a domain dump.
-WORK_QUEUE_METADATA_KEYS = frozenset(
-    {
-        "period",
-        "period_label",
-        "tax_year",
-        "due_date",
-        "status",
-        "remaining_amount",
-        "priority",
-    }
-)
-
 
 def _date_value(value: date | datetime | None) -> str | None:
     if value is None:

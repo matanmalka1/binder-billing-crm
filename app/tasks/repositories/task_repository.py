@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -18,8 +18,8 @@ def _apply_filters(
     assigned_role: Optional[str],
     source_domain: Optional[str],
     source_id: Optional[int],
-    due_before: Optional[datetime],
-    due_after: Optional[datetime],
+    due_before: Optional[date],
+    due_after: Optional[date],
 ):
     if status is not None:
         stmt = stmt.where(Task.status == status)
@@ -65,8 +65,8 @@ class TaskRepository(BaseRepository[Task]):
         assigned_role: Optional[str] = None,
         source_domain: Optional[str] = None,
         source_id: Optional[int] = None,
-        due_before: Optional[datetime] = None,
-        due_after: Optional[datetime] = None,
+        due_before: Optional[date] = None,
+        due_after: Optional[date] = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Task], int]:

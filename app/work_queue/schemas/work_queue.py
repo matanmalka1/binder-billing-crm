@@ -6,14 +6,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-
-class WorkQueueSourceType(str, PyEnum):
-    VAT_WORK_ITEM = "vat_work_item"
-    ANNUAL_REPORT = "annual_report"
-    ADVANCE_PAYMENT = "advance_payment"
-    CHARGE = "charge"
-    BINDER = "binder"
-    TASK = "task"
+from app.common.source_types import WorkQueueSourceType
 
 
 class WorkQueueUrgency(str, PyEnum):
@@ -106,3 +99,8 @@ class WorkQueueSummary(BaseModel):
     upcoming: int
     by_source_type: dict[WorkQueueSourceType, int]
     by_task_status: dict[str, int]
+
+
+class WorkQueueListResponse(BaseModel):
+    items: list[WorkQueueItem]
+    total: int
