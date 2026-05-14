@@ -82,7 +82,7 @@ def list_advance_payments_overview(
 def list_advance_payment_batches(
     db: DBSession,
     user: CurrentUser,
-    year: int = Query(...),
+    year: int | None = Query(None),
 ):
     rows = AdvancePaymentBatchRepository(db).batch_summary_by_month(year)
     result = []
@@ -94,7 +94,7 @@ def list_advance_payment_batches(
         )
         result.append(
             MonthBatchSummary(
-                year=year,
+                year=int(r.year),
                 month=int(r.month),
                 due_date=r.due_date,
                 period_months_count=int(r.period_months_count or 1),
