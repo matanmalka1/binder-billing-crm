@@ -148,7 +148,7 @@ def test_annual_report_work_queue_route_targets_existing_detail_api(
     )
 
     assert item.available_actions[0].route == f"/tax/reports/{report.id}"
-    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 1) is None
+    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 1) == "/tax/advance-payments"
 
     response = client.get(
         f"/api/v1/annual-reports/{report.id}", headers=advisor_headers

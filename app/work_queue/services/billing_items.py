@@ -40,20 +40,23 @@ def advance_payment_items(
     payments = list(ctx.db.scalars(stmt))
     for payment in payments:
         ctx.register_client_id(payment.client_record_id)
-    return [
-        ctx.item(
-            WorkQueueSourceType.ADVANCE_PAYMENT,
-            payment.id,
-            f"מקדמה: {payment.period}",
-            payment.due_date,
-            payment.client_record_id,
-            status_label=payment.status.value
-            if hasattr(payment.status, "value")
-            else str(payment.status),
-            metadata=advance_payment_metadata(payment),
+    items: list[WorkQueueItem] = []
+    for payment in payments:
+        metadata = advance_payment_metadata(payment)
+        items.append(
+            ctx.item(
+                WorkQueueSourceType.ADVANCE_PAYMENT,
+                payment.id,
+                f"מקדמה: {metadata['period_label']}",
+                payment.due_date,
+                payment.client_record_id,
+                status_label=payment.status.value
+                if hasattr(payment.status, "value")
+                else str(payment.status),
+                metadata=metadata,
+            )
         )
-        for payment in payments
-    ]
+    return items
 
 
 def charge_items(

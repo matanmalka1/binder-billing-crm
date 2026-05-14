@@ -50,17 +50,18 @@ def vat_work_item_items(
         ):
             continue
         due_date = _vat_due_date(vat_item)
+        metadata = vat_work_item_metadata(vat_item, due_date)
         items.append(
             ctx.item(
                 WorkQueueSourceType.VAT_WORK_ITEM,
                 vat_item.id,
-                f'מע"מ לא הוגש: {vat_item.period}',
+                f'מע"מ לא הוגש: {metadata["period_label"]}',
                 due_date,
                 vat_item.client_record_id,
                 status_label=vat_item.status.value
                 if hasattr(vat_item.status, "value")
                 else str(vat_item.status),
-                metadata=vat_work_item_metadata(vat_item, due_date),
+                metadata=metadata,
             )
         )
     return items

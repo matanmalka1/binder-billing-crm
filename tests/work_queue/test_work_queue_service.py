@@ -215,7 +215,7 @@ def test_work_queue_item_can_be_unscoped_to_client():
         id="vat_work_item:1",
         source_type=WorkQueueSourceType.VAT_WORK_ITEM,
         source_id=1,
-        title='מע"מ לא הוגש: 2026-04',
+        title='מע"מ לא הוגש: אפריל 2026',
         due_date=date.today(),
         urgency=WorkQueueUrgency.APPROACHING,
     )
@@ -257,7 +257,7 @@ def test_source_routes_only_return_existing_frontend_targets():
     assert source_route(WorkQueueSourceType.ANNUAL_REPORT, 22) == "/tax/reports/22"
     assert source_route(WorkQueueSourceType.CHARGE, 33) == "/charges?charge_id=33"
     assert source_route(WorkQueueSourceType.BINDER, 44) == "/binders?binder_id=44"
-    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) is None
+    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) == "/tax/advance-payments"
 
 
 # ── Pagination ────────────────────────────────────────────────────────────────

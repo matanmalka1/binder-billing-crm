@@ -27,7 +27,7 @@ def source_route(source_type: WorkQueueSourceType, source_id: int) -> str | None
     if source_type == WorkQueueSourceType.ANNUAL_REPORT:
         return f"/tax/reports/{source_id}"
     if source_type == WorkQueueSourceType.ADVANCE_PAYMENT:
-        return None
+        return "/tax/advance-payments"
     if source_type == WorkQueueSourceType.CHARGE:
         return f"/charges?charge_id={source_id}"
     if source_type == WorkQueueSourceType.BINDER:
