@@ -68,7 +68,7 @@ def task_item(ctx: WorkQueueContext, task) -> WorkQueueItem:
 
 def task_items(ctx: WorkQueueContext) -> List[WorkQueueItem]:
     repo = TaskRepository(ctx.db)
-    tasks = repo.list_open_for_work_queue()
+    tasks = repo.list_for_work_queue(include_history=ctx.include_task_history)
     items: List[WorkQueueItem] = []
     for task in tasks:
         items.append(task_item(ctx, task))

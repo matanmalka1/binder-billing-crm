@@ -11,7 +11,7 @@ from app.work_queue.schemas.work_queue import (
     WorkQueueSourceType,
     WorkQueueUrgency,
 )
-from app.work_queue.services.common import normalize_source_domain
+from app.work_queue.services.common import normalize_source_domain, source_route
 from app.work_queue.services.actions import source_actions
 from app.work_queue.services.work_queue_service import WorkQueueService
 from tests.helpers.task_helpers import create_business
@@ -237,7 +237,7 @@ def test_work_queue_source_type_contract_has_no_legacy_aliases():
     assert normalize_source_domain("stale_binder") is None
 
 
-def test_system_source_actions_are_links_only():
+def test_system_source_actions_expose_only_safe_link_or_modal_actions():
     for source_type in [
         WorkQueueSourceType.VAT_WORK_ITEM,
         WorkQueueSourceType.ANNUAL_REPORT,
@@ -247,7 +247,17 @@ def test_system_source_actions_are_links_only():
     ]:
         actions = source_actions(source_type, 1)
         assert actions
-        assert all(action.type == "link" for action in actions)
+        assert all(action.type in {"link", "modal"} for action in actions)
+        assert all(action.type != "mutation" for action in actions)
+        assert any(action.key == "create_linked_task" for action in actions)
+
+
+def test_source_routes_only_return_existing_frontend_targets():
+    assert source_route(WorkQueueSourceType.VAT_WORK_ITEM, 11) == "/tax/vat/11"
+    assert source_route(WorkQueueSourceType.ANNUAL_REPORT, 22) == "/tax/reports/22"
+    assert source_route(WorkQueueSourceType.CHARGE, 33) == "/charges?charge_id=33"
+    assert source_route(WorkQueueSourceType.BINDER, 44) == "/binders?binder_id=44"
+    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) is None
 
 
 # ── Pagination ────────────────────────────────────────────────────────────────
@@ -408,6 +418,216 @@ def _add_task_for_source(
     return task
 
 
+def _add_overdue_charge(db, biz, *, days_ago: int = 31) -> Charge:
+    charge = Charge(
+        client_record_id=biz.client_id,
+        business_id=biz.id,
+        amount=500,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=date.today() - timedelta(days=days_ago),
+    )
+    db.add(charge)
+    db.commit()
+    return charge
+
+
+def test_scope_manual_filters_before_pagination(test_db):
+    biz = create_business(test_db)
+    _add_overdue_charge(test_db, biz, days_ago=40)
+    task = _add_task_for_source(
+        test_db,
+        source_domain=None,
+        source_id=None,
+        title="Manual outside first page",
+        due_date=utcnow() + timedelta(days=30),
+    )
+
+    unfiltered = WorkQueueService(test_db).list_items(limit=1)
+    manual_page = WorkQueueService(test_db).list_items(scope="manual", limit=1)
+
+    assert not any(
+        item.source_type == WorkQueueSourceType.TASK and item.source_id == task.id
+        for item in unfiltered
+    )
+    assert len(manual_page) == 1
+    assert manual_page[0].source_type == WorkQueueSourceType.TASK
+    assert manual_page[0].source_id == task.id
+
+
+def test_search_filters_before_pagination(test_db):
+    biz = create_business(test_db)
+    _add_overdue_charge(test_db, biz, days_ago=40)
+    task = _add_task_for_source(
+        test_db,
+        source_domain=None,
+        source_id=None,
+        title="Needle Hebrew משימה",
+        due_date=utcnow() + timedelta(days=30),
+    )
+
+    items = WorkQueueService(test_db).list_items(search="needle", limit=1)
+
+    assert len(items) == 1
+    assert items[0].source_type == WorkQueueSourceType.TASK
+    assert items[0].source_id == task.id
+
+
+def test_source_type_task_returns_task_rows_only(test_db):
+    biz = create_business(test_db)
+    _add_overdue_charge(test_db, biz)
+    _add_task_for_source(test_db, source_domain=None, source_id=None)
+
+    items = WorkQueueService(test_db).list_items(source_type=WorkQueueSourceType.TASK)
+
+    assert items
+    assert all(item.source_type == WorkQueueSourceType.TASK for item in items)
+
+
+def test_scope_system_excludes_task_rows(test_db):
+    biz = create_business(test_db)
+    _add_overdue_charge(test_db, biz)
+    _add_task_for_source(test_db, source_domain=None, source_id=None)
+
+    items = WorkQueueService(test_db).list_items(scope="system")
+
+    assert items
+    assert all(item.source_type != WorkQueueSourceType.TASK for item in items)
+
+
+def test_linked_filters_return_expected_rows(test_db):
+    biz = create_business(test_db)
+    linked_charge = _add_overdue_charge(test_db, biz, days_ago=31)
+    unlinked_charge = _add_overdue_charge(test_db, biz, days_ago=32)
+    _add_task_for_source(
+        test_db, source_domain="charge", source_id=linked_charge.id
+    )
+
+    linked = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, linked="linked"
+    )
+    unlinked = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, linked="unlinked"
+    )
+
+    assert {item.source_id for item in linked} == {linked_charge.id}
+    assert all(item.linked_tasks_count > 0 for item in linked)
+    assert unlinked_charge.id in {item.source_id for item in unlinked}
+    assert all(item.linked_tasks_count == 0 for item in unlinked)
+
+
+def test_task_status_open_finds_standalone_task_rows(test_db):
+    task = _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN
+    )
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.IN_PROGRESS
+    )
+
+    items = WorkQueueService(test_db).list_items(task_status=TaskStatus.OPEN)
+
+    assert {item.source_id for item in items} == {task.id}
+
+
+def test_task_status_in_progress_finds_linked_source_rows(test_db):
+    biz = create_business(test_db)
+    charge = _add_overdue_charge(test_db, biz)
+    _add_task_for_source(
+        test_db,
+        source_domain="charge",
+        source_id=charge.id,
+        status=TaskStatus.IN_PROGRESS,
+    )
+
+    items = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id, task_status=TaskStatus.IN_PROGRESS
+    )
+
+    assert len(items) == 1
+    assert items[0].source_type == WorkQueueSourceType.CHARGE
+    assert items[0].linked_tasks[0].status == TaskStatus.IN_PROGRESS.value
+
+
+def test_history_task_status_done_finds_completed_task_rows(test_db):
+    task = _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
+    )
+
+    items = WorkQueueService(test_db).list_items(
+        include_task_history=True, task_status=TaskStatus.DONE
+    )
+
+    assert {item.source_id for item in items} == {task.id}
+
+
+def test_active_mode_hides_done_and_canceled_task_rows(test_db):
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
+    )
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED
+    )
+
+    items = WorkQueueService(test_db).list_items()
+
+    assert not any(item.source_type == WorkQueueSourceType.TASK for item in items)
+
+
+def test_summary_is_computed_before_pagination_and_respects_filters(test_db):
+    biz = create_business(test_db)
+    linked_charge = _add_overdue_charge(test_db, biz, days_ago=31)
+    _add_overdue_charge(test_db, biz, days_ago=32)
+    _add_task_for_source(
+        test_db, source_domain="charge", source_id=linked_charge.id
+    )
+    manual = _add_task_for_source(
+        test_db,
+        source_domain=None,
+        source_id=None,
+        title="Summary needle",
+        due_date=utcnow() + timedelta(days=30),
+    )
+
+    service = WorkQueueService(test_db)
+    summary = service.summary()
+    page = service.list_items(limit=1)
+    searched = service.summary(search="summary")
+
+    assert len(page) == 1
+    assert summary.total == 3
+    assert summary.manual_tasks == 1
+    assert summary.linked == 1
+    assert summary.overdue == 2
+    assert summary.upcoming == 1
+    assert summary.by_source_type[WorkQueueSourceType.CHARGE] == 2
+    assert summary.by_source_type[WorkQueueSourceType.TASK] == 1
+    assert summary.by_task_status[TaskStatus.OPEN.value] == 2
+    assert searched.total == 1
+    assert searched.by_source_type[WorkQueueSourceType.TASK] == 1
+    assert manual.id is not None
+
+
+def test_summary_respects_history_mode(test_db):
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN
+    )
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
+    )
+    _add_task_for_source(
+        test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED
+    )
+
+    active = WorkQueueService(test_db).summary()
+    history = WorkQueueService(test_db).summary(include_task_history=True)
+
+    assert active.total == 1
+    assert active.by_task_status[TaskStatus.OPEN.value] == 1
+    assert history.total == 2
+    assert history.by_task_status[TaskStatus.DONE.value] == 1
+    assert history.by_task_status[TaskStatus.CANCELED.value] == 1
+
+
 def test_linked_task_merges_into_source_row(test_db):
     biz = create_business(test_db)
     charge = Charge(
@@ -433,6 +653,9 @@ def test_linked_task_merges_into_source_row(test_db):
     assert len(charge_rows) == 1
     assert charge_rows[0].linked_tasks_count == 1
     assert charge_rows[0].linked_tasks[0].id == task.id
+    action_keys = [action.key for action in charge_rows[0].available_actions]
+    assert any(key.startswith("continue_task") for key in action_keys)
+    assert any(key.startswith("edit_task") for key in action_keys)
     assert not any(i.source_id == task.id for i in task_rows)
 
 
@@ -562,6 +785,47 @@ def test_done_task_does_not_hide_open_source(test_db):
     assert charge_row.linked_tasks_count == 0
 
 
+def test_done_linked_task_history_does_not_override_source_actions(test_db):
+    biz = create_business(test_db)
+    charge = Charge(
+        client_record_id=biz.client_id,
+        business_id=biz.id,
+        amount=500,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=date.today() - timedelta(days=31),
+    )
+    test_db.add(charge)
+    test_db.flush()
+    task = _add_task_for_source(
+        test_db,
+        source_domain="charge",
+        source_id=charge.id,
+        status=TaskStatus.DONE,
+    )
+
+    items = WorkQueueService(test_db).list_items(
+        client_record_id=biz.client_id,
+        include_task_history=True,
+    )
+    charge_row = next(
+        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
+    )
+    task_row = next(
+        i
+        for i in items
+        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+    )
+
+    assert charge_row.linked_tasks_count == 0
+    assert [a.key for a in charge_row.available_actions] == [
+        "open_charge_context",
+        "create_linked_task",
+    ]
+    assert task_row.source_summary is not None
+    assert task_row.source_summary.source_type == "charge"
+
+
 def test_unknown_source_domain_task_does_not_crash(test_db):
     task = _add_task_for_source(test_db, source_domain="legacy_unknown", source_id=1)
 
@@ -594,7 +858,10 @@ def test_charge_item_exposes_only_safe_link_actions(test_db):
         if i.source_type == WorkQueueSourceType.CHARGE
     )
 
-    assert [a.key for a in item.available_actions] == ["open_charge_context"]
+    assert [a.key for a in item.available_actions] == [
+        "open_charge_context",
+        "create_linked_task",
+    ]
 
 
 def test_pagination_happens_after_merge(test_db):

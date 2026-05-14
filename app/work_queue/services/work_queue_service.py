@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from app.tasks.models.task import TaskStatus
 from app.tasks.repositories.task_repository import TaskRepository
 from app.utils.time_utils import israel_today
 from app.work_queue.schemas.work_queue import (
     LinkedTaskSummary,
     WorkQueueItem,
+    WorkQueueLinkedFilter,
+    WorkQueueScope,
     WorkQueueSourceSummary,
     WorkQueueSourceType,
+    WorkQueueSummary,
     WorkQueueUrgency,
     WorkQueueWarning,
 )
@@ -37,6 +42,121 @@ _URGENCY_SORT = {
 }
 _PRIORITY_SORT = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
 _TASK_STATUS_SORT = {"in_progress": 0, "open": 1}
+_HISTORY_TASK_STATUSES = {TaskStatus.DONE.value, TaskStatus.CANCELED.value}
+_ACTIVE_TASK_STATUSES = {TaskStatus.OPEN.value, TaskStatus.IN_PROGRESS.value}
+
+
+@dataclass(frozen=True)
+class WorkQueueFilters:
+    search: Optional[str] = None
+    source_type: Optional[WorkQueueSourceType] = None
+    urgency: Optional[WorkQueueUrgency] = None
+    task_status: Optional[TaskStatus] = None
+    linked: Optional[WorkQueueLinkedFilter] = None
+    scope: Optional[WorkQueueScope] = None
+
+
+def _task_status(item: WorkQueueItem) -> Optional[str]:
+    if item.source_type != WorkQueueSourceType.TASK or not item.metadata:
+        return None
+    status = item.metadata.get("status")
+    return str(status) if status is not None else None
+
+
+def _is_history_task_row(item: WorkQueueItem) -> bool:
+    return item.source_type == WorkQueueSourceType.TASK and (
+        _task_status(item) in _HISTORY_TASK_STATUSES
+    )
+
+
+def _is_active_task_row(item: WorkQueueItem) -> bool:
+    return item.source_type == WorkQueueSourceType.TASK and (
+        _task_status(item) in _ACTIVE_TASK_STATUSES
+    )
+
+
+def _search_text(item: WorkQueueItem) -> str:
+    metadata = item.metadata or {}
+    values = [
+        item.title,
+        item.description,
+        item.client_name,
+        item.office_client_number,
+        item.business_id,
+        item.type_label,
+        item.status_label,
+        item.source_type.value,
+        item.source_summary.label if item.source_summary else None,
+        metadata.get("business_name"),
+        metadata.get("period"),
+        metadata.get("period_label"),
+        metadata.get("tax_year"),
+    ]
+    return " ".join(str(value).casefold() for value in values if value is not None)
+
+
+def apply_work_queue_filters(
+    items: list[WorkQueueItem], filters: WorkQueueFilters
+) -> list[WorkQueueItem]:
+    filtered = items
+    query = filters.search.strip().casefold() if filters.search else ""
+    if query:
+        filtered = [item for item in filtered if query in _search_text(item)]
+    if filters.source_type is not None:
+        filtered = [
+            item for item in filtered if item.source_type == filters.source_type
+        ]
+    if filters.urgency is not None:
+        filtered = [item for item in filtered if item.urgency == filters.urgency]
+    if filters.task_status is not None:
+        status_value = filters.task_status.value
+        filtered = [
+            item
+            for item in filtered
+            if _task_status(item) == status_value
+            or any(task.status == status_value for task in item.linked_tasks)
+        ]
+    if filters.linked == WorkQueueLinkedFilter.LINKED:
+        filtered = [item for item in filtered if item.linked_tasks_count > 0]
+    elif filters.linked == WorkQueueLinkedFilter.UNLINKED:
+        filtered = [item for item in filtered if item.linked_tasks_count == 0]
+    if filters.scope == WorkQueueScope.MANUAL:
+        filtered = [
+            item for item in filtered if item.source_type == WorkQueueSourceType.TASK
+        ]
+    elif filters.scope == WorkQueueScope.SYSTEM:
+        filtered = [
+            item for item in filtered if item.source_type != WorkQueueSourceType.TASK
+        ]
+    return filtered
+
+
+def build_work_queue_summary(items: list[WorkQueueItem]) -> WorkQueueSummary:
+    by_source_type = {source_type: 0 for source_type in WorkQueueSourceType}
+    by_task_status = {status.value: 0 for status in TaskStatus}
+    for item in items:
+        by_source_type[item.source_type] += 1
+        status = _task_status(item)
+        if status in by_task_status:
+            by_task_status[status] += 1
+        for task in item.linked_tasks:
+            if task.status in by_task_status:
+                by_task_status[task.status] += 1
+
+    return WorkQueueSummary(
+        total=len(items),
+        manual_tasks=by_source_type[WorkQueueSourceType.TASK],
+        linked=sum(1 for item in items if item.linked_tasks_count > 0),
+        unlinked=sum(1 for item in items if item.linked_tasks_count == 0),
+        overdue=sum(1 for item in items if item.urgency == WorkQueueUrgency.OVERDUE),
+        approaching=sum(
+            1 for item in items if item.urgency == WorkQueueUrgency.APPROACHING
+        ),
+        important=sum(1 for item in items if item.urgency == WorkQueueUrgency.IMPORTANT),
+        upcoming=sum(1 for item in items if item.urgency == WorkQueueUrgency.UPCOMING),
+        by_source_type=by_source_type,
+        by_task_status=by_task_status,
+    )
 
 
 class WorkQueueService:
@@ -48,9 +168,90 @@ class WorkQueueService:
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
         exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        include_task_history: bool = False,
+        search: Optional[str] = None,
+        source_type: Optional[WorkQueueSourceType] = None,
+        urgency: Optional[WorkQueueUrgency] = None,
+        task_status: Optional[TaskStatus] = None,
+        linked: Optional[WorkQueueLinkedFilter] = None,
+        scope: Optional[WorkQueueScope] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[WorkQueueItem]:
+        items = self._filtered_items(
+            client_record_id=client_record_id,
+            business_id=business_id,
+            exclude_source_types=exclude_source_types,
+            include_task_history=include_task_history,
+            filters=WorkQueueFilters(
+                search=search,
+                source_type=source_type,
+                urgency=urgency,
+                task_status=task_status,
+                linked=linked,
+                scope=scope,
+            ),
+        )
+        items.sort(key=self._sort_key)
+        return items[offset : offset + limit]
+
+    def summary(
+        self,
+        client_record_id: Optional[int] = None,
+        business_id: Optional[int] = None,
+        exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        include_task_history: bool = False,
+        search: Optional[str] = None,
+        source_type: Optional[WorkQueueSourceType] = None,
+        urgency: Optional[WorkQueueUrgency] = None,
+        task_status: Optional[TaskStatus] = None,
+        linked: Optional[WorkQueueLinkedFilter] = None,
+        scope: Optional[WorkQueueScope] = None,
+    ) -> WorkQueueSummary:
+        return build_work_queue_summary(
+            self._filtered_items(
+                client_record_id=client_record_id,
+                business_id=business_id,
+                exclude_source_types=exclude_source_types,
+                include_task_history=include_task_history,
+                filters=WorkQueueFilters(
+                    search=search,
+                    source_type=source_type,
+                    urgency=urgency,
+                    task_status=task_status,
+                    linked=linked,
+                    scope=scope,
+                ),
+            )
+        )
+
+    def _filtered_items(
+        self,
+        *,
+        client_record_id: Optional[int],
+        business_id: Optional[int],
+        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        include_task_history: bool,
+        filters: WorkQueueFilters,
+    ) -> list[WorkQueueItem]:
+        items = self._build_items(
+            client_record_id=client_record_id,
+            business_id=business_id,
+            exclude_source_types=exclude_source_types,
+            include_task_history=include_task_history,
+        )
+        items = self._apply_mode(items, include_task_history=include_task_history)
+        return apply_work_queue_filters(items, filters)
+
+    def _build_items(
+        self,
+        *,
+        client_record_id: Optional[int],
+        business_id: Optional[int],
+        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        include_task_history: bool,
+    ) -> list[WorkQueueItem]:
+        self.ctx.include_task_history = include_task_history
         excluded = set(exclude_source_types or [])
         system_items: List[WorkQueueItem] = []
 
@@ -86,10 +287,26 @@ class WorkQueueService:
             excluded=excluded,
             client_record_id=client_record_id,
             business_id=business_id,
+            include_task_history=include_task_history,
         )
+        return items
 
-        items.sort(key=self._sort_key)
-        return items[offset : offset + limit]
+    def _apply_mode(
+        self, items: list[WorkQueueItem], *, include_task_history: bool
+    ) -> list[WorkQueueItem]:
+        if include_task_history:
+            return [
+                item
+                for item in items
+                if item.source_type != WorkQueueSourceType.TASK
+                or _is_history_task_row(item)
+            ]
+        return [
+            item
+            for item in items
+            if item.source_type != WorkQueueSourceType.TASK
+            or _is_active_task_row(item)
+        ]
 
     def _merge_tasks(
         self,
@@ -98,6 +315,7 @@ class WorkQueueService:
         excluded: set[WorkQueueSourceType],
         client_record_id: Optional[int],
         business_id: Optional[int],
+        include_task_history: bool,
     ) -> list[WorkQueueItem]:
         if WorkQueueSourceType.TASK in excluded or business_id is not None:
             return system_items
@@ -105,7 +323,9 @@ class WorkQueueService:
         system_by_key = {
             source_key(item.source_type, item.source_id): item for item in system_items
         }
-        tasks = TaskRepository(self.ctx.db).list_open_for_work_queue()
+        tasks = TaskRepository(self.ctx.db).list_for_work_queue(
+            include_history=include_task_history
+        )
         linked_keys = {
             (source_type, task.source_id)
             for task in tasks
@@ -119,10 +339,11 @@ class WorkQueueService:
         for task in tasks:
             source_type = normalize_source_domain(task.source_domain)
             task_source_id = task.source_id
+            should_merge = task.status.value in {"open", "in_progress"}
             if source_type is not None and task_source_id is not None:
                 key = source_key(source_type, task_source_id)
                 source_item = system_by_key.get(key)
-                if source_item is not None:
+                if source_item is not None and should_merge:
                     self._attach_task(source_item, task_summary(task))
                     continue
 
@@ -183,11 +404,41 @@ class WorkQueueService:
     def _attach_task(self, item: WorkQueueItem, task: LinkedTaskSummary) -> None:
         item.linked_tasks.append(task)
         item.linked_tasks_count = len(item.linked_tasks)
+        if item.linked_tasks_count > 1:
+            item.warnings = [
+                warning
+                for warning in item.warnings
+                if warning.key != "multiple_linked_tasks"
+            ]
+            item.warnings.append(
+                WorkQueueWarning(
+                    key="multiple_linked_tasks",
+                    label=f"כבר קיימות {item.linked_tasks_count} משימות קשורות",
+                    severity="info",
+                )
+            )
         existing_endpoints = {action.endpoint for action in item.available_actions}
-        for action in task_actions(task.id, task.status, key_suffix=True):
+        existing_keys = {action.key for action in item.available_actions}
+        task_row_actions = task_actions(
+            task.id, task.status, key_suffix=True, include_delete=False
+        )
+        if item.linked_tasks_count == 1 and task_row_actions:
+            first, *rest = task_row_actions
+            item.available_actions = [first, *item.available_actions]
+            existing_endpoints.add(first.endpoint)
+            existing_keys.add(first.key)
+            task_row_actions = rest
+        for action in task_row_actions:
+            if action.endpoint is None:
+                if action.key in existing_keys:
+                    continue
+                item.available_actions.append(action)
+                existing_keys.add(action.key)
+                continue
             if action.endpoint not in existing_endpoints:
                 item.available_actions.append(action)
                 existing_endpoints.add(action.endpoint)
+                existing_keys.add(action.key)
         if task.due_date is not None:
             task_urgency = urgency(task.due_date, self.ctx.today)
             if _URGENCY_SORT[task_urgency] < _URGENCY_SORT[item.urgency]:
@@ -203,11 +454,12 @@ class WorkQueueService:
         elif item.linked_tasks:
             task_status = item.linked_tasks[0].status
             priority = item.linked_tasks[0].priority
+        item_kind = 0 if item.source_type == WorkQueueSourceType.TASK else 1
         return (
             _URGENCY_SORT.get(item.urgency, 99),
             item.due_date if item.due_date is not None else _FAR_FUTURE,
+            item_kind,
             _TASK_STATUS_SORT.get(str(task_status), 9),
             _PRIORITY_SORT.get(str(priority), 9),
-            item.client_name or "",
             item.title,
         )

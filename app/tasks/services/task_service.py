@@ -5,16 +5,19 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.common.services.base_service import BaseService
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.tasks.models.task import Task, TaskPriority, TaskStatus
 from app.tasks.repositories.task_repository import TaskRepository
 from app.tasks.schemas.task import TaskCreateRequest, TaskUpdateRequest
 from app.utils.time_utils import utcnow
+from app.work_queue.services.common import normalize_source_domain
+from app.work_queue.services.source_lookup import load_source_states
 
 _TERMINAL = {TaskStatus.DONE, TaskStatus.CANCELED}
 
 _NOT_FOUND = "TASK.NOT_FOUND"
 _CONFLICT = "TASK.CONFLICT"
+_INVALID_SOURCE = "TASK.INVALID_SOURCE"
 
 
 class TaskService(BaseService):
@@ -25,6 +28,7 @@ class TaskService(BaseService):
     def create(
         self, data: TaskCreateRequest, created_by_user_id: Optional[int]
     ) -> Task:
+        self._validate_source(data.source_domain, data.source_id)
         with self.transaction():
             return self.repo.create(
                 title=data.title,
@@ -119,8 +123,33 @@ class TaskService(BaseService):
             task.updated_at = utcnow()
         return task
 
+    def delete(self, task_id: int) -> None:
+        task = self._get_active(task_id)
+        with self.transaction():
+            task.deleted_at = utcnow()
+            task.updated_at = utcnow()
+
     def _get_active(self, task_id: int) -> Task:
         task = self.repo.get_by_id(task_id)
         if not task or task.deleted_at is not None:
             raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
         return task
+
+    def _validate_source(
+        self, source_domain: Optional[str], source_id: Optional[int]
+    ) -> None:
+        if source_domain is None and source_id is None:
+            return
+        if not source_domain or source_id is None:
+            raise AppError(
+                "קישור מקור למשימה חייב לכלול סוג מקור ומזהה מקור",
+                _INVALID_SOURCE,
+            )
+        source_type = normalize_source_domain(source_domain)
+        if source_type is None:
+            raise AppError("סוג המקור של המשימה אינו נתמך", _INVALID_SOURCE)
+        state = load_source_states(self.db, [(source_type, source_id)]).get(
+            (source_type.value, source_id)
+        )
+        if state is None or state.is_missing or state.is_deleted:
+            raise NotFoundError("הפריט המקושר למשימה לא נמצא", _NOT_FOUND)

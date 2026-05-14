@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 
 from app.tasks.models.task import TaskPriority, TaskStatus
 from app.tasks.schemas.task import (
@@ -89,3 +89,9 @@ def complete_task(db: DBSession, user: CurrentUser, task_id: int):
 @router.post("/{task_id}/cancel", response_model=TaskResponse)
 def cancel_task(db: DBSession, task_id: int):
     return TaskService(db).cancel(task_id)
+
+
+@router.delete("/{task_id}", status_code=204)
+def delete_task(db: DBSession, _user: CurrentUser, task_id: int):
+    TaskService(db).delete(task_id)
+    return Response(status_code=204)

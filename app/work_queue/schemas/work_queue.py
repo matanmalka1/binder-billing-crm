@@ -23,6 +23,16 @@ class WorkQueueUrgency(str, PyEnum):
     UPCOMING = "upcoming"
 
 
+class WorkQueueLinkedFilter(str, PyEnum):
+    LINKED = "linked"
+    UNLINKED = "unlinked"
+
+
+class WorkQueueScope(str, PyEnum):
+    SYSTEM = "system"
+    MANUAL = "manual"
+
+
 class WorkQueueSourceSummary(BaseModel):
     source_type: str
     source_id: int
@@ -49,10 +59,11 @@ class WorkQueueWarning(BaseModel):
 class WorkQueueAction(BaseModel):
     key: str
     label: str
-    type: Literal["link", "mutation"]
+    type: Literal["link", "mutation", "modal"]
     route: Optional[str] = None
     endpoint: Optional[str] = None
     method: Optional[Literal["get", "post", "patch", "put", "delete"]] = None
+    task_id: Optional[int] = None
     payload_schema: Literal["none", "simple", "requires_input"] = "none"
     confirm: bool = False
     confirm_title: Optional[str] = None
@@ -82,3 +93,16 @@ class WorkQueueItem(BaseModel):
     warnings: list[WorkQueueWarning] = Field(default_factory=list)
     available_actions: list[WorkQueueAction] = Field(default_factory=list)
     metadata: Optional[dict] = None
+
+
+class WorkQueueSummary(BaseModel):
+    total: int
+    manual_tasks: int
+    linked: int
+    unlinked: int
+    overdue: int
+    approaching: int
+    important: int
+    upcoming: int
+    by_source_type: dict[WorkQueueSourceType, int]
+    by_task_status: dict[str, int]

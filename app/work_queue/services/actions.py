@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from app.tasks.models.task import TaskStatus
 from app.work_queue.schemas.work_queue import WorkQueueAction, WorkQueueSourceType
 from app.work_queue.services.common import source_route
+
+HttpMethod = Literal["get", "post", "patch", "put", "delete"]
+ActionVariant = Literal["primary", "secondary", "danger"]
 
 
 def _link(key: str, label: str, route: str, *, primary: bool = False) -> WorkQueueAction:
@@ -20,20 +25,40 @@ def _mutation(
     label: str,
     endpoint: str,
     *,
+    task_id: int | None = None,
+    method: HttpMethod = "post",
     confirm_title: str | None = None,
     confirm_message: str | None = None,
-    variant: str = "secondary",
+    variant: ActionVariant = "secondary",
 ) -> WorkQueueAction:
     return WorkQueueAction(
         key=key,
         label=label,
         type="mutation",
         endpoint=endpoint,
-        method="post",
+        method=method,
+        task_id=task_id,
         confirm=confirm_title is not None or confirm_message is not None,
         confirm_title=confirm_title,
         confirm_message=confirm_message,
-        variant=variant,  # type: ignore[arg-type]
+        variant=variant,
+    )
+
+
+def _modal(
+    key: str,
+    label: str,
+    *,
+    task_id: int | None = None,
+    primary: bool = False,
+    variant: ActionVariant | None = None,
+) -> WorkQueueAction:
+    return WorkQueueAction(
+        key=key,
+        label=label,
+        type="modal",
+        task_id=task_id,
+        variant=variant or ("primary" if primary else "secondary"),
     )
 
 
@@ -63,16 +88,34 @@ def source_link_action(source_type: WorkQueueSourceType, source_id: int) -> Work
 
 
 def task_actions(
-    task_id: int, status: str, *, key_suffix: bool = False
+    task_id: int,
+    status: str,
+    *,
+    key_suffix: bool = False,
+    include_open: bool = True,
+    include_delete: bool = True,
 ) -> list[WorkQueueAction]:
     actions: list[WorkQueueAction] = []
     suffix = f"_{task_id}" if key_suffix else ""
+    if include_open:
+        actions.append(
+            _modal(
+                f"continue_task{suffix}",
+                "המשך משימה",
+                task_id=task_id,
+                primary=True,
+            )
+        )
+    is_active = status in {TaskStatus.OPEN.value, TaskStatus.IN_PROGRESS.value}
+    if is_active:
+        actions.append(_modal(f"edit_task{suffix}", "ערוך משימה", task_id=task_id))
     if status == TaskStatus.OPEN.value:
         actions.append(
             _mutation(
                 f"start_task{suffix}",
                 "התחל משימה",
                 f"/tasks/{task_id}/start",
+                task_id=task_id,
                 variant="primary",
             )
         )
@@ -83,6 +126,7 @@ def task_actions(
                     f"complete_task{suffix}",
                     "סמן כהושלמה",
                     f"/tasks/{task_id}/complete",
+                    task_id=task_id,
                     confirm_title="השלמת משימה",
                     confirm_message="האם לסמן את המשימה כהושלמה?",
                     variant="primary" if status == TaskStatus.IN_PROGRESS.value else "secondary",
@@ -91,13 +135,36 @@ def task_actions(
                     f"cancel_task{suffix}",
                     "בטל משימה",
                     f"/tasks/{task_id}/cancel",
+                    task_id=task_id,
                     confirm_title="ביטול משימה",
                     confirm_message="האם לבטל את המשימה?",
                     variant="danger",
                 ),
             ]
         )
+    if include_delete:
+        actions.append(
+            _mutation(
+                f"delete_task{suffix}",
+                "מחק משימה",
+                f"/tasks/{task_id}",
+                task_id=task_id,
+                method="delete",
+                confirm_title="מחיקת משימה",
+                confirm_message="האם למחוק את המשימה? המחיקה לא תשפיע על מקור המערכת.",
+                variant="danger",
+            )
+        )
     return actions
+
+
+def create_linked_task_action() -> WorkQueueAction:
+    return WorkQueueAction(
+        key="create_linked_task",
+        label="צור משימה",
+        type="modal",
+        variant="secondary",
+    )
 
 
 def source_actions(
@@ -108,7 +175,14 @@ def source_actions(
     open_action = source_link_action(source_type, source_id)
     if open_action is not None:
         actions.append(open_action)
+    if source_type != WorkQueueSourceType.TASK:
+        actions.append(create_linked_task_action())
     return actions
 
 
-__all__ = ["source_actions", "source_link_action", "task_actions"]
+__all__ = [
+    "create_linked_task_action",
+    "source_actions",
+    "source_link_action",
+    "task_actions",
+]

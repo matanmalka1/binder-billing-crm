@@ -114,11 +114,11 @@ def source_route(source_type: WorkQueueSourceType, source_id: int) -> str | None
     if source_type == WorkQueueSourceType.ANNUAL_REPORT:
         return f"/tax/reports/{source_id}"
     if source_type == WorkQueueSourceType.ADVANCE_PAYMENT:
-        return "/tax/advance-payments"
+        return None
     if source_type == WorkQueueSourceType.CHARGE:
-        return "/charges"
+        return f"/charges?charge_id={source_id}"
     if source_type == WorkQueueSourceType.BINDER:
-        return "/binders"
+        return f"/binders?binder_id={source_id}"
     return None
 
 
@@ -153,9 +153,12 @@ def load_client_profiles(
 
 
 class WorkQueueContext:
-    def __init__(self, db: Session, today: date):
+    def __init__(
+        self, db: Session, today: date, *, include_task_history: bool = False
+    ):
         self.db = db
         self.today = today
+        self.include_task_history = include_task_history
         self._client_profiles: Optional[Dict[int, ClientWorkQueueProfile]] = None
         self._pending_ids: set[int] = set()
 

@@ -1,7 +1,14 @@
 from datetime import date, timedelta
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.clients.models.client_record import ClientRecord
+from app.tasks.models.task import Task, TaskStatus
+from app.utils.time_utils import utcnow
+from app.work_queue.schemas.work_queue import WorkQueueSourceType
+from app.work_queue.services.common import source_route
+from app.work_queue.services.work_queue_service import WorkQueueService
+from tests.helpers.identity import seed_client_identity
 from tests.helpers.task_helpers import create_business
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
@@ -88,3 +95,62 @@ def test_work_queue_api_limit_max_enforced(client, advisor_headers):
         headers=advisor_headers,
     )
     assert response.status_code == 422
+
+
+def test_work_queue_summary_endpoint_not_page_based(client, test_db, advisor_headers):
+    test_db.add_all(
+        [
+            Task(title="Open task", status=TaskStatus.OPEN, created_at=utcnow(), updated_at=utcnow()),
+            Task(title="Done task", status=TaskStatus.DONE, created_at=utcnow(), updated_at=utcnow()),
+        ]
+    )
+    test_db.commit()
+
+    active = client.get("/api/v1/work-queue/summary?limit=1", headers=advisor_headers)
+    history = client.get(
+        "/api/v1/work-queue/summary?include_task_history=true",
+        headers=advisor_headers,
+    )
+
+    assert active.status_code == 200
+    assert active.json()["total"] == 1
+    assert active.json()["manual_tasks"] == 1
+    assert active.json()["by_task_status"]["open"] == 1
+    assert history.status_code == 200
+    assert history.json()["total"] == 1
+    assert history.json()["by_task_status"]["done"] == 1
+
+
+def test_annual_report_work_queue_route_targets_existing_detail_api(
+    client, test_db, advisor_headers
+):
+    client_record = seed_client_identity(
+        test_db, full_name="Work Queue Annual Route", id_number="WQAR001"
+    )
+    report = AnnualReportService(test_db).create_report(
+        client_record_id=client_record.id,
+        tax_year=2026,
+        client_type="corporation",
+        created_by=1,
+        created_by_name="Tester",
+        deadline_type="standard",
+    )
+    report.filing_deadline = utcnow()
+    test_db.commit()
+
+    item = next(
+        row
+        for row in WorkQueueService(test_db).list_items(
+            client_record_id=client_record.id,
+            source_type=WorkQueueSourceType.ANNUAL_REPORT,
+        )
+        if row.source_id == report.id
+    )
+
+    assert item.available_actions[0].route == f"/tax/reports/{report.id}"
+    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 1) is None
+
+    response = client.get(
+        f"/api/v1/annual-reports/{report.id}", headers=advisor_headers
+    )
+    assert response.status_code == 200

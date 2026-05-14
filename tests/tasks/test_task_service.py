@@ -1,10 +1,12 @@
 import pytest
 
+from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.core.exceptions import ConflictError, NotFoundError
 from app.tasks.models.task import TaskPriority, TaskStatus
 from app.tasks.repositories.task_repository import TaskRepository
 from app.tasks.schemas.task import TaskCreateRequest, TaskUpdateRequest
 from app.tasks.services.task_service import TaskService
-from app.core.exceptions import ConflictError, NotFoundError
+from tests.helpers.task_helpers import create_business
 
 
 def _create(db, title="Test Task", **kwargs) -> int:
@@ -140,7 +142,17 @@ def test_list_filter_by_priority(test_db):
 
 
 def test_list_filter_by_source_domain(test_db):
-    _create(test_db, title="From charges", source_domain="charge", source_id=1)
+    biz = create_business(test_db)
+    charge = Charge(
+        client_record_id=biz.client_id,
+        business_id=biz.id,
+        amount=100,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+    )
+    test_db.add(charge)
+    test_db.commit()
+    _create(test_db, title="From charges", source_domain="charge", source_id=charge.id)
     _create(test_db, title="Other")
 
     items, total = TaskService(test_db).list(source_domain="charge")
