@@ -1,8 +1,5 @@
-from app.actions.action_contracts import (
-    build_action,
-    get_annual_report_actions,
-)
-from app.actions.action_helpers import build_confirm
+from app.actions.action_helpers import build_action, build_confirm
+from app.actions.action_registry import get_annual_report_actions
 import pytest
 
 
@@ -24,7 +21,7 @@ def test_build_action_omits_optional_keys_when_none():
     }
 
 
-def test_action_contracts_exports_report_deadline_actions():
+def test_action_registry_exports_report_deadline_actions():
     assert callable(get_annual_report_actions)
 
 
@@ -56,25 +53,3 @@ def test_build_action_rejects_unsupported_method():
             action_id="id-1",
         )
 
-
-def test_build_action_rejects_unsupported_confirm_input_type():
-    with pytest.raises(ValueError, match="Action confirm input type is not supported"):
-        build_action(
-            key="k",
-            label="l",
-            method="post",
-            endpoint="/e",
-            action_id="id-1",
-            confirm=build_confirm(
-                "כותרת",
-                "הודעה",
-                inputs=[
-                    {
-                        "name": "field_name",
-                        "label": "שדה",
-                        "type": "number",  # type: ignore[typeddict-item]
-                        "required": True,
-                    }
-                ],
-            ),
-        )

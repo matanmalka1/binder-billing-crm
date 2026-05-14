@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.actions.action_contracts import get_binder_actions
+from app.actions.action_registry import get_binder_actions
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.schemas.binder import BinderResponse

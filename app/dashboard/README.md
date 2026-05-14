@@ -89,7 +89,7 @@ Dashboard aggregates across:
 - `charge` (issued/unpaid charge attention items)
 - `annual_reports` (tax-submission widget metrics and financial sums)
 - `vat_reports` (VAT due counters and quick actions)
-- `actions` (`app/actions/action_contracts.py` for quick actions)
+- `actions` (`app/actions/action_helpers.py` for dashboard quick action metadata)
 
 ## Tests
 

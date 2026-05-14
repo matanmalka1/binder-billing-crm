@@ -1,4 +1,4 @@
-from app.actions.action_contracts import get_charge_actions
+from app.actions.action_registry import get_charge_actions
 from app.timeline.labels import CHARGE_TYPE_HE
 
 

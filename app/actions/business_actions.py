@@ -2,14 +2,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from app.actions.action_helpers import (
-    ActionContract,
-    _generate_action_id,
-    _value,
-    build_action,
-    build_confirm,
-)
 from app.businesses.models.business import Business, BusinessStatus
+from app.core.action_builders import mutation_action
+from app.core.action_schemas import ActionDescriptor
 from app.users.models.user import UserRole
 
 
@@ -17,72 +12,61 @@ def get_business_actions(
     business: Business,
     user_role: Optional[UserRole] = None,
     client_id: Optional[int] = None,
-) -> list[ActionContract]:
+) -> list[ActionDescriptor]:
     """Return executable actions for a business (role-aware)."""
-    status = _value(business.status)
+    status = business.status
     client_id = (
         client_id if client_id is not None else getattr(business, "client_id", None)
     )
     if client_id is None:
         raise ValueError("Business actions require client_id for endpoint construction")
     endpoint = f"/clients/{client_id}/businesses/{business.id}"
-    actions: list[ActionContract] = []
+    actions: list[ActionDescriptor] = []
 
-    if status == BusinessStatus.ACTIVE.value and user_role == UserRole.ADVISOR:
+    if status == BusinessStatus.ACTIVE and user_role == UserRole.ADVISOR:
         actions.append(
-            build_action(
+            mutation_action(
                 key="freeze",
                 label="הקפאת עסק",
                 method="patch",
                 endpoint=endpoint,
-                payload={"status": "frozen"},
-                action_id=_generate_action_id("business", business.id, "freeze"),
-                confirm=build_confirm(
-                    "אישור הקפאת עסק",
-                    "האם להקפיא את העסק?",
-                    confirm_label="הקפאה",
-                ),
+                payload_schema="simple",
+                confirm_title="אישור הקפאת עסק",
+                confirm_message="האם להקפיא את העסק?",
             )
         )
         actions.append(
-            build_action(
+            mutation_action(
                 key="close",
                 label="סגירת עסק",
                 method="patch",
                 endpoint=endpoint,
-                payload={"status": "closed"},
-                action_id=_generate_action_id("business", business.id, "close"),
-                confirm=build_confirm(
-                    "אישור סגירת עסק",
-                    "האם לסגור את העסק?",
-                ),
+                payload_schema="simple",
+                confirm_title="אישור סגירת עסק",
+                confirm_message="האם לסגור את העסק?",
             )
         )
 
-    if status == BusinessStatus.FROZEN.value:
+    if status == BusinessStatus.FROZEN:
         actions.append(
-            build_action(
+            mutation_action(
                 key="activate",
                 label="הפעלת עסק",
                 method="patch",
                 endpoint=endpoint,
-                payload={"status": "active"},
-                action_id=_generate_action_id("business", business.id, "activate"),
+                payload_schema="simple",
             )
         )
         if user_role == UserRole.ADVISOR:
             actions.append(
-                build_action(
+                mutation_action(
                     key="close",
                     label="סגירת עסק",
                     method="patch",
                     endpoint=endpoint,
-                    payload={"status": "closed"},
-                    action_id=_generate_action_id("business", business.id, "close"),
-                    confirm=build_confirm(
-                        "אישור סגירת עסק",
-                        "האם לסגור את העסק?",
-                    ),
+                    payload_schema="simple",
+                    confirm_title="אישור סגירת עסק",
+                    confirm_message="האם לסגור את העסק?",
                 )
             )
 

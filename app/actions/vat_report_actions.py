@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-from app.actions.action_helpers import (
-    ActionContract,
-    _generate_action_id,
-    _value,
-    build_action,
-    build_confirm,
-)
+from app.core.action_builders import mutation_action
+from app.core.action_schemas import ActionDescriptor
 from app.users.models.user import UserRole
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
@@ -20,76 +15,56 @@ def get_vat_work_item_actions(
     item: VatWorkItem,
     *,
     user_role: UserRole | str | None = None,
-) -> list[ActionContract]:
+) -> list[ActionDescriptor]:
     """Return executable actions for a VAT work item."""
-    status = _value(item.status)
-    actions: list[ActionContract] = []
+    status = item.status
+    actions: list[ActionDescriptor] = []
 
-    if status == VatWorkItemStatus.PENDING_MATERIALS.value:
+    if status == VatWorkItemStatus.PENDING_MATERIALS:
         actions.append(
-            build_action(
+            mutation_action(
                 key="materials_complete",
                 label="אישור קבלת חומרים",
-                method="post",
                 endpoint=f"/vat/work-items/{item.id}/materials-complete",
-                action_id=_generate_action_id(
-                    "vat_work_item", item.id, "materials_complete"
-                ),
             )
         )
 
     if status in {
-        VatWorkItemStatus.MATERIAL_RECEIVED.value,
-        VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS.value,
-        VatWorkItemStatus.READY_FOR_REVIEW.value,
+        VatWorkItemStatus.MATERIAL_RECEIVED,
+        VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS,
+        VatWorkItemStatus.READY_FOR_REVIEW,
     }:
         actions.append(
-            build_action(
+            mutation_action(
                 key="add_invoice",
                 label="הוספת חשבונית",
-                method="post",
                 endpoint=f"/vat/work-items/{item.id}/invoices",
-                action_id=_generate_action_id("vat_work_item", item.id, "add_invoice"),
             )
         )
 
-    if status == VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS.value:
+    if status == VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS:
         actions.append(
-            build_action(
+            mutation_action(
                 key="ready_for_review",
                 label="שלח לבדיקה",
-                method="post",
                 endpoint=f"/vat/work-items/{item.id}/ready-for-review",
-                action_id=_generate_action_id(
-                    "vat_work_item", item.id, "ready_for_review"
-                ),
             )
         )
 
-    if _is_advisor(user_role) and status == VatWorkItemStatus.READY_FOR_REVIEW.value:
+    if _is_advisor(user_role) and status == VatWorkItemStatus.READY_FOR_REVIEW:
         actions.extend(
             [
-                build_action(
+                mutation_action(
                     key="file_vat_return",
                     label='הגש מע"מ',
-                    method="post",
                     endpoint=f"/vat/work-items/{item.id}/file",
-                    action_id=_generate_action_id(
-                        "vat_work_item", item.id, "file_vat_return"
-                    ),
                 ),
-                build_action(
+                mutation_action(
                     key="send_back",
                     label="החזר לתיקון",
-                    method="post",
                     endpoint=f"/vat/work-items/{item.id}/send-back",
-                    action_id=_generate_action_id(
-                        "vat_work_item", item.id, "send_back"
-                    ),
-                    confirm=build_confirm(
-                        "החזרה לתיקון",
-                        "יש לציין הערה לפני החזרת התיק לתיקון.",
-                    ),
+                    confirm_title="החזרה לתיקון",
+                    confirm_message="יש לציין הערה לפני החזרת התיק לתיקון.",
                 ),
             ]
         )

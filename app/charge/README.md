@@ -184,7 +184,7 @@ Domain errors use stable codes such as:
 ## Cross-Domain Integration
 
 - `work-queue` integration: unpaid charges surface in `GET /api/v1/work-queue` as `charge` items once `issued_at` is older than `UNPAID_CHARGE_TASK_THRESHOLD_DAYS` (live-derived, no DB row created).
-- `actions` integration: charge actions are exposed via `app/actions/action_contracts.py` for executable UI actions.
+- `actions` integration: charge actions are exposed via `app/actions/action_registry.py` for executable UI actions.
 - `dashboard` and other domains query charge counts/status through `ChargeRepository` directly.
 - `invoice` integration: `InvoiceService` validates charge existence and `issued` status before attaching an external invoice reference.
 - `annual_reports` integration: optional `annual_report_id` FK links a charge to a specific annual report.

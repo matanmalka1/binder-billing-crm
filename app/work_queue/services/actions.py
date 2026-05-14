@@ -16,7 +16,7 @@ def source_link_action(
     if route is None:
         return None
     labels = {
-        WorkQueueSourceType.VAT_WORK_ITEM: 'פתח תיק מע"מ',
+        WorkQueueSourceType.VAT_WORK_ITEM: 'פתח דוח מע"מ',
         WorkQueueSourceType.ANNUAL_REPORT: "פתח דוח שנתי",
         WorkQueueSourceType.ADVANCE_PAYMENT: "פתח מקדמות",
         WorkQueueSourceType.CHARGE: "פתח חיובים",

@@ -1,71 +1,47 @@
 from __future__ import annotations
 
-from app.actions.action_helpers import (
-    ActionContract,
-    _generate_action_id,
-    _value,
-    build_action,
-    build_confirm,
-)
 from app.binders.models.binder import Binder, BinderStatus
+from app.core.action_builders import mutation_action
+from app.core.action_schemas import ActionDescriptor
 
 
-def get_binder_actions(binder: Binder) -> list[ActionContract]:
+def get_binder_actions(binder: Binder) -> list[ActionDescriptor]:
     """Return executable actions for a binder based on its current logistics status."""
-    status = _value(binder.status)
-    actions: list[ActionContract] = []
+    status = binder.status
+    actions: list[ActionDescriptor] = []
 
     if status in {
-        BinderStatus.IN_OFFICE.value,
-        BinderStatus.CLOSED_IN_OFFICE.value,
+        BinderStatus.IN_OFFICE,
+        BinderStatus.CLOSED_IN_OFFICE,
     }:
         actions.append(
-            build_action(
+            mutation_action(
                 key="ready",
                 label="מוכן לאיסוף",
-                method="post",
                 endpoint=f"/binders/{binder.id}/ready",
-                action_id=_generate_action_id("binder", binder.id, "ready"),
-                confirm=build_confirm(
-                    "אישור סימון כמוכן לאיסוף",
-                    "האם לסמן את הקלסר כמוכן לאיסוף?",
-                ),
+                confirm_title="אישור סימון כמוכן לאיסוף",
+                confirm_message="האם לסמן את הקלסר כמוכן לאיסוף?",
             )
         )
 
-    if status == BinderStatus.READY_FOR_PICKUP.value:
+    if status == BinderStatus.READY_FOR_PICKUP:
         actions.append(
-            build_action(
+            mutation_action(
                 key="revert_ready",
                 label="בטל מוכן לאיסוף",
-                method="post",
                 endpoint=f"/binders/{binder.id}/revert-ready",
-                action_id=_generate_action_id("binder", binder.id, "revert_ready"),
-                confirm=build_confirm(
-                    "ביטול סטטוס מוכן לאיסוף",
-                    "האם לבטל את הסימון כמוכן לאיסוף ולהחזיר את הקלסר לסטטוס במשרד?",
-                ),
+                confirm_title="ביטול סטטוס מוכן לאיסוף",
+                confirm_message="האם לבטל את הסימון כמוכן לאיסוף ולהחזיר את הקלסר לסטטוס במשרד?",
             )
         )
         actions.append(
-            build_action(
+            mutation_action(
                 key="return",
                 label="החזרת קלסר",
-                method="post",
                 endpoint=f"/binders/{binder.id}/return",
-                action_id=_generate_action_id("binder", binder.id, "return"),
-                confirm=build_confirm(
-                    "אישור החזרת קלסר",
-                    "אנא הזן את שם האדם שאסף את הקלסר.",
-                    inputs=[
-                        {
-                            "name": "pickup_person_name",
-                            "label": "שם האוסף",
-                            "type": "text",
-                            "required": True,
-                        }
-                    ],
-                ),
+                confirm_title="אישור החזרת קלסר",
+                confirm_message="אנא הזן את שם האדם שאסף את הקלסר.",
+                payload_schema="requires_input",
             )
         )
 

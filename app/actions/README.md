@@ -2,16 +2,15 @@
 
 > Last audited: 2026-04-23
 
-Defines executable UI action contracts shared across domains (businesses, binders, charges, tax calendar entries, annual reports).
+Defines executable UI actions shared across domains (businesses, binders, charges, VAT work items, annual reports).
 Also owns cross-domain application workflows that do not belong to a single domain.
 
 ## Scope
 
 This module provides:
-- Canonical action-contract builder (`build_action`)
+- Canonical dashboard action builder (`build_action`)
 - Canonical confirm builder (`build_confirm`)
-- Stable action-id generation convention (`{resource}-{id}-{key}`)
-- Domain action factories for binders, businesses, charges, tax calendar entries, and annual reports
+- Domain action factories for binders, businesses, charges, VAT work items, and annual reports
 - Role-aware action filtering (for example advisor-only actions)
 - Confirm-dialog metadata and optional payload contracts for frontend executors
 - `obligation_orchestrator.py` — cross-domain workflow that generates tax calendar entries and annual reports for a client (idempotent; used on client create/update and business create)
@@ -21,14 +20,14 @@ This module provides:
 
 This module does not define database tables.
 
-Primary output model is a typed action contract (`ActionContract` via `TypedDict`):
-- `id` (stable action ID)
+Primary output model for domain actions is `ActionDescriptor`:
 - `key` (action key)
 - `label` (Hebrew user label)
+- `type` (`link|mutation|modal`)
 - `method` (validated HTTP method: `get|post|put|patch|delete`)
 - `endpoint` (relative API endpoint)
-- `payload` (optional request payload)
-- `confirm` (optional confirmation metadata)
+- `payload_schema` (payload behavior hint)
+- `confirm` plus flat `confirm_title` / `confirm_message`
 
 Confirm metadata is also typed (`ActionConfirm`) and currently supports:
 - `title`
@@ -45,7 +44,8 @@ Common action producers:
 - `generate_client_obligations_result(...)`
 
 Implementation references:
-- Contracts: `app/actions/action_contracts.py`
+- Registry: `app/actions/action_registry.py`
+- Descriptor schema/builders: `app/core/action_schemas.py`, `app/core/action_builders.py`
 - Shared helpers: `app/actions/action_helpers.py`
 - Binder actions: `app/actions/binder_actions.py`
 - Business actions: `app/actions/business_actions.py`
@@ -61,12 +61,11 @@ It is consumed internally by other modules that attach `available_actions` (and 
 
 ## Behavior Notes
 
-- `build_action` is the canonical constructor for action contracts and validates supported HTTP methods.
+- `build_action` is the dashboard quick-action constructor and validates supported HTTP methods.
 - `build_confirm` is the canonical constructor for confirm dialogs and centralizes common confirm metadata.
-- Action IDs are deterministic via `_generate_action_id(resource, resource_id, key)`.
 - Binder actions:
   - `in_office` => `ready`
-  - `ready_for_pickup` => `return` (requires `pickup_person_name` input in confirm metadata)
+  - `ready_for_pickup` => `return` (`payload_schema="requires_input"`)
 - Business actions:
   - endpoints are built only from `client_id`; missing `client_id` fails fast
   - `active` => `freeze` (advisor only)
@@ -77,14 +76,13 @@ It is consumed internally by other modules that attach `available_actions` (and 
 - Annual report actions:
   - `submitted` => `amend`
   - statuses outside final states include `submit`
-- Contracts are intentionally transport-oriented (`method` + `endpoint` + optional `payload/confirm`) so frontend can execute actions generically.
+- Domain descriptors are intentionally transport-oriented (`method` + `endpoint` + optional confirm metadata) so frontend can execute actions generically.
 - `obligation_orchestrator.py` fails fast on unsupported `entity_type`; it does not default annual reports to `INDIVIDUAL`.
 - `generate_client_obligations(...)` preserves the legacy `int` return API for existing callers.
 - `generate_client_obligations_result(..., best_effort=True)` exposes the intentional partial-success design explicitly via:
   - `deadlines_created`
   - `reports_created`
   - `errors`
-- `_generate_action_id` and `_value` remain internal helpers from `action_helpers.py`; `action_contracts.py` no longer re-exports them as public API.
 
 ## Error Envelope
 
@@ -104,7 +102,7 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 ## Tests
 
 Actions behavior is covered by direct and domain tests, including:
-- `tests/actions/test_action_contracts.py`
+- `tests/actions/test_action_registry.py`
 - `tests/actions/test_business_actions.py`
 - `tests/actions/test_obligation_orchestrator.py`
 - `tests/actions/test_report_deadline_actions.py`

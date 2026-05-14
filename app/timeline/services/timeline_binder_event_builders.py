@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.actions.action_contracts import get_binder_actions
+from app.actions.action_registry import get_binder_actions
 from app.timeline.labels import BINDER_STATUS_HE
 
 
