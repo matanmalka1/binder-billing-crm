@@ -32,13 +32,17 @@ def _apply_payment_fields(
 ) -> None:
     payment.status = status
     if status == AdvancePaymentStatus.PAID:
-        payment.paid_amount = payment.expected_amount or Decimal(str(round(rng.uniform(500, 8_000), 2)))
+        payment.paid_amount = payment.expected_amount or Decimal(
+            str(round(rng.uniform(500, 8_000), 2))
+        )
         payment.payment_method = rng.choice(list(PaymentMethod))
         period_dt = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
         paid_at = period_dt + timedelta(days=rng.randint(14, 45))
         payment.paid_at = min(paid_at, datetime.now(UTC))
     elif status == AdvancePaymentStatus.PARTIAL:
-        expected = payment.expected_amount or Decimal(str(round(rng.uniform(500, 8_000), 2)))
+        expected = payment.expected_amount or Decimal(
+            str(round(rng.uniform(500, 8_000), 2))
+        )
         payment.paid_amount = (
             expected * Decimal(str(round(rng.uniform(0.2, 0.8), 2)))
         ).quantize(Decimal("0.01"))
@@ -52,9 +56,7 @@ def _apply_payment_fields(
         payment.paid_at = None
 
 
-def create_advance_payments(
-    db, rng: Random, cfg, businesses
-) -> list[AdvancePayment]:
+def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePayment]:
     current_year = cfg.reference_date.year
     historical_years = list(range(current_year - _HISTORICAL_YEARS, current_year))
     mat = TaxCalendarMaterializationService(db)

@@ -57,7 +57,7 @@ Implementation references:
 
 This module has no FastAPI router and no direct HTTP endpoints.
 
-It is consumed internally by other modules that attach `available_actions` (and in timeline also `actions`) to response payloads.
+It is consumed internally by other modules that attach `available_actions` to response payloads.
 
 ## Behavior Notes
 
@@ -93,11 +93,11 @@ Validation and error envelopes are handled by the endpoint that executes each ac
 ## Cross-Domain Integration
 
 - `businesses` APIs attach `available_actions` via `get_business_actions`.
-- `binders` list/event services attach binder actions via `get_binder_actions`.
+- `binders` list services attach binder actions via `get_binder_actions`.
 - `charge` and dashboard quick-actions use `get_charge_actions`.
 - TaxCalendar responses expose grouped obligation state; annual reports attach report-specific actions separately.
 - `annual_reports` response projection attaches actions via `get_annual_report_actions`.
-- `timeline` event builders copy generated actions to both `actions` and `available_actions` for compatibility.
+- Timeline events are informational only and do not attach action descriptors.
 
 ## Tests
 

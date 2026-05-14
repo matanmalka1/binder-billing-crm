@@ -21,9 +21,9 @@ def create_authority_contacts(db, rng: Random, cfg, clients, businesses):
     now = datetime.now(UTC)
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(
-            get_seed_client_record_id(business), []
-        ).append(business)
+        businesses_by_client.setdefault(get_seed_client_record_id(business), []).append(
+            business
+        )
 
     for client in clients:
         if not businesses_by_client.get(client.id):
@@ -64,9 +64,9 @@ def create_correspondence(db, rng: Random, businesses, users, authority_contacts
     now = datetime.now(UTC)
     contacts_by_client: dict[int, list] = {}
     for contact in authority_contacts:
-        contacts_by_client.setdefault(
-            get_seed_client_record_id(contact), []
-        ).append(contact)
+        contacts_by_client.setdefault(get_seed_client_record_id(contact), []).append(
+            contact
+        )
 
     for business in businesses:
         business_client_record_id = get_seed_client_record_id(business)

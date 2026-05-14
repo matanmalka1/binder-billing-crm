@@ -41,9 +41,7 @@ def test_create_standalone_task_is_open_active_and_unlinked(
     assert task.source_id is None
 
 
-def test_create_standalone_task_appears_in_work_queue_api(
-    client, advisor_headers
-):
+def test_create_standalone_task_appears_in_work_queue_api(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
@@ -354,17 +352,32 @@ def test_secretary_can_manage_tasks(client, secretary_headers):
     assert created.status_code == 201
     task_id = created.json()["id"]
 
-    assert client.patch(
-        f"/api/v1/tasks/{task_id}",
-        headers=secretary_headers,
-        json={"title": "Updated by secretary"},
-    ).status_code == 200
-    assert client.post(f"/api/v1/tasks/{task_id}/complete", headers=secretary_headers).status_code == 200
+    assert (
+        client.patch(
+            f"/api/v1/tasks/{task_id}",
+            headers=secretary_headers,
+            json={"title": "Updated by secretary"},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/v1/tasks/{task_id}/complete", headers=secretary_headers
+        ).status_code
+        == 200
+    )
 
     deletable = client.post(
-        "/api/v1/tasks", headers=secretary_headers, json={"title": "Delete by secretary"}
+        "/api/v1/tasks",
+        headers=secretary_headers,
+        json={"title": "Delete by secretary"},
     ).json()
-    assert client.delete(f"/api/v1/tasks/{deletable['id']}", headers=secretary_headers).status_code == 204
+    assert (
+        client.delete(
+            f"/api/v1/tasks/{deletable['id']}", headers=secretary_headers
+        ).status_code
+        == 204
+    )
 
 
 # ── Pagination total > page_size ──────────────────────────────────────────────

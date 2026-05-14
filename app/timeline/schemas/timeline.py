@@ -14,7 +14,6 @@ class TimelineEvent(BaseModel):
     charge_id: Optional[int] = None
     description: str
     metadata: dict[str, Any] = Field(default_factory=dict)
-    available_actions: Optional[list[dict[str, Any]]] = None
 
 
 class ClientTimelineResponse(BaseModel):

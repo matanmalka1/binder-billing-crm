@@ -203,9 +203,9 @@ def create_binder_intake_materials(
 
     reports_by_client: dict[int, list] = {}
     for report in reports:
-        reports_by_client.setdefault(
-            get_seed_client_record_id(report), []
-        ).append(report)
+        reports_by_client.setdefault(get_seed_client_record_id(report), []).append(
+            report
+        )
 
     intake_by_binder = {intake.binder_id: intake for intake in intakes}
 
@@ -267,9 +267,9 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
     for binder in binders:
         if binder.status != BinderStatus.RETURNED:
             continue
-        returned_by_client.setdefault(
-            get_seed_client_record_id(binder), []
-        ).append(binder)
+        returned_by_client.setdefault(get_seed_client_record_id(binder), []).append(
+            binder
+        )
 
     for client_id, client_binders in returned_by_client.items():
         ordered = sorted(

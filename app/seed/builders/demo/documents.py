@@ -50,9 +50,9 @@ def create_documents(db, rng: Random, clients, businesses, users):
     now = datetime.now(UTC)
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(
-            get_seed_client_record_id(business), []
-        ).append(business)
+        businesses_by_client.setdefault(get_seed_client_record_id(business), []).append(
+            business
+        )
 
     for client in clients:
         doc_types = [DocumentType.ID_COPY, DocumentType.POWER_OF_ATTORNEY]

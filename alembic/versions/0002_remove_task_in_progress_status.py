@@ -29,13 +29,17 @@ def upgrade() -> None:
     bind = op.get_bind()
 
     if bind.dialect.name == "postgresql":
-        result = bind.execute(sa.text(
-            "SELECT enumlabel FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid "
-            "WHERE t.typname = 'taskstatus' AND e.enumlabel = 'in_progress'"
-        ))
+        result = bind.execute(
+            sa.text(
+                "SELECT enumlabel FROM pg_enum e JOIN pg_type t ON e.enumtypid = t.oid "
+                "WHERE t.typname = 'taskstatus' AND e.enumlabel = 'in_progress'"
+            )
+        )
         if result.fetchone() is None:
             return
-        op.execute(sa.text("UPDATE tasks SET status = 'open' WHERE status = 'in_progress'"))
+        op.execute(
+            sa.text("UPDATE tasks SET status = 'open' WHERE status = 'in_progress'")
+        )
         op.execute(sa.text("ALTER TYPE taskstatus RENAME TO taskstatus_old"))
         new_enum = postgresql.ENUM(*NEW_VALUES, name="taskstatus")
         new_enum.create(bind, checkfirst=False)

@@ -52,4 +52,3 @@ def test_build_action_rejects_unsupported_method():
             endpoint="/e",
             action_id="id-1",
         )
-

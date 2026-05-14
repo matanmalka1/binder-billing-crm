@@ -2,7 +2,17 @@ from __future__ import annotations
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Index, Integer, JSON, String, Text
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    String,
+    Text,
+)
 
 from app.database import Base
 from app.users.models.user import UserRole

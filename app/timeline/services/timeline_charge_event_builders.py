@@ -1,73 +1,51 @@
-from app.actions.action_registry import get_charge_actions
-from app.core.action_schemas import ActionDescriptor
-from app.core.action_serialization import dump_action_descriptor
 from app.timeline.labels import CHARGE_TYPE_HE
 
 
-def _attach_actions(event: dict, actions: list[ActionDescriptor]) -> dict:
-    event["available_actions"] = [dump_action_descriptor(action) for action in actions]
-    return event
-
-
 def charge_created_event(charge) -> dict:
-    actions = get_charge_actions(charge)
-    return _attach_actions(
-        {
-            "event_type": "charge_created",
-            "timestamp": charge.created_at,
-            "binder_id": None,
-            "charge_id": charge.id,
-            "description": f"חיוב חדש: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
-            "metadata": {
-                "amount": float(charge.amount),
-                "status": charge.status.value,
-            },
+    return {
+        "event_type": "charge_created",
+        "timestamp": charge.created_at,
+        "binder_id": None,
+        "charge_id": charge.id,
+        "description": f"חיוב חדש: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
+        "metadata": {
+            "amount": float(charge.amount),
+            "status": charge.status.value,
         },
-        actions,
-    )
+    }
 
 
 def charge_issued_event(charge) -> dict:
-    actions = get_charge_actions(charge)
-    return _attach_actions(
-        {
-            "event_type": "charge_issued",
-            "timestamp": charge.issued_at,
-            "binder_id": None,
-            "charge_id": charge.id,
-            "description": f"חיוב הונפק: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
-            "metadata": {"amount": float(charge.amount)},
-        },
-        actions,
-    )
+    return {
+        "event_type": "charge_issued",
+        "timestamp": charge.issued_at,
+        "binder_id": None,
+        "charge_id": charge.id,
+        "description": f"חיוב הונפק: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
+        "metadata": {"amount": float(charge.amount)},
+    }
 
 
 def charge_paid_event(charge) -> dict:
-    return _attach_actions(
-        {
-            "event_type": "charge_paid",
-            "timestamp": charge.paid_at,
-            "binder_id": None,
-            "charge_id": charge.id,
-            "description": f"חיוב שולם: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
-            "metadata": {"amount": float(charge.amount)},
-        },
-        [],
-    )
+    return {
+        "event_type": "charge_paid",
+        "timestamp": charge.paid_at,
+        "binder_id": None,
+        "charge_id": charge.id,
+        "description": f"חיוב שולם: {CHARGE_TYPE_HE.get(charge.charge_type.value, 'סוג לא ידוע')}",
+        "metadata": {"amount": float(charge.amount)},
+    }
 
 
 def invoice_attached_event(charge, invoice) -> dict:
-    return _attach_actions(
-        {
-            "event_type": "invoice_attached",
-            "timestamp": invoice.created_at,
-            "binder_id": None,
-            "charge_id": charge.id,
-            "description": f"חשבונית צורפה: {invoice.external_invoice_id}",
-            "metadata": {
-                "provider": invoice.provider,
-                "external_invoice_id": invoice.external_invoice_id,
-            },
+    return {
+        "event_type": "invoice_attached",
+        "timestamp": invoice.created_at,
+        "binder_id": None,
+        "charge_id": charge.id,
+        "description": f"חשבונית צורפה: {invoice.external_invoice_id}",
+        "metadata": {
+            "provider": invoice.provider,
+            "external_invoice_id": invoice.external_invoice_id,
         },
-        [],
-    )
+    }

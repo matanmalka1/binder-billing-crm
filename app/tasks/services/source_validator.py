@@ -11,7 +11,9 @@ from app.common.source_types import WorkQueueSourceType
 from app.vat_reports.models.vat_work_item import VatWorkItem
 
 
-def source_exists(db: Session, source_type: WorkQueueSourceType, source_id: int) -> bool:
+def source_exists(
+    db: Session, source_type: WorkQueueSourceType, source_id: int
+) -> bool:
     """Return True iff the referenced source record exists and is not soft-deleted."""
     model_map = {
         WorkQueueSourceType.VAT_WORK_ITEM: VatWorkItem,

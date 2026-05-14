@@ -34,7 +34,7 @@ def test_binder_status_change_event_for_new_binder():
     assert event["description"] == "קלסר B-123 הגיע למשרד"
     assert event["metadata"] == {"old_status": "none", "new_status": "in_office"}
     assert "actions" not in event
-    assert event["available_actions"][0]["endpoint"] == "/binders/11/ready"
+    assert "available_actions" not in event
 
 
 def test_binder_status_change_event_for_regular_transition():
@@ -56,9 +56,11 @@ def test_binder_status_change_event_for_regular_transition():
         "old_status": "in_office",
         "new_status": "ready_for_pickup",
     }
+    assert "actions" not in event
+    assert "available_actions" not in event
 
 
-def test_binder_received_event_attaches_ready_action_and_metadata():
+def test_binder_received_event_includes_metadata_without_actions():
     binder = SimpleNamespace(
         id=9,
         binder_number="C-777",
@@ -72,10 +74,7 @@ def test_binder_received_event_attaches_ready_action_and_metadata():
     assert event["timestamp"] == datetime(2026, 2, 15)
     assert event["metadata"] == {"binder_number": "C-777"}
     assert "actions" not in event
-    ready_action = event["available_actions"][0]
-    assert ready_action["key"] == "ready"
-    assert ready_action["confirm"] is True
-    assert ready_action["confirm_title"] == "אישור סימון כמוכן לאיסוף"
+    assert "available_actions" not in event
 
 
 def test_charge_created_event_includes_actions_and_metadata():
@@ -94,11 +93,7 @@ def test_charge_created_event_includes_actions_and_metadata():
     assert event["description"] == "חיוב חדש: ריטיינר חודשי"
     assert event["metadata"] == {"amount": 12.5, "status": "draft"}
     assert "actions" not in event
-    assert {action["key"] for action in event["available_actions"]} == {
-        "issue_charge",
-        "cancel_charge",
-        "delete_charge",
-    }
+    assert "available_actions" not in event
 
 
 def test_binder_returned_event_includes_pickup_person_metadata():
@@ -118,7 +113,7 @@ def test_binder_returned_event_includes_pickup_person_metadata():
         "pickup_person_name": "Dana",
     }
     assert "actions" not in event
-    assert event["available_actions"] == []
+    assert "available_actions" not in event
 
 
 def test_charge_paid_event_is_actionless_and_formats_amount():
@@ -137,7 +132,7 @@ def test_charge_paid_event_is_actionless_and_formats_amount():
     assert event["description"] == "חיוב שולם: ריטיינר חודשי"
     assert event["metadata"] == {"amount": 200.75}
     assert "actions" not in event
-    assert event["available_actions"] == []
+    assert "available_actions" not in event
 
 
 def test_invoice_attached_event_includes_provider_metadata():
@@ -158,4 +153,4 @@ def test_invoice_attached_event_includes_provider_metadata():
         "external_invoice_id": "INV-1001",
     }
     assert "actions" not in event
-    assert event["available_actions"] == []
+    assert "available_actions" not in event

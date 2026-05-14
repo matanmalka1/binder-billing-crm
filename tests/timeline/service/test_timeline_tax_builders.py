@@ -41,4 +41,4 @@ def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
         "note": "מסמכים התקבלו",
     }
     assert "actions" not in event
-    assert event["available_actions"] == []
+    assert "available_actions" not in event

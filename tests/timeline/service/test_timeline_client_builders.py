@@ -27,7 +27,7 @@ def test_client_builder_events():
     assert created["description"] == "לקוח נוצר: Client Builder"
     assert created["metadata"] == {"entity_type": "company_ltd"}
     assert "actions" not in created
-    assert created["available_actions"] == []
+    assert "available_actions" not in created
 
 
 def test_document_and_signature_lifecycle_builder_events():
@@ -55,7 +55,7 @@ def test_document_and_signature_lifecycle_builder_events():
     assert document_event["event_type"] == "document_uploaded"
     assert document_event["metadata"] == {"document_type": "id_copy"}
     assert "actions" not in document_event
-    assert document_event["available_actions"] == []
+    assert "available_actions" not in document_event
 
     signature_event = signature_request_lifecycle_event(signature_request, audit_event)
     assert signature_event["event_type"] == "signature_request_sent"
@@ -71,4 +71,4 @@ def test_document_and_signature_lifecycle_builder_events():
         "notes": "נשלח",
     }
     assert "actions" not in signature_event
-    assert signature_event["available_actions"] == []
+    assert "available_actions" not in signature_event

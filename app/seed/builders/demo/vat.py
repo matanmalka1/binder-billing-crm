@@ -140,11 +140,15 @@ def _promote_to_filed(rng: Random, item: VatWorkItem, cfg) -> None:
     item.submission_method = rng.choice(list(SubmissionMethod))
     period_dt = datetime.strptime(f"{item.period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
     filed_at = period_dt + timedelta(days=rng.randint(15, 45))
-    reference_now = datetime.combine(cfg.reference_date, datetime.min.time(), tzinfo=UTC)
+    reference_now = datetime.combine(
+        cfg.reference_date, datetime.min.time(), tzinfo=UTC
+    )
     item.filed_at = min(filed_at, reference_now)
     item.filed_by = item.assigned_to or item.created_by
     if not item.submission_reference:
-        item.submission_reference = f"VAT-{item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
+        item.submission_reference = (
+            f"VAT-{item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
+        )
 
 
 def _invoice_date_for_period(rng: Random, period: str):
@@ -191,7 +195,10 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 # If onboarding created this with a non-final status for a pre-current-year
                 # period, upgrade it now.
                 period_year = int(period.split("-")[0])
-                if period_year < cfg.reference_date.year and existing_item.status != VatWorkItemStatus.FILED:
+                if (
+                    period_year < cfg.reference_date.year
+                    and existing_item.status != VatWorkItemStatus.FILED
+                ):
                     _promote_to_filed(rng, existing_item, cfg)
                     work_items.append(existing_item)
                 continue

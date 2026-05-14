@@ -55,9 +55,7 @@ def test_unpaid_charge_before_threshold_excluded(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
 
-    assert [
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    ] == []
+    assert [i for i in items if i.source_type == WorkQueueSourceType.CHARGE] == []
 
 
 def test_work_queue_excludes_reminders(test_db):
@@ -257,7 +255,9 @@ def test_source_routes_only_return_existing_frontend_targets():
     assert source_route(WorkQueueSourceType.ANNUAL_REPORT, 22) == "/tax/reports/22"
     assert source_route(WorkQueueSourceType.CHARGE, 33) == "/charges?charge_id=33"
     assert source_route(WorkQueueSourceType.BINDER, 44) == "/binders?binder_id=44"
-    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) == "/tax/advance-payments"
+    assert (
+        source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) == "/tax/advance-payments"
+    )
 
 
 # ── Pagination ────────────────────────────────────────────────────────────────
@@ -384,9 +384,7 @@ def test_unpaid_charge_urgency_always_overdue(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    charge_items = [
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    ]
+    charge_items = [i for i in items if i.source_type == WorkQueueSourceType.CHARGE]
 
     assert all(i.urgency == WorkQueueUrgency.OVERDUE for i in charge_items)
 
@@ -499,9 +497,7 @@ def test_linked_filters_return_expected_rows(test_db):
     biz = create_business(test_db)
     linked_charge = _add_overdue_charge(test_db, biz, days_ago=31)
     unlinked_charge = _add_overdue_charge(test_db, biz, days_ago=32)
-    _add_task_for_source(
-        test_db, source_domain="charge", source_id=linked_charge.id
-    )
+    _add_task_for_source(test_db, source_domain="charge", source_id=linked_charge.id)
 
     linked = WorkQueueService(test_db).list_items(
         client_record_id=biz.client_id, linked="linked"
@@ -574,9 +570,7 @@ def test_summary_is_computed_before_pagination_and_respects_filters(test_db):
     biz = create_business(test_db)
     linked_charge = _add_overdue_charge(test_db, biz, days_ago=31)
     _add_overdue_charge(test_db, biz, days_ago=32)
-    _add_task_for_source(
-        test_db, source_domain="charge", source_id=linked_charge.id
-    )
+    _add_task_for_source(test_db, source_domain="charge", source_id=linked_charge.id)
     manual = _add_task_for_source(
         test_db,
         source_domain=None,
@@ -642,9 +636,7 @@ def test_linked_task_merges_into_source_row(test_db):
     )
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    charge_rows = [
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    ]
+    charge_rows = [i for i in items if i.source_type == WorkQueueSourceType.CHARGE]
     task_rows = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
 
     assert len(charge_rows) == 1
@@ -682,9 +674,7 @@ def test_multiple_linked_tasks_merge_into_single_source_row(test_db):
     )
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    charge_row = next(
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    )
+    charge_row = next(i for i in items if i.source_type == WorkQueueSourceType.CHARGE)
 
     assert charge_row.linked_tasks_count == 2
     assert len(charge_row.linked_tasks) == 2
@@ -790,9 +780,7 @@ def test_done_task_does_not_hide_open_source(test_db):
     )
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    charge_row = next(
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    )
+    charge_row = next(i for i in items if i.source_type == WorkQueueSourceType.CHARGE)
 
     assert charge_row.linked_tasks_count == 0
 
@@ -820,9 +808,7 @@ def test_done_linked_task_history_does_not_override_source_actions(test_db):
         client_record_id=biz.client_id,
         include_task_history=True,
     )
-    charge_row = next(
-        i for i in items if i.source_type == WorkQueueSourceType.CHARGE
-    )
+    charge_row = next(i for i in items if i.source_type == WorkQueueSourceType.CHARGE)
     task_row = next(
         i
         for i in items

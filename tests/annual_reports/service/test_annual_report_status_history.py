@@ -48,9 +48,7 @@ def test_submitted_can_close_with_assessment_amount():
         "submitted",
     ]:
         service.transition_status(report.id, status, 1, "A")
-    service.transition_status(
-        report.id, "closed", 1, "A", assessment_amount=50000
-    )
+    service.transition_status(report.id, "closed", 1, "A", assessment_amount=50000)
     assert service.get_report(report.id).status == AnnualReportStatus.CLOSED
 
 

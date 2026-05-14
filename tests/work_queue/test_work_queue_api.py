@@ -37,7 +37,9 @@ def test_work_queue_api_returns_clean_advance_payment_contract(
     )
 
     assert response.status_code == 200
-    item = next(i for i in response.json()["items"] if i["source_type"] == "advance_payment")
+    item = next(
+        i for i in response.json()["items"] if i["source_type"] == "advance_payment"
+    )
     assert "item_type" not in item
     assert "label" not in item
     assert "payload" not in item
@@ -100,8 +102,18 @@ def test_work_queue_api_limit_max_enforced(client, advisor_headers):
 def test_work_queue_summary_endpoint_not_page_based(client, test_db, advisor_headers):
     test_db.add_all(
         [
-            Task(title="Open task", status=TaskStatus.OPEN, created_at=utcnow(), updated_at=utcnow()),
-            Task(title="Done task", status=TaskStatus.DONE, created_at=utcnow(), updated_at=utcnow()),
+            Task(
+                title="Open task",
+                status=TaskStatus.OPEN,
+                created_at=utcnow(),
+                updated_at=utcnow(),
+            ),
+            Task(
+                title="Done task",
+                status=TaskStatus.DONE,
+                created_at=utcnow(),
+                updated_at=utcnow(),
+            ),
         ]
     )
     test_db.commit()
@@ -148,7 +160,9 @@ def test_annual_report_work_queue_route_targets_existing_detail_api(
     )
 
     assert item.available_actions[0].route == f"/tax/reports/{report.id}"
-    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 1) == "/tax/advance-payments"
+    assert (
+        source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 1) == "/tax/advance-payments"
+    )
 
     response = client.get(
         f"/api/v1/annual-reports/{report.id}", headers=advisor_headers

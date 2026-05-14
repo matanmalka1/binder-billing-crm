@@ -129,7 +129,9 @@ def downgrade() -> None:
     bind = op.get_bind()
 
     if bind.dialect.name == "postgresql":
-        op.execute(sa.text("ALTER TYPE annualreportstatus RENAME TO annualreportstatus_new"))
+        op.execute(
+            sa.text("ALTER TYPE annualreportstatus RENAME TO annualreportstatus_new")
+        )
         old_enum = postgresql.ENUM(*OLD_VALUES, name="annualreportstatus")
         old_enum.create(bind, checkfirst=False)
         for table, column, nullable in (

@@ -12,7 +12,6 @@ This module provides:
 - Unified client timeline endpoint
 - Event normalization into a shared timeline event schema
 - Reverse-chronological ordering and pagination
-- Backward-compatible action fields (`actions` + `available_actions`)
 - Cross-domain event aggregation via dedicated builder modules
 - Client-record existence validation on timeline fetch (raises `TIMELINE.CLIENT_NOT_FOUND` if missing)
 
@@ -70,10 +69,7 @@ Response:
   - optional `binder_id`, `charge_id`
   - `description`
   - `metadata`
-  - optional `actions` and `available_actions`
-- Action compatibility:
-  - `available_actions` is the canonical field for frontend executors.
-  - `actions` is kept for backward compatibility; both fields carry the same list.
+- Timeline events are informational only and do not include executable action fields.
 - Known per-client bulk safety limit:
   - `_TIMELINE_BULK_LIMIT = 500`
   - Applied to high-volume sources (charges, documents, signatures, annual queries).

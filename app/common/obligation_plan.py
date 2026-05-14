@@ -65,4 +65,3 @@ def advance_payment_obligation_plan(
             )
         )
     return plans
-

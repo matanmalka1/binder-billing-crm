@@ -6,7 +6,10 @@ from typing import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.advance_payments.models.advance_payment import AdvancePayment, AdvancePaymentStatus
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder, BinderStatus
@@ -74,7 +77,12 @@ def load_source_states(
                 row.client_record_id,
                 row.status,
                 is_deleted=row.deleted_at is not None,
-                is_final=row.status in {VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED, VatWorkItemStatus.ARCHIVED},
+                is_final=row.status
+                in {
+                    VatWorkItemStatus.FILED,
+                    VatWorkItemStatus.CANCELED,
+                    VatWorkItemStatus.ARCHIVED,
+                },
                 route=source_route(WorkQueueSourceType.VAT_WORK_ITEM, row.id),
             )
 
@@ -100,7 +108,9 @@ def load_source_states(
 
     ids = grouped.get(WorkQueueSourceType.ADVANCE_PAYMENT, set())
     if ids:
-        rows = db.scalars(select(AdvancePayment).where(AdvancePayment.id.in_(ids))).all()
+        rows = db.scalars(
+            select(AdvancePayment).where(AdvancePayment.id.in_(ids))
+        ).all()
         for row in rows:
             states[(WorkQueueSourceType.ADVANCE_PAYMENT.value, row.id)] = _state(
                 WorkQueueSourceType.ADVANCE_PAYMENT,

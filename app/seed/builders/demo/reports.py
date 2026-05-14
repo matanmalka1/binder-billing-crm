@@ -281,7 +281,10 @@ def create_annual_reports(
                 .first()
             )
             if existing:
-                if existing.tax_year < current_year and existing.status not in FINAL_STATUSES:
+                if (
+                    existing.tax_year < current_year
+                    and existing.status not in FINAL_STATUSES
+                ):
                     existing.status = rng.choice(FINAL_STATUSES)
                 reports.append(existing)
                 continue
@@ -496,9 +499,9 @@ def create_annual_report_expense_lines(
     documents_by_client: dict[int, list] = {}
     if seeded_documents:
         for doc in seeded_documents:
-            documents_by_client.setdefault(
-                get_seed_client_record_id(doc), []
-            ).append(doc)
+            documents_by_client.setdefault(get_seed_client_record_id(doc), []).append(
+                doc
+            )
 
     for report in reports:
         category_candidates = list(base_categories)

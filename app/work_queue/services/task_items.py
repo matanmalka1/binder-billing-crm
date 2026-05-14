@@ -22,7 +22,9 @@ def task_summary(task) -> LinkedTaskSummary:
         title=task.title,
         status=task.status.value,
         due_date=due,
-        priority=task.priority.value if hasattr(task.priority, "value") else task.priority,
+        priority=task.priority.value
+        if hasattr(task.priority, "value")
+        else task.priority,
         assigned_user_id=task.assigned_to_user_id,
         assigned_role=task.assigned_role,
     )

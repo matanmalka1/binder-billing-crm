@@ -25,5 +25,4 @@ def annual_report_status_changed_event(report, history) -> dict:
             "to_status": to_status,
             "note": history.note,
         },
-        "available_actions": [],
     }

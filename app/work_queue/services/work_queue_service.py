@@ -153,7 +153,9 @@ def build_work_queue_summary(items: list[WorkQueueItem]) -> WorkQueueSummary:
         approaching=sum(
             1 for item in items if item.urgency == WorkQueueUrgency.APPROACHING
         ),
-        important=sum(1 for item in items if item.urgency == WorkQueueUrgency.IMPORTANT),
+        important=sum(
+            1 for item in items if item.urgency == WorkQueueUrgency.IMPORTANT
+        ),
         upcoming=sum(1 for item in items if item.urgency == WorkQueueUrgency.UPCOMING),
         by_source_type=by_source_type,
         by_task_status=by_task_status,
@@ -302,9 +304,7 @@ class WorkQueueService:
                 system_items.extend(advance_payment_items(self.ctx, client_record_id))
 
         if WorkQueueSourceType.CHARGE not in excluded:
-            system_items.extend(
-                charge_items(self.ctx, client_record_id, business_id)
-            )
+            system_items.extend(charge_items(self.ctx, client_record_id, business_id))
 
         # Stale binders are not client-scoped in the current query surface; include
         # when no client/business filter is active.
@@ -340,8 +340,7 @@ class WorkQueueService:
         return [
             item
             for item in items
-            if item.source_type != WorkQueueSourceType.TASK
-            or _is_active_task_row(item)
+            if item.source_type != WorkQueueSourceType.TASK or _is_active_task_row(item)
         ]
 
     def _merge_tasks(
@@ -359,9 +358,7 @@ class WorkQueueService:
         system_by_key = {
             source_key(item.source_type, item.source_id): item for item in system_items
         }
-        tasks = self.task_repo.list_for_work_queue(
-            include_history=include_task_history
-        )
+        tasks = self.task_repo.list_for_work_queue(include_history=include_task_history)
         linked_keys = {
             (source_type, task.source_id)
             for task in tasks

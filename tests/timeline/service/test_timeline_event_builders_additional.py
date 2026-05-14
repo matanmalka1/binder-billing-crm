@@ -5,7 +5,7 @@ from app.charge.models.charge import ChargeStatus, ChargeType
 from app.timeline.services.timeline_charge_event_builders import charge_issued_event
 
 
-def test_charge_issued_event_includes_available_charge_actions():
+def test_charge_issued_event_is_information_only():
     charge = SimpleNamespace(
         id=91,
         issued_at=datetime(2026, 3, 9, 9, 15),
@@ -20,12 +20,4 @@ def test_charge_issued_event_includes_available_charge_actions():
     assert event["timestamp"] == datetime(2026, 3, 9, 9, 15)
     assert event["metadata"] == {"amount": 320.0}
     assert "actions" not in event
-    assert {action["key"] for action in event["available_actions"]} == {
-        "mark_paid",
-        "cancel_charge",
-    }
-    mark_paid_action = next(
-        action for action in event["available_actions"] if action["key"] == "mark_paid"
-    )
-    assert mark_paid_action["confirm"] is True
-    assert mark_paid_action["confirm_title"] == "אישור סימון חיוב כשולם"
+    assert "available_actions" not in event

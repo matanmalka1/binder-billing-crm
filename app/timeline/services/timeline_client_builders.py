@@ -17,7 +17,6 @@ def client_created_event(client) -> dict:
         "charge_id": None,
         "description": f"לקוח נוצר: {client_name}",
         "metadata": {"entity_type": entity_type_value},
-        "available_actions": [],
     }
 
 
@@ -35,7 +34,6 @@ def document_uploaded_event(document) -> dict:
         "charge_id": None,
         "description": f"מסמך הועלה: {type_he}",
         "metadata": {"document_type": doc_type},
-        "available_actions": [],
     }
 
 
@@ -77,5 +75,4 @@ def signature_request_lifecycle_event(sig_request, audit_event) -> dict:
             "reason": sig_request.decline_reason if audit_type == "declined" else None,
             "notes": audit_event.notes,
         },
-        "available_actions": [],
     }

@@ -23,9 +23,9 @@ def create_notifications(
     clients_by_id = {c.id: c for c in clients}
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
-        businesses_by_client.setdefault(
-            get_seed_client_record_id(business), []
-        ).append(business)
+        businesses_by_client.setdefault(get_seed_client_record_id(business), []).append(
+            business
+        )
 
     for binder in binders:
         if rng.random() > 0.65:

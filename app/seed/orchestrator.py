@@ -202,7 +202,12 @@ class SeedOrchestrator:
             )
 
             notifications_builder.create_notifications(
-                db, self.rng, client_records, all_businesses, all_binders, seeded_users,
+                db,
+                self.rng,
+                client_records,
+                all_businesses,
+                all_binders,
+                seeded_users,
                 cfg=self.cfg,
             )
 
