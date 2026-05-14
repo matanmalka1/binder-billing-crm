@@ -9,7 +9,7 @@ def test_in_office_binder_only_exposes_ready_action():
 
     actions = get_binder_actions(binder)
 
-    assert [action["key"] for action in actions] == ["ready"]
+    assert [action.key for action in actions] == ["ready"]
 
 
 def test_closed_in_office_binder_also_exposes_ready_action():
@@ -17,7 +17,7 @@ def test_closed_in_office_binder_also_exposes_ready_action():
 
     actions = get_binder_actions(binder)
 
-    assert [action["key"] for action in actions] == ["ready"]
+    assert [action.key for action in actions] == ["ready"]
 
 
 def test_ready_for_pickup_binder_exposes_revert_and_return_with_pickup_input():
@@ -25,9 +25,9 @@ def test_ready_for_pickup_binder_exposes_revert_and_return_with_pickup_input():
 
     actions = get_binder_actions(binder)
 
-    assert [action["key"] for action in actions] == ["revert_ready", "return"]
-    assert actions[1]["confirm"]["inputs"][0]["name"] == "pickup_person_name"
-    assert actions[1]["confirm"]["inputs"][0]["required"] is True
+    assert [action.key for action in actions] == ["revert_ready", "return"]
+    assert actions[1].payload_schema == "requires_input"
+    assert actions[1].confirm is True
 
 
 def test_returned_binder_has_no_actions():

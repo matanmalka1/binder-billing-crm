@@ -53,9 +53,10 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     actions = binder_data.get("available_actions", [])
     assert any(action["key"] == "ready" for action in actions)
     ready_action = next(action for action in actions if action["key"] == "ready")
-    assert ready_action["id"] == f"binder-{binder_id}-ready"
-    assert ready_action["confirm"] is not None
-    assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
+    assert "id" not in ready_action
+    assert ready_action["endpoint"] == f"/binders/{binder_id}/ready"
+    assert ready_action["confirm"] is True
+    assert ready_action["confirm_title"] == "אישור סימון כמוכן לאיסוף"
 
     # Verify status log was created
     from app.binders.repositories.binder_status_log_repository import (
@@ -100,9 +101,11 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     return_action = next(
         action for action in ready_actions if action["key"] == "return"
     )
-    assert return_action["id"] == f"binder-{binder_id}-return"
-    assert return_action["confirm"] is not None
-    assert return_action["confirm"]["title"] == "אישור החזרת קלסר"
+    assert "id" not in return_action
+    assert return_action["endpoint"] == f"/binders/{binder_id}/return"
+    assert return_action["confirm"] is True
+    assert return_action["confirm_title"] == "אישור החזרת קלסר"
+    assert return_action["payload_schema"] == "requires_input"
 
     return_response = client.post(
         f"/api/v1/binders/{binder_id}/return",

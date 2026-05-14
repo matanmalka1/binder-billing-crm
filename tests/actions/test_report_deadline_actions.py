@@ -8,8 +8,8 @@ def test_get_annual_report_actions_submitted_has_amend_only():
         status=AnnualReportStatus.SUBMITTED.value,
     )
 
-    assert [action["key"] for action in actions] == ["amend"]
-    assert actions[0]["id"] == "annual_report-8-amend"
+    assert [action.key for action in actions] == ["amend"]
+    assert actions[0].endpoint == "/annual-reports/8/amend"
 
 
 def test_get_annual_report_actions_open_status_has_submit():
@@ -18,8 +18,8 @@ def test_get_annual_report_actions_open_status_has_submit():
         status=AnnualReportStatus.IN_PREPARATION.value,
     )
 
-    assert [action["key"] for action in actions] == ["submit"]
-    assert actions[0]["id"] == "annual_report-9-submit"
+    assert [action.key for action in actions] == ["submit"]
+    assert actions[0].endpoint == "/annual-reports/9/submit"
 
 
 def test_get_annual_report_actions_closed_states_have_no_actions():

@@ -10,7 +10,7 @@ def test_ready_for_review_advisor_actions():
 
     actions = get_vat_work_item_actions(item, user_role=UserRole.ADVISOR)
 
-    assert [action["key"] for action in actions] == [
+    assert [action.key for action in actions] == [
         "add_invoice",
         "file_vat_return",
         "send_back",
@@ -22,4 +22,4 @@ def test_ready_for_review_secretary_actions():
 
     actions = get_vat_work_item_actions(item, user_role=UserRole.SECRETARY)
 
-    assert [action["key"] for action in actions] == ["add_invoice"]
+    assert [action.key for action in actions] == ["add_invoice"]

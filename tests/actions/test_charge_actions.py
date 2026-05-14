@@ -5,15 +5,14 @@ from app.charge.models.charge import ChargeStatus
 from app.users.models.user import UserRole
 
 
-def test_draft_charge_cancel_confirmation_uses_unambiguous_confirm_label():
+def test_draft_charge_cancel_confirmation_uses_flat_confirm_fields():
     charge = SimpleNamespace(id=20, status=ChargeStatus.DRAFT)
 
     actions = get_charge_actions(charge)
-    cancel_action = next(
-        action for action in actions if action["key"] == "cancel_charge"
-    )
+    cancel_action = next(action for action in actions if action.key == "cancel_charge")
 
-    assert cancel_action["confirm"]["confirm_label"] == "אשר ביטול"
+    assert cancel_action.confirm is True
+    assert cancel_action.confirm_title == "אישור ביטול חיוב"
 
 
 def test_draft_charge_includes_delete_action():
@@ -21,7 +20,7 @@ def test_draft_charge_includes_delete_action():
 
     actions = get_charge_actions(charge)
 
-    assert [action["key"] for action in actions] == [
+    assert [action.key for action in actions] == [
         "issue_charge",
         "cancel_charge",
         "delete_charge",
@@ -39,4 +38,4 @@ def test_issued_charge_returns_mark_paid_and_cancel():
 
     actions = get_charge_actions(charge)
 
-    assert [action["key"] for action in actions] == ["mark_paid", "cancel_charge"]
+    assert [action.key for action in actions] == ["mark_paid", "cancel_charge"]

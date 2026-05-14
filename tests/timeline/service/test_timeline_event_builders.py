@@ -74,8 +74,8 @@ def test_binder_received_event_attaches_ready_action_and_metadata():
     assert "actions" not in event
     ready_action = event["available_actions"][0]
     assert ready_action["key"] == "ready"
-    assert ready_action["confirm"] is not None
-    assert ready_action["confirm"]["title"] == "אישור סימון כמוכן לאיסוף"
+    assert ready_action["confirm"] is True
+    assert ready_action["confirm_title"] == "אישור סימון כמוכן לאיסוף"
 
 
 def test_charge_created_event_includes_actions_and_metadata():

@@ -17,11 +17,10 @@ def test_active_business_advisor_gets_freeze_and_close_actions():
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
-    assert [action["key"] for action in actions] == ["freeze", "close"]
-    assert actions[0]["payload"] == {"status": "frozen"}
-    assert actions[1]["payload"] == {"status": "closed"}
-    assert actions[1]["id"] == "business-5-close"
-    assert actions[0]["endpoint"] == "/clients/9/businesses/5"
+    assert [action.key for action in actions] == ["freeze", "close"]
+    assert actions[0].payload_schema == "simple"
+    assert actions[1].payload_schema == "simple"
+    assert actions[0].endpoint == "/clients/9/businesses/5"
 
 
 def test_frozen_business_advisor_gets_activate_and_close_actions():
@@ -29,10 +28,10 @@ def test_frozen_business_advisor_gets_activate_and_close_actions():
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
-    assert [action["key"] for action in actions] == ["activate", "close"]
-    assert actions[0]["payload"] == {"status": "active"}
-    assert actions[1]["payload"] == {"status": "closed"}
-    assert actions[0]["endpoint"] == "/clients/9/businesses/7"
+    assert [action.key for action in actions] == ["activate", "close"]
+    assert actions[0].payload_schema == "simple"
+    assert actions[1].payload_schema == "simple"
+    assert actions[0].endpoint == "/clients/9/businesses/7"
 
 
 def test_frozen_business_secretary_only_gets_activate_action():
@@ -40,7 +39,7 @@ def test_frozen_business_secretary_only_gets_activate_action():
 
     actions = get_business_actions(business, user_role=UserRole.SECRETARY)
 
-    assert [action["key"] for action in actions] == ["activate"]
+    assert [action.key for action in actions] == ["activate"]
 
 
 def test_business_actions_uses_client_id_even_when_legal_entity_id_exists():
@@ -53,7 +52,7 @@ def test_business_actions_uses_client_id_even_when_legal_entity_id_exists():
 
     actions = get_business_actions(business, user_role=UserRole.ADVISOR)
 
-    assert actions[0]["endpoint"] == "/clients/9/businesses/8"
+    assert actions[0].endpoint == "/clients/9/businesses/8"
 
 
 def test_business_actions_raises_when_client_id_missing():

@@ -27,5 +27,5 @@ def test_charge_issued_event_includes_available_charge_actions():
     mark_paid_action = next(
         action for action in event["available_actions"] if action["key"] == "mark_paid"
     )
-    assert mark_paid_action["confirm"] is not None
-    assert mark_paid_action["confirm"]["title"] == "אישור סימון חיוב כשולם"
+    assert mark_paid_action["confirm"] is True
+    assert mark_paid_action["confirm_title"] == "אישור סימון חיוב כשולם"
