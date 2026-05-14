@@ -191,8 +191,8 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
     def cancel_open_by_client_record(self, client_record_id: int) -> int:
         terminal = [
             AnnualReportStatus.SUBMITTED,
-            AnnualReportStatus.ACCEPTED,
             AnnualReportStatus.CLOSED,
+            AnnualReportStatus.CANCELED,
         ]
         rows = self.db.scalars(
             select(AnnualReport).where(

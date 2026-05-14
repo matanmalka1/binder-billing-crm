@@ -21,14 +21,11 @@ class AnnualReportForm(str, PyEnum):
 class AnnualReportStatus(str, PyEnum):
     NOT_STARTED = "not_started"
     COLLECTING_DOCS = "collecting_docs"
-    DOCS_COMPLETE = "docs_complete"
     IN_PREPARATION = "in_preparation"
     PENDING_CLIENT = "pending_client"
     SUBMITTED = "submitted"
-    ACCEPTED = "accepted"
-    ASSESSMENT_ISSUED = "assessment_issued"
-    OBJECTION_FILED = "objection_filed"
     CLOSED = "closed"
+    CANCELED = "canceled"
 
 
 class AnnualReportSchedule(str, PyEnum):
@@ -68,32 +65,23 @@ FORM_MAP = {
 VALID_TRANSITIONS = {
     AnnualReportStatus.NOT_STARTED: {AnnualReportStatus.COLLECTING_DOCS},
     AnnualReportStatus.COLLECTING_DOCS: {
-        AnnualReportStatus.DOCS_COMPLETE,
-        AnnualReportStatus.NOT_STARTED,
-    },
-    AnnualReportStatus.DOCS_COMPLETE: {
         AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.COLLECTING_DOCS,
+        AnnualReportStatus.NOT_STARTED,
     },
     AnnualReportStatus.IN_PREPARATION: {
         AnnualReportStatus.PENDING_CLIENT,
-        AnnualReportStatus.DOCS_COMPLETE,
+        AnnualReportStatus.COLLECTING_DOCS,
     },
     AnnualReportStatus.PENDING_CLIENT: {
         AnnualReportStatus.IN_PREPARATION,
         AnnualReportStatus.SUBMITTED,
     },
     AnnualReportStatus.SUBMITTED: {
-        AnnualReportStatus.ACCEPTED,
-        AnnualReportStatus.ASSESSMENT_ISSUED,
-    },
-    AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
-    AnnualReportStatus.ASSESSMENT_ISSUED: {
-        AnnualReportStatus.OBJECTION_FILED,
         AnnualReportStatus.CLOSED,
+        AnnualReportStatus.IN_PREPARATION,
     },
-    AnnualReportStatus.OBJECTION_FILED: {AnnualReportStatus.CLOSED},
     AnnualReportStatus.CLOSED: set(),
+    AnnualReportStatus.CANCELED: set(),
 }
 
 SCHEDULE_FLAGS = [

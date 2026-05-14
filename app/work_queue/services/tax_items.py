@@ -21,7 +21,6 @@ _DONE_ANNUAL_STATUSES = {
     annual_report_models.AnnualReportStatus.SUBMITTED,
     annual_report_models.AnnualReportStatus.CLOSED,
     annual_report_models.AnnualReportStatus.CANCELED,
-    annual_report_models.AnnualReportStatus.ACCEPTED,
 }
 
 

@@ -56,14 +56,15 @@ from ..shared.client_refs import (
 SEEDABLE_STATUSES = [
     AnnualReportStatus.NOT_STARTED,
     AnnualReportStatus.COLLECTING_DOCS,
-    AnnualReportStatus.DOCS_COMPLETE,
     AnnualReportStatus.IN_PREPARATION,
     AnnualReportStatus.PENDING_CLIENT,
-    AnnualReportStatus.AMENDED,
     AnnualReportStatus.SUBMITTED,
-    AnnualReportStatus.ACCEPTED,
-    AnnualReportStatus.ASSESSMENT_ISSUED,
-    AnnualReportStatus.OBJECTION_FILED,
+    AnnualReportStatus.CLOSED,
+    AnnualReportStatus.CANCELED,
+]
+
+FINAL_STATUSES = [
+    AnnualReportStatus.SUBMITTED,
     AnnualReportStatus.CLOSED,
     AnnualReportStatus.CANCELED,
 ]
@@ -212,11 +213,7 @@ def _annex_schedules_for_report(
 
 
 def _status_path_to(target: AnnualReportStatus) -> list[AnnualReportStatus]:
-    if target in (
-        AnnualReportStatus.AMENDED,
-        AnnualReportStatus.CANCELED,
-        AnnualReportStatus.NOT_STARTED,
-    ):
+    if target in (AnnualReportStatus.CANCELED, AnnualReportStatus.NOT_STARTED):
         return [target]
     frontier: list[list[AnnualReportStatus]] = [[AnnualReportStatus.NOT_STARTED]]
     while frontier:
@@ -287,7 +284,10 @@ def create_annual_reports(
                 reports.append(existing)
                 continue
 
-            if status_cycle_idx < len(status_cycle):
+            # Reports from 2+ years ago must be in a final (closed) state
+            if year <= current_year - 2:
+                status = rng.choice(FINAL_STATUSES)
+            elif status_cycle_idx < len(status_cycle):
                 status = status_cycle[status_cycle_idx]
                 status_cycle_idx += 1
             else:
@@ -299,9 +299,6 @@ def create_annual_reports(
                 if status
                 in (
                     AnnualReportStatus.SUBMITTED,
-                    AnnualReportStatus.ACCEPTED,
-                    AnnualReportStatus.ASSESSMENT_ISSUED,
-                    AnnualReportStatus.OBJECTION_FILED,
                     AnnualReportStatus.CLOSED,
                 )
                 else None
@@ -329,9 +326,6 @@ def create_annual_reports(
             submitted_at = None
             if status in (
                 AnnualReportStatus.SUBMITTED,
-                AnnualReportStatus.ACCEPTED,
-                AnnualReportStatus.ASSESSMENT_ISSUED,
-                AnnualReportStatus.OBJECTION_FILED,
                 AnnualReportStatus.CLOSED,
             ):
                 submitted_at = min(
@@ -389,9 +383,6 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
         client_approved_at = None
         if report.status in (
             AnnualReportStatus.SUBMITTED,
-            AnnualReportStatus.ASSESSMENT_ISSUED,
-            AnnualReportStatus.ACCEPTED,
-            AnnualReportStatus.OBJECTION_FILED,
             AnnualReportStatus.CLOSED,
         ):
             upper = report.submitted_at or report.updated_at or datetime.now(UTC)
@@ -409,7 +400,7 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
                 ),
                 amendment_reason=(
                     rng.choice(["תיקון לפי מסמכים מעודכנים", "תיקון בעקבות שומת מס"])
-                    if report.status == AnnualReportStatus.AMENDED
+                    if report.status == AnnualReportStatus.IN_PREPARATION
                     else None
                 ),
                 created_at=report.created_at,

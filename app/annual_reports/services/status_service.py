@@ -132,7 +132,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
                         submission_method=sm,
                     )
 
-        if ns == AnnualReportStatus.ASSESSMENT_ISSUED:
+        if ns == AnnualReportStatus.CLOSED:
             if assessment_amount is not None:
                 update_fields["assessment_amount"] = assessment_amount
             if refund_due is not None:
@@ -267,7 +267,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
     def amend_report(
         self, report_id: int, reason: str, actor_id: int, actor_name: str
     ) -> AnnualReportDetailResponse:
-        """Transition a SUBMITTED report to AMENDED and record the amendment reason."""
+        """Reopen a submitted report for amendment and record the amendment reason."""
         from app.annual_reports.repositories.detail_repository import (
             AnnualReportDetailRepository,
         )
@@ -281,7 +281,7 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
 
         self.transition_status(
             report_id=report_id,
-            new_status=AnnualReportStatus.AMENDED.value,
+            new_status=AnnualReportStatus.IN_PREPARATION.value,
             changed_by=actor_id,
             changed_by_name=actor_name,
             note=reason,

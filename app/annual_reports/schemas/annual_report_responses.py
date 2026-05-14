@@ -111,15 +111,11 @@ class SeasonSummaryResponse(BaseModel):
     total: int
     not_started: int
     collecting_docs: int
-    docs_complete: int
     in_preparation: int
     pending_client: int
     submitted: int
-    accepted: int
-    assessment_issued: int
-    objection_filed: int
     closed: int
-    amended: int = 0
+    canceled: int = 0
     completion_rate: float
     overdue_count: int
 

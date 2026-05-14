@@ -25,45 +25,23 @@ FORM_MAP: dict[ClientAnnualFilingType, PrimaryAnnualReportForm] = {
 VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
     AnnualReportStatus.NOT_STARTED: {AnnualReportStatus.COLLECTING_DOCS},
     AnnualReportStatus.COLLECTING_DOCS: {
-        AnnualReportStatus.DOCS_COMPLETE,
-        AnnualReportStatus.NOT_STARTED,
-    },
-    AnnualReportStatus.DOCS_COMPLETE: {
         AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.COLLECTING_DOCS,
+        AnnualReportStatus.NOT_STARTED,
     },
     AnnualReportStatus.IN_PREPARATION: {
         AnnualReportStatus.PENDING_CLIENT,
-        AnnualReportStatus.DOCS_COMPLETE,
+        AnnualReportStatus.COLLECTING_DOCS,
     },
     AnnualReportStatus.PENDING_CLIENT: {
         AnnualReportStatus.IN_PREPARATION,
         AnnualReportStatus.SUBMITTED,
     },
     AnnualReportStatus.SUBMITTED: {
-        AnnualReportStatus.ACCEPTED,
-        AnnualReportStatus.ASSESSMENT_ISSUED,
-        AnnualReportStatus.AMENDED,
-    },
-    AnnualReportStatus.AMENDED: {
         AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.SUBMITTED,
-    },
-    AnnualReportStatus.ACCEPTED: {AnnualReportStatus.CLOSED},
-    AnnualReportStatus.ASSESSMENT_ISSUED: {
-        AnnualReportStatus.OBJECTION_FILED,
         AnnualReportStatus.CLOSED,
-        # Allow operational rollback when issues found post-assessment
-        AnnualReportStatus.PENDING_CLIENT,
-        AnnualReportStatus.IN_PREPARATION,
-        AnnualReportStatus.DOCS_COMPLETE,
-    },
-    AnnualReportStatus.OBJECTION_FILED: {
-        AnnualReportStatus.CLOSED,
-        # Permit rollback to rework documents if objection rejected/updated
-        AnnualReportStatus.DOCS_COMPLETE,
     },
     AnnualReportStatus.CLOSED: set(),
+    AnnualReportStatus.CANCELED: set(),
 }
 
 # ── Stage shortcut → status mapping (one-way: promotes to first status in stage) ──
@@ -71,7 +49,7 @@ VALID_TRANSITIONS: dict[AnnualReportStatus, set[AnnualReportStatus]] = {
 # Demoting within a stage requires direct status transition.
 STAGE_TO_STATUS: dict[str, str] = {
     "material_collection": "collecting_docs",
-    "in_progress": "docs_complete",
+    "in_progress": "in_preparation",
     "final_review": "in_preparation",
     "client_signature": "pending_client",
     "transmitted": "submitted",

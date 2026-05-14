@@ -16,9 +16,8 @@ VAT_DONE = {VatWorkItemStatus.FILED}
 ADVANCE_DONE = {AdvancePaymentStatus.PAID}
 ANNUAL_DONE = {
     AnnualReportStatus.SUBMITTED,
-    AnnualReportStatus.ACCEPTED,
-    AnnualReportStatus.ASSESSMENT_ISSUED,
     AnnualReportStatus.CLOSED,
+    AnnualReportStatus.CANCELED,
 }
 
 

@@ -8,11 +8,8 @@ from app.core.action_schemas import ActionDescriptor
 
 SUBMIT_BLOCKED_STATUSES = {
     AnnualReportStatus.SUBMITTED.value,
-    AnnualReportStatus.AMENDED.value,
-    AnnualReportStatus.ACCEPTED.value,
-    AnnualReportStatus.ASSESSMENT_ISSUED.value,
-    AnnualReportStatus.OBJECTION_FILED.value,
     AnnualReportStatus.CLOSED.value,
+    AnnualReportStatus.CANCELED.value,
 }
 
 

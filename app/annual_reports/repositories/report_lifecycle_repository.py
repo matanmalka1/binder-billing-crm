@@ -15,7 +15,6 @@ from app.utils.time_utils import israel_today, utcnow
 DASHBOARD_FINAL_STATUSES = frozenset(
     {
         AnnualReportStatus.SUBMITTED,
-        AnnualReportStatus.ACCEPTED,
         AnnualReportStatus.CLOSED,
         AnnualReportStatus.CANCELED,
     }
@@ -33,7 +32,6 @@ class AnnualReportLifecycleRepository:
         open_statuses = [
             AnnualReportStatus.NOT_STARTED,
             AnnualReportStatus.COLLECTING_DOCS,
-            AnnualReportStatus.DOCS_COMPLETE,
             AnnualReportStatus.IN_PREPARATION,
             AnnualReportStatus.PENDING_CLIENT,
         ]

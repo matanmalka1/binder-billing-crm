@@ -97,6 +97,10 @@ def _vat_due_date(db, period: str, vat_type: VatType) -> date:
 def _status_for_period(
     rng: Random, period: str, reference_date: date
 ) -> VatWorkItemStatus:
+    period_year = int(period.split("-")[0])
+    if period_year <= reference_date.year - 2:
+        return VatWorkItemStatus.FILED
+
     period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").date()
     age_days = (reference_date - period_start).days
     if age_days > 90:

@@ -25,14 +25,11 @@ SIGNATURE_REQUEST_TYPE_HE = {
 ANNUAL_REPORT_STATUS_HE = {
     "not_started": "טרם התחיל",
     "collecting_docs": "איסוף מסמכים",
-    "docs_complete": "מסמכים התקבלו",
     "in_preparation": "בהכנה",
     "pending_client": "ממתין לאישור לקוח",
     "submitted": "הוגש",
-    "accepted": "התקבל",
-    "assessment_issued": "שומה הוצאה",
-    "objection_filed": "השגה הוגשה",
     "closed": "סגור",
+    "canceled": "בוטל",
 }
 
 CHARGE_TYPE_HE = {

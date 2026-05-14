@@ -58,7 +58,6 @@ class InMemoryRepo:
         open_statuses = {
             AnnualReportStatus.NOT_STARTED,
             AnnualReportStatus.COLLECTING_DOCS,
-            AnnualReportStatus.DOCS_COMPLETE,
             AnnualReportStatus.IN_PREPARATION,
             AnnualReportStatus.PENDING_CLIENT,
         }

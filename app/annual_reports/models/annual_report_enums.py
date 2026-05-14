@@ -33,14 +33,9 @@ class PrimaryAnnualReportForm(str, PyEnum):
 class AnnualReportStatus(str, PyEnum):
     NOT_STARTED = "not_started"
     COLLECTING_DOCS = "collecting_docs"  # מאסף מסמכים
-    DOCS_COMPLETE = "docs_complete"  # מסמכים התקבלו
     IN_PREPARATION = "in_preparation"  # בהכנה
     PENDING_CLIENT = "pending_client"  # ממתין לאישור לקוח
     SUBMITTED = "submitted"  # הוגש לרשות המסים
-    AMENDED = "amended"  # דוח מתוקן
-    ACCEPTED = "accepted"  # התקבל / אושר
-    ASSESSMENT_ISSUED = "assessment_issued"  # שומה הוצאה
-    OBJECTION_FILED = "objection_filed"  # השגה הוגשה
     CLOSED = "closed"  # סגור
     CANCELED = "canceled"
 
@@ -81,7 +76,7 @@ class ReportStage(str, PyEnum):
     FINAL_REVIEW = "final_review"
     CLIENT_SIGNATURE = "client_signature"
     TRANSMITTED = "transmitted"
-    POST_SUBMISSION = "post_submission"  # assessment_issued, objection_filed
+    POST_SUBMISSION = "post_submission"
 
 
 class ExtensionReason(str, PyEnum):
@@ -94,9 +89,6 @@ class ExtensionReason(str, PyEnum):
 ANNUAL_REPORT_FILED_STATUSES: frozenset[AnnualReportStatus] = frozenset(
     {
         AnnualReportStatus.SUBMITTED,
-        AnnualReportStatus.ACCEPTED,
-        AnnualReportStatus.ASSESSMENT_ISSUED,
-        AnnualReportStatus.OBJECTION_FILED,
         AnnualReportStatus.CLOSED,
     }
 )

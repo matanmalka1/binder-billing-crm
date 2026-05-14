@@ -66,7 +66,6 @@ def test_transition_submitted_requires_readiness(test_db, monkeypatch):
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)
 
     svc.transition_status(report.id, "collecting_docs", 1, "A")
-    svc.transition_status(report.id, "docs_complete", 1, "A")
     svc.transition_status(report.id, "in_preparation", 1, "A")
     svc.transition_status(report.id, "pending_client", 1, "A")
 
@@ -92,7 +91,6 @@ def test_pending_client_transition_calls_signature_hooks(test_db, monkeypatch):
     svc = AnnualReportService(test_db)
 
     svc.transition_status(report.id, "collecting_docs", 1, "A")
-    svc.transition_status(report.id, "docs_complete", 1, "A")
 
     called = {"created": 0, "canceled": 0}
 
@@ -173,7 +171,6 @@ def test_transition_from_pending_client_cancels_requests(test_db, monkeypatch):
     )
 
     svc.transition_status(report.id, "collecting_docs", 1, "A")
-    svc.transition_status(report.id, "docs_complete", 1, "A")
     svc.transition_status(report.id, "in_preparation", 1, "A")
     svc.transition_status(report.id, "pending_client", 1, "A")
     submitted_at = datetime(2026, 1, 10, 12, 0, 0)
@@ -210,19 +207,19 @@ def test_update_deadline_invalid_and_custom_paths(test_db):
     assert std.deadline_type == "standard"
 
 
-def test_transition_assessment_issued_sets_financial_fields(test_db):
+def test_transition_closed_sets_financial_fields(test_db):
     report = _create_report(test_db)
     svc = AnnualReportService(test_db)
     svc.repo.update(report.id, status=AnnualReportStatus.SUBMITTED)
 
     updated = svc.transition_status(
         report.id,
-        "assessment_issued",
+        "closed",
         1,
         "A",
         assessment_amount=111.0,
         refund_due=22.0,
         tax_due=33.0,
     )
-    assert updated.status == AnnualReportStatus.ASSESSMENT_ISSUED.value
+    assert updated.status == AnnualReportStatus.CLOSED.value
     assert float(updated.assessment_amount) == 111.0

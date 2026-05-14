@@ -58,15 +58,11 @@ CLIENT_TYPE_LABELS: dict[str, str] = {
 STATUS_LABELS: dict[str, str] = {
     "not_started": "טרם החל",
     "collecting_docs": "איסוף מסמכים",
-    "docs_complete": "מסמכים הושלמו",
     "in_preparation": "בהכנה",
     "pending_client": "ממתין ללקוח",
     "submitted": "הוגש",
-    "accepted": "התקבל",
-    "assessment_issued": "שומה הוצאה",
-    "objection_filed": "הגשת השגה",
     "closed": "סגור",
-    "amended": "מתוקן",
+    "canceled": "בוטל",
 }
 
 __all__ = [

@@ -76,7 +76,6 @@ from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRep
 _PRE_SUBMISSION_STATUSES = {
     AnnualReportStatus.NOT_STARTED,
     AnnualReportStatus.COLLECTING_DOCS,
-    AnnualReportStatus.DOCS_COMPLETE,
     AnnualReportStatus.IN_PREPARATION,
     AnnualReportStatus.PENDING_CLIENT,
 }

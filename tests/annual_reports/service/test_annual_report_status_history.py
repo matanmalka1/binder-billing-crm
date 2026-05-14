@@ -8,11 +8,9 @@ from tests.annual_reports.service.test_annual_report import AnnualReportService
 def _full_pipeline(service, business_id=1):
     report = service.create_report(business_id, 2023, "individual", 1, "Advisor")
     service.transition_status(report.id, "collecting_docs", 1, "Advisor")
-    service.transition_status(report.id, "docs_complete", 1, "Advisor")
     service.transition_status(report.id, "in_preparation", 1, "Advisor")
     service.transition_status(report.id, "pending_client", 1, "Advisor")
     service.transition_status(report.id, "submitted", 1, "Advisor")
-    service.transition_status(report.id, "accepted", 1, "Advisor")
     service.transition_status(report.id, "closed", 1, "Advisor")
     return report
 
@@ -40,22 +38,19 @@ def test_cannot_reopen_closed():
     assert exc_info.value.code == "ANNUAL_REPORT.INVALID_STATUS"
 
 
-def test_assessment_then_objection():
+def test_submitted_can_close_with_assessment_amount():
     service = AnnualReportService()
     report = service.create_report(1, 2023, "individual", 1, "Advisor")
     for status in [
         "collecting_docs",
-        "docs_complete",
         "in_preparation",
         "pending_client",
         "submitted",
     ]:
         service.transition_status(report.id, status, 1, "A")
     service.transition_status(
-        report.id, "assessment_issued", 1, "A", assessment_amount=50000
+        report.id, "closed", 1, "A", assessment_amount=50000
     )
-    service.transition_status(report.id, "objection_filed", 1, "A")
-    service.transition_status(report.id, "closed", 1, "A")
     assert service.get_report(report.id).status == AnnualReportStatus.CLOSED
 
 

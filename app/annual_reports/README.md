@@ -43,21 +43,17 @@ Covers:
 
 ```
 NOT_STARTED → COLLECTING_DOCS
-COLLECTING_DOCS → DOCS_COMPLETE | NOT_STARTED
-DOCS_COMPLETE → IN_PREPARATION | COLLECTING_DOCS
-IN_PREPARATION → PENDING_CLIENT | DOCS_COMPLETE
+COLLECTING_DOCS → IN_PREPARATION | NOT_STARTED
+IN_PREPARATION → PENDING_CLIENT | COLLECTING_DOCS
 PENDING_CLIENT → IN_PREPARATION | SUBMITTED
-SUBMITTED → ACCEPTED | ASSESSMENT_ISSUED | AMENDED
-AMENDED → IN_PREPARATION | SUBMITTED
-ACCEPTED → CLOSED
-ASSESSMENT_ISSUED → OBJECTION_FILED | CLOSED | PENDING_CLIENT | IN_PREPARATION | DOCS_COMPLETE
-OBJECTION_FILED → CLOSED | DOCS_COMPLETE
+SUBMITTED → IN_PREPARATION | CLOSED
 CLOSED → (terminal)
+CANCELED → (terminal)
 ```
 
 All transitions enforced via `VALID_TRANSITIONS` in `services/constants.py`. All go through `transition_status()` which holds a row-level lock.
 
-"Filed" statuses (used in deadline sync): `SUBMITTED`, `ACCEPTED`, `ASSESSMENT_ISSUED`, `OBJECTION_FILED`, `CLOSED`.
+"Filed" statuses (used in deadline sync): `SUBMITTED`, `CLOSED`.
 
 ### `ClientAnnualFilingType` — filing profile
 
@@ -149,7 +145,7 @@ Income/expense mutations clear `tax_due`/`refund_due` if report is pre-submissio
 
 ### VAT Auto-Populate
 
-1. Validate report exists and status is in `{NOT_STARTED, COLLECTING_DOCS, DOCS_COMPLETE, IN_PREPARATION}`
+1. Validate report exists and status is in `{NOT_STARTED, COLLECTING_DOCS, IN_PREPARATION}`
 2. If lines exist and `force=False`: raise `ConflictError`
 3. If `force=True`: delete all existing income/expense lines
 4. Aggregate VAT income by `(client_record_id, tax_year)` → one `BUSINESS` income line
@@ -220,7 +216,7 @@ All routes under `/api/v1/`. Minimum role: `SECRETARY` unless noted.
 | `GET` | `/annual-reports/overdue` | SECRETARY+ | Open reports past deadline |
 | `GET` | `/annual-reports/{id}` | SECRETARY+ | Full detail |
 | `DELETE` | `/annual-reports/{id}` | ADVISOR | Soft-delete |
-| `POST` | `/annual-reports/{id}/amend` | ADVISOR | Transition `SUBMITTED → AMENDED` |
+| `POST` | `/annual-reports/{id}/amend` | ADVISOR | Reopen `SUBMITTED → IN_PREPARATION` and record amendment reason |
 | `GET` | `/tax-year/default` | Default annual report tax year |
 
 ### Status & Workflow

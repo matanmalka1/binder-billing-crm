@@ -39,7 +39,7 @@ def transition_status(
     """
     Move the report to a new status.
 
-    Only valid transitions are accepted (e.g. COLLECTING_DOCS → DOCS_COMPLETE).
+    Only valid transitions are accepted (e.g. COLLECTING_DOCS → IN_PREPARATION).
     Attempting an invalid jump returns 400.
     """
     service = AnnualReportService(db)

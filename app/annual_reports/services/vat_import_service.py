@@ -38,7 +38,6 @@ from app.annual_reports.services.messages import (
 _ALLOWED_STATUSES = {
     AnnualReportStatus.NOT_STARTED,
     AnnualReportStatus.COLLECTING_DOCS,
-    AnnualReportStatus.DOCS_COMPLETE,
     AnnualReportStatus.IN_PREPARATION,
 }
 

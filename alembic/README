@@ -10,7 +10,7 @@
   2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0004_tasks.py`.
+- Current head is `0006_simplify_annual_report_statuses`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
@@ -83,7 +83,21 @@ Notes:
 
 ## Migration chain
 
-`0004_tasks` is the current head.
+`0006_simplify_annual_report_statuses` is the current head.
+
+### 0006_simplify_annual_report_statuses
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Collapses annual report statuses to the operational set:
+  `not_started`, `collecting_docs`, `in_preparation`, `pending_client`,
+  `submitted`, `closed`, `canceled`.
+- Data mapping:
+  `docs_complete` and `amended` become `in_preparation`; `accepted`,
+  `assessment_issued`, and `objection_filed` become `closed`.
+- Notes:
+  PostgreSQL enum `annualreportstatus` is recreated after data remapping.
 
 ### 0004_tasks
 

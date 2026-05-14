@@ -8,7 +8,6 @@ def test_season_summary_counts():
     service.create_report(3, 2023, "self_employed", 1, "A")
     for status in [
         "collecting_docs",
-        "docs_complete",
         "in_preparation",
         "pending_client",
         "submitted",
@@ -42,7 +41,6 @@ def test_submitted_not_overdue():
     report = service.create_report(1, 2020, "individual", 1, "A")
     for status in [
         "collecting_docs",
-        "docs_complete",
         "in_preparation",
         "pending_client",
         "submitted",

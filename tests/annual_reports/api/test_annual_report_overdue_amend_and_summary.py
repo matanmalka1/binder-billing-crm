@@ -58,7 +58,7 @@ def test_annual_report_amend_endpoint(client, test_db, advisor_headers, test_use
 
     assert amend_resp.status_code == 200
     body = amend_resp.json()
-    assert body["status"] == "amended"
+    assert body["status"] == "in_preparation"
     assert body["amendment_reason"] == "Correction requested"
 
 

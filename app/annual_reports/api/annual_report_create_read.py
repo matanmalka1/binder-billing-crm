@@ -128,7 +128,7 @@ def delete_annual_report(report_id: int, db: DBSession, user: CurrentUser):
 def amend_annual_report(
     report_id: int, body: AmendRequest, db: DBSession, user: CurrentUser
 ):
-    """Transition a SUBMITTED report to AMENDED and record the amendment reason (ADVISOR only)."""
+    """Reopen a SUBMITTED report for amendment and record the reason (ADVISOR only)."""
     service = AnnualReportService(db)
     return service.amend_report(
         report_id,

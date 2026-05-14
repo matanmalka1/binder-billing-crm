@@ -34,9 +34,6 @@ class DashboardTaxService:
                 AnnualReportStatus.SUBMITTED, tax_year=tax_year
             )
             + self.report_repo.count_by_status(
-                AnnualReportStatus.ACCEPTED, tax_year=tax_year
-            )
-            + self.report_repo.count_by_status(
                 AnnualReportStatus.CLOSED, tax_year=tax_year
             )
         )
@@ -49,19 +46,11 @@ class DashboardTaxService:
             + self.report_repo.count_by_status(
                 AnnualReportStatus.PENDING_CLIENT, tax_year=tax_year
             )
-            + self.report_repo.count_by_status(
-                AnnualReportStatus.ASSESSMENT_ISSUED, tax_year=tax_year
-            )
-            + self.report_repo.count_by_status(
-                AnnualReportStatus.OBJECTION_FILED, tax_year=tax_year
-            )
         )
 
         # MATERIAL_COLLECTION statuses
         material_collection = self.report_repo.count_by_status(
             AnnualReportStatus.COLLECTING_DOCS, tax_year=tax_year
-        ) + self.report_repo.count_by_status(
-            AnnualReportStatus.DOCS_COMPLETE, tax_year=tax_year
         )
 
         not_started = total_clients - (submitted + in_progress + material_collection)

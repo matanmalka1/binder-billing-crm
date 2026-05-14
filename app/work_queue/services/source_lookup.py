@@ -89,7 +89,12 @@ def load_source_states(
                 row.client_record_id,
                 row.status,
                 is_deleted=row.deleted_at is not None,
-                is_final=row.status in {AnnualReportStatus.SUBMITTED, AnnualReportStatus.ACCEPTED, AnnualReportStatus.CLOSED, AnnualReportStatus.CANCELED},
+                is_final=row.status
+                in {
+                    AnnualReportStatus.SUBMITTED,
+                    AnnualReportStatus.CLOSED,
+                    AnnualReportStatus.CANCELED,
+                },
                 route=source_route(WorkQueueSourceType.ANNUAL_REPORT, row.id),
             )
 
