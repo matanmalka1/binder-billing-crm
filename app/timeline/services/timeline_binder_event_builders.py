@@ -1,11 +1,13 @@
 from datetime import datetime
 
 from app.actions.action_registry import get_binder_actions
+from app.core.action_schemas import ActionDescriptor
+from app.core.action_serialization import dump_action_descriptor
 from app.timeline.labels import BINDER_STATUS_HE
 
 
-def _attach_actions(event: dict, actions: list) -> dict:
-    event["available_actions"] = actions
+def _attach_actions(event: dict, actions: list[ActionDescriptor]) -> dict:
+    event["available_actions"] = [dump_action_descriptor(action) for action in actions]
     return event
 
 

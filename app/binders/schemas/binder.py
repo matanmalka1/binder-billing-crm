@@ -1,10 +1,11 @@
 from datetime import date
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
 from app.binders.models.binder import BinderStatus
 from app.binders.models.binder_intake_material import MaterialType
+from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime
 
 
@@ -64,7 +65,7 @@ class BinderResponse(BaseModel):
     created_at: ApiDateTime
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: Optional[int] = None  # today - period_start
-    available_actions: list[dict[str, Any]] = Field(default_factory=list)
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

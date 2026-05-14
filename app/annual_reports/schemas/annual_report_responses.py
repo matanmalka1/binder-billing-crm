@@ -1,6 +1,7 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 from app.annual_reports.models.annual_report_enums import (
     ClientAnnualFilingType,
@@ -43,7 +44,7 @@ class AnnualReportResponse(BaseModel):
     updated_at: ApiDateTime
     assigned_to: Optional[int] = None
     created_by: int
-    available_actions: list[dict] = []
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
     available_transitions: list[AnnualReportStatus] = []
 
     model_config = {"from_attributes": True}

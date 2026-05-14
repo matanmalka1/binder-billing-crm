@@ -1,9 +1,10 @@
 from datetime import date
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.businesses.models.business import BusinessStatus
+from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime, PaginatedResponse
 
 
@@ -70,7 +71,7 @@ class BusinessResponse(BaseModel):
     closed_at: Optional[date] = None
     notes: Optional[str] = None
     created_at: Optional[ApiDateTime] = None
-    available_actions: list[dict[str, Any]] = Field(default_factory=list)
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

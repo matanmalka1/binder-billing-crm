@@ -8,6 +8,7 @@ import re
 from pydantic import BaseModel, Field, field_validator
 
 from app.common.enums import SubmissionMethod, VatType
+from app.core.action_schemas import ActionDescriptor
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 
@@ -66,7 +67,7 @@ class VatWorkItemResponse(BaseModel):
     extended_deadline: Optional[date] = None
     days_until_deadline: Optional[int] = None
     is_overdue: Optional[bool] = None
-    available_actions: list[dict] = []
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

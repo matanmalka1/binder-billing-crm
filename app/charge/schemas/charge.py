@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.charge.models.charge import ChargeType, ChargeStatus
 from app.charge.services.constants import MONTHS_COVERED_MAX, PERIOD_REGEX
 from app.charge.services.messages import PERIOD_INVALID_FORMAT
+from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime, ApiDecimal
 
 
@@ -48,7 +49,7 @@ class ChargeResponse(BaseModel):
     canceled_at: Optional[ApiDateTime] = None
     canceled_by: Optional[int] = None
     cancellation_reason: Optional[str] = None
-    available_actions: list[dict] = []
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -70,7 +71,7 @@ class ChargeResponseSecretary(BaseModel):
     created_at: ApiDateTime
     issued_at: Optional[ApiDateTime] = None
     paid_at: Optional[ApiDateTime] = None
-    available_actions: list[dict] = []
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
