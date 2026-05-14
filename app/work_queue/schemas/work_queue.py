@@ -7,6 +7,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 from app.common.source_types import WorkQueueSourceType
+from app.core.action_schemas import ActionDescriptor
 
 
 class WorkQueueUrgency(str, PyEnum):
@@ -49,23 +50,6 @@ class WorkQueueWarning(BaseModel):
     severity: Literal["info", "warning", "danger"] = "warning"
 
 
-class WorkQueueAction(BaseModel):
-    key: str
-    label: str
-    type: Literal["link", "mutation", "modal"]
-    route: Optional[str] = None
-    endpoint: Optional[str] = None
-    method: Optional[Literal["get", "post", "patch", "put", "delete"]] = None
-    task_id: Optional[int] = None
-    payload_schema: Literal["none", "simple", "requires_input"] = "none"
-    confirm: bool = False
-    confirm_title: Optional[str] = None
-    confirm_message: Optional[str] = None
-    variant: Literal["primary", "secondary", "danger"] = "secondary"
-    disabled: bool = False
-    disabled_reason: Optional[str] = None
-
-
 class WorkQueueItem(BaseModel):
     id: str
     source_type: WorkQueueSourceType
@@ -84,7 +68,7 @@ class WorkQueueItem(BaseModel):
     linked_tasks: list[LinkedTaskSummary] = Field(default_factory=list)
     linked_tasks_count: int = 0
     warnings: list[WorkQueueWarning] = Field(default_factory=list)
-    available_actions: list[WorkQueueAction] = Field(default_factory=list)
+    available_actions: list[ActionDescriptor] = Field(default_factory=list)
     metadata: Optional[dict] = None
 
 

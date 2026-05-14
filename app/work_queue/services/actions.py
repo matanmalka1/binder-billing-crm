@@ -1,68 +1,17 @@
 from __future__ import annotations
 
-from typing import Literal
-
+from app.core.action_builders import link_action as _link
+from app.core.action_builders import modal_action as _modal
+from app.core.action_builders import mutation_action as _mutation
+from app.core.action_schemas import ActionDescriptor
 from app.tasks.models.task import TaskStatus
-from app.work_queue.schemas.work_queue import WorkQueueAction, WorkQueueSourceType
+from app.work_queue.schemas.work_queue import WorkQueueSourceType
 from app.work_queue.services.common import source_route
 
-HttpMethod = Literal["get", "post", "patch", "put", "delete"]
-ActionVariant = Literal["primary", "secondary", "danger"]
 
-
-def _link(key: str, label: str, route: str, *, primary: bool = False) -> WorkQueueAction:
-    return WorkQueueAction(
-        key=key,
-        label=label,
-        type="link",
-        route=route,
-        variant="primary" if primary else "secondary",
-    )
-
-
-def _mutation(
-    key: str,
-    label: str,
-    endpoint: str,
-    *,
-    task_id: int | None = None,
-    method: HttpMethod = "post",
-    confirm_title: str | None = None,
-    confirm_message: str | None = None,
-    variant: ActionVariant = "secondary",
-) -> WorkQueueAction:
-    return WorkQueueAction(
-        key=key,
-        label=label,
-        type="mutation",
-        endpoint=endpoint,
-        method=method,
-        task_id=task_id,
-        confirm=confirm_title is not None or confirm_message is not None,
-        confirm_title=confirm_title,
-        confirm_message=confirm_message,
-        variant=variant,
-    )
-
-
-def _modal(
-    key: str,
-    label: str,
-    *,
-    task_id: int | None = None,
-    primary: bool = False,
-    variant: ActionVariant | None = None,
-) -> WorkQueueAction:
-    return WorkQueueAction(
-        key=key,
-        label=label,
-        type="modal",
-        task_id=task_id,
-        variant=variant or ("primary" if primary else "secondary"),
-    )
-
-
-def source_link_action(source_type: WorkQueueSourceType, source_id: int) -> WorkQueueAction | None:
+def source_link_action(
+    source_type: WorkQueueSourceType, source_id: int
+) -> ActionDescriptor | None:
     route = source_route(source_type, source_id)
     if route is None:
         return None
@@ -95,8 +44,8 @@ def task_actions(
     include_open: bool = True,
     include_delete: bool = True,
     label_context: str | None = None,
-) -> list[WorkQueueAction]:
-    actions: list[WorkQueueAction] = []
+) -> list[ActionDescriptor]:
+    actions: list[ActionDescriptor] = []
     suffix = f"_{task_id}" if key_suffix else ""
     label_suffix = f": {label_context}" if label_context else ""
     if include_open:
@@ -150,19 +99,14 @@ def task_actions(
     return actions
 
 
-def create_linked_task_action() -> WorkQueueAction:
-    return WorkQueueAction(
-        key="create_linked_task",
-        label="צור משימה",
-        type="modal",
-        variant="secondary",
-    )
+def create_linked_task_action() -> ActionDescriptor:
+    return _modal("create_linked_task", "צור משימה")
 
 
 def source_actions(
     source_type: WorkQueueSourceType,
     source_id: int,
-) -> list[WorkQueueAction]:
+) -> list[ActionDescriptor]:
     actions = []
     open_action = source_link_action(source_type, source_id)
     if open_action is not None:
