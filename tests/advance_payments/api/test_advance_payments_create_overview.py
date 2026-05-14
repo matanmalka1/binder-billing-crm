@@ -184,3 +184,32 @@ def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     item = data["items"][0]
     assert item["period"] == "2026-02"
     assert item["status"] == "paid"
+
+
+def test_overview_batches_returns_numeric_counts(client, test_db, advisor_headers):
+    business = _business(test_db)
+    repo = AdvancePaymentRepository(test_db)
+    create_linked_advance_payment(
+        test_db,
+        repo=repo,
+        client_record_id=business.client_record_id,
+        period="2026-03",
+        period_months_count=1,
+        due_date=date(2020, 4, 15),
+    )
+
+    resp = client.get(
+        "/api/v1/advance-payments/overview/batches?year=2026",
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 200
+    row = next(item for item in resp.json() if item["month"] == 3)
+    for key in (
+        "client_count",
+        "missing_turnover_count",
+        "overdue_count",
+        "pending_count",
+    ):
+        assert isinstance(row[key], int)
+        assert row[key] >= 0

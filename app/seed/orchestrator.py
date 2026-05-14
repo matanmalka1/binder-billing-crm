@@ -21,6 +21,7 @@ from .builders.demo import reports as reports_builder
 from .builders.demo import documents as documents_builder
 from .builders.demo import contacts as contacts_builder
 from .builders.demo import signature_requests as sig_builder
+from .builders.demo import advance_payments as advance_payments_builder
 from .builders.demo import notifications as notifications_builder
 from .validator import SeedIntegrityValidator
 
@@ -201,7 +202,8 @@ class SeedOrchestrator:
             )
 
             notifications_builder.create_notifications(
-                db, self.rng, client_records, all_businesses, all_binders, seeded_users
+                db, self.rng, client_records, all_businesses, all_binders, seeded_users,
+                cfg=self.cfg,
             )
 
             vat_work_items = vat_builder.create_vat_work_items(
@@ -212,6 +214,10 @@ class SeedOrchestrator:
             )
             vat_builder.create_vat_audit_logs(
                 db, self.rng, vat_work_items, seeded_users
+            )
+
+            advance_payments_builder.create_advance_payments(
+                db, self.rng, self.cfg, all_businesses
             )
 
             sig_requests = sig_builder.create_signature_requests(

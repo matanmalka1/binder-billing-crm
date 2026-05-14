@@ -281,11 +281,13 @@ def create_annual_reports(
                 .first()
             )
             if existing:
+                if existing.tax_year < current_year and existing.status not in FINAL_STATUSES:
+                    existing.status = rng.choice(FINAL_STATUSES)
                 reports.append(existing)
                 continue
 
-            # Reports from 2+ years ago must be in a final (closed) state
-            if year <= current_year - 2:
+            # All historical years must be in a final (closed) state
+            if year < current_year:
                 status = rng.choice(FINAL_STATUSES)
             elif status_cycle_idx < len(status_cycle):
                 status = status_cycle[status_cycle_idx]

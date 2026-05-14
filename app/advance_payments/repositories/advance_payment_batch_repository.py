@@ -33,40 +33,49 @@ class AdvancePaymentBatchRepository(BaseRepository):
                     func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
                         "total_paid"
                     ),
-                    func.sum(
-                        case(
-                            (
-                                (AdvancePayment.due_date < today_expr)
-                                & (
-                                    advance_payment_status_text_expr()
-                                    != AdvancePaymentStatus.PAID.value
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    (AdvancePayment.due_date < today_expr)
+                                    & (
+                                        advance_payment_status_text_expr()
+                                        != AdvancePaymentStatus.PAID.value
+                                    ),
+                                    1,
                                 ),
-                                1,
-                            ),
-                            else_=0,
-                        )
+                                else_=0,
+                            )
+                        ),
+                        0,
                     ).label("overdue_count"),
-                    func.sum(
-                        case(
-                            (
-                                AdvancePayment.reported_turnover.is_(None)
-                                & AdvancePayment.turnover_source_vat_work_item_id.is_(
-                                    None
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    AdvancePayment.reported_turnover.is_(None)
+                                    & AdvancePayment.turnover_source_vat_work_item_id.is_(
+                                        None
+                                    ),
+                                    1,
                                 ),
-                                1,
-                            ),
-                            else_=0,
-                        )
+                                else_=0,
+                            )
+                        ),
+                        0,
                     ).label("snapshot_missing_count"),
-                    func.sum(
-                        case(
-                            (
-                                advance_payment_status_text_expr()
-                                == AdvancePaymentStatus.PENDING.value,
-                                1,
-                            ),
-                            else_=0,
-                        )
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    advance_payment_status_text_expr()
+                                    == AdvancePaymentStatus.PENDING.value,
+                                    1,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        0,
                     ).label("pending_count"),
                 ),
                 AdvancePayment,

@@ -17,8 +17,9 @@ from ..shared.client_refs import get_seed_client_record_id
 
 
 def create_notifications(
-    db, rng: Random, clients, businesses, binders, users=None
+    db, rng: Random, clients, businesses, binders, users=None, cfg=None
 ) -> None:
+    current_year = cfg.reference_date.year if cfg else None
     clients_by_id = {c.id: c for c in clients}
     businesses_by_client: dict[int, list] = {}
     for business in businesses:
@@ -61,16 +62,20 @@ def create_notifications(
                 ]
             )
 
-        status = rng.choices(
-            [
-                NotificationStatus.SENT,
-                NotificationStatus.PENDING,
-                NotificationStatus.FAILED,
-            ],
-            weights=[75, 18, 7],
-            k=1,
-        )[0]
         created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 60))
+        is_old = current_year is not None and created_at.year < current_year
+        if is_old:
+            status = NotificationStatus.SENT
+        else:
+            status = rng.choices(
+                [
+                    NotificationStatus.SENT,
+                    NotificationStatus.PENDING,
+                    NotificationStatus.FAILED,
+                ],
+                weights=[75, 18, 7],
+                k=1,
+            )[0]
         sent_at = None
         failed_at = None
         if status == NotificationStatus.SENT:

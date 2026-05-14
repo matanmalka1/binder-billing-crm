@@ -29,6 +29,14 @@ def _doc_timestamps(rng: Random, now: datetime):
     is_present = rng.random() > 0.05
     if not is_present and status in (DocumentStatus.APPROVED, DocumentStatus.RECEIVED):
         status = DocumentStatus.PENDING
+    age_days = (now - uploaded_at).days
+    if age_days > 90 and status == DocumentStatus.PENDING:
+        status = rng.choices(
+            [DocumentStatus.APPROVED, DocumentStatus.REJECTED],
+            weights=[80, 20],
+            k=1,
+        )[0]
+        is_present = True
     approved_at = rejected_at = None
     if status == DocumentStatus.APPROVED and is_present and rng.random() < 0.7:
         approved_at = min(now, uploaded_at + timedelta(days=rng.randint(1, 30)))

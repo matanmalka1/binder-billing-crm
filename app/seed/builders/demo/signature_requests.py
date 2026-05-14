@@ -118,6 +118,13 @@ def create_signature_requests(
     existing_count = int(
         db.execute(select(func.count()).select_from(SignatureRequest)).scalar_one()
     )
+    current_year = cfg.reference_date.year
+    _FINAL_STATUSES = [
+        SignatureRequestStatus.SIGNED,
+        SignatureRequestStatus.DECLINED,
+        SignatureRequestStatus.EXPIRED,
+        SignatureRequestStatus.CANCELED,
+    ]
     type_cycle = list(SignatureRequestType)
     status_cycle = list(SignatureRequestStatus)
     type_idx = 0
@@ -139,6 +146,9 @@ def create_signature_requests(
             else:
                 status = rng.choice(status_cycle)
             timestamps = _build_timestamps(rng, status)
+            if timestamps["created_at"].year < current_year and status not in _FINAL_STATUSES:
+                status = rng.choice(_FINAL_STATUSES)
+                timestamps = _build_timestamps(rng, status)
             serial = existing_count + len(requests) + 1
             if type_idx < len(type_cycle):
                 request_type = type_cycle[type_idx]

@@ -135,6 +135,18 @@ def _status_for_period(
     )[0]
 
 
+def _promote_to_filed(rng: Random, item: VatWorkItem, cfg) -> None:
+    item.status = VatWorkItemStatus.FILED
+    item.submission_method = rng.choice(list(SubmissionMethod))
+    period_dt = datetime.strptime(f"{item.period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
+    filed_at = period_dt + timedelta(days=rng.randint(15, 45))
+    reference_now = datetime.combine(cfg.reference_date, datetime.min.time(), tzinfo=UTC)
+    item.filed_at = min(filed_at, reference_now)
+    item.filed_by = item.assigned_to or item.created_by
+    if not item.submission_reference:
+        item.submission_reference = f"VAT-{item.period.replace('-', '')}-{rng.randint(1000, 9999)}"
+
+
 def _invoice_date_for_period(rng: Random, period: str):
     period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
     return (period_start + timedelta(days=rng.randint(0, 27))).date()
@@ -176,6 +188,12 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 .first()
             )
             if existing_item is not None:
+                # If onboarding created this with a non-final status for a pre-current-year
+                # period, upgrade it now.
+                period_year = int(period.split("-")[0])
+                if period_year < cfg.reference_date.year and existing_item.status != VatWorkItemStatus.FILED:
+                    _promote_to_filed(rng, existing_item, cfg)
+                    work_items.append(existing_item)
                 continue
 
             period_start = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(
@@ -202,6 +220,15 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                 )
             else:
                 status = _status_for_period(rng, period, cfg.reference_date)
+
+            period_year = int(period.split("-")[0])
+            _FINAL_VAT = (
+                VatWorkItemStatus.FILED,
+                VatWorkItemStatus.CANCELED,
+                VatWorkItemStatus.ARCHIVED,
+            )
+            if period_year < cfg.reference_date.year and status not in _FINAL_VAT:
+                status = VatWorkItemStatus.FILED
 
             created_by = rng.choice(advisors) if advisors else fallback_user_id
             period_months_count = _VAT_PERIOD_MONTHS_COUNT.get(period_type)
@@ -264,6 +291,21 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
                     or f"VAT-{filed_items[index].period.replace('-', '')}-{rng.randint(1000, 9999)}"
                 )
                 filed_items[index].submission_reference = f"{ref}-AMD"
+
+    # Sweep: fix any onboarding-created items not reached above.
+    db.expire_all()
+    stragglers = (
+        db.query(VatWorkItem)
+        .filter(
+            VatWorkItem.period < f"{cfg.reference_date.year}-01",
+            VatWorkItem.status != VatWorkItemStatus.FILED,
+            VatWorkItem.deleted_at.is_(None),
+        )
+        .all()
+    )
+    for item in stragglers:
+        _promote_to_filed(rng, item, cfg)
+    db.flush()
 
     return work_items
 

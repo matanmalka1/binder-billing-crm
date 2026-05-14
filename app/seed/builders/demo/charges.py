@@ -27,20 +27,29 @@ def _pick_businesses(rng: Random, client_businesses: list, count: int) -> list:
 
 def create_charges(db, rng: Random, cfg, businesses, users=None) -> list[Charge]:
     charges: list[Charge] = []
+    current_year = cfg.reference_date.year
     for client_businesses in _group_by_client(businesses).values():
         num = rng.randint(cfg.min_charges_per_client, cfg.max_charges_per_client)
         for business in _pick_businesses(rng, client_businesses, num):
-            status = rng.choices(
-                [
-                    ChargeStatus.DRAFT,
-                    ChargeStatus.ISSUED,
-                    ChargeStatus.PAID,
-                    ChargeStatus.CANCELED,
-                ],
-                weights=[20, 30, 40, 10],
-                k=1,
-            )[0]
             created_at = datetime.now(UTC) - timedelta(days=rng.randint(0, 240))
+            is_old = created_at.year < current_year
+            if is_old:
+                status = rng.choices(
+                    [ChargeStatus.PAID, ChargeStatus.CANCELED],
+                    weights=[85, 15],
+                    k=1,
+                )[0]
+            else:
+                status = rng.choices(
+                    [
+                        ChargeStatus.DRAFT,
+                        ChargeStatus.ISSUED,
+                        ChargeStatus.PAID,
+                        ChargeStatus.CANCELED,
+                    ],
+                    weights=[20, 30, 40, 10],
+                    k=1,
+                )[0]
             issued_at = None
             issued_by = None
             paid_at = None
