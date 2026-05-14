@@ -94,46 +94,38 @@ def task_actions(
     key_suffix: bool = False,
     include_open: bool = True,
     include_delete: bool = True,
+    label_context: str | None = None,
 ) -> list[WorkQueueAction]:
     actions: list[WorkQueueAction] = []
     suffix = f"_{task_id}" if key_suffix else ""
+    label_suffix = f": {label_context}" if label_context else ""
     if include_open:
         actions.append(
             _modal(
                 f"continue_task{suffix}",
-                "המשך משימה",
+                f"טפל{label_suffix}",
                 task_id=task_id,
                 primary=True,
             )
         )
-    is_active = status in {TaskStatus.OPEN.value, TaskStatus.IN_PROGRESS.value}
-    if is_active:
-        actions.append(_modal(f"edit_task{suffix}", "ערוך משימה", task_id=task_id))
     if status == TaskStatus.OPEN.value:
         actions.append(
-            _mutation(
-                f"start_task{suffix}",
-                "התחל משימה",
-                f"/tasks/{task_id}/start",
-                task_id=task_id,
-                variant="primary",
-            )
+            _modal(f"edit_task{suffix}", f"ערוך משימה{label_suffix}", task_id=task_id)
         )
-    if status in {TaskStatus.OPEN.value, TaskStatus.IN_PROGRESS.value}:
         actions.extend(
             [
                 _mutation(
                     f"complete_task{suffix}",
-                    "סמן כהושלמה",
+                    f"סמן כהושלמה{label_suffix}",
                     f"/tasks/{task_id}/complete",
                     task_id=task_id,
                     confirm_title="השלמת משימה",
                     confirm_message="האם לסמן את המשימה כהושלמה?",
-                    variant="primary" if status == TaskStatus.IN_PROGRESS.value else "secondary",
+                    variant="primary",
                 ),
                 _mutation(
                     f"cancel_task{suffix}",
-                    "בטל משימה",
+                    f"בטל משימה{label_suffix}",
                     f"/tasks/{task_id}/cancel",
                     task_id=task_id,
                     confirm_title="ביטול משימה",
@@ -146,7 +138,7 @@ def task_actions(
         actions.append(
             _mutation(
                 f"delete_task{suffix}",
-                "מחק משימה",
+                f"מחק משימה{label_suffix}",
                 f"/tasks/{task_id}",
                 task_id=task_id,
                 method="delete",

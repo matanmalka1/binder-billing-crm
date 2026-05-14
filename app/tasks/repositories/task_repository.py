@@ -103,5 +103,5 @@ class TaskRepository(BaseRepository[Task]):
     def list_for_work_queue(self, *, include_history: bool = False) -> list[Task]:
         stmt = select(Task).where(Task.deleted_at.is_(None))
         if not include_history:
-            stmt = stmt.where(Task.status.in_([TaskStatus.OPEN, TaskStatus.IN_PROGRESS]))
+            stmt = stmt.where(Task.status == TaskStatus.OPEN)
         return list(self.db.scalars(stmt).all())

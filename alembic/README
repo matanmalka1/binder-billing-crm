@@ -99,6 +99,18 @@ Notes:
 - Notes:
   Enum types are created implicitly by `create_table`. DB is empty so no data migration.
 
+### 0002_remove_task_in_progress_status
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Collapses task `in_progress` back to `open` and removes `in_progress` from the
+  `taskstatus` enum.
+- Notes:
+  This intentionally simplifies manual task lifecycle to `open → done` or
+  `open → canceled`. Development data can be reseeded, so existing
+  `in_progress` values are treated as `open`.
+
 ### 0003_scheduler_reminders
 
 - Command:

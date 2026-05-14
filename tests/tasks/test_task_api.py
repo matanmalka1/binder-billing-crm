@@ -241,15 +241,6 @@ def test_update_task_title(client, advisor_headers):
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 
-def test_start_task(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks", headers=advisor_headers, json={"title": "Start Me"}
-    ).json()
-    resp = client.post(f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers)
-    assert resp.status_code == 200
-    assert resp.json()["status"] == "in_progress"
-
-
 def test_complete_task(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Complete Me"}
@@ -351,15 +342,6 @@ def test_create_task_rejects_deleted_linked_source(client, test_db, advisor_head
     assert resp.status_code == 404
 
 
-def test_start_done_task_rejected(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks", headers=advisor_headers, json={"title": "Done"}
-    ).json()
-    client.post(f"/api/v1/tasks/{created['id']}/complete", headers=advisor_headers)
-    resp = client.post(f"/api/v1/tasks/{created['id']}/start", headers=advisor_headers)
-    assert resp.status_code == 409
-
-
 def test_secretary_can_access_tasks(client, secretary_headers):
     resp = client.get("/api/v1/tasks", headers=secretary_headers)
     assert resp.status_code == 200
@@ -377,7 +359,6 @@ def test_secretary_can_manage_tasks(client, secretary_headers):
         headers=secretary_headers,
         json={"title": "Updated by secretary"},
     ).status_code == 200
-    assert client.post(f"/api/v1/tasks/{task_id}/start", headers=secretary_headers).status_code == 200
     assert client.post(f"/api/v1/tasks/{task_id}/complete", headers=secretary_headers).status_code == 200
 
     deletable = client.post(

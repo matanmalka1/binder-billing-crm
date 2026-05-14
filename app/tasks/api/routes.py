@@ -76,11 +76,6 @@ def update_task(
     return TaskService(db).update(task_id, data)
 
 
-@router.post("/{task_id}/start", response_model=TaskResponse)
-def start_task(db: DBSession, task_id: int):
-    return TaskService(db).start(task_id)
-
-
 @router.post("/{task_id}/complete", response_model=TaskResponse)
 def complete_task(db: DBSession, user: CurrentUser, task_id: int):
     return TaskService(db).complete(task_id, completed_by_user_id=user.id)

@@ -72,7 +72,6 @@ STATUS_LABELS = {
     },
     WorkQueueSourceType.TASK: {
         "open": "פתוחה",
-        "in_progress": "בטיפול",
         "done": "הושלמה",
         "canceled": "בוטלה",
     },

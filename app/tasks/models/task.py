@@ -11,7 +11,6 @@ from app.utils.time_utils import utcnow
 
 class TaskStatus(str, PyEnum):
     OPEN = "open"
-    IN_PROGRESS = "in_progress"
     DONE = "done"
     CANCELED = "canceled"
 
@@ -29,7 +28,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(500), nullable=False)
     description = Column(Text, nullable=True)
-    # pg_enum uses values_callable so DB stores lowercase values ("open", "in_progress", ...)
+    # pg_enum uses values_callable so DB stores lowercase values ("open", "done", ...)
     # matching the taskstatus / taskpriority PostgreSQL enum types created in migration 0004_tasks.
     status = Column(
         pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN

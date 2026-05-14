@@ -26,24 +26,11 @@ def test_create_task_defaults(test_db):
     assert task.deleted_at is None
 
 
-def test_open_to_in_progress(test_db):
-    task_id = _create(test_db)
-    result = TaskService(test_db).start(task_id)
-    assert result.status == TaskStatus.IN_PROGRESS
-
-
 def test_open_to_done(test_db):
     task_id = _create(test_db)
     result = TaskService(test_db).complete(task_id, completed_by_user_id=None)
     assert result.status == TaskStatus.DONE
     assert result.completed_at is not None
-
-
-def test_in_progress_to_done(test_db):
-    task_id = _create(test_db)
-    TaskService(test_db).start(task_id)
-    result = TaskService(test_db).complete(task_id, completed_by_user_id=None)
-    assert result.status == TaskStatus.DONE
 
 
 def test_open_to_canceled(test_db):
@@ -53,13 +40,6 @@ def test_open_to_canceled(test_db):
     assert result.canceled_at is not None
 
 
-def test_in_progress_to_canceled(test_db):
-    task_id = _create(test_db)
-    TaskService(test_db).start(task_id)
-    result = TaskService(test_db).cancel(task_id)
-    assert result.status == TaskStatus.CANCELED
-
-
 def test_completed_by_user_id_set(test_db):
     task_id = _create(test_db)
     result = TaskService(test_db).complete(task_id, completed_by_user_id=99)
@@ -67,20 +47,6 @@ def test_completed_by_user_id_set(test_db):
 
 
 # ── Terminal state rejections ─────────────────────────────────────────────────
-
-
-def test_cannot_start_done_task(test_db):
-    task_id = _create(test_db)
-    TaskService(test_db).complete(task_id, completed_by_user_id=None)
-    with pytest.raises(ConflictError):
-        TaskService(test_db).start(task_id)
-
-
-def test_cannot_start_canceled_task(test_db):
-    task_id = _create(test_db)
-    TaskService(test_db).cancel(task_id)
-    with pytest.raises(ConflictError):
-        TaskService(test_db).start(task_id)
 
 
 def test_cannot_complete_canceled_task(test_db):
@@ -124,8 +90,8 @@ def test_get_nonexistent_task_raises(test_db):
 
 def test_list_filter_by_status(test_db):
     _create(test_db, title="Open task")
-    t2 = _create(test_db, title="In-progress task")
-    TaskService(test_db).start(t2)
+    t2 = _create(test_db, title="Done task")
+    TaskService(test_db).complete(t2, completed_by_user_id=None)
 
     items, total = TaskService(test_db).list(status=TaskStatus.OPEN)
     assert total == 1

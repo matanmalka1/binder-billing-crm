@@ -459,7 +459,7 @@ def upgrade() -> None:
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column(
             "status",
-            sa.Enum("open", "in_progress", "done", "canceled", name="taskstatus"),
+            sa.Enum("open", "done", "canceled", name="taskstatus"),
             nullable=False,
         ),
         sa.Column(

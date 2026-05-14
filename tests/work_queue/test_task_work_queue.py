@@ -43,13 +43,6 @@ def test_open_task_appears_in_work_queue(test_db):
     assert any(i.source_id == task.id for i in task_items)
 
 
-def test_in_progress_task_appears_in_work_queue(test_db):
-    task = _add_task(test_db, status=TaskStatus.IN_PROGRESS)
-    items = WorkQueueService(test_db).list_items()
-    task_items = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
-    assert any(i.source_id == task.id for i in task_items)
-
-
 def test_open_standalone_task_can_be_filtered_with_many_system_rows(test_db):
     biz = create_business(test_db)
     for _ in range(55):

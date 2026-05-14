@@ -520,32 +520,29 @@ def test_task_status_open_finds_standalone_task_rows(test_db):
     task = _add_task_for_source(
         test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN
     )
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.IN_PROGRESS
-    )
 
     items = WorkQueueService(test_db).list_items(task_status=TaskStatus.OPEN)
 
     assert {item.source_id for item in items} == {task.id}
 
 
-def test_task_status_in_progress_finds_linked_source_rows(test_db):
+def test_task_status_open_finds_linked_source_rows(test_db):
     biz = create_business(test_db)
     charge = _add_overdue_charge(test_db, biz)
     _add_task_for_source(
         test_db,
         source_domain="charge",
         source_id=charge.id,
-        status=TaskStatus.IN_PROGRESS,
+        status=TaskStatus.OPEN,
     )
 
     items = WorkQueueService(test_db).list_items(
-        client_record_id=biz.client_id, task_status=TaskStatus.IN_PROGRESS
+        client_record_id=biz.client_id, task_status=TaskStatus.OPEN
     )
 
     assert len(items) == 1
     assert items[0].source_type == WorkQueueSourceType.CHARGE
-    assert items[0].linked_tasks[0].status == TaskStatus.IN_PROGRESS.value
+    assert items[0].linked_tasks[0].status == TaskStatus.OPEN.value
 
 
 def test_history_task_status_done_finds_completed_task_rows(test_db):
@@ -671,8 +668,18 @@ def test_multiple_linked_tasks_merge_into_single_source_row(test_db):
     )
     test_db.add(charge)
     test_db.flush()
-    _add_task_for_source(test_db, source_domain="charge", source_id=charge.id)
-    _add_task_for_source(test_db, source_domain="charge", source_id=charge.id)
+    _add_task_for_source(
+        test_db,
+        source_domain="charge",
+        source_id=charge.id,
+        title="בדיקת מסמכים",
+    )
+    _add_task_for_source(
+        test_db,
+        source_domain="charge",
+        source_id=charge.id,
+        title="שיחה עם הלקוח",
+    )
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     charge_row = next(
@@ -681,6 +688,11 @@ def test_multiple_linked_tasks_merge_into_single_source_row(test_db):
 
     assert charge_row.linked_tasks_count == 2
     assert len(charge_row.linked_tasks) == 2
+    action_labels = [action.label for action in charge_row.available_actions]
+    assert "טפל: בדיקת מסמכים" in action_labels
+    assert "טפל: שיחה עם הלקוח" in action_labels
+    assert "ערוך משימה: בדיקת מסמכים" in action_labels
+    assert "ערוך משימה: שיחה עם הלקוח" in action_labels
 
 
 def test_task_linked_to_source_not_in_queue_appears_as_task(test_db):

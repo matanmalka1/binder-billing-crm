@@ -87,17 +87,6 @@ class TaskService(BaseService):
             task.updated_at = utcnow()
         return task
 
-    def start(self, task_id: int) -> Task:
-        task = self._get_active(task_id)
-        if task.status != TaskStatus.OPEN:
-            raise ConflictError(
-                f"לא ניתן להתחיל משימה בסטטוס {task.status.value}", _CONFLICT
-            )
-        with self.transaction():
-            task.status = TaskStatus.IN_PROGRESS
-            task.updated_at = utcnow()
-        return task
-
     def complete(self, task_id: int, completed_by_user_id: Optional[int]) -> Task:
         task = self._get_active(task_id)
         if task.status == TaskStatus.CANCELED:

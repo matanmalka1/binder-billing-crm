@@ -41,9 +41,9 @@ _URGENCY_SORT = {
     WorkQueueUrgency.UPCOMING: 3,
 }
 _PRIORITY_SORT = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
-_TASK_STATUS_SORT = {"in_progress": 0, "open": 1}
+_TASK_STATUS_SORT = {"open": 0}
 _HISTORY_TASK_STATUSES = {TaskStatus.DONE.value, TaskStatus.CANCELED.value}
-_ACTIVE_TASK_STATUSES = {TaskStatus.OPEN.value, TaskStatus.IN_PROGRESS.value}
+_ACTIVE_TASK_STATUSES = {TaskStatus.OPEN.value}
 
 
 @dataclass(frozen=True)
@@ -339,7 +339,7 @@ class WorkQueueService:
         for task in tasks:
             source_type = normalize_source_domain(task.source_domain)
             task_source_id = task.source_id
-            should_merge = task.status.value in {"open", "in_progress"}
+            should_merge = task.status == TaskStatus.OPEN
             if source_type is not None and task_source_id is not None:
                 key = source_key(source_type, task_source_id)
                 source_item = system_by_key.get(key)
@@ -420,7 +420,11 @@ class WorkQueueService:
         existing_endpoints = {action.endpoint for action in item.available_actions}
         existing_keys = {action.key for action in item.available_actions}
         task_row_actions = task_actions(
-            task.id, task.status, key_suffix=True, include_delete=False
+            task.id,
+            task.status,
+            key_suffix=True,
+            include_delete=False,
+            label_context=task.title if item.linked_tasks_count > 1 else None,
         )
         if item.linked_tasks_count == 1 and task_row_actions:
             first, *rest = task_row_actions
@@ -439,11 +443,30 @@ class WorkQueueService:
                 item.available_actions.append(action)
                 existing_endpoints.add(action.endpoint)
                 existing_keys.add(action.key)
+        if item.linked_tasks_count > 1:
+            self._label_linked_task_actions(item)
         if task.due_date is not None:
             task_urgency = urgency(task.due_date, self.ctx.today)
             if _URGENCY_SORT[task_urgency] < _URGENCY_SORT[item.urgency]:
                 item.urgency = task_urgency
                 item.due_date = task.due_date
+
+    def _label_linked_task_actions(self, item: WorkQueueItem) -> None:
+        title_by_id = {task.id: task.title for task in item.linked_tasks}
+        base_labels = {
+            "continue_task": "טפל",
+            "edit_task": "ערוך משימה",
+            "complete_task": "סמן כהושלמה",
+            "cancel_task": "בטל משימה",
+            "delete_task": "מחק משימה",
+        }
+        for action in item.available_actions:
+            if action.task_id not in title_by_id:
+                continue
+            for prefix, label in base_labels.items():
+                if action.key.startswith(f"{prefix}_"):
+                    action.label = f"{label}: {title_by_id[action.task_id]}"
+                    break
 
     def _sort_key(self, item: WorkQueueItem):
         task_status = None
