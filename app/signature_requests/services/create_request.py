@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import secrets
+from datetime import timedelta
 from typing import Optional
 
 from app.core.exceptions import AppError, NotFoundError
@@ -8,6 +10,7 @@ from app.signature_requests.services.messages import (
     BUSINESS_NOT_FOUND,
     INVALID_REQUEST_TYPE,
     SIGNATURE_REQUEST_CREATED_NOTE,
+    SIGNATURE_REQUEST_SENT_NOTE,
 )
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.businesses.services.business_guards import (
@@ -17,11 +20,13 @@ from app.businesses.services.business_contact_service import BusinessContactServ
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
+    SignatureRequestStatus,
     SignatureRequestType,
 )
 from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,
 )
+from app.utils.time_utils import utcnow
 
 
 def create_request(
@@ -32,6 +37,9 @@ def create_request(
     business_id: Optional[int] = None,
     created_by: int,
     created_by_name: str,
+    sent_by: int,
+    sent_by_name: str,
+    expiry_days: int,
     request_type: str,
     title: str,
     signer_name: str,
@@ -43,7 +51,7 @@ def create_request(
     storage_key: Optional[str] = None,
     content_to_hash: Optional[str] = None,
 ) -> SignatureRequest:
-    """Create a new signature request in DRAFT status.
+    """Create and send a signature request in PENDING_SIGNATURE status.
 
     client_record_id is always required — it is the primary anchor.
     business_id is optional; when provided it must belong to the given client_record_id.
@@ -85,6 +93,9 @@ def create_request(
     if content_to_hash:
         content_hash = hashlib.sha256(content_to_hash.encode()).hexdigest()
 
+    now = utcnow()
+    expires_at = now + timedelta(days=expiry_days)
+
     req = repo.create(
         client_record_id=client_record.id,
         business_id=business_id,
@@ -99,6 +110,11 @@ def create_request(
         document_id=document_id,
         storage_key=storage_key,
         content_hash=content_hash,
+        status=SignatureRequestStatus.PENDING_SIGNATURE,
+        signing_token=secrets.token_urlsafe(32),
+        sent_at=now,
+        expires_at=expires_at,
+        expiry_days=expiry_days,
     )
 
     repo.append_audit_event(
@@ -108,6 +124,16 @@ def create_request(
         actor_id=created_by,
         actor_name=created_by_name,
         notes=SIGNATURE_REQUEST_CREATED_NOTE.format(title=title),
+    )
+    repo.append_audit_event(
+        signature_request_id=req.id,
+        event_type="sent",
+        actor_type="advisor",
+        actor_id=sent_by,
+        actor_name=sent_by_name,
+        notes=SIGNATURE_REQUEST_SENT_NOTE.format(
+            expires_at=expires_at.date().isoformat()
+        ),
     )
 
     return req

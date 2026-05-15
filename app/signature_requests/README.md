@@ -16,8 +16,7 @@ Manages the digital-signature request lifecycle for client-record documents and 
 ## Scope
 
 This module provides:
-- Signature request creation in `draft` state
-- Sending request links with expiring signing tokens
+- Signature request creation with expiring signing tokens
 - Public signer actions (`view`, `approve`, `decline`)
 - Advisor actions (`cancel`, `audit trail`, `pending list`)
 - Client-record and business-scoped signature request listing
@@ -52,7 +51,6 @@ Core fields:
   - `signed_document_key`
 
 Status enum values:
-- `draft`
 - `pending_signature`
 - `signed`
 - `declined`
@@ -96,21 +94,14 @@ Mounted from `app/router_registry.py`:
 Roles: `ADVISOR`, `SECRETARY`
 
 - `POST /api/v1/signature-requests`
-  - Create request (initial status: `draft`)
-- `POST /api/v1/signature-requests/create-and-send`
   - Create request, immediately move it to `pending_signature`, generate token and expiry
   - Returns `signing_token` and `signing_url_hint`
 - `GET /api/v1/signature-requests/pending`
   - List `pending_signature` requests (paginated)
 - `GET /api/v1/signature-requests/{request_id}`
   - Get request details with embedded audit trail
-- `GET /api/v1/signature-requests/{request_id}/audit-trail`
-  - Get audit events only
-- `POST /api/v1/signature-requests/{request_id}/send`
-  - Move `draft -> pending_signature`, generate token and expiry
-  - Returns `signing_token` and `signing_url_hint`
 - `POST /api/v1/signature-requests/{request_id}/cancel`
-  - Cancel request (allowed from `draft`/`pending_signature`)
+  - Cancel request (allowed from `pending_signature`)
 
 ### Client-record listing
 
@@ -135,8 +126,7 @@ Auth: no JWT (token-based)
 
 ## Behavior Notes
 
-- `send` is valid only in `draft` status; otherwise `SIGNATURE_REQUEST.INVALID_STATUS`.
-- `send` generates a one-time token (`secrets.token_urlsafe(32)`) and default expiry is 14 days.
+- Creation generates a one-time token (`secrets.token_urlsafe(32)`) and default expiry is 14 days.
 - Signing token is cleared after approve/decline/cancel/expire.
 - Signer actions require:
   - status `pending_signature`

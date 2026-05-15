@@ -18,7 +18,6 @@ from app.signature_requests.repositories.signature_request_repository import (
 from app.signature_requests.services import (
     admin_actions,
     create_request,
-    send_request,
     signer_actions,
 )
 from app.signature_requests.services.messages import (
@@ -46,10 +45,7 @@ class SignatureRequestService:
 
     # ── Create ────────────────────────────────────────────────────────────────
 
-    def create_request(self, **kwargs):
-        return create_request.create_request(self.repo, self.business_repo, **kwargs)
-
-    def create_and_send_request(
+    def create_request(
         self,
         *,
         sent_by: int,
@@ -57,18 +53,14 @@ class SignatureRequestService:
         expiry_days: int,
         **create_kwargs,
     ):
-        req = self.create_request(**create_kwargs)
-        return self.send_request(
-            request_id=req.id,
+        return create_request.create_request(
+            self.repo,
+            self.business_repo,
             sent_by=sent_by,
             sent_by_name=sent_by_name,
             expiry_days=expiry_days,
+            **create_kwargs,
         )
-
-    # ── Send ──────────────────────────────────────────────────────────────────
-
-    def send_request(self, **kwargs):
-        return send_request.send_request(self.repo, **kwargs)
 
     # ── Signer actions ────────────────────────────────────────────────────────
 

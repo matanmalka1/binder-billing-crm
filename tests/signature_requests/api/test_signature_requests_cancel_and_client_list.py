@@ -67,14 +67,14 @@ def test_list_signature_requests_by_client_with_status_filter(
     req_a_pending = _create_signature_request(
         client, advisor_headers, business_a, "Pending A"
     )
-    client.post(
-        f"/api/v1/signature-requests/{req_a_pending}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
 
-    req_a_draft = _create_signature_request(
-        client, advisor_headers, business_a, "Draft A"
+    req_a_canceled = _create_signature_request(
+        client, advisor_headers, business_a, "Canceled A"
+    )
+    client.post(
+        f"/api/v1/signature-requests/{req_a_canceled}/cancel",
+        headers=advisor_headers,
+        json={"reason": "No longer needed"},
     )
     _create_signature_request(client, advisor_headers, business_b, "Other client")
 
@@ -85,7 +85,7 @@ def test_list_signature_requests_by_client_with_status_filter(
     assert all_resp.status_code == 200
     assert all_resp.json()["total"] == 2
     returned_ids = {item["id"] for item in all_resp.json()["items"]}
-    assert returned_ids == {req_a_pending, req_a_draft}
+    assert returned_ids == {req_a_pending, req_a_canceled}
 
     pending_resp = client.get(
         f"/api/v1/clients/{business_a.client_id}/signature-requests?status=pending_signature",

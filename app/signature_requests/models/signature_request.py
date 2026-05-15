@@ -1,7 +1,7 @@
 """
 Digital Signature Request — tracks the full lifecycle of a signature request.
 
-  DRAFT → PENDING_SIGNATURE → SIGNED | DECLINED | EXPIRED | CANCELED
+  PENDING_SIGNATURE → SIGNED | DECLINED | EXPIRED | CANCELED
 
 Israeli legal context:
   The Electronic Signature Law (5761-2001) recognises digital signatures
@@ -100,7 +100,7 @@ class SignatureRequest(Base):
     # ── Status & token ────────────────────────────────────────────────────────
     status: Mapped[SignatureRequestStatus] = mapped_column(
         pg_enum(SignatureRequestStatus),
-        default=SignatureRequestStatus.DRAFT,
+        default=SignatureRequestStatus.PENDING_SIGNATURE,
         nullable=False,
     )
     # Unique one-time token; cleared after terminal state

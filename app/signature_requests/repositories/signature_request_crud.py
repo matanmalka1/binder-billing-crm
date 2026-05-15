@@ -29,6 +29,11 @@ class SignatureRequestCrudMixin:
         document_id: Optional[int] = None,
         storage_key: Optional[str] = None,
         content_hash: Optional[str] = None,
+        status: SignatureRequestStatus = SignatureRequestStatus.PENDING_SIGNATURE,
+        signing_token: Optional[str] = None,
+        sent_at=None,
+        expires_at=None,
+        expiry_days: int = 14,
     ) -> SignatureRequest:
         req = SignatureRequest(
             client_record_id=client_record_id,
@@ -44,7 +49,11 @@ class SignatureRequestCrudMixin:
             document_id=document_id,
             storage_key=storage_key,
             content_hash=content_hash,
-            status=SignatureRequestStatus.DRAFT,
+            status=status,
+            signing_token=signing_token,
+            sent_at=sent_at,
+            expires_at=expires_at,
+            expiry_days=expiry_days,
         )
         self.db.add(req)
         self.db.flush()

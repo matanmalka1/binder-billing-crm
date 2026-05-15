@@ -38,17 +38,8 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
         },
     )
     assert create_resp.status_code == 201
-    req = create_resp.json()
-    assert req["status"] == "draft"
-    request_id = req["id"]
-
-    send_resp = client.post(
-        f"/api/v1/signature-requests/{request_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    assert send_resp.status_code == 200
-    sent = send_resp.json()
+    sent = create_resp.json()
+    request_id = sent["id"]
     token = sent["signing_token"]
     assert sent["status"] == "pending_signature"
     assert sent["signing_url_hint"] == f"/sign/{token}"
@@ -86,14 +77,9 @@ def test_signature_request_decline_records_reason(client, test_db, advisor_heade
             "signer_name": "Decliner",
         },
     )
-    request_id = create_resp.json()["id"]
-
-    send_resp = client.post(
-        f"/api/v1/signature-requests/{request_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    token = send_resp.json()["signing_token"]
+    sent = create_resp.json()
+    request_id = sent["id"]
+    token = sent["signing_token"]
 
     decline_resp = client.post(
         f"/sign/{token}/decline",
@@ -110,45 +96,11 @@ def test_signature_request_decline_records_reason(client, test_db, advisor_heade
     assert stored.decline_reason == "I disagree"
 
 
-def test_send_requires_draft_status(client, test_db, advisor_headers):
-    business = _business(test_db)
-
-    create_resp = client.post(
-        "/api/v1/signature-requests",
-        headers=advisor_headers,
-        json={
-            "business_id": business.id,
-            "client_record_id": business.client_id,
-            "request_type": "custom",
-            "title": "Send Twice",
-            "signer_name": "Signer",
-        },
-    )
-    request_id = create_resp.json()["id"]
-
-    first_send = client.post(
-        f"/api/v1/signature-requests/{request_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    assert first_send.status_code == 200
-
-    second_send = client.post(
-        f"/api/v1/signature-requests/{request_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    assert second_send.status_code == 400
-    assert second_send.json()["error"] == "SIGNATURE_REQUEST.INVALID_STATUS"
-
-
 def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     business = _business(test_db)
 
-    # Two pending
-    ids = []
     for i in range(2):
-        resp = client.post(
+        client.post(
             "/api/v1/signature-requests",
             headers=advisor_headers,
             json={
@@ -159,26 +111,6 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
                 "signer_name": "Signer",
             },
         )
-        req_id = resp.json()["id"]
-        client.post(
-            f"/api/v1/signature-requests/{req_id}/send",
-            headers=advisor_headers,
-            json={"expiry_days": 7},
-        )
-        ids.append(req_id)
-
-    # One draft should not appear
-    client.post(
-        "/api/v1/signature-requests",
-        headers=advisor_headers,
-        json={
-            "business_id": business.id,
-            "client_record_id": business.client_id,
-            "request_type": "custom",
-            "title": "Draft",
-            "signer_name": "Signer",
-        },
-    )
 
     pending_resp = client.get(
         "/api/v1/signature-requests/pending?page=1&page_size=10",
@@ -190,11 +122,11 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     assert all(item["status"] == "pending_signature" for item in payload["items"])
 
 
-def test_create_and_send_signature_request(client, test_db, advisor_headers):
+def test_create_signature_request_sends_immediately(client, test_db, advisor_headers):
     business = _business(test_db)
 
     resp = client.post(
-        "/api/v1/signature-requests/create-and-send",
+        "/api/v1/signature-requests",
         headers=advisor_headers,
         json={
             "business_id": business.id,
@@ -224,37 +156,3 @@ def test_invalid_token_returns_error_on_sign(client):
     resp = client.post("/sign/does-not-exist/approve")
     assert resp.status_code == 400
     assert resp.json()["error"] == "SIGNATURE_REQUEST.TOKEN_INVALID"
-
-
-def test_get_audit_trail_endpoint_returns_events(client, test_db, advisor_headers):
-    business = _business(test_db)
-
-    create_resp = client.post(
-        "/api/v1/signature-requests",
-        headers=advisor_headers,
-        json={
-            "business_id": business.id,
-            "client_record_id": business.client_id,
-            "request_type": "custom",
-            "title": "Audit Trail Endpoint",
-            "signer_name": "Signer",
-        },
-    )
-    request_id = create_resp.json()["id"]
-
-    send_resp = client.post(
-        f"/api/v1/signature-requests/{request_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    assert send_resp.status_code == 200
-
-    audit_resp = client.get(
-        f"/api/v1/signature-requests/{request_id}/audit-trail",
-        headers=advisor_headers,
-    )
-    assert audit_resp.status_code == 200
-    payload = audit_resp.json()
-    assert isinstance(payload["items"], list)
-    event_types = [e["event_type"] for e in payload["items"]]
-    assert {"created", "sent"} <= set(event_types)

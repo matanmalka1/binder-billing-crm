@@ -58,4 +58,7 @@ class AnnualReportSignatureHelper(AnnualReportBaseService):
             title=ANNUAL_REPORT_APPROVAL_TITLE.format(tax_year=report.tax_year),
             signer_name=business.business_name,
             annual_report_id=report.id,
+            sent_by=created_by,
+            sent_by_name=created_by_name,
+            expiry_days=14,
         )

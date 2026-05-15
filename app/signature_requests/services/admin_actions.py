@@ -31,11 +31,7 @@ def cancel_request(
 ) -> SignatureRequest:
     req = get_or_raise_for_update(repo, request_id)
 
-    cancelable = {
-        SignatureRequestStatus.DRAFT,
-        SignatureRequestStatus.PENDING_SIGNATURE,
-    }
-    if req.status not in cancelable:
+    if req.status != SignatureRequestStatus.PENDING_SIGNATURE:
         raise AppError(
             CANCEL_REQUEST_INVALID_STATUS.format(status=req.status.value),
             "SIGNATURE_REQUEST.INVALID_STATUS",

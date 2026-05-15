@@ -43,13 +43,14 @@ def test_signature_request_repository_list_by_business_with_status(test_db):
     repo = SignatureRequestRepository(test_db)
     user = _user(test_db)
     business = _business(test_db, "A")
-    draft = repo.create(
+    canceled = repo.create(
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
-        title="Draft",
+        title="Canceled",
         signer_name="Signer",
+        status=SignatureRequestStatus.CANCELED,
     )
     pending = repo.create(
         client_record_id=business.client_id,
@@ -61,7 +62,7 @@ def test_signature_request_repository_list_by_business_with_status(test_db):
     )
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert {r.id for r in repo.list_by_business(business.id, page=1, page_size=10)} == {
-        draft.id,
+        canceled.id,
         pending.id,
     }
     pending_only = repo.list_by_business(

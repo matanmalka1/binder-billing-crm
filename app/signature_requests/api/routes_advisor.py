@@ -1,17 +1,12 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-
-from app.core.api_types import PaginatedResponse
 from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
-    SignatureAuditEventResponse,
-    SignatureRequestCreateAndSendRequest,
     SignatureRequestCreateRequest,
     SignatureRequestListResponse,
     SignatureRequestResponse,
-    SignatureRequestSendRequest,
     SignatureRequestSentResponse,
     SignatureRequestWithAuditResponse,
 )
@@ -32,7 +27,9 @@ advisor_router = APIRouter(
 
 
 @advisor_router.post(
-    "", response_model=SignatureRequestResponse, status_code=status.HTTP_201_CREATED
+    "",
+    response_model=SignatureRequestSentResponse,
+    status_code=status.HTTP_201_CREATED,
 )
 def create_signature_request(
     request: SignatureRequestCreateRequest,
@@ -41,35 +38,6 @@ def create_signature_request(
 ):
     service = SignatureRequestService(db)
     req = service.create_request(
-        client_record_id=request.client_record_id,
-        business_id=request.business_id,
-        created_by=user.id,
-        created_by_name=user.full_name,
-        request_type=request.request_type,
-        title=request.title,
-        description=request.description,
-        signer_name=request.signer_name,
-        signer_email=request.signer_email,
-        signer_phone=request.signer_phone,
-        annual_report_id=request.annual_report_id,
-        document_id=request.document_id,
-        content_to_hash=request.content_to_hash,
-    )
-    return SignatureRequestResponseBuilder(db).build(req)
-
-
-@advisor_router.post(
-    "/create-and-send",
-    response_model=SignatureRequestSentResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_and_send_signature_request(
-    request: SignatureRequestCreateAndSendRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    service = SignatureRequestService(db)
-    req = service.create_and_send_request(
         client_record_id=request.client_record_id,
         business_id=request.business_id,
         created_by=user.id,
@@ -107,28 +75,6 @@ def list_pending_requests(
     )
 
 
-@advisor_router.get(
-    "/{request_id}/audit-trail",
-    response_model=PaginatedResponse[SignatureAuditEventResponse],
-)
-def get_signature_request_audit_trail(
-    request_id: int,
-    db: DBSession,
-    user: CurrentUser,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
-):
-    service = SignatureRequestService(db)
-    all_events = service.get_audit_trail(request_id)
-    total = len(all_events)
-    start = (page - 1) * page_size
-    items = [
-        SignatureAuditEventResponse.model_validate(e)
-        for e in all_events[start : start + page_size]
-    ]
-    return PaginatedResponse(items=items, page=page, page_size=page_size, total=total)
-
-
 @advisor_router.get("/{request_id}", response_model=SignatureRequestWithAuditResponse)
 def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
@@ -140,23 +86,6 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
 
     audit_events = service.get_audit_trail(request_id)
     return SignatureRequestResponseBuilder(db).build_with_audit(req, audit_events)
-
-
-@advisor_router.post("/{request_id}/send", response_model=SignatureRequestSentResponse)
-def send_signature_request(
-    request_id: int,
-    body: SignatureRequestSendRequest,
-    db: DBSession,
-    user: CurrentUser,
-):
-    service = SignatureRequestService(db)
-    req = service.send_request(
-        request_id=request_id,
-        sent_by=user.id,
-        sent_by_name=user.full_name,
-        expiry_days=body.expiry_days,
-    )
-    return SignatureRequestResponseBuilder(db).build_sent(req)
 
 
 @advisor_router.post("/{request_id}/cancel", response_model=SignatureRequestResponse)

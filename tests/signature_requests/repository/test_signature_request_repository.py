@@ -49,6 +49,7 @@ def _create(
     user_id: int,
     title: str,
     annual_report_id: int | None = None,
+    status: SignatureRequestStatus = SignatureRequestStatus.PENDING_SIGNATURE,
 ):
     return repo.create(
         client_record_id=business.client_id,
@@ -60,6 +61,7 @@ def _create(
         title=title,
         signer_name="Signer",
         annual_report_id=annual_report_id,
+        status=status,
     )
 
 
@@ -69,7 +71,13 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     business_a = _business(test_db, suffix="A")
     business_b = _business(test_db, suffix="B")
     now = utcnow()
-    draft = _create(repo, business_a, user_id=user.id, title="Draft")
+    canceled = _create(
+        repo,
+        business_a,
+        user_id=user.id,
+        title="Canceled",
+        status=SignatureRequestStatus.CANCELED,
+    )
     expired_pending = _create(
         repo, business_a, user_id=user.id, title="Expired Pending"
     )
@@ -113,7 +121,7 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     ]
     assert repo.count_pending() == 3
     assert [item.id for item in repo.list_expired_pending()] == [expired_pending.id]
-    assert draft.id not in [item.id for item in repo.list_expired_pending()]
+    assert canceled.id not in [item.id for item in repo.list_expired_pending()]
     late = repo.append_audit_event(
         signature_request_id=active_pending.id, event_type="late", actor_type="system"
     )
@@ -136,8 +144,13 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
     pending = _create(
         repo, business, user_id=user.id, title="Annual Pending", annual_report_id=77
     )
-    draft = _create(
-        repo, business, user_id=user.id, title="Annual Draft", annual_report_id=77
+    canceled = _create(
+        repo,
+        business,
+        user_id=user.id,
+        title="Annual Canceled",
+        annual_report_id=77,
+        status=SignatureRequestStatus.CANCELED,
     )
     other = _create(
         repo, business, user_id=user.id, title="Different Report", annual_report_id=88
@@ -145,7 +158,7 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     repo.update(other.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert [item.id for item in repo.list_pending_by_annual_report(77)] == [pending.id]
-    assert draft.id not in [item.id for item in repo.list_pending_by_annual_report(77)]
+    assert canceled.id not in [item.id for item in repo.list_pending_by_annual_report(77)]
     model_repr = repr(
         SignatureRequest(
             id=123,
@@ -155,7 +168,7 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
             request_type=SignatureRequestType.CUSTOM,
             title="Repr",
             signer_name="Signer",
-            status=SignatureRequestStatus.DRAFT,
+            status=SignatureRequestStatus.PENDING_SIGNATURE,
         )
     )
     audit_repr = repr(

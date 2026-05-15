@@ -147,6 +147,9 @@ def test_create_request_raises_when_business_missing():
                 business_id=123,
                 created_by=1,
                 created_by_name="Advisor",
+                sent_by=1,
+                sent_by_name="Advisor",
+                expiry_days=14,
                 request_type="custom",
                 title="Missing business",
                 signer_name="Signer",
@@ -188,6 +191,9 @@ def test_create_request_raises_on_invalid_type():
                 business_id=1,
                 created_by=1,
                 created_by_name="Advisor",
+                sent_by=1,
+                sent_by_name="Advisor",
+                expiry_days=14,
                 request_type="not-a-valid-type",
                 title="Bad type",
                 signer_name="Signer",
@@ -237,6 +243,9 @@ def test_create_request_falls_back_to_business_contact_details():
             business_id=1,
             created_by=9,
             created_by_name="Advisor",
+            sent_by=9,
+            sent_by_name="Advisor",
+            expiry_days=14,
             request_type="custom",
             title="Fallback contact",
             signer_name="Signer",
@@ -270,6 +279,7 @@ def test_get_or_raise_and_assert_signable_validation_branches(test_db, test_user
     with pytest.raises(NotFoundError) as not_found_exc:
         validations.get_or_raise(repo, 999999)
     assert not_found_exc.value.code == "SIGNATURE_REQUEST.NOT_FOUND"
+    repo.update(req.id, status=SignatureRequestStatus.SIGNED)
     with pytest.raises(AppError) as invalid_status_exc:
         validations.assert_pending(req)
     assert invalid_status_exc.value.code == "SIGNATURE_REQUEST.INVALID_STATUS"
