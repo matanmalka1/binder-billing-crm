@@ -122,7 +122,7 @@ class NotificationService:
         content: str,
         binder_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
-        preferred_channel: str = "email",
+        preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
         return self._send_svc.send_notification(

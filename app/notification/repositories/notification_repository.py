@@ -171,18 +171,6 @@ class NotificationRepository(BaseRepository[Notification]):
             stmt = stmt.where(Notification.business_id == business_id)
         return self.db.scalar(stmt)
 
-    def exists_for_binder_trigger(
-        self, binder_id: int, trigger: NotificationTrigger
-    ) -> bool:
-        return (
-            self.db.scalars(
-                select(Notification).where(
-                    Notification.binder_id == binder_id, Notification.trigger == trigger
-                )
-            ).first()
-            is not None
-        )
-
     def get_last_for_binder_trigger(
         self, binder_id: int, trigger: NotificationTrigger
     ) -> Optional[Notification]:

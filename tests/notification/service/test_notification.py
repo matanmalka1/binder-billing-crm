@@ -10,6 +10,7 @@ from app.notification.models.notification import (
 from app.notification.services.notification_service import NotificationService
 
 
+
 def test_notify_payment_reminder_delegates_trigger(test_db):
     service = NotificationService(test_db)
     seen = {}
@@ -79,7 +80,7 @@ def test_send_notification_delegates_to_send_service(test_db):
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             content="x",
             severity=NotificationSeverity.CRITICAL,
-            preferred_channel="whatsapp",
+            preferred_channel=NotificationChannel.WHATSAPP,
         )
         is True
     )
@@ -87,7 +88,7 @@ def test_send_notification_delegates_to_send_service(test_db):
     assert captured["business_id"] == 1
     assert captured["trigger"] == NotificationTrigger.MANUAL_PAYMENT_REMINDER
     assert captured["severity"] == NotificationSeverity.CRITICAL
-    assert captured["preferred_channel"] == "whatsapp"
+    assert captured["preferred_channel"] == NotificationChannel.WHATSAPP
 
 
 def test_bulk_notify_delegates_to_send_service(test_db):

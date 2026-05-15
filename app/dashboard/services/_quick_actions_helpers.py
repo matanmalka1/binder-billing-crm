@@ -17,13 +17,15 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.notification.services.constants import (
+    ANNUAL_REMINDER_COOLDOWN_DAYS,
+    PICKUP_REMINDER_COOLDOWN_DAYS,
+)
 
 CATEGORY_ORDER = {"annual_reports": 1, "binders": 2}
 
 _BINDER_PICKUP_OVERDUE_DAYS = 30
-_BINDER_REMINDER_COOLDOWN_DAYS = 5
 _ANNUAL_PENDING_CLIENT_DAYS = 3
-_ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 _UPCOMING_WINDOW_DAYS = 14
 
 
@@ -101,7 +103,7 @@ def build_annual_report_actions(
                 or (
                     now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
                 ).days
-                >= _ANNUAL_REMINDER_COOLDOWN_DAYS
+                >= ANNUAL_REMINDER_COOLDOWN_DAYS
             )
             if cooldown_ok:
                 action = build_action(
@@ -146,7 +148,7 @@ def build_binder_actions(
             days_since = (
                 now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
             ).days
-            if days_since < _BINDER_REMINDER_COOLDOWN_DAYS:
+            if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
                 continue
 
         client_name = client_name_map.get(binder.client_record_id)

@@ -143,38 +143,3 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
     global_items, global_total = repo.list_paginated(page=1, page_size=10)
     assert global_total == 3
     assert len(global_items) == 3
-
-
-def test_notification_repository_exists_for_binder_trigger(test_db):
-    repo = NotificationRepository(test_db)
-    business = _business(test_db, "4")
-
-    assert (
-        repo.exists_for_binder_trigger(
-            binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED
-        )
-        is False
-    )
-
-    repo.create(
-        client_record_id=_client_record_id(test_db, business),
-        business_id=business.id,
-        binder_id=77,
-        trigger=NotificationTrigger.BINDER_RECEIVED,
-        channel=NotificationChannel.EMAIL,
-        recipient="client@example.com",
-        content_snapshot="binder received",
-    )
-
-    assert (
-        repo.exists_for_binder_trigger(
-            binder_id=77, trigger=NotificationTrigger.BINDER_RECEIVED
-        )
-        is True
-    )
-    assert (
-        repo.exists_for_binder_trigger(
-            binder_id=77, trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP
-        )
-        is False
-    )

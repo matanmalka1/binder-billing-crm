@@ -109,7 +109,7 @@ def send_notification(
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
         content=body.message,
         triggered_by=user.id,
-        preferred_channel=body.channel.value,
+        preferred_channel=body.channel,
         severity=body.severity,
     )
     return SendNotificationResponse(ok=ok)

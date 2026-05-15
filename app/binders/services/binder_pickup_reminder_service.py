@@ -13,9 +13,8 @@ from app.binders.services.messages import BINDER_NOT_FOUND
 from app.core.exceptions import AppError, NotFoundError
 from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
+from app.notification.services.constants import PICKUP_REMINDER_COOLDOWN_DAYS
 from app.notification.services.notification_service import NotificationService
-
-_REMINDER_COOLDOWN_DAYS = 5
 
 
 class BinderPickupReminderService:
@@ -45,9 +44,9 @@ class BinderPickupReminderService:
                 _dt.datetime.now(timezone.utc)
                 - last.created_at.replace(tzinfo=timezone.utc)
             ).days
-            if days_since < _REMINDER_COOLDOWN_DAYS:
+            if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
                 raise AppError(
-                    f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {_REMINDER_COOLDOWN_DAYS} ימים.",
+                    f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {PICKUP_REMINDER_COOLDOWN_DAYS} ימים.",
                     "BINDER.REMINDER_TOO_SOON",
                 )
 

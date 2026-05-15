@@ -147,6 +147,13 @@ class SignatureRequestService:
         total = self.repo.count_pending()
         return items, total
 
+    def list_active_requests(
+        self, *, page: int = 1, page_size: int = 20
+    ) -> tuple[list[SignatureRequest], int]:
+        items = self.repo.list_active(page=page, page_size=page_size)
+        total = self.repo.count_active()
+        return items, total
+
     def get_audit_trail(self, request_id: int) -> list:
         get_or_raise(self.repo, request_id)
         return self.repo.list_audit_events(request_id)

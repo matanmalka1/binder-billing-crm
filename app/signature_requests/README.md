@@ -97,6 +97,8 @@ Roles: `ADVISOR`, `SECRETARY`
 
 - `POST /api/v1/signature-requests`
   - Create request (initial status: `draft`)
+- `GET /api/v1/signature-requests/active`
+  - List active requests (`draft`, `pending_signature`) for advisor UI queues (paginated)
 - `GET /api/v1/signature-requests/pending`
   - List `pending_signature` requests (paginated)
 - `GET /api/v1/signature-requests/{request_id}`

@@ -140,13 +140,43 @@ class NotificationSendService:
                 trigger=trigger,
                 content=template,
                 triggered_by=triggered_by,
-                preferred_channel=channel.value,
+                preferred_channel=channel,
                 severity=severity,
             )
             for bid in business_ids
         ]
         sent = sum(results)
         return {"sent": sent, "failed": len(results) - sent}
+
+    def _deliver(
+        self,
+        notification_id: int,
+        channel: NotificationChannel,
+        address: str,
+        content: str,
+        subject: str,
+        log_context: str,
+    ) -> bool:
+        """Dispatch to channel, persist outcome, return True on success."""
+        if channel == NotificationChannel.WHATSAPP:
+            ok, err = self.whatsapp.send(address, content)
+            if ok:
+                self.notification_repo.mark_sent(notification_id)
+                logger.info("WhatsApp sent | %s", log_context)
+                return True
+            self.notification_repo.mark_failed(notification_id, err or "whatsapp failed")
+            logger.warning("WhatsApp failed | %s error=%s", log_context, err)
+            return False
+        if channel == NotificationChannel.EMAIL:
+            ok, err = self.email.send(address, content, subject=subject)
+            if ok:
+                self.notification_repo.mark_sent(notification_id)
+                logger.info("Notification sent | %s", log_context)
+                return True
+            self.notification_repo.mark_failed(notification_id, err or "unknown error")
+            logger.error("Notification failed | %s error=%s", log_context, err)
+            return False
+        raise ValueError(f"Unsupported notification channel: {channel}")
 
     def send_notification(
         self,
@@ -155,7 +185,7 @@ class NotificationSendService:
         content: str,
         binder_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
-        preferred_channel: str = "email",
+        preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
         try:
@@ -174,11 +204,11 @@ class NotificationSendService:
                 return False
 
             subject = _SUBJECTS.get(trigger, DEFAULT_NOTIFICATION_SUBJECT)
-
             phone = person.phone if person else None
             email = person.email if person else None
+            log_ctx = f"business={business_id} trigger={trigger.value}"
 
-            if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
+            if preferred_channel == NotificationChannel.WHATSAPP and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
                     client_record_id=cr_id,
                     business_id=business_id,
@@ -190,21 +220,9 @@ class NotificationSendService:
                     triggered_by=triggered_by,
                     severity=severity,
                 )
-                ok, err = self.whatsapp.send(phone, content)
-                if ok:
-                    self.notification_repo.mark_sent(n.id)
-                    logger.info(
-                        "WhatsApp sent | business=%s trigger=%s",
-                        business_id,
-                        trigger.value,
-                    )
+                if self._deliver(n.id, NotificationChannel.WHATSAPP, phone, content, subject, log_ctx):
                     return True
-                self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
-                logger.warning(
-                    "WhatsApp failed business=%s, falling back to email: %s",
-                    business_id,
-                    err,
-                )
+                logger.warning("WhatsApp failed %s, falling back to email", log_ctx)
 
             if not email:
                 logger.info(
@@ -225,22 +243,7 @@ class NotificationSendService:
                 triggered_by=triggered_by,
                 severity=severity,
             )
-            success, error = self.email.send(email, content, subject=subject)
-            if success:
-                self.notification_repo.mark_sent(n.id)
-                logger.info(
-                    "Notification sent | business=%s trigger=%s",
-                    business_id,
-                    trigger.value,
-                )
-                return True
-            self.notification_repo.mark_failed(n.id, error or "unknown error")
-            logger.error(
-                "Notification failed | business=%s trigger=%s error=%s",
-                business_id,
-                trigger.value,
-                error,
-            )
+            return self._deliver(n.id, NotificationChannel.EMAIL, email, content, subject, log_ctx)
 
         except Exception as exc:  # noqa: BLE001
             logger.error(
@@ -259,7 +262,7 @@ class NotificationSendService:
         binder_id: Optional[int] = None,
         annual_report_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
-        preferred_channel: str = "email",
+        preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
         try:
@@ -289,11 +292,11 @@ class NotificationSendService:
                 return False
 
             subject = _SUBJECTS.get(trigger, DEFAULT_NOTIFICATION_SUBJECT)
-
             phone = person.phone
             email = person.email
+            log_ctx = f"client={client_record_id} trigger={trigger.value}"
 
-            if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
+            if preferred_channel == NotificationChannel.WHATSAPP and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
                     client_record_id=client_record_id,
                     binder_id=binder_id,
@@ -305,21 +308,9 @@ class NotificationSendService:
                     triggered_by=triggered_by,
                     severity=severity,
                 )
-                ok, err = self.whatsapp.send(phone, content)
-                if ok:
-                    self.notification_repo.mark_sent(n.id)
-                    logger.info(
-                        "Client notification sent via WhatsApp | client=%s trigger=%s",
-                        client_record_id,
-                        trigger.value,
-                    )
+                if self._deliver(n.id, NotificationChannel.WHATSAPP, phone, content, subject, log_ctx):
                     return True
-                self.notification_repo.mark_failed(n.id, err or "whatsapp failed")
-                logger.warning(
-                    "WhatsApp failed client=%s, falling back to email: %s",
-                    client_record_id,
-                    err,
-                )
+                logger.warning("WhatsApp failed %s, falling back to email", log_ctx)
 
             if not email:
                 logger.info(
@@ -340,22 +331,7 @@ class NotificationSendService:
                 triggered_by=triggered_by,
                 severity=severity,
             )
-            success, error = self.email.send(email, content, subject=subject)
-            if success:
-                self.notification_repo.mark_sent(n.id)
-                logger.info(
-                    "Client notification sent | client=%s trigger=%s",
-                    client_record_id,
-                    trigger.value,
-                )
-                return True
-            self.notification_repo.mark_failed(n.id, error or "unknown error")
-            logger.error(
-                "Client notification failed | client=%s trigger=%s error=%s",
-                client_record_id,
-                trigger.value,
-                error,
-            )
+            return self._deliver(n.id, NotificationChannel.EMAIL, email, content, subject, log_ctx)
 
         except Exception as exc:  # noqa: BLE001
             logger.error(

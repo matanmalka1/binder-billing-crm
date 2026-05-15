@@ -10,12 +10,21 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityRole,
 )
 from app.common.enums import IdNumberType
-from app.notification.models.notification import NotificationTrigger
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationStatus,
+    NotificationTrigger,
+)
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_send_service import NotificationSendService
 
 
-def _make_client_with_person(db: Session, *, email: str = "owner@test.com") -> int:
+def _make_client_with_person(
+    db: Session,
+    *,
+    email: str = "owner@test.com",
+    phone: str | None = None,
+) -> int:
     entity = LegalEntity(
         official_name="Test Entity",
         id_number=f"SS-{id(db)}",
@@ -33,6 +42,7 @@ def _make_client_with_person(db: Session, *, email: str = "owner@test.com") -> i
         id_number=f"P-{record.id}",
         id_number_type=IdNumberType.OTHER,
         email=email,
+        phone=phone,
     )
     db.add(person)
     db.flush()
@@ -53,7 +63,6 @@ def test_send_client_notification_missing_template_key_returns_false_without_per
 ):
     client_record_id = _make_client_with_person(test_db)
     svc = NotificationSendService(test_db)
-    # Disable email so delivery never runs
     monkeypatch.setattr(svc.email, "_enabled", False)
 
     ok = svc.send_client_notification(
@@ -67,3 +76,39 @@ def test_send_client_notification_missing_template_key_returns_false_without_per
         client_record_id=client_record_id
     )
     assert total == 0
+
+
+def test_send_client_notification_whatsapp_fails_falls_back_to_email(
+    test_db, monkeypatch
+):
+    client_record_id = _make_client_with_person(
+        test_db, email="fallback@test.com", phone="0501234567"
+    )
+    svc = NotificationSendService(test_db)
+
+    monkeypatch.setattr(svc.whatsapp, "_api_key", "fake-key")
+    monkeypatch.setattr(svc.whatsapp, "_from_number", "+9720000000")
+    monkeypatch.setattr(svc.whatsapp, "send", lambda to, msg: (False, "wa-error"))
+    email_calls = []
+    monkeypatch.setattr(
+        svc.email,
+        "send",
+        lambda to, msg, subject="": email_calls.append(to) or (True, None),
+    )
+
+    ok = svc.send_client_notification(
+        client_record_id=client_record_id,
+        trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
+        template_data={"binder_number": "BN-1"},
+        preferred_channel=NotificationChannel.WHATSAPP,
+    )
+
+    assert ok is True
+    assert email_calls == ["fallback@test.com"]
+
+    repo = NotificationRepository(test_db)
+    items, total = repo.list_paginated(client_record_id=client_record_id)
+    assert total == 2
+    statuses = {n.channel: n.status for n in items}
+    assert statuses[NotificationChannel.WHATSAPP] == NotificationStatus.FAILED
+    assert statuses[NotificationChannel.EMAIL] == NotificationStatus.SENT
