@@ -49,6 +49,7 @@ def _validate_amendment(
             break
         current_item = work_item_repo.get_by_id(current_item.amends_item_id)
 
+
 def file_vat_return(
     work_item_repo: VatWorkItemRepository,
     *,
