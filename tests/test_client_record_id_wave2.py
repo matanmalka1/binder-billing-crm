@@ -154,7 +154,7 @@ class TestO3Notification:
         )
         db.flush()
 
-        items = NotificationRepository(db).list_by_client_record(record.id)
+        items, _ = NotificationRepository(db).list_paginated(client_record_id=record.id)
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
@@ -171,8 +171,8 @@ class TestO3Notification:
         monkeypatch.setattr(svc.email, "send", lambda *args, **kwargs: (True, None))
 
         svc.send_client_reminder(client.id, "hello")
-        created = svc.notification_repo.list_by_client_record(record.id)[0]
-        assert created.client_record_id == record.id
+        created, _ = svc.notification_repo.list_paginated(client_record_id=record.id)
+        assert created[0].client_record_id == record.id
 
 
 class TestO4Correspondence:

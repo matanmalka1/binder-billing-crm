@@ -116,6 +116,26 @@ def test_vat_work_item_bimonthly_links_matching_tax_calendar_entry(test_db):
     assert item.status == VatWorkItemStatus.MATERIAL_RECEIVED
 
 
+def test_materializer_rejects_even_month_bimonthly_calendar_entry(test_db):
+    make_entry(
+        test_db,
+        obligation_type=ObligationType.VAT,
+        rule_type=DeadlineRuleType.VAT_BIMONTHLY,
+        period="2026-01",
+        months=2,
+        tax_year=2026,
+    )
+
+    with pytest.raises(AppError) as exc:
+        TaxCalendarMaterializationService(test_db).ensure_periodic_entry(
+            ObligationType.VAT,
+            "2026-02",
+            2,
+        )
+
+    assert exc.value.code == "TAX_CALENDAR.INVALID_PERIOD_ALIGNMENT"
+
+
 def test_vat_work_item_creates_missing_tax_calendar_entry(test_db):
     client = vat_client(test_db, VatType.MONTHLY)
 

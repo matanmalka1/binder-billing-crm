@@ -13,14 +13,14 @@ def test_monthly_period_is_previous_month():
 
 def test_bimonthly_period_is_reportable_pair_not_current_pair():
     assert bimonthly_vat_period(date(2026, 4, 10)) == (
-        "2026-02",
+        "2026-01",
         "ינואר-פברואר 2026",
     )
 
 
 def test_bimonthly_period_uses_pair_that_just_closed():
     assert bimonthly_vat_period(date(2026, 5, 10)) == (
-        "2026-04",
+        "2026-03",
         "מרץ-אפריל 2026",
     )
 

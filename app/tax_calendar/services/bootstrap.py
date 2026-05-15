@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from app.common.enums import DeadlineRuleType
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.integrations.tax_rules_registry import (
+    registry_periodic_calendar_available,
+)
 from app.tax_calendar.services.tax_calendar_entry_service import generate_for_year_range
 
 DEFAULT_EFFECTIVE_FROM = date(2023, 1, 1)
@@ -78,7 +81,10 @@ def seed_default_deadline_rules(db: Session) -> SeedRulesResult:
 
 def default_year_range(today: date | None = None) -> tuple[int, int]:
     current_year = (today or date.today()).year
-    return current_year, current_year + 1
+    next_year = current_year + 1
+    if registry_periodic_calendar_available(next_year):
+        return current_year, next_year
+    return current_year, current_year
 
 
 def bootstrap_tax_calendar(

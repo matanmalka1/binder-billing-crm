@@ -2,6 +2,9 @@ from datetime import date
 
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.integrations.tax_rules_registry import (
+    registry_periodic_calendar_available,
+)
 from app.tax_calendar.services.bootstrap import (
     DEFAULT_DEADLINE_RULES,
     DEFAULT_EFFECTIVE_FROM,
@@ -82,12 +85,13 @@ def test_bootstrap_rerun_creates_zero_new_entries(test_db):
     assert _entry_count(test_db) == 37
 
 
-def test_bootstrap_default_year_range_is_current_and_next_year(test_db):
+def test_bootstrap_default_year_range_uses_only_supported_registry_years(test_db):
     result = bootstrap_tax_calendar(test_db, today=date(2026, 5, 7))
     test_db.commit()
 
     assert result["start_year"] == 2026
-    assert result["end_year"] == 2027
+    expected_end = 2027 if registry_periodic_calendar_available(2027) else 2026
+    assert result["end_year"] == expected_end
 
 
 def test_bootstrap_rules_by_type_detail(test_db):

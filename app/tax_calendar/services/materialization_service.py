@@ -35,6 +35,7 @@ class TaxCalendarMaterializationService:
         obligation_type = self._obligation(obligation_type)
         year, month = self._parse_period(period)
         rule_type = self._periodic_rule_type(obligation_type, period_months_count)
+        self._validate_period_alignment(month, period_months_count)
         existing = self._find_periodic(obligation_type, period, period_months_count)
         if existing:
             return existing
@@ -56,8 +57,9 @@ class TaxCalendarMaterializationService:
         self, obligation_type, period: str, period_months_count: int
     ) -> TaxCalendarEntry | None:
         obligation_type = self._obligation(obligation_type)
-        self._parse_period(period)
+        _year, month = self._parse_period(period)
         self._periodic_rule_type(obligation_type, period_months_count)
+        self._validate_period_alignment(month, period_months_count)
         return self._find_periodic(obligation_type, period, period_months_count)
 
     def ensure_annual_entry(self, tax_year: int) -> TaxCalendarEntry:
@@ -175,6 +177,14 @@ class TaxCalendarMaterializationService:
         if not isinstance(period, str) or not _PERIOD_RE.match(period):
             raise AppError("תקופת המס אינה תקינה", "TAX_CALENDAR.INVALID_PERIOD")
         return int(period[:4]), int(period[5:7])
+
+    @staticmethod
+    def _validate_period_alignment(month: int, months: int) -> None:
+        if months == 2 and month % 2 == 0:
+            raise AppError(
+                "תקופה דו-חודשית חייבת להתחיל בחודש אי-זוגי",
+                "TAX_CALENDAR.INVALID_PERIOD_ALIGNMENT",
+            )
 
     @staticmethod
     def _parse_tax_year(tax_year) -> int:
