@@ -285,13 +285,23 @@ class ClientRecordRepository:
             ).all()
         )
 
-    def count_by_status(self) -> dict[ClientStatus, int]:
-        """Active ClientRecords grouped by status."""
-        rows = self.db.execute(
+    def count_by_status(
+        self,
+        search: Optional[str] = None,
+        accountant_id: Optional[int] = None,
+        entity_type=None,
+    ) -> dict[ClientStatus, int]:
+        """Active ClientRecords grouped by status, respecting active filters."""
+        stmt = self._apply_list_filters(
             select(ClientRecord.status, func.count(ClientRecord.id))
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .where(ClientRecord.deleted_at.is_(None))
-            .group_by(ClientRecord.status)
-        ).all()
+            .group_by(ClientRecord.status),
+            search=search,
+            accountant_id=accountant_id,
+            entity_type=entity_type,
+        )
+        rows = self.db.execute(stmt).all()
         return {status: count for status, count in rows}
 
     def get_next_office_client_number(self) -> int:

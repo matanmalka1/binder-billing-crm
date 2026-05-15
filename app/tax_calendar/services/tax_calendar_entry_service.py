@@ -23,6 +23,7 @@ import calendar
 from dataclasses import dataclass
 from datetime import date
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType, ObligationType
@@ -97,17 +98,18 @@ def _resolve_rule(
     rule_type: DeadlineRuleType,
     on_date: date,
 ) -> DeadlineRule:
-    rule = (
-        db.query(DeadlineRule)
-        .filter(DeadlineRule.rule_type == rule_type.value)
-        .filter(DeadlineRule.effective_from <= on_date)
-        .filter(
+    stmt = (
+        select(DeadlineRule)
+        .where(DeadlineRule.rule_type == rule_type.value)
+        .where(DeadlineRule.effective_from <= on_date)
+        .where(
             (DeadlineRule.effective_to.is_(None))
             | (DeadlineRule.effective_to >= on_date)
         )
         .order_by(DeadlineRule.effective_from.desc())
-        .first()
+        .limit(1)
     )
+    rule = db.scalars(stmt).first()
     if rule is None:
         raise MissingDeadlineRuleError(
             f"No active DeadlineRule of type '{rule_type.value}' covering "
@@ -127,16 +129,16 @@ def get_or_create_entry(
     due_date: date,
 ) -> tuple[TaxCalendarEntry, bool]:
     """Idempotent. Returns (entry, created)."""
-    query = db.query(TaxCalendarEntry).filter(
+    stmt = select(TaxCalendarEntry).where(
         TaxCalendarEntry.obligation_type == obligation_type.value,
+        TaxCalendarEntry.tax_year == tax_year,
     )
-    if obligation_type is ObligationType.ANNUAL_REPORT:
-        query = query.filter(TaxCalendarEntry.tax_year == tax_year)
-    else:
-        query = query.filter(TaxCalendarEntry.period == period).filter(
-            TaxCalendarEntry.period_months_count == period_months_count
+    if obligation_type is not ObligationType.ANNUAL_REPORT:
+        stmt = stmt.where(
+            TaxCalendarEntry.period == period,
+            TaxCalendarEntry.period_months_count == period_months_count,
         )
-    existing = query.one_or_none()
+    existing = db.scalars(stmt).one_or_none()
     if existing is not None:
         return existing, False
 
@@ -162,6 +164,11 @@ def _generate_periodic(
     period_starts,
     period_months_count,
 ) -> tuple[int, int]:
+    for m in period_starts:
+        if (m - 1) % period_months_count != 0:
+            raise ValueError(
+                f"period start month {m} is not aligned to period_months_count={period_months_count}"
+            )
     rule = _resolve_rule(db, rule_type=rule_type, on_date=date(tax_year, 1, 1))
     created = 0
     skipped = 0

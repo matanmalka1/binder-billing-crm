@@ -124,7 +124,11 @@ class ClientQueryService:
             if rid in full_map
         ]
         items = ClientEnrichmentService(self.db).enrich_list(items, tax_year=tax_year)
-        counts = self.record_repo.count_by_status()
+        counts = self.record_repo.count_by_status(
+            search=search,
+            accountant_id=accountant_id,
+            entity_type=entity_type,
+        )
         stats = ClientRecordListStats(
             active=counts.get(ClientStatus.ACTIVE, 0),
             frozen=counts.get(ClientStatus.FROZEN, 0),
