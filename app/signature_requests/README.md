@@ -126,7 +126,7 @@ Auth: no JWT (token-based)
 
 ## Behavior Notes
 
-- Creation generates a one-time token (`secrets.token_urlsafe(32)`) and default expiry is 14 days.
+- Creation generates an unguessable expiring signing token (`secrets.token_urlsafe(32)`) and default expiry is 14 days.
 - Signing token is cleared after approve/decline/cancel/expire.
 - Signer actions require:
   - status `pending_signature`

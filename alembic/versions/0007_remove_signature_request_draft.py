@@ -64,6 +64,8 @@ def upgrade() -> None:
     _cancel_draft_requests()
 
     if bind.dialect.name == "postgresql":
+        # The initial schema had no database default for this column.
+        # Keep it that way: a pending request is valid only with token/expiry fields.
         op.execute(sa.text("ALTER TABLE signature_requests ALTER COLUMN status DROP DEFAULT"))
         op.execute(
             sa.text("ALTER TYPE signaturerequeststatus RENAME TO signaturerequeststatus_old")
