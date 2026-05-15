@@ -5,9 +5,9 @@ from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
     SignatureRequestCreateRequest,
+    SignatureRequestCreatedResponse,
     SignatureRequestListResponse,
     SignatureRequestResponse,
-    SignatureRequestSentResponse,
     SignatureRequestWithAuditResponse,
 )
 from app.signature_requests.services.response_builder import (
@@ -28,7 +28,7 @@ advisor_router = APIRouter(
 
 @advisor_router.post(
     "",
-    response_model=SignatureRequestSentResponse,
+    response_model=SignatureRequestCreatedResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create_signature_request(
@@ -55,7 +55,7 @@ def create_signature_request(
         sent_by_name=user.full_name,
         expiry_days=request.expiry_days,
     )
-    return SignatureRequestResponseBuilder(db).build_sent(req)
+    return SignatureRequestResponseBuilder(db).build_created(req)
 
 
 @advisor_router.get("/pending", response_model=SignatureRequestListResponse)

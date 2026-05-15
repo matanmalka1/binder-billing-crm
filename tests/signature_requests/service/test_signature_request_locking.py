@@ -29,7 +29,8 @@ def _business(db) -> Business:
 
 def _create_pending_request(db, user_id=1):
     business = _business(db)
-    return SignatureRequestRepository(db).create(
+    now = utcnow()
+    return SignatureRequestRepository(db).create_pending(
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user_id,
@@ -37,8 +38,9 @@ def _create_pending_request(db, user_id=1):
         title="Test Request",
         signer_name="Test Signer",
         signing_token=f"token-{business.id}",
-        sent_at=utcnow(),
-        expires_at=utcnow() + timedelta(days=14),
+        sent_at=now,
+        expires_at=now + timedelta(days=14),
+        expiry_days=14,
     )
 
 

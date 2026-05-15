@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -14,13 +15,17 @@ from app.utils.time_utils import utcnow
 class SignatureRequestCrudMixin:
     db: Session
 
-    def create(
+    def create_pending(
         self,
         client_record_id: int,
         created_by: int,
         request_type: SignatureRequestType,
         title: str,
         signer_name: str,
+        signing_token: str,
+        sent_at: datetime.datetime,
+        expires_at: datetime.datetime,
+        expiry_days: int,
         business_id: Optional[int] = None,  # OPTIONAL context
         description: Optional[str] = None,
         signer_email: Optional[str] = None,
@@ -29,12 +34,11 @@ class SignatureRequestCrudMixin:
         document_id: Optional[int] = None,
         storage_key: Optional[str] = None,
         content_hash: Optional[str] = None,
-        status: SignatureRequestStatus = SignatureRequestStatus.PENDING_SIGNATURE,
-        signing_token: Optional[str] = None,
-        sent_at=None,
-        expires_at=None,
-        expiry_days: int = 14,
     ) -> SignatureRequest:
+        if not signing_token or sent_at is None or expires_at is None:
+            raise ValueError(
+                "pending signature requests require signing_token, sent_at, and expires_at"
+            )
         req = SignatureRequest(
             client_record_id=client_record_id,
             business_id=business_id,
@@ -49,7 +53,7 @@ class SignatureRequestCrudMixin:
             document_id=document_id,
             storage_key=storage_key,
             content_hash=content_hash,
-            status=status,
+            status=SignatureRequestStatus.PENDING_SIGNATURE,
             signing_token=signing_token,
             sent_at=sent_at,
             expires_at=expires_at,

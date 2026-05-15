@@ -20,7 +20,6 @@ from app.businesses.services.business_contact_service import BusinessContactServ
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
-    SignatureRequestStatus,
     SignatureRequestType,
 )
 from app.signature_requests.repositories.signature_request_repository import (
@@ -96,7 +95,7 @@ def create_request(
     now = utcnow()
     expires_at = now + timedelta(days=expiry_days)
 
-    req = repo.create(
+    req = repo.create_pending(
         client_record_id=client_record.id,
         business_id=business_id,
         created_by=created_by,
@@ -110,7 +109,6 @@ def create_request(
         document_id=document_id,
         storage_key=storage_key,
         content_hash=content_hash,
-        status=SignatureRequestStatus.PENDING_SIGNATURE,
         signing_token=secrets.token_urlsafe(32),
         sent_at=now,
         expires_at=expires_at,

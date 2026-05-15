@@ -39,7 +39,6 @@ from app.utils.time_utils import utcnow
 
 
 class SignatureRequestStatus(str, PyEnum):
-    DRAFT = "draft"
     PENDING_SIGNATURE = "pending_signature"
     SIGNED = "signed"
     DECLINED = "declined"

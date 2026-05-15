@@ -6,7 +6,7 @@ from app.signature_requests.schemas.signature_request import (
     SignatureAuditEventResponse,
     SignatureRequestListResponse,
     SignatureRequestResponse,
-    SignatureRequestSentResponse,
+    SignatureRequestCreatedResponse,
     SignatureRequestWithAuditResponse,
 )
 
@@ -48,8 +48,8 @@ class SignatureRequestResponseBuilder:
         ]
         return response
 
-    def build_sent(self, request) -> SignatureRequestSentResponse:
-        response = SignatureRequestSentResponse.model_validate(request)
+    def build_created(self, request) -> SignatureRequestCreatedResponse:
+        response = SignatureRequestCreatedResponse.model_validate(request)
         self._enrich(response)
         response.signing_token = request.signing_token
         response.signing_url_hint = f"/sign/{request.signing_token}"

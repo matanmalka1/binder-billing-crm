@@ -88,11 +88,11 @@ class SignatureRequestCreateRequest(BaseModel):
     expiry_days: int = Field(14, ge=1, le=90)
 
 
-class SignatureRequestSentResponse(SignatureRequestResponse):
-    """Returned once only — token is not persisted server-side after this response."""
+class SignatureRequestCreatedResponse(SignatureRequestResponse):
+    """Returned once on creation with the signing link token."""
 
-    signing_token: Optional[str] = None
-    signing_url_hint: Optional[str] = None
+    signing_token: str
+    signing_url_hint: str = ""
 
 
 class CancelRequest(BaseModel):

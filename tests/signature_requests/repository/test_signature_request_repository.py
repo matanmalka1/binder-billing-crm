@@ -49,9 +49,9 @@ def _create(
     user_id: int,
     title: str,
     annual_report_id: int | None = None,
-    status: SignatureRequestStatus = SignatureRequestStatus.PENDING_SIGNATURE,
 ):
-    return repo.create(
+    now = utcnow()
+    req = repo.create_pending(
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user_id,
@@ -61,8 +61,12 @@ def _create(
         title=title,
         signer_name="Signer",
         annual_report_id=annual_report_id,
-        status=status,
+        signing_token=f"token-{business.id}-{title}",
+        sent_at=now,
+        expires_at=now + timedelta(days=14),
+        expiry_days=14,
     )
+    return req
 
 
 def test_signature_request_repository_pending_expired_and_audit_methods(test_db):
@@ -71,13 +75,8 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     business_a = _business(test_db, suffix="A")
     business_b = _business(test_db, suffix="B")
     now = utcnow()
-    canceled = _create(
-        repo,
-        business_a,
-        user_id=user.id,
-        title="Canceled",
-        status=SignatureRequestStatus.CANCELED,
-    )
+    canceled = _create(repo, business_a, user_id=user.id, title="Canceled")
+    repo.update(canceled.id, status=SignatureRequestStatus.CANCELED)
     expired_pending = _create(
         repo, business_a, user_id=user.id, title="Expired Pending"
     )
@@ -145,13 +144,9 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
         repo, business, user_id=user.id, title="Annual Pending", annual_report_id=77
     )
     canceled = _create(
-        repo,
-        business,
-        user_id=user.id,
-        title="Annual Canceled",
-        annual_report_id=77,
-        status=SignatureRequestStatus.CANCELED,
+        repo, business, user_id=user.id, title="Annual Canceled", annual_report_id=77
     )
+    repo.update(canceled.id, status=SignatureRequestStatus.CANCELED)
     other = _create(
         repo, business, user_id=user.id, title="Different Report", annual_report_id=88
     )

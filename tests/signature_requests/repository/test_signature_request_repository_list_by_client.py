@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from app.businesses.models.business import Business
 from app.signature_requests.models.signature_request import (
@@ -10,6 +10,7 @@ from app.signature_requests.repositories.signature_request_repository import (
 )
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_with_business
 
 
@@ -43,24 +44,32 @@ def test_signature_request_repository_list_by_business_with_status(test_db):
     repo = SignatureRequestRepository(test_db)
     user = _user(test_db)
     business = _business(test_db, "A")
-    canceled = repo.create(
+    now = utcnow()
+    canceled = repo.create_pending(
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Canceled",
         signer_name="Signer",
-        status=SignatureRequestStatus.CANCELED,
+        signing_token="canceled-token",
+        sent_at=now,
+        expires_at=now + timedelta(days=14),
+        expiry_days=14,
     )
-    pending = repo.create(
+    repo.update(canceled.id, status=SignatureRequestStatus.CANCELED)
+    pending = repo.create_pending(
         client_record_id=business.client_id,
         business_id=business.id,
         created_by=user.id,
         request_type=SignatureRequestType.CUSTOM,
         title="Pending",
         signer_name="Signer",
+        signing_token="pending-token",
+        sent_at=now,
+        expires_at=now + timedelta(days=14),
+        expiry_days=14,
     )
-    repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert {r.id for r in repo.list_by_business(business.id, page=1, page_size=10)} == {
         canceled.id,
         pending.id,
