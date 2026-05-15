@@ -15,7 +15,6 @@ from app.vat_reports.services.messages import (
     AMENDED_ITEM_WRONG_CLIENT,
     AMENDMENT_CYCLE_DETECTED,
     FINAL_VAT_AMOUNT_REQUIRED,
-    OVERRIDE_AMOUNT_MUST_BE_POSITIVE,
     OVERRIDE_JUSTIFICATION_REQUIRED,
     VAT_ITEM_NOT_FOUND,
 )
@@ -50,7 +49,6 @@ def _validate_amendment(
             break
         current_item = work_item_repo.get_by_id(current_item.amends_item_id)
 
-
 def file_vat_return(
     work_item_repo: VatWorkItemRepository,
     *,
@@ -73,13 +71,6 @@ def file_vat_return(
         _validate_amendment(work_item_repo, item, amends_item_id)
 
     is_overridden = override_amount is not None
-
-    if is_overridden and override_amount <= 0:
-        raise AppError(
-            OVERRIDE_AMOUNT_MUST_BE_POSITIVE,
-            code="INVALID_OVERRIDE_AMOUNT",
-            status_code=400,
-        )
 
     if is_overridden and not override_justification:
         raise AppError(OVERRIDE_JUSTIFICATION_REQUIRED, "VAT.JUSTIFICATION_REQUIRED")

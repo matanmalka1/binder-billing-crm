@@ -31,7 +31,7 @@ from app.vat_reports.services.data_entry_common import (
     recalculate_totals,
     resolve_invoice_derived_fields,
 )
-from app.vat_reports.services.vat_amounts import calculate_vat_amount
+from app.vat_reports.services.vat_amounts import split_gross_amount
 from app.vat_reports.services.messages import (
     VAT_ADD_INVOICE_INVALID_STATUS,
     VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE,
@@ -40,6 +40,7 @@ from app.vat_reports.services.messages import (
     VAT_INCOME_COUNTERPARTY_NAME,
     VAT_INVOICE_NUMBER_CONFLICT,
     VAT_ITEM_NOT_FOUND,
+    VAT_NET_AMOUNT_POSITIVE_REQUIRED,
     VAT_UNKNOWN_COUNTERPARTY_NAME,
 )
 
@@ -54,8 +55,7 @@ def add_invoice(
     invoice_number: Optional[str],
     invoice_date: Optional[datetime],
     counterparty_name: Optional[str],
-    net_amount: float,
-    vat_amount: Optional[float] = None,
+    gross_amount: float,
     counterparty_id: Optional[str] = None,
     counterparty_id_type: Optional[CounterpartyIdType] = None,
     expense_category: Optional[ExpenseCategory] = None,
@@ -100,18 +100,20 @@ def add_invoice(
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
             )
 
-    if vat_amount is None:
-        vat_amount = float(
-            calculate_vat_amount(net_amount, rate_type, int(item.period[:4]))
-        )
+    if gross_amount <= 0:
+        raise AppError(VAT_NET_AMOUNT_POSITIVE_REQUIRED, "VAT.NET_NOT_POSITIVE")
+
+    net_amount, vat_amount = split_gross_amount(
+        gross_amount, rate_type, int(item.period[:4])
+    )
 
     derived = resolve_invoice_derived_fields(
         invoice_type,
         expense_category,
         document_type,
         counterparty_id,
-        net_amount,
-        vat_amount,
+        float(net_amount),
+        float(vat_amount),
         year=int(item.period[:4]),
     )
     deduction_rate = derived["deduction_rate"]
@@ -121,7 +123,7 @@ def add_invoice(
     if invoice_type == InvoiceType.INCOME and legal_entity:
         scope_id = item.client_record_id
         ceiling_warning = check_osek_patur_ceiling(
-            legal_entity, invoice_repo, scope_id, item.period, net_amount
+            legal_entity, invoice_repo, scope_id, item.period, float(net_amount)
         )
 
     # Auto-fill optional fields when not provided by caller
@@ -175,8 +177,8 @@ def add_invoice(
         counterparty_name=counterparty_name,
         counterparty_id=counterparty_id,
         counterparty_id_type=counterparty_id_type,
-        net_amount=net_amount,
-        vat_amount=vat_amount,
+        net_amount=float(net_amount),
+        vat_amount=float(vat_amount),
         expense_category=expense_category,
         rate_type=rate_type,
         deduction_rate=float(deduction_rate),

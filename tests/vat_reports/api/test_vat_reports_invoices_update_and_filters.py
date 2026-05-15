@@ -14,8 +14,7 @@ def _expense_payload(
         "invoice_number": invoice_number,
         "invoice_date": "2026-01-15T00:00:00",
         "counterparty_name": "Supplier A",
-        "net_amount": "500.00",
-        "vat_amount": "85.00",
+        "gross_amount": "590.00",
         "expense_category": "office",
         "document_type": document_type,
     }
@@ -29,7 +28,7 @@ def test_update_invoice_patch_success(client, advisor_headers, vat_client):
     create_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/invoices",
         headers=advisor_headers,
-        json=income_payload(invoice_number="INV-UPD-1", net_amount="1000.00"),
+        json=income_payload(invoice_number="INV-UPD-1", gross_amount="1180.00"),
     )
     assert create_resp.status_code == 201
     invoice_id = create_resp.json()["id"]
@@ -38,8 +37,7 @@ def test_update_invoice_patch_success(client, advisor_headers, vat_client):
         f"/api/v1/vat/work-items/{item_id}/invoices/{invoice_id}",
         headers=advisor_headers,
         json={
-            "net_amount": "30000.00",
-            "vat_amount": "5100.00",
+            "gross_amount": "35400.00",
             "invoice_number": "INV-UPD-2",
         },
     )
@@ -81,7 +79,7 @@ def test_update_invoice_patch_invalid_amount_returns_422(
     patch_resp = client.patch(
         f"/api/v1/vat/work-items/{item_id}/invoices/{invoice_id}",
         headers=advisor_headers,
-        json={"net_amount": "0.00"},
+        json={"gross_amount": "0.00"},
     )
 
     assert patch_resp.status_code == 422

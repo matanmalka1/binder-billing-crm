@@ -23,12 +23,11 @@ from app.vat_reports.services.data_entry_common import (
     assert_editable,
     recalculate_totals,
 )
-from app.vat_reports.services.vat_amounts import calculate_vat_amount
+from app.vat_reports.services.vat_amounts import split_gross_amount
 from app.vat_reports.services.messages import (
     VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM,
     VAT_INVOICE_NUMBER_CONFLICT,
     VAT_ITEM_NOT_FOUND,
-    VAT_NEGATIVE_AMOUNT,
     VAT_NET_AMOUNT_POSITIVE_REQUIRED,
 )
 
@@ -40,8 +39,7 @@ def update_invoice(
     item_id: int,
     invoice_id: int,
     performed_by: int,
-    net_amount: Optional[float] = None,
-    vat_amount: Optional[float] = None,
+    gross_amount: Optional[float] = None,
     invoice_number: Optional[str] = None,
     invoice_date: Optional[datetime] = None,
     counterparty_name: Optional[str] = None,
@@ -78,18 +76,14 @@ def update_invoice(
                 "VAT.CONFLICT",
             )
 
-    if net_amount is not None and net_amount <= 0:
+    if gross_amount is not None and gross_amount <= 0:
         raise AppError(
             VAT_NET_AMOUNT_POSITIVE_REQUIRED, code="INVALID_NET_AMOUNT", status_code=400
         )
-    if vat_amount is not None and vat_amount < 0:
-        raise AppError(VAT_NEGATIVE_AMOUNT, code="INVALID_VAT_AMOUNT", status_code=400)
 
     snapshot_before = audit_invoice_snapshot(invoice)
 
     update_fields: dict = {
-        "net_amount": net_amount,
-        "vat_amount": vat_amount,
         "invoice_number": invoice_number,
         "invoice_date": invoice_date,
         "counterparty_name": counterparty_name,
@@ -100,14 +94,23 @@ def update_invoice(
         "document_type": document_type,
         "business_activity_id": business_activity_id,
     }
-    effective_net = net_amount if net_amount is not None else float(invoice.net_amount)
     effective_rate_type = rate_type if rate_type is not None else invoice.rate_type
-    if net_amount is not None or rate_type is not None:
-        update_fields["vat_amount"] = calculate_vat_amount(
-            effective_net,
+    effective_gross = (
+        gross_amount
+        if gross_amount is not None
+        else float(invoice.net_amount) + float(invoice.vat_amount)
+    )
+    if gross_amount is not None or rate_type is not None:
+        net_amount, vat_amount = split_gross_amount(
+            effective_gross,
             effective_rate_type,
             int(item.period[:4]),
         )
+        update_fields["net_amount"] = float(net_amount)
+        update_fields["vat_amount"] = float(vat_amount)
+        effective_net = float(net_amount)
+    else:
+        effective_net = float(invoice.net_amount)
     if expense_category is not None:
         update_fields["deduction_rate"] = get_vat_deduction_rate_for_category(
             int(item.period[:4]), expense_category.value

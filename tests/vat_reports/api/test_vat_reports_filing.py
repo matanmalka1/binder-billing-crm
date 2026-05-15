@@ -40,8 +40,7 @@ class TestFiling:
                 "invoice_number": "INV-999",
                 "invoice_date": "2026-01-20T00:00:00",
                 "counterparty_name": "Late customer",
-                "net_amount": "500.00",
-                "vat_amount": "85.00",
+                "gross_amount": "590.00",
             },
         )
         assert response.status_code == 400

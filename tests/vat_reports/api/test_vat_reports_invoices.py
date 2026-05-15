@@ -26,16 +26,16 @@ class TestInvoices:
         assert float(data["total_output_vat"]) == 180.0
         assert data["status"] == "data_entry_in_progress"
 
-    def test_negative_vat_rejected_400(self, client, advisor_headers, vat_client):
+    def test_negative_gross_rejected_422(self, client, advisor_headers, vat_client):
         item_id = create_work_item(client, advisor_headers, vat_client, "2026-07")
         payload = income_payload()
-        payload["vat_amount"] = "-10.00"
+        payload["gross_amount"] = "-10.00"
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/invoices",
             headers=advisor_headers,
             json=payload,
         )
-        assert response.status_code in (400, 422)
+        assert response.status_code == 422
 
     def test_expense_without_category_400(self, client, advisor_headers, vat_client):
         item_id = create_work_item(client, advisor_headers, vat_client, "2026-08")
@@ -44,8 +44,7 @@ class TestInvoices:
             "invoice_number": "EXP-001",
             "invoice_date": "2026-01-15T00:00:00",
             "counterparty_name": "Supplier",
-            "net_amount": "500.00",
-            "vat_amount": "85.00",
+            "gross_amount": "590.00",
         }
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/invoices",

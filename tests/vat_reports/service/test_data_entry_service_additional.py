@@ -35,8 +35,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
             invoice_number=None,
             invoice_date=None,
             counterparty_name=None,
-            net_amount=10,
-            vat_amount=1.7,
+            gross_amount=11.8,
         )
 
     item = SimpleNamespace(
@@ -62,8 +61,7 @@ def test_add_invoice_not_found_and_invalid_status(monkeypatch):
             invoice_number=None,
             invoice_date=None,
             counterparty_name=None,
-            net_amount=10,
-            vat_amount=1.7,
+            gross_amount=11.8,
         )
 
 
@@ -113,8 +111,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
         invoice_number=None,
         invoice_date=None,
         counterparty_name=None,
-        net_amount=50,
-        vat_amount=8.5,
+        gross_amount=59,
     )
     assert income.counterparty_name == "הכנסות"
     assert income.invoice_date == datetime(2026, 3, 1)

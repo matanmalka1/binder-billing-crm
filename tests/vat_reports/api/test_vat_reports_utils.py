@@ -12,18 +12,15 @@ def income_payload(
     invoice_number="INV-001",
     invoice_date="2026-01-15T00:00:00",
     counterparty_name="Customer A",
-    net_amount="1000.00",
-    vat_amount=None,
+    gross_amount="1180.00",
 ):
     payload = {
         "invoice_type": "income",
         "invoice_number": invoice_number,
         "invoice_date": invoice_date,
         "counterparty_name": counterparty_name,
-        "net_amount": net_amount,
+        "gross_amount": gross_amount,
     }
-    if vat_amount is not None:
-        payload["vat_amount"] = vat_amount
     return payload
 
 

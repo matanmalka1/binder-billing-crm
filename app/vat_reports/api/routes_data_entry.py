@@ -39,7 +39,7 @@ def add_invoice(
         invoice_number=request.invoice_number,
         invoice_date=request.invoice_date,
         counterparty_name=request.counterparty_name,
-        net_amount=float(request.net_amount),
+        gross_amount=float(request.gross_amount),
         counterparty_id=request.counterparty_id,
         counterparty_id_type=request.counterparty_id_type,
         expense_category=request.expense_category,
@@ -87,8 +87,8 @@ def update_invoice(
         item_id=item_id,
         invoice_id=invoice_id,
         performed_by=current_user.id,
-        net_amount=float(request.net_amount)
-        if request.net_amount is not None
+        gross_amount=float(request.gross_amount)
+        if request.gross_amount is not None
         else None,
         invoice_number=request.invoice_number,
         invoice_date=request.invoice_date,

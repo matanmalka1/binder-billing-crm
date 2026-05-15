@@ -77,8 +77,7 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     counterparty_name: Optional[str] = Field(
         default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH
     )
-    net_amount: ApiDecimal
-    vat_amount: Optional[ApiDecimal] = None
+    gross_amount: ApiDecimal
     counterparty_id: Optional[str] = Field(
         default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH
     )
@@ -87,18 +86,11 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     rate_type: VatRateType = VatRateType.STANDARD
     document_type: Optional[DocumentType] = None
 
-    @field_validator("net_amount")
+    @field_validator("gross_amount")
     @classmethod
-    def net_positive(cls, v: Decimal) -> Decimal:
+    def gross_positive(cls, v: Decimal) -> Decimal:
         if v <= 0:
-            raise ValueError("הסכום נטו חייב להיות חיובי")
-        return v
-
-    @field_validator("vat_amount")
-    @classmethod
-    def vat_non_negative(cls, v: Optional[Decimal]) -> Optional[Decimal]:
-        if v is not None and v < 0:
-            raise ValueError('הסכום של המע"מ לא יכול להיות שלילי')
+            raise ValueError("הסכום הכולל חייב להיות חיובי")
         return v
 
 

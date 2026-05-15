@@ -34,8 +34,7 @@ class TestAddInvoice:
             invoice_number="INV-001",
             invoice_date=datetime(2026, 1, 15),
             counterparty_name="Customer A",
-            net_amount=1000.0,
-            vat_amount=170.0,
+            gross_amount=1180.0,
         )
 
     def test_happy_path_auto_transitions_status(self):
@@ -47,7 +46,7 @@ class TestAddInvoice:
             1, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
         )
 
-    def test_negative_vat_raises(self):
+    def test_negative_gross_amount_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item()
@@ -62,12 +61,11 @@ class TestAddInvoice:
                 invoice_number="INV-002",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Customer B",
-                net_amount=1000.0,
-                vat_amount=-1.0,
+                gross_amount=-1.0,
             )
-        assert exc_info.value.code == "VAT.NEGATIVE_VAT"
+        assert exc_info.value.code == "VAT.NET_NOT_POSITIVE"
 
-    def test_zero_net_amount_raises(self):
+    def test_zero_gross_amount_raises(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
         work_item_repo.get_by_id.return_value = make_item()
@@ -82,8 +80,7 @@ class TestAddInvoice:
                 invoice_number="INV-003",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Customer C",
-                net_amount=0.0,
-                vat_amount=0.0,
+                gross_amount=0.0,
             )
         assert exc_info.value.code == "VAT.NET_NOT_POSITIVE"
 
@@ -102,8 +99,7 @@ class TestAddInvoice:
                 invoice_number="EXP-001",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Supplier A",
-                net_amount=500.0,
-                vat_amount=85.0,
+                gross_amount=590.0,
             )
         assert exc_info.value.code == "VAT.EXPENSE_CATEGORY_REQUIRED"
 
@@ -122,8 +118,7 @@ class TestAddInvoice:
                 invoice_number="EXP-TAX-001",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Supplier B",
-                net_amount=500.0,
-                vat_amount=85.0,
+                gross_amount=590.0,
                 expense_category=ExpenseCategory.OFFICE,
                 document_type=DocumentType.TAX_INVOICE,
             )
@@ -145,8 +140,7 @@ class TestAddInvoice:
                 invoice_number="INV-001",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Customer",
-                net_amount=1000.0,
-                vat_amount=170.0,
+                gross_amount=1180.0,
             )
         assert exc_info.value.code == "VAT.CONFLICT"
 
@@ -167,7 +161,6 @@ class TestAddInvoice:
                 invoice_number="INV-099",
                 invoice_date=datetime(2026, 1, 15),
                 counterparty_name="Customer",
-                net_amount=500.0,
-                vat_amount=85.0,
+                gross_amount=590.0,
             )
         assert exc_info.value.code == "VAT.FILED_IMMUTABLE"

@@ -127,6 +127,36 @@ class TestFileVatReturn:
         )
         assert work_item_repo.append_audit.call_count == 2
 
+    def test_negative_override_with_justification_allowed(self):
+        work_item_repo = MagicMock()
+        item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=300.0)
+        work_item_repo.get_by_id_for_update.return_value = item
+        work_item_repo.mark_filed.return_value = make_item(
+            status=VatWorkItemStatus.FILED
+        )
+
+        filing.file_vat_return(
+            work_item_repo,
+            item_id=1,
+            filed_by=2,
+            submission_method=SubmissionMethod.MANUAL,
+            override_amount=-125.5,
+            override_justification="Input VAT refund after corrected expenses",
+        )
+
+        work_item_repo.mark_filed.assert_called_once_with(
+            item_id=1,
+            final_vat_amount=-125.5,
+            submission_method=SubmissionMethod.MANUAL,
+            filed_by=2,
+            is_overridden=True,
+            override_justification="Input VAT refund after corrected expenses",
+            submission_reference=None,
+            is_amendment=False,
+            amends_item_id=None,
+            item=item,
+        )
+
     def test_override_without_justification_raises(self):
         work_item_repo = MagicMock()
         work_item_repo.get_by_id_for_update.return_value = make_item(
