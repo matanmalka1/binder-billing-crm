@@ -175,3 +175,28 @@ def test_update_invoice_persists_counterparty_identity_fields(
     body = patch_resp.json()
     assert body["counterparty_id"] == "123456782"
     assert body["counterparty_id_type"] == "il_personal"
+
+
+def test_update_invoice_accepts_valid_personal_id_checksum(
+    client, advisor_headers, vat_client
+):
+    item_id = create_work_item(client, advisor_headers, vat_client, "2026-10")
+    create_resp = client.post(
+        f"/api/v1/vat/work-items/{item_id}/invoices",
+        headers=advisor_headers,
+        json=income_payload(invoice_number="INV-ID-CHECKSUM"),
+    )
+    assert create_resp.status_code == 201
+    invoice_id = create_resp.json()["id"]
+
+    patch_resp = client.patch(
+        f"/api/v1/vat/work-items/{item_id}/invoices/{invoice_id}",
+        headers=advisor_headers,
+        json={
+            "counterparty_id": "100000009",
+            "counterparty_id_type": "il_personal",
+        },
+    )
+
+    assert patch_resp.status_code == 200
+    assert patch_resp.json()["counterparty_id"] == "100000009"

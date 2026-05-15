@@ -18,6 +18,7 @@ def _payload(**client_overrides):
         "address_zip_code": "1234567",
         "accountant_id": 1,
         "vat_reporting_frequency": "monthly",
+        "advance_payment_frequency": "monthly",
     }
     client_payload.update(client_overrides)
     return {
@@ -34,6 +35,17 @@ def test_create_request_rejects_non_digits_for_osek():
 def test_create_request_rejects_invalid_length_for_osek():
     with pytest.raises(ValidationError):
         CreateClientRequest.model_validate(_payload(id_number="12345"))
+
+
+def test_create_request_accepts_valid_individual_checksum():
+    request = CreateClientRequest.model_validate(_payload(id_number="100000009"))
+
+    assert request.client.id_number == "100000009"
+
+
+def test_create_request_rejects_invalid_individual_checksum():
+    with pytest.raises(ValidationError, match="מספר תעודת זהות אינו תקין"):
+        CreateClientRequest.model_validate(_payload(id_number="100000008"))
 
 
 def test_create_request_rejects_manual_vat_frequency_for_osek_patur():
