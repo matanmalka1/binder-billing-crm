@@ -49,11 +49,12 @@ class SignatureRequestResponseBuilder:
         return response
 
     def build_created(self, request) -> SignatureRequestCreatedResponse:
-        response = SignatureRequestCreatedResponse.model_validate(request)
-        self._enrich(response)
-        response.signing_token = request.signing_token
-        response.signing_url_hint = f"/sign/{request.signing_token}"
-        return response
+        response = self.build(request)
+        return SignatureRequestCreatedResponse(
+            **response.model_dump(),
+            signing_token=request.signing_token,
+            signing_url_hint=f"/sign/{request.signing_token}",
+        )
 
     def _enrich(self, response: SignatureRequestResponse) -> None:
         office_number_map = self._office_number_map([response])

@@ -92,7 +92,7 @@ class SignatureRequestCreatedResponse(SignatureRequestResponse):
     """Returned once on creation with the signing link token."""
 
     signing_token: str
-    signing_url_hint: str = ""
+    signing_url_hint: str
 
 
 class CancelRequest(BaseModel):

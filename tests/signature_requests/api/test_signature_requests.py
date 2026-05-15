@@ -58,6 +58,8 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
     assert detail_resp.status_code == 200
     detail = detail_resp.json()
     assert detail["status"] == "signed"
+    assert "signing_token" not in detail
+    assert "signing_url_hint" not in detail
     # Audit trail should include created, sent, viewed, signed
     event_types = [e["event_type"] for e in detail["audit_trail"]]
     assert {"created", "sent", "viewed", "signed"} <= set(event_types)
@@ -120,6 +122,8 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     payload = pending_resp.json()
     assert payload["total"] == 2
     assert all(item["status"] == "pending_signature" for item in payload["items"])
+    assert all("signing_token" not in item for item in payload["items"])
+    assert all("signing_url_hint" not in item for item in payload["items"])
 
 
 def test_create_signature_request_sends_immediately(client, test_db, advisor_headers):
@@ -148,7 +152,10 @@ def test_create_signature_request_sends_immediately(client, test_db, advisor_hea
         f"/api/v1/signature-requests/{payload['id']}", headers=advisor_headers
     )
     assert detail.status_code == 200
-    event_types = [event["event_type"] for event in detail.json()["audit_trail"]]
+    detail_payload = detail.json()
+    assert "signing_token" not in detail_payload
+    assert "signing_url_hint" not in detail_payload
+    event_types = [event["event_type"] for event in detail_payload["audit_trail"]]
     assert event_types == ["created", "sent"]
 
 

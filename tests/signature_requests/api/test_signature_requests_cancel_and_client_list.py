@@ -48,13 +48,19 @@ def test_cancel_signature_request(client, test_db, advisor_headers):
     )
 
     assert cancel_resp.status_code == 200
-    assert cancel_resp.json()["status"] == "canceled"
+    cancel_payload = cancel_resp.json()
+    assert cancel_payload["status"] == "canceled"
+    assert "signing_token" not in cancel_payload
+    assert "signing_url_hint" not in cancel_payload
 
     detail = client.get(
         f"/api/v1/signature-requests/{request_id}", headers=advisor_headers
     )
     assert detail.status_code == 200
-    events = [e["event_type"] for e in detail.json()["audit_trail"]]
+    detail_payload = detail.json()
+    assert "signing_token" not in detail_payload
+    assert "signing_url_hint" not in detail_payload
+    events = [e["event_type"] for e in detail_payload["audit_trail"]]
     assert "canceled" in events
 
 
@@ -84,16 +90,22 @@ def test_list_signature_requests_by_client_with_status_filter(
     )
     assert all_resp.status_code == 200
     assert all_resp.json()["total"] == 2
-    returned_ids = {item["id"] for item in all_resp.json()["items"]}
+    all_payload = all_resp.json()
+    returned_ids = {item["id"] for item in all_payload["items"]}
     assert returned_ids == {req_a_pending, req_a_canceled}
+    assert all("signing_token" not in item for item in all_payload["items"])
+    assert all("signing_url_hint" not in item for item in all_payload["items"])
 
     pending_resp = client.get(
         f"/api/v1/clients/{business_a.client_id}/signature-requests?status=pending_signature",
         headers=advisor_headers,
     )
     assert pending_resp.status_code == 200
-    assert pending_resp.json()["total"] == 1
-    assert pending_resp.json()["items"][0]["id"] == req_a_pending
+    pending_payload = pending_resp.json()
+    assert pending_payload["total"] == 1
+    assert pending_payload["items"][0]["id"] == req_a_pending
+    assert "signing_token" not in pending_payload["items"][0]
+    assert "signing_url_hint" not in pending_payload["items"][0]
 
 
 def test_get_signature_request_not_found_returns_404(client, advisor_headers):
