@@ -7,6 +7,7 @@ from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
     SignatureAuditEventResponse,
+    SignatureRequestCreateAndSendRequest,
     SignatureRequestCreateRequest,
     SignatureRequestListResponse,
     SignatureRequestResponse,
@@ -55,6 +56,38 @@ def create_signature_request(
         content_to_hash=request.content_to_hash,
     )
     return SignatureRequestResponseBuilder(db).build(req)
+
+
+@advisor_router.post(
+    "/create-and-send",
+    response_model=SignatureRequestSentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_and_send_signature_request(
+    request: SignatureRequestCreateAndSendRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    service = SignatureRequestService(db)
+    req = service.create_and_send_request(
+        client_record_id=request.client_record_id,
+        business_id=request.business_id,
+        created_by=user.id,
+        created_by_name=user.full_name,
+        request_type=request.request_type,
+        title=request.title,
+        description=request.description,
+        signer_name=request.signer_name,
+        signer_email=request.signer_email,
+        signer_phone=request.signer_phone,
+        annual_report_id=request.annual_report_id,
+        document_id=request.document_id,
+        content_to_hash=request.content_to_hash,
+        sent_by=user.id,
+        sent_by_name=user.full_name,
+        expiry_days=request.expiry_days,
+    )
+    return SignatureRequestResponseBuilder(db).build_sent(req)
 
 
 @advisor_router.get("/pending", response_model=SignatureRequestListResponse)

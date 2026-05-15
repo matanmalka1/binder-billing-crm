@@ -190,115 +190,34 @@ def test_list_pending_returns_only_pending(client, test_db, advisor_headers):
     assert all(item["status"] == "pending_signature" for item in payload["items"])
 
 
-def test_list_active_includes_draft_and_pending(client, test_db, advisor_headers):
-    business = _business(test_db)
-    ids_by_status = {}
-
-    for title in ("Pending", "Draft"):
-        resp = client.post(
-            "/api/v1/signature-requests",
-            headers=advisor_headers,
-            json={
-                "business_id": business.id,
-                "client_record_id": business.client_id,
-                "request_type": "custom",
-                "title": title,
-                "signer_name": "Signer",
-            },
-        )
-        assert resp.status_code == 201
-        ids_by_status[title] = resp.json()["id"]
-
-    client.post(
-        f"/api/v1/signature-requests/{ids_by_status['Pending']}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-
-    active_resp = client.get(
-        "/api/v1/signature-requests/active?page=1&page_size=10",
-        headers=advisor_headers,
-    )
-
-    assert active_resp.status_code == 200
-    payload = active_resp.json()
-    assert payload["total"] == 2
-    returned = {item["id"]: item["status"] for item in payload["items"]}
-    assert returned[ids_by_status["Pending"]] == "pending_signature"
-    assert returned[ids_by_status["Draft"]] == "draft"
-
-
-def test_list_active_excludes_terminal_statuses(client, test_db, advisor_headers):
+def test_create_and_send_signature_request(client, test_db, advisor_headers):
     business = _business(test_db)
 
-    def _create(title):
-        resp = client.post(
-            "/api/v1/signature-requests",
-            headers=advisor_headers,
-            json={
-                "business_id": business.id,
-                "client_record_id": business.client_id,
-                "request_type": "custom",
-                "title": title,
-                "signer_name": "Signer",
-            },
-        )
-        assert resp.status_code == 201
-        return resp.json()["id"]
-
-    draft_id = _create("Active Draft")
-    cancel_id = _create("To Cancel")
-
-    send_resp = client.post(
-        f"/api/v1/signature-requests/{cancel_id}/send",
-        headers=advisor_headers,
-        json={"expiry_days": 7},
-    )
-    assert send_resp.status_code == 200
-    token = send_resp.json()["signing_token"]
-
-    client.post(f"/sign/{token}/decline", json={"reason": "not interested"})
-
-    active_resp = client.get(
-        "/api/v1/signature-requests/active?page=1&page_size=50",
-        headers=advisor_headers,
-    )
-    assert active_resp.status_code == 200
-    payload = active_resp.json()
-    returned_ids = {item["id"] for item in payload["items"]}
-    assert draft_id in returned_ids
-    assert cancel_id not in returned_ids
-
-
-def test_list_active_excludes_soft_deleted(client, test_db, advisor_headers):
-    business = _business(test_db)
-
-    create_resp = client.post(
-        "/api/v1/signature-requests",
+    resp = client.post(
+        "/api/v1/signature-requests/create-and-send",
         headers=advisor_headers,
         json={
             "business_id": business.id,
             "client_record_id": business.client_id,
             "request_type": "custom",
-            "title": "To Delete",
+            "title": "Create and send",
             "signer_name": "Signer",
+            "expiry_days": 7,
         },
     )
-    assert create_resp.status_code == 201
-    req_id = create_resp.json()["id"]
 
-    repo = SignatureRequestRepository(test_db)
-    from app.utils.time_utils import utcnow
-    repo.update(req_id, deleted_at=utcnow(), deleted_by=1)
-    test_db.commit()
+    assert resp.status_code == 201
+    payload = resp.json()
+    assert payload["status"] == "pending_signature"
+    assert payload["signing_token"]
+    assert payload["signing_url_hint"] == f"/sign/{payload['signing_token']}"
 
-    active_resp = client.get(
-        "/api/v1/signature-requests/active?page=1&page_size=50",
-        headers=advisor_headers,
+    detail = client.get(
+        f"/api/v1/signature-requests/{payload['id']}", headers=advisor_headers
     )
-    assert active_resp.status_code == 200
-    returned_ids = {item["id"] for item in active_resp.json()["items"]}
-    assert req_id not in returned_ids
+    assert detail.status_code == 200
+    event_types = [event["event_type"] for event in detail.json()["audit_trail"]]
+    assert event_types == ["created", "sent"]
 
 
 def test_invalid_token_returns_error_on_sign(client):

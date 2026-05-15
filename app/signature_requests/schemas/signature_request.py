@@ -87,6 +87,10 @@ class SignatureRequestCreateRequest(BaseModel):
     content_to_hash: Optional[str] = None  # service computes SHA-256
 
 
+class SignatureRequestCreateAndSendRequest(SignatureRequestCreateRequest):
+    expiry_days: int = Field(14, ge=1, le=90)
+
+
 class SignatureRequestSendRequest(BaseModel):
     expiry_days: int = Field(14, ge=1, le=90)
 

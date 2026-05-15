@@ -49,6 +49,22 @@ class SignatureRequestService:
     def create_request(self, **kwargs):
         return create_request.create_request(self.repo, self.business_repo, **kwargs)
 
+    def create_and_send_request(
+        self,
+        *,
+        sent_by: int,
+        sent_by_name: str,
+        expiry_days: int,
+        **create_kwargs,
+    ):
+        req = self.create_request(**create_kwargs)
+        return self.send_request(
+            request_id=req.id,
+            sent_by=sent_by,
+            sent_by_name=sent_by_name,
+            expiry_days=expiry_days,
+        )
+
     # ── Send ──────────────────────────────────────────────────────────────────
 
     def send_request(self, **kwargs):
@@ -145,13 +161,6 @@ class SignatureRequestService:
     ) -> tuple[list[SignatureRequest], int]:
         items = self.repo.list_pending(page=page, page_size=page_size)
         total = self.repo.count_pending()
-        return items, total
-
-    def list_active_requests(
-        self, *, page: int = 1, page_size: int = 20
-    ) -> tuple[list[SignatureRequest], int]:
-        items = self.repo.list_active(page=page, page_size=page_size)
-        total = self.repo.count_active()
         return items, total
 
     def get_audit_trail(self, request_id: int) -> list:

@@ -163,39 +163,6 @@ class SignatureRequestCrudMixin:
 
     # ── Pending (global advisor view) ─────────────────────────────────────────
 
-    def list_active(
-        self, page: int = 1, page_size: int = 20
-    ) -> list[SignatureRequest]:
-        offset = (page - 1) * page_size
-        stmt = (
-            select(SignatureRequest)
-            .where(
-                SignatureRequest.status.in_(
-                    [
-                        SignatureRequestStatus.DRAFT,
-                        SignatureRequestStatus.PENDING_SIGNATURE,
-                    ]
-                ),
-                SignatureRequest.deleted_at.is_(None),
-            )
-            .order_by(SignatureRequest.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        )
-        return self.db.scalars(stmt).all()
-
-    def count_active(self) -> int:
-        stmt = select(func.count(SignatureRequest.id)).where(
-            SignatureRequest.status.in_(
-                [
-                    SignatureRequestStatus.DRAFT,
-                    SignatureRequestStatus.PENDING_SIGNATURE,
-                ]
-            ),
-            SignatureRequest.deleted_at.is_(None),
-        )
-        return self.db.scalar(stmt) or 0
-
     def list_pending(
         self, page: int = 1, page_size: int = 20
     ) -> list[SignatureRequest]:
