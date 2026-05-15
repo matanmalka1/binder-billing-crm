@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -32,7 +32,9 @@ from app.notification.services.messages import (
     BINDER_RECEIVED_SUBJECT,
     BULK_NOTIFY_LIMIT_EXCEEDED,
     CLIENT_REMINDER_SUBJECT,
+    CONTENT_TEMPLATES,
     DEFAULT_NOTIFICATION_SUBJECT,
+    FALLBACK_CLIENT_NAME,
     MANUAL_PAYMENT_REMINDER_SUBJECT,
     PICKUP_REMINDER_SUBJECT,
 )
@@ -163,16 +165,18 @@ class NotificationSendService:
                 return False
             business, person = row
 
-            subject = _SUBJECTS.get(trigger)
-            if subject is None:
+            cr_id = self._get_client_record_id_for_business(business)
+            if cr_id is None:
                 logger.warning(
-                    "No subject mapping for trigger=%s, using default", trigger
+                    "send_notification: business %s has no client_record, skipping",
+                    business_id,
                 )
-                subject = DEFAULT_NOTIFICATION_SUBJECT
+                return False
+
+            subject = _SUBJECTS.get(trigger, DEFAULT_NOTIFICATION_SUBJECT)
 
             phone = person.phone if person else None
             email = person.email if person else None
-            cr_id = self._get_client_record_id_for_business(business)
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
@@ -251,7 +255,7 @@ class NotificationSendService:
         self,
         client_record_id: int,
         trigger: NotificationTrigger,
-        content: str,
+        template_data: dict[str, Any] | None = None,
         binder_id: Optional[int] = None,
         annual_report_id: Optional[int] = None,
         triggered_by: Optional[int] = None,
@@ -266,15 +270,28 @@ class NotificationSendService:
                 )
                 return False
 
-            subject = _SUBJECTS.get(trigger)
-            if subject is None:
-                logger.warning(
-                    "No subject mapping for trigger=%s, using default", trigger
+            name = person.full_name or FALLBACK_CLIENT_NAME
+            template = CONTENT_TEMPLATES.get(trigger.value)
+            if template is None:
+                logger.error(
+                    "send_client_notification: no content template for trigger=%s",
+                    trigger,
                 )
-                subject = DEFAULT_NOTIFICATION_SUBJECT
+                return False
+            try:
+                content = template.format(name=name, **(template_data or {}))
+            except KeyError as exc:
+                logger.error(
+                    "send_client_notification: missing template key=%s for trigger=%s",
+                    exc,
+                    trigger,
+                )
+                return False
 
-            phone = person.phone if person else None
-            email = person.email if person else None
+            subject = _SUBJECTS.get(trigger, DEFAULT_NOTIFICATION_SUBJECT)
+
+            phone = person.phone
+            email = person.email
 
             if preferred_channel == "whatsapp" and self.whatsapp.enabled and phone:
                 n = self.notification_repo.create(
@@ -389,55 +406,6 @@ class NotificationSendService:
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "Unexpected error in send_client_reminder | client=%s error=%s",
-                client_record_id,
-                exc,
-            )
-        return False
-
-    def send_client_record_reminder(
-        self, client_record_id: int, reminder_text: str
-    ) -> bool:
-        """Send reminder to a client resolved from client_record_id via LegalEntity → Person."""
-        try:
-            person = self._get_client(client_record_id)
-            if person is None:
-                logger.warning(
-                    "send_client_record_reminder: client_record %s has no linked Person",
-                    client_record_id,
-                )
-                return False
-            email = person.email
-            if not email:
-                logger.info(
-                    "send_client_record_reminder: client_record %s has no email",
-                    client_record_id,
-                )
-                return False
-            n = self.notification_repo.create(
-                client_record_id=client_record_id,
-                trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-                channel=NotificationChannel.EMAIL,
-                recipient=email,
-                content_snapshot=reminder_text,
-            )
-            ok, err = self.email.send(
-                email, reminder_text, subject=CLIENT_REMINDER_SUBJECT
-            )
-            if ok:
-                self.notification_repo.mark_sent(n.id)
-                logger.info(
-                    "Client record reminder sent | client_record=%s", client_record_id
-                )
-                return True
-            self.notification_repo.mark_failed(n.id, err or "unknown error")
-            logger.error(
-                "send_client_record_reminder failed | client_record=%s error=%s",
-                client_record_id,
-                err,
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.error(
-                "Unexpected error in send_client_record_reminder | client_record=%s error=%s",
                 client_record_id,
                 exc,
             )

@@ -118,8 +118,9 @@ def test_notifications_read_lifecycle(client, test_db, advisor_headers):
     assert unread_after_one.json()["unread_count"] == 1
 
     mark_all = client.post(
-        f"/api/v1/notifications/mark-all-read?business_id={b1.id}",
+        "/api/v1/notifications/mark-all-read",
         headers=advisor_headers,
+        json={"business_id": b1.id},
     )
     assert mark_all.status_code == 200
     assert mark_all.json()["updated"] == 1
@@ -151,7 +152,7 @@ def test_notifications_send_endpoint_advisor_only(
     assert advisor_send.json() == {"ok": True}
 
     repo = NotificationRepository(test_db)
-    rows = repo.list_by_business(business.id)
+    rows, _ = repo.list_paginated(business_id=business.id)
     assert len(rows) == 1
     assert rows[0].trigger == NotificationTrigger.MANUAL_PAYMENT_REMINDER
     assert rows[0].severity == NotificationSeverity.URGENT

@@ -47,6 +47,11 @@ class UnreadCountResponse(BaseModel):
     unread_count: int
 
 
+class MarkAllReadRequest(BaseModel):
+    client_record_id: Optional[int] = None
+    business_id: Optional[int] = None
+
+
 class SendNotificationRequest(BaseModel):
     """Manual send by advisor — scoped to a business."""
 

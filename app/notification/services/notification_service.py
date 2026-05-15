@@ -16,13 +16,6 @@ from app.notification.models.notification import (
 )
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import NotificationResponse
-from app.notification.services.messages import (
-    ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT,
-    BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT,
-    BINDER_RECEIVED_NOTIFICATION_CONTENT,
-    FALLBACK_CLIENT_NAME,
-    PICKUP_REMINDER_NOTIFICATION_CONTENT,
-)
 from app.notification.services.notification_send_service import NotificationSendService
 
 logger = get_logger(__name__)
@@ -47,47 +40,31 @@ class NotificationService:
     # ── Named trigger helpers ─────────────────────────────────────────────────
 
     def notify_binder_received(self, binder: Binder, client_record_id: int) -> bool:
-        person = self._send_svc._get_client(client_record_id)
-        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
-        content = BINDER_RECEIVED_NOTIFICATION_CONTENT.format(
-            name=name,
-            binder_number=binder.binder_number,
-            period_start=binder.period_start,
-        )
         return self._send_svc.send_client_notification(
             client_record_id=client_record_id,
             trigger=NotificationTrigger.BINDER_RECEIVED,
-            content=content,
+            template_data={
+                "binder_number": binder.binder_number,
+                "period_start": binder.period_start,
+            },
             binder_id=binder.id,
         )
 
     def notify_ready_for_pickup(self, binder: Binder, client_record_id: int) -> bool:
-        person = self._send_svc._get_client(client_record_id)
-        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
-        content = BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT.format(
-            name=name,
-            binder_number=binder.binder_number,
-        )
         return self._send_svc.send_client_notification(
             client_record_id=client_record_id,
             trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
-            content=content,
+            template_data={"binder_number": binder.binder_number},
             binder_id=binder.id,
         )
 
     def notify_pickup_reminder(
         self, binder: Binder, client_record_id: int, triggered_by: Optional[int] = None
     ) -> bool:
-        person = self._send_svc._get_client(client_record_id)
-        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
-        content = PICKUP_REMINDER_NOTIFICATION_CONTENT.format(
-            name=name,
-            binder_number=binder.binder_number,
-        )
         return self._send_svc.send_client_notification(
             client_record_id=client_record_id,
             trigger=NotificationTrigger.PICKUP_REMINDER,
-            content=content,
+            template_data={"binder_number": binder.binder_number},
             binder_id=binder.id,
             triggered_by=triggered_by,
         )
@@ -99,16 +76,10 @@ class NotificationService:
         tax_year: int,
         triggered_by: Optional[int] = None,
     ) -> bool:
-        person = self._send_svc._get_client(client_record_id)
-        name = (person.full_name if person else None) or FALLBACK_CLIENT_NAME
-        content = ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT.format(
-            name=name,
-            tax_year=tax_year,
-        )
         return self._send_svc.send_client_notification(
             client_record_id=client_record_id,
             trigger=NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
-            content=content,
+            template_data={"tax_year": tax_year},
             annual_report_id=annual_report_id,
             triggered_by=triggered_by,
         )
@@ -124,16 +95,6 @@ class NotificationService:
             trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
             content=reminder_text,
             triggered_by=triggered_by,
-        )
-
-    def notify_client_reminder(self, client_record_id: int, reminder_text: str) -> bool:
-        return self._send_svc.send_client_reminder(client_record_id, reminder_text)
-
-    def notify_client_record_reminder(
-        self, client_record_id: int, reminder_text: str
-    ) -> bool:
-        return self._send_svc.send_client_record_reminder(
-            client_record_id, reminder_text
         )
 
     def bulk_notify(

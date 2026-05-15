@@ -34,9 +34,7 @@ def test_notify_ready_for_pickup_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    fake_person = SimpleNamespace(full_name="Pickup Client")
     service._send_svc = SimpleNamespace(
-        _get_client=lambda cr_id: fake_person,
         send_client_notification=_fake_send_notification,
     )
     binder = SimpleNamespace(id=3, binder_number="BN-3")
@@ -55,9 +53,7 @@ def test_notify_binder_received_delegates_to_send_notification(test_db):
         captured.update(kwargs)
         return True
 
-    fake_person = SimpleNamespace(full_name="Acme Client")
     service._send_svc = SimpleNamespace(
-        _get_client=lambda cr_id: fake_person,
         send_client_notification=_fake_send_notification,
     )
     binder = SimpleNamespace(id=11, binder_number="BND-001", period_start="2026-03")
@@ -66,7 +62,7 @@ def test_notify_binder_received_delegates_to_send_notification(test_db):
     assert captured["client_record_id"] == 1
     assert captured["binder_id"] == 11
     assert captured["trigger"] == NotificationTrigger.BINDER_RECEIVED
-    assert "BND-001" in captured["content"]
+    assert captured["template_data"]["binder_number"] == "BND-001"
 
 
 def test_send_notification_delegates_to_send_service(test_db):

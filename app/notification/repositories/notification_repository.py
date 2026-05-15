@@ -76,52 +76,6 @@ class NotificationRepository(BaseRepository[Notification]):
             select(Notification).where(Notification.id == notification_id)
         ).first()
 
-    def list_by_client_record(
-        self,
-        client_record_id: int,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Notification]:
-        offset = (page - 1) * page_size
-        return self.db.scalars(
-            select(Notification)
-            .where(Notification.client_record_id == client_record_id)
-            .order_by(Notification.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        ).all()
-
-    def count_by_client_record(self, client_record_id: int) -> int:
-        return self.db.scalar(
-            select(func.count(Notification.id)).where(
-                Notification.client_record_id == client_record_id
-            )
-        )
-
-    # ── List by business (scoped view) ────────────────────────────────────────
-
-    def list_by_business(
-        self,
-        business_id: int,
-        page: int = 1,
-        page_size: int = 20,
-    ) -> list[Notification]:
-        offset = (page - 1) * page_size
-        return self.db.scalars(
-            select(Notification)
-            .where(Notification.business_id == business_id)
-            .order_by(Notification.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        ).all()
-
-    def count_by_business(self, business_id: int) -> int:
-        return self.db.scalar(
-            select(func.count(Notification.id)).where(
-                Notification.business_id == business_id
-            )
-        )
-
     # ── Paginated list (supports both filters) ────────────────────────────────
 
     def list_paginated(

@@ -82,9 +82,9 @@ def test_notification_repository_lifecycle(test_db):
     assert failed.failed_at is not None
     assert failed.error_message == "delivery error"
 
-    ordered = repo.list_by_business(business_id=business.id)
+    ordered, total = repo.list_paginated(business_id=business.id)
     assert [n.id for n in ordered] == [later.id, pending.id]
-    assert repo.count_by_business(business_id=business.id) == 2
+    assert total == 2
 
     assert repo.get_by_id(pending.id) is not None
     assert repo.mark_sent(notification_id=9999) is None

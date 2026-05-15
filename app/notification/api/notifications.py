@@ -9,6 +9,7 @@ from app.users.models.user import UserRole
 from app.notification.services.notification_service import NotificationService
 from app.notification.models.notification import NotificationTrigger
 from app.notification.schemas.notification_schemas import (
+    MarkAllReadRequest,
     MarkReadRequest,
     MarkReadResponse,
     NotificationListResponse,
@@ -86,16 +87,11 @@ def mark_read(body: MarkReadRequest, db: DBSession, user: CurrentUser):
 
 
 @router.post("/mark-all-read", response_model=MarkReadResponse)
-def mark_all_read(
-    db: DBSession,
-    user: CurrentUser,
-    client_record_id: Optional[int] = None,
-    business_id: Optional[int] = None,
-):
+def mark_all_read(body: MarkAllReadRequest, db: DBSession, user: CurrentUser):
     """Mark all unread notifications as read (optionally scoped to client or business)."""
     svc = NotificationService(db)
     updated = svc.mark_all_read(
-        client_record_id=client_record_id, business_id=business_id
+        client_record_id=body.client_record_id, business_id=body.business_id
     )
     return MarkReadResponse(updated=updated)
 
