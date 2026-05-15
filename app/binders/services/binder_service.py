@@ -27,6 +27,7 @@ from app.clients.repositories.client_record_repository import ClientRecordReposi
 from app.binders.services import binder_helpers
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_intake_service import BinderIntakeService
+from app.notification.models.notification import NotificationTrigger
 from app.notification.services.notification_service import NotificationService
 
 _log = logging.getLogger(__name__)
@@ -91,8 +92,11 @@ class BinderService:
         )
 
         if binder.client_record_id:
-            self.notification_service.notify_ready_for_pickup(
-                updated, binder.client_record_id
+            self.notification_service.notify_client(
+                client_record_id=binder.client_record_id,
+                trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
+                template_data={"binder_number": updated.binder_number},
+                binder_id=updated.id,
             )
 
         return updated

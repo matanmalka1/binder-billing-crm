@@ -50,8 +50,10 @@ class BinderPickupReminderService:
                     "BINDER.REMINDER_TOO_SOON",
                 )
 
-        self.notification_service.notify_pickup_reminder(
-            binder=binder,
+        self.notification_service.notify_client(
             client_record_id=binder.client_record_id,
+            trigger=NotificationTrigger.PICKUP_REMINDER,
+            template_data={"binder_number": binder.binder_number},
+            binder_id=binder.id,
             triggered_by=triggered_by,
         )

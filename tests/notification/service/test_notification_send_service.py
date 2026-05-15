@@ -1,4 +1,4 @@
-"""Integration tests for NotificationSendService — delivery engine."""
+"""Integration tests for NotificationService delivery engine."""
 
 from sqlalchemy.orm import Session
 
@@ -16,7 +16,7 @@ from app.notification.models.notification import (
     NotificationTrigger,
 )
 from app.notification.repositories.notification_repository import NotificationRepository
-from app.notification.services.notification_send_service import NotificationSendService
+from app.notification.services.notification_service import NotificationService
 
 
 def _make_client_with_person(
@@ -58,14 +58,14 @@ def _make_client_with_person(
     return record.id
 
 
-def test_send_client_notification_missing_template_key_returns_false_without_persisting(
+def test_notify_client_missing_template_key_returns_false_without_persisting(
     test_db, monkeypatch
 ):
     client_record_id = _make_client_with_person(test_db)
-    svc = NotificationSendService(test_db)
+    svc = NotificationService(test_db)
     monkeypatch.setattr(svc.email, "_enabled", False)
 
-    ok = svc.send_client_notification(
+    ok = svc.notify_client(
         client_record_id=client_record_id,
         trigger=NotificationTrigger.BINDER_RECEIVED,
         template_data={},  # missing binder_number and period_start
@@ -78,13 +78,13 @@ def test_send_client_notification_missing_template_key_returns_false_without_per
     assert total == 0
 
 
-def test_send_client_notification_whatsapp_fails_falls_back_to_email(
+def test_notify_client_whatsapp_fails_falls_back_to_email(
     test_db, monkeypatch
 ):
     client_record_id = _make_client_with_person(
         test_db, email="fallback@test.com", phone="0501234567"
     )
-    svc = NotificationSendService(test_db)
+    svc = NotificationService(test_db)
 
     monkeypatch.setattr(svc.whatsapp, "_api_key", "fake-key")
     monkeypatch.setattr(svc.whatsapp, "_from_number", "+9720000000")
@@ -96,7 +96,7 @@ def test_send_client_notification_whatsapp_fails_falls_back_to_email(
         lambda to, msg, subject="": email_calls.append(to) or (True, None),
     )
 
-    ok = svc.send_client_notification(
+    ok = svc.notify_client(
         client_record_id=client_record_id,
         trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
         template_data={"binder_number": "BN-1"},

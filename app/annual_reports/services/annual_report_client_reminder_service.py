@@ -53,9 +53,10 @@ class AnnualReportClientReminderService:
                     "ANNUAL_REPORT.REMINDER_TOO_SOON",
                 )
 
-        self.notification_service.notify_annual_report_client_reminder(
+        self.notification_service.notify_client(
             client_record_id=report.client_record_id,
+            trigger=NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+            template_data={"tax_year": report.tax_year},
             annual_report_id=report.id,
-            tax_year=report.tax_year,
             triggered_by=triggered_by,
         )

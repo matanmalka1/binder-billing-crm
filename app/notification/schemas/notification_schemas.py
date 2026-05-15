@@ -13,8 +13,9 @@ from app.notification.models.notification import (
 
 class NotificationResponse(BaseModel):
     id: int
-    client_record_id: int  # PRIMARY anchor — always present
-    business_id: Optional[int] = None  # OPTIONAL context
+    client_record_id: int
+    client_name: Optional[str] = None  # enriched by service layer
+    business_id: Optional[int] = None
     business_name: Optional[str] = None  # enriched by service layer
     binder_id: Optional[int] = None
     trigger: NotificationTrigger
@@ -27,41 +28,24 @@ class NotificationResponse(BaseModel):
     failed_at: Optional[ApiDateTime] = None
     error_message: Optional[str] = None
     retry_count: int
-    is_read: bool
-    read_at: Optional[ApiDateTime] = None
     triggered_by: Optional[int] = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
 
 
-class MarkReadRequest(BaseModel):
-    notification_ids: list[int] = Field(min_length=1)
-
-
-class MarkReadResponse(BaseModel):
-    updated: int
-
-
 class UnreadCountResponse(BaseModel):
     unread_count: int
 
 
-class MarkAllReadRequest(BaseModel):
-    client_record_id: Optional[int] = None
-    business_id: Optional[int] = None
-
-
-class SendNotificationRequest(BaseModel):
-    """Manual send by advisor — scoped to a business."""
-
-    business_id: int
-    channel: NotificationChannel
+class ManualSendRequest(BaseModel):
+    client_record_id: int = Field(gt=0)
+    business_id: Optional[int] = Field(None, gt=0)
+    preferred_channel: NotificationChannel
     message: str = Field(min_length=1, max_length=1000)
-    severity: NotificationSeverity = NotificationSeverity.INFO
 
 
-class SendNotificationResponse(BaseModel):
+class ManualSendResponse(BaseModel):
     ok: bool
 
 

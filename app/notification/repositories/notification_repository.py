@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -120,42 +120,6 @@ class NotificationRepository(BaseRepository[Notification]):
         return self.db.scalars(
             stmt.order_by(Notification.created_at.desc()).limit(limit)
         ).all()
-
-    # ── Read state ────────────────────────────────────────────────────────────
-
-    def mark_read(self, notification_ids: list[int]) -> int:
-        """Mark specific notifications as read. Returns count updated."""
-        now = utcnow()
-        result = self.db.execute(
-            update(Notification)
-            .where(
-                Notification.id.in_(notification_ids),
-                Notification.is_read == False,  # noqa: E712
-            )
-            .values(is_read=True, read_at=now)
-        )
-        self.db.flush()
-        return result.rowcount
-
-    def mark_all_read(
-        self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-    ) -> int:
-        """Mark all unread notifications as read. Returns count updated."""
-        now = utcnow()
-        stmt = (
-            update(Notification)
-            .where(Notification.is_read == False)  # noqa: E712
-            .values(is_read=True, read_at=now)
-        )
-        if client_record_id is not None:
-            stmt = stmt.where(Notification.client_record_id == client_record_id)
-        if business_id is not None:
-            stmt = stmt.where(Notification.business_id == business_id)
-        result = self.db.execute(stmt)
-        self.db.flush()
-        return result.rowcount
 
     def count_unread(
         self,

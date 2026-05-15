@@ -28,9 +28,12 @@ ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT = (
     "שלום {name},\n\nהדוח השנתי לשנת {tax_year} מחכה לאישורך.\n\nבברכה"
 )
 
+MANUAL_NOTIFICATION_CONTENT = "שלום {name},\n\n{message}\n\nבברכה"
+
 CONTENT_TEMPLATES: dict[str, str] = {
     "binder_received": BINDER_RECEIVED_NOTIFICATION_CONTENT,
     "binder_ready_for_pickup": BINDER_READY_FOR_PICKUP_NOTIFICATION_CONTENT,
     "pickup_reminder": PICKUP_REMINDER_NOTIFICATION_CONTENT,
     "annual_report_client_reminder": ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT,
+    "manual_payment_reminder": MANUAL_NOTIFICATION_CONTENT,
 }

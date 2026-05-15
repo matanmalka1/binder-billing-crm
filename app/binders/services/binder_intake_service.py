@@ -24,6 +24,7 @@ from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
+from app.notification.models.notification import NotificationTrigger
 from app.notification.services.notification_service import NotificationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -159,7 +160,15 @@ class BinderIntakeService:
         self._auto_advance_vat_work_items(materials, performed_by=received_by)
 
         if is_new_binder:
-            self.notification_service.notify_binder_received(binder, client_record_id)
+            self.notification_service.notify_client(
+                client_record_id=client_record_id,
+                trigger=NotificationTrigger.BINDER_RECEIVED,
+                template_data={
+                    "binder_number": binder.binder_number,
+                    "period_start": binder.period_start,
+                },
+                binder_id=binder.id,
+            )
 
         return binder, intake, is_new_binder
 

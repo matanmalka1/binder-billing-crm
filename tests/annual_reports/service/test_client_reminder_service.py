@@ -23,9 +23,7 @@ def _service(monkeypatch, report, last=None):
     monkeypatch.setattr(
         "app.annual_reports.services.annual_report_client_reminder_service.NotificationService",
         lambda db: SimpleNamespace(
-            notify_annual_report_client_reminder=lambda **kwargs: (
-                sent.update(kwargs) or True
-            ),
+            notify_client=lambda **kwargs: sent.update(kwargs) or True,
         ),
     )
     return AnnualReportClientReminderService(SimpleNamespace()), sent
@@ -42,12 +40,10 @@ def test_send_client_reminder_sends_for_pending_client_report(monkeypatch):
 
     service.send_client_reminder(report_id=5, triggered_by=17)
 
-    assert sent == {
-        "client_record_id": 9,
-        "annual_report_id": 5,
-        "tax_year": 2025,
-        "triggered_by": 17,
-    }
+    assert sent["client_record_id"] == 9
+    assert sent["annual_report_id"] == 5
+    assert sent["template_data"] == {"tax_year": 2025}
+    assert sent["triggered_by"] == 17
 
 
 def test_send_client_reminder_rejects_missing_report(monkeypatch):

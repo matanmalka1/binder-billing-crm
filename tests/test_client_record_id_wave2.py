@@ -158,21 +158,6 @@ class TestO3Notification:
         assert len(items) == 1
         assert items[0].client_record_id == record.id
 
-    def test_service_resolves_client_record_id_from_client_id(self, db, monkeypatch):
-        from app.notification.services.notification_send_service import (
-            NotificationSendService,
-        )
-
-        client = _make_client(db, "C208")
-        record = _make_client_record(db, client.id)
-        _attach_owner_person(db, client.id, email="client@test.com")
-        db.flush()
-        svc = NotificationSendService(db)
-        monkeypatch.setattr(svc.email, "send", lambda *args, **kwargs: (True, None))
-
-        svc.send_client_reminder(client.id, "hello")
-        created, _ = svc.notification_repo.list_paginated(client_record_id=record.id)
-        assert created[0].client_record_id == record.id
 
 
 class TestO4Correspondence:

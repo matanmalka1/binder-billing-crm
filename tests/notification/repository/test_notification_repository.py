@@ -91,12 +91,12 @@ def test_notification_repository_lifecycle(test_db):
     assert repo.mark_failed(notification_id=9999, error_message="x") is None
 
 
-def test_notification_repository_read_and_recent_and_pagination(test_db):
+def test_notification_repository_pagination(test_db):
     repo = NotificationRepository(test_db)
     b1 = _business(test_db, "2")
     b2 = _business(test_db, "3")
 
-    n1 = repo.create(
+    repo.create(
         client_record_id=_client_record_id(test_db, b1),
         business_id=b1.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
@@ -112,7 +112,7 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
         recipient="a@example.com",
         content_snapshot="b",
     )
-    n3 = repo.create(
+    repo.create(
         client_record_id=_client_record_id(test_db, b2),
         business_id=b2.id,
         trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
@@ -120,20 +120,6 @@ def test_notification_repository_read_and_recent_and_pagination(test_db):
         recipient="b@example.com",
         content_snapshot="c",
     )
-
-    assert repo.count_unread(business_id=b1.id) == 2
-
-    updated = repo.mark_read([n1.id])
-    assert updated == 1
-    assert repo.count_unread(business_id=b1.id) == 1
-
-    updated_all = repo.mark_all_read(business_id=b1.id)
-    assert updated_all == 1
-    assert repo.count_unread(business_id=b1.id) == 0
-    assert repo.count_unread() == 1
-
-    recent_b2 = repo.list_recent(limit=10, business_id=b2.id)
-    assert [n.id for n in recent_b2] == [n3.id]
 
     items, total = repo.list_paginated(page=1, page_size=1, business_id=b1.id)
     assert total == 2

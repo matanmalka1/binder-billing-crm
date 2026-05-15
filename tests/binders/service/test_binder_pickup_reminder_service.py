@@ -23,7 +23,7 @@ def _service(monkeypatch, binder, last=None):
     monkeypatch.setattr(
         "app.binders.services.binder_pickup_reminder_service.NotificationService",
         lambda db: SimpleNamespace(
-            notify_pickup_reminder=lambda **kwargs: sent.update(kwargs) or True
+            notify_client=lambda **kwargs: sent.update(kwargs) or True
         ),
     )
     return BinderPickupReminderService(SimpleNamespace()), sent
@@ -31,15 +31,17 @@ def _service(monkeypatch, binder, last=None):
 
 def test_send_pickup_reminder_sends_for_ready_binder(monkeypatch):
     binder = SimpleNamespace(
-        id=7, status=BinderStatus.READY_FOR_PICKUP, client_record_id=3
+        id=7, status=BinderStatus.READY_FOR_PICKUP, client_record_id=3,
+        binder_number="BN-7",
     )
     service, sent = _service(monkeypatch, binder)
 
     service.send_pickup_reminder(binder_id=7, triggered_by=11)
 
-    assert sent["binder"] is binder
     assert sent["client_record_id"] == 3
+    assert sent["binder_id"] == 7
     assert sent["triggered_by"] == 11
+    assert sent["template_data"]["binder_number"] == "BN-7"
 
 
 def test_send_pickup_reminder_rejects_missing_binder(monkeypatch):
