@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -205,6 +205,7 @@ class TestO5SignatureRequest:
         client = _make_client(db, "C213")
         record = _make_client_record(db, client.id)
         user = _make_user(db)
+        now = datetime.now(UTC)
         db.add(
             SignatureRequest(
                 client_record_id=record.id,
@@ -212,7 +213,10 @@ class TestO5SignatureRequest:
                 request_type=SignatureRequestType.CUSTOM,
                 title="Sign",
                 signer_name="Signer",
-                status=SignatureRequestStatus.DRAFT,
+                status=SignatureRequestStatus.PENDING_SIGNATURE,
+                signing_token="wave-2-signature-token",
+                sent_at=now,
+                expires_at=now,
             )
         )
         db.flush()

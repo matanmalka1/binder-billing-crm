@@ -53,15 +53,6 @@ def _random_between(rng: Random, start: datetime, end: datetime) -> datetime:
 def _build_timestamps(rng: Random, status: SignatureRequestStatus) -> dict:
     now = datetime.now(UTC)
     created_at = now - timedelta(days=rng.randint(7, 90), hours=rng.randint(0, 23))
-    if status == SignatureRequestStatus.DRAFT:
-        return {
-            "created_at": created_at,
-            "sent_at": None,
-            "expires_at": None,
-            "signed_at": None,
-            "declined_at": None,
-            "canceled_at": None,
-        }
 
     sent_at = _random_between(rng, created_at, now - timedelta(hours=1))
     if sent_at <= created_at:
