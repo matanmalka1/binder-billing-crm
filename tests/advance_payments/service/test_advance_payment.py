@@ -55,7 +55,6 @@ def test_create_payment_duplicate_period_raises_conflict(test_db):
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
     )
 
     with pytest.raises(ConflictError):
@@ -63,7 +62,6 @@ def test_create_payment_duplicate_period_raises_conflict(test_db):
             client_record_id=business.client_record_id,
             period="2026-01",
             period_months_count=1,
-            due_date=date(2026, 2, 15),
         )
 
 
@@ -127,14 +125,12 @@ def test_list_payments_filters_by_status(test_db):
         client_record_id=business.client_record_id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
         expected_amount=Decimal("100"),
     )
     second = service.create_payment_for_client(
         client_record_id=business.client_record_id,
         period="2026-02",
         period_months_count=1,
-        due_date=date(2026, 3, 15),
         expected_amount=Decimal("200"),
     )
     service.update_payment_for_client(

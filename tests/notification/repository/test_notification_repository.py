@@ -155,7 +155,9 @@ def test_list_paginated_filters_by_status(test_db):
     )
     repo.mark_sent(n_sent.id)
 
-    items, total = repo.list_paginated(business_id=b.id, status=NotificationStatus.PENDING)
+    items, total = repo.list_paginated(
+        business_id=b.id, status=NotificationStatus.PENDING
+    )
     assert total == 1
     assert items[0].id == n_pending.id
 
@@ -211,7 +213,9 @@ def test_list_paginated_filters_by_channel(test_db):
         content_snapshot="wa",
     )
 
-    items, total = repo.list_paginated(business_id=b.id, channel=NotificationChannel.EMAIL)
+    items, total = repo.list_paginated(
+        business_id=b.id, channel=NotificationChannel.EMAIL
+    )
     assert total == 1
     assert items[0].id == n_email.id
 

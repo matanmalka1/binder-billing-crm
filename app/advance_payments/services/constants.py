@@ -3,10 +3,6 @@
 from decimal import Decimal
 
 from app.config import config
-from app.common.period_utils import (  # noqa: F401 – re-exported for existing callers  # pylint: disable=unused-import
-    parse_period_month,
-    parse_period_year,
-)
 
 ADVANCE_PAYMENT_VAT_RATE: Decimal = config.ADVANCE_PAYMENT_VAT_RATE
 MONTHLY_PERIOD_MONTHS_COUNT = 1

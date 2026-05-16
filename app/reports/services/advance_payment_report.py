@@ -2,8 +2,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.advance_payments.repositories.advance_payment_repository import (
-    AdvancePaymentRepository,
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    AdvancePaymentAggregationRepository,
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
@@ -11,7 +11,7 @@ from app.clients.repositories.legal_entity_repository import LegalEntityReposito
 
 class AdvancePaymentReportService:
     def __init__(self, db: Session):
-        self.repo = AdvancePaymentRepository(db)
+        self.repo = AdvancePaymentAggregationRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
         self.legal_entity_repo = LegalEntityRepository(db)
 

@@ -135,7 +135,11 @@ class NotificationRepository(BaseRepository[Notification]):
         result: dict[str, int] = {s.value: 0 for s in NotificationStatus}
         result["total"] = 0
         for status_val, count in rows:
-            key = status_val.value if isinstance(status_val, NotificationStatus) else status_val
+            key = (
+                status_val.value
+                if isinstance(status_val, NotificationStatus)
+                else status_val
+            )
             result[key] = count
             result["total"] += count
         return result

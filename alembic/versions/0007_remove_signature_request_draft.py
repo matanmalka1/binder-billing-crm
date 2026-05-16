@@ -66,9 +66,13 @@ def upgrade() -> None:
     if bind.dialect.name == "postgresql":
         # The initial schema had no database default for this column.
         # Keep it that way: a pending request is valid only with token/expiry fields.
-        op.execute(sa.text("ALTER TABLE signature_requests ALTER COLUMN status DROP DEFAULT"))
         op.execute(
-            sa.text("ALTER TYPE signaturerequeststatus RENAME TO signaturerequeststatus_old")
+            sa.text("ALTER TABLE signature_requests ALTER COLUMN status DROP DEFAULT")
+        )
+        op.execute(
+            sa.text(
+                "ALTER TYPE signaturerequeststatus RENAME TO signaturerequeststatus_old"
+            )
         )
         new_enum = postgresql.ENUM(*NEW_VALUES, name="signaturerequeststatus")
         new_enum.create(bind, checkfirst=False)
@@ -99,7 +103,9 @@ def downgrade() -> None:
 
     if bind.dialect.name == "postgresql":
         op.execute(
-            sa.text("ALTER TYPE signaturerequeststatus RENAME TO signaturerequeststatus_new")
+            sa.text(
+                "ALTER TYPE signaturerequeststatus RENAME TO signaturerequeststatus_new"
+            )
         )
         old_enum = postgresql.ENUM(*OLD_VALUES, name="signaturerequeststatus")
         old_enum.create(bind, checkfirst=False)

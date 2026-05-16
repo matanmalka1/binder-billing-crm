@@ -7,7 +7,6 @@ from app.advance_payments.models.advance_payment import (
 )
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     advance_payment_start_month_expr,
-    advance_payment_status_text_expr,
 )
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
@@ -20,7 +19,9 @@ class AdvancePaymentBatchRepository(BaseRepository):
     def batch_summary_by_month(self, year: int | None) -> list:
         today_expr = func.current_date()
         start_month = advance_payment_start_month_expr()
-        period_year = cast(func.left(AdvancePayment.period, 4), Integer)
+        period_year = cast(func.substr(AdvancePayment.period, 1, 4), Integer)
+        not_paid_expr = AdvancePayment.status != AdvancePaymentStatus.PAID
+        pending_expr = AdvancePayment.status == AdvancePaymentStatus.PENDING
         stmt = (
             scope_to_active_clients_stmt(
                 select(
@@ -40,10 +41,7 @@ class AdvancePaymentBatchRepository(BaseRepository):
                             case(
                                 (
                                     (AdvancePayment.due_date < today_expr)
-                                    & (
-                                        advance_payment_status_text_expr()
-                                        != AdvancePaymentStatus.PAID.value
-                                    ),
+                                    & not_paid_expr,
                                     1,
                                 ),
                                 else_=0,
@@ -67,16 +65,7 @@ class AdvancePaymentBatchRepository(BaseRepository):
                         0,
                     ).label("snapshot_missing_count"),
                     func.coalesce(
-                        func.sum(
-                            case(
-                                (
-                                    advance_payment_status_text_expr()
-                                    == AdvancePaymentStatus.PENDING.value,
-                                    1,
-                                ),
-                                else_=0,
-                            )
-                        ),
+                        func.sum(case((pending_expr, 1), else_=0)),
                         0,
                     ).label("pending_count"),
                 ),

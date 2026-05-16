@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Optional
 
@@ -20,8 +21,9 @@ from app.advance_payments.services.constants import (
     ADVANCE_PAYMENT_VAT_RATE,
     BIMONTHLY_START_MONTHS,
     SUPPORTED_PERIOD_MONTH_COUNTS,
-    parse_period_month,
+    get_period_start_months,
 )
+from app.common.period_utils import parse_period_month
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
@@ -110,7 +112,6 @@ class AdvancePaymentService:
         client_record_id: int,
         period: str,
         period_months_count: Optional[int],
-        due_date,
         expected_amount=None,
         paid_amount=None,
         payment_method=None,
@@ -242,3 +243,51 @@ class AdvancePaymentService:
         return calculate_expected_amount(
             annual_income, Decimal(str(legal_entity.advance_rate)), period_months_count
         )
+
+    # ─── Generate schedule ────────────────────────────────────────────────────
+
+    def generate_annual_schedule(
+        self,
+        client_record_id: int,
+        year: int,
+        period_months_count: Optional[int] = None,
+        reference_date: Optional[date] = None,
+    ) -> tuple[list[AdvancePayment], int]:
+        if reference_date is None:
+            reference_date = date.today()
+        self._assert_client_allows_create(client_record_id)
+        configured_count = self.default_period_months_count_for_client(client_record_id)
+        if period_months_count is None:
+            period_months_count = configured_count
+        elif period_months_count != configured_count:
+            raise ConflictError(
+                "תדירות המקדמות בבקשה אינה תואמת להגדרת הלקוח",
+                "ADVANCE_PAYMENT.FREQUENCY_MISMATCH",
+            )
+        tax_calendar = TaxCalendarMaterializationService(self.db)
+        suggested = self.suggest_expected_amount_for_client(
+            client_record_id, year, period_months_count
+        )
+        created: list[AdvancePayment] = []
+        skipped = 0
+        for month in get_period_start_months(period_months_count):
+            period = f"{year}-{month:02d}"
+            entry = tax_calendar.ensure_periodic_entry(
+                ObligationType.ADVANCE_PAYMENT,
+                period,
+                period_months_count,
+            )
+            if entry.due_date < reference_date:
+                skipped += 1
+                continue
+            if self.repo.exists_for_period(client_record_id, period):
+                skipped += 1
+                continue
+            payment = self.create_payment_for_client(
+                client_record_id=client_record_id,
+                period=period,
+                period_months_count=period_months_count,
+                expected_amount=suggested,
+            )
+            created.append(payment)
+        return created, skipped

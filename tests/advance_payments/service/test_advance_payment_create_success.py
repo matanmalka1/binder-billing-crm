@@ -35,7 +35,6 @@ def test_create_payment_success_sets_defaults(test_db):
         client_record_id=client_record.id,
         period="2026-02",
         period_months_count=1,
-        due_date=date(2026, 3, 15),
         expected_amount=Decimal("250.50"),
         paid_amount=Decimal("100.00"),
         notes="first advance",
@@ -60,7 +59,6 @@ def test_due_date_original_cannot_change_after_first_set(test_db):
         client_record_id=client_record.id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
     )
     test_db.commit()
 
@@ -77,7 +75,6 @@ def test_due_date_effective_can_change_with_override_reason(test_db):
         client_record_id=client_record.id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
     )
     test_db.commit()
 
@@ -96,7 +93,6 @@ def test_due_date_effective_requires_reason_when_changed(test_db):
         client_record_id=client_record.id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
     )
     test_db.commit()
 
@@ -113,7 +109,6 @@ def test_due_date_effective_equal_original_does_not_require_reason(test_db):
         client_record_id=client_record.id,
         period="2026-01",
         period_months_count=1,
-        due_date=date(2026, 2, 15),
     )
     test_db.commit()
 
@@ -131,7 +126,6 @@ def test_create_payment_missing_business_raises(test_db):
             client_record_id=999,
             period="2026-01",
             period_months_count=1,
-            due_date=date(2026, 2, 15),
         )
 
 
@@ -144,7 +138,6 @@ def test_create_payment_closed_client_raises_client_closed(test_db):
             client_record_id=client_record.id,
             period="2026-05",
             period_months_count=1,
-            due_date=date(2026, 6, 15),
         )
 
     assert getattr(exc_info.value, "code", None) == "CLIENT.CLOSED"

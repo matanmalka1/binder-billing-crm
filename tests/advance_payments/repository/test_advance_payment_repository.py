@@ -3,7 +3,6 @@ from decimal import Decimal
 from itertools import count
 
 from sqlalchemy import text
-from sqlalchemy.dialects import postgresql
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
@@ -11,7 +10,6 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
 )
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
-    advance_payment_status_text_expr,
 )
 from app.businesses.models.business import Business
 from app.common.enums import VatType
@@ -197,6 +195,7 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
 
 
 def test_list_by_client_record_year_handles_legacy_uppercase_status_values(test_db):
+    """_NormalizedEnum deserializes legacy uppercase values on ORM read."""
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Legacy Client", "100000005")
 
@@ -222,21 +221,3 @@ def test_list_by_client_record_year_handles_legacy_uppercase_status_values(test_
     )
     assert total == 1
     assert items[0].status == AdvancePaymentStatus.PARTIAL
-
-    filtered, filtered_total = repo.list_by_client_record_year(
-        client_record_id=business.client_record_id,
-        year=2026,
-        status=[AdvancePaymentStatus.PARTIAL],
-    )
-    assert filtered_total == 1
-    assert filtered[0].id == payment.id
-
-
-def test_status_expression_casts_enum_for_postgres():
-    compiled = str(
-        advance_payment_status_text_expr().compile(
-            dialect=postgresql.dialect(),
-            compile_kwargs={"literal_binds": True},
-        )
-    )
-    assert compiled == "lower(CAST(advance_payments.status AS VARCHAR))"

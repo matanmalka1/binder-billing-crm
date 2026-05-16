@@ -30,8 +30,12 @@ from app.notification.schemas.notification_schemas import (
     NotificationSummaryResponse,
 )
 from app.notification.services.messages import FALLBACK_CLIENT_NAME
-from app.notification.services.notification_delivery_service import NotificationDeliveryService
-from app.notification.services.notification_template_renderer import NotificationTemplateRenderer
+from app.notification.services.notification_delivery_service import (
+    NotificationDeliveryService,
+)
+from app.notification.services.notification_template_renderer import (
+    NotificationTemplateRenderer,
+)
 
 logger = get_logger(__name__)
 
@@ -110,7 +114,9 @@ class NotificationService:
         )
 
         if not person:
-            logger.warning("notify_client: client %s has no linked person", client_record_id)
+            logger.warning(
+                "notify_client: client %s has no linked person", client_record_id
+            )
             return False
 
         log_ctx = f"client={client_record_id} trigger={trigger.value}"

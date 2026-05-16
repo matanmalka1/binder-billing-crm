@@ -1,6 +1,9 @@
 from fastapi import APIRouter
 
-from app.notification.api.notifications import advisor_router, router as notifications_router
+from app.notification.api.notifications import (
+    advisor_router,
+    router as notifications_router,
+)
 
 router = APIRouter()
 router.include_router(notifications_router)

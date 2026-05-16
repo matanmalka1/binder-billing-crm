@@ -5,9 +5,6 @@ from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
-from app.advance_payments.repositories.advance_payment_aggregation_repository import (
-    advance_payment_status_text_expr,
-)
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 
@@ -20,7 +17,7 @@ class AdvancePaymentDashboardRepository(BaseRepository):
         self, period: str, period_months_count: int
     ) -> tuple[int, int]:
         paid_expr = case(
-            (advance_payment_status_text_expr() == AdvancePaymentStatus.PAID.value, 1),
+            (AdvancePayment.status == AdvancePaymentStatus.PAID, 1),
             else_=0,
         )
         stmt = scope_to_active_clients_stmt(

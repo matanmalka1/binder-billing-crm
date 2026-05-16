@@ -15,7 +15,7 @@ from app.advance_payments.services.advance_payment_service import AdvancePayment
 from app.advance_payments.services.advance_payment_analytics_service import (
     AdvancePaymentAnalyticsService,
 )
-from app.advance_payments.services.constants import parse_period_year
+from app.common.period_utils import parse_period_year
 from app.advance_payments.repositories.turnover_lookup_repository import (
     TurnoverLookupRepository,
 )
@@ -91,7 +91,6 @@ def create_advance_payment(
         client_record_id=client_record_id,
         period=request.period,
         period_months_count=request.period_months_count,
-        due_date=request.due_date,
         expected_amount=request.expected_amount,
         paid_amount=request.paid_amount,
         payment_method=request.payment_method,

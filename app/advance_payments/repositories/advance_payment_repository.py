@@ -5,25 +5,16 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import exists, func, select
-from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
-from app.advance_payments.repositories.advance_payment_aggregation_repository import (
-    AdvancePaymentAggregationRepository,
-    advance_payment_status_text_expr,
-)
 
 
 class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
     model = AdvancePayment
-
-    def __init__(self, db: Session):
-        super().__init__(db)
-        self._agg = AdvancePaymentAggregationRepository(db)
 
     # ── CRUD ─────────────────────────────────────────────────────────────────
 
@@ -82,8 +73,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             AdvancePayment.deleted_at.is_(None),
         ]
         if status:
-            normalized = [s.value.lower() for s in status]
-            base_where.append(advance_payment_status_text_expr().in_(normalized))
+            base_where.append(AdvancePayment.status.in_(status))
         total = self.db.scalar(select(func.count(AdvancePayment.id)).where(*base_where))
         stmt = (
             select(AdvancePayment)
@@ -123,11 +113,3 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
 
     def soft_delete(self, payment_id: int, deleted_by: int | None = None) -> bool:
         return self._soft_delete_entity(payment_id, deleted_by)
-
-    # ── Aggregation (delegated) ───────────────────────────────────────────────
-
-    def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
-        return self._agg.sum_paid_by_client_year(client_record_id, year)
-
-    def get_collections_aggregates(self, year: int, month=None) -> list:
-        return self._agg.get_collections_aggregates(year, month)

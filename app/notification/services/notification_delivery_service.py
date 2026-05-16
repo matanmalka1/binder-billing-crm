@@ -45,7 +45,11 @@ class NotificationDeliveryService:
         phone = person.phone
         email_addr = person.email
 
-        if preferred_channel == NotificationChannel.WHATSAPP and self.whatsapp.enabled and phone:
+        if (
+            preferred_channel == NotificationChannel.WHATSAPP
+            and self.whatsapp.enabled
+            and phone
+        ):
             n = self.repo.create(
                 client_record_id=client_record_id,
                 business_id=business_id,
@@ -58,7 +62,9 @@ class NotificationDeliveryService:
                 triggered_by=triggered_by,
                 severity=severity,
             )
-            if self._send_to_channel(n.id, NotificationChannel.WHATSAPP, phone, content, subject, log_ctx):
+            if self._send_to_channel(
+                n.id, NotificationChannel.WHATSAPP, phone, content, subject, log_ctx
+            ):
                 return True
             logger.warning("WhatsApp failed %s, falling back to email", log_ctx)
 
@@ -82,7 +88,9 @@ class NotificationDeliveryService:
             triggered_by=triggered_by,
             severity=severity,
         )
-        return self._send_to_channel(n.id, NotificationChannel.EMAIL, email_addr, content, subject, log_ctx)
+        return self._send_to_channel(
+            n.id, NotificationChannel.EMAIL, email_addr, content, subject, log_ctx
+        )
 
     def _send_to_channel(
         self,

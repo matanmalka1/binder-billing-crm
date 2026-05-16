@@ -26,7 +26,9 @@ class NotificationTemplateRenderer:
         """Returns (content, subject). Raises AppError before any persistence."""
         template = CONTENT_TEMPLATES.get(trigger.value)
         if template is None:
-            logger.error("NotificationTemplateRenderer: no template for trigger=%s", trigger)
+            logger.error(
+                "NotificationTemplateRenderer: no template for trigger=%s", trigger
+            )
             raise AppError(_TEMPLATE_ERROR_MSG, _TEMPLATE_ERROR_CODE)
 
         try:
@@ -36,7 +38,9 @@ class NotificationTemplateRenderer:
             )
         except KeyError as exc:
             logger.error(
-                "NotificationTemplateRenderer: missing key=%s for trigger=%s", exc, trigger
+                "NotificationTemplateRenderer: missing key=%s for trigger=%s",
+                exc,
+                trigger,
             )
             raise AppError(_TEMPLATE_ERROR_MSG, _TEMPLATE_ERROR_CODE) from exc
 

@@ -136,9 +136,7 @@ def test_notifications_list_by_channel(client, test_db, advisor_headers):
     n_email = _seed_notification(
         test_db, b1.id, "email-notif", channel=NotificationChannel.EMAIL
     )
-    _seed_notification(
-        test_db, b1.id, "wa-notif", channel=NotificationChannel.WHATSAPP
-    )
+    _seed_notification(test_db, b1.id, "wa-notif", channel=NotificationChannel.WHATSAPP)
 
     resp = client.get(
         f"/api/v1/notifications?business_id={b1.id}&channel=email",
@@ -173,7 +171,9 @@ def test_notifications_summary(client, test_db, advisor_headers):
     assert data["total"] == 3
 
 
-def test_notifications_summary_zero_for_absent_statuses(client, test_db, advisor_headers):
+def test_notifications_summary_zero_for_absent_statuses(
+    client, test_db, advisor_headers
+):
     b1 = _business(test_db, "sum2")
     repo = NotificationRepository(test_db)
     n = _seed_notification(test_db, b1.id, "sent-only")

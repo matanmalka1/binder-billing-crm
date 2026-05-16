@@ -133,7 +133,10 @@ def test_create_request_sets_pending_token_and_expiry(test_db, test_user):
     assert req.sent_at is not None
     assert req.expires_at is not None
     assert req.expiry_days == 14
-    assert [event.event_type for event in SignatureRequestRepository(test_db).list_audit_events(req.id)] == [
+    assert [
+        event.event_type
+        for event in SignatureRequestRepository(test_db).list_audit_events(req.id)
+    ] == [
         "created",
         "sent",
     ]

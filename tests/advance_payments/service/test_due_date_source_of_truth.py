@@ -2,10 +2,20 @@
 
 from datetime import date
 
-from app.advance_payments.services.advance_payment_generator import (
-    generate_annual_schedule,
-)
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
+
+
+def generate_annual_schedule(
+    client_record_id, year, db, period_months_count=None, reference_date=None
+):
+    return AdvancePaymentService(db).generate_annual_schedule(
+        client_record_id,
+        year,
+        period_months_count=period_months_count,
+        reference_date=reference_date,
+    )
+
+
 from app.common.enums import DeadlineRuleType, ObligationType
 from tests.tax_calendar.service.linking_helpers import advance_client, make_entry
 
@@ -82,9 +92,6 @@ def test_create_payment_directly_uses_entry_due_date(test_db):
         client_record_id=client.id,
         period="2026-03",
         period_months_count=1,
-        due_date=date(
-            2026, 4, 15
-        ),  # caller passes 15th; must be ignored in favor of entry's 16th
     )
 
     assert payment.due_date == date(2026, 4, 16)

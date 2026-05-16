@@ -159,7 +159,6 @@ class TestO3Notification:
         assert items[0].client_record_id == record.id
 
 
-
 class TestO4Correspondence:
     def test_repo_list_by_client_record(self, db):
         from app.correspondence.models.correspondence import (

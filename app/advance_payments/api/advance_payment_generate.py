@@ -6,9 +6,7 @@ from app.advance_payments.schemas.advance_payment import (
     GenerateScheduleRequest,
     GenerateScheduleResponse,
 )
-from app.advance_payments.services.advance_payment_generator import (
-    generate_annual_schedule,
-)
+from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 
 router = APIRouter(
     prefix="/clients/{client_record_id}/advance-payments",
@@ -28,10 +26,9 @@ def generate_advance_payment_schedule(
     db: DBSession,
     user: CurrentUser,
 ):
-    created, skipped = generate_annual_schedule(
+    created, skipped = AdvancePaymentService(db).generate_annual_schedule(
         client_record_id,
         request.year,
-        db,
         period_months_count=request.period_months_count,
         reference_date=request.reference_date,
     )

@@ -11,8 +11,8 @@ from app.advance_payments.models.advance_payment import (
 from app.advance_payments.services.constants import (
     BIMONTHLY_START_MONTHS,
     SUPPORTED_PERIOD_MONTH_COUNTS,
-    parse_period_month,
 )
+from app.common.period_utils import parse_period_month
 from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 
 
@@ -70,7 +70,6 @@ AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 class AdvancePaymentCreateRequest(BaseModel):
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     period_months_count: Optional[int] = Field(None, ge=1, le=2)
-    due_date: date
     expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
     payment_method: Optional[PaymentMethod] = None

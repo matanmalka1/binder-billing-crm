@@ -153,7 +153,9 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     repo.update(other.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert [item.id for item in repo.list_pending_by_annual_report(77)] == [pending.id]
-    assert canceled.id not in [item.id for item in repo.list_pending_by_annual_report(77)]
+    assert canceled.id not in [
+        item.id for item in repo.list_pending_by_annual_report(77)
+    ]
     model_repr = repr(
         SignatureRequest(
             id=123,

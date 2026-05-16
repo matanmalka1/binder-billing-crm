@@ -31,7 +31,9 @@ def _service(monkeypatch, binder, last=None):
 
 def test_send_pickup_reminder_sends_for_ready_binder(monkeypatch):
     binder = SimpleNamespace(
-        id=7, status=BinderStatus.READY_FOR_PICKUP, client_record_id=3,
+        id=7,
+        status=BinderStatus.READY_FOR_PICKUP,
+        client_record_id=3,
         binder_number="BN-7",
     )
     service, sent = _service(monkeypatch, binder)

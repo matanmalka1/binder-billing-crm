@@ -9,9 +9,6 @@ from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
-from app.advance_payments.repositories.advance_payment_analytics_repository import (
-    AdvancePaymentAnalyticsRepository,
-)
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
 )
@@ -26,8 +23,7 @@ from app.core.exceptions import NotFoundError
 class AdvancePaymentAnalyticsService:
     def __init__(self, db: Session):
         self.db = db
-        self.analytics_repo = AdvancePaymentAnalyticsRepository(db)
-        self.aggregation_repo = AdvancePaymentAggregationRepository(db)
+        self.repo = AdvancePaymentAggregationRepository(db)
 
     @staticmethod
     def _collection_rate(total_paid: float, total_expected: float) -> float:
@@ -48,7 +44,7 @@ class AdvancePaymentAnalyticsService:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
 
-        payments = self.aggregation_repo.list_overview_payments(year, month, statuses)
+        payments = self.repo.list_overview_payments(year, month, statuses)
 
         client_record_ids = list({p.client_record_id for p in payments})
         records = {
@@ -139,7 +135,7 @@ class AdvancePaymentAnalyticsService:
                 f"רשומת לקוח {client_record_id} לא נמצאה",
                 "ADVANCE_PAYMENT.CLIENT_NOT_FOUND",
             )
-        data = self.analytics_repo.get_annual_kpis_for_client(client_record_id, year)
+        data = self.repo.get_annual_kpis_for_client(client_record_id, year)
         return {
             **data,
             "client_record_id": client_record_id,
@@ -157,7 +153,7 @@ class AdvancePaymentAnalyticsService:
     ) -> dict:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
-        data = self.analytics_repo.get_overview_kpis(year, month, statuses)
+        data = self.repo.get_overview_kpis(year, month, statuses)
         return {
             **data,
             "collection_rate": self._collection_rate(

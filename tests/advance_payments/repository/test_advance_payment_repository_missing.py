@@ -3,8 +3,8 @@ from decimal import Decimal
 from itertools import count
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_analytics_repository import (
-    AdvancePaymentAnalyticsRepository,
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    AdvancePaymentAggregationRepository as AdvancePaymentAnalyticsRepository,
 )
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
@@ -90,7 +90,7 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
 
     assert repo.exists_for_period(business.client_record_id, "2026-01") is True
     assert repo.exists_for_period(business.client_record_id, "2026-03") is False
-    assert repo.sum_paid_by_client_year(business.client_record_id, 2026) == 100.0
+    assert AdvancePaymentAnalyticsRepository(test_db).sum_paid_by_client_year(business.client_record_id, 2026) == 100.0
 
 
 def test_advance_payment_analytics_annual_kpis(test_db):

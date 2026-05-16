@@ -44,11 +44,13 @@ def _make_client(db, *, email: str = "owner@test.com", phone: str | None = None)
     )
     db.add(person)
     db.flush()
-    db.add(PersonLegalEntityLink(
-        person_id=person.id,
-        legal_entity_id=entity.id,
-        role=PersonLegalEntityRole.OWNER,
-    ))
+    db.add(
+        PersonLegalEntityLink(
+            person_id=person.id,
+            legal_entity_id=entity.id,
+            role=PersonLegalEntityRole.OWNER,
+        )
+    )
     db.flush()
     return record.id
 
@@ -73,11 +75,13 @@ def _make_client_with_business(db, *, email: str = "biz@test.com") -> tuple[int,
     )
     db.add(person)
     db.flush()
-    db.add(PersonLegalEntityLink(
-        person_id=person.id,
-        legal_entity_id=entity.id,
-        role=PersonLegalEntityRole.OWNER,
-    ))
+    db.add(
+        PersonLegalEntityLink(
+            person_id=person.id,
+            legal_entity_id=entity.id,
+            role=PersonLegalEntityRole.OWNER,
+        )
+    )
     biz = Business(
         legal_entity_id=entity.id,
         business_name="Test Biz",
@@ -131,7 +135,9 @@ def test_notify_client_missing_template_key_raises_app_error(test_db, monkeypatc
             template_data={},  # missing binder_number and period_start
         )
 
-    _, total = NotificationRepository(test_db).list_paginated(client_record_id=client_record_id)
+    _, total = NotificationRepository(test_db).list_paginated(
+        client_record_id=client_record_id
+    )
     assert total == 0
 
 
@@ -215,7 +221,8 @@ def test_notify_client_email_failure_persists_failed_record(test_db, monkeypatch
     svc = NotificationService(test_db)
 
     monkeypatch.setattr(
-        svc.email, "send",
+        svc.email,
+        "send",
         lambda to, msg, subject="": (False, "smtp-err"),
     )
 
@@ -226,6 +233,8 @@ def test_notify_client_email_failure_persists_failed_record(test_db, monkeypatch
     )
 
     assert ok is False
-    items, total = NotificationRepository(test_db).list_paginated(client_record_id=client_record_id)
+    items, total = NotificationRepository(test_db).list_paginated(
+        client_record_id=client_record_id
+    )
     assert total == 1
     assert items[0].status == NotificationStatus.FAILED

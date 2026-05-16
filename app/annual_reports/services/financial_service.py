@@ -5,8 +5,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.advance_payments.repositories.advance_payment_repository import (
-    AdvancePaymentRepository,
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    AdvancePaymentAggregationRepository,
 )
 from app.audit.constants import (
     ACTION_EXPENSE_ADDED,
@@ -122,7 +122,7 @@ class AnnualReportFinancialService:
         self.detail_repo = AnnualReportDetailRepository(db)
         self.credit_point_repo = AnnualReportCreditPointRepository(db)
         self.vat_repo = VatWorkItemRepository(db)
-        self.advance_repo = AdvancePaymentRepository(db)
+        self.advance_repo = AdvancePaymentAggregationRepository(db)
         self.business_repo = BusinessRepository(db)
 
     def _get_report_or_raise(self, report_id: int):
