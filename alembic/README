@@ -85,6 +85,30 @@ Notes:
 
 `0008_drop_notification_read_state` is the current head.
 
+### 0008_drop_notification_read_state
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes notification-center read state columns from `notifications`:
+  `is_read` and `read_at`.
+- Notes:
+  Notifications are outbound delivery records. UI badge counts now come from
+  delivery status summary values (`pending`, `sent`, `failed`, `total`).
+  Downgrade restores `is_read` with a temporary server default for backfill and
+  then removes that default.
+
+### 0007_remove_signature_request_draft
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes `draft` from the `signature_requests.status` enum.
+- Data mapping:
+  Existing `draft` rows are converted to `canceled` before shrinking the enum.
+- Notes:
+  PostgreSQL enum `signaturerequeststatus` is recreated after data remapping.
+
 ### 0006_simplify_annual_report_statuses
 
 - Command:

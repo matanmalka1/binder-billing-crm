@@ -43,6 +43,8 @@ Status enum values:
 Trigger enum values:
 - `binder_received`
 - `binder_ready_for_pickup`
+- `pickup_reminder`
+- `annual_report_client_reminder`
 - `manual_payment_reminder`
 
 Severity enum values:
