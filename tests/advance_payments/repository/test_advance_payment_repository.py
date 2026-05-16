@@ -15,6 +15,7 @@ from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
@@ -110,6 +111,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         created_by=user.id,
         period="2025-01",
         period_type=VatType.MONTHLY,
+        status=VatWorkItemStatus.FILED,
         total_output_vat=Decimal("150.50"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("150.50"),
@@ -122,6 +124,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         created_by=user.id,
         period="2025-02",
         period_type=VatType.MONTHLY,
+        status=VatWorkItemStatus.FILED,
         total_output_vat=Decimal("149.50"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("149.50"),
@@ -134,6 +137,7 @@ def test_get_annual_output_vat_returns_sum_or_none(test_db):
         created_by=user.id,
         period="2024-12",
         period_type=VatType.MONTHLY,
+        status=VatWorkItemStatus.FILED,
         total_output_vat=Decimal("999.00"),
         total_input_vat=Decimal("0"),
         net_vat=Decimal("999.00"),

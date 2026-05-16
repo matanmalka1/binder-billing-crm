@@ -31,7 +31,7 @@ def test_vat_compliance_groups_same_client_by_period_type(
         period_type=VatType.BIMONTHLY,
         client_record_id=crm_client.id,
         created_by=test_user.id,
-        period="2026-02",
+        period="2026-03",
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
     item2.updated_at = now

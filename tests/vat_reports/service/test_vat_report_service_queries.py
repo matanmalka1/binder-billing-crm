@@ -118,7 +118,7 @@ def test_list_work_items_filters_by_period_type(test_db):
         test_db,
         repo=service.work_item_repo,
         client_record_id=client_record.id,
-        period="2026-02",
+        period="2026-01",
         period_type=VatType.BIMONTHLY,
         created_by=user.id,
     )

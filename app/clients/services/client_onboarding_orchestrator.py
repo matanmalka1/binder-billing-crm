@@ -164,7 +164,6 @@ class ClientOnboardingOrchestrator:
                             client_record_id=client_record_id,
                             period=plan.period,
                             period_months_count=plan.period_months_count,
-                            due_date=entry.due_date,
                         )
                         created += 1
                     except ConflictError:

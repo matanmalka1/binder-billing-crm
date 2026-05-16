@@ -340,7 +340,6 @@ class TestW5AdvancePayment:
             client_record_id=record.id,
             period="2024-06",
             period_months_count=1,
-            due_date=date(2024, 6, 15),
             expected_amount=1000,
         )
         assert payment.client_record_id == record.id
