@@ -84,6 +84,9 @@ class NotificationRepository(BaseRepository[Notification]):
         page_size: int = 20,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
+        status: Optional[NotificationStatus] = None,
+        trigger: Optional[NotificationTrigger] = None,
+        channel: Optional[NotificationChannel] = None,
     ) -> tuple[list[Notification], int]:
         """Return paginated notifications and total count."""
         count_stmt = select(func.count(Notification.id))
@@ -98,6 +101,15 @@ class NotificationRepository(BaseRepository[Notification]):
         if business_id is not None:
             count_stmt = count_stmt.where(Notification.business_id == business_id)
             list_stmt = list_stmt.where(Notification.business_id == business_id)
+        if status is not None:
+            count_stmt = count_stmt.where(Notification.status == status)
+            list_stmt = list_stmt.where(Notification.status == status)
+        if trigger is not None:
+            count_stmt = count_stmt.where(Notification.trigger == trigger)
+            list_stmt = list_stmt.where(Notification.trigger == trigger)
+        if channel is not None:
+            count_stmt = count_stmt.where(Notification.channel == channel)
+            list_stmt = list_stmt.where(Notification.channel == channel)
         total = self.db.scalar(count_stmt)
         items = self.db.scalars(
             list_stmt.order_by(Notification.created_at.desc())
@@ -106,34 +118,27 @@ class NotificationRepository(BaseRepository[Notification]):
         ).all()
         return items, total
 
-    def list_recent(
-        self,
-        limit: int = 20,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-    ) -> list[Notification]:
-        stmt = select(Notification)
-        if client_record_id is not None:
-            stmt = stmt.where(Notification.client_record_id == client_record_id)
-        if business_id is not None:
-            stmt = stmt.where(Notification.business_id == business_id)
-        return self.db.scalars(
-            stmt.order_by(Notification.created_at.desc()).limit(limit)
-        ).all()
-
-    def count_unread(
+    def count_by_status(
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
-    ) -> int:
-        stmt = select(func.count(Notification.id)).where(
-            Notification.is_read == False  # noqa: E712
+    ) -> dict[str, int]:
+        """Returns {pending, sent, failed, total} — absent statuses always 0."""
+        stmt = select(Notification.status, func.count(Notification.id)).group_by(
+            Notification.status
         )
         if client_record_id is not None:
             stmt = stmt.where(Notification.client_record_id == client_record_id)
         if business_id is not None:
             stmt = stmt.where(Notification.business_id == business_id)
-        return self.db.scalar(stmt)
+        rows = self.db.execute(stmt).all()
+        result: dict[str, int] = {s.value: 0 for s in NotificationStatus}
+        result["total"] = 0
+        for status_val, count in rows:
+            key = status_val.value if isinstance(status_val, NotificationStatus) else status_val
+            result[key] = count
+            result["total"] += count
+        return result
 
     def get_last_for_binder_trigger(
         self, binder_id: int, trigger: NotificationTrigger

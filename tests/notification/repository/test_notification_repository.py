@@ -10,6 +10,7 @@ from app.notification.models.notification import (
     NotificationStatus,
     NotificationTrigger,
 )
+
 from app.notification.repositories.notification_repository import NotificationRepository
 
 
@@ -129,3 +130,150 @@ def test_notification_repository_pagination(test_db):
     global_items, global_total = repo.list_paginated(page=1, page_size=10)
     assert global_total == 3
     assert len(global_items) == 3
+
+
+def test_list_paginated_filters_by_status(test_db):
+    repo = NotificationRepository(test_db)
+    b = _business(test_db, "fs1")
+    cr_id = _client_record_id(test_db, b)
+
+    n_pending = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="pending",
+    )
+    n_sent = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="sent",
+    )
+    repo.mark_sent(n_sent.id)
+
+    items, total = repo.list_paginated(business_id=b.id, status=NotificationStatus.PENDING)
+    assert total == 1
+    assert items[0].id == n_pending.id
+
+
+def test_list_paginated_filters_by_trigger(test_db):
+    repo = NotificationRepository(test_db)
+    b = _business(test_db, "ft1")
+    cr_id = _client_record_id(test_db, b)
+
+    n_manual = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="manual",
+    )
+    repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.BINDER_RECEIVED,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="binder",
+    )
+
+    items, total = repo.list_paginated(
+        business_id=b.id, trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER
+    )
+    assert total == 1
+    assert items[0].id == n_manual.id
+
+
+def test_list_paginated_filters_by_channel(test_db):
+    repo = NotificationRepository(test_db)
+    b = _business(test_db, "fc1")
+    cr_id = _client_record_id(test_db, b)
+
+    n_email = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="email",
+    )
+    repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.WHATSAPP,
+        recipient="0501111111",
+        content_snapshot="wa",
+    )
+
+    items, total = repo.list_paginated(business_id=b.id, channel=NotificationChannel.EMAIL)
+    assert total == 1
+    assert items[0].id == n_email.id
+
+
+def test_count_by_status_returns_correct_counts(test_db):
+    repo = NotificationRepository(test_db)
+    b = _business(test_db, "cs1")
+    cr_id = _client_record_id(test_db, b)
+
+    n_sent = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="s",
+    )
+    repo.mark_sent(n_sent.id)
+
+    n_failed = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="f",
+    )
+    repo.mark_failed(n_failed.id, "err")
+
+    repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="p",
+    )
+
+    counts = repo.count_by_status(business_id=b.id)
+    assert counts["sent"] == 1
+    assert counts["failed"] == 1
+    assert counts["pending"] == 1
+    assert counts["total"] == 3
+
+
+def test_count_by_status_returns_zero_for_absent_statuses(test_db):
+    repo = NotificationRepository(test_db)
+    b = _business(test_db, "cs2")
+    cr_id = _client_record_id(test_db, b)
+
+    n = repo.create(
+        client_record_id=cr_id,
+        business_id=b.id,
+        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+        channel=NotificationChannel.EMAIL,
+        recipient="a@x.com",
+        content_snapshot="sent-only",
+    )
+    repo.mark_sent(n.id)
+
+    counts = repo.count_by_status(business_id=b.id)
+    assert counts["pending"] == 0
+    assert counts["failed"] == 0
+    assert counts["sent"] == 1
+    assert counts["total"] == 1

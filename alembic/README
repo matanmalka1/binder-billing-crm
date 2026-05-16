@@ -10,7 +10,7 @@
   2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
   3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0006_simplify_annual_report_statuses`.
+- Current head is `0008_drop_notification_read_state`.
 - Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
 - Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
 
@@ -83,7 +83,7 @@ Notes:
 
 ## Migration chain
 
-`0006_simplify_annual_report_statuses` is the current head.
+`0008_drop_notification_read_state` is the current head.
 
 ### 0006_simplify_annual_report_statuses
 

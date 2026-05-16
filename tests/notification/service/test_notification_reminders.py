@@ -1,3 +1,8 @@
+import pytest
+from datetime import date
+
+from app.businesses.models.business import Business
+from app.core.exceptions import AppError
 from app.notification.models.notification import NotificationChannel, NotificationStatus, NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_service import NotificationService
@@ -39,8 +44,39 @@ def _make_client(db: Session, *, email: str = "client@test.com", phone: str | No
 
 
 def test_notify_client_sends_by_client_record_id(test_db, monkeypatch):
-    """notify_client targets client_record_id — business_id is only stored as context."""
-    client_record_id = _make_client(test_db)
+    """notify_client stores business_id as delivery context."""
+    entity = LegalEntity(
+        official_name="Test Entity CB",
+        id_number="REM-CB-001",
+        id_number_type=IdNumberType.INDIVIDUAL,
+    )
+    test_db.add(entity)
+    test_db.flush()
+    record = ClientRecord(legal_entity_id=entity.id)
+    test_db.add(record)
+    test_db.flush()
+    person = Person(
+        full_name="Test Client CB",
+        id_number=f"PCB-{record.id}",
+        id_number_type=IdNumberType.OTHER,
+        email="cb@test.com",
+    )
+    test_db.add(person)
+    test_db.flush()
+    test_db.add(PersonLegalEntityLink(
+        person_id=person.id,
+        legal_entity_id=entity.id,
+        role=PersonLegalEntityRole.OWNER,
+    ))
+    biz = Business(
+        legal_entity_id=entity.id,
+        business_name="Test Biz CB",
+        opened_at=date.today(),
+    )
+    test_db.add(biz)
+    test_db.flush()
+    client_record_id = record.id
+
     svc = NotificationService(test_db)
     monkeypatch.setattr(svc.email, "_enabled", False)
 
@@ -48,7 +84,7 @@ def test_notify_client_sends_by_client_record_id(test_db, monkeypatch):
         client_record_id=client_record_id,
         trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
         template_data={"binder_number": "BN-99"},
-        business_id=42,
+        business_id=biz.id,
         binder_id=7,
     )
 
@@ -57,7 +93,7 @@ def test_notify_client_sends_by_client_record_id(test_db, monkeypatch):
     assert total == 1
     n = items[0]
     assert n.client_record_id == client_record_id
-    assert n.business_id == 42   # stored as context only
+    assert n.business_id == biz.id
     assert n.binder_id == 7
     assert n.channel == NotificationChannel.EMAIL
 
@@ -108,17 +144,17 @@ def test_notify_client_whatsapp_fails_falls_back_to_email(test_db, monkeypatch):
     assert statuses[NotificationChannel.EMAIL] == NotificationStatus.SENT
 
 
-def test_notify_client_missing_template_key_returns_false_no_record(test_db, monkeypatch):
+def test_notify_client_missing_template_key_raises_app_error(test_db, monkeypatch):
     client_record_id = _make_client(test_db, email="tmpl@test.com")
     svc = NotificationService(test_db)
     monkeypatch.setattr(svc.email, "_enabled", False)
 
-    ok = svc.notify_client(
-        client_record_id=client_record_id,
-        trigger=NotificationTrigger.BINDER_RECEIVED,
-        template_data={},  # missing binder_number and period_start
-    )
+    with pytest.raises(AppError):
+        svc.notify_client(
+            client_record_id=client_record_id,
+            trigger=NotificationTrigger.BINDER_RECEIVED,
+            template_data={},  # missing binder_number and period_start
+        )
 
-    assert ok is False
     _, total = NotificationRepository(test_db).list_paginated(client_record_id=client_record_id)
     assert total == 0

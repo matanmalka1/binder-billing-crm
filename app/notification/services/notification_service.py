@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import config
+from app.core.exceptions import AppError, NotFoundError
 from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.clients.models.client_record import ClientRecord
@@ -19,30 +20,20 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationSeverity,
+    NotificationStatus,
     NotificationTrigger,
 )
 from app.notification.repositories.notification_repository import NotificationRepository
-from app.notification.schemas.notification_schemas import NotificationResponse
-from app.notification.services.messages import (
-    ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT,
-    BINDER_READY_FOR_PICKUP_SUBJECT,
-    BINDER_RECEIVED_SUBJECT,
-    CONTENT_TEMPLATES,
-    DEFAULT_NOTIFICATION_SUBJECT,
-    FALLBACK_CLIENT_NAME,
-    MANUAL_PAYMENT_REMINDER_SUBJECT,
-    PICKUP_REMINDER_SUBJECT,
+from app.notification.schemas.notification_schemas import (
+    ManualSendRequest,
+    NotificationResponse,
+    NotificationSummaryResponse,
 )
+from app.notification.services.messages import FALLBACK_CLIENT_NAME
+from app.notification.services.notification_delivery_service import NotificationDeliveryService
+from app.notification.services.notification_template_renderer import NotificationTemplateRenderer
 
 logger = get_logger(__name__)
-
-_SUBJECTS: dict[NotificationTrigger, str] = {
-    NotificationTrigger.BINDER_RECEIVED: BINDER_RECEIVED_SUBJECT,
-    NotificationTrigger.BINDER_READY_FOR_PICKUP: BINDER_READY_FOR_PICKUP_SUBJECT,
-    NotificationTrigger.PICKUP_REMINDER: PICKUP_REMINDER_SUBJECT,
-    NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER: ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT,
-    NotificationTrigger.MANUAL_PAYMENT_REMINDER: MANUAL_PAYMENT_REMINDER_SUBJECT,
-}
 
 
 def _enrich(
@@ -75,6 +66,12 @@ class NotificationService:
             api_url=config.WHATSAPP_API_URL,
             from_number=config.WHATSAPP_FROM_NUMBER,
         )
+        self._renderer = NotificationTemplateRenderer()
+        self._delivery = NotificationDeliveryService(
+            repo=self.notification_repo,
+            email=self.email,
+            whatsapp=self.whatsapp,
+        )
 
     # ── Canonical entry point ─────────────────────────────────────────────────
 
@@ -90,53 +87,59 @@ class NotificationService:
         preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
-        try:
-            person = self._resolve_client_contact(client_record_id)
-            if not person:
-                logger.warning("notify_client: client %s not found", client_record_id)
-                return False
+        client_record = self.db.get(ClientRecord, client_record_id)
+        if client_record is None:
+            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
 
-            template = CONTENT_TEMPLATES.get(trigger.value)
-            if template is None:
-                logger.error("notify_client: no content template for trigger=%s", trigger)
-                return False
-            try:
-                content = template.format(
-                    name=person.full_name or FALLBACK_CLIENT_NAME,
-                    **(template_data or {}),
+        if business_id is not None:
+            business = self.business_repo.get_by_id(business_id)
+            if business is None:
+                raise AppError("העסק לא נמצא", "NOTIFICATION.BUSINESS_NOT_FOUND")
+            if business.legal_entity_id != client_record.legal_entity_id:
+                raise AppError(
+                    "העסק אינו שייך ללקוח שצוין", "NOTIFICATION.BUSINESS_MISMATCH"
                 )
-            except KeyError as exc:
-                logger.error(
-                    "notify_client: missing template key=%s for trigger=%s", exc, trigger
-                )
-                return False
 
-            subject = _SUBJECTS.get(trigger, DEFAULT_NOTIFICATION_SUBJECT)
-            log_ctx = f"client={client_record_id} trigger={trigger.value}"
+        person = self._resolve_client_contact(client_record_id)
+        person_name = person.full_name if person else FALLBACK_CLIENT_NAME
 
-            return self._deliver_to_contact(
-                person=person,
-                client_record_id=client_record_id,
-                trigger=trigger,
-                content=content,
-                subject=subject,
-                log_ctx=log_ctx,
-                business_id=business_id,
-                binder_id=binder_id,
-                annual_report_id=annual_report_id,
-                triggered_by=triggered_by,
-                preferred_channel=preferred_channel,
-                severity=severity,
-            )
+        content, subject = self._renderer.render(
+            trigger=trigger,
+            template_data=template_data or {},
+            person_name=person_name,
+        )
 
-        except Exception as exc:  # noqa: BLE001
-            logger.error(
-                "Unexpected error in notify_client | client=%s trigger=%s error=%s",
-                client_record_id,
-                trigger,
-                exc,
-            )
-        return False
+        if not person:
+            logger.warning("notify_client: client %s has no linked person", client_record_id)
+            return False
+
+        log_ctx = f"client={client_record_id} trigger={trigger.value}"
+        return self._delivery.deliver(
+            person=person,
+            client_record_id=client_record_id,
+            trigger=trigger,
+            content=content,
+            subject=subject,
+            preferred_channel=preferred_channel,
+            severity=severity,
+            business_id=business_id,
+            binder_id=binder_id,
+            annual_report_id=annual_report_id,
+            triggered_by=triggered_by,
+            log_ctx=log_ctx,
+        )
+
+    # ── Manual send ───────────────────────────────────────────────────────────
+
+    def send_manual(self, request: ManualSendRequest, triggered_by: int) -> bool:
+        return self.notify_client(
+            client_record_id=request.client_record_id,
+            trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+            template_data={"message": request.message},
+            business_id=request.business_id,
+            triggered_by=triggered_by,
+            preferred_channel=request.preferred_channel,
+        )
 
     # ── Read / list ───────────────────────────────────────────────────────────
 
@@ -146,113 +149,35 @@ class NotificationService:
         page_size: int = 20,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
+        status: Optional[NotificationStatus] = None,
+        trigger: Optional[NotificationTrigger] = None,
+        channel: Optional[NotificationChannel] = None,
     ) -> tuple:
         items, total = self.notification_repo.list_paginated(
             page=page,
             page_size=page_size,
             client_record_id=client_record_id,
             business_id=business_id,
+            status=status,
+            trigger=trigger,
+            channel=channel,
         )
         business_name_map = self._build_name_map(items)
         client_name_map = self._build_client_name_map(items)
         return [_enrich(n, business_name_map, client_name_map) for n in items], total
 
-    def count_unread(
+    def get_summary(
         self,
         client_record_id: Optional[int] = None,
         business_id: Optional[int] = None,
-    ) -> int:
-        return self.notification_repo.count_unread(
+    ) -> NotificationSummaryResponse:
+        counts = self.notification_repo.count_by_status(
             client_record_id=client_record_id,
             business_id=business_id,
         )
+        return NotificationSummaryResponse(**counts)
 
     # ── Internal helpers ──────────────────────────────────────────────────────
-
-    def _deliver_to_contact(
-        self,
-        person: Person,
-        client_record_id: int,
-        trigger: NotificationTrigger,
-        content: str,
-        subject: str,
-        log_ctx: str,
-        business_id: Optional[int],
-        binder_id: Optional[int],
-        annual_report_id: Optional[int],
-        triggered_by: Optional[int],
-        preferred_channel: NotificationChannel,
-        severity: NotificationSeverity,
-    ) -> bool:
-        phone = person.phone
-        email = person.email
-
-        if preferred_channel == NotificationChannel.WHATSAPP and self.whatsapp.enabled and phone:
-            n = self.notification_repo.create(
-                client_record_id=client_record_id,
-                business_id=business_id,
-                binder_id=binder_id,
-                annual_report_id=annual_report_id,
-                trigger=trigger,
-                channel=NotificationChannel.WHATSAPP,
-                recipient=phone,
-                content_snapshot=content,
-                triggered_by=triggered_by,
-                severity=severity,
-            )
-            if self._deliver(n.id, NotificationChannel.WHATSAPP, phone, content, subject, log_ctx):
-                return True
-            logger.warning("WhatsApp failed %s, falling back to email", log_ctx)
-
-        if not email:
-            logger.info(
-                "notify_client: client %s has no email, skipping trigger=%s",
-                client_record_id,
-                trigger.value,
-            )
-            return False
-
-        n = self.notification_repo.create(
-            client_record_id=client_record_id,
-            business_id=business_id,
-            binder_id=binder_id,
-            annual_report_id=annual_report_id,
-            trigger=trigger,
-            channel=NotificationChannel.EMAIL,
-            recipient=email,
-            content_snapshot=content,
-            triggered_by=triggered_by,
-            severity=severity,
-        )
-        return self._deliver(n.id, NotificationChannel.EMAIL, email, content, subject, log_ctx)
-
-    def _deliver(
-        self,
-        notification_id: int,
-        channel: NotificationChannel,
-        address: str,
-        content: str,
-        subject: str,
-        log_context: str,
-    ) -> bool:
-        if channel == NotificationChannel.WHATSAPP:
-            ok, err = self.whatsapp.send(address, content)
-            if ok:
-                self.notification_repo.mark_sent(notification_id)
-                logger.info("WhatsApp sent | %s", log_context)
-                return True
-            self.notification_repo.mark_failed(notification_id, err or "whatsapp failed")
-            logger.warning("WhatsApp failed | %s error=%s", log_context, err)
-            return False
-        # channel == EMAIL
-        ok, err = self.email.send(address, content, subject=subject)
-        if ok:
-            self.notification_repo.mark_sent(notification_id)
-            logger.info("Notification sent | %s", log_context)
-            return True
-        self.notification_repo.mark_failed(notification_id, err or "unknown error")
-        logger.error("Notification failed | %s error=%s", log_context, err)
-        return False
 
     def _resolve_client_contact(self, client_record_id: int) -> Person | None:
         person = self.db.execute(

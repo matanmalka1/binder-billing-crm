@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from app.notification.models.notification import NotificationTrigger
+
 FALLBACK_CLIENT_NAME = "לקוח"
 BINDER_RECEIVED_SUBJECT = "התיק שלך התקבל במשרד"
 BINDER_READY_FOR_PICKUP_SUBJECT = "הקלסר שלך מוכן לאיסוף"
@@ -36,4 +40,12 @@ CONTENT_TEMPLATES: dict[str, str] = {
     "pickup_reminder": PICKUP_REMINDER_NOTIFICATION_CONTENT,
     "annual_report_client_reminder": ANNUAL_REPORT_CLIENT_REMINDER_NOTIFICATION_CONTENT,
     "manual_payment_reminder": MANUAL_NOTIFICATION_CONTENT,
+}
+
+SUBJECTS: dict[NotificationTrigger, str] = {
+    NotificationTrigger.BINDER_RECEIVED: BINDER_RECEIVED_SUBJECT,
+    NotificationTrigger.BINDER_READY_FOR_PICKUP: BINDER_READY_FOR_PICKUP_SUBJECT,
+    NotificationTrigger.PICKUP_REMINDER: PICKUP_REMINDER_SUBJECT,
+    NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER: ANNUAL_REPORT_CLIENT_REMINDER_SUBJECT,
+    NotificationTrigger.MANUAL_PAYMENT_REMINDER: MANUAL_PAYMENT_REMINDER_SUBJECT,
 }

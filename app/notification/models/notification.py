@@ -12,7 +12,6 @@ Design decisions:
   to a specific business activity.
 - content_snapshot stores the rendered message at send time — immutable audit trail.
 - retry_count tracks delivery attempts; max retries enforced in service layer.
-- is_read / read_at support the notification center UI (bell icon).
 - No soft delete — notifications are append-only audit records.
 - No updated_at — status transitions are captured via sent_at / failed_at.
 """
@@ -23,7 +22,7 @@ import datetime
 from enum import Enum as PyEnum
 from typing import Optional
 
-from sqlalchemy import Boolean, ForeignKey, Index, SmallInteger, String, Text
+from sqlalchemy import ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -106,10 +105,6 @@ class Notification(Base):
     failed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
-
-    # ── Read state (notification center) ─────────────────────────────────────
-    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    read_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     triggered_by: Mapped[Optional[int]] = mapped_column(

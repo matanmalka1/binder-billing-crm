@@ -6,13 +6,17 @@ from fastapi import APIRouter, Depends, Query
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationStatus,
+    NotificationTrigger,
+)
 from app.notification.services.notification_service import NotificationService
-from app.notification.models.notification import NotificationTrigger
 from app.notification.schemas.notification_schemas import (
     ManualSendRequest,
     ManualSendResponse,
     NotificationListResponse,
-    UnreadCountResponse,
+    NotificationSummaryResponse,
 )
 
 
@@ -35,6 +39,9 @@ def list_notifications(
     user: CurrentUser,
     client_record_id: Optional[int] = None,
     business_id: Optional[int] = None,
+    status: Optional[NotificationStatus] = None,
+    trigger: Optional[NotificationTrigger] = None,
+    channel: Optional[NotificationChannel] = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -44,6 +51,9 @@ def list_notifications(
         page_size=page_size,
         client_record_id=client_record_id,
         business_id=business_id,
+        status=status,
+        trigger=trigger,
+        channel=channel,
     )
     return NotificationListResponse(
         items=items,
@@ -53,30 +63,19 @@ def list_notifications(
     )
 
 
-@router.get("/unread-count", response_model=UnreadCountResponse)
-def get_unread_count(
+@router.get("/summary", response_model=NotificationSummaryResponse)
+def get_notification_summary(
     db: DBSession,
     user: CurrentUser,
     client_record_id: Optional[int] = None,
     business_id: Optional[int] = None,
 ):
     svc = NotificationService(db)
-    return UnreadCountResponse(
-        unread_count=svc.count_unread(
-            client_record_id=client_record_id, business_id=business_id
-        )
-    )
+    return svc.get_summary(client_record_id=client_record_id, business_id=business_id)
 
 
 @advisor_router.post("/send", response_model=ManualSendResponse)
 def send_manual_notification(body: ManualSendRequest, db: DBSession, user: CurrentUser):
     svc = NotificationService(db)
-    ok = svc.notify_client(
-        client_record_id=body.client_record_id,
-        trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-        template_data={"message": body.message},
-        business_id=body.business_id,
-        triggered_by=user.id,
-        preferred_channel=body.preferred_channel,
-    )
+    ok = svc.send_manual(body, triggered_by=user.id)
     return ManualSendResponse(ok=ok)

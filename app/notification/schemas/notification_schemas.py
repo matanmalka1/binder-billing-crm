@@ -34,14 +34,17 @@ class NotificationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class UnreadCountResponse(BaseModel):
-    unread_count: int
+class NotificationSummaryResponse(BaseModel):
+    pending: int
+    sent: int
+    failed: int
+    total: int
 
 
 class ManualSendRequest(BaseModel):
     client_record_id: int = Field(gt=0)
     business_id: Optional[int] = Field(None, gt=0)
-    preferred_channel: NotificationChannel
+    preferred_channel: NotificationChannel = NotificationChannel.EMAIL
     message: str = Field(min_length=1, max_length=1000)
 
 
