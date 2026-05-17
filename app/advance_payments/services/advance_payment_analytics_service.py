@@ -2,7 +2,6 @@
 
 from typing import Optional
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.advance_payments.models.advance_payment import (
@@ -15,7 +14,6 @@ from app.advance_payments.repositories.advance_payment_aggregation_repository im
 from app.advance_payments.repositories.turnover_lookup_repository import (
     TurnoverLookupRepository,
 )
-from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 
@@ -44,61 +42,32 @@ class AdvancePaymentAnalyticsService:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
 
-        payments = self.repo.list_overview_payments(year, month, statuses)
-
-        client_record_ids = list({p.client_record_id for p in payments})
-        records = {
-            record.id: record
-            for record in ClientRecordRepository(self.db).list_by_ids(client_record_ids)
-        }
-        legal_entity_ids = list({record.legal_entity_id for record in records.values()})
-        legal_entities = (
-            {
-                entity.id: entity
-                for entity in self.db.scalars(
-                    select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
-                ).all()
-            }
-            if legal_entity_ids
-            else {}
+        rows, total = self.repo.list_overview_payment_rows(
+            year=year,
+            month=month,
+            statuses=statuses,
+            page=page,
+            page_size=page_size,
         )
 
         turnover_repo = TurnoverLookupRepository(self.db)
+        payments = [row[0] for row in rows]
         live_turnover_map = self._build_live_turnover_map(payments, turnover_repo)
 
-        # TODO: Move sort+pagination to SQL. Currently done in Python because the
-        # sort key (official_name) comes from LegalEntity — a cross-domain join
-        # that would require joining ClientRecord → LegalEntity inside the query.
-        rows = sorted(
+        return (
             [
                 (
                     p,
-                    records[p.client_record_id].office_client_number
-                    if p.client_record_id in records
-                    else None,
-                    legal_entities[
-                        records[p.client_record_id].legal_entity_id
-                    ].official_name
-                    if p.client_record_id in records
-                    and records[p.client_record_id].legal_entity_id in legal_entities
-                    else "",
-                    legal_entities[
-                        records[p.client_record_id].legal_entity_id
-                    ].id_number
-                    if p.client_record_id in records
-                    and records[p.client_record_id].legal_entity_id in legal_entities
-                    else None,
+                    office_client_number,
+                    business_name,
+                    id_number,
                     live_turnover_map.get((p.client_record_id, p.period)),
                     p.advance_rate,
                 )
-                for p in payments
+                for p, office_client_number, business_name, id_number in rows
             ],
-            key=lambda x: (x[2], x[0].period),  # sort by official_name, then period
+            total,
         )
-
-        total = len(rows)
-        offset = (page - 1) * page_size
-        return rows[offset : offset + page_size], total
 
     @staticmethod
     def _build_live_turnover_map(

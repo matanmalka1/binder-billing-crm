@@ -57,6 +57,7 @@ class BinderListService:
             },
         )
 
+    # TODO: remove after list_active_paginated rollout is fully settled.
     def _matches_non_status_filters(
         self,
         binder: Binder,
@@ -87,6 +88,7 @@ class BinderListService:
 
         return True
 
+    # TODO: remove after list_active_paginated rollout is fully settled.
     def _build_binder_counters(self, binders: list[Binder]) -> dict[str, int]:
         return {
             "total": len(binders),
@@ -180,16 +182,27 @@ class BinderListService:
         if sort_dir not in ("asc", "desc"):
             sort_dir = "desc"
         effective_sort_by = sort_by if sort_by in _ALLOWED_SORT_COLS else "period_start"
-        db_sort_by = (
-            "period_start" if effective_sort_by == "client_name" else effective_sort_by
-        )
 
         ref_date = reference_date or date.today()
-        binders = self.binder_repo.list_active(
+        binders, total = self.binder_repo.list_active_paginated(
             client_record_id=client_record_id,
-            sort_by=db_sort_by,
+            status=status,
+            include_returned=(status is not None),
+            query=query,
+            client_name_filter=client_name_filter,
+            binder_number=binder_number,
+            year=year,
+            sort_by=effective_sort_by,
             sort_dir=sort_dir,
-            include_returned=True,
+            page=page,
+            page_size=page_size,
+        )
+        counters = self.binder_repo.count_by_status_filtered(
+            client_record_id=client_record_id,
+            query=query,
+            client_name_filter=client_name_filter,
+            binder_number=binder_number,
+            year=year,
         )
 
         client_record_ids = list({binder.client_record_id for binder in binders})
@@ -197,31 +210,8 @@ class BinderListService:
             self._build_client_context_maps(client_record_ids)
         )
 
-        filtered_binders: list[tuple[Binder, Optional[str]]] = []
-        for binder in binders:
-            current_client_name = client_name_map.get(binder.client_record_id)
-            if not self._matches_non_status_filters(
-                binder,
-                query=query,
-                client_name_filter=client_name_filter,
-                binder_number=binder_number,
-                year=year,
-                client_name=current_client_name,
-            ):
-                continue
-            filtered_binders.append((binder, current_client_name))
-
-        counters = self._build_binder_counters(
-            [binder for binder, _client_name in filtered_binders]
-        )
-
         items: list[BinderResponse] = []
-        for binder, current_client_name in filtered_binders:
-            if status:
-                if binder.status.value != status:
-                    continue
-            elif binder.status == BinderStatus.RETURNED:
-                continue
+        for binder in binders:
             items.append(
                 self.build_binder_response(
                     binder,
@@ -229,17 +219,9 @@ class BinderListService:
                     office_client_number=office_client_number_map.get(
                         binder.client_record_id
                     ),
-                    client_name=current_client_name,
+                    client_name=client_name_map.get(binder.client_record_id),
                     client_id_number=client_id_number_map.get(binder.client_record_id),
                 )
             )
 
-        if effective_sort_by == "client_name":
-            items.sort(
-                key=lambda r: (r.client_name or "").lower(),
-                reverse=(sort_dir == "desc"),
-            )
-
-        total = len(items)
-        offset = (page - 1) * page_size
-        return items[offset : offset + page_size], total, counters
+        return items, total, counters

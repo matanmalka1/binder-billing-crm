@@ -5,6 +5,8 @@ from typing import Optional
 from sqlalchemy import Integer, case, cast, func, select
 from sqlalchemy.orm import Session
 
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
@@ -44,6 +46,53 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         if statuses:
             stmt = stmt.where(AdvancePayment.status.in_(statuses))
         return list(self.db.scalars(stmt).all())
+
+    def list_overview_payment_rows(
+        self,
+        year: int,
+        month: Optional[int],
+        statuses: list[AdvancePaymentStatus],
+        page: int,
+        page_size: int,
+    ) -> tuple[list[tuple[AdvancePayment, int | None, str, str | None]], int]:
+        filters = [
+            AdvancePayment.period.like(f"{year}-%"),
+            AdvancePayment.deleted_at.is_(None),
+        ]
+        if month is not None:
+            filters.append(advance_payment_matches_month_expr(month))
+        if statuses:
+            filters.append(AdvancePayment.status.in_(statuses))
+
+        total = self.db.scalar(
+            scope_to_active_clients_stmt(
+                select(func.count(AdvancePayment.id)), AdvancePayment
+            ).where(*filters)
+        )
+
+        offset = (page - 1) * page_size
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(
+                    AdvancePayment,
+                    ClientRecord.office_client_number,
+                    func.coalesce(LegalEntity.official_name, "").label(
+                        "official_name"
+                    ),
+                    LegalEntity.id_number,
+                ),
+                AdvancePayment,
+            )
+            .outerjoin(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(*filters)
+            .order_by(
+                func.coalesce(LegalEntity.official_name, "").asc(),
+                AdvancePayment.period.asc(),
+            )
+            .offset(offset)
+            .limit(page_size)
+        )
+        return list(self.db.execute(stmt).tuples().all()), int(total or 0)
 
     def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
         result = self.db.scalar(

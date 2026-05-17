@@ -2,9 +2,11 @@ import datetime as _dt
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import func, nullslast, select
+from sqlalchemy import asc, desc, extract, func, nullslast, or_, select
 from sqlalchemy.orm import Session
 
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.binders.models.binder import Binder, BinderStatus
@@ -30,6 +32,79 @@ class BinderRepository(BaseRepository[Binder]):
 
     def _active_client_stmt(self):
         return scope_to_active_clients_stmt(select(Binder), Binder)
+
+    def _filtered_active_stmt(
+        self,
+        stmt,
+        *,
+        client_record_id: Optional[int] = None,
+        status: Optional[str] = None,
+        include_returned: bool = True,
+        query: Optional[str] = None,
+        client_name_filter: Optional[str] = None,
+        binder_number: Optional[str] = None,
+        year: Optional[int] = None,
+        include_legal_entity: bool = False,
+    ):
+        needs_legal_entity = include_legal_entity or bool(query or client_name_filter)
+        stmt = scope_to_active_clients_stmt(stmt, Binder).where(
+            Binder.deleted_at.is_(None)
+        )
+        if needs_legal_entity:
+            stmt = stmt.outerjoin(
+                LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id
+            )
+
+        if client_record_id:
+            stmt = stmt.where(Binder.client_record_id == client_record_id)
+        if status:
+            stmt = stmt.where(Binder.status == status)
+        elif not include_returned:
+            stmt = stmt.where(Binder.status != BinderStatus.RETURNED)
+
+        if query:
+            pattern = f"%{query.strip()}%"
+            stmt = stmt.where(
+                or_(
+                    Binder.binder_number.ilike(pattern),
+                    LegalEntity.official_name.ilike(pattern),
+                )
+            )
+        if client_name_filter:
+            stmt = stmt.where(
+                LegalEntity.official_name.ilike(f"%{client_name_filter.strip()}%")
+            )
+        if binder_number:
+            stmt = stmt.where(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
+        if year:
+            stmt = stmt.where(extract("year", Binder.period_start) == year)
+
+        return stmt
+
+    @staticmethod
+    def _order_active_paginated_stmt(stmt, *, sort_by: str, sort_dir: str):
+        order_fn = asc if sort_dir == "asc" else desc
+        effective_sort_dir = sort_dir
+        if sort_by == "days_in_office":
+            effective_sort_dir = "asc" if sort_dir == "desc" else "desc"
+            order_fn = asc if effective_sort_dir == "asc" else desc
+
+        if sort_by == "client_name":
+            name_order = order_fn(LegalEntity.official_name)
+            period_order = (asc if sort_dir == "asc" else desc)(Binder.period_start)
+            return stmt.order_by(
+                nullslast(name_order),
+                nullslast(period_order),
+                Binder.id.asc() if sort_dir == "asc" else Binder.id.desc(),
+            )
+
+        sort_col_map = {
+            "period_start": Binder.period_start,
+            "days_in_office": Binder.period_start,
+            "status": Binder.status,
+        }
+        col = sort_col_map.get(sort_by, Binder.period_start)
+        return stmt.order_by(nullslast(order_fn(col)))
 
     def create(
         self,
@@ -110,6 +185,70 @@ class BinderRepository(BaseRepository[Binder]):
         stmt = self.apply_pagination(stmt, page, page_size)
         return self.db.scalars(stmt).all()
 
+    def list_active_paginated(
+        self,
+        *,
+        client_record_id: Optional[int] = None,
+        status: Optional[str] = None,
+        include_returned: bool = True,
+        query: Optional[str] = None,
+        client_name_filter: Optional[str] = None,
+        binder_number: Optional[str] = None,
+        year: Optional[int] = None,
+        sort_by: str = "period_start",
+        sort_dir: str = "desc",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[Binder], int]:
+        include_legal_entity = sort_by == "client_name"
+        base_kwargs = {
+            "client_record_id": client_record_id,
+            "status": status,
+            "include_returned": include_returned,
+            "query": query,
+            "client_name_filter": client_name_filter,
+            "binder_number": binder_number,
+            "year": year,
+            "include_legal_entity": include_legal_entity,
+        }
+        count_stmt = self._filtered_active_stmt(
+            select(func.count(Binder.id)),
+            **base_kwargs,
+        )
+        stmt = self._filtered_active_stmt(select(Binder), **base_kwargs)
+        stmt = self._order_active_paginated_stmt(
+            stmt,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+        )
+        stmt = self.apply_pagination(stmt, page, page_size)
+        return list(self.db.scalars(stmt).all()), int(self.db.scalar(count_stmt) or 0)
+
+    def count_by_status_filtered(
+        self,
+        *,
+        client_record_id: Optional[int] = None,
+        query: Optional[str] = None,
+        client_name_filter: Optional[str] = None,
+        binder_number: Optional[str] = None,
+        year: Optional[int] = None,
+    ) -> dict[str, int]:
+        stmt = self._filtered_active_stmt(
+            select(Binder.status, func.count(Binder.id)),
+            client_record_id=client_record_id,
+            query=query,
+            client_name_filter=client_name_filter,
+            binder_number=binder_number,
+            year=year,
+        ).group_by(Binder.status)
+        counts = {status.value: 0 for status in BinderStatus}
+        total = 0
+        for status, count in self.db.execute(stmt).all():
+            value = status.value if isinstance(status, BinderStatus) else str(status)
+            counts[value] = int(count)
+            total += int(count)
+        return {"total": total, **counts}
+
     def count_active(
         self,
         client_record_id: Optional[int] = None,
@@ -186,6 +325,35 @@ class BinderRepository(BaseRepository[Binder]):
                 Binder.id.asc(),
             )
         ).all()
+
+    def list_by_client_record_paginated(
+        self,
+        client_record_id: int,
+        page: int = 1,
+        page_size: int = 20,
+    ) -> list[Binder]:
+        """Return paginated non-deleted binders for a client_record (all statuses)."""
+        stmt = (
+            select(Binder)
+            .where(
+                Binder.client_record_id == client_record_id,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(
+                nullslast(Binder.period_start.asc()),
+                Binder.id.asc(),
+            )
+        )
+        return self.db.scalars(self.apply_pagination(stmt, page, page_size)).all()
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        """Count non-deleted binders for a client_record (all statuses)."""
+        return self.db.scalar(
+            select(func.count(Binder.id)).where(
+                Binder.client_record_id == client_record_id,
+                Binder.deleted_at.is_(None),
+            )
+        )
 
     def get_active_by_client_record(self, client_record_id: int) -> Optional[Binder]:
         """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""

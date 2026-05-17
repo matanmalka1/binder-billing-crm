@@ -40,10 +40,13 @@ class BinderOperationsService:
             raise NotFoundError(
                 f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
             )
-        binders = self.repo.list_by_client_record(client_record_id)
-        total = len(binders)
-        offset = (page - 1) * page_size
-        return binders[offset : offset + page_size], total
+        binders = self.repo.list_by_client_record_paginated(
+            client_record_id,
+            page=page,
+            page_size=page_size,
+        )
+        total = self.repo.count_by_client_record(client_record_id)
+        return binders, total
 
     def get_active_binder_for_client(self, client_record_id: int) -> Optional["Binder"]:
         """Return the active IN_OFFICE binder for a client, or None."""

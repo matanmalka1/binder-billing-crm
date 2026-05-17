@@ -3,7 +3,7 @@
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
@@ -98,18 +98,22 @@ def list_by_due_date_paginated(
     client_record_ids: Optional[list[int]] = None,
     status: Optional[VatWorkItemStatus] = None,
 ) -> tuple[list[VatWorkItem], int]:
+    count_stmt = apply_vat_work_item_filters(
+        scope_to_active_clients_stmt(select(func.count(VatWorkItem.id)), VatWorkItem),
+        client_record_ids=client_record_ids,
+    )
     stmt = apply_vat_work_item_filters(
         _base_stmt(),
         client_record_ids=client_record_ids,
     )
     if status is not None:
+        count_stmt = count_stmt.where(VatWorkItem.status == status)
         stmt = stmt.where(VatWorkItem.status == status)
 
+    count_stmt = count_stmt.where(VatWorkItem.due_date_effective == due_date)
     stmt = stmt.where(VatWorkItem.due_date_effective == due_date)
-    matching = db.scalars(stmt).all()
-    total = len(matching)
     start = (page - 1) * page_size
-    items = sorted(matching, key=lambda item: item.client_record_id)[
-        start : start + page_size
-    ]
-    return items, total
+    items = db.scalars(
+        stmt.order_by(VatWorkItem.client_record_id.asc()).offset(start).limit(page_size)
+    ).all()
+    return list(items), int(db.scalar(count_stmt) or 0)
