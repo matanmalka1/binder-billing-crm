@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from random import Random
+
+from sqlalchemy import select
 
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
     PaymentMethod,
 )
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import EntityType, ObligationType
 from app.common.obligation_plan import advance_payment_obligation_plan
 from app.tax_calendar.services.materialization_service import (
@@ -28,21 +32,32 @@ def _resolve_status(period: str, current_year: int) -> AdvancePaymentStatus:
 
 
 def _apply_payment_fields(
-    rng: Random, payment: AdvancePayment, status: AdvancePaymentStatus, period: str
+    rng: Random,
+    payment: AdvancePayment,
+    status: AdvancePaymentStatus,
+    period: str,
+    le: LegalEntity | None = None,
 ) -> None:
+    rate = Decimal(str(le.advance_rate)) if le and le.advance_rate else Decimal("0")
+    turnover_amount = Decimal(str(round(rng.uniform(10_000, 150_000), 2)))
+    calculated_amount = (turnover_amount * rate / 100).quantize(
+        Decimal("0.01"), ROUND_HALF_UP
+    )
+    payment.advance_rate = rate
+    payment.turnover_amount = turnover_amount
+    payment.calculated_amount = calculated_amount
+    payment.override_amount = None
+    payment.expected_amount = calculated_amount
+
     payment.status = status
     if status == AdvancePaymentStatus.PAID:
-        payment.paid_amount = payment.expected_amount or Decimal(
-            str(round(rng.uniform(500, 8_000), 2))
-        )
+        payment.paid_amount = payment.expected_amount
         payment.payment_method = rng.choice(list(PaymentMethod))
         period_dt = datetime.strptime(f"{period}-01", "%Y-%m-%d").replace(tzinfo=UTC)
         paid_at = period_dt + timedelta(days=rng.randint(14, 45))
         payment.paid_at = min(paid_at, datetime.now(UTC))
     elif status == AdvancePaymentStatus.PARTIAL:
-        expected = payment.expected_amount or Decimal(
-            str(round(rng.uniform(500, 8_000), 2))
-        )
+        expected = payment.expected_amount
         payment.paid_amount = (
             expected * Decimal(str(round(rng.uniform(0.2, 0.8), 2)))
         ).quantize(Decimal("0.01"))
@@ -64,6 +79,13 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
     mat = TaxCalendarMaterializationService(db)
     payments: list[AdvancePayment] = []
 
+    _crs = [get_seed_client_record(b) for b in businesses if get_seed_client_record(b) is not None]
+    _le_ids = list({cr.legal_entity_id for cr in _crs})
+    legal_entity_map: dict[int, LegalEntity] = {
+        le.id: le
+        for le in db.scalars(select(LegalEntity).where(LegalEntity.id.in_(_le_ids))).all()
+    }
+
     seen_clients: set[int] = set()
     for business in businesses:
         cr = get_seed_client_record(business)
@@ -74,8 +96,9 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
             continue
         seen_clients.add(client_record_id)
 
-        frequency = getattr(cr, "advance_payment_frequency", None)
-        entity_type = getattr(cr, "entity_type", None)
+        le = legal_entity_map.get(cr.legal_entity_id)
+        frequency = le.advance_payment_frequency if le else None
+        entity_type = le.entity_type if le else None
         if frequency is None or entity_type == EntityType.EMPLOYEE:
             continue
 
@@ -107,11 +130,10 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                 status = _resolve_status(plan.period, current_year)
 
                 if existing:
-                    _apply_payment_fields(rng, existing, status, plan.period)
+                    _apply_payment_fields(rng, existing, status, plan.period, le)
                     payments.append(existing)
                     continue
 
-                expected = Decimal(str(round(rng.uniform(500, 8_000), 2)))
                 payment = AdvancePayment(
                     client_record_id=client_record_id,
                     period=plan.period,
@@ -119,12 +141,12 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                     due_date=entry.due_date,
                     due_date_original=entry.due_date,
                     due_date_effective=entry.due_date,
-                    expected_amount=expected,
+                    expected_amount=Decimal("0.00"),
                     paid_amount=Decimal("0.00"),
                     status=AdvancePaymentStatus.PENDING,
                     tax_calendar_entry_id=entry.id,
                 )
-                _apply_payment_fields(rng, payment, status, plan.period)
+                _apply_payment_fields(rng, payment, status, plan.period, le)
                 db.add(payment)
                 payments.append(payment)
 
@@ -141,9 +163,18 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
         )
         .all()
     )
+    straggler_client_ids = {p.client_record_id for p in stragglers}
+    straggler_cr_map: dict[int, ClientRecord] = {
+        cr.id: cr
+        for cr in db.scalars(
+            select(ClientRecord).where(ClientRecord.id.in_(straggler_client_ids))
+        ).all()
+    }
     for p in stragglers:
+        cr = straggler_cr_map.get(p.client_record_id)
+        le = legal_entity_map.get(cr.legal_entity_id) if cr else None
         status = _resolve_status(p.period, current_year)
-        _apply_payment_fields(rng, p, status, p.period)
+        _apply_payment_fields(rng, p, status, p.period, le)
 
     db.flush()
     return payments

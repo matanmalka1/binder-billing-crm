@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from decimal import ROUND_HALF_UP, Decimal
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -31,6 +33,7 @@ class SeedIntegrityValidator:
         self._check_no_duplicate_annual_reports()
         self._check_no_null_tax_calendar_links()
         self._check_vat_advance_period_sync()
+        self._check_advance_payment_amounts()
         if self._errors:
             error_list = "\n".join(f"  - {e}" for e in self._errors)
             raise SeedIntegrityError(
@@ -103,6 +106,28 @@ class SeedIntegrityValidator:
                 self._errors.append(
                     f"{table} has {result['count']} active row(s) without tax_calendar_entry_id"
                 )
+
+    def _check_advance_payment_amounts(self) -> None:
+        payments = self.db.execute(
+            select(AdvancePayment).where(
+                AdvancePayment.turnover_amount.isnot(None),
+                AdvancePayment.advance_rate.isnot(None),
+                AdvancePayment.deleted_at.is_(None),
+            )
+        ).scalars().all()
+        for p in payments:
+            expected_calc = (
+                Decimal(str(p.turnover_amount)) * Decimal(str(p.advance_rate)) / 100
+            ).quantize(Decimal("0.01"), ROUND_HALF_UP)
+            if p.calculated_amount is None or \
+               Decimal(str(p.calculated_amount)).quantize(Decimal("0.01")) != expected_calc:
+                self._errors.append(f"AdvancePayment {p.id}: calculated_amount mismatch")
+            expected_final = (
+                p.override_amount if p.override_amount is not None else p.calculated_amount
+            )
+            if p.expected_amount is None or \
+               Decimal(str(p.expected_amount)) != Decimal(str(expected_final)):
+                self._errors.append(f"AdvancePayment {p.id}: expected_amount mismatch")
 
     def _check_vat_advance_period_sync(self) -> None:
         """Clients with VAT work items but no advance payments for the same periods are a data gap."""
