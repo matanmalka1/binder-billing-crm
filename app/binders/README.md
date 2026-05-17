@@ -43,7 +43,7 @@ Primary fields:
 - `binder_number` (required)
 - `period_start` (optional; derived from the first structured material period)
 - `period_end` (optional)
-- `status` (`in_office`, `closed_in_office`, `archived_in_office`, `ready_for_pickup`, `returned`)
+- `status` (`in_office`, `closed_in_office`, `ready_for_pickup`, `returned`)
 - `returned_at` (optional)
 - `pickup_person_name` (optional)
 - `notes` (optional)

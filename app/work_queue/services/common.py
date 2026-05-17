@@ -63,7 +63,6 @@ STATUS_LABELS = {
     WorkQueueSourceType.BINDER: {
         "in_office": "במשרד",
         "closed_in_office": "סגור במשרד",
-        "archived_in_office": "בארכיון במשרד",
         "ready_for_pickup": "מוכן לאיסוף",
         "returned": "הוחזר",
     },

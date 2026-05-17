@@ -99,14 +99,6 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
     assert items[0].id == target.id
 
 
-def test_client_exists_returns_boolean(test_db):
-    client = _create_client(test_db, "Client C", "C-020")
-    service = BinderOperationsService(test_db)
-
-    assert service.client_exists(client.id) is True
-    assert service.client_exists(9999) is False
-
-
 def test_enrich_binder_returns_expected_fields(test_db, test_user):
     client = _create_client(test_db, "Client D", "C-030")
     idle_binder = _create_binder(

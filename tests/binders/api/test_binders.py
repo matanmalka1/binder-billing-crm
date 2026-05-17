@@ -153,7 +153,6 @@ def test_binder_list_includes_available_actions(client, auth_token, test_db, tes
         "total",
         "in_office",
         "closed_in_office",
-        "archived_in_office",
         "ready_for_pickup",
         "returned",
     }

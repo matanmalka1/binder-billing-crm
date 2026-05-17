@@ -90,7 +90,7 @@ class ClientUpdateService:
             AnnualReportClientStatusService(self.db).cancel_open_by_client_record(
                 record.id
             )
-            BinderRepository(self.db).archive_in_office_by_client_record(record.id)
+            BinderRepository(self.db).close_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(
         self, client_id: int, old_entity_type, new_entity_type, actor_id

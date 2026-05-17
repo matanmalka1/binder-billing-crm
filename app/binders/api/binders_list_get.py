@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.binders.schemas.binder import BinderListResponse, BinderResponse
+from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_service import BinderService
 from app.core.exceptions import NotFoundError
 from app.binders.services.messages import BINDER_NOT_FOUND
@@ -32,7 +33,7 @@ def list_binders(
     sort_dir: str = Query("desc"),
 ):
     """List active binders with optional filters, sorting, and pagination."""
-    service = BinderService(db)
+    service = BinderListService(db)
     items, total, counters = service.list_binders_enriched(
         client_record_id=client_record_id,
         status=status_filter,
@@ -57,7 +58,7 @@ def list_binders(
 @router.get("/{binder_id}", response_model=BinderResponse)
 def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     """Get binder by ID."""
-    service = BinderService(db)
+    service = BinderListService(db)
     binder_response = service.get_binder_with_client_name(binder_id)
     if not binder_response:
         raise NotFoundError(

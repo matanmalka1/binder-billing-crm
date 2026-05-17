@@ -13,6 +13,7 @@ from app.binders.schemas.binder import (
     BinderReceiveResult,
 )
 from app.binders.services.binder_service import BinderService
+from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_handover_service import BinderHandoverService
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -26,7 +27,7 @@ router = APIRouter(
 
 
 def fetch_client_and_build_response(binder, db: DBSession) -> BinderResponse:
-    service = BinderService(db)
+    service = BinderListService(db)
     enriched = service.get_binder_with_client_name(binder.id)
     return enriched or service.build_binder_response(binder)
 

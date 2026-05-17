@@ -245,21 +245,16 @@ class BinderRepository(BaseRepository[Binder]):
             row.client_record_id = row.client_record_id
         return {b.client_record_id: b for b in rows}
 
-    def archive_in_office_by_client_record(self, client_record_id: int) -> int:
+    def close_in_office_by_client_record(self, client_record_id: int) -> int:
         rows = self.db.scalars(
             select(Binder).where(
                 Binder.client_record_id == client_record_id,
                 Binder.deleted_at.is_(None),
-                Binder.status.in_(
-                    [
-                        BinderStatus.IN_OFFICE,
-                        BinderStatus.CLOSED_IN_OFFICE,
-                    ]
-                ),
+                Binder.status == BinderStatus.IN_OFFICE,
             )
         ).all()
         for row in rows:
-            row.status = BinderStatus.ARCHIVED_IN_OFFICE
+            row.status = BinderStatus.CLOSED_IN_OFFICE
         if rows:
             self.db.flush()
         return len(rows)

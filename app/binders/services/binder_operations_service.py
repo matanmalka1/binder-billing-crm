@@ -58,10 +58,6 @@ class BinderOperationsService:
         """Return {client_record_id: binder} for each client's active IN_OFFICE binder."""
         return self.repo.map_active_by_clients(client_record_ids)
 
-    def client_exists(self, client_record_id: int) -> bool:
-        """Compatibility helper for callers that still query client existence here."""
-        return ClientRecordRepository(self.db).get_by_id(client_record_id) is not None
-
     def enrich_binder(
         self,
         binder: Binder,
