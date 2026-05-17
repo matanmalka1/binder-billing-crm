@@ -58,7 +58,9 @@ def _apply_payment_fields(
 
 def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePayment]:
     current_year = cfg.reference_date.year
-    historical_years = list(range(current_year - _HISTORICAL_YEARS, current_year))
+    # Include current year so past-due periods in the current year are backfilled,
+    # matching the VAT demo builder which also covers YTD periods.
+    all_years = list(range(current_year - _HISTORICAL_YEARS, current_year + 1))
     mat = TaxCalendarMaterializationService(db)
     payments: list[AdvancePayment] = []
 
@@ -77,13 +79,22 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
         if frequency is None or entity_type == EntityType.EMPLOYEE:
             continue
 
-        for year in historical_years:
+        for year in all_years:
             plans = advance_payment_obligation_plan(
                 frequency=frequency,
                 year=year,
                 entity_type=entity_type,
             )
             for plan in plans:
+                entry = mat.ensure_periodic_entry(
+                    ObligationType.ADVANCE_PAYMENT,
+                    plan.period,
+                    plan.period_months_count,
+                )
+                # For the current year, only backfill periods whose due date has passed.
+                if year == current_year and entry.due_date >= cfg.reference_date:
+                    continue
+
                 existing = (
                     db.query(AdvancePayment)
                     .filter(
@@ -100,11 +111,6 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                     payments.append(existing)
                     continue
 
-                entry = mat.ensure_periodic_entry(
-                    ObligationType.ADVANCE_PAYMENT,
-                    plan.period,
-                    plan.period_months_count,
-                )
                 expected = Decimal(str(round(rng.uniform(500, 8_000), 2)))
                 payment = AdvancePayment(
                     client_record_id=client_record_id,

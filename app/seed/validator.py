@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.binders.models.binder import Binder
 from app.clients.models.client_record import ClientRecord
@@ -29,6 +30,7 @@ class SeedIntegrityValidator:
         self._check_no_vat_items_for_exempt_clients()
         self._check_no_duplicate_annual_reports()
         self._check_no_null_tax_calendar_links()
+        self._check_vat_advance_period_sync()
         if self._errors:
             error_list = "\n".join(f"  - {e}" for e in self._errors)
             raise SeedIntegrityError(
@@ -100,4 +102,46 @@ class SeedIntegrityValidator:
             if result["count"]:
                 self._errors.append(
                     f"{table} has {result['count']} active row(s) without tax_calendar_entry_id"
+                )
+
+    def _check_vat_advance_period_sync(self) -> None:
+        """Clients with VAT work items but no advance payments for the same periods are a data gap."""
+        non_exempt_types = {EntityType.OSEK_MURSHE, EntityType.COMPANY_LTD}
+        eligible_client_ids = set(
+            self.db.execute(
+                select(ClientRecord.id)
+                .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+                .where(
+                    LegalEntity.entity_type.in_(non_exempt_types),
+                    LegalEntity.advance_payment_frequency.isnot(None),
+                    ClientRecord.deleted_at.is_(None),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for client_id in eligible_client_ids:
+            vat_periods = set(
+                self.db.execute(
+                    select(VatWorkItem.period).where(
+                        VatWorkItem.client_record_id == client_id,
+                        VatWorkItem.deleted_at.is_(None),
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            ap_periods = set(
+                self.db.execute(
+                    select(AdvancePayment.period).where(
+                        AdvancePayment.client_record_id == client_id,
+                        AdvancePayment.deleted_at.is_(None),
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            if vat_periods and not ap_periods:
+                self._errors.append(
+                    f"Client {client_id} has {len(vat_periods)} VAT period(s) but zero advance payments"
                 )
