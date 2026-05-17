@@ -30,6 +30,10 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
         annual_report_id: Optional[int] = None,
         tax_calendar_entry_id: Optional[int] = None,
         notes: Optional[str] = None,
+        advance_rate=None,
+        turnover_amount=None,
+        calculated_amount=None,
+        override_amount=None,
     ) -> AdvancePayment:
         payment = AdvancePayment(
             client_record_id=client_record_id,
@@ -43,6 +47,10 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             tax_calendar_entry_id=tax_calendar_entry_id,
             notes=notes,
             status=AdvancePaymentStatus.PENDING,
+            advance_rate=advance_rate,
+            turnover_amount=turnover_amount,
+            calculated_amount=calculated_amount,
+            override_amount=override_amount,
         )
         self.db.add(payment)
         self.db.flush()

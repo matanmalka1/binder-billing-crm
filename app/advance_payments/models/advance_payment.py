@@ -4,10 +4,13 @@ An ``AdvancePayment`` represents a client tax prepayment (``מקדמה``) for a
 given reporting period.
 
 Context:
-    Businesses pay advance payments (``מקדמות``) to the Israeli Tax Authority
-    monthly or bi-monthly, based on a percentage of prior-year income
-    (``advance_rate`` on ``Client``). Small and medium businesses typically
-    report bi-monthly, while larger businesses usually report monthly.
+    Reporting legal entities pay advance payments (``מקדמות``) to the Israeli
+
+    Tax Authority monthly or bi-monthly, based on a configured advance rate.
+    based on a percentage of prior-year income.
+    The expected amount is derived: turnover_amount × advance_rate / 100 =
+    calculated_amount. override_amount replaces the final expected_amount when
+    set.
 
 Period handling:
     ``period`` follows the same ``YYYY-MM`` convention as ``VatWorkItem`` and
@@ -89,8 +92,14 @@ class AdvancePayment(Base):
     due_date_override_reason = Column(String(500), nullable=True)
 
     # ── Amounts ───────────────────────────────────────────────────────────────
-    expected_amount = Column(Numeric(10, 2), nullable=True)  # According to advance rate
+    expected_amount = Column(Numeric(10, 2), nullable=True)
     paid_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
+
+    # ── Calculation fields ────────────────────────────────────────────────────
+    turnover_amount = Column(Numeric(14, 2), nullable=True)
+    advance_rate = Column(Numeric(5, 2), nullable=True)
+    calculated_amount = Column(Numeric(12, 2), nullable=True)
+    override_amount = Column(Numeric(12, 2), nullable=True)
 
     # ── Status & payment ──────────────────────────────────────────────────────
     status = Column(
@@ -100,12 +109,6 @@ class AdvancePayment(Base):
     )
     paid_at = Column(DateTime, nullable=True)
     payment_method = Column(pg_enum(PaymentMethod), nullable=True)
-
-    # ── Turnover snapshot (saved when payment reaches paid status) ────────────
-    reported_turnover = Column(Numeric(14, 2), nullable=True)
-    turnover_source_vat_work_item_id = Column(
-        Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True
-    )
 
     # ── Cross-domain links ────────────────────────────────────────────────────
     annual_report_id = Column(
