@@ -90,7 +90,12 @@ def test_advance_payment_exists_for_period_and_sum_paid(test_db):
 
     assert repo.exists_for_period(business.client_record_id, "2026-01") is True
     assert repo.exists_for_period(business.client_record_id, "2026-03") is False
-    assert AdvancePaymentAnalyticsRepository(test_db).sum_paid_by_client_year(business.client_record_id, 2026) == 100.0
+    assert (
+        AdvancePaymentAnalyticsRepository(test_db).sum_paid_by_client_year(
+            business.client_record_id, 2026
+        )
+        == 100.0
+    )
 
 
 def test_advance_payment_analytics_annual_kpis(test_db):
