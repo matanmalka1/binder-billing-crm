@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `0002_advance_payment_calculation_fields`.
+- Current head is `0003_remove_archived_vat_work_item_status`.
 - The migration history was reset on 2026-05-17. Only the fresh initial baseline remains.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -33,6 +33,16 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 0003_remove_archived_vat_work_item_status
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Removes `archived` from the PostgreSQL `vatworkitemstatus` enum.
+- Notes:
+  Existing VAT work items with status `archived` are converted to `canceled`
+  before the enum type is recreated.
 
 ### 0002_advance_payment_calculation_fields
 

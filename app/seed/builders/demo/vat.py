@@ -232,7 +232,6 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
             _FINAL_VAT = (
                 VatWorkItemStatus.FILED,
                 VatWorkItemStatus.CANCELED,
-                VatWorkItemStatus.ARCHIVED,
             )
             if period_year < cfg.reference_date.year and status not in _FINAL_VAT:
                 status = VatWorkItemStatus.FILED

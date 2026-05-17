@@ -74,7 +74,6 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
                     [
                         VatWorkItemStatus.FILED,
                         VatWorkItemStatus.CANCELED,
-                        VatWorkItemStatus.ARCHIVED,
                     ]
                 ),
                 VatWorkItem.deleted_at.is_(None),

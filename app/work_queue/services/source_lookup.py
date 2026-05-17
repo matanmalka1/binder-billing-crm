@@ -81,7 +81,6 @@ def load_source_states(
                 in {
                     VatWorkItemStatus.FILED,
                     VatWorkItemStatus.CANCELED,
-                    VatWorkItemStatus.ARCHIVED,
                 },
                 route=source_route(WorkQueueSourceType.VAT_WORK_ITEM, row.id),
             )

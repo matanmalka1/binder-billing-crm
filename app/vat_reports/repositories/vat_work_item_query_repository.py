@@ -18,7 +18,6 @@ from app.vat_reports.repositories.vat_work_item_filters import (
 _FILED_STATUSES = {
     VatWorkItemStatus.FILED,
     VatWorkItemStatus.CANCELED,
-    VatWorkItemStatus.ARCHIVED,
 }
 
 

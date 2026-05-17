@@ -38,7 +38,6 @@ STATUS_LABELS = {
         "ready_for_review": "מוכן לבדיקה",
         "filed": "הוגש",
         "canceled": "בוטל",
-        "archived": "בארכיון",
     },
     WorkQueueSourceType.ANNUAL_REPORT: {
         "not_started": "טרם התחיל",

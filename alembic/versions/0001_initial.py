@@ -935,7 +935,6 @@ def upgrade() -> None:
                 "ready_for_review",
                 "filed",
                 "canceled",
-                "archived",
                 name="vatworkitemstatus",
             ),
             nullable=False,

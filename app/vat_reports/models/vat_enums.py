@@ -10,7 +10,6 @@ class VatWorkItemStatus(str, PyEnum):
     READY_FOR_REVIEW = "ready_for_review"
     FILED = "filed"
     CANCELED = "canceled"
-    ARCHIVED = "archived"
 
 
 class CounterpartyIdType(str, PyEnum):
