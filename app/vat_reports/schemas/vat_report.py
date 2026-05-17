@@ -91,6 +91,8 @@ class VatWorkItemGroupSummary(BaseModel):
     total_count: int
     filed_count: int
     pending_count: int
+    not_filed_count: int
+    overdue_count: int
 
 
 class VatWorkItemGroupsResponse(BaseModel):

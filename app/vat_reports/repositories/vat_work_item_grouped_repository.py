@@ -41,6 +41,7 @@ def list_due_date_groups(
         stmt = stmt.where(VatWorkItem.status == status)
 
     rows = db.scalars(stmt).all()
+    today = date.today()
 
     groups: dict[str, dict] = {}
     for row in rows:
@@ -59,6 +60,8 @@ def list_due_date_groups(
                 "total_count": 0,
                 "filed_count": 0,
                 "pending_count": 0,
+                "not_filed_count": 0,
+                "overdue_count": 0,
             }
         g = groups[due_date]
         period_summary = {
@@ -78,6 +81,10 @@ def list_due_date_groups(
             g["filed_count"] += 1
         if row.status == VatWorkItemStatus.PENDING_MATERIALS:
             g["pending_count"] += 1
+        if row.status not in (VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED):
+            g["not_filed_count"] += 1
+            if deadline < today:
+                g["overdue_count"] += 1
 
     return sorted(groups.values(), key=lambda g: g["due_date"])
 

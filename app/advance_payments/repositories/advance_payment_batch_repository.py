@@ -65,6 +65,18 @@ class AdvancePaymentBatchRepository(BaseRepository):
                         func.sum(case((pending_expr, 1), else_=0)),
                         0,
                     ).label("pending_count"),
+                    func.coalesce(
+                        func.sum(
+                            case(
+                                (
+                                    AdvancePayment.status == AdvancePaymentStatus.PAID,
+                                    1,
+                                ),
+                                else_=0,
+                            )
+                        ),
+                        0,
+                    ).label("paid_count"),
                 ),
                 AdvancePayment,
             )

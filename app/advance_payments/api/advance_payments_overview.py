@@ -104,6 +104,8 @@ def list_advance_payment_batches(
                 missing_turnover_count=int(r.snapshot_missing_count or 0),
                 overdue_count=int(r.overdue_count or 0),
                 pending_count=int(r.pending_count or 0),
+                paid_count=int(r.paid_count or 0),
+                not_paid_count=int(r.client_count) - int(r.paid_count or 0),
                 total_expected=total_expected,
                 total_paid=total_paid,
                 collection_rate=collection_rate,

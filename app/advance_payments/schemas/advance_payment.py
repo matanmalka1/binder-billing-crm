@@ -190,6 +190,8 @@ class MonthBatchSummary(BaseModel):
     missing_turnover_count: int
     overdue_count: int
     pending_count: int = 0
+    paid_count: int = 0
+    not_paid_count: int = 0
     total_expected: Optional[ApiDecimal] = None
     total_paid: Optional[ApiDecimal] = None
     collection_rate: float = 0.0
