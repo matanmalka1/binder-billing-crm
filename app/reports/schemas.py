@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    PrimaryAnnualReportForm,
     AnnualReportStatus,
 )
 
@@ -61,7 +61,7 @@ class AdvancePaymentCollectionsReportResponse(BaseModel):
 class AnnualReportStatusClientResponse(BaseModel):
     client_record_id: int
     client_name: str
-    form_type: Optional[AnnualReportForm] = None
+    form_type: Optional[PrimaryAnnualReportForm] = None
     filing_deadline: Optional[date] = None
     days_until_deadline: Optional[int] = None
 

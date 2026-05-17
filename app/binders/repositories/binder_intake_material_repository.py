@@ -17,12 +17,12 @@ class BinderIntakeMaterialRepository(BaseRepository[BinderIntakeMaterial]):
         self,
         intake_id: int,
         material_type: MaterialType,
+        period_year: int,
+        period_month_start: int,
+        period_month_end: int,
         business_id: Optional[int] = None,
         annual_report_id: Optional[int] = None,
         vat_report_id: Optional[int] = None,
-        period_year: Optional[int] = None,
-        period_month_start: Optional[int] = None,
-        period_month_end: Optional[int] = None,
         description: Optional[str] = None,
     ) -> BinderIntakeMaterial:
         material = BinderIntakeMaterial(

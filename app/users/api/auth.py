@@ -29,7 +29,7 @@ def login(request: LoginRequest, db: DBSession, response: Response):
         )
 
     ttl_hours = config.JWT_TTL_HOURS
-    if request.remember_me:
+    if request.rememberMe:
         ttl_hours = config.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
 
     token = auth_service.generate_token(user, ttl_hours=ttl_hours)

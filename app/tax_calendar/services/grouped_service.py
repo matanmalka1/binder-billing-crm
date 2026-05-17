@@ -78,7 +78,6 @@ def list_groups(
                 period_months_count=entry.period_months_count,
                 tax_year=entry.tax_year,
                 regulatory_due_date=entry.due_date,
-                effective_due_date=effective_min,
                 effective_due_date_min=effective_min,
                 effective_due_date_max=effective_max,
                 linked_count=len(rows),

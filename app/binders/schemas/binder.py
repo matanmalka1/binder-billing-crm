@@ -96,9 +96,9 @@ class BinderIntakeMaterialResponse(BaseModel):
     business_id: Optional[int] = None
     annual_report_id: Optional[int] = None
     vat_report_id: Optional[int] = None
-    period_year: Optional[int] = None
-    period_month_start: Optional[int] = None
-    period_month_end: Optional[int] = None
+    period_year: int
+    period_month_start: int
+    period_month_end: int
     description: Optional[str] = None
     created_at: ApiDateTime
 

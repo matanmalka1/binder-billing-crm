@@ -93,17 +93,11 @@ ANNUAL_REPORT_FILED_STATUSES: frozenset[AnnualReportStatus] = frozenset(
     }
 )
 
-# Backward-compatible aliases. Keep these until all imports migrate.
-ClientTypeForReport = ClientAnnualFilingType
-AnnualReportForm = PrimaryAnnualReportForm
-
 __all__ = [
     "ANNUAL_REPORT_FILED_STATUSES",
-    "AnnualReportForm",
     "AnnualReportSchedule",
     "AnnualReportStatus",
     "ClientAnnualFilingType",
-    "ClientTypeForReport",
     "FilingDeadlineType",
     "ExtensionReason",
     "PrimaryAnnualReportForm",

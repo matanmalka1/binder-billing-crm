@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
-from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
 from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
 from app.vat_reports.services.data_entry_invoice_update import update_invoice
 from app.vat_reports.services.data_entry_invoices import add_invoice

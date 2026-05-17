@@ -13,10 +13,10 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
 )
 from app.annual_reports.models.annual_report_detail import AnnualReportDetail
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    PrimaryAnnualReportForm,
     AnnualReportSchedule,
     AnnualReportStatus,
-    ClientTypeForReport,
+    ClientAnnualFilingType,
     ExtensionReason,
     FilingDeadlineType as DeadlineType,
     SubmissionMethod,
@@ -191,8 +191,8 @@ def _annex_schedules_for_report(
 ) -> list[AnnualReportSchedule]:
     schedules: list[AnnualReportSchedule] = []
     if report.client_type in (
-        ClientTypeForReport.SELF_EMPLOYED,
-        ClientTypeForReport.CORPORATION,
+        ClientAnnualFilingType.SELF_EMPLOYED,
+        ClientAnnualFilingType.CORPORATION,
     ):
         schedules.append(AnnualReportSchedule.SCHEDULE_A)
     if report.has_rental_income:
@@ -261,14 +261,14 @@ def create_annual_reports(
             business_client_record_id = get_seed_client_record_id(business)
 
             if entity_type == EntityType.COMPANY_LTD:
-                client_type_for_report = ClientTypeForReport.CORPORATION
-                form_type = AnnualReportForm.FORM_1214
+                client_type_for_report = ClientAnnualFilingType.CORPORATION
+                form_type = PrimaryAnnualReportForm.FORM_1214
             elif entity_type in (EntityType.OSEK_PATUR, EntityType.OSEK_MURSHE):
-                client_type_for_report = ClientTypeForReport.SELF_EMPLOYED
-                form_type = AnnualReportForm.FORM_1301
+                client_type_for_report = ClientAnnualFilingType.SELF_EMPLOYED
+                form_type = PrimaryAnnualReportForm.FORM_1301
             else:
-                client_type_for_report = ClientTypeForReport.INDIVIDUAL
-                form_type = AnnualReportForm.FORM_1301
+                client_type_for_report = ClientAnnualFilingType.INDIVIDUAL
+                form_type = PrimaryAnnualReportForm.FORM_1301
 
             # Skip if report already exists for this client/year
             existing = (
@@ -454,8 +454,8 @@ def create_annual_report_income_lines(db, rng: Random, reports) -> None:
     for report in reports:
         source_candidates = [IncomeSourceType.SALARY]
         if report.client_type in (
-            ClientTypeForReport.SELF_EMPLOYED,
-            ClientTypeForReport.CORPORATION,
+            ClientAnnualFilingType.SELF_EMPLOYED,
+            ClientAnnualFilingType.CORPORATION,
         ):
             source_candidates.extend(
                 [
@@ -506,8 +506,8 @@ def create_annual_report_expense_lines(
     for report in reports:
         category_candidates = list(base_categories)
         if report.client_type in (
-            ClientTypeForReport.SELF_EMPLOYED,
-            ClientTypeForReport.CORPORATION,
+            ClientAnnualFilingType.SELF_EMPLOYED,
+            ClientAnnualFilingType.CORPORATION,
         ):
             category_candidates.extend(
                 [

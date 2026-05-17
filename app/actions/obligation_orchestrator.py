@@ -5,7 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models.annual_report_enums import ClientTypeForReport
+from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.common.enums import EntityType
@@ -41,7 +41,7 @@ def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
     return years
 
 
-def _derive_client_type(entity_type: Optional[EntityType]) -> ClientTypeForReport:
+def _derive_client_type(entity_type: Optional[EntityType]) -> ClientAnnualFilingType:
     if entity_type is None or entity_type not in ENTITY_TYPE_TO_REPORT_CLIENT_TYPE:
         raise ValueError("סוג ישות לא נתמך ליצירת דוח שנתי")
     return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE[entity_type]

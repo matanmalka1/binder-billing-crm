@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import BaseModel, Field
 
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
@@ -45,12 +45,7 @@ class ExpenseLineCreateRequest(BaseModel):
     amount: ApiDecimal = Field(gt=0)
     description: Optional[str] = None
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    external_document_reference: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "external_document_reference", "supporting_document_ref"
-        ),
-    )
+    external_document_reference: Optional[str] = None
     supporting_document_id: Optional[int] = None
 
 
@@ -59,12 +54,7 @@ class ExpenseLineUpdateRequest(BaseModel):
     amount: Optional[ApiDecimal] = Field(None, gt=0)
     description: Optional[str] = None
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    external_document_reference: Optional[str] = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "external_document_reference", "supporting_document_ref"
-        ),
-    )
+    external_document_reference: Optional[str] = None
     supporting_document_id: Optional[int] = None
 
 

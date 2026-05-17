@@ -1,5 +1,5 @@
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
-from app.annual_reports.models.annual_report_enums import ClientTypeForReport
+from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 
 EXCEL_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MAX_CLIENT_IMPORT_UPLOAD_SIZE = 10 * 1024 * 1024
@@ -73,10 +73,10 @@ COMPANY_EXEMPT_VAT_ERROR = 'חברה בע"מ אינה יכולה להיות מו
 COMPANY_CORPORATION_ID_ERROR = 'חברה בע"מ חייבת להיווצר עם ח.פ'
 ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR = "יש לציין תדירות מקדמות מס הכנסה"
 
-ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientTypeForReport] = {
-    EntityType.OSEK_PATUR: ClientTypeForReport.EXEMPT_DEALER,
-    EntityType.OSEK_MURSHE: ClientTypeForReport.SELF_EMPLOYED,
-    EntityType.COMPANY_LTD: ClientTypeForReport.CORPORATION,
-    EntityType.EMPLOYEE: ClientTypeForReport.INDIVIDUAL,
-    None: ClientTypeForReport.INDIVIDUAL,
+ENTITY_TYPE_TO_REPORT_CLIENT_TYPE: dict[EntityType | None, ClientAnnualFilingType] = {
+    EntityType.OSEK_PATUR: ClientAnnualFilingType.EXEMPT_DEALER,
+    EntityType.OSEK_MURSHE: ClientAnnualFilingType.SELF_EMPLOYED,
+    EntityType.COMPANY_LTD: ClientAnnualFilingType.CORPORATION,
+    EntityType.EMPLOYEE: ClientAnnualFilingType.INDIVIDUAL,
+    None: ClientAnnualFilingType.INDIVIDUAL,
 }

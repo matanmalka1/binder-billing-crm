@@ -22,7 +22,7 @@ from app.core.exceptions import ConflictError, NotFoundError
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
-from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
 from app.vat_reports.services.intake import create_work_item
 
 

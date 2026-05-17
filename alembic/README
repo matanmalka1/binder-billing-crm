@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `0003_remove_archived_vat_work_item_status`.
+- Current head is `0004_make_binder_intake_material_period_fields_non_nullable`.
 - The migration history was reset on 2026-05-17. Only the fresh initial baseline remains.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -33,6 +33,15 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 0004_make_binder_intake_material_period_fields_non_nullable
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Makes `period_year`, `period_month_start`, `period_month_end` on `binder_intake_materials` NOT NULL.
+- Notes:
+  Requires a fresh seed (no legacy null period rows should exist).
 
 ### 0003_remove_archived_vat_work_item_status
 
@@ -80,7 +89,6 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --auto
 
 Review the generated migration before applying it:
 
-- Replace any `_NormalizedEnum(...)` rendering with `sa.Enum(...)`.
 - Ensure every partial index `postgresql_where` / `sqlite_where` uses `sa.text(...)`.
 - Confirm `down_revision` points to the current head.
 

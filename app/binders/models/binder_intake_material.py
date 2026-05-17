@@ -70,13 +70,9 @@ class BinderIntakeMaterial(Base):
         Integer, ForeignKey("vat_work_items.id"), nullable=True, index=True
     )
 
-    # Structured reporting period — required for all material rows.
-    # Nullable only for legacy rows that predate this field.
-    period_year = Column(Integer, nullable=True)
-    period_month_start = Column(Integer, nullable=True)  # 1–12
-    period_month_end = Column(
-        Integer, nullable=True
-    )  # 1–12; equals period_month_start for monthly
+    period_year = Column(Integer, nullable=False)
+    period_month_start = Column(Integer, nullable=False)  # 1–12
+    period_month_end = Column(Integer, nullable=False)  # 1–12; equals period_month_start for monthly
 
     # Optional free-text note (not the period — use structured fields above for period).
     description = Column(Text, nullable=True)

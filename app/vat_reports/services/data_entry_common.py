@@ -13,7 +13,7 @@ from app.vat_reports.integrations.tax_rules_financials import (
     get_vat_deduction_rate_for_category,
 )
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
-from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
 from app.vat_reports.services.constants import (
     OSEK_PATUR_CEILING_WARNING_RATE,
     VALID_TRANSITIONS,
