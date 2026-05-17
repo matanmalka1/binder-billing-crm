@@ -114,7 +114,6 @@ class AdvancePaymentUpdateRequest(BaseModel):
     payment_method: Optional[PaymentMethod] = None
     notes: Optional[str] = Field(None, max_length=500)
     turnover_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    advance_rate: Optional[ApiDecimal] = Field(None, ge=0)
     override_amount: Optional[ApiDecimal] = Field(None, ge=0)
 
     @model_validator(mode="after")
@@ -123,12 +122,6 @@ class AdvancePaymentUpdateRequest(BaseModel):
             raise ValueError("יש לספק לפחות שדה אחד לעדכון")
         return self
 
-
-class AdvancePaymentSuggestionResponse(BaseModel):
-    client_record_id: int
-    year: int
-    suggested_amount: Optional[ApiDecimal] = None
-    has_data: bool
 
 
 class AdvancePaymentOverviewRow(BaseModel):

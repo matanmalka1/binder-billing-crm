@@ -7,7 +7,6 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentCreateRequest,
     AdvancePaymentListResponse,
     AdvancePaymentRow,
-    AdvancePaymentSuggestionResponse,
     AdvancePaymentUpdateRequest,
     AnnualKPIResponse,
     PrefillTurnoverResponse,
@@ -102,25 +101,6 @@ def create_advance_payment(
     )
     return AdvancePaymentRow.model_validate(payment)
 
-
-@router.get("/suggest", response_model=AdvancePaymentSuggestionResponse)
-def suggest_advance_payment(
-    client_record_id: int,
-    db: DBSession,
-    user: CurrentUser,
-    year: int = Query(...),
-    period_months_count: int | None = Query(None, ge=1, le=2),
-):
-    service = AdvancePaymentService(db)
-    suggested = service.suggest_expected_amount_for_client(
-        client_record_id, year, period_months_count
-    )
-    return AdvancePaymentSuggestionResponse(
-        client_record_id=client_record_id,
-        year=year,
-        suggested_amount=suggested,
-        has_data=suggested is not None,
-    )
 
 
 @router.get(

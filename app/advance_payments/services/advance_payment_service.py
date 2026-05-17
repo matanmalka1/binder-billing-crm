@@ -13,12 +13,7 @@ from app.advance_payments.models.advance_payment import (
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
-from app.advance_payments.services.advance_payment_calculator import (
-    calculate_expected_amount,
-    derive_annual_income_from_vat,
-)
 from app.advance_payments.services.constants import (
-    ADVANCE_PAYMENT_VAT_RATE,
     BIMONTHLY_START_MONTHS,
     SUPPORTED_PERIOD_MONTH_COUNTS,
     get_period_start_months,
@@ -28,9 +23,6 @@ from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.common.enums import AdvancePaymentFrequency, ObligationType
-from app.vat_reports.repositories.vat_client_summary_repository import (
-    VatClientSummaryRepository,
-)
 from app.advance_payments.repositories.turnover_lookup_repository import (
     TurnoverLookupRepository,
 )
@@ -142,12 +134,15 @@ class AdvancePaymentService:
         turnover_amount=None,
         advance_rate=None,
         override_amount=None,
-        fallback_expected_amount=None,
     ) -> AdvancePayment:
         self._assert_client_allows_create(client_record_id)
+        configured_count = self.default_period_months_count_for_client(client_record_id)
         if period_months_count is None:
-            period_months_count = self.default_period_months_count_for_client(
-                client_record_id
+            period_months_count = configured_count
+        elif period_months_count != configured_count:
+            raise ConflictError(
+                "תדירות המקדמות בבקשה אינה תואמת להגדרת הלקוח",
+                "ADVANCE_PAYMENT.FREQUENCY_MISMATCH",
             )
         self._validate_period_months_count(period, period_months_count)
         if self.repo.exists_for_period(client_record_id, period):
@@ -161,13 +156,8 @@ class AdvancePaymentService:
             le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
             advance_rate = le.advance_rate if le else None
 
-        effective_fallback = (
-            fallback_expected_amount
-            if fallback_expected_amount is not None
-            else expected_amount
-        )
         calculated_amount, resolved_expected = self._compute_amounts(
-            turnover_amount, advance_rate, override_amount, effective_fallback
+            turnover_amount, advance_rate, override_amount, expected_amount
         )
 
         mat = TaxCalendarMaterializationService(self.db)
@@ -204,7 +194,6 @@ class AdvancePaymentService:
         "payment_method",
         "notes",
         "turnover_amount",
-        "advance_rate",
         "override_amount",
     }
 
@@ -220,10 +209,10 @@ class AdvancePaymentService:
             )
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
 
-        calc_fields = {"turnover_amount", "advance_rate", "override_amount"}
+        calc_fields = {"turnover_amount", "override_amount"}
         if calc_fields & filtered.keys():
             effective_t = filtered.get("turnover_amount", payment.turnover_amount)
-            effective_r = filtered.get("advance_rate", payment.advance_rate)
+            effective_r = payment.advance_rate
             effective_o = filtered.get("override_amount", payment.override_amount)
             calculated_amount, new_expected = self._compute_amounts(
                 effective_t, effective_r, effective_o
@@ -265,34 +254,6 @@ class AdvancePaymentService:
             )
         self.repo.soft_delete(payment_id, deleted_by=actor_id)
 
-    # ─── Suggest ─────────────────────────────────────────────────────────────
-
-    def suggest_expected_amount_for_client(
-        self,
-        client_record_id: int,
-        year: int,
-        period_months_count: Optional[int] = None,
-    ) -> Optional[Decimal]:
-        record = self._get_record_or_raise(client_record_id)
-        if period_months_count is None:
-            period_months_count = self.default_period_months_count_for_client(
-                client_record_id
-            )
-        legal_entity = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-        if legal_entity is None or legal_entity.advance_rate is None:
-            return None
-        prior_year_vat = VatClientSummaryRepository(self.db).get_annual_output_vat(
-            client_record_id=client_record_id, year=year - 1
-        )
-        if prior_year_vat is None:
-            return None
-        annual_income = derive_annual_income_from_vat(
-            prior_year_vat, ADVANCE_PAYMENT_VAT_RATE
-        )
-        return calculate_expected_amount(
-            annual_income, Decimal(str(legal_entity.advance_rate)), period_months_count
-        )
-
     # ─── Generate schedule ────────────────────────────────────────────────────
 
     def generate_annual_schedule(
@@ -314,9 +275,6 @@ class AdvancePaymentService:
                 "ADVANCE_PAYMENT.FREQUENCY_MISMATCH",
             )
         tax_calendar = TaxCalendarMaterializationService(self.db)
-        suggested = self.suggest_expected_amount_for_client(
-            client_record_id, year, period_months_count
-        )
         created: list[AdvancePayment] = []
         skipped = 0
         for month in get_period_start_months(period_months_count):
@@ -336,7 +294,6 @@ class AdvancePaymentService:
                 client_record_id=client_record_id,
                 period=period,
                 period_months_count=period_months_count,
-                fallback_expected_amount=suggested,
             )
             created.append(payment)
         return created, skipped
