@@ -67,6 +67,12 @@ def list_due_date_groups(
         }
         if period_summary not in g["periods"]:
             g["periods"].append(period_summary)
+            g["periods"].sort(
+                key=lambda p: (
+                    0 if p["period_type"] == VatType.BIMONTHLY else 1,
+                    p["period"],
+                )
+            )
         g["total_count"] += 1
         if row.status == VatWorkItemStatus.FILED:
             g["filed_count"] += 1
