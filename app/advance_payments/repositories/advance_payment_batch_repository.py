@@ -53,10 +53,7 @@ class AdvancePaymentBatchRepository(BaseRepository):
                         func.sum(
                             case(
                                 (
-                                    AdvancePayment.reported_turnover.is_(None)
-                                    & AdvancePayment.turnover_source_vat_work_item_id.is_(
-                                        None
-                                    ),
+                                    AdvancePayment.turnover_amount.is_(None),
                                     1,
                                 ),
                                 else_=0,

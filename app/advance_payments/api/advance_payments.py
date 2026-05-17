@@ -10,6 +10,7 @@ from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentSuggestionResponse,
     AdvancePaymentUpdateRequest,
     AnnualKPIResponse,
+    PrefillTurnoverResponse,
 )
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.advance_payments.services.advance_payment_analytics_service import (
@@ -47,7 +48,7 @@ def list_advance_payments(
     )
     turnover_repo = TurnoverLookupRepository(db)
     period_list = [
-        (p.period, p.period_months_count) for p in items if p.reported_turnover is None
+        (p.period, p.period_months_count) for p in items if p.turnover_amount is None
     ]
     live_map = (
         turnover_repo.get_turnover_for_many(client_record_id, period_list)
@@ -58,12 +59,12 @@ def list_advance_payments(
     def _to_row(p) -> AdvancePaymentRow:
         live, _ = (
             live_map.get(p.period, (None, None))
-            if p.reported_turnover is None
+            if p.turnover_amount is None
             else (None, None)
         )
         row = AdvancePaymentRow.model_validate(p)
         row.live_turnover = live
-        row.missing_turnover = p.reported_turnover is None and live is None
+        row.missing_turnover = p.turnover_amount is None and live is None
         return row
 
     return AdvancePaymentListResponse(
@@ -91,7 +92,9 @@ def create_advance_payment(
         client_record_id=client_record_id,
         period=request.period,
         period_months_count=request.period_months_count,
-        expected_amount=request.expected_amount,
+        turnover_amount=request.turnover_amount,
+        advance_rate=request.advance_rate,
+        override_amount=request.override_amount,
         paid_amount=request.paid_amount,
         payment_method=request.payment_method,
         annual_report_id=request.annual_report_id,
@@ -117,6 +120,30 @@ def suggest_advance_payment(
         year=year,
         suggested_amount=suggested,
         has_data=suggested is not None,
+    )
+
+
+@router.get(
+    "/prefill-turnover",
+    response_model=PrefillTurnoverResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+)
+def get_prefill_turnover(
+    client_record_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    period: str = Query(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),
+    period_months_count: int = Query(..., ge=1, le=2),
+):
+    t, vid, src = AdvancePaymentService(db).get_prefill_turnover_for_client(
+        client_record_id, period, period_months_count
+    )
+    return PrefillTurnoverResponse(
+        period=period,
+        period_months_count=period_months_count,
+        turnover_amount=t,
+        vat_work_item_id=vid,
+        source=src,
     )
 
 

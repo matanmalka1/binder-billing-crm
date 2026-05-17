@@ -1,6 +1,6 @@
 from datetime import date
-from decimal import Decimal
-from typing import Optional
+from decimal import Decimal, ROUND_HALF_UP
+from typing import Literal, Optional
 
 from sqlalchemy.orm import Session
 
@@ -88,6 +88,28 @@ class AdvancePaymentService:
                 "ADVANCE_PAYMENT.INVALID_PERIOD",
             )
 
+    def _compute_amounts(
+        self,
+        turnover_amount,
+        advance_rate,
+        override_amount,
+        fallback_expected=None,
+    ) -> tuple[Optional[Decimal], Optional[Decimal]]:
+        if turnover_amount is not None and advance_rate is not None:
+            calculated = (
+                Decimal(str(turnover_amount)) * Decimal(str(advance_rate)) / 100
+            ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        else:
+            calculated = None
+        expected = (
+            override_amount
+            if override_amount is not None
+            else calculated
+            if calculated is not None
+            else fallback_expected
+        )
+        return calculated, expected
+
     # ─── List ─────────────────────────────────────────────────────────────────
 
     def list_payments_for_client(
@@ -117,6 +139,10 @@ class AdvancePaymentService:
         payment_method=None,
         annual_report_id: Optional[int] = None,
         notes: Optional[str] = None,
+        turnover_amount=None,
+        advance_rate=None,
+        override_amount=None,
+        fallback_expected_amount=None,
     ) -> AdvancePayment:
         self._assert_client_allows_create(client_record_id)
         if period_months_count is None:
@@ -129,6 +155,21 @@ class AdvancePaymentService:
                 f"תשלום מקדמה לתקופה {period} כבר קיים",
                 "ADVANCE_PAYMENT.CONFLICT",
             )
+
+        if advance_rate is None:
+            record = self._get_record_or_raise(client_record_id)
+            le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
+            advance_rate = le.advance_rate if le else None
+
+        effective_fallback = (
+            fallback_expected_amount
+            if fallback_expected_amount is not None
+            else expected_amount
+        )
+        calculated_amount, resolved_expected = self._compute_amounts(
+            turnover_amount, advance_rate, override_amount, effective_fallback
+        )
+
         mat = TaxCalendarMaterializationService(self.db)
         entry = mat.ensure_periodic_entry(
             ObligationType.ADVANCE_PAYMENT,
@@ -140,12 +181,16 @@ class AdvancePaymentService:
             period=period,
             period_months_count=period_months_count,
             due_date=entry.due_date,
-            expected_amount=expected_amount,
+            expected_amount=resolved_expected,
             paid_amount=paid_amount,
             payment_method=payment_method,
             annual_report_id=annual_report_id,
             tax_calendar_entry_id=entry.id,
             notes=notes,
+            advance_rate=advance_rate,
+            turnover_amount=turnover_amount,
+            calculated_amount=calculated_amount,
+            override_amount=override_amount,
         )
         return mat.link_advance_payment(payment)
 
@@ -158,8 +203,9 @@ class AdvancePaymentService:
         "paid_at",
         "payment_method",
         "notes",
-        "reported_turnover",
-        "turnover_source_vat_work_item_id",
+        "turnover_amount",
+        "advance_rate",
+        "override_amount",
     }
 
     def update_payment_for_client(
@@ -174,6 +220,25 @@ class AdvancePaymentService:
             )
         filtered = {k: v for k, v in fields.items() if k in self._ALLOWED_UPDATE_FIELDS}
 
+        calc_fields = {"turnover_amount", "advance_rate", "override_amount"}
+        if calc_fields & filtered.keys():
+            effective_t = filtered.get("turnover_amount", payment.turnover_amount)
+            effective_r = filtered.get("advance_rate", payment.advance_rate)
+            effective_o = filtered.get("override_amount", payment.override_amount)
+            calculated_amount, new_expected = self._compute_amounts(
+                effective_t, effective_r, effective_o
+            )
+            filtered["calculated_amount"] = calculated_amount
+            filtered["expected_amount"] = new_expected
+            if "paid_amount" not in filtered and "status" not in filtered and payment.paid_amount is not None:
+                paid = payment.paid_amount
+                if paid == 0:
+                    filtered["status"] = AdvancePaymentStatus.PENDING
+                elif new_expected is None or paid >= new_expected:
+                    filtered["status"] = AdvancePaymentStatus.PAID
+                else:
+                    filtered["status"] = AdvancePaymentStatus.PARTIAL
+
         if "paid_amount" in filtered and "status" not in filtered:
             paid = filtered["paid_amount"]
             expected = filtered.get("expected_amount", payment.expected_amount)
@@ -183,22 +248,6 @@ class AdvancePaymentService:
                 filtered["status"] = AdvancePaymentStatus.PAID
             else:
                 filtered["status"] = AdvancePaymentStatus.PARTIAL
-
-        new_status = filtered.get("status")
-        becoming_settled = new_status in (
-            AdvancePaymentStatus.PAID,
-            AdvancePaymentStatus.PARTIAL,
-        )
-        already_has_snapshot = payment.reported_turnover is not None
-        if becoming_settled and not already_has_snapshot:
-            turnover, vat_item_id = TurnoverLookupRepository(
-                self.db
-            ).get_turnover_for_period(
-                client_record_id, payment.period, payment.period_months_count
-            )
-            if turnover is not None:
-                filtered["reported_turnover"] = turnover
-                filtered["turnover_source_vat_work_item_id"] = vat_item_id
 
         return self.repo.update_payment(payment, **filtered)
 
@@ -287,7 +336,20 @@ class AdvancePaymentService:
                 client_record_id=client_record_id,
                 period=period,
                 period_months_count=period_months_count,
-                expected_amount=suggested,
+                fallback_expected_amount=suggested,
             )
             created.append(payment)
         return created, skipped
+
+    # ─── Prefill ──────────────────────────────────────────────────────────────
+
+    def get_prefill_turnover_for_client(
+        self,
+        client_record_id: int,
+        period: str,
+        period_months_count: int,
+    ) -> tuple[Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]]:
+        self._get_record_or_raise(client_record_id)
+        return TurnoverLookupRepository(self.db).get_prefill_turnover(
+            client_record_id, period, period_months_count
+        )

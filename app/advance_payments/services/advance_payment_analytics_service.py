@@ -89,12 +89,7 @@ class AdvancePaymentAnalyticsService:
                     and records[p.client_record_id].legal_entity_id in legal_entities
                     else None,
                     live_turnover_map.get((p.client_record_id, p.period)),
-                    legal_entities[
-                        records[p.client_record_id].legal_entity_id
-                    ].advance_rate
-                    if p.client_record_id in records
-                    and records[p.client_record_id].legal_entity_id in legal_entities
-                    else None,
+                    p.advance_rate,
                 )
                 for p in payments
             ],
@@ -115,7 +110,7 @@ class AdvancePaymentAnalyticsService:
 
         by_client: dict[int, list[tuple[str, int]]] = defaultdict(list)
         for p in payments:
-            if p.reported_turnover is None:
+            if p.turnover_amount is None:
                 by_client[p.client_record_id].append((p.period, p.period_months_count))
 
         result: dict[tuple[int, str], Optional[object]] = {}

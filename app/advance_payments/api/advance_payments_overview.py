@@ -58,10 +58,12 @@ def list_advance_payments_overview(
             paid_amount=payment.paid_amount,
             status=payment.status,
             payment_method=payment.payment_method,
-            reported_turnover=payment.reported_turnover,
+            turnover_amount=payment.turnover_amount,
+            calculated_amount=payment.calculated_amount,
+            override_amount=payment.override_amount,
             live_turnover=live_turnover,
             missing_turnover=(
-                payment.reported_turnover is None and live_turnover is None
+                payment.turnover_amount is None and live_turnover is None
             ),
             advance_rate=advance_rate,
         )

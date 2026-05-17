@@ -30,8 +30,10 @@ class AdvancePaymentRow(BaseModel):
     payment_method: Optional[PaymentMethod] = None
     annual_report_id: Optional[int] = None
     notes: Optional[str] = None
-    reported_turnover: Optional[ApiDecimal] = None
-    turnover_source_vat_work_item_id: Optional[int] = None
+    turnover_amount: Optional[ApiDecimal] = None
+    advance_rate: Optional[ApiDecimal] = None
+    calculated_amount: Optional[ApiDecimal] = None
+    override_amount: Optional[ApiDecimal] = None
     live_turnover: Optional[ApiDecimal] = None  # populated by router, not ORM
     missing_turnover: bool = False
     created_at: ApiDateTime
@@ -70,7 +72,9 @@ AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 class AdvancePaymentCreateRequest(BaseModel):
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
     period_months_count: Optional[int] = Field(None, ge=1, le=2)
-    expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
+    turnover_amount: Optional[ApiDecimal] = Field(None, ge=0)
+    advance_rate: Optional[ApiDecimal] = Field(None, ge=0)
+    override_amount: Optional[ApiDecimal] = Field(None, ge=0)
     paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
     payment_method: Optional[PaymentMethod] = None
     annual_report_id: Optional[int] = None
@@ -95,8 +99,8 @@ class AdvancePaymentCreateRequest(BaseModel):
             "example": {
                 "period": "2026-03",
                 "period_months_count": 1,
-                "due_date": "2026-04-15",
-                "expected_amount": "2500.00",
+                "turnover_amount": "50000.00",
+                "advance_rate": "2.5",
             }
         }
     }
@@ -109,20 +113,13 @@ class AdvancePaymentUpdateRequest(BaseModel):
     paid_at: Optional[ApiDateTime] = None
     payment_method: Optional[PaymentMethod] = None
     notes: Optional[str] = Field(None, max_length=500)
+    turnover_amount: Optional[ApiDecimal] = Field(None, ge=0)
+    advance_rate: Optional[ApiDecimal] = Field(None, ge=0)
+    override_amount: Optional[ApiDecimal] = Field(None, ge=0)
 
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "AdvancePaymentUpdateRequest":
-        if all(
-            v is None
-            for v in [
-                self.paid_amount,
-                self.expected_amount,
-                self.status,
-                self.paid_at,
-                self.payment_method,
-                self.notes,
-            ]
-        ):
+        if not self.model_fields_set:
             raise ValueError("יש לספק לפחות שדה אחד לעדכון")
         return self
 
@@ -147,10 +144,12 @@ class AdvancePaymentOverviewRow(BaseModel):
     paid_amount: Optional[ApiDecimal] = None
     status: AdvancePaymentStatus
     payment_method: Optional[PaymentMethod] = None
-    reported_turnover: Optional[ApiDecimal] = None
+    turnover_amount: Optional[ApiDecimal] = None
+    calculated_amount: Optional[ApiDecimal] = None
+    override_amount: Optional[ApiDecimal] = None
     live_turnover: Optional[ApiDecimal] = None  # populated by service, not ORM
     missing_turnover: bool = False
-    advance_rate: Optional[ApiDecimal] = None  # from legal entity
+    advance_rate: Optional[ApiDecimal] = None  # snapshot from payment
 
     @computed_field
     @property
@@ -218,3 +217,11 @@ class GenerateScheduleRequest(BaseModel):
 class GenerateScheduleResponse(BaseModel):
     created: int
     skipped: int
+
+
+class PrefillTurnoverResponse(BaseModel):
+    period: str
+    period_months_count: int
+    turnover_amount: Optional[ApiDecimal] = None
+    vat_work_item_id: Optional[int] = None
+    source: Literal["vat_filed", "vat_pending", "none"]

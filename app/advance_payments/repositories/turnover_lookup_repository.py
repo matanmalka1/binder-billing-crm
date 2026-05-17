@@ -1,7 +1,7 @@
 """VAT turnover lookup for advance payment context."""
 
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 
 # Only FILED items represent settled, authoritative turnover figures.
 _FINAL_STATUSES = [VatWorkItemStatus.FILED]
+_PENDING_STATUSES = [VatWorkItemStatus.READY_FOR_REVIEW]
 
 
 class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
@@ -97,3 +98,29 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
                 primary_id = found[0][0]
                 result[period] = (total, primary_id)
         return result
+
+    def get_prefill_turnover(
+        self,
+        client_record_id: int,
+        period: str,
+        period_months_count: int = 1,  # accepted for API symmetry; VatWorkItem has no period_months_count col
+    ) -> tuple[Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]]:
+        """Return (total_output_net, vat_work_item_id, source) for prefill.
+
+        Checks FILED first, then READY_FOR_REVIEW. Matches by period string only.
+        """
+        for statuses, source in [
+            (_FINAL_STATUSES, "vat_filed"),
+            (_PENDING_STATUSES, "vat_pending"),
+        ]:
+            row = self.db.execute(
+                select(VatWorkItem.id, VatWorkItem.total_output_net).where(
+                    VatWorkItem.client_record_id == client_record_id,
+                    VatWorkItem.period == period,
+                    VatWorkItem.status.in_(statuses),
+                    VatWorkItem.deleted_at.is_(None),
+                )
+            ).first()
+            if row is not None:
+                return Decimal(str(row.total_output_net)), row.id, source
+        return None, None, "none"

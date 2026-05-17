@@ -82,8 +82,8 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     payload = {
         "period": "2026-03",
         "period_months_count": 1,
-        "due_date": "2026-04-15",
-        "expected_amount": 1200.0,
+        "turnover_amount": "40000.00",
+        "advance_rate": "3.0",
     }
     first = client.post(
         f"/api/v1/clients/{business.client_record_id}/advance-payments",
@@ -91,7 +91,12 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
         json=payload,
     )
     assert first.status_code == 201
-    assert first.json()["period"] == "2026-03"
+    first_data = first.json()
+    assert first_data["period"] == "2026-03"
+    assert Decimal(first_data["turnover_amount"]) == Decimal("40000.00")
+    assert Decimal(first_data["advance_rate"]) == Decimal("3.00")
+    assert Decimal(first_data["calculated_amount"]) == Decimal("1200.00")
+    assert Decimal(first_data["expected_amount"]) == Decimal("1200.00")
 
     conflict = client.post(
         f"/api/v1/clients/{business.client_record_id}/advance-payments",
@@ -119,8 +124,8 @@ def test_create_advance_payment_uses_advance_payment_frequency(
         headers=advisor_headers,
         json={
             "period": "2026-03",
-            "due_date": "2026-05-15",
-            "expected_amount": 1200.0,
+            "turnover_amount": "40000.00",
+            "advance_rate": "3.0",
         },
     )
 
