@@ -1,22 +1,18 @@
 # Alembic Migrations README
 
-## Policy (must match project rules)
+## Policy
 
-- All schema changes must go through Alembic. Never modify DB schema manually and never use `Base.metadata.create_all()`.
+- All schema changes must go through Alembic.
+- Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- New migration filename convention: `<revision_id>_<description>.py` (Alembic revision id prefix).
-- After any SQLAlchemy model change:
-  1. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
-  2. Review the generated migration. For partial indexes, fix any `postgresql_where` strings to use `sa.text(...)`.
-  3. `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- `down_revision` must always point to the previous migration in the chain (`None` only for the initial migration).
-- Current head is `0009_remove_binder_archived_in_office_status`.
-- Note: if autogenerate produces `_NormalizedEnum(...)` references, replace with `sa.Enum(...)` before applying.
-- Production deploy must run migrations before server startup (`alembic upgrade head && ...`).
+- Current head is `0001_initial`.
+- The migration history was reset on 2026-05-17. Only the fresh initial baseline remains.
+- Production startup must run migrations before the server command:
+  `alembic upgrade head && ...`
 
 ## Development database
 
-Development targets local PostgreSQL, not SQLite.
+Development targets local PostgreSQL.
 
 1. Start the DB:
 
@@ -24,185 +20,53 @@ Development targets local PostgreSQL, not SQLite.
 docker compose up -d postgres
 ```
 
-2. Wait for health:
+2. Reset the development schema when applying the fresh baseline:
 
 ```bash
-docker compose ps
-```
-
-3. Run migrations:
-
-```bash
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```
 
 Default local connection:
 
 ```text
-postgresql+psycopg2://postgres:postgres@localhost:5432/binder_crm
+postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
-## Known autogenerate quirk — partial index `where` clauses
+## Current migration
 
-Alembic autogenerate can still write `postgresql_where='...'` as a plain string.
-SQLAlchemy 2.x requires a `ClauseElement`, so you must wrap it manually:
-
-```python
-# Generated (broken):
-op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
-    unique=True,
-    postgresql_where='deleted_at IS NULL')
-
-# Fixed:
-op.create_index('ix_clients_id_number_active', 'clients', ['id_number'],
-    unique=True,
-    postgresql_where=sa.text('deleted_at IS NULL'))
-```
-
-Always check every `create_index` call with a `where` argument after autogenerate.
-
-## Required: top instructions in every migration file
-
-```python
-"""<short title>
-
-Revision ID: <revision_id>
-Revises: <down_revision>
-Create Date: <YYYY-MM-DD HH:MM:SS>
-
-Run:
-- Upgrade:   APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic upgrade <revision_id>
-- Downgrade: APP_ENV=<env> ENV_FILE=<env_file> python3 -m alembic downgrade <down_revision>
-
-Notes:
-- What schema/data changes this migration makes
-- PostgreSQL/SQLite differences (if any)
-- Any pre/post manual steps
-"""
-```
-
-## Migration chain
-
-`0009_remove_binder_archived_in_office_status` is the current head.
-
-### 0009_remove_binder_archived_in_office_status
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes `archived_in_office` from the `binders.status` enum.
-- Data mapping:
-  Existing `archived_in_office` rows are converted to `closed_in_office` before
-  shrinking the enum.
-- Notes:
-  PostgreSQL enum `binderstatus` is recreated after data remapping. Downgrade
-  restores the enum value but does not infer which `closed_in_office` rows were
-  previously archived.
-
-### 0008_drop_notification_read_state
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes notification-center read state columns from `notifications`:
-  `is_read` and `read_at`.
-- Notes:
-  Notifications are outbound delivery records. UI badge counts now come from
-  delivery status summary values (`pending`, `sent`, `failed`, `total`).
-  Downgrade restores `is_read` with a temporary server default for backfill and
-  then removes that default.
-
-### 0007_remove_signature_request_draft
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Removes `draft` from the `signature_requests.status` enum.
-- Data mapping:
-  Existing `draft` rows are converted to `canceled` before shrinking the enum.
-- Notes:
-  PostgreSQL enum `signaturerequeststatus` is recreated after data remapping.
-
-### 0006_simplify_annual_report_statuses
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Collapses annual report statuses to the operational set:
-  `not_started`, `collecting_docs`, `in_preparation`, `pending_client`,
-  `submitted`, `closed`, `canceled`.
-- Data mapping:
-  `docs_complete` and `amended` become `in_preparation`; `accepted`,
-  `assessment_issued`, and `objection_filed` become `closed`.
-- Notes:
-  PostgreSQL enum `annualreportstatus` is recreated after data remapping.
-
-### 0004_tasks
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds the `tasks` table with `TaskStatus` (open/in_progress/done/canceled) and
-  `TaskPriority` (low/normal/high/urgent) PostgreSQL enums.
-- Covers:
-  Persisted internal task lifecycle: title, description, status, priority, due_date,
-  assignment fields, source tracing, action metadata, completion/cancellation audit,
-  and soft-delete via `deleted_at`.
-- Notes:
-  Enum types are created implicitly by `create_table`. DB is empty so no data migration.
-
-### 0002_remove_task_in_progress_status
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Collapses task `in_progress` back to `open` and removes `in_progress` from the
-  `taskstatus` enum.
-- Notes:
-  This intentionally simplifies manual task lifecycle to `open → done` or
-  `open → canceled`. Development data can be reseeded, so existing
-  `in_progress` values are treated as `open`.
-
-### 0003_scheduler_reminders
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Replaces legacy manual reminder columns with scheduler-trigger fields.
-- Covers:
-  `fire_at`, scheduler status, action type, source metadata, payload,
-  execution metadata, and timestamps.
-- Notes:
-  Drops the old reminders table because the database is empty and no historical
-  reminder data needs preservation. Removes old `pending/sent/canceled`
-  semantics and introduces `scheduled/fired/canceled/failed`.
-
-### 0002_require_tax_calendar_links
-
-- What it does:
-  Requires `tax_calendar_entry_id` on active VAT, advance payment, and annual
-  report obligation rows.
-
-### 9ecbb3d5f408_initial
+### 0001_initial
 
 - Command:
   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
 - What it does:
   Creates the full current PostgreSQL schema from SQLAlchemy models.
 - Covers:
-  users, clients identity tables, businesses, binders, annual reports, VAT reports,
+  users, client identity tables, businesses, binders, annual reports, VAT reports,
   charges, invoices, advance payments, tax calendar entries, reminders, notifications,
   permanent documents, signature requests, correspondence, authority contacts,
-  tax calendar tables, notes, and audit tables.
+  notes, tasks, and audit tables.
 - Notes:
-  Generated on 2026-05-07 as a fresh initial migration for an empty database.
+  Generated as a fresh initial migration for an empty database/schema.
   Previous incremental migration history was intentionally reset.
-  Includes `deadline_rules`, `tax_calendar_entries`, and nullable
-  `tax_calendar_entry_id` links on `advance_payments`, `vat_work_items`, and
-  `annual_reports`. No backfill migration is included because current DB is
-  empty/dev-only. Future generation code will populate `tax_calendar_entry_id`
-  directly.
   `down_revision = None`.
+
+## Required checks after model changes
+
+```bash
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"
+```
+
+Review the generated migration before applying it:
+
+- Replace any `_NormalizedEnum(...)` rendering with `sa.Enum(...)`.
+- Ensure every partial index `postgresql_where` / `sqlite_where` uses `sa.text(...)`.
+- Confirm `down_revision` points to the current head.
+
+Then run:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+```
 
 ## Daily commands
 
@@ -215,30 +79,4 @@ APP_ENV=development ENV_FILE=.env.development python3 -m alembic history --verbo
 
 # Upgrade to latest
 APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
-
-# Downgrade one step
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic downgrade -1
-
-# Stamp without running (mark revision as applied)
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic stamp <revision_id>
 ```
-
-## Creating a new migration
-
-1. Update SQLAlchemy models.
-2. Generate:
-   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"`
-3. Edit the generated file:
-   - Add the required top docstring.
-   - Replace `_NormalizedEnum(...)` with `sa.Enum(...)`.
-   - Wrap all partial-index `where` strings with `sa.text(...)`.
-   - Ensure `down_revision` points to the current head.
-4. Apply:
-   `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-
-## Environment notes
-
-- `alembic/env.py` reads `DATABASE_URL` from app config.
-- `alembic/env.py` auto-imports all `app.*.models.*` modules before autogenerate.
-- Always set `APP_ENV` and `ENV_FILE` so `JWT_SECRET` and other required settings are loaded.
-- Production startup runs migrations first: `alembic upgrade head && gunicorn ...`
