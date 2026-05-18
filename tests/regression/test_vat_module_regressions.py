@@ -9,7 +9,7 @@ def test_vat_module_keeps_binder_receive_working(client, advisor_headers, test_d
         test_db,
         full_name="Regression VAT Client",
         id_number="VAT_REG_001",
-        office_client_number=701,
+        office_client_number=100701,
     )
     test_db.commit()
 

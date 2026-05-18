@@ -23,7 +23,7 @@ def test_authenticated_client_creation(client, auth_token):
     assert data["client"]["full_name"] == "John Doe"
     assert data["client"]["id_number"] == "100000009"
     assert data["client"]["id_number_type"] == "corporation"
-    assert data["client"]["office_client_number"] == 1
+    assert data["client"]["office_client_number"] == 100001
     assert "id" in data["client"]
     assert "created_at" in data["client"]
     assert data["client"]["created_at"].endswith("Z")
@@ -77,7 +77,7 @@ def test_create_client_creates_client_and_initial_business(
     assert data["client"]["full_name"] == "Created Client"
     assert data["business"]["business_name"] == "Created Business"
     assert data["business"]["client_id"] == data["client"]["id"]
-    assert data["client"]["office_client_number"] == 1
+    assert data["client"]["office_client_number"] == 100001
 
     stored_business = (
         test_db.query(Business)

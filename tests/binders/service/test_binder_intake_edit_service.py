@@ -139,8 +139,8 @@ def _intake_with_material(
 def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
     test_db, test_user
 ):
-    source_client = _client(test_db, "001", office_client_number=401)
-    target_client = _client(test_db, "002", office_client_number=402)
+    source_client = _client(test_db, "001", office_client_number=100401)
+    target_client = _client(test_db, "002", office_client_number=100402)
 
     source_business = _business(test_db, source_client.id, "Source Biz")
     target_business = _business(test_db, target_client.id, "Target Biz")
@@ -149,8 +149,8 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
     source_vat = _vat_work_item(test_db, source_client.id, "2026-02", test_user.id)
     target_vat = _vat_work_item(test_db, target_client.id, "2026-02", test_user.id)
 
-    source_binder = _binder(test_db, source_client.id, "401/1", test_user.id)
-    target_binder = _binder(test_db, target_client.id, "402/1", test_user.id)
+    source_binder = _binder(test_db, source_client.id, "100401/1", test_user.id)
+    target_binder = _binder(test_db, target_client.id, "100402/1", test_user.id)
     intake = _intake_with_material(
         test_db,
         binder_id=source_binder.id,
@@ -191,15 +191,15 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
 def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(
     test_db, test_user
 ):
-    source_client = _client(test_db, "003", office_client_number=403)
-    target_client = _client(test_db, "004", office_client_number=404)
+    source_client = _client(test_db, "003", office_client_number=100403)
+    target_client = _client(test_db, "004", office_client_number=100404)
 
     source_business = _business(test_db, source_client.id, "Source Biz 2")
     source_report = _annual_report(test_db, source_client.id, 2024)
     source_vat = _vat_work_item(test_db, source_client.id, "2026-03", test_user.id)
 
-    source_binder = _binder(test_db, source_client.id, "403/1", test_user.id)
-    _binder(test_db, target_client.id, "404/1", test_user.id)
+    source_binder = _binder(test_db, source_client.id, "100403/1", test_user.id)
+    _binder(test_db, target_client.id, "100404/1", test_user.id)
     intake = _intake_with_material(
         test_db,
         binder_id=source_binder.id,

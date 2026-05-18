@@ -36,7 +36,7 @@ def _receive_request(
 
 def test_binder_status_change_creates_log(client, auth_token, test_db, test_user):
     """Test that binder status changes create audit logs."""
-    test_client = _seed_client(test_db, "111222333", office_client_number=101)
+    test_client = _seed_client(test_db, "111222333", office_client_number=100101)
 
     # Receive binder
     response = client.post(
@@ -48,7 +48,7 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     assert response.status_code == 201
     binder_data = _receive_payload(response.json())
     binder_id = binder_data["id"]
-    assert binder_data["binder_number"] == "101/1"
+    assert binder_data["binder_number"] == "100101/1"
     assert binder_data["period_start"] == "2026-02-01"
     actions = binder_data.get("available_actions", [])
     assert any(action["key"] == "ready" for action in actions)
@@ -79,7 +79,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     test_user,
 ):
     """Test /ready route and optional body support on /return."""
-    test_client = _seed_client(test_db, "444555666", office_client_number=102)
+    test_client = _seed_client(test_db, "444555666", office_client_number=100102)
 
     receive_response = client.post(
         "/api/v1/binders/receive",
@@ -131,7 +131,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
 
 def test_binder_list_includes_available_actions(client, auth_token, test_db, test_user):
     """List endpoint includes action tokens per binder."""
-    test_client = _seed_client(test_db, "777888999", office_client_number=103)
+    test_client = _seed_client(test_db, "777888999", office_client_number=100103)
 
     client.post(
         "/api/v1/binders/receive",
@@ -164,7 +164,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
     test_db,
     test_user,
 ):
-    test_client = _seed_client(test_db, "999000111", office_client_number=104)
+    test_client = _seed_client(test_db, "999000111", office_client_number=100104)
 
     first_receive = client.post(
         "/api/v1/binders/receive",

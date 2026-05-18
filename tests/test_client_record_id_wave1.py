@@ -252,7 +252,7 @@ class TestW4Binder:
 
         binder = Binder(
             client_record_id=record.id,
-            binder_number="1/1",
+            binder_number="100001/1",
             status=BinderStatus.IN_OFFICE,
             created_by=user.id,
         )
@@ -269,7 +269,7 @@ class TestW4Binder:
 
         client = _make_client(db)
         record = _make_client_record(db, client.id)
-        record.office_client_number = 99
+        record.office_client_number = 100099
         db.flush()
         user = _make_user(db)
 

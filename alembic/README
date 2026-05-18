@@ -55,8 +55,8 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 - Notes:
   Generated as a fresh initial migration for an empty database/schema.
   Previous incremental migration history was intentionally reset.
-  Includes creation of `client_office_number_seq` (PostgreSQL sequence used by
-  `ClientRecordRepository.get_next_office_client_number`).
+  Includes creation of `client_office_number_seq` starting at `100001`
+  (PostgreSQL sequence used by `ClientRecordRepository.get_next_office_client_number`).
   `down_revision = None`.
 
 ## Required checks after model changes

@@ -17,7 +17,7 @@ def test_work_queue_api_returns_clean_advance_payment_contract(
     client, test_db, advisor_headers
 ):
     biz = create_business(test_db)
-    test_db.get(ClientRecord, biz.client_id).office_client_number = 1
+    test_db.get(ClientRecord, biz.client_id).office_client_number = 100001
     due_date = date.today() - timedelta(days=1)
     payment = create_linked_advance_payment(
         test_db,
@@ -45,7 +45,7 @@ def test_work_queue_api_returns_clean_advance_payment_contract(
     assert "payload" not in item
     assert "client_office_number" not in item
     assert item["client_name"].startswith("Task Test Client")
-    assert item["office_client_number"] == 1
+    assert item["office_client_number"] == 100001
     assert item["metadata"]["period"] == "2026-02"
     assert item["metadata"]["period_label"] == "פברואר 2026"
     assert item["metadata"]["frequency"] == "monthly"

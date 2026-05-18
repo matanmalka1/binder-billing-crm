@@ -115,7 +115,7 @@ def test_onboarding_exempt_client_creates_no_vat_items(test_db):
         id_number="123456799",
         entity_type=EntityType.OSEK_PATUR,
         vat_reporting_frequency=VatType.EXEMPT,
-        office_client_number=999,
+        office_client_number=100999,
     )
 
     ClientOnboardingOrchestrator(test_db).run(

@@ -10,7 +10,7 @@ def test_binder_receive_endpoint_creates_in_office_binder(
     test_client, _business = create_client_with_business(
         full_name="Regression Test Client",
         id_number="000000003",
-        office_client_number=601,
+        office_client_number=100601,
     )
 
     response = client.post(

@@ -33,7 +33,7 @@ def create_business(db):
     )
     db.add(cr)
     db.flush()
-    cr.office_client_number = cr.id
+    cr.office_client_number = 100000 + cr.id
 
     biz = Business(
         legal_entity_id=le.id,

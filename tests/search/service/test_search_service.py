@@ -11,7 +11,7 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
                 SimpleNamespace(
                     id=1,
                     legal_entity_id=100,
-                    office_client_number=101,
+                    office_client_number=100101,
                     status=SimpleNamespace(value="active"),
                 )
             ],
@@ -21,7 +21,7 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
             SimpleNamespace(
                 id=1,
                 legal_entity_id=100,
-                office_client_number=101,
+                office_client_number=100101,
                 status=SimpleNamespace(value="active"),
             )
         ],
@@ -58,7 +58,7 @@ def test_search_service_client_only_short_circuit(test_db):
     client_record = SimpleNamespace(
         id=1,
         legal_entity_id=100,
-        office_client_number=101,
+        office_client_number=100101,
         status=SimpleNamespace(value="active"),
     )
     svc.client_record_repo = SimpleNamespace(

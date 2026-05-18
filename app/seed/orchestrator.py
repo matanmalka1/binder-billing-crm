@@ -6,6 +6,7 @@ from pathlib import Path
 
 from sqlalchemy import func, inspect, select, text
 
+from app.clients.repositories.client_record_repository import OFFICE_CLIENT_NUMBER_START
 from app.database import Base, SessionLocal, engine
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 
@@ -105,7 +106,7 @@ class SeedOrchestrator:
             if engine.dialect.name == "postgresql":
                 db.execute(
                     text(
-                        "CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1"
+                        f"CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START {OFFICE_CLIENT_NUMBER_START}"
                     )
                 )
 
@@ -255,7 +256,9 @@ class SeedOrchestrator:
             names = ", ".join(f'"{t}"' for t in tables)
             db.execute(text(f"TRUNCATE {names} RESTART IDENTITY CASCADE"))
             db.execute(
-                text("ALTER SEQUENCE IF EXISTS client_office_number_seq RESTART WITH 1")
+                text(
+                    f"ALTER SEQUENCE IF EXISTS client_office_number_seq RESTART WITH {OFFICE_CLIENT_NUMBER_START}"
+                )
             )
         else:
             for table in reversed(Base.metadata.sorted_tables):

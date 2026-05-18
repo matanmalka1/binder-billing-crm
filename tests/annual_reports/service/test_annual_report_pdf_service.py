@@ -48,7 +48,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             self.db = db
 
         def get_by_id(self, client_id):
-            return SimpleNamespace(full_name="Client PDF", office_client_number=42)
+            return SimpleNamespace(full_name="Client PDF", office_client_number=100042)
 
     class _FinSvc:
         def __init__(self, db):

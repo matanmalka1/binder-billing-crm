@@ -8,7 +8,7 @@ def _create_client(test_db, suffix: str) -> SeededClient:
         test_db,
         full_name=f"Binders List Client {suffix}",
         id_number=f"BDL{suffix}",
-        office_client_number=400 + int(suffix),
+        office_client_number=100400 + int(suffix),
     )
 
 
@@ -58,7 +58,7 @@ def test_get_and_delete_binder_paths(client, test_db, advisor_headers, test_user
     assert del_missing.status_code == 404
 
 
-def test_receive_allows_reusing_number_after_soft_delete(
+def test_receive_does_not_reuse_number_after_soft_delete(
     client, test_db, advisor_headers, test_user
 ):
     crm_client = _create_client(test_db, "2")
@@ -89,5 +89,7 @@ def test_receive_allows_reusing_number_after_soft_delete(
     )
     assert second.status_code == 201
     payload = second.json()
-    second_id = payload["binder"]["id"] if "binder" in payload else payload["id"]
+    binder_payload = payload["binder"] if "binder" in payload else payload
+    second_id = binder_payload["id"]
     assert second_id != first_id
+    assert binder_payload["binder_number"] == "100402/2"

@@ -287,7 +287,7 @@ class TestO7BinderHandover:
         db.add(
             Binder(
                 client_record_id=record.id,
-                binder_number="20/1",
+                binder_number="100020/1",
                 status=BinderStatus.READY_FOR_PICKUP,
                 created_by=user.id,
             )

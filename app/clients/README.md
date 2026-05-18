@@ -54,7 +54,7 @@ Office CRM record anchored to a `LegalEntity`. One active record per entity (sof
 Key fields:
 - `id` (PK) — this is `client_record_id` across the codebase
 - `legal_entity_id` (FK → `legal_entities.id`)
-- `office_client_number` (optional, unique among active records)
+- `office_client_number` (optional, unique among active records; generated from `100001`)
 - `accountant_id`, `status` (`ClientStatus`: `active`, `frozen`, `closed`), `notes`
 - Audit: `created_by`, `created_at`, `updated_at`
 - Soft-delete: `deleted_at`, `deleted_by`, `restored_at`, `restored_by`

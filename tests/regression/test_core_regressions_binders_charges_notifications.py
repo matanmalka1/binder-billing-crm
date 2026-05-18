@@ -7,7 +7,7 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
         test_db,
         full_name="S5 Regression Client",
         id_number="555555550",
-        office_client_number=501,
+        office_client_number=100501,
     )
     test_db.commit()
 

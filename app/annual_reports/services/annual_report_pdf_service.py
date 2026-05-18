@@ -35,7 +35,7 @@ class AnnualReportPdfService:
             report.client_record_id
         )
         client_name = (
-            f"לקוח #{client_record.office_client_number}"
+            f"לקוח {client_record.office_client_number}"
             if client_record and client_record.office_client_number
             else CLIENT_FALLBACK_NAME.format(client_record_id=report.client_record_id)
         )

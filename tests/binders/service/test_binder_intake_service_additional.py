@@ -49,7 +49,7 @@ def _materials(year: int = 2026, month: int = 2) -> list[dict]:
 
 
 def test_receive_creates_composite_binder_label(test_db, test_user):
-    client = _client(test_db, "BI-SVC-NEW-001", office_client_number=301)
+    client = _client(test_db, "BI-SVC-NEW-001", office_client_number=100301)
     _business(test_db, client.id)
 
     service = BinderIntakeService(test_db)
@@ -61,16 +61,16 @@ def test_receive_creates_composite_binder_label(test_db, test_user):
     )
 
     assert is_new is True
-    assert binder.binder_number == "301/1"
+    assert binder.binder_number == "100301/1"
     assert binder.period_start == date(2026, 2, 1)
 
 
 def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
-    client = _client(test_db, "BI-SVC-003", office_client_number=302)
+    client = _client(test_db, "BI-SVC-003", office_client_number=100302)
     _business(test_db, client.id)
     existing = Binder(
         client_record_id=client.id,
-        binder_number="302/1",
+        binder_number="100302/1",
         period_start=date.today(),
         created_by=test_user.id,
         status=BinderStatus.IN_OFFICE,
@@ -96,11 +96,11 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
 def test_receive_backfills_period_start_for_existing_binder_without_period(
     test_db, test_user
 ):
-    client = _client(test_db, "BI-SVC-BACKFILL-001", office_client_number=307)
+    client = _client(test_db, "BI-SVC-BACKFILL-001", office_client_number=100307)
     _business(test_db, client.id)
     existing = Binder(
         client_record_id=client.id,
-        binder_number="307/1",
+        binder_number="100307/1",
         period_start=None,
         created_by=test_user.id,
         status=BinderStatus.IN_OFFICE,
@@ -125,7 +125,7 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(
 
 
 def test_receive_raises_when_all_businesses_locked(test_db, test_user):
-    client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=303)
+    client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=100303)
     _business(test_db, client.id)
     test_db.query(Business).filter(
         Business.legal_entity_id == client.legal_entity_id
@@ -145,12 +145,12 @@ def test_receive_raises_when_all_businesses_locked(test_db, test_user):
 
 
 def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_user):
-    client = _client(test_db, "BI-SVC-SEQ-001", office_client_number=304)
+    client = _client(test_db, "BI-SVC-SEQ-001", office_client_number=100304)
     _business(test_db, client.id)
 
     existing = Binder(
         client_record_id=client.id,
-        binder_number="304/1",
+        binder_number="100304/1",
         period_start=date.today(),
         created_by=test_user.id,
         status=BinderStatus.CLOSED_IN_OFFICE,
@@ -167,17 +167,17 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
     )
 
     assert is_new is True
-    assert binder.binder_number == "304/2"
+    assert binder.binder_number == "100304/2"
     assert binder.period_start == date(2026, 3, 1)
 
 
 def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
-    client = _client(test_db, "BI-SVC-OLD-001", office_client_number=305)
+    client = _client(test_db, "BI-SVC-OLD-001", office_client_number=100305)
     _business(test_db, client.id)
 
     old_binder = Binder(
         client_record_id=client.id,
-        binder_number="305/1",
+        binder_number="100305/1",
         period_start=date(2026, 1, 1),
         period_end=date(2026, 2, 28),
         created_by=test_user.id,
@@ -185,7 +185,7 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
     )
     active_binder = Binder(
         client_record_id=client.id,
-        binder_number="305/2",
+        binder_number="100305/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,
         status=BinderStatus.IN_OFFICE,
@@ -212,12 +212,12 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
 
 
 def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_user):
-    client = _client(test_db, "BI-SVC-OLD-002", office_client_number=306)
+    client = _client(test_db, "BI-SVC-OLD-002", office_client_number=100306)
     _business(test_db, client.id)
 
     closed_binder = Binder(
         client_record_id=client.id,
-        binder_number="306/1",
+        binder_number="100306/1",
         period_start=date(2026, 1, 1),
         period_end=date(2026, 1, 31),
         created_by=test_user.id,
@@ -225,7 +225,7 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
     )
     active_binder = Binder(
         client_record_id=client.id,
-        binder_number="306/2",
+        binder_number="100306/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,
         status=BinderStatus.IN_OFFICE,

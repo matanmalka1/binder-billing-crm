@@ -47,7 +47,7 @@ class Binder(Base):
         Integer, ForeignKey("client_records.id"), nullable=False, index=True
     )
 
-    # Globally unique number (the label number on the physical binder).
+    # Label number on the physical binder, unique per active client record.
     binder_number = Column(String, nullable=False)
 
     # Binder period: when it starts and when it ends.

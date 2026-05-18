@@ -50,7 +50,7 @@ def test_create_client_success(test_db):
     cr = _svc_create(service, full_name="Service Client", id_number="610000002")
 
     assert cr.id is not None
-    assert cr.office_client_number == 1
+    assert cr.office_client_number == 100001
     assert cr.created_by == 3
 
 
@@ -62,12 +62,12 @@ def test_create_client_assigns_next_office_client_number_and_creates_initial_bin
     first = _svc_create(service, full_name="First Client", id_number="610000010")
     created = _svc_create(service, full_name="Binder Client", id_number="610000028")
 
-    assert first.office_client_number == 1
-    assert created.office_client_number == 2
+    assert first.office_client_number == 100001
+    assert created.office_client_number == 100002
 
     binder = BinderRepository(test_db).get_active_by_client_record(created.id)
     assert binder is not None
-    assert binder.binder_number == "2/1"
+    assert binder.binder_number == "100002/1"
 
 
 def test_create_client_conflict_when_active_exists(test_db):
@@ -240,8 +240,8 @@ def test_create_client_does_not_reuse_deleted_office_client_number(test_db):
 
     second = _svc_create(service, full_name="Second", id_number="670000033")
 
-    assert first.office_client_number == 1
-    assert second.office_client_number == 2
+    assert first.office_client_number == 100001
+    assert second.office_client_number == 100002
 
 
 def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch):

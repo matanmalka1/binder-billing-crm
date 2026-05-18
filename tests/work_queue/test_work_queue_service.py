@@ -79,7 +79,7 @@ def test_work_queue_excludes_reminders(test_db):
 def test_work_queue_advance_payment_includes_source_payload(test_db):
     biz = create_business(test_db)
     client_record = test_db.get(ClientRecord, biz.client_id)
-    client_record.office_client_number = 1
+    client_record.office_client_number = 100001
     due_date = date.today() - timedelta(days=1)
     payment = create_linked_advance_payment(
         test_db,
@@ -98,7 +98,7 @@ def test_work_queue_advance_payment_includes_source_payload(test_db):
     )
 
     assert item.client_name.startswith("Task Test Client")
-    assert item.office_client_number == 1
+    assert item.office_client_number == 100001
     assert item.metadata == {
         "period": "2026-02",
         "period_label": "פברואר 2026",
@@ -141,8 +141,8 @@ def test_work_queue_advance_payment_payload_formats_bimonthly_period(test_db):
 def test_work_queue_advance_payment_batch_loads_all_client_identities(test_db):
     first = create_business(test_db)
     second = create_business(test_db)
-    test_db.get(ClientRecord, first.client_id).office_client_number = 1
-    test_db.get(ClientRecord, second.client_id).office_client_number = 3
+    test_db.get(ClientRecord, first.client_id).office_client_number = 100001
+    test_db.get(ClientRecord, second.client_id).office_client_number = 100003
     due_date = date.today() + timedelta(days=3)
     create_linked_advance_payment(
         test_db,

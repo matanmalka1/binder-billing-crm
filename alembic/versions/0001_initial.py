@@ -2294,7 +2294,7 @@ def upgrade() -> None:
     # ### end Alembic commands ###
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(sa.text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1"))
+        op.execute(sa.text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 100001"))
 
 
 def downgrade() -> None:

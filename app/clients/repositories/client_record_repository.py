@@ -14,6 +14,9 @@ from app.core.exceptions import NotFoundError
 from app.utils.time_utils import utcnow
 
 
+OFFICE_CLIENT_NUMBER_START = 100001
+
+
 class ClientRecordRepository:
     """
     Data access for ClientRecord + LegalEntity.
@@ -312,4 +315,4 @@ class ClientRecordRepository:
         current_max = self.db.scalar(
             select(func.max(ClientRecord.office_client_number))
         )
-        return 1 if current_max is None else current_max + 1
+        return OFFICE_CLIENT_NUMBER_START if current_max is None else current_max + 1
